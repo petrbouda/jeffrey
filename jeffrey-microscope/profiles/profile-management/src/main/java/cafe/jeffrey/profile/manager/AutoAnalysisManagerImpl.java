@@ -74,6 +74,11 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
     }
 
     @Override
+    public boolean isComputed() {
+        return cacheRepository.get(CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE).isPresent();
+    }
+
+    @Override
     public boolean canGenerate() {
         return recordingPathResolver.get().isPresent();
     }

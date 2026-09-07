@@ -83,6 +83,15 @@ public final class WebPanelHtml {
 
     private static final String NOT_COMPUTED = "Not computed for this profile yet.";
 
+    /**
+     * Said while the rule set is still running. No link beside it, deliberately: the analysis it
+     * would offer to start is the one already under way.
+     */
+    private static final String ANALYSIS_RUNNING = "Computing the auto-analysis\u2026";
+
+    /** A recording the rules cleared. A result, and until now reported as an absence. */
+    private static final String NOTHING_FLAGGED = "Nothing flagged.";
+
     private static final String AGENTS_FOOT =
             "Install any of these and it turns on by itself.";
 
@@ -306,12 +315,26 @@ public final class WebPanelHtml {
         if (!summary.analysisComputed()) {
             // The heading survives with the count dropped. A section that vanishes entirely reads as a
             // rendering bug rather than as missing data.
-            return html.append("</div><p class='aa-none'>").append(NOT_COMPUTED).append(" ")
+            html.append("</div>");
+            if (summary.analysisPossible()) {
+                // Still coming. The panel is re-asking, so this line is replaced by the findings
+                // rather than by the reader pressing anything -- which is why it offers nothing to
+                // press.
+                return html.append("<div class='aa-wait'>").append(PanelSvg.spinner())
+                        .append("<span>").append(ANALYSIS_RUNNING).append("</span></div>").toString();
+            }
+            return html.append("<p class='aa-none'>").append(NOT_COMPUTED).append(" ")
                     .append(viewLink(ProfileView.AUTO_ANALYSIS.path(), "Run it in Microscope"))
                     .append("</p>").toString();
         }
 
         List<RecordingState.Finding> findings = summary.findings();
+        if (findings.isEmpty()) {
+            return html.append("<span class='cnt'>0 findings</span></div><p class='aa-none'>")
+                    .append(NOTHING_FLAGGED).append(" ")
+                    .append(viewLink(ProfileView.AUTO_ANALYSIS.path(), "Open auto-analysis in Microscope"))
+                    .append("</p>").toString();
+        }
         html.append("<span class='cnt'>").append(findings.size())
                 .append(findings.size() == 1 ? " finding" : " findings").append("</span></div>");
 

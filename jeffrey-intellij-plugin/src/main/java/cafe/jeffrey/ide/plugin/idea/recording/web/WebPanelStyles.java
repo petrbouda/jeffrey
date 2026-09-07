@@ -232,6 +232,8 @@ final class WebPanelStyles {
             .link:hover{text-decoration:underline}
             .aa-more{margin-top:calc(12*var(--u));display:inline-block}
             .aa-none{font-size:calc(13*var(--u));color:var(--sec)}
+            .aa-wait{display:flex;align-items:center;gap:calc(10*var(--u));
+                     font-size:calc(13*var(--u));color:var(--sec)}
 
             .views{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(10*var(--u));
                    margin-top:calc(12*var(--u))}

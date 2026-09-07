@@ -146,6 +146,10 @@ final class MicroscopeJson {
                 parseRecordingFigures(object(summary, "recording")),
                 parseHeapFigures(object(summary, "heap")),
                 booleanOr(summary, "analysisComputed", false),
+                // Absent means an older Microscope that does not report it. Defaulting to false
+                // makes the panel behave the way it always did -- it never waits for an analysis a
+                // server this plugin cannot ask about.
+                booleanOr(summary, "analysisPossible", false),
                 parseFindings(array(summary, "findings")),
                 parseStrings(array(summary, "disabledFeatures")));
     }

@@ -40,6 +40,16 @@ final class PanelHtml {
     private static final String NOT_COMPUTED =
             "Not computed for this profile yet.";
 
+    /**
+     * Said while the rule set is still running, with no link beside it: the run it would offer is
+     * already under way. No spinner either -- Swing's HTML kit animates nothing, and this renderer
+     * is not held to the other one's appearance.
+     */
+    private static final String ANALYSIS_RUNNING =
+            "Computing the auto-analysis\u2026";
+
+    private static final String NOTHING_FLAGGED = "Nothing flagged.";
+
     private static final String NOT_INDEXED =
             "This heap dump has not been indexed yet — open it in Microscope to build the index.";
 
@@ -188,8 +198,16 @@ final class PanelHtml {
 
     private static String findings(RecordingState.ProfileSummary summary) {
         if (!summary.analysisComputed()) {
+            if (summary.analysisPossible()) {
+                return "<table><tr><td class='sml'>" + ANALYSIS_RUNNING + "</td></tr></table>";
+            }
             return "<table><tr><td class='sml'>" + NOT_COMPUTED + " "
                     + link(ProfileView.AUTO_ANALYSIS.path(), "Run it in Microscope")
+                    + "</td></tr></table>";
+        }
+        if (summary.findings().isEmpty()) {
+            return "<table><tr><td class='sml'>" + NOTHING_FLAGGED + " "
+                    + link(ProfileView.AUTO_ANALYSIS.path(), "Auto-analysis")
                     + "</td></tr></table>";
         }
 

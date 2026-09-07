@@ -207,5 +207,30 @@ class AutoAnalysisManagerImplTest {
 
             assertEquals(List.of(), manager(_ -> List.of()).analysisResults());
         }
+
+        @Test
+        @DisplayName("nothing cached means the analysis has not been computed")
+        void notComputedWhenNothingCached() {
+            when(cacheRepository.get(eq(CacheKey.PROFILE_AUTO_ANALYSIS), any(TypeReference.class)))
+                    .thenReturn(Optional.empty());
+
+            assertFalse(manager(_ -> List.of()).isComputed());
+        }
+
+        /**
+         * The distinction the flag exists for. A run that flagged nothing caches an empty list, and a
+         * caller reading "computed" off {@code analysisResults()} would take that for a run that never
+         * happened -- and, if it were waiting for one, wait forever.
+         */
+        @Test
+        @DisplayName("an empty analysis that was computed still reads as computed")
+        void computedWhenAnEmptyListIsCached() {
+            when(cacheRepository.get(eq(CacheKey.PROFILE_AUTO_ANALYSIS), any(TypeReference.class)))
+                    .thenReturn(Optional.of(List.of()));
+
+            AutoAnalysisManagerImpl manager = manager(_ -> List.of());
+            assertTrue(manager.isComputed());
+            assertEquals(List.of(), manager.analysisResults());
+        }
     }
 }

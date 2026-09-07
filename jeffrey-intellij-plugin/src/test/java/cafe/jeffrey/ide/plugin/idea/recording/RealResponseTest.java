@@ -186,5 +186,8 @@ public class RealResponseTest {
 
         assertFalse(summary.analysisComputed());
         assertTrue(summary.findings().isEmpty());
+        // The capture predates the field, which is the point of keeping it: a Microscope that does
+        // not report whether the analysis could still land must not leave the panel waiting for it.
+        assertFalse(summary.analysisPossible());
     }
 }

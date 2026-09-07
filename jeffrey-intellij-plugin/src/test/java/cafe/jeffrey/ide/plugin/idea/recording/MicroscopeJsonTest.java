@@ -56,6 +56,7 @@ public class MicroscopeJsonTest {
                       "lostSamples": 0
                     },
                     "analysisComputed": true,
+                    "analysisPossible": true,
                     "findings": [
                       {"rule": "gc-pauses", "severity": "WARNING", "summary": "Long GC pauses"}
                     ]
@@ -71,6 +72,7 @@ public class MicroscopeJsonTest {
         assertEquals(42_000L, state.summary().recording().durationInMillis());
         assertEquals(18, state.summary().recording().eventTypeCount());
         assertTrue(state.summary().analysisComputed());
+        assertTrue(state.summary().analysisPossible());
         assertEquals(1, state.summary().findings().size());
         assertTrue(state.summary().findings().getFirst().isWarning());
     }
@@ -127,6 +129,30 @@ public class MicroscopeJsonTest {
 
         assertFalse(state.summary().analysisComputed());
         assertTrue(state.summary().findings().isEmpty());
+    }
+
+    /** An analysis on its way: not computed, but the recording the rules read is still there. */
+    @Test
+    public void readsAnAnalysisThatHasNotLandedYet() {
+        RecordingState state = MicroscopeJson.parseState(
+                "{\"state\":\"READY\",\"summary\":"
+                        + "{\"analysisComputed\":false,\"analysisPossible\":true}}", FILENAME, SIZE);
+
+        assertTrue(state.summary().analysisPossible());
+        assertTrue(state.awaitingAnalysis());
+    }
+
+    /**
+     * A Microscope too old to report the field. Defaulting it to false leaves the panel behaving the
+     * way it always did rather than waiting forever for an answer that will never change.
+     */
+    @Test
+    public void anOlderMicroscopeThatOmitsThePossibilityIsNotWaitedFor() {
+        RecordingState state = MicroscopeJson.parseState(
+                "{\"state\":\"READY\",\"summary\":{\"analysisComputed\":false}}", FILENAME, SIZE);
+
+        assertFalse(state.summary().analysisPossible());
+        assertFalse(state.awaitingAnalysis());
     }
 
     @Test

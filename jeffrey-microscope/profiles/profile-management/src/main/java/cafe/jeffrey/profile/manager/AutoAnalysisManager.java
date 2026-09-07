@@ -38,6 +38,16 @@ public interface AutoAnalysisManager {
     List<AutoAnalysisResult> analysisResults();
 
     /**
+     * Whether the rule set has already run for this profile, whatever it found.
+     *
+     * <p>Not {@code !analysisResults().isEmpty()}: a run that flagged nothing caches an empty list,
+     * which is a real answer and not an absent one. Inferring "computed" from "found something" reads
+     * a clean recording as never analysed, permanently — and a caller waiting for the analysis to
+     * land would then wait forever.
+     */
+    boolean isComputed();
+
+    /**
      * Whether the analysis can be run at all, which comes down to whether the recording file the JMC
      * rule set reads is still on disk. Asked before warming so a profile whose recording is gone is
      * skipped quietly rather than failing.

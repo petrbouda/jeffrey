@@ -30,6 +30,7 @@ import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
@@ -139,9 +140,16 @@ public class IdeRecordingLookup {
         return sizeInBytes <= 0 || file.sizeInBytes() == sizeInBytes;
     }
 
+    /**
+     * The analysis is reported through two flags rather than through whether {@code findings} came
+     * back empty. A profile reaches READY before its auto analysis finishes — the warm-up starts the
+     * run and does not wait for it — so the panel needs to tell a run still going from one that
+     * cleared the recording, and reading "computed" off a non-empty list conflates the two.
+     */
     private ProfileSummary summarize(ProfileManager profileManager, String filename) {
         ProfileInfo info = profileManager.info();
-        List<AutoAnalysisResult> findings = profileManager.autoAnalysisManager().analysisResults();
+        AutoAnalysisManager autoAnalysisManager = profileManager.autoAnalysisManager();
+        List<AutoAnalysisResult> findings = autoAnalysisManager.analysisResults();
         boolean heapDump = isHeapDump(filename);
 
         return new ProfileSummary(
@@ -151,7 +159,8 @@ public class IdeRecordingLookup {
                 InstantUtils.toEpochMilli(info.profilingFinishedAt()),
                 heapDump ? null : recordingFigures(profileManager, info),
                 heapDump ? heapFigures(profileManager) : null,
-                !findings.isEmpty(),
+                autoAnalysisManager.isComputed(),
+                autoAnalysisManager.canGenerate(),
                 findings.stream()
                         .limit(FINDINGS_LIMIT)
                         .map(result -> new Finding(

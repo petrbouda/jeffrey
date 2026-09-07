@@ -207,7 +207,7 @@ public class PanelHtmlTest {
         return withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.RECORDING, "jeffrey-20260904-180108",
                 new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
-                null, false, List.of(), disabledFeatures));
+                null, false, false, List.of(), disabledFeatures));
     }
 
     private static RecordingState.ProfileSummary summary(
@@ -216,7 +216,7 @@ public class PanelHtmlTest {
         return new RecordingState.ProfileSummary(
                 RecordingState.Kind.RECORDING, "jeffrey-20260904-180108",
                 new RecordingState.RecordingFigures(5_539, 44_099, 106, captured, lost),
-                null, computed, findings, List.of());
+                null, computed, computed, findings, List.of());
     }
 
     /** The Swing pane gets the same rule: an un-indexed dump's tiles carry no link at all. */
@@ -239,7 +239,7 @@ public class PanelHtmlTest {
         return withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.HEAP_DUMP, "microscope.hprof", null,
                 new RecordingState.HeapFigures(34_536_952L, 737_553L, 15_474, 4_700, cacheReady),
-                false, List.of(), List.of()));
+                false, false, List.of(), List.of()));
     }
 
     private static RecordingState withSummary(RecordingState.ProfileSummary summary) {

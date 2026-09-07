@@ -122,7 +122,7 @@ public class ProfileSummaryLandingTest {
 
     private static RecordingState.ProfileSummary summary(
             RecordingState.Kind kind, RecordingState.HeapFigures heap) {
-        return new RecordingState.ProfileSummary(kind, PROFILE_NAME, null, heap, false, List.of(), List.of());
+        return new RecordingState.ProfileSummary(kind, PROFILE_NAME, null, heap, false, false, List.of(), List.of());
     }
 
     private static RecordingState state(RecordingState.Status status, RecordingState.ProfileSummary summary) {

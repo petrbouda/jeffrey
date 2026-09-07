@@ -77,6 +77,13 @@ public record IdeRecordingStateResponse(
      * dump has no recording window and a recording has no retained size; carrying both as one flat row
      * of nullable numbers would leave the panel guessing which of them mean anything.
      *
+     * @param analysisComputed whether the rule set has run, whatever it found. Distinct from
+     *                         {@code findings} being empty, which a clean recording also is
+     * @param analysisPossible whether it could run — the recording file the rules read is still on
+     *                         disk. With {@code analysisComputed} false, this is what separates "the
+     *                         analysis is on its way" from "it is never coming": the profile's warm-up
+     *                         starts the run without waiting for it, so a profile reaches READY with
+     *                         the findings still in flight
      * @param findings         auto-analysis findings, most severe first; empty when never computed.
      *                         Only recordings have these — heap dumps report through leak suspects
      * @param disabledFeatures {@code FeatureType} names this profile has no data for, so the IDE can
@@ -90,6 +97,7 @@ public record IdeRecordingStateResponse(
             RecordingFigures recording,
             HeapFigures heap,
             boolean analysisComputed,
+            boolean analysisPossible,
             List<Finding> findings,
             List<String> disabledFeatures) {
 

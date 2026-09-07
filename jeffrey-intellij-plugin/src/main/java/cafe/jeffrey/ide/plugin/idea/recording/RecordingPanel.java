@@ -81,12 +81,30 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      */
     private static final int BUILD_FAILED_POLLS_TOLERATED = 5;
 
+    /**
+     * How often the panel re-asks for a profile whose auto analysis has not landed. Slower than the
+     * pipeline poll: this is one cached flag flipping, not a stage moving, and there is nothing to
+     * redraw between two answers that agree.
+     */
+    private static final long ANALYSIS_POLL_SECONDS = 3;
+
+    /**
+     * How long the panel keeps waiting for the analysis -- three minutes at the interval above. The
+     * rule set reads the whole recording, so a long one takes a while; a run that has not finished by
+     * then has failed in a way nobody told this panel about, and the section falls back to offering
+     * the run in Microscope rather than spinning for the life of the tab.
+     */
+    private static final int ANALYSIS_POLLS_TOLERATED = 60;
+
     private final Project project;
     private final Path file;
     private final PanelRenderer renderer;
 
     /** One watch at a time: a second "Build index" while one is running must not start a second loop. */
     private final AtomicBoolean watchingBuild = new AtomicBoolean();
+
+    /** The same, for the auto analysis: a re-query mid-wait must not leave two loops asking. */
+    private final AtomicBoolean watchingAnalysis = new AtomicBoolean();
 
     private volatile MicroscopeClient client;
     private volatile boolean disposed;
@@ -182,7 +200,50 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 }
             }
             show(state);
+            if (state.awaitingAnalysis()) {
+                watchAnalysis(current, 0);
+            }
         });
+    }
+
+    /**
+     * Re-asks about the file until its auto analysis lands.
+     * <p>
+     * A profile reaches READY before its findings exist -- the warm-up starts the rule set and does
+     * not wait for it -- so the one answer {@link #query()} drew is a snapshot of a gap, and without
+     * this the panel would report a finished analysis as never computed for as long as the tab is
+     * open. Deliberately the same {@code by-path} call rather than an endpoint of its own: it reads a
+     * cache, so re-asking recomputes nothing, and the panel keeps its one-endpoint contract, where a
+     * figure it shows can only be wrong in one place.
+     */
+    private void watchAnalysis(MicroscopeClient current, int polls) {
+        if (!watchingAnalysis.compareAndSet(false, true)) {
+            return;
+        }
+        pollAnalysis(current, polls);
+    }
+
+    private void pollAnalysis(MicroscopeClient current, int polls) {
+        if (disposed || polls >= ANALYSIS_POLLS_TOLERATED) {
+            watchingAnalysis.set(false);
+            return;
+        }
+        AppExecutorUtil.getAppScheduledExecutorService().schedule(() -> {
+            if (disposed) {
+                watchingAnalysis.set(false);
+                return;
+            }
+            RecordingState state = current.state(file);
+            // A state that stopped waiting is drawn and ends the watch, whichever way it stopped:
+            // the findings landed, the analysis turned out to be impossible, or the file no longer
+            // answers as a ready profile at all.
+            if (!state.awaitingAnalysis()) {
+                watchingAnalysis.set(false);
+                show(state);
+                return;
+            }
+            pollAnalysis(current, polls + 1);
+        }, ANALYSIS_POLL_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
