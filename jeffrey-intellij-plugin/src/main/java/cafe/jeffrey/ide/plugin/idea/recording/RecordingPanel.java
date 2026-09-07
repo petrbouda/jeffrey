@@ -175,9 +175,20 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         ShowSettingsUtil.getInstance().showSettingsDialog(null, SETTINGS_DISPLAY_NAME);
     }
 
+    /**
+     * Opens the profile where its kind says it should open — a recording on the dashboard, a dump on
+     * its overview. The bare profile URL is not used: Microscope redirects it to the JFR dashboard
+     * whatever the profile holds, and a heap dump would land on a summary of events it has none of.
+     */
     @Override
     public void openProfile() {
-        withProfile(profileId -> BrowserUtil.browse(client.profileUrl(profileId)));
+        withProfile(state -> {
+            RecordingState.ProfileSummary summary = state.summary();
+            String url = summary == null
+                    ? client.profileUrl(state.profileId())
+                    : client.viewUrl(state.profileId(), summary.landingPath());
+            BrowserUtil.browse(url);
+        });
     }
 
     @Override
@@ -185,7 +196,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         if (viewPath == null || viewPath.isBlank()) {
             return;
         }
-        withProfile(profileId -> BrowserUtil.browse(client.viewUrl(profileId, viewPath)));
+        withProfile(state -> BrowserUtil.browse(client.viewUrl(state.profileId(), viewPath)));
     }
 
     /**
@@ -223,14 +234,14 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * Resolves the profile the panel last saw, rather than one captured when the document was drawn,
      * so a stale page cannot outlive the profile it described.
      */
-    private void withProfile(java.util.function.Consumer<String> onProfile) {
+    private void withProfile(java.util.function.Consumer<RecordingState> onProfile) {
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = client.state(file);
             if (state.profileId() == null) {
                 LOG.info("Ignoring a view link for a recording with no profile: file=" + file);
                 return;
             }
-            onProfile.accept(state.profileId());
+            onProfile.accept(state);
         });
     }
 

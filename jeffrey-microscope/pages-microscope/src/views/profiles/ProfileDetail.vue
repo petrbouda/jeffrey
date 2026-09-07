@@ -465,8 +465,13 @@ onMounted(async () => {
     // Check if this is a heap-dump-only profile (no JFR data)
     isHeapDumpOnlyProfile.value = checkHeapDumpOnlyProfile(profileWithContext);
     if (isHeapDumpOnlyProfile.value) {
-      // Auto-select HeapDump mode for heap-dump-only profiles
+      // Auto-select HeapDump mode for heap-dump-only profiles. HeapDump is the only mode such a
+      // profile offers, so a URL that landed anywhere else — the bare profile URL's /dashboard
+      // default, the summary of events a dump does not have — is sent to the overview instead.
       selectedMode.value = 'HeapDump';
+      if (getModeForPath(route.path) !== 'HeapDump') {
+        router.replace(`/profiles/${profileId}/heap-dump/overview`);
+      }
     }
 
     // pprof profiles are stack-samples only: force the Visualization mode and, if the URL landed on

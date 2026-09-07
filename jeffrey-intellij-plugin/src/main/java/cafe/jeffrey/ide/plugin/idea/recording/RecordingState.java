@@ -94,6 +94,12 @@ public record RecordingState(
             List<Finding> findings,
             List<String> disabledFeatures) {
 
+        /** Where a recording opens: the JFR summary dashboard. */
+        private static final String RECORDING_LANDING = "dashboard";
+
+        /** Where a dump opens: its overview. A dump has no dashboard, and Microscope's bare profile URL leads there. */
+        private static final String HEAP_DUMP_LANDING = "heap-dump/overview";
+
         public ProfileSummary {
             findings = findings == null ? List.of() : List.copyOf(findings);
             disabledFeatures = disabledFeatures == null ? List.of() : List.copyOf(disabledFeatures);
@@ -101,6 +107,17 @@ public record RecordingState(
 
         public boolean isHeapDump() {
             return kind == Kind.HEAP_DUMP;
+        }
+
+        /**
+         * The page "Open in Microscope" lands on, as a sub-path under the profile.
+         *
+         * <p>Named here rather than left to Microscope's bare profile URL, because that URL redirects
+         * to the JFR dashboard without looking at what the profile is — which for a dump is a page
+         * about data it does not have. The kind is known on this side, so the link says where it goes.
+         */
+        public String landingPath() {
+            return isHeapDump() ? HEAP_DUMP_LANDING : RECORDING_LANDING;
         }
 
         /** The views this profile's tiles are drawn from. */

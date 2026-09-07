@@ -465,7 +465,10 @@ everything below the header: a recording shows window / samples / event types / 
 flamegraph-and-GC tiles, a dump shows retained / instances / classes / GC roots and the
 leak-suspects-and-dominator-tree tiles, and the agent prompt names "heap dump" so `analyze-heap` fires
 instead of `analyze-jfr`. The kind comes from **what was double-clicked**, not from what the profile
-carries — a recording with a dump attached still reads as a recording. A dump whose index has not been
+carries — a recording with a dump attached still reads as a recording. It also decides where *Open in
+Microscope* lands (`ProfileSummary.landingPath()`: `dashboard` for a recording, `heap-dump/overview`
+for a dump), because the bare `/profiles/{id}` URL redirects to the JFR dashboard without looking;
+`ProfileDetail` bounces a heap-dump-only profile off any non-HeapDump path for the same reason. A dump whose index has not been
 built reports `cacheReady: false`, and the panel says so rather than printing four zeroes. The tab says whether Microscope has analysed the
 file, offers the button that does, and links out to the views as a 3×3 grid of tiles — and once a
 profile is ready it shows **four figures and the auto-analysis lines, and nothing else**: recording
