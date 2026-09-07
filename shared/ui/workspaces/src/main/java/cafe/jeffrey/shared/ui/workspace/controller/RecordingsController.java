@@ -125,7 +125,7 @@ public class RecordingsController {
         try {
             String recordingId = recordingsManager.uploadRecording(
                     file.getOriginalFilename(), file.getInputStream(), normalizedGroupId);
-            return new UploadRecordingResponse(recordingId);
+            return imported(recordingId);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read uploaded recording", e);
         }
@@ -140,7 +140,19 @@ public class RecordingsController {
         String path = request.path().trim();
         LOG.debug("Importing recording from local path for quick analysis: path={}", path);
         String recordingId = recordingsManager.importRecordingFromPath(Path.of(path));
-        return new UploadRecordingResponse(recordingId);
+        return imported(recordingId);
+    }
+
+    /**
+     * The id, and what kind of recording it turned out to be. The caller's next step is to analyse
+     * and open it, and where a profile opens depends on its kind — a heap dump has no JFR dashboard
+     * to land on. Telling it here saves a second round trip to find out.
+     */
+    private UploadRecordingResponse imported(String recordingId) {
+        String eventSource = recordingsManager.findRecording(recordingId)
+                .map(recording -> recording.eventSource().name())
+                .orElse(null);
+        return new UploadRecordingResponse(recordingId, eventSource);
     }
 
     @GetMapping(value = "/recordings", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -197,7 +209,8 @@ public class RecordingsController {
     public record CreateGroupResponse(String groupId) {
     }
 
-    public record UploadRecordingResponse(String recordingId) {
+    /** @param eventSource the recording's {@code RecordingEventSource} by name, or null when unknown */
+    public record UploadRecordingResponse(String recordingId, String eventSource) {
     }
 
     public record ImportFromPathRequest(String path) {

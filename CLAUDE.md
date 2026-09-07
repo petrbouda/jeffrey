@@ -442,7 +442,10 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 Jeffrey's 25). It talks to Microscope in both directions: it answers `/api/jeffrey/*` over IntelliJ's
 built-in server (`ping`, `instance`, `navigate`, `resolve`, `has`, `source`) so `IdeBridge` and the
 `ide_` MCP family can locate a frame's source, and it sends a recording or heap dump the other way
-with the *Analyze in Microscope* action, which opens `/quick-open?path=…` in a browser.
+with the *Analyze in Microscope* action, which opens `/quick-open?path=…` in a browser. Quick Open
+lands by the recording's kind: the `from-path` import answers with the recording's `eventSource`
+alongside its id, and `profileLandingRoute` turns `HEAP_DUMP` into the overview rather than the
+JFR dashboard the bare profile URL defaults to.
 
 **It never renders profile data**, with one bounded exception written down below. No flame graphs,
 no dashboards, no charts, no hot-method list, no gutter or inlay markers carrying figures. Anything
