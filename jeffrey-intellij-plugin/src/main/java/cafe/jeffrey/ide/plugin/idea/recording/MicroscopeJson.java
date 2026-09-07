@@ -71,11 +71,14 @@ final class MicroscopeJson {
     private static final String STAGE_SKIPPED = "skipped";
 
     /**
-     * The heap pipeline's progress as one line, or {@code null} when there is no build to draw — the
+     * A pipeline's progress as one line, or {@code null} when there is no build to draw — the
      * pipeline is idle, or it completed, and either way the panel's next move is to ask for the
      * profile again.
+     * <p>
+     * Nothing read here is particular to either pipeline: both answer the same {@code PipelineProgress},
+     * so the counting is shared and only the words differ, which is what {@code pipeline} carries.
      */
-    static HeapIndexBuild parseIndexBuild(String body) {
+    static PipelineBuild parseBuild(String body, PipelineBuild.Pipeline pipeline) {
         JsonObject root = JsonParser.parseString(body).getAsJsonObject();
         String state = string(root, "state");
         boolean running = PIPELINE_RUNNING.equals(state);
@@ -119,8 +122,9 @@ final class MicroscopeJson {
         }
 
         String error = failed ? stringOr(root, "errorMessage", string(root, "errorCode")) : null;
-        return new HeapIndexBuild(
-                failed ? HeapIndexBuild.Phase.FAILED : HeapIndexBuild.Phase.RUNNING,
+        return new PipelineBuild(
+                pipeline,
+                failed ? PipelineBuild.Phase.FAILED : PipelineBuild.Phase.RUNNING,
                 current, count, currentId, elapsed, error);
     }
 

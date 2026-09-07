@@ -23,7 +23,7 @@ import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
 import cafe.jeffrey.ide.plugin.idea.recording.Formats;
 import cafe.jeffrey.ide.plugin.idea.recording.Html;
 import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
-import cafe.jeffrey.ide.plugin.idea.recording.HeapIndexBuild;
+import cafe.jeffrey.ide.plugin.idea.recording.PipelineBuild;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 
 import java.nio.file.Path;
@@ -55,6 +55,9 @@ public final class WebPanelHtml {
             + "A large dump takes a few minutes.";
 
     private static final String BUILDING_TITLE = "Building the index";
+
+    /** The same box's heading while it is a recording being turned into a profile. */
+    private static final String ANALYZING_TITLE = "Reading the recording";
 
     private static final String BUILDING_EXPLAINS = "The tab updates itself when it is done.";
 
@@ -157,7 +160,7 @@ public final class WebPanelHtml {
             return notAnalysed(content);
         }
 
-        HeapIndexBuild build = content.state().indexBuild();
+        PipelineBuild build = content.state().build();
         boolean building = build != null && !build.failed();
         String subtitle = (summary.isHeapDump() ? "Heap dump" : "JFR recording")
                 + " · " + Formats.bytes(content.state().sizeInBytes())
@@ -207,7 +210,7 @@ public final class WebPanelHtml {
      * how long — rather than a spinner somewhere else. A failure keeps the box and turns it red,
      * with Microscope's own words and the button to go again.
      */
-    private static String indexCallout(HeapIndexBuild build) {
+    private static String indexCallout(PipelineBuild build) {
         if (build == null) {
             return "<div class='callout'>"
                     + "<div class='iw'>" + PanelSvg.icon("index") + "</div>"
@@ -224,6 +227,16 @@ public final class WebPanelHtml {
                     + button("build-index", "Try again", false, false)
                     + "</div>";
         }
+        return progressCallout(BUILDING_TITLE, build, button("open", "Watch in Microscope", false, false));
+    }
+
+    /**
+     * A running pipeline as one line: which stage, of how many, for how long, over a bar that moves
+     * per stage. Shared by the two things the panel waits on — indexing a dump and building a profile
+     * — because the box says the same thing about both and only the heading differs. The stage's own
+     * name comes from the build, which knows which pipeline it belongs to.
+     */
+    private static String progressCallout(String title, PipelineBuild build, String action) {
         String where = build.stageCount() > 0
                 ? " · stage " + build.stageNumber() + " of " + build.stageCount()
                 : "";
@@ -231,12 +244,12 @@ public final class WebPanelHtml {
         int percent = (int) Math.round(build.fraction() * 100);
         return "<div class='callout'>"
                 + "<div class='iw'>" + PanelSvg.spinner() + "</div>"
-                + "<div class='grow'><div class='t'>" + BUILDING_TITLE
+                + "<div class='grow'><div class='t'>" + title
                 + "<span class='tnum'>" + where + "</span></div>"
                 + "<div class='m'>" + Html.escape(build.stageTitle()) + elapsed + ". " + BUILDING_EXPLAINS + "</div>"
                 + "<div class='prog det' style='--w:" + percent + "%'><i style='width:" + percent + "%'></i></div>"
                 + "</div>"
-                + button("open", "Watch in Microscope", false, false)
+                + action
                 + "</div>";
     }
 
@@ -364,13 +377,22 @@ public final class WebPanelHtml {
                 + "</div>";
     }
 
+    /**
+     * A profile still being built. Once Microscope has named the run, the indeterminate bar gives way
+     * to the same progress box the index build draws — a recording that takes minutes to parse used
+     * to show a bar that never moved, which is indistinguishable from one that has hung.
+     */
     private static String analyzing(Content content) {
+        PipelineBuild build = content.state().build();
+        String body = build == null || build.failed()
+                ? "<div class='prog'><i></i></div>"
+                : progressCallout(ANALYZING_TITLE, build, "");
         return accent(false)
                 + header(kindIcon(content.state()), false, plainTitle("Building the profile"),
                         "Parsing events and building views…",
                         buttons(button("check", "Check again", false, false)))
                 + "<div class='body' style='padding-top:calc(20*var(--u))'>"
-                + "<div class='prog'><i></i></div>"
+                + body
                 + "<p class='note last'>" + ANALYZING_EXPLAINS + "</p></div>";
     }
 

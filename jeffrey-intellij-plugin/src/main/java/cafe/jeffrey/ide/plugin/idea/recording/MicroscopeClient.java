@@ -56,6 +56,9 @@ public final class MicroscopeClient implements AutoCloseable {
     private static final String HEAP_BUILD_INDEX = "/heap/initialize-all";
     private static final String HEAP_INDEX_PROGRESS = "/heap/init-progress";
 
+    /** The same pipeline endpoint for the profile itself, one path segment shallower. */
+    private static final String PROFILE_INIT_PROGRESS = "/init-progress";
+
     private static final String RECORDING_ID_FIELD = "recordingId";
     private static final String PROFILE_ID_FIELD = "profileId";
 
@@ -174,13 +177,29 @@ public final class MicroscopeClient implements AutoCloseable {
      * or finished. Throws rather than answering null on a bad reply, because the panel is polling and
      * "Microscope stopped answering" and "the build finished" must not read the same.
      */
-    public HeapIndexBuild heapIndexProgress(String profileId) throws IOException, InterruptedException {
+    public PipelineBuild heapIndexProgress(String profileId) throws IOException, InterruptedException {
         HttpResponse<String> response = send(get(
                 baseUrl + PROFILES_API + encode(profileId) + HEAP_INDEX_PROGRESS, QUERY_TIMEOUT));
         if (!isSuccess(response)) {
             throw new IOException("Microscope answered " + response.statusCode() + ": " + response.body());
         }
-        return MicroscopeJson.parseIndexBuild(response.body());
+        return MicroscopeJson.parseBuild(response.body(), PipelineBuild.Pipeline.HEAP_INDEX);
+    }
+
+    /**
+     * Where building the profile has got to, or {@code null} when there is none to watch.
+     * <p>
+     * The recording's own pipeline rather than the heap dump's, answered by the same endpoint shape a
+     * segment further up. Throws on a bad reply for the same reason as its sibling: the panel is
+     * polling, and "Microscope stopped answering" must not read as "the analysis finished".
+     */
+    public PipelineBuild profileInitProgress(String profileId) throws IOException, InterruptedException {
+        HttpResponse<String> response = send(get(
+                baseUrl + PROFILES_API + encode(profileId) + PROFILE_INIT_PROGRESS, QUERY_TIMEOUT));
+        if (!isSuccess(response)) {
+            throw new IOException("Microscope answered " + response.statusCode() + ": " + response.body());
+        }
+        return MicroscopeJson.parseBuild(response.body(), PipelineBuild.Pipeline.PROFILE_INIT);
     }
 
     /** The Microscope page for a profile. */

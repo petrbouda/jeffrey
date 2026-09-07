@@ -170,11 +170,28 @@ public class MicroscopeClientTest {
         respond("/api/internal/profiles/profile-1/heap/init-progress", 200,
                 "{\"state\":\"running\",\"stages\":[{\"id\":\"load\",\"status\":\"in_progress\",\"elapsedMs\":1500}]}");
 
-        HeapIndexBuild build = client().heapIndexProgress("profile-1");
+        PipelineBuild build = client().heapIndexProgress("profile-1");
 
         assertNotNull(build);
         assertEquals("Loading the dump", build.stageTitle());
         assertEquals(1_500L, build.elapsedMs());
+    }
+
+    /**
+     * The profile's own pipeline, one path segment above the heap dump's. Pinned because the two URLs
+     * differ by exactly that segment, which is the kind of difference a copy-paste loses.
+     */
+    @Test
+    public void readsTheProfileAnalysisProgress() throws Exception {
+        respond("/api/internal/profiles/profile-1/init-progress", 200,
+                "{\"state\":\"running\",\"stages\":[{\"id\":\"parse\",\"status\":\"in_progress\",\"elapsedMs\":12000}]}");
+
+        PipelineBuild build = client().profileInitProgress("profile-1");
+
+        assertNotNull(build);
+        assertEquals("Reading the recording", build.stageTitle());
+        assertEquals(12_000L, build.elapsedMs());
+        assertEquals("/api/internal/profiles/profile-1/init-progress", paths.get(0));
     }
 
     @Test
