@@ -72,6 +72,13 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      */
     private static final int INDEX_IDLE_POLLS_TOLERATED = 3;
 
+    /**
+     * How many polls in a row may fail before the watch gives up. One missed answer is a hiccup;
+     * five is a Microscope that stopped, or an endpoint that is not there, and a panel that keeps
+     * asking every two seconds forever helps nobody.
+     */
+    private static final int INDEX_FAILED_POLLS_TOLERATED = 5;
+
     private final Project project;
     private final Path file;
     private final PanelRenderer renderer;
@@ -245,10 +252,10 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         if (!watchingIndex.compareAndSet(false, true)) {
             return;
         }
-        pollIndexBuild(current, state, 0);
+        pollIndexBuild(current, state, 0, 0);
     }
 
-    private void pollIndexBuild(MicroscopeClient current, RecordingState state, int idlePolls) {
+    private void pollIndexBuild(MicroscopeClient current, RecordingState state, int idlePolls, int failedPolls) {
         if (disposed) {
             watchingIndex.set(false);
             return;
@@ -262,9 +269,16 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 watchingIndex.set(false);
                 return;
             } catch (Exception e) {
-                // One missed poll is not a failed build; the next one will say. Keep watching.
-                LOG.info("Could not read the heap index progress, will ask again: file=" + file, e);
-                pollIndexBuild(current, state, idlePolls);
+                // One missed poll is not a failed build; the next one will say. Keep watching, up
+                // to a point — then stop and draw whatever Microscope will answer about the file.
+                if (failedPolls + 1 < INDEX_FAILED_POLLS_TOLERATED) {
+                    LOG.info("Could not read the heap index progress, will ask again: file=" + file, e);
+                    pollIndexBuild(current, state, idlePolls, failedPolls + 1);
+                    return;
+                }
+                LOG.warn("Gave up following the heap index build: file=" + file, e);
+                watchingIndex.set(false);
+                query();
                 return;
             }
 
@@ -272,7 +286,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 // Idle or completed. Right after the request the run may not exist yet, so a few of
                 // these are patience; more than that and there is nothing to wait for.
                 if (idlePolls + 1 < INDEX_IDLE_POLLS_TOLERATED && state.indexBuild() == null) {
-                    pollIndexBuild(current, state, idlePolls + 1);
+                    pollIndexBuild(current, state, idlePolls + 1, 0);
                     return;
                 }
                 watchingIndex.set(false);
@@ -285,7 +299,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 watchingIndex.set(false);
                 return;
             }
-            pollIndexBuild(current, watched, 0);
+            pollIndexBuild(current, watched, 0, 0);
         }, INDEX_POLL_SECONDS, TimeUnit.SECONDS);
     }
 

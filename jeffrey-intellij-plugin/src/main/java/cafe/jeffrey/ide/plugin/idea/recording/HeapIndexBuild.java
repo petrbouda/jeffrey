@@ -23,7 +23,7 @@ import java.util.Map;
 /**
  * Where the heap index build has got to, as the panel draws it.
  *
- * <p>Microscope's {@code /heap-dump/init-progress} answers with every stage of the pipeline and its
+ * <p>Microscope's {@code /heap/init-progress} answers with every stage of the pipeline and its
  * status. The panel does not draw thirteen rows; it draws one line — which stage, of how many, for
  * how long — so this is that line and nothing else. An idle or completed pipeline has no build to
  * show and is represented by {@code null} rather than by a fourth phase, because the panel's answer

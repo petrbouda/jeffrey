@@ -52,8 +52,9 @@ public final class MicroscopeClient {
     private static final String ANALYZE = "/analyze";
     private static final String PROFILES = "/profiles/";
     private static final String PROFILES_API = "/api/internal/profiles/";
-    private static final String HEAP_BUILD_INDEX = "/heap-dump/initialize-all";
-    private static final String HEAP_INDEX_PROGRESS = "/heap-dump/init-progress";
+    // The heap API is mounted at /heap; /heap-dump is the UI's route prefix, not the server's.
+    private static final String HEAP_BUILD_INDEX = "/heap/initialize-all";
+    private static final String HEAP_INDEX_PROGRESS = "/heap/init-progress";
 
     private static final String RECORDING_ID_FIELD = "recordingId";
     private static final String PROFILE_ID_FIELD = "profileId";
