@@ -149,6 +149,42 @@ public class MicroscopeClientTest {
                 client.viewUrl("profile-1", ProfileView.RECORDING.getFirst().path()));
     }
 
+    @Test
+    public void startsAnIndexBuildAgainstTheProfile() throws Exception {
+        respond("/api/internal/profiles/profile-1/heap-dump/initialize-all", 202, "");
+
+        client().buildHeapIndex("profile-1");
+
+        assertEquals("/api/internal/profiles/profile-1/heap-dump/initialize-all", paths.get(0));
+    }
+
+    @Test
+    public void aRefusedIndexBuildIsReportedNotSwallowed() {
+        respond("/api/internal/profiles/profile-1/heap-dump/initialize-all", 409, "{\"error\":\"busy\"}");
+
+        assertThrows(IOException.class, () -> client().buildHeapIndex("profile-1"));
+    }
+
+    @Test
+    public void readsTheIndexBuildProgress() throws Exception {
+        respond("/api/internal/profiles/profile-1/heap-dump/init-progress", 200,
+                "{\"state\":\"running\",\"stages\":[{\"id\":\"load\",\"status\":\"in_progress\",\"elapsedMs\":1500}]}");
+
+        HeapIndexBuild build = client().heapIndexProgress("profile-1");
+
+        assertNotNull(build);
+        assertEquals("Loading the dump", build.stageTitle());
+        assertEquals(1_500L, build.elapsedMs());
+    }
+
+    @Test
+    public void anIdlePipelineReadsAsNoBuild() throws Exception {
+        respond("/api/internal/profiles/profile-1/heap-dump/init-progress", 200,
+                "{\"state\":\"idle\",\"stages\":[]}");
+
+        assertNull(client().heapIndexProgress("profile-1"));
+    }
+
     private MicroscopeClient client() {
         return new MicroscopeClient(baseUrl);
     }

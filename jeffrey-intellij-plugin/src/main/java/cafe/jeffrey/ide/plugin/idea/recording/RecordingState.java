@@ -34,7 +34,36 @@ public record RecordingState(
         String profileId,
         String filename,
         long sizeInBytes,
-        ProfileSummary summary) {
+        ProfileSummary summary,
+        HeapIndexBuild indexBuild) {
+
+    /** The state as Microscope reports it, before the panel has asked about any index build. */
+    public RecordingState(
+            Status status,
+            String recordingId,
+            String profileId,
+            String filename,
+            long sizeInBytes,
+            ProfileSummary summary) {
+        this(status, recordingId, profileId, filename, sizeInBytes, summary, null);
+    }
+
+    /**
+     * The same state with the index build the panel is watching attached, or detached when
+     * {@code build} is null. The by-path answer does not carry the build — that is a second call the
+     * panel makes only for a dump whose index is missing — so it is joined on here.
+     */
+    public RecordingState withIndexBuild(HeapIndexBuild build) {
+        return new RecordingState(status, recordingId, profileId, filename, sizeInBytes, summary, build);
+    }
+
+    /** A ready heap dump whose index has not been built: the one state that can offer the build. */
+    public boolean needsHeapIndex() {
+        return status == Status.READY
+                && summary != null
+                && summary.isHeapDump()
+                && (summary.heap() == null || !summary.heap().cacheReady());
+    }
 
     public enum Status {
         /** Microscope has never seen this file. */
@@ -163,6 +192,6 @@ public record RecordingState(
     }
 
     public static RecordingState unavailable(String filename, long sizeInBytes) {
-        return new RecordingState(Status.UNAVAILABLE, null, null, filename, sizeInBytes, null);
+        return new RecordingState(Status.UNAVAILABLE, null, null, filename, sizeInBytes, null, null);
     }
 }

@@ -20,6 +20,7 @@ package cafe.jeffrey.ide.plugin.idea.recording.web;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
+import cafe.jeffrey.ide.plugin.idea.recording.HeapIndexBuild;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 import org.junit.Test;
 
@@ -131,7 +132,45 @@ public class WebPanelHtmlTest {
         String html = document(heapDump(false));
 
         assertFalse(html.contains("class='figs'"));
-        assertTrue(html.contains("has not been indexed yet"));
+        assertTrue(html.contains("The index has not been built"));
+        assertTrue("the remedy sits beside the sentence", html.contains("data-action='build-index'"));
+        assertTrue(html.contains("profile ready"));
+    }
+
+    /** The same box becomes the progress report: stage, of how many, and no second Build button. */
+    @Test
+    public void aRunningIndexBuildTurnsTheCalloutIntoProgress() {
+        String html = document(heapDump(false).withIndexBuild(
+                new HeapIndexBuild(HeapIndexBuild.Phase.RUNNING, 5, 13, "dominator", 80_000L, null)));
+
+        assertTrue(html.contains("class='spin'"));
+        assertTrue(html.contains("stage 5 of 13"));
+        assertTrue(html.contains("Dominator tree"));
+        assertTrue(html.contains("1 m 20 s elapsed"));
+        assertTrue(html.contains("building the index"));
+        assertFalse(html.contains("data-action='build-index'"));
+        assertTrue("the tiles stay on offer", html.contains("data-action='view:heap-dump/leak-suspects'"));
+    }
+
+    @Test
+    public void aFailedIndexBuildKeepsTheBoxAndOffersToGoAgain() {
+        String html = document(heapDump(false).withIndexBuild(
+                new HeapIndexBuild(HeapIndexBuild.Phase.FAILED, 2, 13, "parse", 9_000L, "Java <heap> space")));
+
+        assertTrue(html.contains("class='callout bad'"));
+        assertTrue(html.contains("The index build failed"));
+        assertTrue("Microscope's words, escaped", html.contains("Java &lt;heap&gt; space"));
+        assertTrue(html.contains("data-action='build-index'"));
+        assertFalse(html.contains("class='spin'"));
+    }
+
+    /** An indexed dump has figures; the callout has nothing to say and must not appear. */
+    @Test
+    public void anIndexedHeapDumpShowsFiguresAndNoCallout() {
+        String html = document(heapDump(true));
+
+        assertTrue(html.contains("class='figs'"));
+        assertFalse(html.contains("class='callout"));
     }
 
     /** The not-indexed sentence is about heap dumps; a recording without figures must not claim it. */

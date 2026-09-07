@@ -80,6 +80,8 @@ final class PanelHtml {
             return html.append(facts(state, file, microscopeUrl)).append("</body></html>").toString();
         }
 
+        html.append(indexBuildLine(state.indexBuild()));
+
         // Auto-analysis is a recording's verdict. A heap dump's is "Leak suspects", which leads its
         // tile grid — so a dump gets no findings section rather than an empty one.
         if (!summary.isHeapDump()) {
@@ -87,6 +89,23 @@ final class PanelHtml {
         }
         html.append(section("Open a view")).append(tiles(summary));
         return html.append("</body></html>").toString();
+    }
+
+    /**
+     * The index build as one sentence. Swing's engine has no spinner to offer, so the words carry it:
+     * which stage, of how many, or what went wrong.
+     */
+    private static String indexBuildLine(HeapIndexBuild build) {
+        if (build == null) {
+            return "";
+        }
+        if (build.failed()) {
+            return "<p class='sml'><b>The index build failed.</b> " + Html.escape(build.failureMessage()) + "</p>";
+        }
+        String where = build.stageCount() > 0
+                ? " — stage " + build.stageNumber() + " of " + build.stageCount() + ", " + Html.escape(build.stageTitle())
+                : "";
+        return "<p class='sml'><b>Building the index…</b>" + where + ". The tab updates itself when it is done.</p>";
     }
 
     /**

@@ -469,7 +469,14 @@ carries — a recording with a dump attached still reads as a recording. It also
 Microscope* lands (`ProfileSummary.landingPath()`: `dashboard` for a recording, `heap-dump/overview`
 for a dump), because the bare `/profiles/{id}` URL redirects to the JFR dashboard without looking;
 `ProfileDetail` bounces a heap-dump-only profile off any non-HeapDump path for the same reason. A dump whose index has not been
-built reports `cacheReady: false`, and the panel says so rather than printing four zeroes. The tab says whether Microscope has analysed the
+built reports `cacheReady: false`, and the panel says so rather than printing four zeroes — in a
+callout with a *Build index* button, the second thing after *Analyze* the panel can make Microscope
+do. `RecordingPanel.buildIndex` posts `heap-dump/initialize-all` and then polls
+`heap-dump/init-progress` every two seconds, redrawing the callout as the one line
+`HeapIndexBuild` reduces the 13-stage pipeline to (stage N of M, its title, time so far); `query()`
+makes the same progress check for an un-indexed dump so a tab opened mid-build follows it instead of
+offering a second one. Idle and completed both parse to `null` — the panel's answer to either is to
+ask for the profile again. The tab says whether Microscope has analysed the
 file, offers the button that does, and links out to the views as a 3×3 grid of tiles — and once a
 profile is ready it shows **four figures and the auto-analysis lines, and nothing else**: recording
 window, sample count, event type count, sample-loss share, then one line per finding. That list is the

@@ -23,6 +23,7 @@ import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
 import cafe.jeffrey.ide.plugin.idea.recording.Formats;
 import cafe.jeffrey.ide.plugin.idea.recording.Html;
 import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
+import cafe.jeffrey.ide.plugin.idea.recording.HeapIndexBuild;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 
 import java.nio.file.Path;
@@ -47,9 +48,21 @@ public final class WebPanelHtml {
     /** How the page calls back into Java. Defined by the bridge script the renderer supplies. */
     private static final String SEND = "window.__jeffrey";
 
+    private static final String NOT_INDEXED_TITLE = "The index has not been built";
+
     private static final String NOT_INDEXED =
-            "This heap dump has not been indexed yet, so it has no figures to show. Open it in "
-            + "Microscope to build the index — the views below cannot answer anything until it exists.";
+            "No figures, and the views below cannot answer anything until it exists. "
+            + "A large dump takes a few minutes.";
+
+    private static final String BUILDING_TITLE = "Building the index";
+
+    private static final String BUILDING_EXPLAINS = "The tab updates itself when it is done.";
+
+    private static final String BUILD_FAILED_TITLE = "The index build failed";
+
+    private static final String SUBTITLE_READY = "profile ready";
+
+    private static final String SUBTITLE_BUILDING = "building the index";
 
     private static final String ANALYZE_EXPLAINS =
             "Analysing copies the recording into Microscope, parses its events and builds the views. "
@@ -140,9 +153,11 @@ public final class WebPanelHtml {
             return notAnalysed(content);
         }
 
+        HeapIndexBuild build = content.state().indexBuild();
+        boolean building = build != null && !build.failed();
         String subtitle = (summary.isHeapDump() ? "Heap dump" : "JFR recording")
                 + " · " + Formats.bytes(content.state().sizeInBytes())
-                + " · profile ready";
+                + " · " + (building ? SUBTITLE_BUILDING : SUBTITLE_READY);
 
         StringBuilder html = new StringBuilder(4096);
         html.append(accent(false))
@@ -160,7 +175,7 @@ public final class WebPanelHtml {
         // Only a dump explains itself here. A recording that reported no figures is a different and
         // rarer thing, and telling its reader about a heap index would be a lie with a straight face.
         if (figures.isEmpty() && summary.isHeapDump()) {
-            html.append("<p class='note'>").append(NOT_INDEXED).append("</p>");
+            html.append(indexCallout(build));
         }
         // A heap dump gets no findings section at all rather than an empty one: its verdict is Leak
         // suspects, which already leads its tile grid.
@@ -178,6 +193,47 @@ public final class WebPanelHtml {
             return heapFigures(summary.heap());
         }
         return recordingFigures(summary.recording());
+    }
+
+    // --- the index callout ----------------------------------------------------------------------
+
+    /**
+     * One box that says where the dump's index is. The sentence and its remedy are one object, and
+     * while the build runs the same box becomes the progress report — which stage, of how many, for
+     * how long — rather than a spinner somewhere else. A failure keeps the box and turns it red,
+     * with Microscope's own words and the button to go again.
+     */
+    private static String indexCallout(HeapIndexBuild build) {
+        if (build == null) {
+            return "<div class='callout'>"
+                    + "<div class='iw'>" + PanelSvg.icon("index") + "</div>"
+                    + "<div class='grow'><div class='t'>" + NOT_INDEXED_TITLE + "</div>"
+                    + "<div class='m'>" + NOT_INDEXED + "</div></div>"
+                    + button("build-index", "Build index", true, false)
+                    + "</div>";
+        }
+        if (build.failed()) {
+            return "<div class='callout bad'>"
+                    + "<div class='iw'>" + PanelSvg.icon("warn") + "</div>"
+                    + "<div class='grow'><div class='t'>" + BUILD_FAILED_TITLE + "</div>"
+                    + "<div class='m'>" + Html.escape(build.failureMessage()) + "</div></div>"
+                    + button("build-index", "Try again", false, false)
+                    + "</div>";
+        }
+        String where = build.stageCount() > 0
+                ? " · stage " + build.stageNumber() + " of " + build.stageCount()
+                : "";
+        String elapsed = build.elapsedMs() > 0 ? " · " + Formats.duration(build.elapsedMs()) + " elapsed" : "";
+        int percent = (int) Math.round(build.fraction() * 100);
+        return "<div class='callout'>"
+                + "<div class='iw'>" + PanelSvg.spinner() + "</div>"
+                + "<div class='grow'><div class='t'>" + BUILDING_TITLE
+                + "<span class='tnum'>" + where + "</span></div>"
+                + "<div class='m'>" + Html.escape(build.stageTitle()) + elapsed + ". " + BUILDING_EXPLAINS + "</div>"
+                + "<div class='prog det' style='--w:" + percent + "%'><i style='width:" + percent + "%'></i></div>"
+                + "</div>"
+                + button("open", "Watch in Microscope", false, false)
+                + "</div>";
     }
 
     private static String recordingFigures(RecordingState.RecordingFigures figures) {

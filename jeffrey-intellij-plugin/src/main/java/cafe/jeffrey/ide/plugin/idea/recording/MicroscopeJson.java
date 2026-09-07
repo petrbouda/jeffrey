@@ -57,6 +57,74 @@ final class MicroscopeJson {
         return string(JsonParser.parseString(body).getAsJsonObject(), field);
     }
 
+    private static final String PIPELINE_RUNNING = "running";
+    private static final String PIPELINE_FAILED = "failed";
+    private static final String STAGE_IN_PROGRESS = "in_progress";
+    private static final String STAGE_COMPLETED = "completed";
+    private static final String STAGE_FAILED = "failed";
+
+    /**
+     * The heap pipeline's progress as one line, or {@code null} when there is no build to draw — the
+     * pipeline is idle, or it completed, and either way the panel's next move is to ask for the
+     * profile again.
+     */
+    static HeapIndexBuild parseIndexBuild(String body) {
+        JsonObject root = JsonParser.parseString(body).getAsJsonObject();
+        String state = string(root, "state");
+        boolean running = PIPELINE_RUNNING.equals(state);
+        boolean failed = PIPELINE_FAILED.equals(state);
+        if (!running && !failed) {
+            return null;
+        }
+
+        JsonArray stages = array(root, "stages");
+        int count = stages == null ? 0 : stages.size();
+        int completed = 0;
+        int current = 0;
+        String currentId = null;
+        long elapsed = 0L;
+        if (stages != null) {
+            int position = 0;
+            for (JsonElement element : stages) {
+                position++;
+                if (!element.isJsonObject()) {
+                    continue;
+                }
+                JsonObject stage = element.getAsJsonObject();
+                String status = string(stage, "status");
+                if (STAGE_COMPLETED.equals(status)) {
+                    completed++;
+                    elapsed += longOr(stage, "durationMs", 0L);
+                } else if (STAGE_IN_PROGRESS.equals(status) || STAGE_FAILED.equals(status)) {
+                    if (current == 0) {
+                        current = position;
+                        currentId = string(stage, "id");
+                    }
+                    elapsed += longOr(stage, "elapsedMs", longOr(stage, "durationMs", 0L));
+                }
+            }
+        }
+        // Nothing in progress yet (the run was just started) or nothing marked failed: the stage
+        // after the last finished one is the one to name.
+        if (current == 0) {
+            current = Math.min(count, completed + 1);
+            currentId = stageIdAt(stages, current);
+        }
+
+        String error = failed ? stringOr(root, "errorMessage", string(root, "errorCode")) : null;
+        return new HeapIndexBuild(
+                failed ? HeapIndexBuild.Phase.FAILED : HeapIndexBuild.Phase.RUNNING,
+                current, count, currentId, elapsed, error);
+    }
+
+    private static String stageIdAt(JsonArray stages, int position) {
+        if (stages == null || position < 1 || position > stages.size()) {
+            return null;
+        }
+        JsonElement element = stages.get(position - 1);
+        return element.isJsonObject() ? string(element.getAsJsonObject(), "id") : null;
+    }
+
     private static RecordingState.ProfileSummary parseSummary(JsonObject summary) {
         if (summary == null) {
             return null;

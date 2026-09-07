@@ -44,6 +44,8 @@
                 a line on what the page answers. A ready profile also shows its recording window,
                 sample count, event types, sample loss and the auto-analysis findings, each titled
                 by the rule that fired. Views the recording has no data for stay visible but dimmed.
+                A heap dump whose index is not built yet offers to build it, right there, and shows
+                the build's progress until the figures arrive.
                 Rendered in the IDE's own browser, so it matches your theme and follows it when you
                 switch.</li>
             <li><b>Hand it to a coding agent</b> — one button starts Claude Code or Codex in a

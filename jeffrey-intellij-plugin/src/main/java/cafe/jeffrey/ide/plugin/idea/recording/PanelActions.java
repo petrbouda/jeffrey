@@ -23,7 +23,7 @@ import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 /**
  * What the rendered panel can ask for.
  *
- * <p>An interface rather than a record of callbacks: these are seven named things a reader of the
+ * <p>An interface rather than a record of callbacks: these are eight named things a reader of the
  * renderer needs to recognise, and {@code actions.analyze()} says more at the call site than the
  * fourth field of a constructor. {@link RecordingPanel} is the only implementation — it owns the
  * state machine, and the renderers own nothing but pixels.
@@ -44,6 +44,9 @@ public interface PanelActions {
 
     /** Open the profile's landing page in the browser. */
     void openProfile();
+
+    /** Build a heap dump's index in Microscope, and keep the panel following it until it is done. */
+    void buildIndex();
 
     /** Open one Microscope view, named by its sub-path under {@code /profiles/{id}/}. */
     void openView(String viewPath);

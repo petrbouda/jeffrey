@@ -86,6 +86,11 @@ final class PanelSvg {
             "<circle cx='8' cy='8' r='6.2' fill='none' stroke='currentColor' stroke-width='1.3'/>"
             + "<path d='M3.6 3.6l8.8 8.8' stroke='currentColor' stroke-width='1.3'/>";
 
+    private static final String INDEX =
+            "<path d='M2.4 3.6h11.2 M2.4 8h11.2 M2.4 12.4h6.4' stroke='currentColor' stroke-width='1.3'"
+            + " stroke-linecap='round'/>"
+            + "<circle cx='12.2' cy='12.4' r='1.5' fill='none' stroke='currentColor' stroke-width='1.3'/>";
+
     private static final String CHEVRON =
             "<path d='M3.5 6.5 8 11l4.5-4.5' fill='none' stroke='currentColor' stroke-width='1.5'"
             + " stroke-linecap='round' stroke-linejoin='round'/>";
@@ -103,6 +108,7 @@ final class PanelSvg {
             Map.entry("traces", TRACES),
             Map.entry("warn", WARN),
             Map.entry("offline", OFFLINE),
+            Map.entry("index", INDEX),
             Map.entry("chevron", CHEVRON));
 
     private PanelSvg() {
@@ -123,5 +129,15 @@ final class PanelSvg {
 
     static String icon(String key) {
         return icon(key, "ico");
+    }
+
+    /**
+     * A turning arc, for work in progress. An SVG rather than a CSS border trick because it takes
+     * {@code currentColor} the way the icons do, and sits on the same 16-unit box.
+     */
+    static String spinner() {
+        return "<svg class='spin' viewBox='0 0 24 24' role='img' aria-label='Working'>"
+                + "<circle class='track' cx='12' cy='12' r='9'/>"
+                + "<circle cx='12' cy='12' r='9'/></svg>";
     }
 }

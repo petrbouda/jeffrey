@@ -51,6 +51,9 @@ public final class MicroscopeClient {
     private static final String RECORDINGS = "/api/internal/recordings/recordings/";
     private static final String ANALYZE = "/analyze";
     private static final String PROFILES = "/profiles/";
+    private static final String PROFILES_API = "/api/internal/profiles/";
+    private static final String HEAP_BUILD_INDEX = "/heap-dump/initialize-all";
+    private static final String HEAP_INDEX_PROGRESS = "/heap-dump/init-progress";
 
     private static final String RECORDING_ID_FIELD = "recordingId";
     private static final String PROFILE_ID_FIELD = "profileId";
@@ -140,6 +143,38 @@ public final class MicroscopeClient {
                 .build();
 
         return requireId(send(request), PROFILE_ID_FIELD);
+    }
+
+    /**
+     * Starts building a heap dump's index — the object index, the dominator tree and every cached
+     * analysis, as one background run in Microscope. Returns as soon as the run is accepted; how far
+     * it has got is a separate question, {@link #heapIndexProgress(String)}. Asking while a run is
+     * already in flight is not an error: Microscope answers the same 202 and keeps the run it has.
+     */
+    public void buildHeapIndex(String profileId) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(
+                        URI.create(baseUrl + PROFILES_API + encode(profileId) + HEAP_BUILD_INDEX))
+                .timeout(QUERY_TIMEOUT)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> response = send(request);
+        if (!isSuccess(response)) {
+            throw new IOException("Microscope answered " + response.statusCode() + ": " + response.body());
+        }
+    }
+
+    /**
+     * Where the index build has got to, or {@code null} when there is none to watch — never started,
+     * or finished. Throws rather than answering null on a bad reply, because the panel is polling and
+     * "Microscope stopped answering" and "the build finished" must not read the same.
+     */
+    public HeapIndexBuild heapIndexProgress(String profileId) throws IOException, InterruptedException {
+        HttpResponse<String> response = send(get(
+                baseUrl + PROFILES_API + encode(profileId) + HEAP_INDEX_PROGRESS, QUERY_TIMEOUT));
+        if (!isSuccess(response)) {
+            throw new IOException("Microscope answered " + response.statusCode() + ": " + response.body());
+        }
+        return MicroscopeJson.parseIndexBuild(response.body());
     }
 
     /** The Microscope page for a profile. */

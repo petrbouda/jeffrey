@@ -36,6 +36,8 @@ import com.intellij.util.concurrency.AppExecutorUtil;
 import javax.swing.JComponent;
 import java.awt.BorderLayout;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The recording panel: what Microscope knows about this file, and what it can open.
@@ -60,11 +62,25 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
 
     private static final String SETTINGS_DISPLAY_NAME = "Jeffrey Plugin";
 
+    /** How often the panel asks about a running index build. Stages take seconds to minutes. */
+    private static final long INDEX_POLL_SECONDS = 2;
+
+    /**
+     * How many "nothing running" answers in a row end the watch after a build was requested. The
+     * run is registered asynchronously, so the first poll can land before it exists; three in a row
+     * mean it never will.
+     */
+    private static final int INDEX_IDLE_POLLS_TOLERATED = 3;
+
     private final Project project;
     private final Path file;
     private final PanelRenderer renderer;
 
+    /** One watch at a time: a second "Build index" while one is running must not start a second loop. */
+    private final AtomicBoolean watchingIndex = new AtomicBoolean();
+
     private volatile MicroscopeClient client;
+    private volatile boolean disposed;
 
     public RecordingPanel(Project project, Path file) {
         super(new BorderLayout());
@@ -128,13 +144,28 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
 
     @Override
     public void dispose() {
+        disposed = true;
     }
 
+    /**
+     * Asks Microscope about the file and draws the answer. A dump whose index is missing gets one
+     * more question — is a build already running? — so a tab opened while Microscope is indexing
+     * shows the build rather than offering to start a second one.
+     */
     private void query() {
         MicroscopeClient current = client;
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = current.state(file);
-            ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
+            if (state.needsHeapIndex()) {
+                HeapIndexBuild build = progressOrNull(current, state.profileId());
+                if (build != null && !build.failed()) {
+                    RecordingState watched = state.withIndexBuild(build);
+                    show(watched);
+                    watchIndexBuild(current, watched);
+                    return;
+                }
+            }
+            show(state);
         });
     }
 
@@ -149,8 +180,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             try {
                 current.analyze(file);
-                RecordingState state = current.state(file);
-                ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
+                query();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
@@ -173,6 +203,108 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     @Override
     public void openSettings() {
         ShowSettingsUtil.getInstance().showSettingsDialog(null, SETTINGS_DISPLAY_NAME);
+    }
+
+    /**
+     * Starts the index build and follows it. The panel redraws on every poll — the callout is what
+     * moves, the rest of the page stays — and drops back to an ordinary ready state, figures and all,
+     * once the pipeline is no longer running.
+     */
+    @Override
+    public void buildIndex() {
+        MicroscopeClient current = client;
+        AppExecutorUtil.getAppExecutorService().execute(() -> {
+            RecordingState state = current.state(file);
+            if (!state.needsHeapIndex()) {
+                LOG.info("Ignoring an index build for a file that does not need one: file=" + file);
+                show(state);
+                return;
+            }
+            try {
+                current.buildHeapIndex(state.profileId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                LOG.warn("Starting a heap index build in Microscope failed: file=" + file, e);
+                show(state.withIndexBuild(new HeapIndexBuild(
+                        HeapIndexBuild.Phase.FAILED, 0, 0, null, 0L, message(e))));
+                return;
+            }
+            show(state.withIndexBuild(new HeapIndexBuild(
+                    HeapIndexBuild.Phase.RUNNING, 0, 0, null, 0L, null)));
+            watchIndexBuild(current, state);
+        });
+    }
+
+    /**
+     * Polls the build until it stops, one scheduled poll at a time rather than a thread that sleeps.
+     * A closed tab ends the watch at the next poll; the build itself carries on in Microscope.
+     */
+    private void watchIndexBuild(MicroscopeClient current, RecordingState state) {
+        if (!watchingIndex.compareAndSet(false, true)) {
+            return;
+        }
+        pollIndexBuild(current, state, 0);
+    }
+
+    private void pollIndexBuild(MicroscopeClient current, RecordingState state, int idlePolls) {
+        if (disposed) {
+            watchingIndex.set(false);
+            return;
+        }
+        AppExecutorUtil.getAppScheduledExecutorService().schedule(() -> {
+            HeapIndexBuild build;
+            try {
+                build = current.heapIndexProgress(state.profileId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                watchingIndex.set(false);
+                return;
+            } catch (Exception e) {
+                // One missed poll is not a failed build; the next one will say. Keep watching.
+                LOG.info("Could not read the heap index progress, will ask again: file=" + file, e);
+                pollIndexBuild(current, state, idlePolls);
+                return;
+            }
+
+            if (build == null) {
+                // Idle or completed. Right after the request the run may not exist yet, so a few of
+                // these are patience; more than that and there is nothing to wait for.
+                if (idlePolls + 1 < INDEX_IDLE_POLLS_TOLERATED && state.indexBuild() == null) {
+                    pollIndexBuild(current, state, idlePolls + 1);
+                    return;
+                }
+                watchingIndex.set(false);
+                query();
+                return;
+            }
+            RecordingState watched = state.withIndexBuild(build);
+            show(watched);
+            if (build.failed()) {
+                watchingIndex.set(false);
+                return;
+            }
+            pollIndexBuild(current, watched, 0);
+        }, INDEX_POLL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private static HeapIndexBuild progressOrNull(MicroscopeClient current, String profileId) {
+        try {
+            return current.heapIndexProgress(profileId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void show(RecordingState state) {
+        if (disposed) {
+            return;
+        }
+        ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
     }
 
     /**
