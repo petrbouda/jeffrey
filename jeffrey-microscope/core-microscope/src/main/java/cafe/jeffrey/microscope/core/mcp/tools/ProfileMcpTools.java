@@ -205,7 +205,7 @@ public class ProfileMcpTools {
 
     @Tool(description = "One call that orients you in a profile: what it is and what it covers, which "
             + "analysis features it has data for, every event type it recorded with its totals, "
-            + "the auto-analysis findings that flagged something when they have been computed, and "
+            + "the auto-analysis findings that flagged something, and "
             + "capabilityGaps — in words, every question this recording cannot answer and which "
             + "tools that leaves empty. Start here rather than with profiles_get, profiles_features "
             + "and profiles_samplerHealth in turn — this is those three and the findings, and what "
@@ -226,9 +226,6 @@ public class ProfileMcpTools {
                 disabled.stream().map(Enum::name).sorted().toList(),
                 recordedEventTypes(),
                 AutoAnalysisFindings.flagged(results).stream().limit(TOP_FINDINGS_LIMIT).toList(),
-                // Whether the cache key is present, not whether the list is: a run that flagged nothing
-                // caches an empty list, and read the other way it is indistinguishable from no run.
-                !profileManager.autoAnalysisManager().isComputed(),
                 capabilityGaps.gaps(disabled),
                 UiLinks.profile(info.id())));
     }
@@ -306,14 +303,12 @@ public class ProfileMcpTools {
     }
 
     /**
-     * @param topFindings         the auto-analysis rules that flagged something, most severe first, in
-     *                            the shared finding shape — the passes are left to jvm_autoAnalysis
-     * @param autoAnalysisMissing true when the rule set left no findings cached, which is why
-     *                            topFindings is empty — different from a profile the rules found
-     *                            nothing wrong with. An import runs them before the profile is
-     *                            usable, so this is a run that failed or one that could not run
-     * @param capabilityGaps      what this recording cannot answer, in words, with what would close
-     *                            each gap — read before any negative result is believed
+     * @param topFindings    the auto-analysis rules that flagged something, most severe first, in the
+     *                       shared finding shape — the passes are left to jvm_autoAnalysis. Empty
+     *                       means the rules cleared the recording, unless capabilityGaps says they
+     *                       did not run: that distinction lives there, in words, and nowhere else
+     * @param capabilityGaps what this recording cannot answer, in words, with what would close each
+     *                       gap — read before any negative result is believed
      */
     private record ProfileSummary(
             String profileId,
@@ -324,7 +319,6 @@ public class ProfileMcpTools {
             List<String> disabledFeatures,
             List<RecordedEventType> eventTypes,
             List<McpFinding> topFindings,
-            boolean autoAnalysisMissing,
             List<CapabilityGap> capabilityGaps,
             String uiLink) {
     }

@@ -57,7 +57,7 @@ graph of a five-minute average hides a thirty-second spike. So the first export 
 | Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
 | `jdk.OldObjectSample` is recorded, or the heap grows across the recording | `memory_leakCandidates`; a heap dump and `analyze-heap` for what retains it |
 | Two profiles of the same workload | `compare-jfr` |
-| `autoAnalysisMissing` is true | The rules left nothing for this profile, so their absence is a gap and not a clean result. `jvm_autoAnalysis` with `compute: true` runs them; the other families answer either way |
+| `topFindings` is empty and `capabilityGaps` names `autoAnalysis` | The rules did not run, so their silence is a gap and not a clean result. `jvm_autoAnalysis` with `compute: true` runs them; the other families answer either way. Empty with no such gap means the rules ran and cleared the recording |
 
 Run more than one route when the summary points at more than one. They are independent.
 

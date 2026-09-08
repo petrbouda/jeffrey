@@ -321,9 +321,25 @@ class ProfileMcpToolsTest {
 
             String result = tools().summary();
 
-            assertTrue(result.contains("\"autoAnalysisMissing\":true"), result);
             assertTrue(result.contains("\"subject\":\"autoAnalysis\""), result);
             assertTrue(result.contains("jvm_autoAnalysis with compute true"), result);
+        }
+
+        /**
+         * The gap is the only thing that separates "the rules ran and cleared the recording" from
+         * "the rules did not run", since both leave topFindings empty. A profile whose rules ran must
+         * therefore not carry it.
+         */
+        @Test
+        void doesNotClaimTheRulesAreMissingWhenTheyRan() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("\"topFindings\":[]"), result);
+            assertFalse(result.contains("\"subject\":\"autoAnalysis\""), result);
         }
 
         /**
@@ -379,7 +395,6 @@ class ProfileMcpToolsTest {
             assertTrue(result.contains("\"nextTool\":\"jvm_gc\""), result);
             assertFalse(result.contains("exceptions:thrown-errors"), result);
             assertFalse(result.contains("tlab:allocated-classes"), result);
-            assertTrue(result.contains("\"autoAnalysisMissing\":false"), result);
         }
     }
 
