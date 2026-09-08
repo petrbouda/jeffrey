@@ -59,11 +59,7 @@
             <ClassNameDisplay :class-name="entry.className" />
           </td>
           <td>
-            <Badge
-              :value="categoryOf(entry).label"
-              :variant="categoryOf(entry).variant"
-              size="s"
-            />
+            <Badge :value="categoryOf(entry).label" :variant="categoryOf(entry).variant" size="s" />
           </td>
           <td class="text-end font-monospace">
             {{ FormattingService.formatNumber(entry.baselineCount) }}

@@ -118,10 +118,14 @@ export function useNavigation() {
     wId?: string
   ) => {
     const base = generateProjectUrl(path, sId, pId, wId);
-    if (!sessionId) return base;
+    if (!sessionId) {
+      return base;
+    }
     const params = new URLSearchParams();
     params.set('sessionId', sessionId);
-    if (sessionInstance) params.set('sessionInstance', sessionInstance);
+    if (sessionInstance) {
+      params.set('sessionInstance', sessionInstance);
+    }
     return `${base}?${params.toString()}`;
   };
 

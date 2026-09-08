@@ -23,8 +23,8 @@
         <button
           type="button"
           class="btn-clear-command"
-          @click="clearCommand"
           :disabled="!localCommand.trim()"
+          @click="clearCommand"
         >
           <i class="bi bi-x-circle"></i>
           Clear
@@ -32,8 +32,8 @@
         <button
           type="button"
           class="btn-next-step"
-          @click="$emit('accept-command', localCommand)"
           :disabled="!localCommand.trim()"
+          @click="$emit('accept-command', localCommand)"
         >
           Next: Apply Configuration
           <i class="bi bi-arrow-right"></i>

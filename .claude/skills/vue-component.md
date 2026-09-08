@@ -49,12 +49,12 @@ const emit = defineEmits<{
 
 <template>
   <!-- Use Bootstrap 5 classes -->
-  <!-- Use shared CSS classes from @/styles/shared-components.css when available -->
+  <!-- Use shared CSS classes from @shared/styles/shared-components.css when available -->
 </template>
 
 <style scoped>
 /* Import shared styles first if needed */
-/* @import '@/styles/shared-components.css'; */
+/* @import '@shared/styles/shared-components.css'; */
 
 /* Component-specific styles only */
 </style>
@@ -64,7 +64,7 @@ const emit = defineEmits<{
 
 - **Always** use `<script setup lang="ts">` (Composition API with TypeScript)
 - **Always** use typed props via `defineProps<{}>()` and typed emits via `defineEmits<{}>()`
-- **Check shared CSS** in `@/styles/shared-components.css` before adding scoped styles
+- **Check shared CSS** in `@shared/styles/shared-components.css` before adding scoped styles
 - **Use FormattingService** (`@/services/FormattingService`) for formatting values (bytes, percentages, durations, etc.)
 - **Use Axios** via service files in `@/services/` for API calls - never call APIs directly in components
 - **Use Bootstrap 5** utility classes for layout and common styling

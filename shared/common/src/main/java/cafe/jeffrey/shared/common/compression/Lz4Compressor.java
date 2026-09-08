@@ -21,7 +21,6 @@ package cafe.jeffrey.shared.common.compression;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 
 import java.io.IOException;
@@ -30,8 +29,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 /**
  * Utility class for LZ4 compression and decompression of files.
@@ -46,22 +43,6 @@ public class Lz4Compressor {
         this.tempDirFactory = tempDirFactory;
     }
 
-    /**
-     * Compresses a file to LZ4 format.
-     * The compressed file will have the same name with ".lz4" suffix appended.
-     *
-     * @param source the source file to compress
-     * @return the path to the compressed file (.lz4 suffix appended)
-     * @throws IOException if compression fails
-     */
-    public Path compressAndMove(Path source) throws IOException {
-        Path target = source.resolveSibling(source.getFileName() + LZ4_EXTENSION);
-        try (TempDirectory tempDir = tempDirFactory.newTempDir()) {
-            Path tempFile = compressToDir(source, tempDir.path());
-            compress(source, tempFile);
-            return Files.move(tempFile, target, ATOMIC_MOVE, REPLACE_EXISTING);
-        }
-    }
 
     /**
      * Compresses a file to LZ4 format in a specified target directory.

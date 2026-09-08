@@ -24,7 +24,7 @@
           :secondary-data="data.statementCountSerie.data || []"
           secondary-title="Executions"
           :visible-minutes="60"
-          :independentSecondaryAxis="true"
+          :independent-secondary-axis="true"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
           :secondary-axis-type="AxisFormatType.NUMBER"
         />

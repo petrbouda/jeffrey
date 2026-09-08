@@ -33,7 +33,7 @@
               <i class="bi bi-diagram-3 me-2"></i>
               Instance Tree
             </h5>
-            <div class="root-info" v-if="rootNode">
+            <div v-if="rootNode" class="root-info">
               <code class="class-name">{{ rootNode.className }}</code>
             </div>
           </div>
@@ -43,16 +43,16 @@
               <button
                 class="btn"
                 :class="mode === 'REFERRERS' ? 'btn-primary' : 'btn-outline-primary'"
-                @click="switchMode('REFERRERS')"
                 title="Objects that reference this instance"
+                @click="switchMode('REFERRERS')"
               >
                 <i class="bi bi-arrow-left-circle me-1"></i>Referrers
               </button>
               <button
                 class="btn"
                 :class="mode === 'REACHABLES' ? 'btn-primary' : 'btn-outline-primary'"
-                @click="switchMode('REACHABLES')"
                 title="Objects referenced by this instance"
+                @click="switchMode('REACHABLES')"
               >
                 Reachables<i class="bi bi-arrow-right-circle ms-1"></i>
               </button>
@@ -60,9 +60,9 @@
             <button
               type="button"
               class="close-btn ms-3"
-              @click="closeModal"
               aria-label="Close"
               title="Close"
+              @click="closeModal"
             >
               <i class="bi bi-x-lg"></i>
             </button>
@@ -88,7 +88,7 @@
             <!-- Tree Header -->
             <div class="tree-header">
               <div class="tree-stats">
-                <span class="stat-item" v-if="rootNode">
+                <span v-if="rootNode" class="stat-item">
                   <i class="bi bi-box me-1"></i>
                   {{ totalCount }} {{ mode === 'REFERRERS' ? 'referrers' : 'reachables' }}
                 </span>
@@ -96,8 +96,8 @@
               <div class="tree-actions">
                 <button
                   class="btn btn-sm btn-outline-secondary"
-                  @click="collapseAll"
                   title="Collapse all"
+                  @click="collapseAll"
                 >
                   <i class="bi bi-arrows-collapse"></i>
                 </button>
@@ -189,7 +189,9 @@ const switchMode = (newMode: TreeMode) => {
 };
 
 const loadTree = async () => {
-  if (!client.value) return;
+  if (!client.value) {
+    return;
+  }
 
   loading.value = true;
   error.value = null;
@@ -213,7 +215,9 @@ const loadTree = async () => {
 };
 
 const loadMoreChildren = async () => {
-  if (!client.value || !hasMore.value) return;
+  if (!client.value || !hasMore.value) {
+    return;
+  }
 
   try {
     const response =

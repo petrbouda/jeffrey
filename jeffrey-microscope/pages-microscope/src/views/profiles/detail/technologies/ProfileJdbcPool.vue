@@ -4,7 +4,7 @@
     <CustomDisabledFeatureAlert
       v-if="isJdbcPoolDisabled"
       title="JDBC Pool Dashboard"
-      eventType="JDBC connection pool"
+      event-type="JDBC connection pool"
     />
 
     <div v-else>
@@ -77,8 +77,8 @@
 
             <div
               v-for="event in selectedPool.eventStatistics"
-              :key="event.eventType"
               v-show="activeEventTab === `event-${event.eventType}`"
+              :key="event.eventType"
             >
               <div v-if="isTimeseriesLoading(event.eventType)" class="chart-loading-overlay">
                 <div class="spinner-border text-primary" role="status">
@@ -203,7 +203,9 @@ const client = new ProfileJdbcPoolClient(route.params.profileId as string);
 
 // Computed property for tabs
 const eventTabs = computed(() => {
-  if (!selectedPool.value) return [];
+  if (!selectedPool.value) {
+    return [];
+  }
   return selectedPool.value.eventStatistics.map((event: PoolEventStatistics) => ({
     id: `event-${event.eventType}`,
     label: event.eventName,
@@ -214,7 +216,9 @@ const activeEventTab = ref<string>('');
 
 // Computed metrics for StatsTable
 const poolMetricsData = computed(() => {
-  if (!selectedPool.value) return [];
+  if (!selectedPool.value) {
+    return [];
+  }
 
   const stats = selectedPool.value.statistics;
   const config = selectedPool.value.configuration;
@@ -348,7 +352,9 @@ const onTabClick = (eventType: string) => {
 // surfaces the new tab id ("event-<eventType>"); we strip the prefix to
 // recover the eventType the analyzer keys on.
 watch(activeEventTab, newId => {
-  if (!newId) return;
+  if (!newId) {
+    return;
+  }
   const eventType = newId.startsWith('event-') ? newId.substring('event-'.length) : newId;
   onTabClick(eventType);
 });

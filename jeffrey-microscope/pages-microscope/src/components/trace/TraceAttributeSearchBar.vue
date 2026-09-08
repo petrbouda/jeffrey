@@ -138,8 +138,8 @@
     <p v-if="draftKey?.searchOnly" class="builder-note">
       <i class="bi bi-info-circle"></i>
       <span class="mono">{{ draftKey.key }}</span> has
-      {{ FormattingService.formatNumber(draftKey.distinctValues) }} values, so it is not broken
-      down anywhere — searching it is what it is for.
+      {{ FormattingService.formatNumber(draftKey.distinctValues) }} values, so it is not broken down
+      anywhere — searching it is what it is for.
     </p>
   </MainCard>
 </template>
@@ -181,7 +181,8 @@ const SCOPES: SegmentedOption<TraceAttributeScope>[] = [
   {
     id: 'SPAN',
     label: 'All on one span',
-    title: 'Every condition on the same single span, and every notification condition on the same notification'
+    title:
+      'Every condition on the same single span, and every notification condition on the same notification'
   }
 ];
 

@@ -27,12 +27,10 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProje
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 

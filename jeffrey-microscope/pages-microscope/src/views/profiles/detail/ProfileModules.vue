@@ -26,13 +26,13 @@
           :command="moduleEnableCommand"
         >
           <p>
-            Module dependencies come from <code>jdk.ModuleRequire</code>, which the JVM emits once at
-            startup (one event per <code>requires</code> edge in the resolved module graph). This event
-            is <strong>enabled by default</strong> in both the bundled <code>default</code> and
-            <code>profile</code> configs, so an empty tab usually means one of two things: the
-            recording was made with a minimal or custom config that disabled it, or the application
-            runs from the classpath with no named modules (only the unnamed module), in which case
-            there are no <code>requires</code> edges to report.
+            Module dependencies come from <code>jdk.ModuleRequire</code>, which the JVM emits once
+            at startup (one event per <code>requires</code> edge in the resolved module graph). This
+            event is <strong>enabled by default</strong> in both the bundled
+            <code>default</code> and <code>profile</code> configs, so an empty tab usually means one
+            of two things: the recording was made with a minimal or custom config that disabled it,
+            or the application runs from the classpath with no named modules (only the unnamed
+            module), in which case there are no <code>requires</code> edges to report.
           </p>
         </DisabledEventsNotice>
         <DataTable v-else>
@@ -96,15 +96,16 @@
           :command="moduleEnableCommand"
         >
           <p>
-            Package exports come from <code>jdk.ModuleExport</code>, emitted once at JVM startup — one
-            event per <code>exports</code> declaration in the resolved module graph (the package, and
-            the target module, or unqualified when exported to everyone).
+            Package exports come from <code>jdk.ModuleExport</code>, emitted once at JVM startup —
+            one event per <code>exports</code> declaration in the resolved module graph (the
+            package, and the target module, or unqualified when exported to everyone).
           </p>
           <p>
             This event is <strong>disabled in the bundled <code>default</code> config</strong> and
-            <strong>enabled in <code>profile</code></strong>. So an empty tab usually means the
-            recording was made with <code>default</code> (or a minimal config) rather than
-            <code>profile</code> — enable the event and re-record to populate this view.
+            <strong>enabled in <code>profile</code></strong
+            >. So an empty tab usually means the recording was made with <code>default</code> (or a
+            minimal config) rather than <code>profile</code> — enable the event and re-record to
+            populate this view.
           </p>
 
           <template #action>
@@ -230,7 +231,12 @@ const moduleExportsView = useTableView<ModuleExport>(moduleExports, {
 const activeTab = ref('requires');
 
 const tabs = computed<TabBarItem[]>(() => [
-  { id: 'requires', label: 'Requires', icon: 'box', badge: moduleRequires.value.length || undefined },
+  {
+    id: 'requires',
+    label: 'Requires',
+    icon: 'box',
+    badge: moduleRequires.value.length || undefined
+  },
   {
     id: 'exports',
     label: 'Exports',

@@ -372,9 +372,15 @@ const hasAnything = computed(
 );
 
 const statusText = computed(() => {
-  if (replaying.value) return 'Replaying...';
-  if (completed.value) return 'Replay Complete';
-  if (canStart.value) return 'Ready to replay';
+  if (replaying.value) {
+    return 'Replaying...';
+  }
+  if (completed.value) {
+    return 'Replay Complete';
+  }
+  if (canStart.value) {
+    return 'Ready to replay';
+  }
   return 'Configure session and event types';
 });
 
@@ -414,7 +420,9 @@ const timeSummaryEnd = computed(() => {
 });
 
 function toggleEditing(card: Exclude<EditingCard, null>) {
-  if (replaying.value) return;
+  if (replaying.value) {
+    return;
+  }
   editing.value = editing.value === card ? null : card;
 }
 
@@ -426,12 +434,16 @@ function onSessionPick(value: SelectedSession) {
 
 function setStartMode(mode: ReplayStartMode) {
   startMode.value = mode;
-  if (mode !== 'custom') startTimeInput.value = '';
+  if (mode !== 'custom') {
+    startTimeInput.value = '';
+  }
 }
 
 function setEndMode(mode: ReplayEndMode) {
   endMode.value = mode;
-  if (mode !== 'custom') endTimeInput.value = '';
+  if (mode !== 'custom') {
+    endTimeInput.value = '';
+  }
 }
 
 function selectPresetMaxEvents(option: number) {
@@ -444,7 +456,9 @@ function enableCustomMaxEvents() {
 }
 
 function startReplay() {
-  if (!session.value || !workspaceId.value || !projectId.value) return;
+  if (!session.value || !workspaceId.value || !projectId.value) {
+    return;
+  }
 
   client = new ReplayStreamClient(workspaceId.value, projectId.value);
 

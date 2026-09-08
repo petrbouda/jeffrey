@@ -95,10 +95,14 @@ function truncate(text: string, maxChars: number): string {
 }
 
 function truncatePx(text: string, maxWidth: number, ctx: CanvasRenderingContext2D): string {
-  if (ctx.measureText(text).width <= maxWidth) return text;
+  if (ctx.measureText(text).width <= maxWidth) {
+    return text;
+  }
   for (let i = text.length - 1; i > 0; i--) {
     const candidate = text.substring(0, i) + '..';
-    if (ctx.measureText(candidate).width <= maxWidth) return candidate;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      return candidate;
+    }
   }
   return '';
 }
@@ -155,7 +159,9 @@ export class SingleLineFrameTextRenderer implements FrameTextRenderer {
     pixelWidth: number,
     useLightText: boolean
   ): void {
-    if (pixelWidth < 21) return;
+    if (pixelWidth < 21) {
+      return;
+    }
 
     const primaryColor = useLightText ? TEXT_PRIMARY_LIGHT : TEXT_PRIMARY_DARK;
     const mutedColor = useLightText ? TEXT_MUTED_LIGHT : TEXT_MUTED_DARK;
@@ -220,7 +226,9 @@ export class TwoLineFrameTextRenderer implements FrameTextRenderer {
     pixelWidth: number,
     useLightText: boolean
   ): void {
-    if (pixelWidth < 18) return;
+    if (pixelWidth < 18) {
+      return;
+    }
 
     const primaryColor = useLightText ? TEXT_PRIMARY_LIGHT : TEXT_PRIMARY_DARK;
     const mutedColor = useLightText ? TEXT_MUTED_LIGHT : TEXT_MUTED_DARK;

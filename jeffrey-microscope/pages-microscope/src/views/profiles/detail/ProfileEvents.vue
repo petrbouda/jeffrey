@@ -12,9 +12,9 @@
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
                 id="searchFilter"
+                v-model="searchTerm"
                 type="text"
                 class="form-control search-input"
-                v-model="searchTerm"
                 placeholder="Filter event types..."
                 aria-label="Filter event types"
                 autocomplete="off"
@@ -136,10 +136,10 @@
                     <!-- Filter input for string columns -->
                     <div v-if="isStringField(column.field, column.type)" class="column-filter">
                       <input
+                        v-model="columnFilters[column.field]"
                         type="text"
                         class="form-control form-control-sm filter-input"
                         :placeholder="'Filter...'"
-                        v-model="columnFilters[column.field]"
                         @click.stop
                         @input="applyFilters"
                       />
@@ -149,7 +149,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
+              <tr v-for="(event, index) in limitedEventData" :key="index" class="leaf-row">
                 <td v-for="column in eventColumns" :key="column.field" class="event-cell">
                   <div class="event-name-cell">
                     <span class="event-value">{{
@@ -219,7 +219,9 @@ const filteredEventTypes = computed(() => {
 
 // Function to determine if a field is string-related
 function isStringField(_fieldName: string, fieldType?: string): boolean {
-  if (!fieldType) return true;
+  if (!fieldType) {
+    return true;
+  }
   return resolveType(fieldType) === 'text';
 }
 
@@ -251,8 +253,12 @@ const filteredEventData = computed(() => {
       const valueB = b[field];
 
       // Handle undefined or null values
-      if (valueA === undefined || valueA === null) return direction === 'asc' ? -1 : 1;
-      if (valueB === undefined || valueB === null) return direction === 'asc' ? 1 : -1;
+      if (valueA === undefined || valueA === null) {
+        return direction === 'asc' ? -1 : 1;
+      }
+      if (valueB === undefined || valueB === null) {
+        return direction === 'asc' ? 1 : -1;
+      }
 
       // Compare based on type
       if (typeof valueA === 'number' && typeof valueB === 'number') {
@@ -284,7 +290,9 @@ function applyFilters() {
 
 // Function to check if a field is numeric or time-based and can be sorted
 function isSortableField(fieldType?: string): boolean {
-  if (!fieldType) return false;
+  if (!fieldType) {
+    return false;
+  }
   const type = resolveType(fieldType);
   return type === 'numeric';
 }

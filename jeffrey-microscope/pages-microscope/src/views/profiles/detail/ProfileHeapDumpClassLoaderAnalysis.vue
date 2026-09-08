@@ -740,7 +740,9 @@ const analysisTabs = computed(() => {
 });
 
 const summaryMetrics = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   return [
     {
       icon: 'diagram-3',
@@ -761,13 +763,17 @@ const summaryMetrics = computed(() => {
 });
 
 const maxLoaderRetainedSize = computed(() => {
-  if (!report.value || report.value.classLoaders.length === 0) return 0;
+  if (!report.value || report.value.classLoaders.length === 0) {
+    return 0;
+  }
   return Math.max(...report.value.classLoaders.map(e => e.retainedSize));
 });
 
 // Sorted duplicate classes
 const sortedDuplicateClasses = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   const entries = [...report.value.duplicateClasses];
   const direction = dupSortDirection.value === 'asc' ? 1 : -1;
 

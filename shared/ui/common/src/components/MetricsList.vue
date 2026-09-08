@@ -247,7 +247,7 @@ const formatMetricValue = (value: any, metric: MetricDefinition): string => {
     return metric.formatter(value);
   }
 
-  if (value == null) return '-';
+  if (value == null) {return '-';}
 
   switch (metric.type) {
     case 'number':
@@ -268,10 +268,10 @@ const getMetricVariant = (metric: MetricDefinition, item: any): Variant => {
 
   // Special handling for HTTP status codes
   if (metric.key === 'statusCode' && typeof value === 'number') {
-    if (value >= 200 && value < 300) return 'success'; // 2xx - Success
-    if (value >= 300 && value < 400) return 'info'; // 3xx - Redirect
-    if (value >= 400 && value < 500) return 'warning'; // 4xx - Client Error
-    if (value >= 500) return 'danger'; // 5xx - Server Error
+    if (value >= 200 && value < 300) {return 'success';} // 2xx - Success
+    if (value >= 300 && value < 400) {return 'info';} // 3xx - Redirect
+    if (value >= 400 && value < 500) {return 'warning';} // 4xx - Client Error
+    if (value >= 500) {return 'danger';} // 5xx - Server Error
     return 'info'; // Other status codes
   }
 
@@ -279,19 +279,19 @@ const getMetricVariant = (metric: MetricDefinition, item: any): Variant => {
   if (metric.class) {
     if (typeof metric.class === 'function') {
       const customClass = metric.class(value, item);
-      if (customClass.includes('primary')) return 'primary';
-      if (customClass.includes('info')) return 'info';
-      if (customClass.includes('secondary')) return 'secondary';
-      if (customClass.includes('success')) return 'success';
-      if (customClass.includes('warning')) return 'warning';
-      if (customClass.includes('danger')) return 'danger';
+      if (customClass.includes('primary')) {return 'primary';}
+      if (customClass.includes('info')) {return 'info';}
+      if (customClass.includes('secondary')) {return 'secondary';}
+      if (customClass.includes('success')) {return 'success';}
+      if (customClass.includes('warning')) {return 'warning';}
+      if (customClass.includes('danger')) {return 'danger';}
     } else if (typeof metric.class === 'string') {
-      if (metric.class.includes('primary')) return 'primary';
-      if (metric.class.includes('info')) return 'info';
-      if (metric.class.includes('secondary')) return 'secondary';
-      if (metric.class.includes('success')) return 'success';
-      if (metric.class.includes('warning')) return 'warning';
-      if (metric.class.includes('danger')) return 'danger';
+      if (metric.class.includes('primary')) {return 'primary';}
+      if (metric.class.includes('info')) {return 'info';}
+      if (metric.class.includes('secondary')) {return 'secondary';}
+      if (metric.class.includes('success')) {return 'success';}
+      if (metric.class.includes('warning')) {return 'warning';}
+      if (metric.class.includes('danger')) {return 'danger';}
     }
   }
 

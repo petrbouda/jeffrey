@@ -24,13 +24,13 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="rssSeries"
-            primaryTitle="Resident Set Size"
-            :secondaryData="heapUsedSeries"
-            secondaryTitle="Heap Used"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :secondaryAxisType="AxisFormatType.BYTES"
-            :visibleMinutes="60"
+            :primary-data="rssSeries"
+            primary-title="Resident Set Size"
+            :secondary-data="heapUsedSeries"
+            secondary-title="Heap Used"
+            :primary-axis-type="AxisFormatType.BYTES"
+            :secondary-axis-type="AxisFormatType.BYTES"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -43,14 +43,14 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="bufferMemorySeries"
-            primaryTitle="Direct Buffer Memory"
-            :secondaryData="bufferCountSeries"
-            secondaryTitle="Buffer Count"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :secondaryAxisType="AxisFormatType.NUMBER"
-            :independentSecondaryAxis="true"
-            :visibleMinutes="60"
+            :primary-data="bufferMemorySeries"
+            primary-title="Direct Buffer Memory"
+            :secondary-data="bufferCountSeries"
+            secondary-title="Buffer Count"
+            :primary-axis-type="AxisFormatType.BYTES"
+            :secondary-axis-type="AxisFormatType.NUMBER"
+            :independent-secondary-axis="true"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -65,16 +65,16 @@
           :command="enableNativeLibraryCommand"
         >
           <p>
-            <code>jdk.NativeLibrary</code> is a periodic snapshot of the native libraries mapped into
-            the process (<code>.so</code> / <code>.dll</code> / <code>.dylib</code> — the JVM itself,
-            JDK libraries, and JNI dependencies). It is taken once <code>everyChunk</code>, so a single
-            chunk is enough to populate this inventory.
+            <code>jdk.NativeLibrary</code> is a periodic snapshot of the native libraries mapped
+            into the process (<code>.so</code> / <code>.dll</code> / <code>.dylib</code> — the JVM
+            itself, JDK libraries, and JNI dependencies). It is taken once <code>everyChunk</code>,
+            so a single chunk is enough to populate this inventory.
           </p>
           <p>
             The event is <strong>enabled by default</strong> in both the JDK's bundled
-            <code>default</code> and <code>profile</code> configurations, so an empty list almost always
-            means the recording used a minimal or custom configuration that turned it off. The command
-            below re-enables it on top of the <code>profile</code> config.
+            <code>default</code> and <code>profile</code> configurations, so an empty list almost
+            always means the recording used a minimal or custom configuration that turned it off.
+            The command below re-enables it on top of the <code>profile</code> config.
           </p>
         </DisabledEventsNotice>
         <DataTable v-else>
@@ -82,7 +82,13 @@
             <TableToolbar v-model="librariesView.query" search-placeholder="Filter libraries...">
               <span class="toolbar-info">Native libraries</span>
               <template #filters>
-                <Badge key-label="Total" :value="librariesView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="librariesView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -97,11 +103,15 @@
               <td :title="library.name">
                 <div class="path-display">
                   <code class="path-name">{{ fileName(library.name) }}</code>
-                  <span v-if="dirName(library.name)" class="path-dir">{{ dirName(library.name) }}</span>
+                  <span v-if="dirName(library.name)" class="path-dir">{{
+                    dirName(library.name)
+                  }}</span>
                 </div>
               </td>
               <td class="text-end">
-                {{ library.mappedBytes > 0 ? FormattingService.formatBytes(library.mappedBytes) : '—' }}
+                {{
+                  library.mappedBytes > 0 ? FormattingService.formatBytes(library.mappedBytes) : '—'
+                }}
               </td>
             </tr>
           </tbody>
@@ -128,9 +138,10 @@
           <AboutCallout variant="intro">
             <p>
               A JVM process uses far more memory than the Java heap. Thread stacks, the code cache,
-              class metadata, direct buffers, GC structures and the mapped binaries of native libraries
-              all live <em>outside</em> the heap. This page tracks the process's resident set size (RSS)
-              — what the OS actually charges — and the off-heap regions that explain the gap.
+              class metadata, direct buffers, GC structures and the mapped binaries of native
+              libraries all live <em>outside</em> the heap. This page tracks the process's resident
+              set size (RSS) — what the OS actually charges — and the off-heap regions that explain
+              the gap.
             </p>
           </AboutCallout>
 
@@ -141,41 +152,45 @@
                 OOM-killed in a container. It includes the heap <em>and</em> everything off-heap.
               </FeatureCard>
               <FeatureCard icon="bi-pie-chart" variant="info" title="The RSS − Heap gap">
-                When RSS climbs while the heap stays flat, the growth is native: direct buffers, thread
-                stacks, metaspace, JIT code or a native leak. NMT (the next page) breaks that gap down
-                by category.
+                When RSS climbs while the heap stays flat, the growth is native: direct buffers,
+                thread stacks, metaspace, JIT code or a native leak. NMT (the next page) breaks that
+                gap down by category.
               </FeatureCard>
               <FeatureCard icon="bi-hdd-stack" variant="warning" title="Direct buffers">
-                <code>ByteBuffer.allocateDirect</code> and Netty pooled buffers allocate off-heap and are
-                freed only when their owning objects are collected. A climbing buffer count is the classic
-                NIO/Netty leak.
+                <code>ByteBuffer.allocateDirect</code> and Netty pooled buffers allocate off-heap
+                and are freed only when their owning objects are collected. A climbing buffer count
+                is the classic NIO/Netty leak.
               </FeatureCard>
               <FeatureCard icon="bi-collection" variant="success" title="Native libraries">
-                Mapped <code>.so</code>/<code>.dll</code> files (the JVM itself, JDK libs, JNI deps). Large
-                mapped sizes are normal; this is mostly an inventory of what's loaded.
+                Mapped <code>.so</code>/<code>.dll</code> files (the JVM itself, JDK libs, JNI
+                deps). Large mapped sizes are normal; this is mostly an inventory of what's loaded.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
 
-          <AboutCallout variant="tip" title="Container OOM with a healthy heap?" icon="bi-lightbulb-fill">
-            This is the page for it. A flat heap but rising RSS means the leak is off-heap — start with
-            direct buffers here, then open <em>Native Memory Tracking</em> to see which JVM category is
-            growing.
+          <AboutCallout
+            variant="tip"
+            title="Container OOM with a healthy heap?"
+            icon="bi-lightbulb-fill"
+          >
+            This is the page for it. A flat heap but rising RSS means the leak is off-heap — start
+            with direct buffers here, then open <em>Native Memory Tracking</em> to see which JVM
+            category is growing.
           </AboutCallout>
 
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.ResidentSetSize</code> — periodic process RSS and peak. Drives the RSS timeline
-                and the overview metrics.
+                <code>jdk.ResidentSetSize</code> — periodic process RSS and peak. Drives the RSS
+                timeline and the overview metrics.
               </li>
               <li>
-                <code>jdk.DirectBufferStatistics</code> — count, used and total capacity of direct NIO
-                buffers.
+                <code>jdk.DirectBufferStatistics</code> — count, used and total capacity of direct
+                NIO buffers.
               </li>
               <li>
-                <code>jdk.NativeLibrary</code> — each loaded native library with its mapped address range
-                (mapped size = top − base).
+                <code>jdk.NativeLibrary</code> — each loaded native library with its mapped address
+                range (mapped size = top − base).
               </li>
               <li>
                 <code>jdk.GCHeapSummary</code> — heap committed/used, overlaid so you can see the
@@ -214,7 +229,10 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import FormattingService from '@shared/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileNativeMemoryClient from '@/services/api/ProfileNativeMemoryClient';
-import type { NativeLibraryInfo, NativeMemoryOverview } from '@/services/api/model/NativeMemoryModels';
+import type {
+  NativeLibraryInfo,
+  NativeMemoryOverview
+} from '@/services/api/model/NativeMemoryModels';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import { useTableView } from '@/composables/useTableView';
 
@@ -232,7 +250,7 @@ const directBufferTimeline = ref<TimeseriesData>();
 const nativeLibraries = ref<NativeLibraryInfo[]>([]);
 
 const librariesView = useTableView<NativeLibraryInfo>(nativeLibraries, {
-  searchableText: (library) => library.name
+  searchableText: library => library.name
 });
 
 const activeTab = ref('rss');
@@ -252,8 +270,12 @@ const dirName = (path: string): string => {
 
 const rssSeries = computed<number[][]>(() => rssTimeline.value?.series?.[0]?.data ?? []);
 const heapUsedSeries = computed<number[][]>(() => rssTimeline.value?.series?.[1]?.data ?? []);
-const bufferMemorySeries = computed<number[][]>(() => directBufferTimeline.value?.series?.[0]?.data ?? []);
-const bufferCountSeries = computed<number[][]>(() => directBufferTimeline.value?.series?.[1]?.data ?? []);
+const bufferMemorySeries = computed<number[][]>(
+  () => directBufferTimeline.value?.series?.[0]?.data ?? []
+);
+const bufferCountSeries = computed<number[][]>(
+  () => directBufferTimeline.value?.series?.[1]?.data ?? []
+);
 
 const tabs = computed<TabBarItem[]>(() => [
   { id: 'rss', label: 'RSS vs Heap', icon: 'graph-up-arrow' },

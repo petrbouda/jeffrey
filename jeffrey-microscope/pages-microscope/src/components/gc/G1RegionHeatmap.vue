@@ -9,13 +9,13 @@
     </div>
     <div v-else>
       <div class="heatmap-toolbar">
-        <div class="snapshot-selector" v-if="snapshots.length > 1">
+        <div v-if="snapshots.length > 1" class="snapshot-selector">
           <label class="selector-label">Snapshot</label>
           <input
+            v-model.number="selectedIndex"
             type="range"
             min="0"
             :max="snapshots.length - 1"
-            v-model.number="selectedIndex"
             class="snapshot-range"
           />
           <span class="selector-value">

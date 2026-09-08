@@ -104,7 +104,10 @@
     <div v-show="activeTab === 'by-package-loader'">
       <DataTable v-if="report.topConsumers.length > 0">
         <template #toolbar>
-          <TableToolbar v-model="consumersView.query" search-placeholder="Filter packages or loaders...">
+          <TableToolbar
+            v-model="consumersView.query"
+            search-placeholder="Filter packages or loaders..."
+          >
             <span class="toolbar-info">{{ consumersView.matchCount }} consumers</span>
           </TableToolbar>
         </template>

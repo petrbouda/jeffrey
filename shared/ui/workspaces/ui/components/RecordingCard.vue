@@ -159,7 +159,7 @@ const handleClick = () => {
 };
 
 const onDragStart = (event: DragEvent) => {
-  if (!props.draggable || !event.dataTransfer) return;
+  if (!props.draggable || !event.dataTransfer) {return;}
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', props.recordingId);
 };

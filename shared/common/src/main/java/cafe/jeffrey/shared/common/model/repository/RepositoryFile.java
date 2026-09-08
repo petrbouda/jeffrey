@@ -52,16 +52,6 @@ public final class RepositoryFile {
         this.status = status;
     }
 
-    public RepositoryFile withFilePath(Path filePath, Long size) {
-        return new RepositoryFile(
-                id,
-                name,
-                createdAt,
-                size,
-                fileType,
-                status,
-                filePath);
-    }
 
     public String id() {
         return id;

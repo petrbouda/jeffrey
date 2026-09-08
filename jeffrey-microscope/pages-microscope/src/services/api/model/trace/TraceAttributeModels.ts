@@ -30,11 +30,7 @@ import type { TraceRow } from '@/services/api/model/trace/TraceModels';
  * search for `SPAN_SHAPE status = ERROR` from matching a notification that merely said so.
  */
 export type TraceAttributeSource =
-  | 'ATTRIBUTE'
-  | 'EVENT_FIELD'
-  | 'SPAN_SHAPE'
-  | 'NOTIFICATION_ATTRIBUTE'
-  | 'NOTIFICATION_SHAPE';
+  'ATTRIBUTE' | 'EVENT_FIELD' | 'SPAN_SHAPE' | 'NOTIFICATION_ATTRIBUTE' | 'NOTIFICATION_SHAPE';
 
 /**
  * What kind of thing carried an attribute — the two halves a trace is made of. A span is an interval

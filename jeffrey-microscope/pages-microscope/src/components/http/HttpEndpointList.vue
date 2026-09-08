@@ -1,12 +1,12 @@
 <template>
   <MetricCardList
     :items="endpoints"
-    :item-key="(endpoint) => endpoint.uri"
-    :count="(endpoint) => endpoint.requestCount"
+    :item-key="endpoint => endpoint.uri"
+    :count="endpoint => endpoint.requestCount"
     count-label="requests"
     :sort-options="sortOptions"
     initial-sort="maxResponseTime"
-    @item-click="(endpoint) => $emit('endpointClick', endpoint.uri)"
+    @item-click="endpoint => $emit('endpointClick', endpoint.uri)"
   >
     <template #name="{ item }">
       <MetricName :segments="parseUriName(item.uri)" :title="item.uri" />
@@ -94,11 +94,18 @@ defineEmits<{
 }>();
 
 const sortOptions: MetricSortOption[] = [
-  { key: 'maxResponseTime', label: 'MAX', compare: (a, b) => b.maxResponseTime - a.maxResponseTime },
-  { key: 'p95ResponseTime', label: 'P95', compare: (a, b) => b.p95ResponseTime - a.p95ResponseTime },
+  {
+    key: 'maxResponseTime',
+    label: 'MAX',
+    compare: (a, b) => b.maxResponseTime - a.maxResponseTime
+  },
+  {
+    key: 'p95ResponseTime',
+    label: 'P95',
+    compare: (a, b) => b.p95ResponseTime - a.p95ResponseTime
+  },
   { key: 'count4xx', label: '4xx', compare: (a, b) => b.count4xx - a.count4xx },
   { key: 'count5xx', label: '5xx', compare: (a, b) => b.count5xx - a.count5xx },
   { key: 'requestCount', label: 'Requests', compare: (a, b) => b.requestCount - a.requestCount }
 ];
-
 </script>

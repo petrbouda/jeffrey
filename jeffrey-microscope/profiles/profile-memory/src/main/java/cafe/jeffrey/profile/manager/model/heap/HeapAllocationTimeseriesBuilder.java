@@ -30,12 +30,12 @@ import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 import java.time.temporal.ChronoUnit;
 
-public class AllocationTimeseriesBuilder implements RecordBuilder<GenericRecord, SingleSerie> {
+public class HeapAllocationTimeseriesBuilder implements RecordBuilder<GenericRecord, SingleSerie> {
 
     private final HeapMemoryTimeseriesType timeseriesType;
     private final LongLongHashMap timeseries;
 
-    public AllocationTimeseriesBuilder(RelativeTimeRange timeRange, HeapMemoryTimeseriesType timeseriesType) {
+    public HeapAllocationTimeseriesBuilder(RelativeTimeRange timeRange, HeapMemoryTimeseriesType timeseriesType) {
         this.timeseriesType = timeseriesType;
         this.timeseries = TimeseriesUtils.initWithZeros(timeRange, ChronoUnit.SECONDS);
     }

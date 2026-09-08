@@ -126,7 +126,9 @@ function handleContextMenuItemClick(item: any) {
 // Show context menu
 function showContextMenu(event: MouseEvent) {
   const menu = contextMenu.value as HTMLElement;
-  if (!menu) return;
+  if (!menu) {
+    return;
+  }
 
   menu.style.display = 'block';
   menu.style.left = `${event.clientX + 10}px`;
@@ -147,7 +149,9 @@ function showContextMenu(event: MouseEvent) {
 // Hide context menu
 function hideContextMenu() {
   const menu = contextMenu.value as HTMLElement;
-  if (!menu) return;
+  if (!menu) {
+    return;
+  }
 
   menu.style.display = 'none';
   flamegraph.closeContextMenu();
@@ -156,7 +160,9 @@ function hideContextMenu() {
 // Handle document click to hide context menu when clicking outside
 function handleDocumentClick(event: MouseEvent) {
   const menu = contextMenu.value as HTMLElement;
-  if (!menu) return;
+  if (!menu) {
+    return;
+  }
 
   if (!menu.contains(event.target as Node)) {
     hideContextMenu();

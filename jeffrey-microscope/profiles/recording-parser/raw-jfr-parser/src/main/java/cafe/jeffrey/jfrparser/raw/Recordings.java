@@ -55,23 +55,6 @@ public abstract class Recordings {
         }
     }
 
-    /**
-     * Merges a list of JDK Flight Recorder files into a single output file.
-     * This method concatenates all recording files in the order they appear in the list.
-     *
-     * @param inputs List of paths to JFR recording files to be merged
-     * @param output Path where the merged recording file will be written
-     * @throws RuntimeException if there's an error during the merge operation
-     */
-    public static void mergeByCopy(List<Path> inputs, Path output) {
-        try {
-            for (Path input : inputs) {
-                Files.write(output, Files.readAllBytes(input), CREATE, APPEND);
-            }
-        } catch (IOException e) {
-            throw new JfrChunkParsingException("Cannot merge recordings to: " + output, e);
-        }
-    }
 
     /**
      * Merges multiple files into a single OutputStream using NIO Path and Files.copy
@@ -90,13 +73,4 @@ public abstract class Recordings {
         }
     }
 
-    /**
-     * Copy a single file to an OutputStream using NIO Path and Files.copy.
-     *
-     * @param input  Single Path  representing file to copy
-     * @param stream OutputStream where merged content will be written
-     */
-    public static void copyByStreaming(Path input, OutputStream stream) {
-        mergeByStreaming(List.of(input), stream);
-    }
 }

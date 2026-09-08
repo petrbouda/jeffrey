@@ -63,13 +63,13 @@ const handleClick = () => {
 
 // Border color class
 const getBorderClass = computed(() => {
-  if (props.project.isDeleted) return 'border-deleted';
+  if (props.project.isDeleted) {return 'border-deleted';}
   return 'border-default';
 });
 
 // Status badge variant
 const getStatusVariant = computed((): Variant => {
-  if (!props.project.status) return 'status-unknown';
+  if (!props.project.status) {return 'status-unknown';}
   return `status-${props.project.status.toLowerCase()}` as Variant;
 });
 

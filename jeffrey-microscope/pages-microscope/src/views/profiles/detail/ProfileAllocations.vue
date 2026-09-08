@@ -18,17 +18,21 @@
 
       <!-- Allocation Rate -->
       <div v-show="activeTab === 'rate'">
-        <ChartDescription use-case="A high steady rate drives GC frequency; spikes often precede young-GC pauses.">
+        <ChartDescription
+          use-case="A high steady rate drives GC frequency; spikes often precede young-GC pauses."
+        >
           <template #shows>
-            Bytes allocated per second across the recording.<template v-if="overview?.sampled"> Derived from sampled allocation events.</template>
+            Bytes allocated per second across the recording.<template v-if="overview?.sampled">
+              Derived from sampled allocation events.</template
+            >
           </template>
         </ChartDescription>
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="rateSeries"
-            primaryTitle="Allocated Bytes / sec"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :visibleMinutes="60"
+            :primary-data="rateSeries"
+            primary-title="Allocated Bytes / sec"
+            :primary-axis-type="AxisFormatType.BYTES"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -41,12 +45,12 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="heapBeforeAfterGcSeries"
-            primaryTitle="Before/After GC"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :visibleMinutes="60"
-            primaryColor="#007bff"
-            timeUnit="seconds"
+            :primary-data="heapBeforeAfterGcSeries"
+            primary-title="Before/After GC"
+            :primary-axis-type="AxisFormatType.BYTES"
+            :visible-minutes="60"
+            primary-color="#007bff"
+            time-unit="seconds"
           />
         </div>
       </div>
@@ -67,7 +71,8 @@
             <strong>enabled by default</strong> in both the bundled <code>default</code> and
             <code>profile</code> configs — at ~150 samples/s in <code>default</code> and 300/s in
             <code>profile</code> — and it supersedes the older, higher-volume
-            <code>jdk.ObjectAllocationInNewTLAB</code> / <code>jdk.ObjectAllocationOutsideTLAB</code>
+            <code>jdk.ObjectAllocationInNewTLAB</code> /
+            <code>jdk.ObjectAllocationOutsideTLAB</code>
             pair (off by default).
           </p>
           <p>
@@ -81,7 +86,8 @@
             <p>
               <strong>A — inline, no extra file.</strong> Use the copyable command above: it records
               with the bundled <code>profile</code> config and explicitly forces
-              <code>jdk.ObjectAllocationSample#enabled=true</code> so the sampler is never gated off.
+              <code>jdk.ObjectAllocationSample#enabled=true</code> so the sampler is never gated
+              off.
             </p>
             <p>
               <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
@@ -101,7 +107,13 @@
             <TableToolbar v-model="typesView.query" search-placeholder="Filter classes...">
               <span class="toolbar-info">Top allocated types</span>
               <template #filters>
-                <Badge key-label="Showing" :value="typesView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Showing"
+                  :value="typesView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -124,7 +136,10 @@
               <td class="text-end">{{ FormattingService.formatNumber(type.count) }}</td>
               <td>
                 <div class="share-bar">
-                  <div class="share-bar-fill" :style="{ width: shareWidth(type.bytes) + '%' }"></div>
+                  <div
+                    class="share-bar-fill"
+                    :style="{ width: shareWidth(type.bytes) + '%' }"
+                  ></div>
                 </div>
               </td>
             </tr>
@@ -151,34 +166,34 @@
         >
           <AboutCallout variant="intro">
             <p>
-              Allocating an object in the JVM is usually just bumping a pointer — extremely cheap. The
-              cost shows up <em>later</em>: everything you allocate must eventually be collected, so a
-              high allocation rate is the single biggest driver of GC frequency. This page shows how
-              fast you allocate and which types dominate.
+              Allocating an object in the JVM is usually just bumping a pointer — extremely cheap.
+              The cost shows up <em>later</em>: everything you allocate must eventually be
+              collected, so a high allocation rate is the single biggest driver of GC frequency.
+              This page shows how fast you allocate and which types dominate.
             </p>
           </AboutCallout>
 
           <AboutSection icon="bi-box" title="How Allocation Works">
             <FeatureGrid>
               <FeatureCard icon="bi-box-seam" variant="success" title="TLAB (the fast path)">
-                Each thread gets a Thread-Local Allocation Buffer — a private slice of Eden. Allocating
-                is a lock-free pointer bump within it, so threads never contend. Almost all objects are
-                born here.
+                Each thread gets a Thread-Local Allocation Buffer — a private slice of Eden.
+                Allocating is a lock-free pointer bump within it, so threads never contend. Almost
+                all objects are born here.
               </FeatureCard>
               <FeatureCard icon="bi-box-arrow-up" variant="warning" title="Outside TLAB">
-                Objects too large for the remaining TLAB (or larger than the TLAB itself) are allocated
-                directly in the heap, taking a slower shared path. A high outside-TLAB share points at
-                large arrays/buffers.
+                Objects too large for the remaining TLAB (or larger than the TLAB itself) are
+                allocated directly in the heap, taking a slower shared path. A high outside-TLAB
+                share points at large arrays/buffers.
               </FeatureCard>
               <FeatureCard icon="bi-arrow-repeat" variant="danger" title="Allocation → GC pressure">
                 Fast allocation fills Eden quickly, triggering more young collections. Reducing
-                allocation churn (object reuse, primitives, streaming) is often the cheapest way to cut
-                GC overhead.
+                allocation churn (object reuse, primitives, streaming) is often the cheapest way to
+                cut GC overhead.
               </FeatureCard>
               <FeatureCard icon="bi-rulers" variant="info" title="Why bytes are estimates">
-                JFR <em>samples</em> allocations rather than recording every one. Each sample carries a
-                weight, so totals here are statistically scaled estimates — great for proportions and
-                trends, not an exact byte count.
+                JFR <em>samples</em> allocations rather than recording every one. Each sample
+                carries a weight, so totals here are statistically scaled estimates — great for
+                proportions and trends, not an exact byte count.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -186,13 +201,13 @@
           <AboutSection icon="bi-graph-up" title="Reading the Charts">
             <FeatureGrid>
               <FeatureCard icon="bi-graph-up" variant="primary" title="Allocation Rate">
-                Bytes allocated per second over time. Sustained high rates or spikes that line up with
-                latency point at allocation-driven GC — correlate with the GC page.
+                Bytes allocated per second over time. Sustained high rates or spikes that line up
+                with latency point at allocation-driven GC — correlate with the GC page.
               </FeatureCard>
               <FeatureCard icon="bi-list-ol" variant="info" title="Top Allocated Types">
-                Which classes account for the most allocated bytes, with a share bar. <code>byte[]</code>,
-                <code>char[]</code> and boxed types dominating usually means I/O buffers, strings or
-                autoboxing churn.
+                Which classes account for the most allocated bytes, with a share bar.
+                <code>byte[]</code>, <code>char[]</code> and boxed types dominating usually means
+                I/O buffers, strings or autoboxing churn.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -204,9 +219,10 @@
                 (one event per ~N bytes per thread) with a weight. Low overhead, used when present.
               </li>
               <li>
-                <code>jdk.ObjectAllocationInNewTLAB</code> / <code>jdk.ObjectAllocationOutsideTLAB</code>
-                — the older pair, emitted when a new TLAB is needed or an allocation bypasses the TLAB.
-                Higher volume; used as a fallback.
+                <code>jdk.ObjectAllocationInNewTLAB</code> /
+                <code>jdk.ObjectAllocationOutsideTLAB</code>
+                — the older pair, emitted when a new TLAB is needed or an allocation bypasses the
+                TLAB. Higher volume; used as a fallback.
               </li>
             </ul>
             <p>

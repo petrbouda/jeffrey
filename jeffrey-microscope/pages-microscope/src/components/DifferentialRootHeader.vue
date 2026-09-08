@@ -219,7 +219,7 @@ const containerClass = computed(() => (delta.value ? `is-${delta.value.kind}` : 
 }
 
 .bar-fill.baseline {
-  background: linear-gradient(90deg, var(--color-slate-light), #94a3b8);
+  background: linear-gradient(90deg, var(--color-slate-light), var(--color-slate-muted));
 }
 
 .bar-fill.primary {

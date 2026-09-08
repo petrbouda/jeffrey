@@ -24,12 +24,12 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="loadedSeries"
-            primaryTitle="Loaded Classes"
-            :secondaryData="unloadedSeries"
-            secondaryTitle="Unloaded Classes"
-            :independentSecondaryAxis="true"
-            :visibleMinutes="60"
+            :primary-data="loadedSeries"
+            primary-title="Loaded Classes"
+            :secondary-data="unloadedSeries"
+            secondary-title="Unloaded Classes"
+            :independent-secondary-axis="true"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -44,7 +44,10 @@
         />
         <DataTable v-else>
           <template #toolbar>
-            <TableToolbar v-model="classLoadersView.query" search-placeholder="Filter class loaders...">
+            <TableToolbar
+              v-model="classLoadersView.query"
+              search-placeholder="Filter class loaders..."
+            >
               <span class="toolbar-info">Class loaders</span>
               <template #filters>
                 <Badge
@@ -62,47 +65,47 @@
               <SortableTableHeader
                 column="name"
                 label="Class Loader"
-                :sortColumn="sortColumn"
-                :sortDirection="sortDirection"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
                 @sort="onSort"
               />
               <SortableTableHeader
                 column="parentName"
                 label="Parent"
-                :sortColumn="sortColumn"
-                :sortDirection="sortDirection"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
                 @sort="onSort"
               />
               <SortableTableHeader
                 column="classCount"
                 label="Classes"
                 align="end"
-                :sortColumn="sortColumn"
-                :sortDirection="sortDirection"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
                 @sort="onSort"
               />
               <SortableTableHeader
                 column="metaspaceBytes"
                 label="Metaspace"
                 align="end"
-                :sortColumn="sortColumn"
-                :sortDirection="sortDirection"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
                 @sort="onSort"
               />
               <SortableTableHeader
                 column="blockBytes"
                 label="Used"
                 align="end"
-                :sortColumn="sortColumn"
-                :sortDirection="sortDirection"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
                 @sort="onSort"
               />
               <SortableTableHeader
                 column="hiddenClassCount"
                 label="Hidden"
                 align="end"
-                :sortColumn="sortColumn"
-                :sortDirection="sortDirection"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
                 @sort="onSort"
               />
             </tr>
@@ -190,9 +193,14 @@
                 <ClassNameDisplay v-if="entry.className" :class-name="entry.className" />
                 <span v-else class="text-muted">—</span>
               </td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.durationNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(entry.durationNanos) }}
+              </td>
               <td class="class-cell" :title="entry.definingClassLoader ?? ''">
-                <ClassNameDisplay v-if="entry.definingClassLoader" :class-name="entry.definingClassLoader" />
+                <ClassNameDisplay
+                  v-if="entry.definingClassLoader"
+                  :class-name="entry.definingClassLoader"
+                />
                 <span v-else class="text-muted">—</span>
               </td>
             </tr>
@@ -246,7 +254,9 @@
                 <tr v-for="(batch, index) in retransformsView.visible" :key="index">
                   <td>{{ batch.redefinitionId }}</td>
                   <td class="text-end">{{ FormattingService.formatNumber(batch.classCount) }}</td>
-                  <td class="text-end">{{ FormattingService.formatDuration2Units(batch.durationNanos) }}</td>
+                  <td class="text-end">
+                    {{ FormattingService.formatDuration2Units(batch.durationNanos) }}
+                  </td>
                 </tr>
               </tbody>
               <template #footer>
@@ -264,7 +274,10 @@
 
           <DataTable v-if="redefinitionData!.redefinitions.length > 0">
             <template #toolbar>
-              <TableToolbar v-model="redefinitionsView.query" search-placeholder="Filter classes...">
+              <TableToolbar
+                v-model="redefinitionsView.query"
+                search-placeholder="Filter classes..."
+              >
                 <span class="toolbar-info">Redefined classes</span>
                 <template #filters>
                   <Badge
@@ -290,7 +303,9 @@
                   <ClassNameDisplay v-if="redef.className" :class-name="redef.className" />
                   <span v-else class="text-muted">—</span>
                 </td>
-                <td class="text-end">{{ FormattingService.formatNumber(redef.modificationCount) }}</td>
+                <td class="text-end">
+                  {{ FormattingService.formatNumber(redef.modificationCount) }}
+                </td>
                 <td class="text-end">{{ redef.redefinitionId }}</td>
               </tr>
             </tbody>
@@ -318,10 +333,10 @@
           <AboutCallout variant="intro">
             <p>
               Classes are loaded lazily, the first time they're needed. A class loader reads the
-              bytecode, the JVM verifies and links it, and it's initialized on first use. Every loaded
-              class lives in <strong>metaspace</strong> (native memory) and is tied to the loader that
-              defined it — which is why a class is only unloaded when its <em>entire</em> loader becomes
-              unreachable.
+              bytecode, the JVM verifies and links it, and it's initialized on first use. Every
+              loaded class lives in <strong>metaspace</strong> (native memory) and is tied to the
+              loader that defined it — which is why a class is only unloaded when its
+              <em>entire</em> loader becomes unreachable.
             </p>
           </AboutCallout>
 
@@ -329,20 +344,21 @@
             <FeatureGrid>
               <FeatureCard icon="bi-download" variant="info" title="Loading">
                 A class loader locates the <code>.class</code> bytes and the JVM defines a
-                <code>Class&lt;?&gt;</code>. Delegation means the request walks up to the parent loader
-                first (bootstrap → platform → app).
+                <code>Class&lt;?&gt;</code>. Delegation means the request walks up to the parent
+                loader first (bootstrap → platform → app).
               </FeatureCard>
               <FeatureCard icon="bi-link-45deg" variant="primary" title="Linking">
-                Verification (bytecode safety), preparation (static fields to defaults) and resolution
-                (symbolic references). Verification is a one-time CPU cost paid at load.
+                Verification (bytecode safety), preparation (static fields to defaults) and
+                resolution (symbolic references). Verification is a one-time CPU cost paid at load.
               </FeatureCard>
               <FeatureCard icon="bi-play-circle" variant="success" title="Initialization">
-                The <code>&lt;clinit&gt;</code> runs static initializers, exactly once, on first active
-                use — a common source of surprising first-call latency.
+                The <code>&lt;clinit&gt;</code> runs static initializers, exactly once, on first
+                active use — a common source of surprising first-call latency.
               </FeatureCard>
               <FeatureCard icon="bi-trash" variant="warning" title="Unloading">
-                A class is unloaded only when its loader, all its classes and all their instances are
-                unreachable together. Leaked loaders are the classic metaspace leak (hot redeploys).
+                A class is unloaded only when its loader, all its classes and all their instances
+                are unreachable together. Leaked loaders are the classic metaspace leak (hot
+                redeploys).
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -354,12 +370,12 @@
                 plateaus — especially with redeploys — signals a class-loader leak.
               </FeatureCard>
               <FeatureCard icon="bi-diagram-3" variant="info" title="Class Loaders">
-                Per-loader class counts. Many loaders with overlapping classes is normal in containers;
-                an ever-growing number of loaders is not.
+                Per-loader class counts. Many loaders with overlapping classes is normal in
+                containers; an ever-growing number of loaders is not.
               </FeatureCard>
               <FeatureCard icon="bi-hourglass-split" variant="warning" title="Class Load Activity">
-                Per-class load timings — slow loads point at verification cost or slow class sources.
-                Needs the per-class event, which is off by default.
+                Per-class load timings — slow loads point at verification cost or slow class
+                sources. Needs the per-class event, which is off by default.
               </FeatureCard>
               <FeatureCard icon="bi-arrow-repeat" variant="purple" title="Redefinitions">
                 Classes retransformed by instrumentation agents (APM, profilers, mocking). Heavy
@@ -371,20 +387,21 @@
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.ClassLoadingStatistics</code> — periodic cumulative loaded/unloaded counts.
-                Enabled by default, so the Timeline always works.
+                <code>jdk.ClassLoadingStatistics</code> — periodic cumulative loaded/unloaded
+                counts. Enabled by default, so the Timeline always works.
               </li>
               <li>
-                <code>jdk.ClassLoaderStatistics</code> — per-loader class counts and metaspace usage.
+                <code>jdk.ClassLoaderStatistics</code> — per-loader class counts and metaspace
+                usage.
               </li>
               <li>
                 <code>jdk.ClassLoad</code> / <code>jdk.ClassDefine</code> — one event per class with
-                timing. <strong>Off by default</strong> (high volume), which is why Class Load Activity
-                often shows the "enable the event" notice.
+                timing. <strong>Off by default</strong> (high volume), which is why Class Load
+                Activity often shows the "enable the event" notice.
               </li>
               <li>
-                <code>jdk.ClassRedefinition</code> / <code>jdk.RetransformClasses</code> — emitted by
-                instrumentation agents.
+                <code>jdk.ClassRedefinition</code> / <code>jdk.RetransformClasses</code> — emitted
+                by instrumentation agents.
               </li>
             </ul>
           </AboutSection>
@@ -548,12 +565,9 @@ const classLoadersView = useTableView<ClassLoaderStat>(sortedClassLoaders, {
   searchableText: r => `${r.name} ${r.parentName ?? ''}`
 });
 
-const classLoadsView = useTableView<ClassLoadEntry>(
-  () => classLoadActivity.value?.slowest ?? [],
-  {
-    searchableText: r => `${r.className ?? ''} ${r.definingClassLoader ?? ''}`
-  }
-);
+const classLoadsView = useTableView<ClassLoadEntry>(() => classLoadActivity.value?.slowest ?? [], {
+  searchableText: r => `${r.className ?? ''} ${r.definingClassLoader ?? ''}`
+});
 
 const redefinitionsView = useTableView<ClassRedefinitionStat>(
   () => redefinitionData.value?.redefinitions ?? [],
@@ -581,14 +595,19 @@ onMounted(async () => {
     const profileId = route.params.profileId as string;
     const client = new ProfileClassLoadingClient(profileId);
 
-    const [overviewResult, timelineResult, classLoadersResult, classLoadsResult, redefinitionsResult] =
-      await Promise.all([
-        client.getOverview(),
-        client.getTimeline(),
-        client.getClassLoaders(),
-        client.getClassLoads(),
-        client.getRedefinitions()
-      ]);
+    const [
+      overviewResult,
+      timelineResult,
+      classLoadersResult,
+      classLoadsResult,
+      redefinitionsResult
+    ] = await Promise.all([
+      client.getOverview(),
+      client.getTimeline(),
+      client.getClassLoaders(),
+      client.getClassLoads(),
+      client.getRedefinitions()
+    ]);
 
     overview.value = overviewResult;
     timeline.value = timelineResult;

@@ -334,8 +334,12 @@ const hasAnything = computed(
 );
 
 const statusText = computed(() => {
-  if (connected.value) return 'Connected';
-  if (canSubscribe.value) return 'Ready to subscribe';
+  if (connected.value) {
+    return 'Connected';
+  }
+  if (canSubscribe.value) {
+    return 'Ready to subscribe';
+  }
   return 'Configure sessions and event types';
 });
 
@@ -363,13 +367,19 @@ function eventTypeColor(et: string): string {
 
 const sessionsSummaryLabel = computed(() => {
   const count = sessions.value.length;
-  if (count === 0) return '';
-  if (count === 1) return '1 session';
+  if (count === 0) {
+    return '';
+  }
+  if (count === 1) {
+    return '1 session';
+  }
   return `${count} sessions`;
 });
 
 function toggleEditing(card: Exclude<EditingCard, null>) {
-  if (connected.value && card === 'sessions') return;
+  if (connected.value && card === 'sessions') {
+    return;
+  }
   editing.value = editing.value === card ? null : card;
 }
 
@@ -407,7 +417,9 @@ function enableCustomMaxEvents() {
 }
 
 function startStreaming() {
-  if (sessions.value.length === 0 || !workspaceId.value || !projectId.value) return;
+  if (sessions.value.length === 0 || !workspaceId.value || !projectId.value) {
+    return;
+  }
 
   client = new EventStreamingClient(workspaceId.value, projectId.value);
 

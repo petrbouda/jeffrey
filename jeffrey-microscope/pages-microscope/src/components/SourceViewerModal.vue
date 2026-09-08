@@ -30,9 +30,8 @@
     @hidden="reset"
   >
     <template #title>
-      <span v-if="fqnPackage" class="hdr-pkg">{{ fqnPackage }}</span><span class="hdr-cls">{{
-        fqnClass
-      }}</span>
+      <span v-if="fqnPackage" class="hdr-pkg">{{ fqnPackage }}</span
+      ><span class="hdr-cls">{{ fqnClass }}</span>
     </template>
 
     <div v-if="hasValidLine || decompiled" class="source-subtitle">
@@ -113,9 +112,7 @@ const hasValidLine = computed(
   () => line.value > 0 && line.value <= lineCount.value && !decompiled.value
 );
 
-const highlightTop = computed(
-  () => `${VIEWER_PADDING_Y_PX + (line.value - 1) * LINE_HEIGHT_PX}px`
-);
+const highlightTop = computed(() => `${VIEWER_PADDING_Y_PX + (line.value - 1) * LINE_HEIGHT_PX}px`);
 
 async function openSource(payload: ViewSourcePayload): Promise<void> {
   let content: string;
@@ -129,9 +126,16 @@ async function openSource(payload: ViewSourcePayload): Promise<void> {
       // 'cancelled' — user dismissed the picker; stay silent.
       return;
     }
-    const response = await new IdeClient().fetchSource(payload.profileId, payload.fqn, payload.method);
+    const response = await new IdeClient().fetchSource(
+      payload.profileId,
+      payload.fqn,
+      payload.method
+    );
     if (!response.success || !response.content) {
-      ToastService.warn(SOURCE_UNAVAILABLE_TITLE, response.message ?? 'Source is not available for this class');
+      ToastService.warn(
+        SOURCE_UNAVAILABLE_TITLE,
+        response.message ?? 'Source is not available for this class'
+      );
       return;
     }
     content = response.content;

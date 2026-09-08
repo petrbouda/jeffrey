@@ -63,10 +63,10 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :seriesData="timelineSeries"
+            :series-data="timelineSeries"
             :stacked="true"
-            :primaryAxisType="AxisFormatType.NUMBER"
-            :visibleMinutes="60"
+            :primary-axis-type="AxisFormatType.NUMBER"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -82,7 +82,13 @@
             <TableToolbar v-model="byTypeView.query" search-placeholder="Filter reference types...">
               <span class="toolbar-info">By Type</span>
               <template #filters>
-                <Badge key-label="Total" :value="byTypeView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="byTypeView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -127,7 +133,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Per-GC</span>
               <template #filters>
-                <Badge key-label="Total" :value="perGcView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="perGcView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -182,7 +194,8 @@
             <FeatureGrid>
               <FeatureCard icon="bi-activity" variant="danger" title="Timeline">
                 References processed per second, stacked by type. Soft-reference bursts line up with
-                heap-pressure episodes; rising Final/Phantom volume points at finalizer/cleaner load.
+                heap-pressure episodes; rising Final/Phantom volume points at finalizer/cleaner
+                load.
               </FeatureCard>
               <FeatureCard icon="bi-list-ol" variant="primary" title="By Type">
                 Totals and per-GC averages — which reference kinds dominate the processing work.
@@ -195,8 +208,8 @@
           </AboutSection>
 
           <AboutCallout variant="note" title="Counts only on JDK 26" icon="bi-info-circle-fill">
-            The JDK 26 event carries only the processed <em>count</em> per type and the GC id — there
-            is no per-phase processing time — so every view here is count-based.
+            The JDK 26 event carries only the processed <em>count</em> per type and the GC id —
+            there is no per-phase processing time — so every view here is count-based.
           </AboutCallout>
 
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">

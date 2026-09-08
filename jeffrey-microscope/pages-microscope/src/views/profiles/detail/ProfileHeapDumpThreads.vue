@@ -190,7 +190,7 @@
                       </div>
                     </div>
 
-                    <div class="detail-pane" v-if="stackFrames[selectedFrameIndex]">
+                    <div v-if="stackFrames[selectedFrameIndex]" class="detail-pane">
                       <div class="detail-header">
                         <div class="crumb-row">
                           <div class="crumb">
@@ -424,7 +424,9 @@ const nonDaemonCount = computed(() => threadsData.value.filter(t => !t.daemon).l
 const lowPriorityCount = computed(() => threadsData.value.filter(t => t.priority <= 5).length);
 const highPriorityCount = computed(() => threadsData.value.filter(t => t.priority > 5).length);
 const highestPriority = computed(() => {
-  if (threadsData.value.length === 0) return 0;
+  if (threadsData.value.length === 0) {
+    return 0;
+  }
   return Math.max(...threadsData.value.map(t => t.priority));
 });
 
@@ -490,8 +492,12 @@ const filteredThreads = computed(() => {
 });
 
 const getPriorityClass = (priority: number): string => {
-  if (priority >= 7) return 'high';
-  if (priority >= 5) return 'normal';
+  if (priority >= 7) {
+    return 'high';
+  }
+  if (priority >= 5) {
+    return 'normal';
+  }
   return 'low';
 };
 
@@ -545,13 +551,17 @@ const toggleStack = async (objectId: number) => {
 // ---- Inspector helpers ----------------------------------------------------
 
 const simpleClassName = (fqn: string): string => {
-  if (!fqn) return '';
+  if (!fqn) {
+    return '';
+  }
   const lastDot = fqn.lastIndexOf('.');
   return lastDot < 0 ? fqn : fqn.substring(lastDot + 1);
 };
 
 const packageName = (fqn: string): string => {
-  if (!fqn) return '';
+  if (!fqn) {
+    return '';
+  }
   const lastDot = fqn.lastIndexOf('.');
   return lastDot < 0 ? '' : fqn.substring(0, lastDot);
 };
@@ -567,8 +577,12 @@ const frameSourceLabel = (frame: ThreadStackFrame): string => {
 };
 
 const frameKindLabel = (frame: ThreadStackFrame): string => {
-  if (frame.lineNumber === -3) return 'native frame';
-  if (frame.lineNumber === -2) return 'compiled frame';
+  if (frame.lineNumber === -3) {
+    return 'native frame';
+  }
+  if (frame.lineNumber === -2) {
+    return 'compiled frame';
+  }
   const cls = frame.className || '';
   if (cls.startsWith('java.') || cls.startsWith('jdk.') || cls.startsWith('sun.')) {
     return 'jdk frame';
@@ -578,8 +592,6 @@ const frameKindLabel = (frame: ThreadStackFrame): string => {
 
 const localsBytes = (frame: ThreadStackFrame): number =>
   frame.locals.reduce((sum, l) => sum + (l.shallowSize ?? 0), 0);
-
-
 
 // Best-effort one-liner explaining what the frame is doing. Keeps the
 // inspector useful even when the user isn't fluent in JDK internals.

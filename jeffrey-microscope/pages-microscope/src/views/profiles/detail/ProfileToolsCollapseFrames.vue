@@ -77,10 +77,10 @@
             <div v-for="(_, index) in patterns" :key="index" class="input-group search-container">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
+                v-model="patterns[index]"
                 type="text"
                 class="form-control search-input"
                 placeholder="e.g. org.springframework"
-                v-model="patterns[index]"
                 :disabled="isLocked"
                 @keyup.enter="handlePreview"
               />
@@ -89,8 +89,8 @@
                 class="btn btn-outline-secondary btn-sm"
                 type="button"
                 :disabled="isLocked"
-                @click="removePattern(index)"
                 title="Remove pattern"
+                @click="removePattern(index)"
               >
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -116,10 +116,10 @@
           <div class="input-group search-container">
             <span class="input-group-text"><i class="bi bi-tag search-icon"></i></span>
             <input
+              v-model="label"
               type="text"
               class="form-control search-input"
               placeholder="e.g. Spring Framework"
-              v-model="label"
               :disabled="isLocked"
               @keyup.enter="handlePreview"
             />
@@ -340,7 +340,9 @@ const resetToIdle = () => {
 };
 
 const handlePreview = async () => {
-  if (!canPreview.value) return;
+  if (!canPreview.value) {
+    return;
+  }
 
   state.value = 'previewing';
   try {

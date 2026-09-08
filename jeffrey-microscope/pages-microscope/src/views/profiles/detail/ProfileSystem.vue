@@ -24,16 +24,16 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="machineCpuSeries"
-            primaryTitle="Machine Total"
-            :secondaryData="jvmUserSeries"
-            secondaryTitle="JVM User"
-            :tertiaryData="jvmSystemSeries"
-            tertiaryTitle="JVM System"
-            :primaryAxisType="AxisFormatType.PERCENT_IN_HUNDREDTHS"
-            :secondaryAxisType="AxisFormatType.PERCENT_IN_HUNDREDTHS"
-            :tertiaryAxisType="AxisFormatType.PERCENT_IN_HUNDREDTHS"
-            :visibleMinutes="60"
+            :primary-data="machineCpuSeries"
+            primary-title="Machine Total"
+            :secondary-data="jvmUserSeries"
+            secondary-title="JVM User"
+            :tertiary-data="jvmSystemSeries"
+            tertiary-title="JVM System"
+            :primary-axis-type="AxisFormatType.PERCENT_IN_HUNDREDTHS"
+            :secondary-axis-type="AxisFormatType.PERCENT_IN_HUNDREDTHS"
+            :tertiary-axis-type="AxisFormatType.PERCENT_IN_HUNDREDTHS"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -73,13 +73,13 @@
         <div v-else class="chart-container">
           <TimeSeriesChart
             :key="selectedInterface"
-            :primaryData="networkReadSeries"
-            primaryTitle="Read /s"
-            :secondaryData="networkWriteSeries"
-            secondaryTitle="Write /s"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :secondaryAxisType="AxisFormatType.BYTES"
-            :visibleMinutes="60"
+            :primary-data="networkReadSeries"
+            primary-title="Read /s"
+            :secondary-data="networkWriteSeries"
+            secondary-title="Write /s"
+            :primary-axis-type="AxisFormatType.BYTES"
+            :secondary-axis-type="AxisFormatType.BYTES"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -92,9 +92,9 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="contextSwitchSeries"
-            primaryTitle="Context Switches / sec"
-            :visibleMinutes="60"
+            :primary-data="contextSwitchSeries"
+            primary-title="Context Switches / sec"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -105,29 +105,26 @@
           shows="OS swap space — total swap and how much is in use, over the recording."
           use-case="Rising used-swap on a JVM host is a red flag: paging the heap to disk causes huge GC pauses and latency. Ideally used swap stays flat near zero."
         />
-        <DisabledEventsNotice
-          v-if="!hasSwapData"
-          title="No swap data recorded"
-          icon="bi-hdd"
-        >
+        <DisabledEventsNotice v-if="!hasSwapData" title="No swap data recorded" icon="bi-hdd">
           <p>
-            Swap totals come from <code>jdk.SwapSpace</code>, which is <strong>enabled by
-            default</strong> (sampled once per chunk) in the bundled <code>default</code> and
-            <code>profile</code> configs — so emptiness here is <em>environmental</em>, not a
-            config gap. It typically means the host has <strong>no swap configured</strong>, or the
-            platform simply doesn't expose swap accounting to the JVM. On a JVM box that's usually
-            the desired state — swap activity under a Java heap is a red flag.
+            Swap totals come from <code>jdk.SwapSpace</code>, which is
+            <strong>enabled by default</strong> (sampled once per chunk) in the bundled
+            <code>default</code> and <code>profile</code> configs — so emptiness here is
+            <em>environmental</em>, not a config gap. It typically means the host has
+            <strong>no swap configured</strong>, or the platform simply doesn't expose swap
+            accounting to the JVM. On a JVM box that's usually the desired state — swap activity
+            under a Java heap is a red flag.
           </p>
         </DisabledEventsNotice>
         <div v-else class="chart-container">
           <TimeSeriesChart
-            :primaryData="swapUsedSeries"
-            primaryTitle="Used"
-            :secondaryData="swapTotalSeries"
-            secondaryTitle="Total"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :secondaryAxisType="AxisFormatType.BYTES"
-            :visibleMinutes="60"
+            :primary-data="swapUsedSeries"
+            primary-title="Used"
+            :secondary-data="swapTotalSeries"
+            secondary-title="Total"
+            :primary-axis-type="AxisFormatType.BYTES"
+            :secondary-axis-type="AxisFormatType.BYTES"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -200,12 +197,12 @@
           icon="bi-terminal"
         >
           <p>
-            This list is built from <code>jdk.ProcessStart</code>, which is <strong>enabled by
-            default</strong> in the bundled <code>default</code> and <code>profile</code> configs.
-            An empty list is <strong>completely normal</strong> and not a configuration problem — it
-            simply means the JVM launched no child processes during the recording (no
-            <code>ProcessBuilder</code> / <code>Runtime.exec</code> calls). The event would only
-            appear if your application actually spawned a subprocess.
+            This list is built from <code>jdk.ProcessStart</code>, which is
+            <strong>enabled by default</strong> in the bundled <code>default</code> and
+            <code>profile</code> configs. An empty list is <strong>completely normal</strong> and
+            not a configuration problem — it simply means the JVM launched no child processes during
+            the recording (no <code>ProcessBuilder</code> / <code>Runtime.exec</code> calls). The
+            event would only appear if your application actually spawned a subprocess.
           </p>
         </DisabledEventsNotice>
         <DataTable v-else>

@@ -38,18 +38,19 @@
             <li>
               <code>jdk.VirtualThreadPinned</code> — a virtual thread could not unmount from its
               carrier (a native frame, or before JDK 24 a <code>synchronized</code> block) and held
-              it hostage. Carries a stack trace and the pinned duration. <strong>Enabled by
-              default</strong>, but with a <code>threshold</code> of ~20&nbsp;ms, so shorter pins are
-              not recorded. Drives the <em>Pinning</em> tab — the top Loom scalability footgun.
+              it hostage. Carries a stack trace and the pinned duration.
+              <strong>Enabled by default</strong>, but with a <code>threshold</code> of ~20&nbsp;ms,
+              so shorter pins are not recorded. Drives the <em>Pinning</em> tab — the top Loom
+              scalability footgun.
             </li>
             <li>
               <code>jdk.VirtualThreadSubmitFailed</code> — the scheduler rejected a virtual thread
-              (carrier-pool rejection, executor shutdown, or a scheduling bug). <strong>Enabled by
-              default.</strong> Drives the <em>Submit Failures</em> tab.
+              (carrier-pool rejection, executor shutdown, or a scheduling bug).
+              <strong>Enabled by default.</strong> Drives the <em>Submit Failures</em> tab.
             </li>
             <li>
-              <code>jdk.VirtualThreadStart</code> / <code>jdk.VirtualThreadEnd</code> — one event per
-              virtual-thread creation and termination, used to derive the live-count trend.
+              <code>jdk.VirtualThreadStart</code> / <code>jdk.VirtualThreadEnd</code> — one event
+              per virtual-thread creation and termination, used to derive the live-count trend.
               <strong>Disabled by default</strong> and high-volume — enable only for leak or
               spawn-rate analysis. Drives the <em>Lifecycle</em> tab.
             </li>
@@ -70,21 +71,29 @@
           <ul>
             <li>
               At launch —
-              <code>java -XX:StartFlightRecording=settings=profile,settings=virtual-threads.jfc,filename=app.jfr,dumponexit=true -jar app.jar</code>
+              <code
+                >java
+                -XX:StartFlightRecording=settings=profile,settings=virtual-threads.jfc,filename=app.jfr,dumponexit=true
+                -jar app.jar</code
+              >
             </li>
             <li>
               On a running JVM —
-              <code>jcmd &lt;pid&gt; JFR.start name=vt settings=profile settings=virtual-threads.jfc filename=app.jfr</code>
+              <code
+                >jcmd &lt;pid&gt; JFR.start name=vt settings=profile settings=virtual-threads.jfc
+                filename=app.jfr</code
+              >
             </li>
           </ul>
 
           <p>
             Either way, re-import the <code>.jfr</code> into Jeffrey afterwards. Raise the
-            <code>threshold</code> (e.g. to <code>20ms</code>) to keep only the costly pins. Note that
-            since JDK&nbsp;24 (JEP&nbsp;491) <code>synchronized</code> no longer pins virtual threads,
-            so on modern runtimes pinning is rare and comes mostly from native frames — a quiet
-            Pinning tab is often good news. To find <em>where</em> a pin happens, open the weighted
-            <code>jdk.VirtualThreadPinned</code> flamegraph under Visualization → Flamegraphs.
+            <code>threshold</code> (e.g. to <code>20ms</code>) to keep only the costly pins. Note
+            that since JDK&nbsp;24 (JEP&nbsp;491) <code>synchronized</code> no longer pins virtual
+            threads, so on modern runtimes pinning is rare and comes mostly from native frames — a
+            quiet Pinning tab is often good news. To find <em>where</em> a pin happens, open the
+            weighted <code>jdk.VirtualThreadPinned</code> flamegraph under Visualization →
+            Flamegraphs.
           </p>
         </template>
       </DisabledEventsNotice>
@@ -122,14 +131,19 @@
             <DonutWithLegend
               v-if="pinningTotalIncidents > 0"
               :data="pinningDistributionChart"
-              :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' incidents'"
+              :tooltip-formatter="
+                (val: number) => FormattingService.formatNumber(val) + ' incidents'
+              "
             />
             <EmptyState v-else icon="bi-check-circle" title="No pinning recorded" />
           </div>
           <div class="col-lg-7">
             <DataTable v-if="data!.topPinnedThreads.length > 0">
               <template #toolbar>
-                <TableToolbar v-model="topPinnedThreadsView.query" search-placeholder="Filter threads...">
+                <TableToolbar
+                  v-model="topPinnedThreadsView.query"
+                  search-placeholder="Filter threads..."
+                >
                   <span class="toolbar-info">Top Pinned Virtual Threads</span>
                   <template #filters>
                     <Badge
@@ -185,7 +199,10 @@
           <div class="col-12">
             <DataTable v-if="data!.pinningReasons.length > 0">
               <template #toolbar>
-                <TableToolbar v-model="pinningReasonsView.query" search-placeholder="Filter reasons...">
+                <TableToolbar
+                  v-model="pinningReasonsView.query"
+                  search-placeholder="Filter reasons..."
+                >
                   <span class="toolbar-info">Pinning by Reason</span>
                   <template #filters>
                     <Badge
@@ -254,7 +271,10 @@
         />
         <DataTable v-if="data!.submitFailures.length > 0">
           <template #toolbar>
-            <TableToolbar v-model="submitFailuresView.query" search-placeholder="Filter submit failures...">
+            <TableToolbar
+              v-model="submitFailuresView.query"
+              search-placeholder="Filter submit failures..."
+            >
               <span class="toolbar-info">Submit Failures</span>
               <template #filters>
                 <Badge
@@ -367,10 +387,15 @@
             </FeatureGrid>
           </AboutSection>
 
-          <AboutCallout variant="tip" title="A quiet Pinning tab is often good news" icon="bi-lightbulb-fill">
+          <AboutCallout
+            variant="tip"
+            title="A quiet Pinning tab is often good news"
+            icon="bi-lightbulb-fill"
+          >
             Since JDK&nbsp;24 (JEP&nbsp;491) <code>synchronized</code> no longer pins virtual
             threads, so on modern runtimes pinning is rare and comes mostly from native frames. To
-            find <em>where</em> a pin happens, open the weighted <code>jdk.VirtualThreadPinned</code>
+            find <em>where</em> a pin happens, open the weighted
+            <code>jdk.VirtualThreadPinned</code>
             flamegraph under Visualization → Flamegraphs.
           </AboutCallout>
 
@@ -383,8 +408,8 @@
                 shorter pins are not recorded. Drives the Pinning tab.
               </li>
               <li>
-                <code>jdk.VirtualThreadSubmitFailed</code> — the scheduler rejected a virtual thread.
-                <strong>Enabled by default.</strong> Drives the Submit Failures tab.
+                <code>jdk.VirtualThreadSubmitFailed</code> — the scheduler rejected a virtual
+                thread. <strong>Enabled by default.</strong> Drives the Submit Failures tab.
               </li>
               <li>
                 <code>jdk.VirtualThreadStart</code> / <code>jdk.VirtualThreadEnd</code> — one event
@@ -495,8 +520,8 @@ const pinningDistributionChart = computed<DonutChartData>(() => {
   const buckets = data.value?.pinningDistribution ?? [];
   const colorFor = (i: number) => PINNING_BUCKET_COLORS[i % PINNING_BUCKET_COLORS.length];
   return {
-    series: buckets.map((b) => b.count),
-    labels: buckets.map((b) => b.label),
+    series: buckets.map(b => b.count),
+    labels: buckets.map(b => b.label),
     colors: buckets.map((_, i) => colorFor(i)),
     totalLabel: 'Incidents',
     totalValue: FormattingService.formatNumber(pinningTotalIncidents.value),

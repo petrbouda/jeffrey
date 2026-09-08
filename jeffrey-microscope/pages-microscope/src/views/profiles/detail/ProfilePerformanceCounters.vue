@@ -33,13 +33,13 @@
             <div class="input-group search-container">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
+                v-model="searchQuery"
                 type="text"
                 class="form-control search-input"
                 placeholder="Filter counters..."
-                v-model="searchQuery"
-                @input="filterCounters"
                 aria-label="Filter counters"
                 autocomplete="off"
+                @input="filterCounters"
               />
               <button
                 v-if="searchQuery"
@@ -63,15 +63,15 @@
                     <div class="tree-controls">
                       <button
                         class="btn btn-sm btn-outline-primary btn-xs px-1"
-                        @click="collapseAll"
                         title="Collapse All"
+                        @click="collapseAll"
                       >
                         <i class="bi bi-arrows-collapse"></i>
                       </button>
                       <button
                         class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
-                        @click="expandAll"
                         title="Expand All"
+                        @click="expandAll"
                       >
                         <i class="bi bi-arrows-expand"></i>
                       </button>
@@ -107,8 +107,8 @@
 
                 <!-- Counter items (when category is expanded) -->
                 <template
-                  v-if="isExpanded(category.name)"
                   v-for="counter in category.counters"
+                  v-if="isExpanded(category.name)"
                   :key="`${category.name}-${counter.key}`"
                 >
                   <tr class="leaf-row">

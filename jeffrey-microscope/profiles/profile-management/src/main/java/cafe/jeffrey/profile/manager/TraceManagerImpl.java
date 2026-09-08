@@ -840,11 +840,6 @@ public class TraceManagerImpl implements TraceManager {
                 .toList();
     }
 
-    private static SpanInterval intervalOf(TraceSpanRecord span) {
-        return new SpanInterval(
-                span.threadHash(), toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span)));
-    }
-
     private static long endMicrosOf(TraceSpanRecord span) {
         return span.startEpochMicros() + span.durationNanos() / NANOS_PER_MICRO;
     }

@@ -111,12 +111,12 @@
                     <div class="agent-mode-selector">
                       <div class="form-check">
                         <input
+                          id="agentJeffrey"
+                          v-model="agentMode"
                           class="form-check-input"
                           type="radio"
                           name="agentMode"
-                          id="agentJeffrey"
                           value="jeffrey"
-                          v-model="agentMode"
                         />
                         <label class="form-check-label" for="agentJeffrey">
                           Use Agent provided by Jeffrey
@@ -124,12 +124,12 @@
                       </div>
                       <div class="form-check">
                         <input
+                          id="agentCustom"
+                          v-model="agentMode"
                           class="form-check-input"
                           type="radio"
                           name="agentMode"
-                          id="agentCustom"
                           value="custom"
-                          v-model="agentMode"
                         />
                         <label class="form-check-label" for="agentCustom">
                           Specify Custom Agent Path
@@ -143,9 +143,9 @@
 
                     <div v-if="agentMode === 'custom'">
                       <input
+                        v-model="config.agentPathCustom"
                         type="text"
                         class="form-control"
-                        v-model="config.agentPathCustom"
                         placeholder="/path/to/libasyncProfiler.so"
                       />
                       <div class="form-help">
@@ -171,9 +171,9 @@
                 >
                   <div class="form-group">
                     <input
+                      v-model="config.file"
                       type="text"
                       class="form-control"
-                      v-model="config.file"
                       placeholder="<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"
                       required
                     />
@@ -201,14 +201,14 @@
                   <div class="form-group">
                     <div class="input-group">
                       <input
+                        v-model="config.loopValue"
                         type="number"
                         class="form-control"
-                        v-model="config.loopValue"
                         min="1"
                         placeholder="15"
                         required
                       />
-                      <select class="form-select select-with-indicator" v-model="config.loopUnit">
+                      <select v-model="config.loopUnit" class="form-select select-with-indicator">
                         <option value="s">Seconds</option>
                         <option value="m">Minutes</option>
                         <option value="h">Hours</option>
@@ -240,7 +240,7 @@
                   @toggle="optionStates.event = $event"
                 >
                   <div class="form-group">
-                    <select class="form-control select-with-indicator" v-model="config.event">
+                    <select v-model="config.event" class="form-control select-with-indicator">
                       <option value="ctimer">ctimer</option>
                       <option value="cpu">cpu</option>
                     </select>
@@ -263,14 +263,14 @@
                       <label class="interval-label">Sampling Interval</label>
                       <div class="input-group">
                         <input
+                          v-model.number="config.intervalValue"
                           type="number"
                           class="form-control"
-                          v-model.number="config.intervalValue"
                           placeholder="10"
                         />
                         <select
-                          class="form-select select-with-indicator"
                           v-model="config.intervalUnit"
+                          class="form-select select-with-indicator"
                         >
                           <option value="us">Micros</option>
                           <option value="ms">Millis</option>
@@ -296,12 +296,12 @@
                     <label class="interval-label">Sampling Allocation Threshold</label>
                     <div class="input-group">
                       <input
+                        v-model.number="config.allocValue"
                         type="number"
                         class="form-control"
-                        v-model.number="config.allocValue"
                         placeholder="2"
                       />
-                      <select class="form-select select-with-indicator" v-model="config.allocUnit">
+                      <select v-model="config.allocUnit" class="form-select select-with-indicator">
                         <option value="mb">MB</option>
                         <option value="kb">kB</option>
                       </select>
@@ -326,14 +326,14 @@
                     <label class="interval-label">Sampling Threshold</label>
                     <div class="input-group">
                       <input
+                        v-model.number="config.lockThresholdValue"
                         type="number"
                         class="form-control"
-                        v-model.number="config.lockThresholdValue"
                         placeholder="0"
                       />
                       <select
-                        class="form-select select-with-indicator"
                         v-model="config.lockThresholdUnit"
+                        class="form-select select-with-indicator"
                       >
                         <option value="us">Micros</option>
                         <option value="ms">Millis</option>
@@ -359,12 +359,12 @@
                     <label class="interval-label">Sampling Interval</label>
                     <div class="input-group">
                       <input
+                        v-model.number="config.wallValue"
                         type="number"
                         class="form-control"
-                        v-model.number="config.wallValue"
                         placeholder="10"
                       />
-                      <select class="form-select select-with-indicator" v-model="config.wallUnit">
+                      <select v-model="config.wallUnit" class="form-select select-with-indicator">
                         <option value="us">Micros</option>
                         <option value="ms">Millis</option>
                         <option value="s">Seconds</option>
@@ -401,8 +401,8 @@
                           <button
                             type="button"
                             class="btn-remove-pattern"
-                            @click="removeMethodPattern(index)"
                             title="Remove Pattern"
+                            @click="removeMethodPattern(index)"
                           >
                             <i class="bi bi-x-lg"></i>
                           </button>
@@ -421,16 +421,16 @@
                       <label class="interval-label">Add Method Pattern</label>
                       <div class="input-group">
                         <input
+                          v-model="newMethodPattern"
                           type="text"
                           class="form-control"
-                          v-model="newMethodPattern"
                           @keyup.enter="addPattern"
                         />
                         <button
                           type="button"
                           class="btn-add-pattern form-select"
-                          @click="addPattern"
                           :disabled="!newMethodPattern.trim()"
+                          @click="addPattern"
                         >
                           <i class="bi bi-plus-circle"></i>
                           Add
@@ -460,14 +460,14 @@
                     <label class="interval-label">Sampling Threshold</label>
                     <div class="input-group">
                       <input
+                        v-model.number="config.nativeMemValue"
                         type="number"
                         class="form-control"
-                        v-model.number="config.nativeMemValue"
                         placeholder="512"
                       />
                       <select
-                        class="form-select select-with-indicator"
                         v-model="config.nativeMemUnit"
+                        class="form-select select-with-indicator"
                       >
                         <option value="mb">MB</option>
                         <option value="kb">kB</option>
@@ -480,10 +480,10 @@
                     <div class="interval-block">
                       <div class="form-check">
                         <input
-                          class="form-check-input"
-                          type="checkbox"
                           id="omitFree"
                           v-model="config.nativeMemOmitFree"
+                          class="form-check-input"
+                          type="checkbox"
                         />
                         <label class="form-check-label" for="omitFree"> Omit free() events </label>
                       </div>
@@ -509,42 +509,42 @@
                   subtitle="Merge AsyncProfiler events with JFR recording"
                   icon="bi-arrow-down-up"
                   :is-enabled="optionStates.jfrsync"
-                  @toggle="optionStates.jfrsync = $event"
                   data-jfr-sync-card
+                  @toggle="optionStates.jfrsync = $event"
                 >
                   <div class="interval-block">
                     <label class="interval-label">Predefined JFC modes</label>
                     <div class="agent-mode-selector">
                       <div class="form-check">
                         <input
+                          id="jfcDefault"
+                          v-model="config.jfcMode"
                           class="form-check-input"
                           type="radio"
                           name="jfcMode"
-                          id="jfcDefault"
                           value="default"
-                          v-model="config.jfcMode"
                         />
                         <label class="form-check-label" for="jfcDefault"> default </label>
                       </div>
                       <div class="form-check">
                         <input
+                          id="jfcProfile"
+                          v-model="config.jfcMode"
                           class="form-check-input"
                           type="radio"
                           name="jfcMode"
-                          id="jfcProfile"
                           value="profile"
-                          v-model="config.jfcMode"
                         />
                         <label class="form-check-label" for="jfcProfile"> profile </label>
                       </div>
                       <div class="form-check">
                         <input
+                          id="jfcCustom"
+                          v-model="config.jfcMode"
                           class="form-check-input"
                           type="radio"
                           name="jfcMode"
-                          id="jfcCustom"
                           value="custom"
-                          v-model="config.jfcMode"
                         />
                         <label class="form-check-label custom-option-label" for="jfcCustom">
                           custom configuration JFC file
@@ -560,9 +560,9 @@
                   <div v-if="config.jfcMode === 'custom'" class="interval-block">
                     <label class="interval-label">JFR Custom Configuration Path</label>
                     <input
+                      v-model="config.jfrsyncFile"
                       type="text"
                       class="form-control"
-                      v-model="config.jfrsyncFile"
                       placeholder="path/to/recording.jfc"
                     />
                     <div class="form-help">
@@ -577,21 +577,21 @@
                   subtitle="Maximum size of each JFR chunk file"
                   icon="bi-file-binary"
                   :is-enabled="optionStates.chunksize"
-                  @toggle="optionStates.chunksize = $event"
                   data-chunk-size-card
+                  @toggle="optionStates.chunksize = $event"
                 >
                   <div class="interval-block">
                     <div class="input-group">
                       <input
+                        v-model.number="config.chunksizeValue"
                         type="number"
                         class="form-control"
-                        v-model.number="config.chunksizeValue"
                         min="1"
                         placeholder="5"
                       />
                       <select
-                        class="form-select select-with-indicator"
                         v-model="config.chunksizeUnit"
+                        class="form-select select-with-indicator"
                       >
                         <option value="k">kB</option>
                         <option value="m">MB</option>
@@ -616,15 +616,15 @@
                   <div class="interval-block">
                     <div class="input-group">
                       <input
+                        v-model.number="config.chunktimeValue"
                         type="number"
                         class="form-control"
-                        v-model.number="config.chunktimeValue"
                         min="1"
                         placeholder="1"
                       />
                       <select
-                        class="form-select select-with-indicator"
                         v-model="config.chunktimeUnit"
+                        class="form-select select-with-indicator"
                       >
                         <option value="s">Seconds</option>
                         <option value="m">Minutes</option>
@@ -856,7 +856,9 @@ const enableChunkSizeConfiguration = (options: { scroll?: boolean } = {}) => {
     config.value.chunksizeUnit = 'm'; // MB
   }
 
-  if (options.scroll === false) return;
+  if (options.scroll === false) {
+    return;
+  }
 
   setTimeout(() => {
     const chunkSizeCard = document.querySelector('[data-chunk-size-card]');
@@ -876,7 +878,9 @@ const enableJfrSyncConfiguration = (options: { scroll?: boolean } = {}) => {
     config.value.jfcMode = 'default';
   }
 
-  if (options.scroll === false) return;
+  if (options.scroll === false) {
+    return;
+  }
 
   setTimeout(() => {
     const jfrSyncCard = document.querySelector('[data-jfr-sync-card]');

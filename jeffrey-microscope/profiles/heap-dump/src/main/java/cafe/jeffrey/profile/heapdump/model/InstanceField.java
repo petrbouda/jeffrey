@@ -51,10 +51,4 @@ public record InstanceField(
         return new InstanceField(name, type, value, false, referencedObjectId, referencedClassName);
     }
 
-    /**
-     * Create a field for a null reference.
-     */
-    public static InstanceField nullReference(String name, String type) {
-        return new InstanceField(name, type, "null", false, null, null);
-    }
 }

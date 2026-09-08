@@ -14,7 +14,7 @@ Use this guide when you need to:
 
 ### 1. Create Benchmark Class
 
-Location: `/jmh-tests/src/main/java/pbouda/jeffrey/jmh/`
+Location: `/jmh-tests/src/main/java/cafe/jeffrey/jmh/`
 
 ```java
 @BenchmarkMode(Mode.AverageTime)
@@ -183,7 +183,7 @@ If the benchmark needs additional dependencies, add them to `/jmh-tests/pom.xml`
 
 ```xml
 <dependency>
-    <groupId>pbouda.jeffrey</groupId>
+    <groupId>cafe.jeffrey</groupId>
     <artifactId>your-module</artifactId>
     <version>${project.version}</version>
 </dependency>

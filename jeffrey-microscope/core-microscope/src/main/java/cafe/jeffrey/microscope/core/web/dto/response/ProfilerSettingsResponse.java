@@ -37,7 +37,4 @@ public record ProfilerSettingsResponse(
                 settings.level());
     }
 
-    public EffectiveProfilerSettings toModel() {
-        return new EffectiveProfilerSettings(agentSettings, level);
-    }
 }

@@ -22,7 +22,9 @@ const gcOverviewData = ref<GCOverviewData | null>(null);
 
 // GC Summary data (computed from real data)
 const gcSummary = computed(() => {
-  if (!gcOverviewData.value) return null;
+  if (!gcOverviewData.value) {
+    return null;
+  }
 
   const header = gcOverviewData.value.header;
   return {
@@ -46,7 +48,9 @@ const gcSummary = computed(() => {
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
-  if (!gcOverviewData.value || !gcSummary.value) return [];
+  if (!gcOverviewData.value || !gcSummary.value) {
+    return [];
+  }
 
   return [
     {

@@ -1,12 +1,12 @@
 <template>
   <MetricCardList
     :items="groups"
-    :item-key="(group) => group.group"
-    :count="(group) => group.count"
+    :item-key="group => group.group"
+    :count="group => group.count"
     count-label="executions"
     :sort-options="sortOptions"
     initial-sort="maxExecutionTime"
-    @item-click="(group) => $emit('groupClick', group.group)"
+    @item-click="group => $emit('groupClick', group.group)"
   >
     <template #name="{ item }">
       <MetricName :segments="parseGroupedName(item.group)" :title="item.group" />
@@ -44,7 +44,12 @@
     </template>
 
     <template #right="{ item }">
-      <StatusBadge v-if="item.errorCount > 0" :value="item.errorCount" label="errors" variant="danger" />
+      <StatusBadge
+        v-if="item.errorCount > 0"
+        :value="item.errorCount"
+        label="errors"
+        variant="danger"
+      />
     </template>
   </MetricCardList>
 </template>
@@ -73,9 +78,21 @@ defineEmits<{
 }>();
 
 const sortOptions: MetricSortOption[] = [
-  { key: 'maxExecutionTime', label: 'MAX', compare: (a, b) => b.maxExecutionTime - a.maxExecutionTime },
-  { key: 'p99ExecutionTime', label: 'P99', compare: (a, b) => b.p99ExecutionTime - a.p99ExecutionTime },
-  { key: 'p95ExecutionTime', label: 'P95', compare: (a, b) => b.p95ExecutionTime - a.p95ExecutionTime },
+  {
+    key: 'maxExecutionTime',
+    label: 'MAX',
+    compare: (a, b) => b.maxExecutionTime - a.maxExecutionTime
+  },
+  {
+    key: 'p99ExecutionTime',
+    label: 'P99',
+    compare: (a, b) => b.p99ExecutionTime - a.p99ExecutionTime
+  },
+  {
+    key: 'p95ExecutionTime',
+    label: 'P95',
+    compare: (a, b) => b.p95ExecutionTime - a.p95ExecutionTime
+  },
   { key: 'errorCount', label: 'Errors', compare: (a, b) => b.errorCount - a.errorCount },
   { key: 'count', label: 'Executions', compare: (a, b) => b.count - a.count }
 ];

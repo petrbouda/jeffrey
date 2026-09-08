@@ -99,7 +99,10 @@ async function loadData() {
   error.value = null;
   try {
     const client = new ProfileAsyncProfilerClient(profileId);
-    const [overviewData, tagStats] = await Promise.all([client.getOverview(), client.getTagStats()]);
+    const [overviewData, tagStats] = await Promise.all([
+      client.getOverview(),
+      client.getTagStats()
+    ]);
     overview.value = overviewData;
     stats.value = tagStats;
   } catch (e: unknown) {
@@ -114,4 +117,3 @@ onMounted(() => {
   loadData();
 });
 </script>
-

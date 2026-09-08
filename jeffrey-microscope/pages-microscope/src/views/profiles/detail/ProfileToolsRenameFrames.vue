@@ -43,10 +43,10 @@
           <div class="input-group search-container">
             <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
             <input
+              v-model="search"
               type="text"
               class="form-control search-input"
               placeholder="e.g. com.company.internal"
-              v-model="search"
               :disabled="isLocked"
               @keyup.enter="handlePreview"
             />
@@ -62,10 +62,10 @@
           <div class="input-group search-container">
             <span class="input-group-text"><i class="bi bi-pencil search-icon"></i></span>
             <input
+              v-model="replacement"
               type="text"
               class="form-control search-input"
               placeholder="e.g. com.example.app"
-              v-model="replacement"
               :disabled="isLocked"
               @keyup.enter="handlePreview"
             />
@@ -209,11 +209,15 @@ const isLocked = computed(() => {
 });
 
 const uniqueSamples = computed(() => {
-  if (!previewResult.value) return [];
+  if (!previewResult.value) {
+    return [];
+  }
   const seen = new Set<string>();
   return previewResult.value.samples.filter(s => {
     const key = s.originalClassName + '→' + s.renamedClassName;
-    if (seen.has(key)) return false;
+    if (seen.has(key)) {
+      return false;
+    }
     seen.add(key);
     return true;
   });
@@ -236,7 +240,9 @@ const resetToIdle = () => {
 };
 
 const handlePreview = async () => {
-  if (!canPreview.value) return;
+  if (!canPreview.value) {
+    return;
+  }
 
   state.value = 'previewing';
   try {

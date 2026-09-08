@@ -104,7 +104,7 @@ const getSinglePageLink = (section: DocSection): string => {
 const isItemActive = (sectionPath: string, page: DocPage): boolean => {
   const href = pageHref(sectionPath, page);
   const [hrefPath, hrefHash] = href.split('#');
-  if (route.path !== hrefPath) return false;
+  if (route.path !== hrefPath) {return false;}
   return hrefHash ? route.hash === `#${hrefHash}` : !route.hash;
 };
 
@@ -115,8 +115,8 @@ const isItemActive = (sectionPath: string, page: DocPage): boolean => {
 // nested children (e.g. "Profiles > Heap Dump") both behave correctly.
 const isSectionActive = (section: DocSection): boolean => {
   for (const p of section.children) {
-    if (isItemActive(section.path, p)) return true;
-    if (p.children?.some(c => isItemActive(section.path, c))) return true;
+    if (isItemActive(section.path, p)) {return true;}
+    if (p.children?.some(c => isItemActive(section.path, c))) {return true;}
   }
   return false;
 };
@@ -136,7 +136,7 @@ watch(
     }
     if (isProductRoute) {
       const lead = navigationForProduct(product)[0];
-      if (lead) expandedSections.value.add(lead.path);
+      if (lead) {expandedSections.value.add(lead.path);}
     }
     // Expand any section that contains the current route — covers synthetic-path
     // groups like "Architecture" (children use absolute `to` overrides) and the

@@ -19,15 +19,18 @@
 <template>
   <MetricCardList
     :items="tags"
-    :item-key="(stat) => stat.tag"
-    :count="(stat) => stat.count"
+    :item-key="stat => stat.tag"
+    :count="stat => stat.count"
     count-label="spans"
     :sort-options="sortOptions"
     initial-sort="totalNanos"
-    @item-click="(stat) => $emit('tagClick', stat.tag)"
+    @item-click="stat => $emit('tagClick', stat.tag)"
   >
     <template #name="{ item }">
-      <MetricName :segments="parseGroupedName(item.tag, '(no tag)')" :title="item.tag || '(no tag)'" />
+      <MetricName
+        :segments="parseGroupedName(item.tag, '(no tag)')"
+        :title="item.tag || '(no tag)'"
+      />
     </template>
 
     <template #metrics="{ item }">

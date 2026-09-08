@@ -178,15 +178,4 @@ public class RepositoryClient {
             return null;
         }
     }
-
-    private static Long parseLongOrNull(String value) {
-        if (value == null || value.isEmpty()) {
-            return null;
-        }
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
 }

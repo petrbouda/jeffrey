@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.manager.memory;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.profile.manager.model.heap.AllocationTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.heap.HeapAllocationTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryOverviewData;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
@@ -77,7 +77,7 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
 
         RecordBuilder<GenericRecord, SingleSerie> builder = switch (timeseriesType) {
             case HEAP_BEFORE_AFTER_GC -> new HeapMemoryTimeseriesBuilder(timeRange, timeseriesType);
-            case ALLOCATION -> new AllocationTimeseriesBuilder(timeRange, timeseriesType);
+            case ALLOCATION -> new HeapAllocationTimeseriesBuilder(timeRange, timeseriesType);
         };
 
         return eventStreamRepository.genericStreaming(configurer, builder);

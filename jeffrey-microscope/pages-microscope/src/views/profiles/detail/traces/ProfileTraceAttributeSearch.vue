@@ -209,10 +209,7 @@ async function loadCatalog(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
-    const [types, overview] = await Promise.all([
-      client.getSpanEventTypes(),
-      client.getOverview()
-    ]);
+    const [types, overview] = await Promise.all([client.getSpanEventTypes(), client.getOverview()]);
     eventTypes.value = types;
     // The profile as the search's own stats would describe it, so a matched percentile can be read
     // against what the profile manages as a whole rather than in isolation.

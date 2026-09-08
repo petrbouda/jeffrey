@@ -104,7 +104,9 @@ const displayedRequests = computed(() => {
 });
 
 const maxResponseTime = computed(() => {
-  if (props.requests.length === 0) return 1;
+  if (props.requests.length === 0) {
+    return 1;
+  }
   return Math.max(...props.requests.map(r => r.responseTime));
 });
 
@@ -113,13 +115,19 @@ const getTimePercentage = (responseTime: number): number => {
 };
 
 const getAccentClass = (statusCode: number): string => {
-  if (statusCode >= 500) return 'accent-danger';
-  if (statusCode >= 400) return 'accent-warning';
+  if (statusCode >= 500) {
+    return 'accent-danger';
+  }
+  if (statusCode >= 400) {
+    return 'accent-warning';
+  }
   return 'accent-success';
 };
 
 const parseUri = (uri: string) => {
-  if (!uri) return [];
+  if (!uri) {
+    return [];
+  }
   const segments = uri.split('/').filter(segment => segment.length > 0);
   return segments.map(segment => ({
     text: segment,
@@ -140,8 +148,12 @@ const getMethodVariant = (method: string): Variant => {
 };
 
 const getStatusVariant = (status: number): Variant => {
-  if (status >= 500) return 'danger';
-  if (status >= 400) return 'warning';
+  if (status >= 500) {
+    return 'danger';
+  }
+  if (status >= 400) {
+    return 'warning';
+  }
   return 'success';
 };
 </script>

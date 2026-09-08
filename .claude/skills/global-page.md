@@ -23,13 +23,13 @@ Canonical scaffold — `MainCard` → `MainCardHeader` in the `#header` slot →
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import DataTable from '@/components/table/DataTable.vue';
-// import GenericModal from '@/components/GenericModal.vue'; // for create/edit dialogs
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+// import GenericModal from '@shared/components/GenericModal.vue'; // for create/edit dialogs
 
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -123,7 +123,7 @@ Add to `jeffrey-microscope/pages-microscope/src/router/index.ts` under the globa
 
 ### Step 3: Add Navigation Tab
 
-Add a link to `jeffrey-microscope/pages-microscope/src/components/MainNavigation.vue`:
+Add a link to `shared/ui/common/src/components/MainNavigation.vue`:
 
 ```vue
 <router-link to="/your-page" class="nav-pill" active-class="active">
@@ -142,9 +142,9 @@ If the page calls backend APIs, create a client in `jeffrey-microscope/pages-mic
 |---|---|
 | Vue View | `jeffrey-microscope/pages-microscope/src/views/global/YourPageView.vue` |
 | Router | `jeffrey-microscope/pages-microscope/src/router/index.ts` (global routes section) |
-| Navigation | `jeffrey-microscope/pages-microscope/src/components/MainNavigation.vue` |
+| Navigation | `shared/ui/common/src/components/MainNavigation.vue` |
 | API Client | `jeffrey-microscope/pages-microscope/src/services/api/YourPageClient.ts` |
-| MainCard / MainCardHeader | `jeffrey-microscope/pages-microscope/src/components/MainCard.vue`, `MainCardHeader.vue` |
+| MainCard / MainCardHeader | `shared/ui/common/src/components/MainCard.vue`, `MainCardHeader.vue` |
 
 ## Related Skills
 
@@ -156,7 +156,7 @@ If the page calls backend APIs, create a client in `jeffrey-microscope/pages-mic
 
 - **List page with toolbar + master/detail**: `jeffrey-microscope/pages-microscope/src/views/global/RecordingsView.vue`
 - **List page with cards/table**: `jeffrey-microscope/pages-microscope/src/views/global/RecordingsView.vue`
-- **Settings/simple page**: `jeffrey-microscope/pages-microscope/src/views/global/SettingsView.vue`
+- **Simple single-purpose page**: `jeffrey-microscope/pages-microscope/src/views/global/QuickOpenView.vue`
 
 ## Verification
 

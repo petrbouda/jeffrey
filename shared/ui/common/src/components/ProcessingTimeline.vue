@@ -352,7 +352,7 @@ const totalElapsed = computed(() => {
 
 .phase-card.failed .phase-icon {
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-white);
   border-color: var(--color-danger);
 }
 

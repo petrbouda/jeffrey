@@ -64,10 +64,17 @@
                   :class="{ on: item.includeWeight && item.event.hasWeight }"
                   :aria-checked="item.includeWeight && item.event.hasWeight"
                   :disabled="!item.event.hasWeight"
-                  :title="item.event.hasWeight ? weightSampleTypeText(item.event) : 'This event has no weight dimension'"
+                  :title="
+                    item.event.hasWeight
+                      ? weightSampleTypeText(item.event)
+                      : 'This event has no weight dimension'
+                  "
                   @click="toggleWeight(item)"
                 ></button>
-                <span class="weight-label" :class="{ on: item.includeWeight && item.event.hasWeight }">
+                <span
+                  class="weight-label"
+                  :class="{ on: item.includeWeight && item.event.hasWeight }"
+                >
                   Weight
                 </span>
               </span>
@@ -86,7 +93,9 @@
 
       <div class="row g-4 mt-1 align-items-end">
         <div class="col-lg-6">
-          <label class="form-label mb-1 small text-uppercase fw-semibold text-muted">Filename</label>
+          <label class="form-label mb-1 small text-uppercase fw-semibold text-muted"
+            >Filename</label
+          >
           <div class="filename-box mono">{{ filename }}</div>
         </div>
         <div class="col-lg-6">

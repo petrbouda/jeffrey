@@ -187,7 +187,7 @@ const enabledCount = computed(() => jobs.value.filter(j => j.enabled).length);
 const disabledCount = computed(() => jobs.value.length - enabledCount.value);
 
 const filteredJobs = computed(() => {
-    if (activeFilter.value === 'ALL') return jobs.value;
+    if (activeFilter.value === 'ALL') {return jobs.value;}
     return jobs.value.filter(j => j.executionLevel === activeFilter.value);
 });
 

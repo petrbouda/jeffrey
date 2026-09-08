@@ -19,23 +19,23 @@
 <template>
   <GenericModal
     :show="show"
-    @update:show="emit('update:show', $event)"
     modal-id="secondary-profile-selection"
     :title="modalTitle"
     icon="bi-layers-half"
     size="xl"
     :show-footer="true"
     class="profile-selection-modal"
+    @update:show="emit('update:show', $event)"
   >
     <!-- Search Bar -->
     <div class="search-wrapper">
       <div class="search-box">
         <i class="bi bi-search search-icon"></i>
         <input
+          v-model="profileSearchQuery"
           type="text"
           class="form-control"
           placeholder="Search profiles across all workspaces and projects..."
-          v-model="profileSearchQuery"
         />
       </div>
     </div>
@@ -158,8 +158,8 @@
           <button
             type="button"
             class="btn btn-select-profile"
-            @click="confirmSelection"
             :disabled="!hasValidSelection"
+            @click="confirmSelection"
           >
             <i class="bi bi-check2 me-1"></i>
             Select Profile

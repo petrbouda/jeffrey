@@ -55,7 +55,6 @@ export interface SpanBar {
  */
 export const MIN_BAR_PERCENT = 0.4;
 
-
 /** The whole bar, for a span with nothing covering it. A fresh array so no caller shares one. */
 function wholeBar(): BarSegment[] {
   return [{ leftPercent: 0, widthPercent: 100 }];
@@ -193,11 +192,8 @@ function coveredWindows(span: TraceSpanRow, children: TraceSpanRow[]): number[][
   const to = endMicrosOf(span);
 
   const windows = children
-    .filter((child) => child.threadHash === span.threadHash)
-    .map((child) => [
-      clamp(child.startEpochMicros, from, to),
-      clamp(endMicrosOf(child), from, to)
-    ])
+    .filter(child => child.threadHash === span.threadHash)
+    .map(child => [clamp(child.startEpochMicros, from, to), clamp(endMicrosOf(child), from, to)])
     .sort((left, right) => left[0] - right[0]);
 
   const merged: number[][] = [];

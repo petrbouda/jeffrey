@@ -65,9 +65,6 @@ public enum GarbageCollectorType {
         return isConcurrent;
     }
 
-    public String getJvmFlagName() {
-        return jvmFlagName;
-    }
 
     /**
      * Checks if the given flag name is a GC-related JVM flag.

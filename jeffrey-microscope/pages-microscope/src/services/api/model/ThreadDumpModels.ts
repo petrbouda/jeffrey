@@ -19,13 +19,7 @@
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 export type ThreadState =
-  | 'RUNNABLE'
-  | 'BLOCKED'
-  | 'WAITING'
-  | 'TIMED_WAITING'
-  | 'NEW'
-  | 'TERMINATED'
-  | 'UNKNOWN';
+  'RUNNABLE' | 'BLOCKED' | 'WAITING' | 'TIMED_WAITING' | 'NEW' | 'TERMINATED' | 'UNKNOWN';
 
 export type ThreadLockKind = 'LOCKED' | 'WAITING_TO_LOCK' | 'WAITING_ON' | 'PARKING_TO_WAIT';
 

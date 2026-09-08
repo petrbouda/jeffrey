@@ -126,7 +126,7 @@ const client = new HubClient();
 watch(
   () => props.show,
   open => {
-    if (open) reset();
+    if (open) {reset();}
   }
 );
 
@@ -141,7 +141,7 @@ const close = () => {
 };
 
 const submit = async () => {
-  if (!isValid.value) return;
+  if (!isValid.value) {return;}
   loading.value = true;
   error.value = null;
   try {

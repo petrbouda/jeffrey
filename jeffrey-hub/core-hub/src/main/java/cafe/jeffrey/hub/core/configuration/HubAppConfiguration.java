@@ -127,7 +127,7 @@ public class HubAppConfiguration {
 
     @Bean
     public HubJeffreyDirs jeffreyDir(
-            @Value("${jeffrey.hub.home.dir:${user.home}/.jeffrey}") String homeDir,
+            @Value("${jeffrey.hub.home.dir:${user.home}/.jeffrey-hub}") String homeDir,
             @Value("${jeffrey.hub.temp.dir:}") String tempDir) {
 
         Path homeDirPath = Path.of(homeDir);

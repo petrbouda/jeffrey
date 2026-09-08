@@ -26,8 +26,8 @@
         >
           Native Memory Tracking breaks native memory down by category. Its
           <code>jdk.NativeMemoryUsage</code> events are emitted only when the JVM is started with
-          <code>-XX:NativeMemoryTracking=summary</code> (or <code>detail</code>) — this recording has
-          none.
+          <code>-XX:NativeMemoryTracking=summary</code> (or <code>detail</code>) — this recording
+          has none.
           <template #action>
             <p>
               Then capture the recording with the <code>profile</code> settings
@@ -48,19 +48,28 @@
           />
           <div class="chart-container">
             <TimeSeriesChart
-              :seriesData="categorySeries"
+              :series-data="categorySeries"
               :stacked="true"
-              :primaryAxisType="AxisFormatType.BYTES"
-              :visibleMinutes="60"
+              :primary-axis-type="AxisFormatType.BYTES"
+              :visible-minutes="60"
             />
           </div>
 
           <DataTable class="mt-4">
             <template #toolbar>
-              <TableToolbar v-model="categoriesView.query" search-placeholder="Filter categories...">
+              <TableToolbar
+                v-model="categoriesView.query"
+                search-placeholder="Filter categories..."
+              >
                 <span class="toolbar-info">Category breakdown</span>
                 <template #filters>
-                  <Badge key-label="Total" :value="categoriesView.matchCount" variant="secondary" size="s" borderless />
+                  <Badge
+                    key-label="Total"
+                    :value="categoriesView.matchCount"
+                    variant="secondary"
+                    size="s"
+                    borderless
+                  />
                 </template>
               </TableToolbar>
             </template>
@@ -76,11 +85,18 @@
             <tbody>
               <tr v-for="category in categoriesView.visible" :key="category.category">
                 <td class="category-name">{{ category.category }}</td>
-                <td class="text-end">{{ FormattingService.formatBytes(category.reservedBytes) }}</td>
-                <td class="text-end">{{ FormattingService.formatBytes(category.committedBytes) }}</td>
+                <td class="text-end">
+                  {{ FormattingService.formatBytes(category.reservedBytes) }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatBytes(category.committedBytes) }}
+                </td>
                 <td>
                   <div class="share-bar">
-                    <div class="share-bar-fill" :style="{ width: shareWidth(category.committedBytes) + '%' }"></div>
+                    <div
+                      class="share-bar-fill"
+                      :style="{ width: shareWidth(category.committedBytes) + '%' }"
+                    ></div>
                   </div>
                 </td>
                 <td class="text-end">
@@ -115,8 +131,9 @@
           action-label="Launch the JVM with NMT enabled"
           command="-XX:NativeMemoryTracking=summary"
         >
-          The total reserved vs committed timeline comes from <code>jdk.NativeMemoryUsageTotal</code>,
-          emitted only when the JVM is started with <code>-XX:NativeMemoryTracking=summary</code>.
+          The total reserved vs committed timeline comes from
+          <code>jdk.NativeMemoryUsageTotal</code>, emitted only when the JVM is started with
+          <code>-XX:NativeMemoryTracking=summary</code>.
           <template #action>
             <p>Re-record with NMT on and the <code>profile</code> settings, then re-import.</p>
           </template>
@@ -128,13 +145,13 @@
           />
           <div class="chart-container">
             <TimeSeriesChart
-              :primaryData="totalCommittedSeries"
-              primaryTitle="Committed"
-              :secondaryData="totalReservedSeries"
-              secondaryTitle="Reserved"
-              :primaryAxisType="AxisFormatType.BYTES"
-              :secondaryAxisType="AxisFormatType.BYTES"
-              :visibleMinutes="60"
+              :primary-data="totalCommittedSeries"
+              primary-title="Committed"
+              :secondary-data="totalReservedSeries"
+              secondary-title="Reserved"
+              :primary-axis-type="AxisFormatType.BYTES"
+              :secondary-axis-type="AxisFormatType.BYTES"
+              :visible-minutes="60"
             />
           </div>
         </template>
@@ -157,21 +174,23 @@
         </DisabledEventsNotice>
         <template v-else>
           <ChartDescription>
-            <template #shows>Resident set size (what the OS sees) vs the memory NMT accounts for.</template>
+            <template #shows
+              >Resident set size (what the OS sees) vs the memory NMT accounts for.</template
+            >
             <template #use-case>
-              The gap (RSS − committed) approximates untracked memory — raw <code>malloc</code>, thread
-              stacks beyond guard pages, and mappings NMT doesn't see.
+              The gap (RSS − committed) approximates untracked memory — raw <code>malloc</code>,
+              thread stacks beyond guard pages, and mappings NMT doesn't see.
             </template>
           </ChartDescription>
           <div class="chart-container">
             <TimeSeriesChart
-              :primaryData="rssSeries"
-              primaryTitle="Resident Set Size"
-              :secondaryData="trackedCommittedSeries"
-              secondaryTitle="NMT Committed"
-              :primaryAxisType="AxisFormatType.BYTES"
-              :secondaryAxisType="AxisFormatType.BYTES"
-              :visibleMinutes="60"
+              :primary-data="rssSeries"
+              primary-title="Resident Set Size"
+              :secondary-data="trackedCommittedSeries"
+              secondary-title="NMT Committed"
+              :primary-axis-type="AxisFormatType.BYTES"
+              :secondary-axis-type="AxisFormatType.BYTES"
+              :visible-minutes="60"
             />
           </div>
         </template>
@@ -187,9 +206,10 @@
           <AboutCallout variant="intro">
             <p>
               The Java heap is only part of a JVM's memory. Thread stacks, JIT-compiled code, class
-              metadata, GC structures and internal buffers all live in <strong>native</strong> memory.
-              Native Memory Tracking (NMT) is the JVM's own accounting of that memory, broken down by
-              category — the tool for "the heap is healthy but the container got OOM-killed".
+              metadata, GC structures and internal buffers all live in
+              <strong>native</strong> memory. Native Memory Tracking (NMT) is the JVM's own
+              accounting of that memory, broken down by category — the tool for "the heap is healthy
+              but the container got OOM-killed".
             </p>
           </AboutCallout>
 
@@ -200,8 +220,8 @@
                 nothing physically — it's a promise the OS can hand back pages later.
               </FeatureCard>
               <FeatureCard icon="bi-hdd-fill" variant="primary" title="Committed">
-                The portion actually backed by physical memory (or swap). This is what the OS charges
-                the process and what shows up in RSS — climbing committed is what matters.
+                The portion actually backed by physical memory (or swap). This is what the OS
+                charges the process and what shows up in RSS — climbing committed is what matters.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -213,23 +233,24 @@
                 leaking thread pool.
               </FeatureCard>
               <FeatureCard icon="bi-box-seam" variant="danger" title="Class / Metaspace">
-                Steadily rising Class memory points at a classloader leak — typically dynamic proxies
-                or repeated redeploys.
+                Steadily rising Class memory points at a classloader leak — typically dynamic
+                proxies or repeated redeploys.
               </FeatureCard>
               <FeatureCard icon="bi-cpu" variant="success" title="Code">
-                A large or growing Code category is the JIT code cache — heavy under churn or with many
-                compiled methods.
+                A large or growing Code category is the JIT code cache — heavy under churn or with
+                many compiled methods.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
 
           <AboutSection icon="bi-toggles" title="Enabling NMT">
             <p>
-              NMT is off by default. Start the JVM with <code>-XX:NativeMemoryTracking=summary</code>
-              (or <code>detail</code>) and capture the recording with the <code>profile</code>
-              settings so the <code>jdk.NativeMemoryUsage</code> / <code>jdk.NativeMemoryUsageTotal</code>
-              events are included. There is a small runtime overhead (~5–10%), so it's usually left off
-              in production unless a native-memory problem is being investigated.
+              NMT is off by default. Start the JVM with
+              <code>-XX:NativeMemoryTracking=summary</code> (or <code>detail</code>) and capture the
+              recording with the <code>profile</code> settings so the
+              <code>jdk.NativeMemoryUsage</code> / <code>jdk.NativeMemoryUsageTotal</code>
+              events are included. There is a small runtime overhead (~5–10%), so it's usually left
+              off in production unless a native-memory problem is being investigated.
             </p>
           </AboutSection>
 
@@ -242,13 +263,14 @@
               </li>
               <li>
                 <code>jdk.NativeMemoryUsageTotal</code> — periodic process-wide reserved/committed
-                totals; the "peak committed" metric is the max of this series (there is no peak event).
+                totals; the "peak committed" metric is the max of this series (there is no peak
+                event).
               </li>
             </ul>
             <p>
-              Both are emitted only when the JVM runs with <code>-XX:NativeMemoryTracking</code> — they
-              don't exist in a recording made without it, which is why the data tabs show the enable
-              notice instead.
+              Both are emitted only when the JVM runs with <code>-XX:NativeMemoryTracking</code> —
+              they don't exist in a recording made without it, which is why the data tabs show the
+              enable notice instead.
             </p>
           </AboutSection>
         </AboutPanel>
@@ -308,10 +330,16 @@ const categorySeries = computed(() =>
   (categoryTimeline.value?.series ?? []).map(serie => ({ name: serie.name, data: serie.data }))
 );
 
-const totalCommittedSeries = computed<number[][]>(() => totalTimeline.value?.series?.[0]?.data ?? []);
-const totalReservedSeries = computed<number[][]>(() => totalTimeline.value?.series?.[1]?.data ?? []);
+const totalCommittedSeries = computed<number[][]>(
+  () => totalTimeline.value?.series?.[0]?.data ?? []
+);
+const totalReservedSeries = computed<number[][]>(
+  () => totalTimeline.value?.series?.[1]?.data ?? []
+);
 const rssSeries = computed<number[][]>(() => rssVsTracked.value?.series?.[0]?.data ?? []);
-const trackedCommittedSeries = computed<number[][]>(() => rssVsTracked.value?.series?.[1]?.data ?? []);
+const trackedCommittedSeries = computed<number[][]>(
+  () => rssVsTracked.value?.series?.[1]?.data ?? []
+);
 
 const maxCommitted = computed(() =>
   categories.value.reduce((max, category) => Math.max(max, category.committedBytes), 0)
@@ -375,7 +403,10 @@ const metricsData = computed(() => {
       value: o.largestCategory ?? '—',
       variant: 'info' as const,
       breakdown: [
-        { label: 'Committed', value: FormattingService.formatBytes(o.largestCategoryCommittedBytes) }
+        {
+          label: 'Committed',
+          value: FormattingService.formatBytes(o.largestCategoryCommittedBytes)
+        }
       ]
     },
     {
@@ -393,14 +424,19 @@ onMounted(async () => {
     const profileId = route.params.profileId as string;
     const client = new ProfileNmtClient(profileId);
 
-    const [overviewResult, categoriesResult, categoryTimelineResult, totalTimelineResult, rssResult] =
-      await Promise.all([
-        client.getOverview(),
-        client.getCategories(),
-        client.getCategoryTimeline(),
-        client.getTotalTimeline(),
-        client.getRssVsTracked()
-      ]);
+    const [
+      overviewResult,
+      categoriesResult,
+      categoryTimelineResult,
+      totalTimelineResult,
+      rssResult
+    ] = await Promise.all([
+      client.getOverview(),
+      client.getCategories(),
+      client.getCategoryTimeline(),
+      client.getTotalTimeline(),
+      client.getRssVsTracked()
+    ]);
 
     overview.value = overviewResult;
     categories.value = categoriesResult;

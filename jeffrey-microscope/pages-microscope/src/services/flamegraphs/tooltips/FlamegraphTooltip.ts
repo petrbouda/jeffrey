@@ -63,7 +63,9 @@ export default abstract class FlamegraphTooltip {
       value: types[t.key] ?? 0
     })).filter(s => s.value > 0);
 
-    if (segments.length === 0) return '';
+    if (segments.length === 0) {
+      return '';
+    }
 
     const total = segments.reduce((sum, s) => sum + s.value, 0);
 
@@ -91,7 +93,9 @@ export default abstract class FlamegraphTooltip {
    * Self vs Total visual comparison bar.
    */
   static self_vs_total(selfSamples: number, totalSamples: number) {
-    if (selfSamples <= 0 || totalSamples <= 0) return '';
+    if (selfSamples <= 0 || totalSamples <= 0) {
+      return '';
+    }
 
     const selfPct = Math.max((selfSamples / totalSamples) * 100, 1);
     const selfPctLabel = FlamegraphTooltip.pct(selfSamples, totalSamples);
@@ -158,7 +162,12 @@ export default abstract class FlamegraphTooltip {
     if (frame.type && JavaMethodParser.isJavaFrame(frame.type)) {
       const java = JavaMethodParser.parse(frame.title);
       parsed = java
-        ? { pkg: java.packageName, className: java.className, separator: '.', methodName: java.methodName }
+        ? {
+            pkg: java.packageName,
+            className: java.className,
+            separator: '.',
+            methodName: java.methodName
+          }
         : null;
     } else if (frame.type === FrameType.UNKNOWN && frame.title.includes('#')) {
       parsed = parseUnknownFrame(frame.title);

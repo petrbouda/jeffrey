@@ -258,7 +258,7 @@ const badgeText = computed(() => {
 });
 
 const fileCountPercent = (download: DownloadProgress): number => {
-  if (!download.totalFiles) return 0;
+  if (!download.totalFiles) {return 0;}
   return Math.round((download.completedFiles / download.totalFiles) * 100);
 };
 

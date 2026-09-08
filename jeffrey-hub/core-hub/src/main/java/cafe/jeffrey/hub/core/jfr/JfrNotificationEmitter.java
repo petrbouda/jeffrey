@@ -79,11 +79,6 @@ public abstract class JfrNotificationEmitter {
                 Severity.CRITICAL, NotificationCategory.SESSION);
     }
 
-    public static void eventProcessingFailed(String eventType, String projectId, String errorMessage) {
-        emit(NotificationType.EVENT_PROCESSING_FAILED,
-                "Failed to process workspace event: eventType=" + eventType + " projectId=" + projectId + " error=" + errorMessage,
-                Severity.HIGH, NotificationCategory.SYSTEM);
-    }
 
     // ==================== Private helpers ====================
 

@@ -245,8 +245,12 @@ const globalCommand = ref<string | null>(null);
 const loadingCurrent = ref(false);
 
 const effectiveLevel = computed<'workspace' | 'global' | 'none'>(() => {
-  if (workspaceCommand.value) return 'workspace';
-  if (globalCommand.value) return 'global';
+  if (workspaceCommand.value) {
+    return 'workspace';
+  }
+  if (globalCommand.value) {
+    return 'global';
+  }
   return 'none';
 });
 
@@ -334,7 +338,9 @@ const livePreview = computed(() => {
 const hasCommand = computed(() => livePreview.value.command.length > 0);
 
 const applyCommand = async (command: string) => {
-  if (!command) return;
+  if (!command) {
+    return;
+  }
   applying.value = true;
   try {
     const client = new WorkspaceProfilerSettingsClient(props.hubId, props.workspaceId);
@@ -376,7 +382,9 @@ const copyCommand = async () => {
 };
 
 const copyCommandText = async (cmd: string | null | undefined) => {
-  if (!cmd) return;
+  if (!cmd) {
+    return;
+  }
   try {
     await navigator.clipboard.writeText(cmd);
     ToastService.success('Copied!', 'Profiler command copied to clipboard', 1500);

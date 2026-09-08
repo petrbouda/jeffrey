@@ -4,7 +4,7 @@
     <CustomDisabledFeatureAlert
       v-if="isHttpDashboardDisabled"
       :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
-      eventType="HTTP exchange"
+      event-type="HTTP exchange"
     />
 
     <div v-else>
@@ -54,7 +54,7 @@
             :secondary-data="singleUriData.requestCountSerie.data"
             secondary-title="Request Count"
             :visible-minutes="60"
-            :independentSecondaryAxis="true"
+            :independent-secondary-axis="true"
             :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
             :secondary-axis-type="AxisFormatType.NUMBER"
           />
@@ -177,7 +177,9 @@ const slowestRequests = computed(() => {
 
 // Helper functions
 const parseUri = (uri: string) => {
-  if (!uri) return [];
+  if (!uri) {
+    return [];
+  }
 
   const segments = uri.split('/').filter(segment => segment.length > 0);
 

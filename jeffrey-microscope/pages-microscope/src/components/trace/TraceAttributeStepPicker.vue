@@ -127,7 +127,9 @@
             </span>
             <span class="item-meta">
               <span v-if="key.searchOnly" class="pill-search-only">search only</span>
-              <span class="item-count">{{ FormattingService.formatNumber(key.distinctValues) }}</span>
+              <span class="item-count">{{
+                FormattingService.formatNumber(key.distinctValues)
+              }}</span>
               values
             </span>
           </button>

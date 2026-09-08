@@ -32,7 +32,7 @@
           secondary-title="Spans"
           time-unit="milliseconds"
           :visible-minutes="60"
-          :independentSecondaryAxis="true"
+          :independent-secondary-axis="true"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
           :secondary-axis-type="AxisFormatType.NUMBER"
         />
@@ -141,4 +141,3 @@ watch(() => props.tag, load);
 
 onMounted(load);
 </script>
-

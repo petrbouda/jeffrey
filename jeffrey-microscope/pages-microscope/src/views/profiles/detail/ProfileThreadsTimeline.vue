@@ -36,8 +36,8 @@
             type="button"
             class="btn compact-btn"
             :class="[selectedSorting === option ? 'btn-primary active' : 'btn-outline-primary']"
-            @click="sortingChanged({ value: option })"
             :title="`Sort by ${option}`"
+            @click="sortingChanged({ value: option })"
           >
             {{ option }}
           </button>
@@ -45,8 +45,8 @@
         <button
           type="button"
           class="btn icon-info-btn ms-2"
-          @click="infoDialogVisible = true"
           title="Thread Information"
+          @click="infoDialogVisible = true"
         >
           <i class="bi bi-info-circle"></i>
         </button>

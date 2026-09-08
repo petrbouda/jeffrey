@@ -29,199 +29,201 @@ Coul<!--
     </div>
 
     <template v-if="enabled">
-    <!-- Settings Panel -->
-    <div class="settings-panel">
-      <!-- Event Details -->
-      <div class="event-details">
-        <div class="detail-row" v-if="showType">
-          <span class="detail-label">Type:</span>
-          <span class="detail-value" v-if="containsSecondary() && !isSameType()">
-            <span class="secondary-value">{{ event.secondary?.code }}</span>
-            <span class="delimiter"> → </span>
-            <span class="primary-value">{{ primaryTypeText }}</span>
-            <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)"
-              >(calculated)</span
-            >
-          </span>
-          <span class="detail-value" v-else>
-            {{ primaryTypeText }}
-            <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)"
-              >(calculated)</span
-            >
-          </span>
+      <!-- Settings Panel -->
+      <div class="settings-panel">
+        <!-- Event Details -->
+        <div class="event-details">
+          <div v-if="showType" class="detail-row">
+            <span class="detail-label">Type:</span>
+            <span v-if="containsSecondary() && !isSameType()" class="detail-value">
+              <span class="secondary-value">{{ event.secondary?.code }}</span>
+              <span class="delimiter"> → </span>
+              <span class="primary-value">{{ primaryTypeText }}</span>
+              <span v-if="Utils.parseBoolean(event.primary.calculated)" class="calculated-indicator"
+                >(calculated)</span
+              >
+            </span>
+            <span v-else class="detail-value">
+              {{ primaryTypeText }}
+              <span v-if="Utils.parseBoolean(event.primary.calculated)" class="calculated-indicator"
+                >(calculated)</span
+              >
+            </span>
+          </div>
+
+          <div v-if="event.primary.subtype != null" class="detail-row">
+            <span class="detail-label">Sub-Type:</span>
+            <span v-if="containsSecondary() && !isSameType()" class="detail-value">
+              <span class="secondary-value">{{ event.secondary?.subtype }}</span>
+              <span class="delimiter"> → </span>
+              <span class="primary-value">{{ event.primary.subtype }}</span>
+            </span>
+            <span v-else class="detail-value">
+              {{ event.primary.subtype }}
+            </span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Samples:</span>
+            <span v-if="containsSecondary()" class="detail-value">
+              <span class="secondary-value">{{
+                FormattingService.formatNumber(event.secondary?.samples || 0)
+              }}</span>
+              <span class="delimiter"> → </span>
+              <span class="primary-value">{{
+                FormattingService.formatNumber(event.primary.samples)
+              }}</span>
+              <Badge
+                v-if="samplesDelta"
+                :value="samplesDelta.text"
+                :variant="samplesDelta.variant"
+                size="xs"
+                borderless
+                :uppercase="false"
+                class="delta-badge"
+              />
+            </span>
+            <span v-else class="detail-value">
+              {{ FormattingService.formatNumber(event.primary.samples) }}
+            </span>
+          </div>
+
+          <div v-if="weightDesc != null" class="detail-row">
+            <span class="detail-label">{{ weightDesc }}:</span>
+            <span v-if="containsSecondary()" class="detail-value">
+              <span class="secondary-value">{{
+                weightFormatter(event.secondary?.weight || 0)
+              }}</span>
+              <span class="delimiter"> → </span>
+              <span class="primary-value">{{ weightFormatter(event.primary.weight) }}</span>
+              <Badge
+                v-if="weightDelta"
+                :value="weightDelta.text"
+                :variant="weightDelta.variant"
+                size="xs"
+                borderless
+                :uppercase="false"
+                class="delta-badge"
+              />
+            </span>
+            <span v-else class="detail-value">
+              {{ weightFormatter(event.primary.weight) }}
+            </span>
+          </div>
+
+          <div v-if="Utils.isNotNull(event.primary.extras?.sample_interval)" class="detail-row">
+            <span class="detail-label">Sample Interval:</span>
+            <span v-if="containsSecondary()" class="detail-value">
+              <span class="secondary-value">{{
+                weightFormatter(event.secondary?.extras.sample_interval)
+              }}</span>
+              <span class="delimiter"> → </span>
+              <span class="primary-value">{{
+                weightFormatter(event.primary.extras.sample_interval)
+              }}</span>
+              <Badge
+                v-if="sampleIntervalDelta"
+                :value="sampleIntervalDelta.text"
+                :variant="sampleIntervalDelta.variant"
+                size="xs"
+                borderless
+                :uppercase="false"
+                class="delta-badge"
+              />
+            </span>
+            <span v-else class="detail-value">
+              {{ weightFormatter(event.primary.extras.sample_interval) }}
+            </span>
+          </div>
         </div>
 
-        <div class="detail-row" v-if="event.primary.subtype != null">
-          <span class="detail-label">Sub-Type:</span>
-          <span class="detail-value" v-if="containsSecondary() && !isSameType()">
-            <span class="secondary-value">{{ event.secondary?.subtype }}</span>
-            <span class="delimiter"> → </span>
-            <span class="primary-value">{{ event.primary.subtype }}</span>
-          </span>
-          <span class="detail-value" v-else>
-            {{ event.primary.subtype }}
-          </span>
-        </div>
-
-        <div class="detail-row">
-          <span class="detail-label">Samples:</span>
-          <span class="detail-value" v-if="containsSecondary()">
-            <span class="secondary-value">{{
-              FormattingService.formatNumber(event.secondary?.samples || 0)
-            }}</span>
-            <span class="delimiter"> → </span>
-            <span class="primary-value">{{
-              FormattingService.formatNumber(event.primary.samples)
-            }}</span>
-            <Badge
-              v-if="samplesDelta"
-              :value="samplesDelta.text"
-              :variant="samplesDelta.variant"
-              size="xs"
-              borderless
-              :uppercase="false"
-              class="delta-badge"
+        <!-- Settings Checkboxes -->
+        <div class="settings-options">
+          <!-- Thread mode checkbox -->
+          <div v-if="threadModeOpt" class="setting-item">
+            <input
+              :id="'threadMode_' + event.code"
+              v-model="useThreadMode"
+              class="setting-checkbox"
+              type="checkbox"
             />
-          </span>
-          <span class="detail-value" v-else>
-            {{ FormattingService.formatNumber(event.primary.samples) }}
-          </span>
-        </div>
+            <label class="setting-label" :for="'threadMode_' + event.code"> Use Thread-mode </label>
+          </div>
 
-        <div class="detail-row" v-if="weightDesc != null">
-          <span class="detail-label">{{ weightDesc }}:</span>
-          <span class="detail-value" v-if="containsSecondary()">
-            <span class="secondary-value">{{ weightFormatter(event.secondary?.weight || 0) }}</span>
-            <span class="delimiter"> → </span>
-            <span class="primary-value">{{ weightFormatter(event.primary.weight) }}</span>
-            <Badge
-              v-if="weightDelta"
-              :value="weightDelta.text"
-              :variant="weightDelta.variant"
-              size="xs"
-              borderless
-              :uppercase="false"
-              class="delta-badge"
+          <!-- Weight option checkbox -->
+          <div v-if="weightOpt" class="setting-item">
+            <input
+              :id="'useWeight_' + event.code"
+              v-model="useWeight"
+              class="setting-checkbox"
+              type="checkbox"
             />
-          </span>
-          <span class="detail-value" v-else>
-            {{ weightFormatter(event.primary.weight) }}
-          </span>
-        </div>
+            <label class="setting-label" :for="'useWeight_' + event.code">
+              Use {{ weightDescription }}
+            </label>
+          </div>
 
-        <div class="detail-row" v-if="Utils.isNotNull(event.primary.extras?.sample_interval)">
-          <span class="detail-label">Sample Interval:</span>
-          <span class="detail-value" v-if="containsSecondary()">
-            <span class="secondary-value">{{
-              weightFormatter(event.secondary?.extras.sample_interval)
-            }}</span>
-            <span class="delimiter"> → </span>
-            <span class="primary-value">{{
-              weightFormatter(event.primary.extras.sample_interval)
-            }}</span>
-            <Badge
-              v-if="sampleIntervalDelta"
-              :value="sampleIntervalDelta.text"
-              :variant="sampleIntervalDelta.variant"
-              size="xs"
-              borderless
-              :uppercase="false"
-              class="delta-badge"
+          <!-- Exclude Idle Samples -->
+          <div v-if="excludeIdleSamplesOpt" class="setting-item">
+            <input
+              :id="'excludeIdle_' + event.code"
+              v-model="excludeIdleSamples"
+              class="setting-checkbox"
+              type="checkbox"
+              @click="switchIdleSamples()"
             />
-          </span>
-          <span class="detail-value" v-else>
-            {{ weightFormatter(event.primary.extras.sample_interval) }}
-          </span>
+            <label class="setting-label" :for="'excludeIdle_' + event.code">
+              Exclude Idle Samples
+              <i
+                class="bi bi-info-circle setting-tooltip"
+                title="Excludes samples that are parked in thread-pools"
+              ></i>
+            </label>
+          </div>
+
+          <!-- Exclude non-Java Samples -->
+          <div v-if="excludeNonJavaSamplesOpt" class="setting-item">
+            <input
+              :id="'excludeNonJava_' + event.code"
+              v-model="excludeNonJavaSamples"
+              class="setting-checkbox"
+              type="checkbox"
+            />
+            <label class="setting-label" :for="'excludeNonJava_' + event.code">
+              Exclude non-Java Samples
+              <i
+                class="bi bi-info-circle setting-tooltip"
+                title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"
+              ></i>
+            </label>
+          </div>
+
+          <!-- Only Unsafe Allocation Samples -->
+          <div v-if="onlyUnsafeAllocationSamplesOpt" class="setting-item">
+            <input
+              :id="'unsafeAlloc_' + event.code"
+              v-model="onlyUnsafeAllocationSamples"
+              class="setting-checkbox"
+              type="checkbox"
+            />
+            <label class="setting-label" :for="'unsafeAlloc_' + event.code">
+              Only Allocations with Unsafe
+              <i
+                class="bi bi-info-circle setting-tooltip"
+                title="Filters out all JVM-specific allocations and let only the relevant ones"
+              ></i>
+            </label>
+          </div>
         </div>
       </div>
 
-      <!-- Settings Checkboxes -->
-      <div class="settings-options">
-        <!-- Thread mode checkbox -->
-        <div class="setting-item" v-if="threadModeOpt">
-          <input
-            class="setting-checkbox"
-            type="checkbox"
-            :id="'threadMode_' + event.code"
-            v-model="useThreadMode"
-          />
-          <label class="setting-label" :for="'threadMode_' + event.code"> Use Thread-mode </label>
-        </div>
-
-        <!-- Weight option checkbox -->
-        <div class="setting-item" v-if="weightOpt">
-          <input
-            class="setting-checkbox"
-            type="checkbox"
-            :id="'useWeight_' + event.code"
-            v-model="useWeight"
-          />
-          <label class="setting-label" :for="'useWeight_' + event.code">
-            Use {{ weightDescription }}
-          </label>
-        </div>
-
-        <!-- Exclude Idle Samples -->
-        <div class="setting-item" v-if="excludeIdleSamplesOpt">
-          <input
-            class="setting-checkbox"
-            type="checkbox"
-            :id="'excludeIdle_' + event.code"
-            v-model="excludeIdleSamples"
-            @click="switchIdleSamples()"
-          />
-          <label class="setting-label" :for="'excludeIdle_' + event.code">
-            Exclude Idle Samples
-            <i
-              class="bi bi-info-circle setting-tooltip"
-              title="Excludes samples that are parked in thread-pools"
-            ></i>
-          </label>
-        </div>
-
-        <!-- Exclude non-Java Samples -->
-        <div class="setting-item" v-if="excludeNonJavaSamplesOpt">
-          <input
-            class="setting-checkbox"
-            type="checkbox"
-            :id="'excludeNonJava_' + event.code"
-            v-model="excludeNonJavaSamples"
-          />
-          <label class="setting-label" :for="'excludeNonJava_' + event.code">
-            Exclude non-Java Samples
-            <i
-              class="bi bi-info-circle setting-tooltip"
-              title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"
-            ></i>
-          </label>
-        </div>
-
-        <!-- Only Unsafe Allocation Samples -->
-        <div class="setting-item" v-if="onlyUnsafeAllocationSamplesOpt">
-          <input
-            class="setting-checkbox"
-            type="checkbox"
-            :id="'unsafeAlloc_' + event.code"
-            v-model="onlyUnsafeAllocationSamples"
-          />
-          <label class="setting-label" :for="'unsafeAlloc_' + event.code">
-            Only Allocations with Unsafe
-            <i
-              class="bi bi-info-circle setting-tooltip"
-              title="Filters out all JVM-specific allocations and let only the relevant ones"
-            ></i>
-          </label>
-        </div>
+      <!-- Action Zone -->
+      <div class="card-actions">
+        <button :disabled="!enabled" class="btn btn-primary btn-full" @click="navigateToFlamegraph">
+          <i class="bi bi-fire"></i>
+          {{ buttonText || 'View Flamegraph' }}
+        </button>
       </div>
-    </div>
-
-    <!-- Action Zone -->
-    <div class="card-actions">
-      <button @click="navigateToFlamegraph" :disabled="!enabled" class="btn btn-primary btn-full">
-        <i class="bi bi-fire"></i>
-        {{ buttonText || 'View Flamegraph' }}
-      </button>
-    </div>
     </template>
 
     <!-- No data: keep the (greyed) header, show an empty state instead of the graph controls -->
@@ -348,10 +350,18 @@ const getCategoryClass = () => {
 
 const getIconClass = () => {
   const icon = props.icon.toLowerCase();
-  if (icon.includes('sprint') || icon.includes('cpu')) return 'bi bi-cpu';
-  if (icon.includes('alarm') || icon.includes('clock')) return 'bi bi-clock';
-  if (icon.includes('memory')) return 'bi bi-memory';
-  if (icon.includes('lock')) return 'bi bi-lock';
+  if (icon.includes('sprint') || icon.includes('cpu')) {
+    return 'bi bi-cpu';
+  }
+  if (icon.includes('alarm') || icon.includes('clock')) {
+    return 'bi bi-clock';
+  }
+  if (icon.includes('memory')) {
+    return 'bi bi-memory';
+  }
+  if (icon.includes('lock')) {
+    return 'bi bi-lock';
+  }
   return 'bi bi-fire';
 };
 
@@ -407,12 +417,21 @@ const navigateToFlamegraph = () => {
   };
 
   // Apply current settings
-  if (useThreadMode.value) query.useThreadMode = useThreadMode.value;
-  if (useWeight.value) query.useWeight = useWeight.value;
-  if (excludeNonJavaSamples.value) query.excludeNonJavaSamples = excludeNonJavaSamples.value;
-  if (excludeIdleSamples.value) query.excludeIdleSamples = excludeIdleSamples.value;
-  if (onlyUnsafeAllocationSamples.value)
+  if (useThreadMode.value) {
+    query.useThreadMode = useThreadMode.value;
+  }
+  if (useWeight.value) {
+    query.useWeight = useWeight.value;
+  }
+  if (excludeNonJavaSamples.value) {
+    query.excludeNonJavaSamples = excludeNonJavaSamples.value;
+  }
+  if (excludeIdleSamples.value) {
+    query.excludeIdleSamples = excludeIdleSamples.value;
+  }
+  if (onlyUnsafeAllocationSamples.value) {
     query.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples.value;
+  }
 
   router.push({
     name: props.routeName || 'flamegraph',

@@ -30,7 +30,9 @@ vi.mock('@/stores/ideConfigStore', () => ({
 }));
 
 const isEnabledMock = ideConfigStore.isEnabled as unknown as ReturnType<typeof vi.fn>;
-const isJfrProfilerModeMock = ideConfigStore.isJfrProfilerMode as unknown as ReturnType<typeof vi.fn>;
+const isJfrProfilerModeMock = ideConfigStore.isJfrProfilerMode as unknown as ReturnType<
+  typeof vi.fn
+>;
 
 function javaFrame(): Frame {
   const frame = new Frame(
@@ -47,27 +49,11 @@ function javaFrame(): Frame {
 }
 
 function constructorFrame(): Frame {
-  return new Frame(
-    0,
-    3043,
-    'com.google.gson.stream.JsonReader.<init>',
-    'JIT_COMPILED',
-    0,
-    0,
-    3043
-  );
+  return new Frame(0, 3043, 'com.google.gson.stream.JsonReader.<init>', 'JIT_COMPILED', 0, 0, 3043);
 }
 
 function nativeFrame(): Frame {
-  return new Frame(
-    0,
-    100,
-    '/lib/x86_64-linux-gnu/libc.so.6',
-    'NATIVE',
-    0,
-    0,
-    100
-  );
+  return new Frame(0, 100, '/lib/x86_64-linux-gnu/libc.so.6', 'NATIVE', 0, 0, 100);
 }
 
 describe('BasicFlamegraphTooltip — IDE jump button', () => {

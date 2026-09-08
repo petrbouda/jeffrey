@@ -27,7 +27,6 @@ import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,18 +91,6 @@ public final class PipelineRunRegistry<K> {
         return definition;
     }
 
-    /**
-     * Changes how many runs may execute at once, for runs scheduled from now on. Runs already holding a
-     * slot keep it — a lowered ceiling takes hold as they finish rather than by interrupting them.
-     *
-     * @param maxConcurrentRuns the new ceiling, or {@link PipelineRunOptions#UNBOUNDED} for none
-     */
-    public void setMaxConcurrentRuns(int maxConcurrentRuns) {
-        if (slots.resize(maxConcurrentRuns)) {
-            LOG.info("Pipeline concurrency ceiling changed: pipeline_id={} max_concurrent_runs={}",
-                    definition.pipelineId(), maxConcurrentRuns);
-        }
-    }
 
     public int maxConcurrentRuns() {
         return slots.permits();

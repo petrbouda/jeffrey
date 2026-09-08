@@ -26,14 +26,14 @@
           <i class="bi bi-info-circle me-2"></i>
           Instance Details
         </div>
-        <button class="btn-icon" @click="closePanel" title="Close panel">
+        <button class="btn-icon" title="Close panel" @click="closePanel">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
 
       <!-- Navigation Breadcrumb -->
       <div v-if="navigationHistory.length > 0" class="instance-breadcrumb">
-        <button class="btn btn-sm btn-outline-secondary me-2" @click="navigateBack" title="Go back">
+        <button class="btn btn-sm btn-outline-secondary me-2" title="Go back" @click="navigateBack">
           <i class="bi bi-arrow-left"></i>
         </button>
         <nav aria-label="Instance navigation">
@@ -41,9 +41,9 @@
             <li v-for="(entry, index) in navigationHistory" :key="index" class="breadcrumb-item">
               <a
                 href="#"
-                @click.prevent="navigateToHistoryEntry(index)"
                 class="text-decoration-none"
                 :title="entry.className"
+                @click.prevent="navigateToHistoryEntry(index)"
               >
                 {{ simpleClassName(entry.className) }}
               </a>
@@ -109,8 +109,8 @@
             <div class="value-actions">
               <button
                 class="btn btn-sm btn-outline-secondary"
-                @click="copyFullValue"
                 title="Copy full value to clipboard"
+                @click="copyFullValue"
               >
                 <i class="bi bi-clipboard me-1"></i>
                 Copy
@@ -132,7 +132,7 @@
               Fields ({{ instance.fields.length }})
             </h6>
           </div>
-          <div class="table-container" v-if="instance.fields.length > 0">
+          <div v-if="instance.fields.length > 0" class="table-container">
             <table class="table table-sm table-hover mb-0">
               <thead>
                 <tr>
@@ -173,8 +173,8 @@
                       v-if="field.referencedObjectId"
                       href="#"
                       class="nav-icon-link"
-                      @click.prevent="navigateToInstance(field.referencedObjectId)"
                       title="Navigate to instance"
+                      @click.prevent="navigateToInstance(field.referencedObjectId)"
                     >
                       <i class="bi bi-box-arrow-up-right"></i>
                     </a>
@@ -235,8 +235,8 @@
                       v-if="field.referencedObjectId"
                       href="#"
                       class="nav-icon-link"
-                      @click.prevent="navigateToInstance(field.referencedObjectId)"
                       title="Navigate to instance"
+                      @click.prevent="navigateToInstance(field.referencedObjectId)"
                     >
                       <i class="bi bi-box-arrow-up-right"></i>
                     </a>
@@ -345,13 +345,19 @@ const packageName = (name: string): string => {
 };
 
 const truncateValue = (value: string, maxLen: number): string => {
-  if (!value || value.length <= maxLen) return value;
+  if (!value || value.length <= maxLen) {
+    return value;
+  }
   return value.substring(0, maxLen) + '...';
 };
 
 const fieldDisplayValue = (field: InstanceField): string => {
-  if (field.isPrimitive) return field.value;
-  if (!field.referencedObjectId) return 'null';
+  if (field.isPrimitive) {
+    return field.value;
+  }
+  if (!field.referencedObjectId) {
+    return 'null';
+  }
   // Object refs: the backend intentionally returns no value (the class
   // name + object id are already rendered on their own rows). If a value
   // is ever present, render it.
@@ -359,19 +365,27 @@ const fieldDisplayValue = (field: InstanceField): string => {
 };
 
 const fieldValueClass = (field: InstanceField): string => {
-  if (field.isPrimitive) return 'primitive-value';
-  if (!field.referencedObjectId) return 'null-value';
+  if (field.isPrimitive) {
+    return 'primitive-value';
+  }
+  if (!field.referencedObjectId) {
+    return 'null-value';
+  }
   return 'reference-value';
 };
 
 const isValueTruncated = computed(() => {
-  if (!instance.value) return false;
+  if (!instance.value) {
+    return false;
+  }
   const fullValue = instance.value.stringValue ?? instance.value.value ?? '';
   return fullValue.length > 200;
 });
 
 const copyFullValue = async () => {
-  if (!instance.value) return;
+  if (!instance.value) {
+    return;
+  }
   // Prefer stringValue (full value) over the potentially truncated display value
   const valueToCopy = instance.value.stringValue || instance.value.value;
   if (valueToCopy) {
@@ -382,7 +396,9 @@ const copyFullValue = async () => {
 
 const loadInstanceDetail = async () => {
   const activeObjectId = internalObjectId.value;
-  if (!props.client || !activeObjectId) return;
+  if (!props.client || !activeObjectId) {
+    return;
+  }
 
   loading.value = true;
   error.value = null;

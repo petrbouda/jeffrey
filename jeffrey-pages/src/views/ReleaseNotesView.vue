@@ -327,18 +327,18 @@ function closeLightbox() {
 }
 
 function lightboxPrev() {
-  if (lightboxHasPrev.value) lightboxIndex.value--
+  if (lightboxHasPrev.value) {lightboxIndex.value--}
 }
 
 function lightboxNext() {
-  if (lightboxHasNext.value) lightboxIndex.value++
+  if (lightboxHasNext.value) {lightboxIndex.value++}
 }
 
 function onLightboxKey(e: KeyboardEvent) {
-  if (!lightboxFeature.value) return
-  if (e.key === 'ArrowLeft') lightboxPrev()
-  else if (e.key === 'ArrowRight') lightboxNext()
-  else if (e.key === 'Escape') closeLightbox()
+  if (!lightboxFeature.value) {return}
+  if (e.key === 'ArrowLeft') {lightboxPrev()}
+  else if (e.key === 'ArrowRight') {lightboxNext()}
+  else if (e.key === 'Escape') {closeLightbox()}
 }
 
 onMounted(() => document.addEventListener('keydown', onLightboxKey))

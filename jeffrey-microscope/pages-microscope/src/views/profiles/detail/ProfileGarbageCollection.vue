@@ -104,8 +104,8 @@
           <tr
             v-for="event in longestPausesView.visible"
             :key="event.gcId"
-            @click="showEventDetails(event)"
             style="cursor: pointer"
+            @click="showEventDetails(event)"
           >
             <td>{{ event.gcId }}</td>
             <td>
@@ -226,8 +226,8 @@
           <tr
             v-for="event in concurrentEventsView.visible"
             :key="event.gcId"
-            @click="showConcurrentEventDetails(event)"
             style="cursor: pointer"
+            @click="showConcurrentEventDetails(event)"
           >
             <td>{{ event.gcId }}</td>
             <td>{{ FormattingService.formatTimestamp(event.timestamp) }}</td>
@@ -345,13 +345,13 @@
           />
           <div class="ihop-chart-container mb-4">
             <TimeSeriesChart
-              :primaryData="ihopOccupancySeries"
-              primaryTitle="Old Gen Occupancy"
-              :secondaryData="ihopThresholdSeries"
-              secondaryTitle="IHOP Threshold"
-              :primaryAxisType="AxisFormatType.BYTES"
-              :secondaryAxisType="AxisFormatType.BYTES"
-              :visibleMinutes="60"
+              :primary-data="ihopOccupancySeries"
+              primary-title="Old Gen Occupancy"
+              :secondary-data="ihopThresholdSeries"
+              secondary-title="IHOP Threshold"
+              :primary-axis-type="AxisFormatType.BYTES"
+              :secondary-axis-type="AxisFormatType.BYTES"
+              :visible-minutes="60"
             />
           </div>
         </template>
@@ -571,8 +571,8 @@
           the detailed GC tier. The bundled <code>default</code> config records GC at the
           <code>normal</code> detail level, where they are effectively <strong>off</strong>; the
           <code>profile</code> config sets the GC detail level to <code>detailed</code> and turns
-          them on. Re-record with <code>settings=profile</code>, or enable the specific events inline
-          with the command above.
+          them on. Re-record with <code>settings=profile</code>, or enable the specific events
+          inline with the command above.
         </p>
       </DisabledEventsNotice>
       <DataTable v-else>
@@ -580,7 +580,13 @@
           <TableToolbar v-model="plabView.query" search-placeholder="Filter by generation...">
             <span class="toolbar-info">PLAB allocation &amp; waste</span>
             <template #filters>
-              <Badge key-label="Evacuations" :value="plabView.matchCount" variant="secondary" size="s" borderless />
+              <Badge
+                key-label="Evacuations"
+                :value="plabView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
             </template>
           </TableToolbar>
         </template>
@@ -647,18 +653,18 @@
         <div class="input-group search-container pause-types-search">
           <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
           <input
+            v-model="pauseTypeSearch"
             type="text"
             class="form-control search-input"
             placeholder="Filter by cause name…"
-            v-model="pauseTypeSearch"
             autocomplete="off"
           />
           <button
             v-if="pauseTypeSearch"
             class="btn btn-outline-secondary clear-btn"
             type="button"
-            @click="pauseTypeSearch = ''"
             title="Clear filter"
+            @click="pauseTypeSearch = ''"
           >
             <i class="bi bi-x-lg"></i>
           </button>
@@ -856,10 +862,10 @@
             </li>
           </ul>
           <p>
-            The deep-tuning tabs rely on events that are <strong>G1-only and/or config-gated</strong>,
-            so they show an empty state on other collectors or default recordings:
-            <code>jdk.TenuringDistribution</code>, <code>jdk.G1AdaptiveIHOP</code>,
-            <code>jdk.G1MMU</code>, <code>jdk.GCCPUTime</code>.
+            The deep-tuning tabs rely on events that are
+            <strong>G1-only and/or config-gated</strong>, so they show an empty state on other
+            collectors or default recordings: <code>jdk.TenuringDistribution</code>,
+            <code>jdk.G1AdaptiveIHOP</code>, <code>jdk.G1MMU</code>, <code>jdk.GCCPUTime</code>.
           </p>
           <p>
             Reference processing (<code>jdk.GCReferenceStatistics</code>) has its own
@@ -1153,7 +1159,9 @@ const getDifferenceBarClass = (beforeGC: number, afterGC: number) => {
 };
 
 const getDifferencePercentage = (beforeGC: number, afterGC: number) => {
-  if (beforeGC === 0) return 0;
+  if (beforeGC === 0) {
+    return 0;
+  }
   const difference = Math.abs(afterGC - beforeGC);
   return Math.min((difference / beforeGC) * 100, 100);
 };
@@ -1283,7 +1291,9 @@ const createEfficiencyChart = async () => {
   await nextTick();
 
   const chartElement = document.getElementById('gc-efficiency-pie-chart');
-  if (!chartElement) return;
+  if (!chartElement) {
+    return;
+  }
 
   const efficiency = gcOverviewData.value?.efficiency;
   const throughput = efficiency?.throughputPercentage;
@@ -1721,7 +1731,7 @@ onUnmounted(() => {
 .pause-type-chip.active {
   background: var(--chip-color, var(--color-primary));
   border-color: var(--chip-color, var(--color-primary));
-  color: #fff;
+  color: var(--color-white);
 }
 
 .pause-type-chip .dot {
@@ -1732,7 +1742,7 @@ onUnmounted(() => {
 }
 
 .pause-type-chip.active .dot {
-  background: #fff;
+  background: var(--color-white);
 }
 
 .pause-type-chip--all {

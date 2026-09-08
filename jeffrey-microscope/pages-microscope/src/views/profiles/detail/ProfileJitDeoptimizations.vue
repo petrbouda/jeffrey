@@ -26,9 +26,9 @@
       </p>
       <div class="chart-container">
         <TimeSeriesChart
-          :primaryData="timeseriesData?.data"
-          :primaryTitle="timeseriesData?.name ?? 'Deoptimizations'"
-          :visibleMinutes="60"
+          :primary-data="timeseriesData?.data"
+          :primary-title="timeseriesData?.name ?? 'Deoptimizations'"
+          :visible-minutes="60"
         />
       </div>
     </div>
@@ -49,7 +49,13 @@
           <TableToolbar v-model="eventsView.query" search-placeholder="Filter events...">
             <span class="toolbar-info">Events</span>
             <template #filters>
-              <Badge key-label="Total" :value="eventsView.matchCount" variant="secondary" size="s" borderless />
+              <Badge
+                key-label="Total"
+                :value="eventsView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
             </template>
           </TableToolbar>
         </template>
@@ -67,8 +73,8 @@
           <tr
             v-for="event in eventsView.visible"
             :key="`${event.timestamp}-${event.compileId}-${event.bci}`"
-            @click="showEventDetails(event)"
             style="cursor: pointer"
+            @click="showEventDetails(event)"
           >
             <td>
               <div class="time-cell">
@@ -147,7 +153,13 @@
           <TableToolbar v-model="topMethodsView.query" search-placeholder="Filter methods...">
             <span class="toolbar-info">Top Methods</span>
             <template #filters>
-              <Badge key-label="Total" :value="topMethodsView.matchCount" variant="secondary" size="s" borderless />
+              <Badge
+                key-label="Total"
+                :value="topMethodsView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
             </template>
           </TableToolbar>
         </template>
@@ -261,10 +273,9 @@
             HotSpot's JIT compilers — <strong>C1</strong> (the client compiler, fast) and
             <strong>C2</strong> (the server compiler, aggressive) — don't translate your bytecode
             literally. They translate it under <strong>optimistic assumptions</strong>: this call
-            site is monomorphic, this branch is rarely taken, this field is never
-            <code>null</code>, this class hierarchy will not gain new subclasses.
-            With those assumptions in hand, the compiler produces dramatically faster machine code
-            than a literal translation could.
+            site is monomorphic, this branch is rarely taken, this field is never <code>null</code>,
+            this class hierarchy will not gain new subclasses. With those assumptions in hand, the
+            compiler produces dramatically faster machine code than a literal translation could.
           </p>
           <p>
             But assumptions can be invalidated by runtime: a new subclass loads, a "rarely taken"
@@ -286,158 +297,176 @@
             Hot methods walk up the tier ladder. When speculation is wrong, they fall back down.
           </p>
           <div class="lifecycle-diagram">
-          <svg
-            viewBox="0 0 880 320"
-            xmlns="http://www.w3.org/2000/svg"
-            role="img"
-            aria-label="JIT lifecycle"
-          >
-            <defs>
-              <marker
-                id="arrow"
-                viewBox="0 0 10 10"
-                refX="9"
-                refY="5"
-                markerWidth="8"
-                markerHeight="8"
-                orient="auto"
+            <svg
+              viewBox="0 0 880 320"
+              xmlns="http://www.w3.org/2000/svg"
+              role="img"
+              aria-label="JIT lifecycle"
+            >
+              <defs>
+                <marker
+                  id="arrow"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--color-text-muted)" />
+                </marker>
+                <marker
+                  id="arrowDanger"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger)" />
+                </marker>
+              </defs>
+              <g font-size="13" font-weight="600" text-anchor="middle">
+                <rect
+                  x="20"
+                  y="60"
+                  width="140"
+                  height="60"
+                  rx="8"
+                  fill="var(--color-lighter)"
+                  stroke="var(--color-border)"
+                />
+                <text x="90" y="86" fill="var(--color-text)">Interpreter</text>
+                <text
+                  x="90"
+                  y="104"
+                  fill="var(--color-text-muted)"
+                  font-weight="400"
+                  font-size="10"
+                >
+                  runs all bytecode
+                </text>
+
+                <rect
+                  x="200"
+                  y="60"
+                  width="160"
+                  height="60"
+                  rx="8"
+                  fill="var(--color-info-light)"
+                  stroke="var(--color-info-border)"
+                />
+                <text x="280" y="84" fill="var(--color-info-text)">C1 — Tier 3</text>
+                <text
+                  x="280"
+                  y="102"
+                  fill="var(--color-info-text)"
+                  font-weight="400"
+                  font-size="10"
+                >
+                  fast compile + profiling
+                </text>
+
+                <rect
+                  x="400"
+                  y="60"
+                  width="160"
+                  height="60"
+                  rx="8"
+                  fill="var(--color-primary-light)"
+                  stroke="var(--color-primary-border)"
+                />
+                <text x="480" y="84" fill="var(--color-primary)">C2 — Tier 4</text>
+                <text x="480" y="102" fill="var(--color-primary)" font-weight="400" font-size="10">
+                  aggressive speculation
+                </text>
+
+                <rect
+                  x="600"
+                  y="60"
+                  width="170"
+                  height="60"
+                  rx="8"
+                  fill="var(--color-warning-light)"
+                  stroke="var(--color-warning-border)"
+                />
+                <text x="685" y="84" fill="var(--color-warning)">Uncommon trap</text>
+                <text x="685" y="102" fill="var(--color-warning)" font-weight="400" font-size="10">
+                  speculation wrong
+                </text>
+
+                <rect
+                  x="400"
+                  y="220"
+                  width="160"
+                  height="60"
+                  rx="8"
+                  fill="var(--color-info-light)"
+                  stroke="var(--color-info-border)"
+                />
+                <text x="480" y="244" fill="var(--color-info-text)">Reinterpret</text>
+                <text
+                  x="480"
+                  y="262"
+                  fill="var(--color-info-text)"
+                  font-weight="400"
+                  font-size="10"
+                >
+                  action: reinterpret
+                </text>
+
+                <rect
+                  x="600"
+                  y="220"
+                  width="170"
+                  height="60"
+                  rx="8"
+                  fill="var(--color-success-light)"
+                  stroke="var(--color-success-bg)"
+                />
+                <text x="685" y="244" fill="var(--color-success)">Recompile</text>
+                <text x="685" y="262" fill="var(--color-success)" font-weight="400" font-size="10">
+                  action: recompile
+                </text>
+              </g>
+              <g
+                stroke="var(--color-text-muted)"
+                stroke-width="1.6"
+                fill="none"
+                marker-end="url(#arrow)"
               >
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--color-text-muted)" />
-              </marker>
-              <marker
-                id="arrowDanger"
-                viewBox="0 0 10 10"
-                refX="9"
-                refY="5"
-                markerWidth="8"
-                markerHeight="8"
-                orient="auto"
+                <line x1="160" y1="90" x2="200" y2="90" />
+                <line x1="360" y1="90" x2="400" y2="90" />
+                <line x1="560" y1="90" x2="600" y2="90" />
+              </g>
+              <g
+                stroke="var(--color-danger)"
+                stroke-width="1.6"
+                fill="none"
+                marker-end="url(#arrowDanger)"
               >
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger)" />
-              </marker>
-            </defs>
-            <g font-size="13" font-weight="600" text-anchor="middle">
-              <rect
-                x="20"
-                y="60"
-                width="140"
-                height="60"
-                rx="8"
-                fill="var(--color-lighter)"
-                stroke="var(--color-border)"
-              />
-              <text x="90" y="86" fill="var(--color-text)">Interpreter</text>
-              <text x="90" y="104" fill="var(--color-text-muted)" font-weight="400" font-size="10">
-                runs all bytecode
+                <path d="M650 120 Q 530 170, 480 220" />
+                <path d="M720 120 Q 720 170, 685 220" />
+              </g>
+              <g
+                stroke="var(--color-success)"
+                stroke-width="1.4"
+                fill="none"
+                stroke-dasharray="5,3"
+                marker-end="url(#arrow)"
+              >
+                <path d="M600 250 Q 380 250, 380 175 Q 380 130, 480 120" />
+              </g>
+              <text x="200" y="248" fill="var(--color-success)" font-size="10">
+                re-enter C2 with refined profile
               </text>
-
-              <rect
-                x="200"
-                y="60"
-                width="160"
-                height="60"
-                rx="8"
-                fill="var(--color-info-light)"
-                stroke="var(--color-info-border)"
-              />
-              <text x="280" y="84" fill="var(--color-info-text)">C1 — Tier 3</text>
-              <text x="280" y="102" fill="var(--color-info-text)" font-weight="400" font-size="10">
-                fast compile + profiling
-              </text>
-
-              <rect
-                x="400"
-                y="60"
-                width="160"
-                height="60"
-                rx="8"
-                fill="var(--color-primary-light)"
-                stroke="var(--color-primary-border)"
-              />
-              <text x="480" y="84" fill="var(--color-primary)">C2 — Tier 4</text>
-              <text x="480" y="102" fill="var(--color-primary)" font-weight="400" font-size="10">
-                aggressive speculation
-              </text>
-
-              <rect
-                x="600"
-                y="60"
-                width="170"
-                height="60"
-                rx="8"
-                fill="var(--color-warning-light)"
-                stroke="var(--color-warning-border)"
-              />
-              <text x="685" y="84" fill="var(--color-warning)">Uncommon trap</text>
-              <text x="685" y="102" fill="var(--color-warning)" font-weight="400" font-size="10">
-                speculation wrong
-              </text>
-
-              <rect
-                x="400"
-                y="220"
-                width="160"
-                height="60"
-                rx="8"
-                fill="var(--color-info-light)"
-                stroke="var(--color-info-border)"
-              />
-              <text x="480" y="244" fill="var(--color-info-text)">Reinterpret</text>
-              <text x="480" y="262" fill="var(--color-info-text)" font-weight="400" font-size="10">
-                action: reinterpret
-              </text>
-
-              <rect
-                x="600"
-                y="220"
-                width="170"
-                height="60"
-                rx="8"
-                fill="var(--color-success-light)"
-                stroke="var(--color-success-bg)"
-              />
-              <text x="685" y="244" fill="var(--color-success)">Recompile</text>
-              <text x="685" y="262" fill="var(--color-success)" font-weight="400" font-size="10">
-                action: recompile
-              </text>
-            </g>
-            <g
-              stroke="var(--color-text-muted)"
-              stroke-width="1.6"
-              fill="none"
-              marker-end="url(#arrow)"
-            >
-              <line x1="160" y1="90" x2="200" y2="90" />
-              <line x1="360" y1="90" x2="400" y2="90" />
-              <line x1="560" y1="90" x2="600" y2="90" />
-            </g>
-            <g
-              stroke="var(--color-danger)"
-              stroke-width="1.6"
-              fill="none"
-              marker-end="url(#arrowDanger)"
-            >
-              <path d="M650 120 Q 530 170, 480 220" />
-              <path d="M720 120 Q 720 170, 685 220" />
-            </g>
-            <g
-              stroke="var(--color-success)"
-              stroke-width="1.4"
-              fill="none"
-              stroke-dasharray="5,3"
-              marker-end="url(#arrow)"
-            >
-              <path d="M600 250 Q 380 250, 380 175 Q 380 130, 480 120" />
-            </g>
-            <text x="200" y="248" fill="var(--color-success)" font-size="10">
-              re-enter C2 with refined profile
-            </text>
-            <g font-size="10" fill="var(--color-text-muted)">
-              <text x="180" y="80" text-anchor="middle">≈10k inv</text>
-              <text x="380" y="80" text-anchor="middle">≈10k+ inv</text>
-              <text x="580" y="80" text-anchor="middle">trap fires</text>
-            </g>
-          </svg>
+              <g font-size="10" fill="var(--color-text-muted)">
+                <text x="180" y="80" text-anchor="middle">≈10k inv</text>
+                <text x="380" y="80" text-anchor="middle">≈10k+ inv</text>
+                <text x="580" y="80" text-anchor="middle">trap fires</text>
+              </g>
+            </svg>
           </div>
         </AboutSection>
 
@@ -452,8 +481,8 @@
             <li>
               <strong>Removing a null check</strong> — if a field has never been null in profiling,
               C2 removes the check. If it ever <em>does</em> turn out to be null at runtime, you get
-              a <code>null_check</code> deopt — but the saved checks paid off
-              thousands of times before.
+              a <code>null_check</code> deopt — but the saved checks paid off thousands of times
+              before.
             </li>
             <li>
               <strong>Eliminating range checks</strong> — loops with stable bounds let C2 prove
@@ -469,25 +498,25 @@
 
         <AboutSection icon="bi-list-ul" title="Reasons reference">
           <p>
-            The values you'll see in the <code>reason</code> column on the Events
-            tab and the Reason Distribution tab.
+            The values you'll see in the <code>reason</code> column on the Events tab and the Reason
+            Distribution tab.
           </p>
-        <DataTable>
-          <thead>
-            <tr>
-              <th>Reason</th>
-              <th>What it means</th>
-              <th>Typical cause</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in reasonReference" :key="row.reason">
-              <td><Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" /></td>
-              <td>{{ row.meaning }}</td>
-              <td class="reason-meaning">{{ row.cause }}</td>
-            </tr>
-          </tbody>
-        </DataTable>
+          <DataTable>
+            <thead>
+              <tr>
+                <th>Reason</th>
+                <th>What it means</th>
+                <th>Typical cause</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in reasonReference" :key="row.reason">
+                <td><Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" /></td>
+                <td>{{ row.meaning }}</td>
+                <td class="reason-meaning">{{ row.cause }}</td>
+              </tr>
+            </tbody>
+          </DataTable>
         </AboutSection>
 
         <AboutSection icon="bi-gear" title="Actions reference">
@@ -561,23 +590,32 @@
               the Events tab.
             </li>
             <li>
-              <strong>Talks &amp; reading:</strong> Vladimir Ivanov on JVM compilation, Cliff Click on
-              speculation, Aleksey Shipilev on JVM internals.
+              <strong>Talks &amp; reading:</strong> Vladimir Ivanov on JVM compilation, Cliff Click
+              on speculation, Aleksey Shipilev on JVM internals.
             </li>
           </ul>
         </AboutSection>
 
         <AboutSection icon="bi-broadcast" title="How JFR Emits This">
           <p>
-            Every deoptimization is recorded by <code>jdk.Deoptimization</code> — introduced in JDK 14
-            (JDK-8216041) and enabled in the default configuration, so the Events and Distribution tabs
-            work out of the box.
+            Every deoptimization is recorded by <code>jdk.Deoptimization</code> — introduced in JDK
+            14 (JDK-8216041) and enabled in the default configuration, so the Events and
+            Distribution tabs work out of the box.
           </p>
           <p>Each event carries the fields you see on those tabs:</p>
           <ul>
-            <li><code>reason</code> — which optimistic assumption failed (<code>null_check</code>, <code>class_check</code>, <code>unstable_if</code>…).</li>
-            <li><code>action</code> — what the JVM did next (<code>reinterpret</code>, <code>recompile</code>, <code>none</code>).</li>
-            <li><code>compileLevel</code> + <code>bci</code> — the tier that produced the code and the exact bytecode index where the trap fired, plus the method and instruction.</li>
+            <li>
+              <code>reason</code> — which optimistic assumption failed (<code>null_check</code>,
+              <code>class_check</code>, <code>unstable_if</code>…).
+            </li>
+            <li>
+              <code>action</code> — what the JVM did next (<code>reinterpret</code>,
+              <code>recompile</code>, <code>none</code>).
+            </li>
+            <li>
+              <code>compileLevel</code> + <code>bci</code> — the tier that produced the code and the
+              exact bytecode index where the trap fired, plus the method and instruction.
+            </li>
           </ul>
         </AboutSection>
       </AboutPanel>
@@ -949,7 +987,9 @@ const problemScenarios: Array<{
 ];
 
 const actionAbbr = (action: string | null | undefined): string => {
-  if (!action) return '—';
+  if (!action) {
+    return '—';
+  }
   switch (action) {
     case 'reinterpret':
       return 'R';
@@ -965,7 +1005,9 @@ const actionAbbr = (action: string | null | undefined): string => {
 };
 
 const actionClass = (action: string | null | undefined): string => {
-  if (!action) return 'none';
+  if (!action) {
+    return 'none';
+  }
   switch (action) {
     case 'reinterpret':
       return 'reinterpret';
@@ -989,39 +1031,75 @@ const reasonAbbreviations: Record<string, string> = {
 };
 
 const displayReason = (reason: string | null | undefined): string => {
-  if (!reason) return '';
+  if (!reason) {
+    return '';
+  }
   const lower = reason.toLowerCase();
-  if (reasonAbbreviations[lower]) return reasonAbbreviations[lower];
+  if (reasonAbbreviations[lower]) {
+    return reasonAbbreviations[lower];
+  }
   return reason.length > 22 ? reason.substring(0, 20) + '…' : reason;
 };
 
 const reasonTooltip = (event: { reason: string | null; action: string | null }): string => {
   const parts: string[] = [];
-  if (event.reason) parts.push(event.reason);
-  if (event.action) parts.push(`action: ${event.action}`);
+  if (event.reason) {
+    parts.push(event.reason);
+  }
+  if (event.action) {
+    parts.push(`action: ${event.action}`);
+  }
   return parts.join(' · ');
 };
 
 const reasonVariant = (reason: string | null | undefined): Variant => {
-  if (!reason) return 'secondary';
+  if (!reason) {
+    return 'secondary';
+  }
   const r = reason.toLowerCase();
-  if (r.includes('class_check') || r.includes('class_cast')) return 'danger';
-  if (r.includes('bimorphic')) return 'violet';
-  if (r.includes('unstable_if') || r.includes('unstable_fused')) return 'warning';
-  if (r.includes('null_check')) return 'info';
-  if (r.includes('array')) return 'warning';
-  if (r.includes('range_check')) return 'primary';
-  if (r.includes('loop_limit')) return 'success';
-  if (r.includes('speculate')) return 'primary';
-  if (r.includes('unloaded')) return 'secondary';
-  if (r.includes('profile_predicate') || r.includes('predicate')) return 'secondary';
-  if (r.includes('intrinsic') || r.includes('type_checked_inlining')) return 'secondary';
-  if (r.includes('uncommon')) return 'secondary';
+  if (r.includes('class_check') || r.includes('class_cast')) {
+    return 'danger';
+  }
+  if (r.includes('bimorphic')) {
+    return 'violet';
+  }
+  if (r.includes('unstable_if') || r.includes('unstable_fused')) {
+    return 'warning';
+  }
+  if (r.includes('null_check')) {
+    return 'info';
+  }
+  if (r.includes('array')) {
+    return 'warning';
+  }
+  if (r.includes('range_check')) {
+    return 'primary';
+  }
+  if (r.includes('loop_limit')) {
+    return 'success';
+  }
+  if (r.includes('speculate')) {
+    return 'primary';
+  }
+  if (r.includes('unloaded')) {
+    return 'secondary';
+  }
+  if (r.includes('profile_predicate') || r.includes('predicate')) {
+    return 'secondary';
+  }
+  if (r.includes('intrinsic') || r.includes('type_checked_inlining')) {
+    return 'secondary';
+  }
+  if (r.includes('uncommon')) {
+    return 'secondary';
+  }
   return 'secondary';
 };
 
 const actionVariant = (action: string | null | undefined): Variant => {
-  if (!action) return 'secondary';
+  if (!action) {
+    return 'secondary';
+  }
   switch (action) {
     case 'reinterpret':
       return 'info';
@@ -1059,33 +1137,47 @@ const reasonExplanation = (reason: string): string => {
 };
 
 const percentageOfTotal = (count: number): string => {
-  if (!stats.value || stats.value.totalCount === 0) return '—';
+  if (!stats.value || stats.value.totalCount === 0) {
+    return '—';
+  }
   return FormattingService.formatPercentage(count / stats.value.totalCount);
 };
 
 const shareBarWidth = (count: number): number => {
-  if (topMethods.value.length === 0) return 0;
+  if (topMethods.value.length === 0) {
+    return 0;
+  }
   const max = topMethods.value[0].count;
-  if (max === 0) return 0;
+  if (max === 0) {
+    return 0;
+  }
   return Math.max(2, Math.round((count / max) * 100));
 };
 
 const formatEventTime = (millis: number): string => {
-  if (!millis) return '—';
+  if (!millis) {
+    return '—';
+  }
   // ISO output is `YYYY-MM-DDTHH:mm:ss.sssZ` → extract `HH:mm:ss.sss`.
   const iso = new Date(millis).toISOString();
   return iso.substring(11, 23);
 };
 
 const formatEventDate = (millis: number): string => {
-  if (!millis) return '';
+  if (!millis) {
+    return '';
+  }
   return `${new Date(millis).toISOString().substring(0, 10)} UTC`;
 };
 
 const getClassMethodName = (method: string | null | undefined): string => {
-  if (!method) return '';
+  if (!method) {
+    return '';
+  }
   const lastSep = method.lastIndexOf('#');
-  if (lastSep === -1) return method;
+  if (lastSep === -1) {
+    return method;
+  }
   const methodNameWithParams = method.substring(lastSep + 1);
   const packagePath = method.substring(0, lastSep);
   const lastDot = packagePath.lastIndexOf('.');
@@ -1094,9 +1186,13 @@ const getClassMethodName = (method: string | null | undefined): string => {
 };
 
 const getPackage = (method: string | null | undefined): string => {
-  if (!method) return '';
+  if (!method) {
+    return '';
+  }
   const segments = method.split('.');
-  if (segments.length <= 1) return method;
+  if (segments.length <= 1) {
+    return method;
+  }
   return segments.slice(0, segments.length - 1).join('.');
 };
 

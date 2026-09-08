@@ -35,7 +35,13 @@
             <TableToolbar v-model="pausePhasesView.query" search-placeholder="Filter phases...">
               <span class="toolbar-info">Pause Phases</span>
               <template #filters>
-                <Badge key-label="Total" :value="pausePhasesView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="pausePhasesView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -85,10 +91,11 @@
         >
           <p>
             The phase breakdown is built from the detailed phase-pause sub-events
-            (<code>jdk.GCPhasePause*</code>). These belong to G1's <strong>detailed</strong> GC tier:
-            the bundled <code>default</code> config records GC at the <code>normal</code> detail
-            level, where they are effectively <strong>off</strong>, while the <code>profile</code>
-            config sets the GC detail level to <code>detailed</code> and turns them on.
+            (<code>jdk.GCPhasePause*</code>). These belong to G1's <strong>detailed</strong> GC
+            tier: the bundled <code>default</code> config records GC at the
+            <code>normal</code> detail level, where they are effectively <strong>off</strong>, while
+            the <code>profile</code> config sets the GC detail level to <code>detailed</code> and
+            turns them on.
           </p>
           <p>
             Re-record with <code>settings=profile</code> (which selects the <code>detailed</code> GC
@@ -98,7 +105,8 @@
           <template #action>
             <p>
               <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps
-              the bundled <code>profile</code> config and adds the detailed-tier G1 GC events on top.
+              the bundled <code>profile</code> config and adds the detailed-tier G1 GC events on
+              top.
             </p>
             <p>
               <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
@@ -153,7 +161,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Evacuations</span>
               <template #filters>
-                <Badge key-label="Total" :value="evacuationsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="evacuationsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -210,8 +224,8 @@
             detailed-tier GC event. The bundled <code>default</code> config records GC at the
             <code>normal</code> detail level, where it is effectively <strong>off</strong>; the
             <code>profile</code> config sets the GC detail level to <code>detailed</code> and turns
-            it on. Re-record with <code>settings=profile</code>, or enable the specific events inline
-            with the command above.
+            it on. Re-record with <code>settings=profile</code>, or enable the specific events
+            inline with the command above.
           </p>
         </DisabledEventsNotice>
       </div>
@@ -239,7 +253,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Pause-Target Adherence (MMU)</span>
               <template #filters>
-                <Badge key-label="Total" :value="mmuView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="mmuView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -294,7 +314,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Explicit GC Calls (System.gc())</span>
               <template #filters>
-                <Badge key-label="Total" :value="systemGcsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="systemGcsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -344,7 +370,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">GC Locker Stalls</span>
               <template #filters>
-                <Badge key-label="Total" :value="gcLockersView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="gcLockersView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -396,8 +428,8 @@
           <AboutCallout variant="intro">
             <p>
               G1 splits the heap into equal-sized regions that play the role of Eden, Survivor, Old
-              or Humongous. Collections evacuate live objects out of a collection set; running out of
-              to-space triggers an <strong>evacuation failure</strong> and, often, a Full GC. A
+              or Humongous. Collections evacuate live objects out of a collection set; running out
+              of to-space triggers an <strong>evacuation failure</strong> and, often, a Full GC. A
               concurrent marking cycle starts when old-generation occupancy crosses the adaptive
               <strong>IHOP</strong> threshold. This page reconstructs that behaviour from the
               G1-specific JFR events.
@@ -453,8 +485,9 @@
               The detailed-tier events — <code>jdk.GCPhasePause</code> sub-phases and
               <code>jdk.EvacuationInformation</code> — are effectively <strong>off</strong> in the
               bundled <code>default</code> config (GC at the <code>normal</code> detail level) and
-              <strong>on</strong> with <code>profile</code> (which selects the <code>detailed</code>
-              GC level). Re-record with <code>settings=profile</code> to populate those views.
+              <strong>on</strong> with <code>profile</code> (which selects the
+              <code>detailed</code> GC level). Re-record with <code>settings=profile</code> to
+              populate those views.
             </p>
           </AboutSection>
         </AboutPanel>

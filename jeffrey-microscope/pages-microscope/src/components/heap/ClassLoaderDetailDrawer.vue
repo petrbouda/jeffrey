@@ -18,8 +18,8 @@
 
 <template>
   <GenericModal
-    modal-id="classLoaderDetailDrawer"
     v-model:show="showInternal"
+    modal-id="classLoaderDetailDrawer"
     :show-footer="false"
     size="xl"
     modal-dialog-class="cl-detail-modal-dialog"
@@ -55,8 +55,8 @@
               <a
                 href="#"
                 class="parent-link"
-                @click.prevent="openParent"
                 :class="{ disabled: detail.parentLoaderId === 0 }"
+                @click.prevent="openParent"
               >
                 {{ parentSimpleName }}
               </a>

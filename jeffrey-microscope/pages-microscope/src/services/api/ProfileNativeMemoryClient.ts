@@ -18,7 +18,10 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import type { NativeLibraryInfo, NativeMemoryOverview } from '@/services/api/model/NativeMemoryModels';
+import type {
+  NativeLibraryInfo,
+  NativeMemoryOverview
+} from '@/services/api/model/NativeMemoryModels';
 import type { NativeLibraryActivityData } from '@/services/api/model/NativeLibraryActivityModels';
 
 export default class ProfileNativeMemoryClient extends BaseProfileClient {

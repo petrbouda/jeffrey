@@ -592,7 +592,9 @@ const recordingColumns = computed<RecordingColumn[]>(() => {
   // Not-initialized: newest upload first. Initialized: most recently analyzed first (falling back to
   // upload time) so a recording you just analyzed surfaces at the top instead of sinking to its upload slot.
   notInitialized.sort((a, b) => b.uploadedAt - a.uploadedAt);
-  initialized.sort((a, b) => (b.profileCreatedAt || b.uploadedAt) - (a.profileCreatedAt || a.uploadedAt));
+  initialized.sort(
+    (a, b) => (b.profileCreatedAt || b.uploadedAt) - (a.profileCreatedAt || a.uploadedAt)
+  );
   return [
     {
       key: 'raw',

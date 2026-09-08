@@ -183,8 +183,8 @@
                 <div class="class-info">
                   <ClassNameDisplay :class-name="entry.ownerClassName" />
                   <div
-                    class="detail-line"
                     v-if="Object.keys(entry.collectionTypeCounts).length > 0"
+                    class="detail-line"
                   >
                     <template
                       v-for="(typeName, typeIndex) in Object.keys(entry.collectionTypeCounts).sort(
@@ -239,17 +239,17 @@
         <AboutSection icon="bi-book" title="Key Concepts">
           <FeatureGrid>
             <FeatureCard icon="bi-rulers" variant="purple" title="Initial Capacity">
-              Collections allocate an internal array when created. <code>ArrayList</code> defaults to
-              10 elements, <code>HashMap</code> defaults to 16 buckets. If the actual usage is much
-              smaller, memory is wasted.
+              Collections allocate an internal array when created. <code>ArrayList</code> defaults
+              to 10 elements, <code>HashMap</code> defaults to 16 buckets. If the actual usage is
+              much smaller, memory is wasted.
             </FeatureCard>
             <FeatureCard icon="bi-speedometer2" variant="danger" title="Load Factor">
               <code>HashMap</code> uses a load factor (default 0.75) to decide when to resize. This
               means a HashMap is typically only 75% full at most before it doubles in size.
             </FeatureCard>
             <FeatureCard icon="bi-arrow-up-right-circle" variant="info" title="Growth Strategy">
-              When a collection runs out of space, it allocates a new, larger array (often 1.5x or 2x
-              the previous size) and copies elements over. After growth, fill ratio drops
+              When a collection runs out of space, it allocates a new, larger array (often 1.5x or
+              2x the previous size) and copies elements over. After growth, fill ratio drops
               significantly.
             </FeatureCard>
             <FeatureCard icon="bi-pie-chart" variant="success" title="Fill Ratio">
@@ -261,48 +261,48 @@
 
         <AboutSection icon="bi-bar-chart" title="Fill Distribution Categories">
           <div class="flag-cards">
-          <div class="flag-card">
-            <div class="flag-header">
-              <code class="flag-code">Empty (0%)</code>
-              <span class="flag-badge">Highest Waste</span>
+            <div class="flag-card">
+              <div class="flag-header">
+                <code class="flag-code">Empty (0%)</code>
+                <span class="flag-badge">Highest Waste</span>
+              </div>
+              <div class="flag-body">
+                <p>
+                  Collections that were created but never populated, or were cleared and not garbage
+                  collected. These hold allocated arrays with zero elements and are prime candidates
+                  for optimization.
+                </p>
+              </div>
             </div>
-            <div class="flag-body">
-              <p>
-                Collections that were created but never populated, or were cleared and not garbage
-                collected. These hold allocated arrays with zero elements and are prime candidates
-                for optimization.
-              </p>
-            </div>
-          </div>
 
-          <div class="flag-card">
-            <div class="flag-header">
-              <code class="flag-code">Low (1-25%)</code>
-              <span class="flag-badge">Significant Waste</span>
+            <div class="flag-card">
+              <div class="flag-header">
+                <code class="flag-code">Low (1-25%)</code>
+                <span class="flag-badge">Significant Waste</span>
+              </div>
+              <div class="flag-body">
+                <p>
+                  Collections using less than a quarter of their capacity. Often caused by
+                  over-estimated initial capacity or collections that once held more data but were
+                  partially cleared.
+                </p>
+              </div>
             </div>
-            <div class="flag-body">
-              <p>
-                Collections using less than a quarter of their capacity. Often caused by
-                over-estimated initial capacity or collections that once held more data but were
-                partially cleared.
-              </p>
-            </div>
-          </div>
 
-          <div class="flag-card">
-            <div class="flag-header">
-              <code class="flag-code">Medium (26-75%) / High (76-99%) / Full (100%)</code>
-              <span class="flag-badge">Acceptable</span>
-            </div>
-            <div class="flag-body">
-              <p>
-                Collections with reasonable utilization. Medium-fill collections are common due to
-                growth strategies and load factors. High and full collections are efficiently using
-                their allocated memory.
-              </p>
+            <div class="flag-card">
+              <div class="flag-header">
+                <code class="flag-code">Medium (26-75%) / High (76-99%) / Full (100%)</code>
+                <span class="flag-badge">Acceptable</span>
+              </div>
+              <div class="flag-body">
+                <p>
+                  Collections with reasonable utilization. Medium-fill collections are common due to
+                  growth strategies and load factors. High and full collections are efficiently
+                  using their allocated memory.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
         </AboutSection>
 
         <AboutSection icon="bi-lightning-charge" title="Optimization Tips">
@@ -310,8 +310,8 @@
             <div class="benefit-item">
               <i class="bi bi-check-circle-fill text-success"></i>
               <span
-                >Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when the
-                size is known ahead of time</span
+                >Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when
+                the size is known ahead of time</span
               >
             </div>
             <div class="benefit-item">
@@ -331,8 +331,8 @@
             <div class="benefit-item">
               <i class="bi bi-check-circle-fill text-success"></i>
               <span
-                >Call <code>trimToSize()</code> on ArrayList after final population to release unused
-                capacity</span
+                >Call <code>trimToSize()</code> on ArrayList after final population to release
+                unused capacity</span
               >
             </div>
             <div class="benefit-item">
@@ -345,10 +345,14 @@
           </div>
         </AboutSection>
 
-        <AboutCallout variant="note" title="Why are there so many empty collections?" icon="bi-lightbulb-fill">
+        <AboutCallout
+          variant="note"
+          title="Why are there so many empty collections?"
+          icon="bi-lightbulb-fill"
+        >
           <p>
-            Empty collections are common in real applications. Many frameworks and libraries
-            eagerly initialize collections in constructors or field declarations that may never be
+            Empty collections are common in real applications. Many frameworks and libraries eagerly
+            initialize collections in constructors or field declarations that may never be
             populated. This is often the largest source of wasted collection memory and can be
             addressed with lazy initialization patterns.
           </p>
@@ -423,7 +427,9 @@ const fillChartLabels = [
 const fillChartColors = ChartColors.chartPalette(5);
 
 const fillChartData = computed<DonutChartData>(() => {
-  if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  if (!report.value) {
+    return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  }
   const dist = report.value.overallFillDistribution;
   const series = [dist.empty, dist.low, dist.medium, dist.high, dist.full];
   return {
@@ -440,7 +446,9 @@ const fillChartData = computed<DonutChartData>(() => {
 });
 
 const summaryItems = computed<SummaryItem[]>(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   const emptyRatio =
     report.value.totalCollections === 0
       ? '0.0'
@@ -473,7 +481,9 @@ const summaryItems = computed<SummaryItem[]>(() => {
 });
 
 const summaryMetrics = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   return [
     {
       icon: 'collection',
@@ -498,13 +508,17 @@ const summaryMetrics = computed(() => {
 });
 
 const maxTypeWasted = computed(() => {
-  if (!report.value || report.value.byType.length === 0) return 0;
+  if (!report.value || report.value.byType.length === 0) {
+    return 0;
+  }
   return Math.max(...report.value.byType.map(e => e.totalWastedBytes));
 });
 
 // Sorted by-type entries
 const sortedByType = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   const entries = [...report.value.byType];
   const direction = typeSortDirection.value === 'asc' ? 1 : -1;
 
@@ -542,7 +556,9 @@ const wasteSortColumn = ref('wastedBytes');
 const wasteSortDirection = ref<'asc' | 'desc'>('desc');
 
 const sortedWasteByClass = computed(() => {
-  if (!report.value || !report.value.wasteByClass) return [];
+  if (!report.value || !report.value.wasteByClass) {
+    return [];
+  }
   const entries = [...report.value.wasteByClass];
   const direction = wasteSortDirection.value === 'asc' ? 1 : -1;
 
@@ -563,14 +579,15 @@ const sortedWasteByClass = computed(() => {
   return entries;
 });
 
-
 const simpleClassName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
   return lastDot > 0 ? name.substring(lastDot + 1) : name;
 };
 
 const getTypePercentage = (entry: CollectionStats): number => {
-  if (maxTypeWasted.value === 0) return 0;
+  if (maxTypeWasted.value === 0) {
+    return 0;
+  }
   return (entry.totalWastedBytes / maxTypeWasted.value) * 100;
 };
 

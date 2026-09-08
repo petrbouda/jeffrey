@@ -31,7 +31,7 @@ Based on the gathered information, create/modify these files:
 
 #### 2.1 Add JobType Enum Value
 
-**File:** `shared/common/src/main/java/pbouda/jeffrey/shared/common/model/job/JobType.java`
+**File:** `shared/common/src/main/java/cafe/jeffrey/shared/common/model/job/JobType.java`
 
 Add the new enum value with appropriate Group:
 
@@ -41,7 +41,7 @@ MY_NEW_JOB(Group.PROJECT),  // or GLOBAL
 
 #### 2.2 Create Job Descriptor
 
-**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/{JobName}JobDescriptor.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/{JobName}JobDescriptor.java`
 
 Use this template:
 
@@ -101,7 +101,7 @@ public record {JobName}JobDescriptor(/* parameters if needed */)
 
 #### 2.3 Update JobDescriptor Sealed Interface
 
-**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptor.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptor.java`
 
 Add the new descriptor to the permits clause:
 
@@ -113,7 +113,7 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
 
 #### 2.4 Update JobDescriptorFactory
 
-**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptorFactory.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptorFactory.java`
 
 Add case in the switch statement:
 
@@ -123,7 +123,7 @@ case {JOB_TYPE_ENUM} -> new {JobName}JobDescriptor();  // or .of(params) if has 
 
 #### 2.5 Create Job Implementation
 
-**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/{JobName}Job.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}Job.java`
 
 For PROJECT scope (extends RepositoryProjectJob):
 
@@ -215,8 +215,8 @@ public class {JobName}Job extends WorkspaceJob<{JobName}JobDescriptor> {
 
 Job beans are split into two configuration classes based on scope:
 
-- **PROJECT jobs:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/ProjectJobsConfiguration.java`
-- **GLOBAL jobs:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/GlobalJobsConfiguration.java`
+- **PROJECT jobs:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/ProjectJobsConfiguration.java`
+- **GLOBAL jobs:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/GlobalJobsConfiguration.java`
 
 Add bean method to the appropriate configuration class:
 
@@ -289,7 +289,7 @@ Add the job ID to the `jobDefinitions` array in the appropriate templates:
 
 #### 2.8 For GLOBAL Jobs: Update ApplicationInitializer
 
-**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/appinitializer/ApplicationInitializer.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/appinitializer/ApplicationInitializer.java`
 
 Add in `initializeGlobalJobs()`:
 
@@ -359,14 +359,14 @@ After generating all files, provide a summary:
 
 | Component                | Path                                                                                                                       |
 |--------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| JobType enum (backend)   | `shared/common/src/main/java/pbouda/jeffrey/shared/common/model/job/JobType.java`                                         |
-| Job descriptor           | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/`                            |
-| JobDescriptor interface  | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptor.java`          |
-| JobDescriptorFactory     | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptorFactory.java`   |
-| Job implementation       | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/`                                       |
-| GlobalJobsConfiguration  | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/GlobalJobsConfiguration.java`           |
-| ProjectJobsConfiguration | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/ProjectJobsConfiguration.java`          |
-| ApplicationInitializer   | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/appinitializer/ApplicationInitializer.java`           |
+| JobType enum (backend)   | `shared/common/src/main/java/cafe/jeffrey/shared/common/model/job/JobType.java`                                         |
+| Job descriptor           | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/`                            |
+| JobDescriptor interface  | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptor.java`          |
+| JobDescriptorFactory     | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptorFactory.java`   |
+| Job implementation       | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/`                                       |
+| GlobalJobsConfiguration  | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/GlobalJobsConfiguration.java`           |
+| ProjectJobsConfiguration | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/ProjectJobsConfiguration.java`          |
+| ApplicationInitializer   | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/appinitializer/ApplicationInitializer.java`           |
 | Application properties   | `jeffrey-hub/core-hub/src/main/resources/application.properties`                                                     |
 | Default job definitions  | `jeffrey-hub/core-hub/src/main/resources/job-definitions/default-job-definitions.json`                               |
 | Project templates        | `jeffrey-hub/core-hub/src/main/resources/project-templates/default-project-templates.json`                           |

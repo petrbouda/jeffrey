@@ -32,7 +32,13 @@
           <TableToolbar v-model="classesView.query" search-placeholder="Filter classes...">
             <span class="toolbar-info">Finalizable classes</span>
             <template #filters>
-              <Badge key-label="Total" :value="classesView.matchCount" variant="secondary" size="s" borderless />
+              <Badge
+                key-label="Total"
+                :value="classesView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
             </template>
           </TableToolbar>
         </template>

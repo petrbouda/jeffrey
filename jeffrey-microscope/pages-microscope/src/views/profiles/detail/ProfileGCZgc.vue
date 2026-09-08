@@ -47,10 +47,19 @@
           <div class="col-lg-5">
             <DataTable v-if="data!.stallTypes.length > 0">
               <template #toolbar>
-                <TableToolbar v-model="stallTypesView.query" search-placeholder="Filter page types...">
+                <TableToolbar
+                  v-model="stallTypesView.query"
+                  search-placeholder="Filter page types..."
+                >
                   <span class="toolbar-info">Stalls by Page Type</span>
                   <template #filters>
-                    <Badge key-label="Total" :value="stallTypesView.matchCount" variant="secondary" size="s" borderless />
+                    <Badge
+                      key-label="Total"
+                      :value="stallTypesView.matchCount"
+                      variant="secondary"
+                      size="s"
+                      borderless
+                    />
                   </template>
                 </TableToolbar>
               </template>
@@ -97,7 +106,13 @@
                 <TableToolbar v-model="stallSitesView.query" search-placeholder="Filter threads...">
                   <span class="toolbar-info">Top Stalling Threads</span>
                   <template #filters>
-                    <Badge key-label="Total" :value="stallSitesView.matchCount" variant="secondary" size="s" borderless />
+                    <Badge
+                      key-label="Total"
+                      :value="stallSitesView.matchCount"
+                      variant="secondary"
+                      size="s"
+                      borderless
+                    />
                   </template>
                 </TableToolbar>
               </template>
@@ -148,7 +163,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">ZGC Cycles</span>
               <template #filters>
-                <Badge key-label="Total" :value="cyclesView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="cyclesView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -214,7 +235,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Uncommitted Memory (returned to OS)</span>
               <template #filters>
-                <Badge key-label="Total" :value="uncommitsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="uncommitsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -265,7 +292,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Relocation Sets</span>
               <template #filters>
-                <Badge key-label="Total" :value="relocationsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="relocationsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -341,8 +374,8 @@
                 Sustained high allocation alongside stalls means the collector can't keep up.
               </FeatureCard>
               <FeatureCard icon="bi-arrows-move" variant="success" title="Relocation">
-                Relocation-set composition per cycle — total, empty, and relocated pages. Large
-                sets increase concurrent work; empty pages are reclaimed without relocation.
+                Relocation-set composition per cycle — total, empty, and relocated pages. Large sets
+                increase concurrent work; empty pages are reclaimed without relocation.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -363,15 +396,15 @@
                 generational collection cycles with durations and tenuring threshold.
               </li>
               <li>
-                <code>jdk.ZPageAllocation</code> — page-allocation throughput driving the Pages &amp;
-                Memory chart.
+                <code>jdk.ZPageAllocation</code> — page-allocation throughput driving the Pages
+                &amp; Memory chart.
               </li>
               <li>
                 <code>jdk.ZUncommit</code> — memory returned to the OS, with bytes and duration.
               </li>
               <li>
-                <code>jdk.ZRelocationSet</code> — relocation-set composition per cycle (total, empty,
-                relocated pages).
+                <code>jdk.ZRelocationSet</code> — relocation-set composition per cycle (total,
+                empty, relocated pages).
               </li>
             </ul>
             <p>

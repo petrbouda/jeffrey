@@ -27,15 +27,12 @@ import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManagerImpl;
-import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
-import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
@@ -181,7 +178,7 @@ public class AppConfiguration {
 
     @Bean
     public MicroscopeJeffreyDirs jeffreyDir(
-            @Value("${jeffrey.microscope.home.dir:${user.home}/.jeffrey}") String homeDir,
+            @Value("${jeffrey.microscope.home.dir:${user.home}/.jeffrey-microscope}") String homeDir,
             @Value("${jeffrey.microscope.temp.dir:}") String tempDir) {
 
         Path homeDirPath = Path.of(homeDir);
@@ -229,21 +226,5 @@ public class AppConfiguration {
                 jeffreyDirs.recordings(),
                 List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR,
                         SupportedRecordingFile.PPROF, SupportedRecordingFile.OTLP_PROFILE));
-    }
-
-    @Bean
-    public ProjectRecordingInitializer.Factory projectRecordingInitializer(
-            Clock applicationClock,
-            RecordingStorage recordingStorage,
-            MicroscopeCorePersistenceProvider localCorePersistenceProvider,
-            MicroscopeJeffreyDirs jeffreyDirs) {
-
-        MicroscopeCoreRepositories localCoreRepositories = localCorePersistenceProvider.localCoreRepositories();
-        return projectInfo -> new ProjectRecordingInitializer(
-                applicationClock,
-                projectInfo,
-                recordingStorage.projectRecordingStorage(projectInfo.id()),
-                localCoreRepositories.newRecordingRepository(projectInfo.id()),
-                new FileTypeDispatchingRecordingInformationParser(new JfrRecordingInformationParser(jeffreyDirs)));
     }
 }

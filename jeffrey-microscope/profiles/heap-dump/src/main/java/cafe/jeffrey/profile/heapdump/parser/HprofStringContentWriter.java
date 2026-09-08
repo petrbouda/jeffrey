@@ -170,6 +170,7 @@ public final class HprofStringContentWriter {
             }
 
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_STRING_CONTENT, STRING_CONTENT_TABLE);
+            staging.clearTable(STRING_CONTENT_TABLE);
         }
         return emitted;
     }

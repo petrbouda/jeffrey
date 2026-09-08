@@ -66,8 +66,12 @@ export function computeDifference(
       const difference = primaryValue - secondaryValue;
 
       // Track min/max for color scale
-      if (difference < minValue) minValue = difference;
-      if (difference > maxValue) maxValue = difference;
+      if (difference < minValue) {
+        minValue = difference;
+      }
+      if (difference > maxValue) {
+        maxValue = difference;
+      }
 
       // Get x value from either point
       const xValue = primaryPoint
@@ -97,8 +101,12 @@ export function computeDifference(
       const secondaryValue = (secondaryPoint as any).y ?? secondaryPoint[1] ?? 0;
       const difference = -secondaryValue; // Primary is 0, so difference is negative
 
-      if (difference < minValue) minValue = difference;
-      if (difference > maxValue) maxValue = difference;
+      if (difference < minValue) {
+        minValue = difference;
+      }
+      if (difference > maxValue) {
+        maxValue = difference;
+      }
 
       differenceData.push({
         x: (secondaryPoint as any).x ?? secondaryPoint[0],

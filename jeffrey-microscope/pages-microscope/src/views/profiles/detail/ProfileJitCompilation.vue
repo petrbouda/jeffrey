@@ -16,25 +16,25 @@
           <template #title-action-0>
             <i
               class="bi bi-info-circle text-muted compilation-info-icon"
-              @click="showCompilationsModal"
               title="Click for detailed explanation of Standard vs OSR Compilation"
               style="cursor: pointer"
+              @click="showCompilationsModal"
             ></i>
           </template>
           <template #title-action-1>
             <i
               class="bi bi-info-circle text-muted compilation-info-icon"
-              @click="showTooltipModal"
               title="Click for detailed explanation of Bailouts vs Invalidations"
               style="cursor: pointer"
+              @click="showTooltipModal"
             ></i>
           </template>
           <template #title-action-2>
             <i
               class="bi bi-info-circle text-muted compilation-info-icon"
-              @click="showNMethodsModal"
               title="Click for detailed explanation of nMethods"
               style="cursor: pointer"
+              @click="showNMethodsModal"
             ></i>
           </template>
         </StatsTable>
@@ -50,9 +50,9 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="timeseriesData?.data"
-            :primaryTitle="timeseriesData?.name"
-            :visibleMinutes="60"
+            :primary-data="timeseriesData?.data"
+            :primary-title="timeseriesData?.name"
+            :visible-minutes="60"
           />
         </div>
 
@@ -64,11 +64,11 @@
           />
           <div class="chart-container">
             <TimeSeriesChart
-              :primaryData="c1QueueSeries"
-              primaryTitle="C1 Queue"
-              :secondaryData="c2QueueSeries"
-              secondaryTitle="C2 Queue"
-              :visibleMinutes="60"
+              :primary-data="c1QueueSeries"
+              primary-title="C1 Queue"
+              :secondary-data="c2QueueSeries"
+              secondary-title="C2 Queue"
+              :visible-minutes="60"
             />
           </div>
         </template>
@@ -127,7 +127,13 @@
                   <div class="d-flex align-items-center gap-2 mb-1">
                     <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
                     <Badge :value="compilation.compiler" variant="primary" size="xs" borderless />
-                    <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" borderless />
+                    <Badge
+                      v-if="compilation.isOsr"
+                      value="OSR"
+                      variant="info"
+                      size="xs"
+                      borderless
+                    />
                   </div>
                   <span class="method-path text-muted small">{{
                     getPackage(compilation.method)
@@ -135,10 +141,18 @@
                 </div>
               </td>
               <td class="text-center">{{ compilation.compileLevel }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(compilation.duration) }}
+              </td>
               <td class="text-end">{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
               <td class="text-end">
-                <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" borderless />
+                <Badge
+                  v-if="compilation.succeded"
+                  value="Success"
+                  variant="success"
+                  size="s"
+                  borderless
+                />
                 <Badge v-else value="Failed" variant="danger" size="s" borderless />
               </td>
             </tr>
@@ -205,7 +219,13 @@
               <td class="text-end">{{ FormattingService.formatNumber(segment.methodCount) }}</td>
               <td class="text-end">{{ FormattingService.formatNumber(segment.adaptorCount) }}</td>
               <td class="text-end">
-                <Badge v-if="segment.fullCount > 0" :value="segment.fullCount" variant="danger" size="xs" borderless />
+                <Badge
+                  v-if="segment.fullCount > 0"
+                  :value="segment.fullCount"
+                  variant="danger"
+                  size="xs"
+                  borderless
+                />
                 <span v-else class="text-muted">0</span>
               </td>
             </tr>
@@ -233,26 +253,28 @@
           <AboutCallout variant="intro">
             <p>
               The JVM starts by <em>interpreting</em> bytecode, then compiles the methods that run
-              often into optimized native code. HotSpot uses <strong>tiered compilation</strong>: code
-              climbs a ladder of compilers as it gets hotter, each tier trading compile time for
-              execution speed. This page shows that activity, the queues feeding it, and the code
-              cache that stores the result.
+              often into optimized native code. HotSpot uses <strong>tiered compilation</strong>:
+              code climbs a ladder of compilers as it gets hotter, each tier trading compile time
+              for execution speed. This page shows that activity, the queues feeding it, and the
+              code cache that stores the result.
             </p>
           </AboutCallout>
 
           <AboutSection icon="bi-bar-chart-steps" title="The Compilation Tiers">
             <FeatureGrid>
               <FeatureCard icon="bi-0-circle" variant="neutral" title="Tier 0 — Interpreter">
-                Every method starts here. No compilation; the JVM also gathers invocation and
-                branch counters to decide what's worth compiling.
+                Every method starts here. No compilation; the JVM also gathers invocation and branch
+                counters to decide what's worth compiling.
               </FeatureCard>
               <FeatureCard icon="bi-1-circle" variant="info" title="Tiers 1–3 — C1 (client)">
-                Fast compiles with light optimization. Tier 3 also adds <em>profiling</em> counters so
-                C2 can later speculate well. This is what makes early throughput jump during warmup.
+                Fast compiles with light optimization. Tier 3 also adds <em>profiling</em> counters
+                so C2 can later speculate well. This is what makes early throughput jump during
+                warmup.
               </FeatureCard>
               <FeatureCard icon="bi-4-circle" variant="primary" title="Tier 4 — C2 (server)">
-                Slow, aggressive, profile-guided optimization producing the fastest code. Most steady-
-                state hot methods end up here. Wrong speculation is undone via deoptimization.
+                Slow, aggressive, profile-guided optimization producing the fastest code. Most
+                steady- state hot methods end up here. Wrong speculation is undone via
+                deoptimization.
               </FeatureCard>
               <FeatureCard icon="bi-arrow-repeat" variant="warning" title="On-Stack Replacement">
                 OSR compiles a method <em>while a long loop is still running</em>, swapping the
@@ -265,8 +287,9 @@
           <AboutSection icon="bi-graph-up" title="Reading the Charts">
             <FeatureGrid>
               <FeatureCard icon="bi-graph-up" variant="primary" title="Activity &amp; Queues">
-                Compilation rate over time plus the C1/C2 queue backlog. A large queue during startup
-                is normal warmup pressure; a queue that never drains means the compilers can't keep up.
+                Compilation rate over time plus the C1/C2 queue backlog. A large queue during
+                startup is normal warmup pressure; a queue that never drains means the compilers
+                can't keep up.
               </FeatureCard>
               <FeatureCard icon="bi-hourglass-split" variant="warning" title="Long Compilations">
                 Individual methods that took unusually long to compile — huge methods or inlining
@@ -285,20 +308,20 @@
           </AboutSection>
 
           <AboutCallout variant="tip" title="Warmup is real" icon="bi-lightbulb-fill">
-            Throughput benchmarks taken before C2 finishes are meaningless. Heavy compilation activity
-            that never settles, or repeated recompiles of the same method, points at deoptimization
-            churn — check the <em>Deoptimizations</em> page.
+            Throughput benchmarks taken before C2 finishes are meaningless. Heavy compilation
+            activity that never settles, or repeated recompiles of the same method, points at
+            deoptimization churn — check the <em>Deoptimizations</em> page.
           </AboutCallout>
 
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.Compilation</code> — one event per compilation (method, tier/level, OSR flag,
-                duration, generated code size). Enabled in the default configuration.
+                <code>jdk.Compilation</code> — one event per compilation (method, tier/level, OSR
+                flag, duration, generated code size). Enabled in the default configuration.
               </li>
               <li>
-                <code>jdk.CompilerQueueUtilization</code> — periodic C1/C2 queue depth and add/remove
-                rates that drive the queue timeline.
+                <code>jdk.CompilerQueueUtilization</code> — periodic C1/C2 queue depth and
+                add/remove rates that drive the queue timeline.
               </li>
               <li>
                 <code>jdk.CodeCacheStatistics</code> and <code>jdk.CodeCacheFull</code> — code-cache
@@ -575,7 +598,9 @@ const showCompilationsInfoModal = ref(false);
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
-  if (!statisticsData.value) return [];
+  if (!statisticsData.value) {
+    return [];
+  }
 
   return [
     {
@@ -708,11 +733,15 @@ const showCompilationsModal = () => {
 
 // Method name and path helpers
 const getClassMethodName = (method: string): string => {
-  if (!method) return '';
+  if (!method) {
+    return '';
+  }
 
   // Extract the method name with parameters
   const lastDotIndex = method.lastIndexOf('#');
-  if (lastDotIndex === -1) return method;
+  if (lastDotIndex === -1) {
+    return method;
+  }
 
   // Get the part after the last dot (method name with params)
   const methodNameWithParams = method.substring(lastDotIndex + 1);
@@ -729,11 +758,15 @@ const getClassMethodName = (method: string): string => {
 };
 
 const getPackage = (method: string): string => {
-  if (!method) return '';
+  if (!method) {
+    return '';
+  }
 
   // Extract the package path (everything up to the last two segments)
   const segments = method.split('.');
-  if (segments.length <= 1) return method;
+  if (segments.length <= 1) {
+    return method;
+  }
 
   // Return everything except the last two segments (class and method)
   return segments.slice(0, segments.length - 1).join('.');

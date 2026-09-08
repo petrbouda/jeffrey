@@ -22,10 +22,12 @@
     title="Per-type exception detail is incomplete"
     action-label="How to get the full breakdown"
   >
-    This recording created <strong>{{ FormattingService.formatNumber(totalThrowables) }}</strong>
-    throwables, but <code>jdk.JavaExceptionThrow</code> events are <strong>disabled</strong>. The
-    per-type breakdown below therefore only covers the
-    <strong>{{ FormattingService.formatNumber(errorCount) }}</strong> <code>jdk.JavaErrorThrow</code>
+    This recording created
+    <strong>{{ FormattingService.formatNumber(totalThrowables) }}</strong> throwables, but
+    <code>jdk.JavaExceptionThrow</code> events are <strong>disabled</strong>. The per-type breakdown
+    below therefore only covers the
+    <strong>{{ FormattingService.formatNumber(errorCount) }}</strong>
+    <code>jdk.JavaErrorThrow</code>
     (Error) throws — the remaining exceptions exist only as the aggregate total above and have no
     per-type detail.
 
@@ -45,8 +47,8 @@
         </li>
       </ul>
       <p>
-        Profile your application again — once <code>jdk.JavaExceptionThrow</code> events are present,
-        every exception type appears in the breakdown below.
+        Profile your application again — once <code>jdk.JavaExceptionThrow</code> events are
+        present, every exception type appears in the breakdown below.
       </p>
     </template>
   </DisabledEventsNotice>

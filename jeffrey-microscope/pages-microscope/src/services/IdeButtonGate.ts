@@ -56,5 +56,5 @@ async function check(profileId: string, fqn: string): Promise<boolean> {
 }
 
 export default {
-  check,
+  check
 };

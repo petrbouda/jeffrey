@@ -154,7 +154,7 @@ describe('spanBar', () => {
 describe('self segments', () => {
   const window = { startMicros: 0, endMicros: 100 };
 
-  it('draws the span\'s own work where it happened, not as a block at the front', () => {
+  it("draws the span's own work where it happened, not as a block at the front", () => {
     // The parent worked 0..20, its child ran 20..60, the parent finished 60..100. Gathering its
     // 60us of self time into a leading block would put the solid bar under the child's own bar.
     const parent = span(0, 100);
@@ -194,7 +194,7 @@ describe('self segments', () => {
     expect(bar.selfSegments).toEqual([{ leftPercent: 0, widthPercent: 60 }]);
   });
 
-  it('sums to the span\'s self time', () => {
+  it("sums to the span's self time", () => {
     const parent = span(0, 100);
     const bar = spanBar(parent, [child('2', 10, 5), child('3', 40, 25)], window);
     const solid = bar.selfSegments.reduce((total, segment) => total + segment.widthPercent, 0);
@@ -227,7 +227,7 @@ describe('a recorded trace of sub-millisecond calls', () => {
   const bars = waterfallBars([root, ...children]);
 
   it('never draws two of them as overlapping', () => {
-    const laidOut = children.map((span) => bars.get(span.spanId)!);
+    const laidOut = children.map(span => bars.get(span.spanId)!);
 
     for (let index = 1; index < laidOut.length; index++) {
       const previous = laidOut[index - 1];

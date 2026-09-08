@@ -218,7 +218,9 @@ const analysisTabs = [
 const activeTab = ref(analysisTabs[0].id);
 
 const summaryMetrics = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   const largest = report.value.byElementCount[0];
   const topRetained = report.value.byRetainedSize[0];
   return [
@@ -233,7 +235,9 @@ const summaryMetrics = computed(() => {
       title: 'Avg Fill Ratio',
       value: (() => {
         const entries = report.value.byElementCount;
-        if (entries.length === 0) return '-';
+        if (entries.length === 0) {
+          return '-';
+        }
         const avg = entries.reduce((sum, e) => sum + e.fillRatio, 0) / entries.length;
         return (avg * 100).toFixed(1) + '%';
       })(),
@@ -267,20 +271,30 @@ const summaryMetrics = computed(() => {
 });
 
 const sortedByElementCount = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   return report.value.byElementCount;
 });
 
 const sortedByRetainedSize = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   return report.value.byRetainedSize;
 });
 
 const getFillColor = (ratio: number): string => {
   const pct = ratio * 100;
-  if (pct >= 75) return '#28a745';
-  if (pct >= 50) return '#28a745';
-  if (pct >= 25) return '#ffc107';
+  if (pct >= 75) {
+    return '#28a745';
+  }
+  if (pct >= 50) {
+    return '#28a745';
+  }
+  if (pct >= 25) {
+    return '#ffc107';
+  }
   return '#ffc107';
 };
 

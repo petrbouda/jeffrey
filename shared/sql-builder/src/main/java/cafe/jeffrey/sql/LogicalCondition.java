@@ -37,7 +37,4 @@ public class LogicalCondition implements Condition {
         return condition;
     }
     
-    public LogicalOperator getOperator() {
-        return operator;
-    }
 }

@@ -4,7 +4,7 @@
     <CustomDisabledFeatureAlert
       v-if="isJdbcStatementsDisabled"
       title="JDBC Statements Dashboard"
-      eventType="JDBC statement"
+      event-type="JDBC statement"
     />
 
     <div v-else>
@@ -60,7 +60,7 @@
               :secondary-data="currentTimelineSecondaryData"
               secondary-title="Executions"
               :visible-minutes="60"
-              :independentSecondaryAxis="true"
+              :independent-secondary-axis="true"
               :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
               :secondary-axis-type="AxisFormatType.NUMBER"
             />
@@ -263,14 +263,18 @@ const clearStatementFilter = () => {
 
 // Helper functions
 const getStatementGroups = () => {
-  if (!jdbcOverviewData.value) return [];
+  if (!jdbcOverviewData.value) {
+    return [];
+  }
   return jdbcOverviewData.value.groups.filter(
     (g: JdbcGroup) => g && !isNaN(g.count) && g.count >= 0
   );
 };
 
 const getSortedSlowStatements = () => {
-  if (!singleGroupData.value) return [];
+  if (!singleGroupData.value) {
+    return [];
+  }
   return singleGroupData.value.slowStatements.sort(
     (a: JdbcSlowStatement, b: JdbcSlowStatement) => b.executionTime - a.executionTime
   );
@@ -283,8 +287,12 @@ const showSqlModal = (statement: JdbcSlowStatement) => {
 
 // Load statement-specific timeseries data
 const loadStatementTimeseries = async (statementName: string) => {
-  if (!selectedGroupForDetail.value) return;
-  if (statementTimeseriesData.value.has(statementName)) return;
+  if (!selectedGroupForDetail.value) {
+    return;
+  }
+  if (statementTimeseriesData.value.has(statementName)) {
+    return;
+  }
 
   try {
     loadingTimelineStatement.value = statementName;
@@ -307,8 +315,12 @@ const loadStatementTimeseries = async (statementName: string) => {
 
 // Load statement-specific slowest statements data
 const loadStatementSlowestStatements = async (statementName: string) => {
-  if (!selectedGroupForDetail.value) return;
-  if (statementSlowestData.value.has(statementName)) return;
+  if (!selectedGroupForDetail.value) {
+    return;
+  }
+  if (statementSlowestData.value.has(statementName)) {
+    return;
+  }
 
   try {
     loadingSlowestStatement.value = statementName;

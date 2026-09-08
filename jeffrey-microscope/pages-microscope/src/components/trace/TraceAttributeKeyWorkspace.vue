@@ -51,10 +51,7 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
 import TraceAttributeSelector from '@/components/trace/TraceAttributeSelector.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import {
-  eventTypeFromQuery,
-  keyFromQuery
-} from '@/services/api/model/trace/TraceAttributeModels';
+import { eventTypeFromQuery, keyFromQuery } from '@/services/api/model/trace/TraceAttributeModels';
 
 const props = defineProps<{
   disabledFeatures: FeatureType[];

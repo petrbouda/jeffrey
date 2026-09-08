@@ -20,29 +20,29 @@
   <div class="waterfall">
     <!-- The drawing in one card, the legend in its own below — two panels, not one surface. -->
     <div class="wf-card">
-    <div class="wf-toolbar">
-      <button
-        type="button"
-        class="wf-toggle"
-        :class="{ active: criticalOnly }"
-        :aria-pressed="criticalOnly"
-        :disabled="!hasOffPathSpans"
-        :title="criticalOnlyTitle"
-        @click="criticalOnly = !criticalOnly"
-      >
-        <i class="bi bi-signpost-split"></i> Critical path only
-      </button>
-      <button
-        type="button"
-        class="wf-toggle"
-        :disabled="parents.size === 0"
-        :title="allCollapsed ? 'Expand every span' : 'Collapse every span that has children'"
-        @click="toggleAll"
-      >
-        <i :class="allCollapsed ? 'bi bi-arrows-expand' : 'bi bi-arrows-collapse'"></i>
-        {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
-      </button>
-      <!--
+      <div class="wf-toolbar">
+        <button
+          type="button"
+          class="wf-toggle"
+          :class="{ active: criticalOnly }"
+          :aria-pressed="criticalOnly"
+          :disabled="!hasOffPathSpans"
+          :title="criticalOnlyTitle"
+          @click="criticalOnly = !criticalOnly"
+        >
+          <i class="bi bi-signpost-split"></i> Critical path only
+        </button>
+        <button
+          type="button"
+          class="wf-toggle"
+          :disabled="parents.size === 0"
+          :title="allCollapsed ? 'Expand every span' : 'Collapse every span that has children'"
+          @click="toggleAll"
+        >
+          <i :class="allCollapsed ? 'bi bi-arrows-expand' : 'bi bi-arrows-collapse'"></i>
+          {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
+        </button>
+        <!--
         The three overlay families as real switches inside a labeled group, apart from the view
         actions beside them — a control that draws something over the waterfall and a control that
         rearranges it are two kinds of thing, and stopped wearing one costume. The promoted waits
@@ -52,126 +52,138 @@
         where its time went. A family that recorded nothing keeps its switch visible but dashed,
         with the zero said out loud, so its absence never reads as a missing feature.
       -->
-      <span class="wf-overlays" role="group" aria-label="Overlay families">
-        <span class="wf-overlays-label">Overlays</span>
-        <button
-          type="button"
-          class="wf-switch-item"
-          :aria-pressed="bandCategories.length > 0 && showContext"
-          :disabled="bandCategories.length === 0"
-          :title="contextToggleTitle"
-          @click="showContext = !showContext"
-        >
-          <span class="wf-switch" :class="{ on: bandCategories.length > 0 && showContext }"></span>
-          JVM context
-          <span v-if="bandCategories.length === 0" class="wf-zero">0 events</span>
-        </button>
-        <button
-          type="button"
-          class="wf-switch-item"
-          :aria-pressed="showBlockingOps && promotedBlockingCount > 0"
-          :disabled="promotedBlockingCount === 0"
-          :title="blockingToggleTitle"
-          @click="showBlockingOps = !showBlockingOps"
-        >
-          <span class="wf-switch" :class="{ on: showBlockingOps && promotedBlockingCount > 0 }"></span>
-          Blocking ops
-          <span v-if="promotedBlockingCount === 0" class="wf-zero">0 events</span>
-        </button>
-        <button
-          type="button"
-          class="wf-switch-item"
-          :aria-pressed="showIoOps && promotedIoCount > 0"
-          :disabled="promotedIoCount === 0"
-          :title="ioToggleTitle"
-          @click="showIoOps = !showIoOps"
-        >
-          <span class="wf-switch" :class="{ on: showIoOps && promotedIoCount > 0 }"></span>
-          I/O ops
-          <span v-if="promotedIoCount === 0" class="wf-zero">0 events</span>
-        </button>
-        <button
-          type="button"
-          class="wf-switch-item"
-          :aria-pressed="showClassLoadingIo && classLoadingIoCount > 0"
-          :disabled="classLoadingIoCount === 0"
-          :title="classLoadingToggleTitle"
-          @click="showClassLoadingIo = !showClassLoadingIo"
-        >
-          <span class="wf-switch" :class="{ on: showClassLoadingIo && classLoadingIoCount > 0 }"></span>
-          Class loading
-          <span v-if="classLoadingIoCount === 0" class="wf-zero">0 events</span>
-        </button>
-        <button
-          type="button"
-          class="wf-switch-item"
-          :aria-pressed="showMethodOps && promotedMethodCount > 0"
-          :disabled="promotedMethodCount === 0"
-          :title="methodToggleTitle"
-          @click="showMethodOps = !showMethodOps"
-        >
-          <span class="wf-switch" :class="{ on: showMethodOps && promotedMethodCount > 0 }"></span>
-          Methods
-          <span v-if="promotedMethodCount === 0" class="wf-zero">0 events</span>
-        </button>
-        <!--
+        <span class="wf-overlays" role="group" aria-label="Overlay families">
+          <span class="wf-overlays-label">Overlays</span>
+          <button
+            type="button"
+            class="wf-switch-item"
+            :aria-pressed="bandCategories.length > 0 && showContext"
+            :disabled="bandCategories.length === 0"
+            :title="contextToggleTitle"
+            @click="showContext = !showContext"
+          >
+            <span
+              class="wf-switch"
+              :class="{ on: bandCategories.length > 0 && showContext }"
+            ></span>
+            JVM context
+            <span v-if="bandCategories.length === 0" class="wf-zero">0 events</span>
+          </button>
+          <button
+            type="button"
+            class="wf-switch-item"
+            :aria-pressed="showBlockingOps && promotedBlockingCount > 0"
+            :disabled="promotedBlockingCount === 0"
+            :title="blockingToggleTitle"
+            @click="showBlockingOps = !showBlockingOps"
+          >
+            <span
+              class="wf-switch"
+              :class="{ on: showBlockingOps && promotedBlockingCount > 0 }"
+            ></span>
+            Blocking ops
+            <span v-if="promotedBlockingCount === 0" class="wf-zero">0 events</span>
+          </button>
+          <button
+            type="button"
+            class="wf-switch-item"
+            :aria-pressed="showIoOps && promotedIoCount > 0"
+            :disabled="promotedIoCount === 0"
+            :title="ioToggleTitle"
+            @click="showIoOps = !showIoOps"
+          >
+            <span class="wf-switch" :class="{ on: showIoOps && promotedIoCount > 0 }"></span>
+            I/O ops
+            <span v-if="promotedIoCount === 0" class="wf-zero">0 events</span>
+          </button>
+          <button
+            type="button"
+            class="wf-switch-item"
+            :aria-pressed="showClassLoadingIo && classLoadingIoCount > 0"
+            :disabled="classLoadingIoCount === 0"
+            :title="classLoadingToggleTitle"
+            @click="showClassLoadingIo = !showClassLoadingIo"
+          >
+            <span
+              class="wf-switch"
+              :class="{ on: showClassLoadingIo && classLoadingIoCount > 0 }"
+            ></span>
+            Class loading
+            <span v-if="classLoadingIoCount === 0" class="wf-zero">0 events</span>
+          </button>
+          <button
+            type="button"
+            class="wf-switch-item"
+            :aria-pressed="showMethodOps && promotedMethodCount > 0"
+            :disabled="promotedMethodCount === 0"
+            :title="methodToggleTitle"
+            @click="showMethodOps = !showMethodOps"
+          >
+            <span
+              class="wf-switch"
+              :class="{ on: showMethodOps && promotedMethodCount > 0 }"
+            ></span>
+            Methods
+            <span v-if="promotedMethodCount === 0" class="wf-zero">0 events</span>
+          </button>
+          <!--
           The two instant families, each with its own switch for the same reason Blocking ops and
           I/O ops have theirs: they answer different questions, so silencing one must not silence
           the other.
         -->
-        <button
-          type="button"
-          class="wf-switch-item"
-          :aria-pressed="showNotifications && notifications.length > 0"
-          :disabled="notifications.length === 0"
-          :title="
-            notifications.length === 0
-              ? 'This trace recorded no notifications'
-              : 'Show what the application said while this trace ran'
-          "
-          @click="showNotifications = !showNotifications"
-        >
-          <span
-            class="wf-switch"
-            :class="{ on: showNotifications && notifications.length > 0 }"
-          ></span>
-          Notifications
-          <span v-if="notifications.length === 0" class="wf-zero">0 events</span>
-        </button>
-        <button
-          type="button"
-          class="wf-switch-item"
-          :aria-pressed="showExceptions && exceptions.length > 0"
-          :disabled="exceptions.length === 0"
-          :title="
-            exceptions.length === 0
-              ? 'This trace recorded no throws'
-              : 'Show the throws recorded inside this trace'
-          "
-          @click="showExceptions = !showExceptions"
-        >
-          <span class="wf-switch" :class="{ on: showExceptions && exceptions.length > 0 }"></span>
-          Exceptions
-          <span v-if="exceptions.length === 0" class="wf-zero">0 events</span>
-        </button>
-      </span>
-      <!--
+          <button
+            type="button"
+            class="wf-switch-item"
+            :aria-pressed="showNotifications && notifications.length > 0"
+            :disabled="notifications.length === 0"
+            :title="
+              notifications.length === 0
+                ? 'This trace recorded no notifications'
+                : 'Show what the application said while this trace ran'
+            "
+            @click="showNotifications = !showNotifications"
+          >
+            <span
+              class="wf-switch"
+              :class="{ on: showNotifications && notifications.length > 0 }"
+            ></span>
+            Notifications
+            <span v-if="notifications.length === 0" class="wf-zero">0 events</span>
+          </button>
+          <button
+            type="button"
+            class="wf-switch-item"
+            :aria-pressed="showExceptions && exceptions.length > 0"
+            :disabled="exceptions.length === 0"
+            :title="
+              exceptions.length === 0
+                ? 'This trace recorded no throws'
+                : 'Show the throws recorded inside this trace'
+            "
+            @click="showExceptions = !showExceptions"
+          >
+            <span class="wf-switch" :class="{ on: showExceptions && exceptions.length > 0 }"></span>
+            Exceptions
+            <span v-if="exceptions.length === 0" class="wf-zero">0 events</span>
+          </button>
+        </span>
+        <!--
         Only when there is an error to jump to: in a 200-span trace the one red badge can sit three
         folds deep and two screens down, and "this trace failed" without a way to the failure is a
         finding withheld.
       -->
-      <button
-        v-if="firstErrorSpan"
-        type="button"
-        class="wf-toggle wf-error-jump"
-        title="Expand to and select the first failed span"
-        @click="jumpToFirstError"
-      >
-        <i class="bi bi-exclamation-triangle"></i> First error
-      </button>
-    </div>
+        <button
+          v-if="firstErrorSpan"
+          type="button"
+          class="wf-toggle wf-error-jump"
+          title="Expand to and select the first failed span"
+          @click="jumpToFirstError"
+        >
+          <i class="bi bi-exclamation-triangle"></i> First error
+        </button>
+      </div>
 
-    <!--
+      <!--
       The CFS windows in which the container was CPU-throttled — drawn first, because when it is
       present it is usually the largest thing that happened to the trace, and it is the one lane a
       reader will not have thought to look for.
@@ -182,86 +194,85 @@
       "window" in the stat, and the tilde on the figure all say the same thing three ways, because a
       solid band here would read as a pause the kernel never reported.
     -->
-    <div v-if="throttleLane.length > 0" class="wf-lane">
-      <span class="lane-label">
-        <span class="lane-name">
-          <i class="lane-dot lane-dot-throttle"></i>
-          {{ contextLabel(THROTTLE_CATEGORY) }}
-        </span>
-        <!--
+      <div v-if="throttleLane.length > 0" class="wf-lane">
+        <span class="lane-label">
+          <span class="lane-name">
+            <i class="lane-dot lane-dot-throttle"></i>
+            {{ contextLabel(THROTTLE_CATEGORY) }}
+          </span>
+          <!--
           Deliberately not a share of the trace, which is what every other lane's stat is. A share
           would have to be taken against time the container was throttled *during this trace*, and
           that is the one number the counters cannot give.
         -->
-        <span class="lane-stat">window · {{ throttleLane.length }}&times;</span>
-      </span>
-      <span class="lane-track">
-        <span
-          v-for="(band, index) in throttleLane"
-          :key="index"
-          class="lane-band lane-band-throttle"
-          :style="{ left: band.leftPercent + '%', width: band.widthPercent + '%' }"
-          :title="throttleBandTitle(band)"
-        >
-          <span v-if="band.widthPercent > 6" class="lane-band-text">
-            {{ throttleBandText(band) }}
+          <span class="lane-stat">window · {{ throttleLane.length }}&times;</span>
+        </span>
+        <span class="lane-track">
+          <span
+            v-for="(band, index) in throttleLane"
+            :key="index"
+            class="lane-band lane-band-throttle"
+            :style="{ left: band.leftPercent + '%', width: band.widthPercent + '%' }"
+            :title="throttleBandTitle(band)"
+          >
+            <span v-if="band.widthPercent > 6" class="lane-band-text">
+              {{ throttleBandText(band) }}
+            </span>
           </span>
         </span>
-      </span>
-      <span class="wf-duration">{{ throttleLaneTotal }}</span>
-    </div>
+        <span class="wf-duration">{{ throttleLaneTotal }}</span>
+      </div>
 
-    <!--
+      <!--
       One lane per kind of pause, above the spans. The lane reuses the row grid, so its track lines
       up with the bars without either side knowing the other's measurements, and it is the lane
       rather than the stripe that carries the labels and the hit targets: the stripe is a wash
       behind rows that come and go as the detail panel opens, with nothing to click.
     -->
-    <div v-for="lane in laneGroups" :key="lane.category" class="wf-lane">
-      <!--
+      <div v-for="lane in laneGroups" :key="lane.category" class="wf-lane">
+        <!--
         The name sits at the left edge, under the Span header, and the gutter between it and the
         track carries what the lane could never say on its own: what share of the trace it cost and
         how many events that was. Twenty rems of empty column was the alternative.
       -->
-      <span class="lane-label">
-        <span class="lane-name">
-          <i class="lane-dot" :style="{ background: contextColor(lane.category) }"></i>
-          {{ contextLabel(lane.category) }}
-        </span>
-        <span class="lane-meter" :title="laneShareTitle(lane)">
-          <i
-            :style="{
-              width: laneSharePercent(lane.bands) + '%',
-              background: contextColor(lane.category)
-            }"
-          ></i>
-        </span>
-        <span class="lane-stat">
-          {{ laneSharePercent(lane.bands).toFixed(1) }}% · {{ lane.bands.length }}×
-        </span>
-      </span>
-      <span class="lane-track">
-        <span
-          v-for="(band, index) in lane.bands"
-          :key="index"
-          class="lane-band"
-          :style="{
-            left: band.leftPercent + '%',
-            width: band.widthPercent + '%',
-            background: contextColor(band.category)
-          }"
-          :title="bandTitle(band)"
-        >
-          <span v-if="band.widthPercent > 6" class="lane-band-text">
-            {{ FormattingService.formatDuration2Units(band.durationNanos) }}
+        <span class="lane-label">
+          <span class="lane-name">
+            <i class="lane-dot" :style="{ background: contextColor(lane.category) }"></i>
+            {{ contextLabel(lane.category) }}
+          </span>
+          <span class="lane-meter" :title="laneShareTitle(lane)">
+            <i
+              :style="{
+                width: laneSharePercent(lane.bands) + '%',
+                background: contextColor(lane.category)
+              }"
+            ></i>
+          </span>
+          <span class="lane-stat">
+            {{ laneSharePercent(lane.bands).toFixed(1) }}% · {{ lane.bands.length }}×
           </span>
         </span>
-      </span>
-      <span class="wf-duration">{{ laneTotal(lane.bands) }}</span>
-    </div>
+        <span class="lane-track">
+          <span
+            v-for="(band, index) in lane.bands"
+            :key="index"
+            class="lane-band"
+            :style="{
+              left: band.leftPercent + '%',
+              width: band.widthPercent + '%',
+              background: contextColor(band.category)
+            }"
+            :title="bandTitle(band)"
+          >
+            <span v-if="band.widthPercent > 6" class="lane-band-text">
+              {{ FormattingService.formatDuration2Units(band.durationNanos) }}
+            </span>
+          </span>
+        </span>
+        <span class="wf-duration">{{ laneTotal(lane.bands) }}</span>
+      </div>
 
-
-    <!--
+      <!--
       One rail per instant family, above the span rows and outside them. Nothing that rearranges the
       rows can take a mark away: fold a subtree, filter to the critical path, draw a span at the
       minimum bar width, and the rail is unchanged. That is the whole reason it exists, and it is
@@ -271,80 +282,81 @@
       for what was thrown at it -- because a CRITICAL notification and an escaped throw are both red
       and mean entirely different things.
     -->
-    <div v-if="showNotifications && notificationMarks.length > 0" class="wf-lane wf-rail">
-      <span class="lane-label">
-        <span class="lane-name">
-          <i class="rail-glyph ntf" :style="{ background: severityColor(worstNotificationSeverity) }"></i>
-          Notifications
+      <div v-if="showNotifications && notificationMarks.length > 0" class="wf-lane wf-rail">
+        <span class="lane-label">
+          <span class="lane-name">
+            <i
+              class="rail-glyph ntf"
+              :style="{ background: severityColor(worstNotificationSeverity) }"
+            ></i>
+            Notifications
+          </span>
+          <span class="lane-stat">{{ notificationMarks.length }}&times;</span>
         </span>
-        <span class="lane-stat">{{ notificationMarks.length }}&times;</span>
-      </span>
-      <span class="lane-track">
-        <span class="rail-rule"></span>
-        <button
-          v-for="mark in notificationMarks"
-          :key="mark.entry.notificationId"
-          type="button"
-          class="rail-mark ntf"
-          :class="{ open: openEntryId === mark.entry.notificationId }"
-          :style="{ left: mark.leftPercent + '%', '--mark': mark.color }"
-          :title="`${mark.entry.type ?? 'Notification'} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
-          @click="toggleEntry(mark.entry.notificationId)"
-        ></button>
-
-      </span>
-      <span class="wf-duration">{{ notificationMarks.length }}</span>
-    </div>
-
-    <div v-if="showExceptions && exceptionMarks.length > 0" class="wf-lane wf-rail">
-      <span class="lane-label">
-        <span class="lane-name">
-          <i
-            class="rail-glyph exc"
-            :style="{ color: exceptionColor(escapedExceptionCount > 0) }"
-          ></i>
-          Exceptions
+        <span class="lane-track">
+          <span class="rail-rule"></span>
+          <button
+            v-for="mark in notificationMarks"
+            :key="mark.entry.notificationId"
+            type="button"
+            class="rail-mark ntf"
+            :class="{ open: openEntryId === mark.entry.notificationId }"
+            :style="{ left: mark.leftPercent + '%', '--mark': mark.color }"
+            :title="`${mark.entry.type ?? 'Notification'} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
+            @click="toggleEntry(mark.entry.notificationId)"
+          ></button>
         </span>
-        <span class="lane-stat">
-          <template v-if="escapedExceptionCount > 0">
-            {{ escapedExceptionCount }} escaped &middot;
-          </template>
-          {{ exceptionMarks.length }}&times;
+        <span class="wf-duration">{{ notificationMarks.length }}</span>
+      </div>
+
+      <div v-if="showExceptions && exceptionMarks.length > 0" class="wf-lane wf-rail">
+        <span class="lane-label">
+          <span class="lane-name">
+            <i
+              class="rail-glyph exc"
+              :style="{ color: exceptionColor(escapedExceptionCount > 0) }"
+            ></i>
+            Exceptions
+          </span>
+          <span class="lane-stat">
+            <template v-if="escapedExceptionCount > 0">
+              {{ escapedExceptionCount }} escaped &middot;
+            </template>
+            {{ exceptionMarks.length }}&times;
+          </span>
         </span>
-      </span>
-      <span class="lane-track">
-        <span class="rail-rule"></span>
-        <button
-          v-for="mark in exceptionMarks"
-          :key="mark.entry.exceptionId"
-          type="button"
-          class="rail-mark exc"
-          :class="{ open: openEntryId === mark.entry.exceptionId, escaped: mark.entry.escaped }"
-          :style="{ left: mark.leftPercent + '%', '--mark': mark.color }"
-          :title="`${mark.entry.thrownClass} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
-          @click="toggleEntry(mark.entry.exceptionId)"
-        ></button>
+        <span class="lane-track">
+          <span class="rail-rule"></span>
+          <button
+            v-for="mark in exceptionMarks"
+            :key="mark.entry.exceptionId"
+            type="button"
+            class="rail-mark exc"
+            :class="{ open: openEntryId === mark.entry.exceptionId, escaped: mark.entry.escaped }"
+            :style="{ left: mark.leftPercent + '%', '--mark': mark.color }"
+            :title="`${mark.entry.thrownClass} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
+            @click="toggleEntry(mark.entry.exceptionId)"
+          ></button>
+        </span>
+        <span class="wf-duration">{{ exceptionMarks.length }}</span>
+      </div>
 
-      </span>
-      <span class="wf-duration">{{ exceptionMarks.length }}</span>
-    </div>
+      <div class="wf-head">
+        <span>Span</span>
+        <span class="wf-scale">
+          <span>0</span>
+          <span>{{ FormattingService.formatDuration2Units(windowNanos) }}</span>
+        </span>
+        <span class="wf-duration">Duration</span>
+      </div>
 
-    <div class="wf-head">
-      <span>Span</span>
-      <span class="wf-scale">
-        <span>0</span>
-        <span>{{ FormattingService.formatDuration2Units(windowNanos) }}</span>
-      </span>
-      <span class="wf-duration">Duration</span>
-    </div>
-
-    <!--
+      <!--
       The same intervals again, washed across the span rows so it is visible which spans a pause
       actually crossed. Inert to the pointer and behind the bars: it is background, and the rows
       underneath stay clickable.
     -->
-    <div class="wf-rows" @pointermove="trackCursor" @pointerleave="clearCursor">
-    <!--
+      <div class="wf-rows" @pointermove="trackCursor" @pointerleave="clearCursor">
+        <!--
       A throw's stack is the one thing on this screen that will not fit in a popover: 253 frames on a
       real trace, and a floating panel wide enough to hold a fully qualified frame covers the bars
       the reader is comparing against. So it docks instead -- a strip the full width of the dialog,
@@ -354,74 +366,74 @@
 
       A notification docks in the same strip, for its own reasons -- see the panel below this one.
     -->
-    <div
-      v-if="openException !== null"
-      class="exc-dock"
-      :style="{ '--mark': exceptionColor(openException.escaped) }"
-    >
-      <div class="dock-head">
-        <Badge v-if="openException.escaped" variant="danger" size="xs" value="escaped" />
-        <span v-else class="pop-sev">Caught</span>
-        <!--
+        <div
+          v-if="openException !== null"
+          class="exc-dock"
+          :style="{ '--mark': exceptionColor(openException.escaped) }"
+        >
+          <div class="dock-head">
+            <Badge v-if="openException.escaped" variant="danger" size="xs" value="escaped" />
+            <span v-else class="pop-sev">Caught</span>
+            <!--
           A docked strip does not go away when the cursor leaves, so it has to offer a way out that
           is not "find the cross you clicked".
         -->
-        <button type="button" class="dock-close" title="Close" @click="openEntryId = null">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      <!--
+            <button type="button" class="dock-close" title="Close" @click="openEntryId = null">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <!--
         No class or message here: the stack opens with the line a JVM prints, which says both. The
         header keeps only what that line cannot — whether the throw escaped, and when it happened.
       -->
-      <TraceStackTrace
-        v-if="openException.stacktraceId"
-        class="dock-stack"
-        :profile-id="profileId"
-        :stacktrace-id="openException.stacktraceId"
-        :thrown-class="openException.thrownClass"
-        :message="openException.message"
-      >
-        <template #lead>
-          <!--
+          <TraceStackTrace
+            v-if="openException.stacktraceId"
+            class="dock-stack"
+            :profile-id="profileId"
+            :stacktrace-id="openException.stacktraceId"
+            :thrown-class="openException.thrownClass"
+            :message="openException.message"
+          >
+            <template #lead>
+              <!--
             Guarded like the notification popover's own Select: a throw with no span open when it
             fired has no bar to select, and `spanNameOf(null)` would label the button "Select ".
           -->
-          <button
-            v-if="openException.spanId !== null"
-            type="button"
-            class="btn btn-sm btn-outline-primary dock-select"
-            @click="selectSpanOf(openException.spanId)"
-          >
-            <i class="bi bi-arrow-return-right"></i>
-            Select {{ spanNameOf(openException.spanId) }}
-          </button>
-        </template>
-      </TraceStackTrace>
-      <!--
+              <button
+                v-if="openException.spanId !== null"
+                type="button"
+                class="btn btn-sm btn-outline-primary dock-select"
+                @click="selectSpanOf(openException.spanId)"
+              >
+                <i class="bi bi-arrow-return-right"></i>
+                Select {{ spanNameOf(openException.spanId) }}
+              </button>
+            </template>
+          </TraceStackTrace>
+          <!--
         The same button again, because a throw JFR sampled without a stack has no toolbar to put it
         in — and "which span was this?" is exactly as reasonable a question when the stack is
         missing. Two call sites rather than one control that has to know about both shapes.
       -->
-      <div v-else class="dock-none">
-        <p class="dock-none-cls mono">
-          {{ openException.thrownClass
-          }}<template v-if="openException.message">: {{ openException.message }}</template>
-        </p>
-        <p>The recording captured no stack for this throw.</p>
-        <button
-          v-if="openException.spanId !== null"
-          type="button"
-          class="btn btn-sm btn-outline-primary dock-select"
-          @click="selectSpanOf(openException.spanId)"
-        >
-          <i class="bi bi-arrow-return-right"></i>
-          Select {{ spanNameOf(openException.spanId) }}
-        </button>
-      </div>
-    </div>
+          <div v-else class="dock-none">
+            <p class="dock-none-cls mono">
+              {{ openException.thrownClass
+              }}<template v-if="openException.message">: {{ openException.message }}</template>
+            </p>
+            <p>The recording captured no stack for this throw.</p>
+            <button
+              v-if="openException.spanId !== null"
+              type="button"
+              class="btn btn-sm btn-outline-primary dock-select"
+              @click="selectSpanOf(openException.spanId)"
+            >
+              <i class="bi bi-arrow-return-right"></i>
+              Select {{ spanNameOf(openException.spanId) }}
+            </button>
+          </div>
+        </div>
 
-    <!--
+        <!--
       A notification docks in the same strip, and not by resemblance: both are driven by
       `openEntryId`, so only one of them can be open at a time. It used to be a popover anchored to
       its own mark, which was the right size for a type and a sentence and the wrong size for
@@ -429,111 +441,114 @@
       more" that led nowhere. Wider gutters than the stack's, because what fills the width here is a
       table rather than a fully qualified frame.
     -->
-    <div
-      v-if="openNotification !== null"
-      class="exc-dock ntf-dock"
-      :style="{ '--mark': severityColor(openNotification.severity) }"
-    >
-      <div class="dock-head">
-        <span class="pop-sev">{{ severityLabel(openNotification.severity) }}</span>
-        <!-- No separate heading in the body: the type is the notification's name. -->
-        <span class="dock-type">{{ openNotification.type }}</span>
-        <span class="dock-at">{{ offsetIntoTrace(openNotification.startEpochMicros) }}</span>
-        <!--
+        <div
+          v-if="openNotification !== null"
+          class="exc-dock ntf-dock"
+          :style="{ '--mark': severityColor(openNotification.severity) }"
+        >
+          <div class="dock-head">
+            <span class="pop-sev">{{ severityLabel(openNotification.severity) }}</span>
+            <!-- No separate heading in the body: the type is the notification's name. -->
+            <span class="dock-type">{{ openNotification.type }}</span>
+            <span class="dock-at">{{ offsetIntoTrace(openNotification.startEpochMicros) }}</span>
+            <!--
           The bridge from the fast read to the slow one: this panel answers "what did it say", the
           span's own detail shows the same entry beside everything else the span carries.
         -->
-        <button
-          v-if="openNotification.spanId !== null"
-          type="button"
-          class="btn btn-sm btn-outline-primary dock-select"
-          @click="selectSpanOf(openNotification.spanId)"
-        >
-          <i class="bi bi-arrow-return-right"></i>
-          Select {{ spanNameOf(openNotification.spanId) }}
-        </button>
-        <button type="button" class="dock-close" title="Close" @click="openEntryId = null">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      <div class="dock-body">
-        <!--
+            <button
+              v-if="openNotification.spanId !== null"
+              type="button"
+              class="btn btn-sm btn-outline-primary dock-select"
+              @click="selectSpanOf(openNotification.spanId)"
+            >
+              <i class="bi bi-arrow-return-right"></i>
+              Select {{ spanNameOf(openNotification.spanId) }}
+            </button>
+            <button type="button" class="dock-close" title="Close" @click="openEntryId = null">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="dock-body">
+            <!--
           Prose does not want the width the strip has: a line past ~80 characters is harder to come
           back to after a saccade. So the message keeps a measure and the freed half goes to the
           attributes, which is the only reason the extra width is worth taking.
         -->
-        <div class="ntf-grid">
-          <div class="ntf-col">
-            <p v-if="openNotification.message" class="ntf-message">
-              {{ openNotification.message }}
-            </p>
-            <p v-if="openNotification.spanId === null" class="pop-orphan">
-              No span was open when this fired, so there is no bar to select.
-            </p>
-            <!--
+            <div class="ntf-grid">
+              <div class="ntf-col">
+                <p v-if="openNotification.message" class="ntf-message">
+                  {{ openNotification.message }}
+                </p>
+                <p v-if="openNotification.spanId === null" class="pop-orphan">
+                  No span was open when this fired, so there is no bar to select.
+                </p>
+                <!--
               A block, not a region: the same distinction the span detail draws with
               `Span · identity`. A region frames a recorded map the panel does not otherwise show;
               these are facts qualifying what the head already names.
             -->
-            <section class="sd-block">
-              <h4 class="sd-label"><i class="sd-dot"></i> Notification &middot; identity</h4>
-              <table class="sd-table">
-                <tbody>
-                  <tr v-if="openNotification.category">
-                    <td class="sd-k">category</td>
-                    <td class="sd-v">{{ openNotification.category }}</td>
-                  </tr>
-                  <tr v-if="openNotificationEmitter !== null">
-                    <td class="sd-k">source</td>
-                    <td class="sd-v">
-                      <span v-if="openNotificationEmitter.packageSegments.length > 0" class="sd-pkg">
-                        <template
-                          v-for="(segment, index) in openNotificationEmitter.packageSegments"
-                          :key="index"
-                          >{{ segment }}<wbr
-                        /></template>
-                      </span>
-                      {{ openNotificationEmitter.simpleName }}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="sd-k">emitted</td>
-                    <td class="sd-v num">
-                      {{ offsetIntoTrace(openNotification.startEpochMicros) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </section>
-          </div>
-          <!--
+                <section class="sd-block">
+                  <h4 class="sd-label"><i class="sd-dot"></i> Notification &middot; identity</h4>
+                  <table class="sd-table">
+                    <tbody>
+                      <tr v-if="openNotification.category">
+                        <td class="sd-k">category</td>
+                        <td class="sd-v">{{ openNotification.category }}</td>
+                      </tr>
+                      <tr v-if="openNotificationEmitter !== null">
+                        <td class="sd-k">source</td>
+                        <td class="sd-v">
+                          <span
+                            v-if="openNotificationEmitter.packageSegments.length > 0"
+                            class="sd-pkg"
+                          >
+                            <template
+                              v-for="(segment, index) in openNotificationEmitter.packageSegments"
+                              :key="index"
+                              >{{ segment }}<wbr
+                            /></template>
+                          </span>
+                          {{ openNotificationEmitter.simpleName }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="sd-k">emitted</td>
+                        <td class="sd-v num">
+                          {{ offsetIntoTrace(openNotification.startEpochMicros) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+              </div>
+              <!--
             The whole map, uncapped. The old cap of six existed because a 22rem popover could not
             hold more; a table that scrolls can, and withholding a notification's own detail when
             there is room to show it is just data hidden.
           -->
-          <section v-if="openNotificationAttributes.length > 0" class="sd-region">
-            <header>
-              Attributes
-              <span class="sd-src">
-                jeffrey.Notification.attributes &middot;
-                {{ openNotificationAttributes.length }} keys
-              </span>
-            </header>
-            <div class="sd-region-body">
-              <table class="sd-table is-attr">
-                <tbody>
-                  <tr v-for="row in openNotificationAttributes" :key="row.key">
-                    <td class="sd-k">{{ row.label }}</td>
-                    <td class="sd-v">{{ row.value }}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <section v-if="openNotificationAttributes.length > 0" class="sd-region">
+                <header>
+                  Attributes
+                  <span class="sd-src">
+                    jeffrey.Notification.attributes &middot;
+                    {{ openNotificationAttributes.length }} keys
+                  </span>
+                </header>
+                <div class="sd-region-body">
+                  <table class="sd-table is-attr">
+                    <tbody>
+                      <tr v-for="row in openNotificationAttributes" :key="row.key">
+                        <td class="sd-k">{{ row.label }}</td>
+                        <td class="sd-v">{{ row.value }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             </div>
-          </section>
+          </div>
         </div>
-      </div>
-    </div>
-      <!--
+        <!--
         Laid out with the row grid rather than at a measured offset, so the stripes track the name
         and duration columns however those are sized — no pixel arithmetic, and nothing to recompute
         when the detail panel opens a row and makes the list taller.
@@ -541,24 +556,24 @@
         It stretches the whole of `.wf-rows`, which is taller than the rows themselves once a detail
         panel is open, so every other child claims a layer above it — see `.wf-rows > :not(...)`.
       -->
-      <div v-if="bands.length > 0" class="wf-stripes" aria-hidden="true">
-        <span></span>
-        <span class="wf-stripes-track">
-          <span
-            v-for="(band, index) in bands"
-            :key="index"
-            class="wf-stripe"
-            :style="{
-              left: band.leftPercent + '%',
-              width: band.widthPercent + '%',
-              '--stripe-color': contextColor(band.category)
-            }"
-          ></span>
-        </span>
-        <span></span>
-      </div>
+        <div v-if="bands.length > 0" class="wf-stripes" aria-hidden="true">
+          <span></span>
+          <span class="wf-stripes-track">
+            <span
+              v-for="(band, index) in bands"
+              :key="index"
+              class="wf-stripe"
+              :style="{
+                left: band.leftPercent + '%',
+                width: band.widthPercent + '%',
+                '--stripe-color': contextColor(band.category)
+              }"
+            ></span>
+          </span>
+          <span></span>
+        </div>
 
-      <!--
+        <!--
         The instant under the pointer, named. The wash can say a pause was crossed but never which
         one or how long it ran: below a pixel every band is drawn at the same floor width, so the
         picture cannot be read as a duration however carefully it is drawn. This reads the one place
@@ -568,235 +583,269 @@
         is without either measuring the other. Pointer-only, and so hidden from assistive tech: the
         same offset and wall-clock reach the keyboard through the span detail, which Enter opens.
       -->
-      <div class="wf-cursor" aria-hidden="true">
-        <span></span>
-        <span ref="cursorTrack" class="wf-cursor-track">
-          <span v-if="cursorPercent !== null" class="wf-cursor-line" :style="cursorStyle">
-            <span class="wf-cursor-chip">
-              +{{ cursorOffset }}
-              <span v-if="cursorBand !== null" class="wf-cursor-pause">
-                <i class="lane-dot" :style="{ background: contextColor(cursorBand.category) }"></i>
-                {{ contextLabel(cursorBand.category) }}
-                {{ FormattingService.formatDuration2Units(cursorBand.durationNanos) }}
+        <div class="wf-cursor" aria-hidden="true">
+          <span></span>
+          <span ref="cursorTrack" class="wf-cursor-track">
+            <span v-if="cursorPercent !== null" class="wf-cursor-line" :style="cursorStyle">
+              <span class="wf-cursor-chip">
+                +{{ cursorOffset }}
+                <span v-if="cursorBand !== null" class="wf-cursor-pause">
+                  <i
+                    class="lane-dot"
+                    :style="{ background: contextColor(cursorBand.category) }"
+                  ></i>
+                  {{ contextLabel(cursorBand.category) }}
+                  {{ FormattingService.formatDuration2Units(cursorBand.durationNanos) }}
+                </span>
               </span>
             </span>
           </span>
-        </span>
-        <span></span>
-      </div>
+          <span></span>
+        </div>
 
-      <template v-for="{ run, span } in displayRows" :key="run ? run.key : span!.spanId">
-        <!--
+        <template v-for="{ run, span } in displayRows" :key="run ? run.key : span!.spanId">
+          <!--
           A run of same-named leaf siblings drawn as one synthesized row: the count says how many,
           the sigma says what they cost together, and the lane keeps a tick per occurrence so the
           rhythm of the run survives the merge. 462 file writes are one question, not 462 rows.
         -->
-        <template v-if="run">
-          <button
-            type="button"
-            class="wf-row wf-run-row"
-            :class="{ 'detail-open': openRunDetail === run.key }"
-            tabindex="-1"
-            :title="isRunExpanded(run) ? 'Collapse the run' : `Expand ${run.spans.length} spans`"
-            @click="toggleRun(run.key)"
-          >
-            <span class="wf-name">
-              <span class="wf-indent" :style="{ width: indentRem(run.spans[0].depth) + 'rem' }"></span>
-              <span class="wf-twist" role="presentation">
-                <i :class="isRunExpanded(run) ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'"></i>
-              </span>
-              <span class="wf-kind" :style="spanColorStyle(run.spans[0])"></span>
-              <span class="wf-label">{{ run.spans[0].name }}</span>
-              <span class="wf-run-count" :style="spanColorStyle(run.spans[0])">×{{ run.spans.length }}</span>
-              <!--
+          <template v-if="run">
+            <button
+              type="button"
+              class="wf-row wf-run-row"
+              :class="{ 'detail-open': openRunDetail === run.key }"
+              tabindex="-1"
+              :title="isRunExpanded(run) ? 'Collapse the run' : `Expand ${run.spans.length} spans`"
+              @click="toggleRun(run.key)"
+            >
+              <span class="wf-name">
+                <span
+                  class="wf-indent"
+                  :style="{ width: indentRem(run.spans[0].depth) + 'rem' }"
+                ></span>
+                <span class="wf-twist" role="presentation">
+                  <i
+                    :class="isRunExpanded(run) ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'"
+                  ></i>
+                </span>
+                <span class="wf-kind" :style="spanColorStyle(run.spans[0])"></span>
+                <span class="wf-label">{{ run.spans[0].name }}</span>
+                <span class="wf-run-count" :style="spanColorStyle(run.spans[0])"
+                  >×{{ run.spans.length }}</span
+                >
+                <!--
                 A span rather than a nested button, for the same reason the twistie is one. Clicks
                 are stopped so opening the statistics does not also unfold the run.
               -->
-              <span
-                class="wf-run-stats-toggle"
-                :class="{ open: openRunDetail === run.key }"
-                role="button"
-                :title="openRunDetail === run.key ? 'Hide the run statistics' : 'Show the run statistics'"
-                @click.stop="toggleRunDetail(run.key)"
-              >
-                <span class="wf-run-stats-glyph" aria-hidden="true">
-                  <i style="height: 3px"></i><i style="height: 8px"></i><i style="height: 5px"></i><i style="height: 2px"></i>
+                <span
+                  class="wf-run-stats-toggle"
+                  :class="{ open: openRunDetail === run.key }"
+                  role="button"
+                  :title="
+                    openRunDetail === run.key
+                      ? 'Hide the run statistics'
+                      : 'Show the run statistics'
+                  "
+                  @click.stop="toggleRunDetail(run.key)"
+                >
+                  <span class="wf-run-stats-glyph" aria-hidden="true">
+                    <i style="height: 3px"></i><i style="height: 8px"></i><i style="height: 5px"></i
+                    ><i style="height: 2px"></i>
+                  </span>
+                  stats
                 </span>
-                stats
               </span>
-            </span>
 
-            <span class="wf-track">
-              <span
-                v-for="tick in run.spans"
-                :key="tick.spanId"
-                class="wf-bar wf-run-tick"
-                :class="barClass(tick)"
-                :style="barStyle(tick)"
-              ></span>
-            </span>
+              <span class="wf-track">
+                <span
+                  v-for="tick in run.spans"
+                  :key="tick.spanId"
+                  class="wf-bar wf-run-tick"
+                  :class="barClass(tick)"
+                  :style="barStyle(tick)"
+                ></span>
+              </span>
 
-            <span class="wf-duration">
-              Σ {{ FormattingService.formatDuration2Units(run.totalNanos) }}
-            </span>
-          </button>
+              <span class="wf-duration">
+                Σ {{ FormattingService.formatDuration2Units(run.totalNanos) }}
+              </span>
+            </button>
 
-          <!--
+            <!--
             The run's facts, shown while the stats chip is pressed: labeled figures with room to be
             read, and the durations as a small histogram — the shape of 462 writes, which no single
             number carries. The row itself only folds and unfolds the individuals.
           -->
-          <div v-if="openRunDetail === run.key" class="wf-run-detail-row">
-          <div class="wf-run-detail" :style="{ marginLeft: runDetailIndent(run) }">
-            <span class="wf-run-stat">
-              <span class="wf-run-stat-label">Spans</span>
-              <span class="wf-run-stat-value">{{ run.spans.length }}</span>
-            </span>
-            <span class="wf-run-stat">
-              <span class="wf-run-stat-label">Total</span>
-              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.totalNanos) }}</span>
-            </span>
-            <span class="wf-run-stat">
-              <span class="wf-run-stat-label">Median</span>
-              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.medianNanos) }}</span>
-            </span>
-            <span class="wf-run-stat">
-              <span class="wf-run-stat-label">P95</span>
-              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.p95Nanos) }}</span>
-            </span>
-            <span class="wf-run-stat">
-              <span class="wf-run-stat-label">Max</span>
-              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.maxNanos) }}</span>
-            </span>
-            <span
-              class="wf-run-histogram"
-              title="How the run's durations are distributed, fastest on the left, slowest on the right"
-            >
-              <i
-                v-for="(bucket, index) in runHistogram(run)"
-                :key="index"
-                :class="{ hot: bucket.height === 1 }"
-                :style="{ height: 4 + bucket.height * 26 + 'px', ...spanColorStyle(run.spans[0]) }"
-                :title="bucketTitle(bucket)"
-              ></i>
-            </span>
-          </div>
-          </div>
-        </template>
+            <div v-if="openRunDetail === run.key" class="wf-run-detail-row">
+              <div class="wf-run-detail" :style="{ marginLeft: runDetailIndent(run) }">
+                <span class="wf-run-stat">
+                  <span class="wf-run-stat-label">Spans</span>
+                  <span class="wf-run-stat-value">{{ run.spans.length }}</span>
+                </span>
+                <span class="wf-run-stat">
+                  <span class="wf-run-stat-label">Total</span>
+                  <span class="wf-run-stat-value">{{
+                    FormattingService.formatDuration2Units(run.totalNanos)
+                  }}</span>
+                </span>
+                <span class="wf-run-stat">
+                  <span class="wf-run-stat-label">Median</span>
+                  <span class="wf-run-stat-value">{{
+                    FormattingService.formatDuration2Units(run.medianNanos)
+                  }}</span>
+                </span>
+                <span class="wf-run-stat">
+                  <span class="wf-run-stat-label">P95</span>
+                  <span class="wf-run-stat-value">{{
+                    FormattingService.formatDuration2Units(run.p95Nanos)
+                  }}</span>
+                </span>
+                <span class="wf-run-stat">
+                  <span class="wf-run-stat-label">Max</span>
+                  <span class="wf-run-stat-value">{{
+                    FormattingService.formatDuration2Units(run.maxNanos)
+                  }}</span>
+                </span>
+                <span
+                  class="wf-run-histogram"
+                  title="How the run's durations are distributed, fastest on the left, slowest on the right"
+                >
+                  <i
+                    v-for="(bucket, index) in runHistogram(run)"
+                    :key="index"
+                    :class="{ hot: bucket.height === 1 }"
+                    :style="{
+                      height: 4 + bucket.height * 26 + 'px',
+                      ...spanColorStyle(run.spans[0])
+                    }"
+                    :title="bucketTitle(bucket)"
+                  ></i>
+                </span>
+              </div>
+            </div>
+          </template>
 
-        <template v-else-if="span">
-        <button
-          type="button"
-          class="wf-row"
-          :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
-          :aria-expanded="span.spanId === selectedSpanId"
-          :data-span-id="span.spanId"
-          tabindex="-1"
-          @click="$emit('select', span)"
-        >
-          <span class="wf-name">
-            <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
-            <!--
+          <template v-else-if="span">
+            <button
+              type="button"
+              class="wf-row"
+              :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
+              :aria-expanded="span.spanId === selectedSpanId"
+              :data-span-id="span.spanId"
+              tabindex="-1"
+              @click="$emit('select', span)"
+            >
+              <span class="wf-name">
+                <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
+                <!--
             The twistie is a span, not a nested button: the row itself is the button, and nesting one
             inside another is invalid markup that browsers resolve by dropping it. Clicks are stopped
             here so folding a subtree does not also select the row.
           -->
-            <span
-              v-if="parents.has(span.spanId)"
-              class="wf-twist"
-              role="presentation"
-              :title="twistTitle(span)"
-              @click.stop="toggleCollapsed(span.spanId)"
-            >
-              <i
-                :class="
-                  collapsed.has(span.spanId) ? 'bi bi-caret-right-fill' : 'bi bi-caret-down-fill'
-                "
-              ></i>
-            </span>
-            <span v-else class="wf-twist is-leaf"></span>
-            <span class="wf-kind" :style="spanColorStyle(span)"></span>
-            <span class="wf-label" :title="span.name">{{ span.name }}</span>
-            <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
-            <!--
+                <span
+                  v-if="parents.has(span.spanId)"
+                  class="wf-twist"
+                  role="presentation"
+                  :title="twistTitle(span)"
+                  @click.stop="toggleCollapsed(span.spanId)"
+                >
+                  <i
+                    :class="
+                      collapsed.has(span.spanId)
+                        ? 'bi bi-caret-right-fill'
+                        : 'bi bi-caret-down-fill'
+                    "
+                  ></i>
+                </span>
+                <span v-else class="wf-twist is-leaf"></span>
+                <span class="wf-kind" :style="spanColorStyle(span)"></span>
+                <span class="wf-label" :title="span.name">{{ span.name }}</span>
+                <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
+                <!--
               What this span itself carries, coloured by the worst of it. Its own entries stay
               pinned to its bar whether or not it is folded -- folding hides a span's children, not
               the span -- so this count never changes as the tree opens and closes.
             -->
-            <span
-              v-if="showNotifications && (notificationsBySpan.get(span.spanId)?.length ?? 0) > 0"
-              class="wf-count ntf"
-              :style="{
-                '--mark': severityColor(worstSeverity(notificationsBySpan.get(span.spanId) ?? []))
-              }"
-              :title="notificationCountTitle(span)"
-            >
-              {{ notificationsBySpan.get(span.spanId)!.length }}
-            </span>
-            <span
-              v-if="showExceptions && (exceptionsBySpan.get(span.spanId)?.length ?? 0) > 0"
-              class="wf-count exc"
-              :style="{
-                '--mark': exceptionColor(anyEscaped(exceptionsBySpan.get(span.spanId) ?? []))
-              }"
-              :title="exceptionCountTitle(span)"
-            >
-              {{ exceptionsBySpan.get(span.spanId)!.length }}
-            </span>
-            <span v-if="collapsed.has(span.spanId)" class="wf-folded">
-              +{{ foldedCounts.get(span.spanId) ?? 0 }}
-            </span>
-            <!-- A fold that swallows a failure must not look like a fold that swallows routine. -->
-            <i
-              v-if="collapsed.has(span.spanId) && (errorDescendantCounts.get(span.spanId) ?? 0) > 0"
-              class="wf-folded-error"
-              :title="hiddenErrorTitle(span)"
-            ></i>
-            <!--
+                <span
+                  v-if="
+                    showNotifications && (notificationsBySpan.get(span.spanId)?.length ?? 0) > 0
+                  "
+                  class="wf-count ntf"
+                  :style="{
+                    '--mark': severityColor(
+                      worstSeverity(notificationsBySpan.get(span.spanId) ?? [])
+                    )
+                  }"
+                  :title="notificationCountTitle(span)"
+                >
+                  {{ notificationsBySpan.get(span.spanId)!.length }}
+                </span>
+                <span
+                  v-if="showExceptions && (exceptionsBySpan.get(span.spanId)?.length ?? 0) > 0"
+                  class="wf-count exc"
+                  :style="{
+                    '--mark': exceptionColor(anyEscaped(exceptionsBySpan.get(span.spanId) ?? []))
+                  }"
+                  :title="exceptionCountTitle(span)"
+                >
+                  {{ exceptionsBySpan.get(span.spanId)!.length }}
+                </span>
+                <span v-if="collapsed.has(span.spanId)" class="wf-folded">
+                  +{{ foldedCounts.get(span.spanId) ?? 0 }}
+                </span>
+                <!-- A fold that swallows a failure must not look like a fold that swallows routine. -->
+                <i
+                  v-if="
+                    collapsed.has(span.spanId) && (errorDescendantCounts.get(span.spanId) ?? 0) > 0
+                  "
+                  class="wf-folded-error"
+                  :title="hiddenErrorTitle(span)"
+                ></i>
+                <!--
               And a fold that swallows instants has to say so too, for the same reason: their pins
               went into the fold with their spans, and only the rail still shows them. Drawn hollow,
               so what is hidden never reads as what is here.
             -->
-            <span
-              v-if="
-                showNotifications &&
-                collapsed.has(span.spanId) &&
-                (foldedNotificationCounts.get(span.spanId) ?? 0) > 0
-              "
-              class="wf-count ntf folded"
-              :title="`${foldedNotificationCounts.get(span.spanId)} notifications are inside this fold`"
-            >
-              {{ foldedNotificationCounts.get(span.spanId) }}
-            </span>
-            <span
-              v-if="
-                showExceptions &&
-                collapsed.has(span.spanId) &&
-                (foldedExceptionCounts.get(span.spanId) ?? 0) > 0
-              "
-              class="wf-count exc folded"
-              :title="`${foldedExceptionCounts.get(span.spanId)} throws are inside this fold`"
-            >
-              {{ foldedExceptionCounts.get(span.spanId) }}
-            </span>
-          </span>
+                <span
+                  v-if="
+                    showNotifications &&
+                    collapsed.has(span.spanId) &&
+                    (foldedNotificationCounts.get(span.spanId) ?? 0) > 0
+                  "
+                  class="wf-count ntf folded"
+                  :title="`${foldedNotificationCounts.get(span.spanId)} notifications are inside this fold`"
+                >
+                  {{ foldedNotificationCounts.get(span.spanId) }}
+                </span>
+                <span
+                  v-if="
+                    showExceptions &&
+                    collapsed.has(span.spanId) &&
+                    (foldedExceptionCounts.get(span.spanId) ?? 0) > 0
+                  "
+                  class="wf-count exc folded"
+                  :title="`${foldedExceptionCounts.get(span.spanId)} throws are inside this fold`"
+                >
+                  {{ foldedExceptionCounts.get(span.spanId) }}
+                </span>
+              </span>
 
-          <span class="wf-track">
-            <span
-              class="wf-bar"
-              :class="barClass(span)"
-              :style="barStyle(span)"
-              :title="tooltip(span)"
-            >
-              <span
-                v-for="(segment, index) in bar(span).selfSegments"
-                :key="index"
-                class="wf-self"
-                :style="{ left: segment.leftPercent + '%', width: segment.widthPercent + '%' }"
-              ></span>
-            </span>
+              <span class="wf-track">
+                <span
+                  class="wf-bar"
+                  :class="barClass(span)"
+                  :style="barStyle(span)"
+                  :title="tooltip(span)"
+                >
+                  <span
+                    v-for="(segment, index) in bar(span).selfSegments"
+                    :key="index"
+                    class="wf-self"
+                    :style="{ left: segment.leftPercent + '%', width: segment.widthPercent + '%' }"
+                  ></span>
+                </span>
 
-            <!--
+                <!--
               The other half of the rail's reading: the same instants, on the bar that raised them.
               Positioned against the whole track rather than the bar, so a pin and its rail mark sit
               at the same x and the two readings visibly line up.
@@ -804,68 +853,68 @@
               Inert to the pointer -- the row underneath is the click target, and it opens the panel
               where these are listed in full. A pin is a mark, not a control.
             -->
-            <template v-if="showNotifications">
-              <span
-                v-for="notification in notificationsBySpan.get(span.spanId) ?? []"
-                :key="notification.notificationId"
-                class="wf-pin ntf"
-                :style="{
-                  left: offsetPercent(notification.startEpochMicros, traceWindow(spans)) + '%',
-                  '--mark': severityColor(notification.severity)
-                }"
-              ></span>
-            </template>
-            <template v-if="showExceptions">
-              <span
-                v-for="exception in exceptionsBySpan.get(span.spanId) ?? []"
-                :key="exception.exceptionId"
-                class="wf-pin exc"
-                :class="{ escaped: exception.escaped }"
-                :style="{
-                  left: offsetPercent(exception.startEpochMicros, traceWindow(spans)) + '%',
-                  '--mark': exceptionColor(exception.escaped)
-                }"
-              ></span>
-            </template>
-          </span>
+                <template v-if="showNotifications">
+                  <span
+                    v-for="notification in notificationsBySpan.get(span.spanId) ?? []"
+                    :key="notification.notificationId"
+                    class="wf-pin ntf"
+                    :style="{
+                      left: offsetPercent(notification.startEpochMicros, traceWindow(spans)) + '%',
+                      '--mark': severityColor(notification.severity)
+                    }"
+                  ></span>
+                </template>
+                <template v-if="showExceptions">
+                  <span
+                    v-for="exception in exceptionsBySpan.get(span.spanId) ?? []"
+                    :key="exception.exceptionId"
+                    class="wf-pin exc"
+                    :class="{ escaped: exception.escaped }"
+                    :style="{
+                      left: offsetPercent(exception.startEpochMicros, traceWindow(spans)) + '%',
+                      '--mark': exceptionColor(exception.escaped)
+                    }"
+                  ></span>
+                </template>
+              </span>
 
-          <span class="wf-duration">{{
-            FormattingService.formatDuration2Units(span.durationNanos)
-          }}</span>
-        </button>
+              <span class="wf-duration">{{
+                FormattingService.formatDuration2Units(span.durationNanos)
+              }}</span>
+            </button>
 
-        <!--
+            <!--
         The detail belongs to the row above it, so it is drawn as the next row rather than in a panel
         under the waterfall: on a trace of twenty-odd spans, a panel at the bottom scrolls the bar
         that was clicked out of view, which is the one thing the reader is comparing against.
       -->
-        <TraceSpanInlineDetail
-          v-if="span.spanId === selectedSpanId"
-          :profile-id="profileId"
-          :span="span"
-          :fields="eventFields[span.eventType] ?? []"
-          :child-count="childCounts.get(span.spanId) ?? 0"
-          :waits="context?.spanWaits?.[span.spanId] ?? []"
-          :notifications="notificationsBySpan.get(span.spanId) ?? []"
-          :exceptions="exceptionsBySpan.get(span.spanId) ?? []"
-          @view-events="$emit('viewEvents')"
-          @view-flamegraph="$emit('viewFlamegraph')"
-        />
+            <TraceSpanInlineDetail
+              v-if="span.spanId === selectedSpanId"
+              :profile-id="profileId"
+              :span="span"
+              :fields="eventFields[span.eventType] ?? []"
+              :child-count="childCounts.get(span.spanId) ?? 0"
+              :waits="context?.spanWaits?.[span.spanId] ?? []"
+              :notifications="notificationsBySpan.get(span.spanId) ?? []"
+              :exceptions="exceptionsBySpan.get(span.spanId) ?? []"
+              @view-events="$emit('viewEvents')"
+              @view-flamegraph="$emit('viewFlamegraph')"
+            />
+          </template>
         </template>
-      </template>
 
-      <EmptyState
-        v-if="rows.length === 0"
-        icon="bi-signpost-split"
-        title="No spans shown"
-        description="Every span is hidden by the current filter."
-      >
-        <template #action>
-          <!-- The state names the filter as the culprit, so it must also offer the way out. -->
-          <button type="button" class="wf-toggle" @click="showAllSpans">Show all spans</button>
-        </template>
-      </EmptyState>
-    </div>
+        <EmptyState
+          v-if="rows.length === 0"
+          icon="bi-signpost-split"
+          title="No spans shown"
+          description="Every span is hidden by the current filter."
+        >
+          <template #action>
+            <!-- The state names the filter as the culprit, so it must also offer the way out. -->
+            <button type="button" class="wf-toggle" @click="showAllSpans">Show all spans</button>
+          </template>
+        </EmptyState>
+      </div>
     </div>
 
     <div class="wf-legend">
@@ -1069,9 +1118,8 @@ const openEntryId = ref<string | null>(null);
 
 const openNotification = computed(
   () =>
-    props.notifications.find(
-      notification => notification.notificationId === openEntryId.value
-    ) ?? null
+    props.notifications.find(notification => notification.notificationId === openEntryId.value) ??
+    null
 );
 
 /** Only the open one is parsed: the rail draws marks, and a closed panel shows no attributes. */
@@ -1892,9 +1940,7 @@ function clearCursor(): void {
  * phases run inside the pauses above them, and adding both counts the same stopped instant twice.
  */
 function laneTotal(laneBands: ContextBand[]): string {
-  return FormattingService.formatDuration2Units(
-    mergedDurationNanos(laneBands, windowNanos.value)
-  );
+  return FormattingService.formatDuration2Units(mergedDurationNanos(laneBands, windowNanos.value));
 }
 
 /**

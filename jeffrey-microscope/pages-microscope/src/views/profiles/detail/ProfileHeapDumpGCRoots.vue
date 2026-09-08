@@ -170,11 +170,15 @@
             <div class="benefits-list">
               <div class="benefit-item">
                 <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Identify memory leaks by finding unexpected retention paths from GC roots</span>
+                <span
+                  >Identify memory leaks by finding unexpected retention paths from GC roots</span
+                >
               </div>
               <div class="benefit-item">
                 <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Understand which objects cannot be collected and why they are kept alive</span>
+                <span
+                  >Understand which objects cannot be collected and why they are kept alive</span
+                >
               </div>
               <div class="benefit-item">
                 <i class="bi bi-check-circle-fill text-success"></i>
@@ -189,10 +193,10 @@
 
           <AboutCallout variant="note" title="Investigating Memory Leaks?" icon="bi-lightbulb-fill">
             <p>
-              Look for objects with unexpected GC roots. Common culprits include static fields
-              (via Sticky Class), thread locals (via Thread Object), and JNI global references
-              that weren't properly cleaned up. Use the dominator tree and shortest path to GC
-              root analysis to trace retention paths.
+              Look for objects with unexpected GC roots. Common culprits include static fields (via
+              Sticky Class), thread locals (via Thread Object), and JNI global references that
+              weren't properly cleaned up. Use the dominator tree and shortest path to GC root
+              analysis to trace retention paths.
             </p>
           </AboutCallout>
         </AboutPanel>
@@ -283,7 +287,9 @@ const activeTab = ref(analysisTabs[0].id);
 
 // Computed metrics for StatsTable
 const summaryMetrics = computed(() => {
-  if (!gcRootData.value) return [];
+  if (!gcRootData.value) {
+    return [];
+  }
   return [
     {
       icon: 'diagram-3',
@@ -301,7 +307,9 @@ const summaryMetrics = computed(() => {
 });
 
 const chartEntries = computed(() => {
-  if (!gcRootData.value) return [];
+  if (!gcRootData.value) {
+    return [];
+  }
   return Object.entries(gcRootData.value.rootsByType).sort((a, b) => b[1] - a[1]);
 });
 
@@ -327,7 +335,9 @@ const formatRootType = (type: string): string => {
 };
 
 const getRootTypeColor = (type: string): string => {
-  if (!gcRootData.value) return rootTypeColors[0];
+  if (!gcRootData.value) {
+    return rootTypeColors[0];
+  }
   const types = Object.keys(gcRootData.value.rootsByType);
   const index = types.indexOf(type);
   return rootTypeColors[index % rootTypeColors.length];

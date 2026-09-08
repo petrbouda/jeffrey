@@ -95,7 +95,7 @@ const statusClass = computed(() => `status-${props.status}`);
 const badgeClass = computed(() => `badge-${props.badgeVariant}`);
 
 const progressRingStyle = computed(() => {
-  if (props.progress === undefined) return {};
+  if (props.progress === undefined) {return {};}
   const circumference = 2 * Math.PI * 24; // r = 24
   const offset = circumference - (props.progress / 100) * circumference;
   return {

@@ -37,7 +37,9 @@ export default class JavaMethodParser {
    * Checks if a string starts with an uppercase letter (indicating a class name).
    */
   private static startsWithUppercase(str: string): boolean {
-    if (!str || str.length === 0) return false;
+    if (!str || str.length === 0) {
+      return false;
+    }
     const firstChar = str[0];
     return firstChar >= 'A' && firstChar <= 'Z';
   }

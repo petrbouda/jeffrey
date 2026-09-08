@@ -32,9 +32,9 @@
         />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="rateSeries"
-            primaryTitle="Exceptions / sec"
-            :visibleMinutes="60"
+            :primary-data="rateSeries"
+            primary-title="Exceptions / sec"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -56,15 +56,16 @@
           <p>
             The per-type breakdown is built from <code>jdk.JavaExceptionThrow</code> — one event per
             thrown <code>Exception</code> (not <code>Error</code>), with class, message and thread.
-            In the JDK's bundled <code>default</code> config this event is <strong>disabled</strong>;
-            it is only <strong>enabled in the <code>profile</code> config</strong> (with a stack
-            trace, and throttled). So an empty Exceptions tab on a <code>default</code> recording
-            usually just means the event was never turned on.
+            In the JDK's bundled <code>default</code> config this event is
+            <strong>disabled</strong>; it is only
+            <strong>enabled in the <code>profile</code> config</strong> (with a stack trace, and
+            throttled). So an empty Exceptions tab on a <code>default</code> recording usually just
+            means the event was never turned on.
           </p>
           <p>
-            <code>Error</code> throws, if any, appear separately under the <strong>Errors</strong>
-            tab. The Rate Timeline keeps working regardless, because it is driven by the
-            always-enabled <code>jdk.ExceptionStatistics</code> counter.
+            <code>Error</code> throws, if any, appear separately under the
+            <strong>Errors</strong> tab. The Rate Timeline keeps working regardless, because it is
+            driven by the always-enabled <code>jdk.ExceptionStatistics</code> counter.
           </p>
 
           <template #action>
@@ -88,10 +89,19 @@
         </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
-            <TableToolbar v-model="exceptionTypesView.query" search-placeholder="Filter exceptions...">
+            <TableToolbar
+              v-model="exceptionTypesView.query"
+              search-placeholder="Filter exceptions..."
+            >
               <span class="toolbar-info">Exception types</span>
               <template #filters>
-                <Badge key-label="Total" :value="exceptionTypesView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="exceptionTypesView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -107,7 +117,10 @@
             <template v-for="type in exceptionTypesView.visible" :key="type.thrownClass">
               <tr
                 class="exception-row"
-                :class="{ expandable: hasMessages(type), 'row-expanded': isExpanded(type.thrownClass) }"
+                :class="{
+                  expandable: hasMessages(type),
+                  'row-expanded': isExpanded(type.thrownClass)
+                }"
                 @click="toggleRow(type)"
               >
                 <td>
@@ -172,14 +185,15 @@
             This tab counts <code>jdk.JavaErrorThrow</code> — one event per thrown
             <code>Error</code> (e.g. <code>StackOverflowError</code>,
             <code>NoSuchMethodError</code>). Unlike exception throws, this event is
-            <strong>enabled in both the <code>default</code> and <code>profile</code> configs</strong>,
-            so an empty tab almost always means <em>no <code>Error</code> was actually thrown</em> —
-            which is the healthy case.
+            <strong
+              >enabled in both the <code>default</code> and <code>profile</code> configs</strong
+            >, so an empty tab almost always means
+            <em>no <code>Error</code> was actually thrown</em> — which is the healthy case.
           </p>
           <p>
-            The command above only helps in the rare case where a custom or minimal config explicitly
-            turned <code>jdk.JavaErrorThrow</code> off; on a stock recording there is nothing to
-            enable.
+            The command above only helps in the rare case where a custom or minimal config
+            explicitly turned <code>jdk.JavaErrorThrow</code> off; on a stock recording there is
+            nothing to enable.
           </p>
         </DisabledEventsNotice>
         <DataTable v-else>
@@ -187,7 +201,13 @@
             <TableToolbar v-model="errorTypesView.query" search-placeholder="Filter errors...">
               <span class="toolbar-info">Error types</span>
               <template #filters>
-                <Badge key-label="Total" :value="errorTypesView.matchCount" variant="danger" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="errorTypesView.matchCount"
+                  variant="danger"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -203,7 +223,10 @@
             <template v-for="type in errorTypesView.visible" :key="type.thrownClass">
               <tr
                 class="exception-row"
-                :class="{ expandable: hasMessages(type), 'row-expanded': isExpanded(type.thrownClass) }"
+                :class="{
+                  expandable: hasMessages(type),
+                  'row-expanded': isExpanded(type.thrownClass)
+                }"
                 @click="toggleRow(type)"
               >
                 <td>
@@ -254,60 +277,66 @@
         >
           <AboutCallout variant="intro">
             <p>
-              Exceptions are normal error handling, but they become a performance problem when used as
-              control flow. The expensive part isn't the <code>throw</code> — it's constructing the
-              exception, because the constructor walks and captures the current call stack. At high
-              rates that stack-walking dominates CPU. This page surfaces both the volume and the hot
-              types.
+              Exceptions are normal error handling, but they become a performance problem when used
+              as control flow. The expensive part isn't the <code>throw</code> — it's constructing
+              the exception, because the constructor walks and captures the current call stack. At
+              high rates that stack-walking dominates CPU. This page surfaces both the volume and
+              the hot types.
             </p>
           </AboutCallout>
 
           <AboutSection icon="bi-cpu" title="Where the Cost Is">
             <FeatureGrid>
               <FeatureCard icon="bi-layers" variant="danger" title="Stack-trace capture">
-                <code>new Throwable()</code> calls <code>fillInStackTrace()</code>, walking every frame
-                on the stack. Deep stacks make each exception expensive — this is what makes
+                <code>new Throwable()</code> calls <code>fillInStackTrace()</code>, walking every
+                frame on the stack. Deep stacks make each exception expensive — this is what makes
                 exception-as-control-flow slow.
               </FeatureCard>
               <FeatureCard icon="bi-lightning" variant="warning" title="Control-flow anti-pattern">
-                Throwing to signal a normal outcome (parse failures, "not found", loop breaks) in a hot
-                path turns a cheap branch into a stack walk. A high throwable rate with few unique
-                messages is the tell.
+                Throwing to signal a normal outcome (parse failures, "not found", loop breaks) in a
+                hot path turns a cheap branch into a stack walk. A high throwable rate with few
+                unique messages is the tell.
               </FeatureCard>
               <FeatureCard icon="bi-shield-x" variant="purple" title="Errors vs Exceptions">
-                <code>Error</code>s (e.g. <code>NoSuchMethodError</code>, <code>StackOverflowError</code>)
-                signal serious problems and are tracked separately on the Errors tab — even a handful is
-                worth investigating.
+                <code>Error</code>s (e.g. <code>NoSuchMethodError</code>,
+                <code>StackOverflowError</code>) signal serious problems and are tracked separately
+                on the Errors tab — even a handful is worth investigating.
               </FeatureCard>
               <FeatureCard icon="bi-dash-circle" variant="info" title="Pre-allocated exceptions">
                 The JIT may optimize frequently-thrown implicit exceptions (e.g. NPEs) into
-                stackless, pre-allocated singletons — so a real storm can show <em>more</em> throwables
-                than sampled throws.
+                stackless, pre-allocated singletons — so a real storm can show
+                <em>more</em> throwables than sampled throws.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
 
-          <AboutCallout variant="tip" title="Total Throwables vs Sampled Throws" icon="bi-lightbulb-fill">
+          <AboutCallout
+            variant="tip"
+            title="Total Throwables vs Sampled Throws"
+            icon="bi-lightbulb-fill"
+          >
             <p>
               <strong>Total Throwables</strong> is a cumulative counter of every throwable
               <em>constructed</em> (even caught-and-ignored ones). <strong>Sampled Throws</strong> /
-              <strong>Errors</strong> count individual throw events, which JFR records selectively and
-              which may be disabled entirely. A high total with few sampled throws still means heavy
-              exception construction — a real, hidden cost.
+              <strong>Errors</strong> count individual throw events, which JFR records selectively
+              and which may be disabled entirely. A high total with few sampled throws still means
+              heavy exception construction — a real, hidden cost.
             </p>
           </AboutCallout>
 
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.ExceptionStatistics</code> — a periodic snapshot of the cumulative throwable
-                count; drives the Rate Timeline. Enabled by default, so the timeline always works.
+                <code>jdk.ExceptionStatistics</code> — a periodic snapshot of the cumulative
+                throwable count; drives the Rate Timeline. Enabled by default, so the timeline
+                always works.
               </li>
               <li>
-                <code>jdk.JavaExceptionThrow</code> / <code>jdk.JavaErrorThrow</code> — one event per
-                thrown exception/error with class, message and thread. These power the per-type tables
-                but are <strong>often disabled</strong> (especially <code>JavaExceptionThrow</code>),
-                which is why the breakdown may show only Errors or an empty state.
+                <code>jdk.JavaExceptionThrow</code> / <code>jdk.JavaErrorThrow</code> — one event
+                per thrown exception/error with class, message and thread. These power the per-type
+                tables but are <strong>often disabled</strong> (especially
+                <code>JavaExceptionThrow</code>), which is why the breakdown may show only Errors or
+                an empty state.
               </li>
             </ul>
           </AboutSection>
@@ -410,7 +439,9 @@ const rateSeries = computed<number[][]>(() => timeline.value?.series?.[0]?.data 
 // jdk.JavaExceptionThrow and jdk.JavaErrorThrow share one stream; split it so the Exceptions tab
 // shows only non-error throwables and the Errors tab only errors. Without this, a recording that
 // emits errors but not exceptions would list errors under "Exceptions".
-const exceptionTypes = computed<ExceptionTypeStat[]>(() => topTypes.value.filter(type => !type.error));
+const exceptionTypes = computed<ExceptionTypeStat[]>(() =>
+  topTypes.value.filter(type => !type.error)
+);
 const errorTypes = computed<ExceptionTypeStat[]>(() => topTypes.value.filter(type => type.error));
 
 const exceptionTypesView = useTableView<ExceptionTypeStat>(exceptionTypes, {

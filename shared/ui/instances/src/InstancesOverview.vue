@@ -317,36 +317,36 @@ const expiredCount = computed(() => instances.value.filter(i => i.status === 'EX
 const totalSessions = computed(() => instances.value.reduce((sum, i) => sum + i.sessionCount, 0));
 
 const uptimeRange = computed(() => {
-  if (instances.value.length === 0) return '\u2014';
+  if (instances.value.length === 0) {return '\u2014';}
   const oldest = Math.min(...instances.value.map(i => i.createdAt));
   return FormattingService.formatRelativeTime(oldest);
 });
 
 function instanceCardClass(status: string): string {
-  if (status === 'PENDING') return 'instance-pending';
-  if (status === 'ACTIVE') return 'instance-active';
-  if (status === 'EXPIRED') return 'instance-expired';
+  if (status === 'PENDING') {return 'instance-pending';}
+  if (status === 'ACTIVE') {return 'instance-active';}
+  if (status === 'EXPIRED') {return 'instance-expired';}
   return 'instance-finished';
 }
 
 function instanceIdentityClass(status: string): string {
-  if (status === 'PENDING') return 'identity-pending';
-  if (status === 'ACTIVE') return 'identity-active';
-  if (status === 'EXPIRED') return 'identity-expired';
+  if (status === 'PENDING') {return 'identity-pending';}
+  if (status === 'ACTIVE') {return 'identity-active';}
+  if (status === 'EXPIRED') {return 'identity-expired';}
   return 'identity-finished';
 }
 
 function instanceIconClass(status: string): string {
-  if (status === 'PENDING') return 'icon-pending';
-  if (status === 'ACTIVE') return 'icon-active';
-  if (status === 'EXPIRED') return 'icon-expired';
+  if (status === 'PENDING') {return 'icon-pending';}
+  if (status === 'ACTIVE') {return 'icon-active';}
+  if (status === 'EXPIRED') {return 'icon-expired';}
   return 'icon-finished';
 }
 
 function instanceBadgeVariant(status: string): Variant {
-  if (status === 'PENDING') return 'blue';
-  if (status === 'ACTIVE') return 'warning';
-  if (status === 'EXPIRED') return 'grey';
+  if (status === 'PENDING') {return 'blue';}
+  if (status === 'ACTIVE') {return 'warning';}
+  if (status === 'EXPIRED') {return 'grey';}
   return 'green';
 }
 

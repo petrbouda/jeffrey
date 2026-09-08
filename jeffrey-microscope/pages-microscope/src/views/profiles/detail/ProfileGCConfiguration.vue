@@ -61,10 +61,10 @@
         </div>
         <div class="config-item">
           <span class="config-label">Pause Target</span>
-          <span class="config-value" v-if="configData?.collector.pauseTarget">
+          <span v-if="configData?.collector.pauseTarget" class="config-value">
             {{ FormattingService.formatDuration2Units(configData?.collector.pauseTarget) }}
           </span>
-          <span class="config-value" v-else>-</span>
+          <span v-else class="config-value">-</span>
         </div>
       </ConfigurationSection>
 
@@ -101,7 +101,7 @@
             {{ configData?.heap.usesCompressedOops ? 'Enabled' : 'Disabled' }}
           </span>
         </div>
-        <div class="config-item" v-if="configData?.heap.compressedOopsMode">
+        <div v-if="configData?.heap.compressedOopsMode" class="config-item">
           <span class="config-label">OOPs Mode</span>
           <span class="config-value">{{ configData.heap.compressedOopsMode }}</span>
         </div>
@@ -155,13 +155,13 @@
             {{ configData?.tlab?.usesTLABs ? 'Enabled' : 'Disabled' }}
           </span>
         </div>
-        <div class="config-item" v-if="configData?.tlab?.usesTLABs">
+        <div v-if="configData?.tlab?.usesTLABs" class="config-item">
           <span class="config-label">Min TLAB Size</span>
           <span class="config-value">{{
             FormattingService.formatBytes(configData.tlab.minTLABSize)
           }}</span>
         </div>
-        <div class="config-item" v-if="configData?.tlab?.usesTLABs">
+        <div v-if="configData?.tlab?.usesTLABs" class="config-item">
           <span class="config-label">TLAB Refill Waste</span>
           <span class="config-value">{{ configData.tlab.tlabRefillWasteLimit }}</span>
         </div>
@@ -225,7 +225,9 @@ let client: ProfileGCClient;
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
-  if (!configData.value) return [];
+  if (!configData.value) {
+    return [];
+  }
 
   return [
     {

@@ -24,8 +24,8 @@
     :status="minimizedStatus"
     :is-spinning="isSpinningIcon"
     :order="2"
-    @click="handleButtonClick"
     title="Recordings"
+    @click="handleButtonClick"
   />
 
   <!-- Expanded State - Panel -->
@@ -44,10 +44,10 @@
     <template #header-title> Recordings </template>
 
     <template #header-actions>
-      <button class="btn-icon" @click="$emit('minimize')" title="Minimize">
+      <button class="btn-icon" title="Minimize" @click="$emit('minimize')">
         <i class="bi bi-dash-lg"></i>
       </button>
-      <button v-if="!isProcessing" class="btn-icon" @click="$emit('close')" title="Close">
+      <button v-if="!isProcessing" class="btn-icon" title="Close" @click="$emit('close')">
         <i class="bi bi-x-lg"></i>
       </button>
     </template>
@@ -159,8 +159,8 @@
                 </button>
                 <button
                   class="btn-delete"
-                  @click.stop="$emit('delete-recording', recording.id)"
                   title="Delete recording"
+                  @click.stop="$emit('delete-recording', recording.id)"
                 >
                   <i class="bi bi-trash"></i>
                 </button>

@@ -55,9 +55,6 @@ public class GraphParametersBuilder {
         return this;
     }
 
-    public GraphParametersBuilder withThreadInfo(ThreadInfo threadInfo) {
-        return withThreads(threadInfo == null ? List.of() : List.of(threadInfo));
-    }
 
     /**
      * Scopes the graph to a set of threads — everything behind one collapsed timeline lane.

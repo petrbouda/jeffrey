@@ -113,25 +113,25 @@ export class ToastService {
 
   static success(summary: string, detail?: string, duration?: number): void {
     console.log(`%c✓ ${summary}`, 'color: #00d27a; font-weight: bold');
-    if (detail) console.log(`   ${detail}`);
+    if (detail) {console.log(`   ${detail}`);}
     this.showToast(summary, detail, 'toast-success', duration);
   }
 
   static info(summary: string, detail?: string, duration?: number): void {
     console.log(`%cⓘ ${summary}`, 'color: #0ea5e9; font-weight: bold');
-    if (detail) console.log(`   ${detail}`);
+    if (detail) {console.log(`   ${detail}`);}
     this.showToast(summary, detail, 'toast-info', duration);
   }
 
   static warn(summary: string, detail?: string, duration?: number): void {
     console.log(`%c⚠ ${summary}`, 'color: #f5803e; font-weight: bold');
-    if (detail) console.log(`   ${detail}`);
+    if (detail) {console.log(`   ${detail}`);}
     this.showToast(summary, detail, 'toast-warning', duration);
   }
 
   static error(summary: string, detail?: string, duration?: number): void {
     console.log(`%c✕ ${summary}`, 'color: #e63757; font-weight: bold');
-    if (detail) console.log(`   ${detail}`);
+    if (detail) {console.log(`   ${detail}`);}
     this.showToast(summary, detail, 'toast-danger', duration);
   }
 }

@@ -102,7 +102,11 @@ describe('traceEntries', () => {
     });
 
     it('picks the worst regardless of the order they arrived in', () => {
-      const entries = [notification('a', 'LOW'), notification('a', 'CRITICAL'), notification('a', 'MEDIUM')];
+      const entries = [
+        notification('a', 'LOW'),
+        notification('a', 'CRITICAL'),
+        notification('a', 'MEDIUM')
+      ];
 
       expect(worstSeverity(entries)).toBe('CRITICAL');
       expect(worstSeverity([...entries].reverse())).toBe('CRITICAL');
@@ -128,7 +132,11 @@ describe('traceEntries', () => {
 
   describe('bySpan', () => {
     it('groups entries under the span that raised them', () => {
-      const grouped = bySpan([notification('a', 'LOW', 1), notification('b', 'HIGH', 2), notification('a', 'MEDIUM', 3)]);
+      const grouped = bySpan([
+        notification('a', 'LOW', 1),
+        notification('b', 'HIGH', 2),
+        notification('a', 'MEDIUM', 3)
+      ]);
 
       expect(grouped.get('a')).toHaveLength(2);
       expect(grouped.get('b')).toHaveLength(1);
@@ -172,7 +180,10 @@ describe('traceEntries', () => {
     });
 
     it('ignores an entry whose span is not in the trace, rather than walking into nothing', () => {
-      const counts = descendantEntryCounts(spans, [notification('ghost', 'HIGH'), notification(null, 'LOW')]);
+      const counts = descendantEntryCounts(spans, [
+        notification('ghost', 'HIGH'),
+        notification(null, 'LOW')
+      ]);
 
       expect(counts.size).toBe(0);
     });

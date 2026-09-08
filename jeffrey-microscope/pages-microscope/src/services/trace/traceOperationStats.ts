@@ -46,7 +46,6 @@ interface TimedTrace {
   durationNanos: number;
 }
 
-
 /**
  * Linear interpolation between the two neighbouring samples, matching what DuckDB's
  * {@code QUANTILE_CONT} reports for the same list — so a percentile shown here and the same

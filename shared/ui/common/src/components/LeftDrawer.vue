@@ -51,7 +51,7 @@ const emit = defineEmits<{
 }>();
 
 const onKeydown = (event: KeyboardEvent) => {
-  if (!props.show) return;
+  if (!props.show) {return;}
   if (event.key === 'Escape') {
     event.preventDefault();
     emit('update:show', false);
@@ -60,8 +60,8 @@ const onKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Enter') {
     const target = event.target as HTMLElement | null;
     const tag = target?.tagName;
-    if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') return;
-    if (target?.isContentEditable) return;
+    if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') {return;}
+    if (target?.isContentEditable) {return;}
     event.preventDefault();
     emit('submit');
   }

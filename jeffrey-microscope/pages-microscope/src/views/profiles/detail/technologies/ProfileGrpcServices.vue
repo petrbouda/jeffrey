@@ -4,7 +4,7 @@
     <CustomDisabledFeatureAlert
       v-if="isGrpcDashboardDisabled"
       :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
-      eventType="gRPC exchange"
+      event-type="gRPC exchange"
     />
 
     <div v-else>
@@ -42,7 +42,7 @@
             :secondary-data="serviceDetailData.callCountSerie.data"
             secondary-title="Call Count"
             :visible-minutes="60"
-            :independentSecondaryAxis="true"
+            :independent-secondary-axis="true"
             :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
             :secondary-axis-type="AxisFormatType.NUMBER"
           />
@@ -169,7 +169,9 @@ const overviewHeader = computed(() => {
 });
 
 const slowestCalls = computed(() => {
-  if (!serviceDetailData.value || !selectedServiceForDetail.value) return [];
+  if (!serviceDetailData.value || !selectedServiceForDetail.value) {
+    return [];
+  }
   return [...serviceDetailData.value.slowCalls].sort((a, b) => b.responseTime - a.responseTime);
 });
 

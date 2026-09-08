@@ -46,10 +46,10 @@
             <div class="input-group search-container" style="width: 280px">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
+                v-model="searchQuery"
                 type="text"
                 class="form-control search-input"
                 placeholder="Filter by class, method or thread..."
-                v-model="searchQuery"
               />
               <button
                 v-if="searchQuery"
@@ -144,19 +144,25 @@ const overviewData = ref<MethodTracingOverviewData | null>(null);
 const searchQuery = ref('');
 
 const maxDuration = computed(() => {
-  if (!slowestData.value || slowestData.value.slowestTraces.length === 0) return 1;
+  if (!slowestData.value || slowestData.value.slowestTraces.length === 0) {
+    return 1;
+  }
   return slowestData.value.slowestTraces[0].duration || 1;
 });
 
 const filteredTraces = computed(() => {
-  if (!slowestData.value) return [];
+  if (!slowestData.value) {
+    return [];
+  }
 
   const tracesWithIndex = slowestData.value.slowestTraces.map((trace, index) => ({
     ...trace,
     originalIndex: index
   }));
 
-  if (!searchQuery.value.trim()) return tracesWithIndex;
+  if (!searchQuery.value.trim()) {
+    return tracesWithIndex;
+  }
 
   const query = searchQuery.value.toLowerCase();
   return tracesWithIndex.filter(trace => {
@@ -170,9 +176,15 @@ const filteredTraces = computed(() => {
 const getPercentOfMax = (duration: number) => (duration / maxDuration.value) * 100;
 
 const getDurationClass = (duration: number) => {
-  if (duration >= 100_000_000) return 'duration-critical';
-  if (duration >= 50_000_000) return 'duration-warning';
-  if (duration >= 10_000_000) return 'duration-slow';
+  if (duration >= 100_000_000) {
+    return 'duration-critical';
+  }
+  if (duration >= 50_000_000) {
+    return 'duration-warning';
+  }
+  if (duration >= 10_000_000) {
+    return 'duration-slow';
+  }
   return 'duration-normal';
 };
 
@@ -203,7 +215,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-
 .method-cell {
   line-height: 1.4;
   max-width: 400px;

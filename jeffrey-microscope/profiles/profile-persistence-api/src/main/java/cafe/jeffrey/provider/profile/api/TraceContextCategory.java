@@ -206,13 +206,6 @@ public enum TraceContextCategory {
         return Stream.concat(primaryEventTypes.stream(), detailEventTypes.stream()).toList();
     }
 
-    /**
-     * The event types that stand on their own — one per stretch of time the category actually
-     * occupied, with nothing nested inside another.
-     */
-    public List<String> primaryEventTypes() {
-        return primaryEventTypes;
-    }
 
     /**
      * The event types that break a primary one down from the inside. Every one of these overlaps a

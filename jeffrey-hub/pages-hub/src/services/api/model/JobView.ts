@@ -66,18 +66,18 @@ export interface JobRunResult {
  * into a compact human form ({@code 30s}, {@code 1h}, {@code 1d}).
  */
 export function formatPeriod(iso: string): string {
-    if (!iso) return '';
+    if (!iso) {return '';}
     const m = iso.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/);
-    if (!m) return iso;
+    if (!m) {return iso;}
     const [, d, h, min, s] = m;
-    if (d && !h && !min && !s) return `${d}d`;
-    if (!d && h && !min && !s) return `${h}h`;
-    if (!d && !h && min && !s) return `${min}m`;
-    if (!d && !h && !min && s) return `${s}s`;
+    if (d && !h && !min && !s) {return `${d}d`;}
+    if (!d && h && !min && !s) {return `${h}h`;}
+    if (!d && !h && min && !s) {return `${min}m`;}
+    if (!d && !h && !min && s) {return `${s}s`;}
     const parts = [];
-    if (d) parts.push(`${d}d`);
-    if (h) parts.push(`${h}h`);
-    if (min) parts.push(`${min}m`);
-    if (s) parts.push(`${s}s`);
+    if (d) {parts.push(`${d}d`);}
+    if (h) {parts.push(`${h}h`);}
+    if (min) {parts.push(`${min}m`);}
+    if (s) {parts.push(`${s}s`);}
     return parts.join(' ') || iso;
 }
