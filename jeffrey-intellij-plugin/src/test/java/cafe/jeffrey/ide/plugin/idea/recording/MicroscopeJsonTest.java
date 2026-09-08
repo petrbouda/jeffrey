@@ -131,28 +131,26 @@ public class MicroscopeJsonTest {
         assertTrue(state.summary().findings().isEmpty());
     }
 
-    /** An analysis on its way: not computed, but the recording the rules read is still there. */
+    /** A run that failed: no findings cached, but the recording the rules read is still there. */
     @Test
-    public void readsAnAnalysisThatHasNotLandedYet() {
+    public void readsAnAnalysisThatCouldStillBeRun() {
         RecordingState state = MicroscopeJson.parseState(
                 "{\"state\":\"READY\",\"summary\":"
                         + "{\"analysisComputed\":false,\"analysisPossible\":true}}", FILENAME, SIZE);
 
         assertTrue(state.summary().analysisPossible());
-        assertTrue(state.awaitingAnalysis());
     }
 
     /**
-     * A Microscope too old to report the field. Defaulting it to false leaves the panel behaving the
-     * way it always did rather than waiting forever for an answer that will never change.
+     * A summary that reports no possibility. The panel then offers no run, which is the honest answer
+     * for a profile whose recording Microscope no longer has.
      */
     @Test
-    public void anOlderMicroscopeThatOmitsThePossibilityIsNotWaitedFor() {
+    public void readsAnAnalysisThatCannotBeRunAtAll() {
         RecordingState state = MicroscopeJson.parseState(
                 "{\"state\":\"READY\",\"summary\":{\"analysisComputed\":false}}", FILENAME, SIZE);
 
         assertFalse(state.summary().analysisPossible());
-        assertFalse(state.awaitingAnalysis());
     }
 
     @Test

@@ -88,20 +88,6 @@ public record RecordingState(
         return status == Status.ANALYZING && profileId != null && !profileId.isBlank();
     }
 
-    /**
-     * A ready profile whose auto analysis has not landed yet, and still can.
-     *
-     * <p>The two do not arrive together: the profile's warm-up starts the rule set and does not wait
-     * for it, so a recording reaches READY seconds before its findings exist. Without this the panel
-     * paints that gap as "never computed" and never asks again.
-     */
-    public boolean awaitingAnalysis() {
-        return status == Status.READY
-                && summary != null
-                && !summary.analysisComputed()
-                && summary.analysisPossible();
-    }
-
     public enum Status {
         /** Microscope has never seen this file. */
         NOT_IMPORTED,

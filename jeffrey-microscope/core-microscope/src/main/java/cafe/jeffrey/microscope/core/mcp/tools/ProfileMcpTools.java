@@ -308,8 +308,10 @@ public class ProfileMcpTools {
     /**
      * @param topFindings         the auto-analysis rules that flagged something, most severe first, in
      *                            the shared finding shape — the passes are left to jvm_autoAnalysis
-     * @param autoAnalysisPending true when nothing has run the rule set yet, which is why topFindings
-     *                            is empty — different from a profile the rules found nothing wrong with
+     * @param autoAnalysisMissing true when the rule set left no findings cached, which is why
+     *                            topFindings is empty — different from a profile the rules found
+     *                            nothing wrong with. An import runs them before the profile is
+     *                            usable, so this is a run that failed or one that could not run
      * @param capabilityGaps      what this recording cannot answer, in words, with what would close
      *                            each gap — read before any negative result is believed
      */
@@ -322,7 +324,7 @@ public class ProfileMcpTools {
             List<String> disabledFeatures,
             List<RecordedEventType> eventTypes,
             List<McpFinding> topFindings,
-            boolean autoAnalysisPending,
+            boolean autoAnalysisMissing,
             List<CapabilityGap> capabilityGaps,
             String uiLink) {
     }

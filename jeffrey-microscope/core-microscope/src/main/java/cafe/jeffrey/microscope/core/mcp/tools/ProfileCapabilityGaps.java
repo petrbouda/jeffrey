@@ -111,11 +111,11 @@ final class ProfileCapabilityGaps {
             "Quote the loss share beside any CPU share from this profile, or record again with a lower "
                     + "sampling rate so fewer are dropped.";
 
-    private static final String AUTO_ANALYSIS_PENDING_GAP =
-            "The auto-analysis rule set has not run for this profile, so topFindings is empty for that reason "
+    private static final String AUTO_ANALYSIS_MISSING_GAP =
+            "The auto-analysis rule set did not run for this profile, so topFindings is empty for that reason "
                     + "and not because nothing was flagged. An import runs the rules before the profile is "
-                    + "usable, so this is a profile imported before that was so, or one whose run failed.";
-    private static final String AUTO_ANALYSIS_PENDING_REMEDY =
+                    + "usable, so this is a run that failed.";
+    private static final String AUTO_ANALYSIS_MISSING_REMEDY =
             "jvm_autoAnalysis with compute true runs it now; it reads the whole recording, which takes a while.";
     private static final String AUTO_ANALYSIS_IMPOSSIBLE_REMEDY =
             "The recording file is no longer available to Jeffrey, so the rules cannot be run for this profile.";
@@ -293,7 +293,7 @@ final class ProfileCapabilityGaps {
         }
         gaps.add(new CapabilityGap(
                 SUBJECT_AUTO_ANALYSIS,
-                AUTO_ANALYSIS_PENDING_GAP,
-                autoAnalysis.canGenerate() ? AUTO_ANALYSIS_PENDING_REMEDY : AUTO_ANALYSIS_IMPOSSIBLE_REMEDY));
+                AUTO_ANALYSIS_MISSING_GAP,
+                autoAnalysis.canGenerate() ? AUTO_ANALYSIS_MISSING_REMEDY : AUTO_ANALYSIS_IMPOSSIBLE_REMEDY));
     }
 }

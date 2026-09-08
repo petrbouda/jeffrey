@@ -145,10 +145,10 @@ public class IdeRecordingLookup {
      * back empty, because "the rules found nothing" and "the rules did not run" are different
      * answers and an empty list is both of them.
      * <p>
-     * A profile imported now arrives with its findings: the rule set runs alongside the parse and the
-     * warming stage waits for it. The flags still matter for everything that predates that — profiles
-     * imported before it, a recording whose file has since gone, a run that failed — and the panel
-     * still waits on them, because a plugin talks to whatever Microscope the developer is running.
+     * A profile arrives with its findings: the rule set runs alongside the parse and the warming
+     * stage waits for it. So the flags no longer describe a wait, and the panel no longer polls on
+     * them. They separate the two ways a ready profile can carry no findings — a run that failed,
+     * which can be run again, and a recording whose file has gone, which cannot.
      */
     private ProfileSummary summarize(ProfileManager profileManager, String filename) {
         ProfileInfo info = profileManager.info();

@@ -321,7 +321,7 @@ class ProfileMcpToolsTest {
 
             String result = tools().summary();
 
-            assertTrue(result.contains("\"autoAnalysisPending\":true"), result);
+            assertTrue(result.contains("\"autoAnalysisMissing\":true"), result);
             assertTrue(result.contains("\"subject\":\"autoAnalysis\""), result);
             assertTrue(result.contains("jvm_autoAnalysis with compute true"), result);
         }
@@ -379,7 +379,7 @@ class ProfileMcpToolsTest {
             assertTrue(result.contains("\"nextTool\":\"jvm_gc\""), result);
             assertFalse(result.contains("exceptions:thrown-errors"), result);
             assertFalse(result.contains("tlab:allocated-classes"), result);
-            assertTrue(result.contains("\"autoAnalysisPending\":false"), result);
+            assertTrue(result.contains("\"autoAnalysisMissing\":false"), result);
         }
     }
 

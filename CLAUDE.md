@@ -536,30 +536,22 @@ which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`g
 `exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
 category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
 
-They used to **arrive after the profile did**, and the panel still knows how to wait for them.
-`ProfileInitStages.WARMUP` once started the rule set without waiting — "the stage covers starting
-them, not finishing them" — so a recording reached READY with its findings in flight, and the panel
-that asked once painted that gap as *never computed* for the life of the tab. Microscope now starts
-the rules **before the parse** rather than after it (`ProfileDataInitializer.startAutoAnalysis`,
-joined and cached by the warming stage), because the JMC toolkit reads the recording file and nothing
-the parse writes: the import costs the longer of the two passes instead of both, and a profile that
-answers at all answers with its findings.
-The wait therefore no longer happens for a fresh import, and the machinery for it stays anyway —
-a plugin talks to whatever Microscope the developer is running, and profiles imported before the
-change still have none. It draws the **same callout the two pipelines use** — spinner, *Running
-the analysis rules*, and a bar left **indeterminate**, because there are no stages to count and a
-determinate one would sit frozen at zero for the whole wait (`waitingCallout`, a sibling of
-`progressCallout` rather than a nullable `PipelineBuild` threaded through it). It is the one callout
-with no action: the only button worth offering would start the run already going. Meanwhile the panel
-re-asks `by-path` every three seconds, for three minutes, until `RecordingState.awaitingAnalysis()`
-stops holding. What makes that terminable is on the
-Microscope side: `analysisComputed` is `AutoAnalysisManager.isComputed()` — whether the cache key is
-**present** — rather than whether the findings list is non-empty, because a run that flagged nothing
-caches an empty list and read the old way is indistinguishable from a run that never happened. That
-recording now reads `Nothing flagged.`, and `analysisPossible` (from `canGenerate()`) is what
-separates a wait from a recording whose file is gone, which keeps the old sentence and its link. A
-Microscope too old to send the field defaults it to false, so the panel behaves as it always did
-rather than waiting on an answer that will never come.
+They **arrive with the profile**, and the panel therefore draws them once and never polls. Microscope
+starts the rule set **before the parse** rather than after it
+(`ProfileDataInitializer.startAutoAnalysis`, joined and cached by the warming stage), because the JMC
+toolkit reads the recording file and nothing the parse writes: the import costs the longer of the two
+passes instead of both, and a profile that answers at all answers with its findings. The wait that
+used to sit here — `awaitingAnalysis()`, a three-second `by-path` poll for three minutes, and an
+indeterminate `waitingCallout` — is **gone**, and removing it was the point rather than a tidy-up: a
+ready profile with no findings no longer means a run in flight, so the spinner would have been a lie
+that never resolved.
+What is left is two flags and three sentences. `analysisComputed` is `AutoAnalysisManager.isComputed()`
+— whether the cache key is **present** — rather than whether the findings list is non-empty, because a
+run that flagged nothing caches an empty list and read the other way is indistinguishable from a run
+that never happened; that recording reads `Nothing flagged.` `analysisPossible` (from `canGenerate()`)
+then separates a rule set that **failed**, which the panel offers to run again, from a recording
+Microscope no longer has, where it says so and offers nothing — the one case where *Run it in
+Microscope* would be a button that cannot work.
 
 The header well draws the **flame for a recording and an object graph for a heap dump** (`PanelSvg`
 key `heap`, `JeffreyIcons.HEAP_DUMP` on the Swing side), decided by `RecordingState.isHeapDumpFile()`

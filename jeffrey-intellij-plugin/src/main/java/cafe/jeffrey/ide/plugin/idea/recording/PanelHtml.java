@@ -38,15 +38,11 @@ final class PanelHtml {
     private static final String TILE_WIDTH = "33%";
 
     private static final String NOT_COMPUTED =
-            "Not computed for this profile yet.";
+            "The analysis rules did not run for this profile.";
 
-    /**
-     * What the other renderer says in a callout, said here in one line: no box, no spinner and no
-     * bar, because Swing's HTML kit draws none of them and this pane is not held to the other one's
-     * appearance. No link either -- the run it would offer is already under way.
-     */
-    private static final String ANALYSIS_RUNNING =
-            "Running the analysis rules \u2014 the tab updates itself when it is done.";
+    /** The same, for a recording Microscope no longer has. There is no run left to offer. */
+    private static final String NOT_COMPUTABLE =
+            "The analysis rules did not run, and cannot: Microscope no longer has the recording file.";
 
     private static final String NOTHING_FLAGGED = "Nothing flagged.";
 
@@ -198,8 +194,8 @@ final class PanelHtml {
 
     private static String findings(RecordingState.ProfileSummary summary) {
         if (!summary.analysisComputed()) {
-            if (summary.analysisPossible()) {
-                return "<table><tr><td class='sml'>" + ANALYSIS_RUNNING + "</td></tr></table>";
+            if (!summary.analysisPossible()) {
+                return "<table><tr><td class='sml'>" + NOT_COMPUTABLE + "</td></tr></table>";
             }
             return "<table><tr><td class='sml'>" + NOT_COMPUTED + " "
                     + link(ProfileView.AUTO_ANALYSIS.path(), "Run it in Microscope")
