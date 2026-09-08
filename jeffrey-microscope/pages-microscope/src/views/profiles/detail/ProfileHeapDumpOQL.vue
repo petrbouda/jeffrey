@@ -103,8 +103,8 @@
           <div class="toolbar-group">
             <button
               class="btn btn-sm btn-primary"
-              @click="executeActive"
               :disabled="running || !query.trim()"
+              @click="executeActive"
             >
               <span v-if="running" class="spinner-border spinner-border-sm me-1"></span>
               <i v-else class="bi bi-play-fill me-1"></i>
@@ -112,8 +112,8 @@
             </button>
             <button
               class="btn btn-sm btn-outline-secondary"
-              @click="clearEditor"
               :disabled="!query.trim() && !latestRun"
+              @click="clearEditor"
             >
               <i class="bi bi-x-lg me-1"></i>
               Clear
@@ -127,10 +127,10 @@
               title="Also scan java.lang.String instances whose decoded content exceeded the indexer's cap. Slower; off by default — the SQL pushdown path already covers all Strings within the cap."
             >
               <input
-                type="checkbox"
-                class="form-check-input"
                 id="scanLargeStringsCheck"
                 v-model="scanLargeStrings"
+                type="checkbox"
+                class="form-check-input"
               />
               <label class="form-check-label small" for="scanLargeStringsCheck">
                 Scan large Strings
@@ -254,15 +254,15 @@
             <div class="chip-popover-actions">
               <button
                 class="btn-ghost"
-                @click="rerunFromHistory(selectedRun)"
                 title="Re-run this query"
+                @click="rerunFromHistory(selectedRun)"
               >
                 <i class="bi bi-arrow-clockwise"></i>
               </button>
-              <button class="btn-ghost" @click="copyToEditor(selectedRun)" title="Copy into editor">
+              <button class="btn-ghost" title="Copy into editor" @click="copyToEditor(selectedRun)">
                 <i class="bi bi-arrow-up-square"></i>
               </button>
-              <button class="btn-ghost" @click="selectedHistoryId = null" title="Close">
+              <button class="btn-ghost" title="Close" @click="selectedHistoryId = null">
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
@@ -807,7 +807,9 @@ function escapeHtml(s: string): string {
 }
 
 function highlightQuery(input: string): string {
-  if (!input) return '';
+  if (!input) {
+    return '';
+  }
   const strings: string[] = [];
   let placeholder = input.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (_match, content: string) => {
     strings.push(content);
@@ -842,22 +844,30 @@ const highlightedActiveQuery = computed(() => {
 // =============================================================================
 
 function formatElapsed(ms: number): string {
-  if (ms < 1000) return Math.round(ms) + 'ms';
+  if (ms < 1000) {
+    return Math.round(ms) + 'ms';
+  }
   return (ms / 1000).toFixed(2) + 's';
 }
 
 const truncateValue = (value: string, maxLength: number = 150): string => {
-  if (value.length <= maxLength) return value;
+  if (value.length <= maxLength) {
+    return value;
+  }
   return value.substring(0, maxLength) + '...';
 };
 
 function hasRetainedSize(run: QueryRun): boolean {
-  if (!run.result || run.result.results.length === 0) return false;
+  if (!run.result || run.result.results.length === 0) {
+    return false;
+  }
   return run.result.results.some(entry => entry.retainedSize !== null);
 }
 
 function getFilteredResults(run: QueryRun) {
-  if (!run.result) return [];
+  if (!run.result) {
+    return [];
+  }
   let results = [...run.result.results];
   const filter = run.resultFilter.trim().toLowerCase();
   if (filter) {
@@ -890,7 +900,9 @@ function toggleSort(run: QueryRun, column: string) {
 function resizeTextarea() {
   nextTick(() => {
     const el = textareaRef.value;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     el.style.height = 'auto';
     el.style.height = Math.max(el.scrollHeight, 80) + 'px';
   });
@@ -923,7 +935,9 @@ function makeRun(
 }
 
 async function executeActive() {
-  if (!query.value.trim() || running.value) return;
+  if (!query.value.trim() || running.value) {
+    return;
+  }
   selectedHistoryId.value = null;
   running.value = true;
   const start = performance.now();
@@ -963,8 +977,12 @@ async function executeActive() {
 }
 
 function promoteToHistory(previous: QueryRun | null, newQuery: string) {
-  if (!previous) return;
-  if (previous.query === newQuery) return;
+  if (!previous) {
+    return;
+  }
+  if (previous.query === newQuery) {
+    return;
+  }
   history.value = [previous, ...history.value].slice(0, MAX_HISTORY);
 }
 
@@ -985,7 +1003,9 @@ function toggleChip(id: number) {
 }
 
 const selectedRun = computed<QueryRun | null>(() => {
-  if (selectedHistoryId.value === null) return null;
+  if (selectedHistoryId.value === null) {
+    return null;
+  }
   return history.value.find(r => r.id === selectedHistoryId.value) ?? null;
 });
 

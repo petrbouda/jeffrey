@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.shared.common;
 
-import java.nio.file.Path;
 import java.util.Map;
 
 public abstract class Config {
@@ -52,8 +51,4 @@ public abstract class Config {
         return properties.get(value);
     }
 
-    public static Path parsePath(Map<String, String> properties, String value, Path defaultValue) {
-        String fetchedValue = properties.get(value);
-        return fetchedValue != null ? Path.of(fetchedValue) : defaultValue;
-    }
 }

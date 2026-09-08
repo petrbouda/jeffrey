@@ -19,9 +19,9 @@
             <form @submit.prevent="saveChanges">
               <label class="field-label">Project Name</label>
               <input
+                v-model="projectName"
                 type="text"
                 class="field-input"
-                v-model="projectName"
                 @input="checkForChanges"
               />
               <button
@@ -54,8 +54,8 @@
           <button
             type="button"
             class="settings-btn settings-btn-danger"
-            @click="openDeleteConfirmation"
             :disabled="isDeleting"
+            @click="openDeleteConfirmation"
           >
             <span
               v-if="isDeleting"
@@ -89,8 +89,8 @@
       <button
         type="button"
         class="btn-close"
-        @click="closeDeleteConfirmation"
         :disabled="isDeleting"
+        @click="closeDeleteConfirmation"
       ></button>
     </template>
     <div class="mb-3">
@@ -101,9 +101,9 @@
     </div>
     <div class="form-group">
       <input
+        v-model="deleteConfirmText"
         type="text"
         class="form-control"
-        v-model="deleteConfirmText"
         placeholder="Type delete to confirm"
         :disabled="isDeleting"
       />
@@ -112,16 +112,16 @@
       <button
         type="button"
         class="btn btn-secondary"
-        @click="closeDeleteConfirmation"
         :disabled="isDeleting"
+        @click="closeDeleteConfirmation"
       >
         Cancel
       </button>
       <button
         type="button"
         class="btn btn-danger"
-        @click="deleteProject"
         :disabled="deleteConfirmText !== 'delete' || isDeleting"
+        @click="deleteProject"
       >
         <span
           v-if="isDeleting"
@@ -152,11 +152,7 @@ const router = useRouter();
 const { hubId, workspaceId, projectId } = useNavigation();
 
 // Create clients
-const settingsClient = new ProjectSettingsClient(
-  hubId.value,
-  workspaceId.value!,
-  projectId.value!
-);
+const settingsClient = new ProjectSettingsClient(hubId.value, workspaceId.value!, projectId.value!);
 const projectClient = new ProjectClient(hubId.value, workspaceId.value!, projectId.value!);
 
 // State variables
@@ -193,7 +189,9 @@ function checkForChanges() {
 
 // Save changes
 async function saveChanges() {
-  if (!hasChanges.value) return;
+  if (!hasChanges.value) {
+    return;
+  }
 
   try {
     isSaving.value = true;
@@ -224,7 +222,9 @@ function closeDeleteConfirmation() {
 
 // Delete project
 async function deleteProject() {
-  if (deleteConfirmText.value !== 'delete') return;
+  if (deleteConfirmText.value !== 'delete') {
+    return;
+  }
 
   try {
     isDeleting.value = true;

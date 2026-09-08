@@ -363,5 +363,4 @@ async function load(): Promise<void> {
 onMounted(load);
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

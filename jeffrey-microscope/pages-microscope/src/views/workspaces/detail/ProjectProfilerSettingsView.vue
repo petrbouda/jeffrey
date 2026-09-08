@@ -120,7 +120,9 @@ async function deleteProjectSettings() {
 
 // Apply new settings
 async function applySettings(command: string) {
-  if (!command?.trim()) return;
+  if (!command?.trim()) {
+    return;
+  }
 
   try {
     await profilerClient.upsert(command.trim());

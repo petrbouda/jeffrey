@@ -113,7 +113,9 @@ const formatSections = (original: Record<string, unknown>): SectionRow[] => {
 };
 
 const selectSection = () => {
-  if (!info) return;
+  if (!info) {
+    return;
+  }
   const sections = Object.values(info);
   if (active.value < sections.length) {
     section.value = formatSections(sections[active.value]);
@@ -136,11 +138,11 @@ const selectSection = () => {
           :key="index"
           class="config-tab"
           :class="{ active: active === index }"
+          type="button"
           @click="
             active = index;
             selectSection();
           "
-          type="button"
         >
           {{ item.label }}
         </button>

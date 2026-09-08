@@ -33,19 +33,14 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
     private static final String PLACEHOLDER_EVENT_TYPE = "<<event_type>>";
 
     private final String simple;
-    private final String simpleOptimized;
     private final String byWeight;
     private final String byWeightOptimized;
     private final String byThread;
-    private final String byThreadOptimized;
     private final String byThreadAndWeight;
     private final String byThreadAndWeightOptimized;
 
     private DuckDBFlamegraphQueries(String eventType, String additionalFilters) {
         this.simple = SIMPLE
-                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
-                .replace(PLACEHOLDER_FILTERS, additionalFilters);
-        this.simpleOptimized = SIMPLE_OPTIMIZED
                 .replace(PLACEHOLDER_EVENT_TYPE, eventType)
                 .replace(PLACEHOLDER_FILTERS, additionalFilters);
         this.byWeight = BY_WEIGHT
@@ -55,9 +50,6 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 .replace(PLACEHOLDER_EVENT_TYPE, eventType)
                 .replace(PLACEHOLDER_FILTERS, additionalFilters);
         this.byThread = BY_THREAD
-                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
-                .replace(PLACEHOLDER_FILTERS, additionalFilters);
-        this.byThreadOptimized = BY_THREAD_OPTIMIZED
                 .replace(PLACEHOLDER_EVENT_TYPE, eventType)
                 .replace(PLACEHOLDER_FILTERS, additionalFilters);
         this.byThreadAndWeight = BY_THREAD_AND_WEIGHT
@@ -408,12 +400,6 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
         return EventQueryFilters.splice(simple, configurer);
     }
 
-    /**
-     * Returns the optimized simple query that returns frame_hashes for Java-side resolution.
-     */
-    public String simpleOptimized(EventQueryConfigurer configurer) {
-        return EventQueryFilters.splice(simpleOptimized, configurer);
-    }
 
     @Override
     public String byWeight(EventQueryConfigurer configurer) {
@@ -437,12 +423,6 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
         return EventQueryFilters.splice(byWeightOptimized, configurer);
     }
 
-    /**
-     * Returns the optimized byThread query that returns frame_hashes for Java-side resolution.
-     */
-    public String byThreadOptimized(EventQueryConfigurer configurer) {
-        return EventQueryFilters.splice(byThreadOptimized, configurer);
-    }
 
     /**
      * Returns the optimized byThreadAndWeight query that returns frame_hashes for Java-side resolution.
@@ -451,10 +431,4 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
         return EventQueryFilters.splice(byThreadAndWeightOptimized, configurer);
     }
 
-    /**
-     * Returns the query to load all frames into a cache.
-     */
-    public String allFrames() {
-        return ALL_FRAMES;
-    }
 }

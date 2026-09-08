@@ -50,9 +50,6 @@ public class OqlParseException extends RuntimeException {
         return line;
     }
 
-    public int charPosition() {
-        return charPosition;
-    }
 
     /** Formatted "{@code line:column}" location, or {@code "<unknown>"} when no position is set. */
     public String location() {

@@ -43,9 +43,6 @@ public abstract class Schedulers {
     private static final ExecutorService BULK_PARALLEL =
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), platformThreadfactory("bulk-parallel"));
 
-    private static final ExecutorService SINGLE =
-            Executors.newSingleThreadExecutor(platformThreadfactory("single"));
-
     private static final ExecutorService VIRTUAL =
             Executors.newThreadPerTaskExecutor(virtualThreadfactory("virtual"));
 
@@ -80,10 +77,6 @@ public abstract class Schedulers {
      */
     public static ExecutorService sharedBulkParallel() {
         return BULK_PARALLEL;
-    }
-
-    public static ExecutorService sharedSingle() {
-        return SINGLE;
     }
 
     public static ExecutorService sharedVirtual() {
@@ -121,7 +114,6 @@ public abstract class Schedulers {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             PARALLEL.close();
             BULK_PARALLEL.close();
-            SINGLE.close();
             VIRTUAL.close();
             SINGLE_SCHEDULED.close();
             STREAMING.close();

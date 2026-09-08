@@ -55,7 +55,7 @@
             :secondary-data="countTimeseries"
             secondary-title="Invocation Count"
             :visible-minutes="60"
-            :independentSecondaryAxis="true"
+            :independent-secondary-axis="true"
             :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
             :secondary-axis-type="AxisFormatType.NUMBER"
           />
@@ -112,13 +112,16 @@ const {
 
 // Computed properties
 const durationTimeseries = computed(() => {
-  if (!overviewData.value?.durationTimeseries) return null;
+  if (!overviewData.value?.durationTimeseries) {
+    return null;
+  }
   return overviewData.value.durationTimeseries.data;
 });
 
 const countTimeseries = computed(() => {
-  if (!overviewData.value?.countTimeseries) return null;
+  if (!overviewData.value?.countTimeseries) {
+    return null;
+  }
   return overviewData.value.countTimeseries.data;
 });
 </script>
-

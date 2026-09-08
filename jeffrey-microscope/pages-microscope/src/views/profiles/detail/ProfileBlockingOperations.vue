@@ -50,7 +50,13 @@
             <TableToolbar v-model="monitorsView.query" search-placeholder="Filter monitors...">
               <span class="toolbar-info">Contended monitors</span>
               <template #filters>
-                <Badge key-label="Total" :value="monitorsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="monitorsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -69,8 +75,12 @@
                 <ClassNameDisplay :class-name="monitor.className" />
               </td>
               <td class="text-end">{{ FormattingService.formatNumber(monitor.count) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(monitor.totalNanos) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(monitor.maxNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(monitor.totalNanos) }}
+              </td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(monitor.maxNanos) }}
+              </td>
               <td class="text-end">{{ FormattingService.formatNumber(monitor.threadCount) }}</td>
             </tr>
           </tbody>
@@ -100,7 +110,13 @@
             <TableToolbar v-model="monitorWaitsView.query" search-placeholder="Filter monitors...">
               <span class="toolbar-info">Object.wait() by monitor</span>
               <template #filters>
-                <Badge key-label="Total" :value="monitorWaitsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="monitorWaitsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -120,7 +136,9 @@
                 <ClassNameDisplay :class-name="wait.className" />
               </td>
               <td class="text-end">{{ FormattingService.formatNumber(wait.count) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(wait.totalNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(wait.totalNanos) }}
+              </td>
               <td class="text-end">{{ FormattingService.formatDuration2Units(wait.maxNanos) }}</td>
               <td class="text-end">
                 <Badge
@@ -161,7 +179,13 @@
             <TableToolbar v-model="parksView.query" search-placeholder="Filter blockers...">
               <span class="toolbar-info">Park blockers</span>
               <template #filters>
-                <Badge key-label="Total" :value="parksView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="parksView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -180,7 +204,9 @@
                 <ClassNameDisplay :class-name="park.className" />
               </td>
               <td class="text-end">{{ FormattingService.formatNumber(park.count) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(park.totalNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(park.totalNanos) }}
+              </td>
               <td class="text-end">{{ FormattingService.formatDuration2Units(park.maxNanos) }}</td>
               <td class="text-end">{{ FormattingService.formatNumber(park.threadCount) }}</td>
             </tr>
@@ -211,7 +237,13 @@
             <TableToolbar v-model="sleepsView.query" search-placeholder="Filter threads...">
               <span class="toolbar-info">Thread.sleep() by thread</span>
               <template #filters>
-                <Badge key-label="Total" :value="sleepsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="sleepsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -228,9 +260,15 @@
             <tr v-for="sleep in sleepsView.visible" :key="sleep.thread">
               <td class="operation-name">{{ sleep.thread }}</td>
               <td class="text-end">{{ FormattingService.formatNumber(sleep.count) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(sleep.totalSleptNanos) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(sleep.maxSleptNanos) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(sleep.requestedNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(sleep.totalSleptNanos) }}
+              </td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(sleep.maxSleptNanos) }}
+              </td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(sleep.requestedNanos) }}
+              </td>
             </tr>
           </tbody>
           <template #footer>
@@ -263,7 +301,13 @@
             <TableToolbar v-model="pinnedView.query" search-placeholder="Filter threads...">
               <span class="toolbar-info">Pinning incidents</span>
               <template #filters>
-                <Badge key-label="Total" :value="pinnedView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="pinnedView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -276,7 +320,9 @@
           <tbody>
             <tr v-for="(entry, index) in pinnedView.visible" :key="index">
               <td class="operation-name">{{ entry.thread ?? '—' }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.durationNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(entry.durationNanos) }}
+              </td>
             </tr>
           </tbody>
           <template #footer>
@@ -302,27 +348,28 @@
           <AboutCallout variant="intro">
             <p>
               A blocked thread isn't using CPU, so it's invisible to a flame graph — yet it's often
-              exactly where latency hides. This page breaks down <em>why</em> threads block: contending
-              for a lock, waiting to be notified, parking on a <code>j.u.c</code> primitive, sleeping,
-              or (for virtual threads) pinning their carrier.
+              exactly where latency hides. This page breaks down <em>why</em> threads block:
+              contending for a lock, waiting to be notified, parking on a
+              <code>j.u.c</code> primitive, sleeping, or (for virtual threads) pinning their
+              carrier.
             </p>
           </AboutCallout>
 
           <AboutSection icon="bi-lock" title="Monitor Locks (synchronized)">
             <FeatureGrid>
               <FeatureCard icon="bi-unlock" variant="success" title="Uncontended → thin lock">
-                With no contention, a <code>synchronized</code> lock is a cheap CAS on the object header
-                (a "thin"/stack lock). No event is recorded — this is the fast path.
+                With no contention, a <code>synchronized</code> lock is a cheap CAS on the object
+                header (a "thin"/stack lock). No event is recorded — this is the fast path.
               </FeatureCard>
               <FeatureCard icon="bi-lock-fill" variant="danger" title="Contended → inflation">
                 When a second thread contends, the lock <strong>inflates</strong> to a heavyweight
-                <code>ObjectMonitor</code> with an OS-backed wait queue. Threads waiting to acquire it
-                are <code>jdk.JavaMonitorEnter</code> events — the Lock Contention tab.
+                <code>ObjectMonitor</code> with an OS-backed wait queue. Threads waiting to acquire
+                it are <code>jdk.JavaMonitorEnter</code> events — the Lock Contention tab.
               </FeatureCard>
               <FeatureCard icon="bi-hourglass-split" variant="warning" title="wait() / notify()">
-                <code>Object.wait()</code> releases the monitor and parks the thread on the monitor's
-                wait set until <code>notify()</code> (or a timeout). The Monitor Waits tab's timed-out
-                count flags waits that hit their timeout — often a missed signal.
+                <code>Object.wait()</code> releases the monitor and parks the thread on the
+                monitor's wait set until <code>notify()</code> (or a timeout). The Monitor Waits
+                tab's timed-out count flags waits that hit their timeout — often a missed signal.
               </FeatureCard>
               <FeatureCard icon="bi-diagram-3" variant="info" title="Usual suspects">
                 Connection pools, logging frameworks, and synchronized singletons/caches. A single
@@ -335,33 +382,53 @@
             <FeatureGrid>
               <FeatureCard icon="bi-pause-circle" variant="primary" title="LockSupport.park">
                 The primitive behind <code>java.util.concurrent</code>. <code>ReentrantLock</code>,
-                <code>Semaphore</code>, <code>CountDownLatch</code> and blocking queues all park threads
-                via <code>AbstractQueuedSynchronizer</code>. The blocker class names the lock.
+                <code>Semaphore</code>, <code>CountDownLatch</code> and blocking queues all park
+                threads via <code>AbstractQueuedSynchronizer</code>. The blocker class names the
+                lock.
               </FeatureCard>
               <FeatureCard icon="bi-moon" variant="neutral" title="Thread.sleep">
                 Explicit timed blocking, grouped by thread. Large totals usually mean a polling loop
                 that should be event-driven (a queue, a condition, a callback).
               </FeatureCard>
               <FeatureCard icon="bi-pin-angle" variant="purple" title="Virtual-thread pinning">
-                A virtual thread normally unmounts from its carrier platform thread while blocked. If
-                it's inside a <code>synchronized</code> block or a native frame it can't unmount — it
-                <strong>pins</strong> the carrier, defeating the scalability of virtual threads.
+                A virtual thread normally unmounts from its carrier platform thread while blocked.
+                If it's inside a <code>synchronized</code> block or a native frame it can't unmount
+                — it <strong>pins</strong> the carrier, defeating the scalability of virtual
+                threads.
               </FeatureCard>
               <FeatureCard icon="bi-arrow-repeat" variant="success" title="Fixing pinning">
-                Replace <code>synchronized</code> around blocking calls with <code>ReentrantLock</code>
-                (which parks cleanly). JDK 24+ also removes most <code>synchronized</code> pinning.
+                Replace <code>synchronized</code> around blocking calls with
+                <code>ReentrantLock</code> (which parks cleanly). JDK 24+ also removes most
+                <code>synchronized</code> pinning.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
 
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
-            <p>All of these are <strong>threshold-gated</strong> — JFR records an event only when the block exceeds the configured duration, so brief blocking won't appear:</p>
+            <p>
+              All of these are <strong>threshold-gated</strong> — JFR records an event only when the
+              block exceeds the configured duration, so brief blocking won't appear:
+            </p>
             <ul>
-              <li><code>jdk.JavaMonitorEnter</code> — contended <code>synchronized</code> acquisition, by monitor class.</li>
-              <li><code>jdk.JavaMonitorWait</code> — <code>Object.wait()</code>, with a timed-out flag.</li>
-              <li><code>jdk.ThreadPark</code> — <code>LockSupport.park</code>, by blocker class.</li>
-              <li><code>jdk.ThreadSleep</code> — <code>Thread.sleep()</code>, with requested vs actual time.</li>
-              <li><code>jdk.VirtualThreadPinned</code> — a pin exceeding its threshold (20ms by default).</li>
+              <li>
+                <code>jdk.JavaMonitorEnter</code> — contended <code>synchronized</code> acquisition,
+                by monitor class.
+              </li>
+              <li>
+                <code>jdk.JavaMonitorWait</code> — <code>Object.wait()</code>, with a timed-out
+                flag.
+              </li>
+              <li>
+                <code>jdk.ThreadPark</code> — <code>LockSupport.park</code>, by blocker class.
+              </li>
+              <li>
+                <code>jdk.ThreadSleep</code> — <code>Thread.sleep()</code>, with requested vs actual
+                time.
+              </li>
+              <li>
+                <code>jdk.VirtualThreadPinned</code> — a pin exceeding its threshold (20ms by
+                default).
+              </li>
             </ul>
           </AboutSection>
         </AboutPanel>
@@ -510,7 +577,8 @@ const createOccurrencesChart = async (): Promise<void> => {
       title: { text: 'Elapsed Time', style: { fontSize: '12px' } },
       labels: {
         style: { fontSize: '10px' },
-        formatter: (value: string) => FormattingService.formatDuration(Number(value) * 1_000_000_000)
+        formatter: (value: string) =>
+          FormattingService.formatDuration(Number(value) * 1_000_000_000)
       }
     },
     yaxis: {
@@ -565,7 +633,10 @@ const metricsData = computed(() => {
       value: FormattingService.formatDuration2Units(o.totalMonitorBlockedNanos),
       variant: 'highlight' as const,
       breakdown: [
-        { label: 'Contended Classes', value: FormattingService.formatNumber(o.contendedMonitorCount) }
+        {
+          label: 'Contended Classes',
+          value: FormattingService.formatNumber(o.contendedMonitorCount)
+        }
       ]
     },
     {

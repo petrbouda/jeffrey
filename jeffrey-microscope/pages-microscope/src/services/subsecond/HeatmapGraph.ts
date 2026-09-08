@@ -139,8 +139,9 @@ export default class HeatmapGraph {
 
     // Single source of truth for the cell hue, shared with the marginal colorbar legend
     const cellColor =
-      getComputedStyle(document.documentElement).getPropertyValue('--color-subsecond-cell').trim() ||
-      '#0022ff';
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-subsecond-cell')
+        .trim() || '#0022ff';
 
     return {
       chart: {

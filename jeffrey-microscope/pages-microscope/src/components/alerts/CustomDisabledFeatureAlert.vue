@@ -6,7 +6,8 @@
         <h5 class="alert-heading mb-3">{{ title }} Unavailable</h5>
         <p class="mb-3">
           {{ title }} is not available because of missing {{ eventType }} events in this profile. To
-          enable this dashboard, you need to include the Jeffrey Tracing library in your application.
+          enable this dashboard, you need to include the Jeffrey Tracing library in your
+          application.
         </p>
 
         <div class="feature-benefits mb-3">
@@ -58,7 +59,6 @@
 </template>
 
 <script setup lang="ts">
-
 // Define props
 interface Props {
   title: string;

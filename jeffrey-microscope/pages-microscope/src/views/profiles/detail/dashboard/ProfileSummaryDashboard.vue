@@ -109,7 +109,9 @@
         <template #header>
           <MainCardHeader icon="list-check" title="Top Event Types">
             <template #actions>
-              <span class="event-hint">by samples · click a row to open it in the Event Viewer</span>
+              <span class="event-hint"
+                >by samples · click a row to open it in the Event Viewer</span
+              >
             </template>
           </MainCardHeader>
         </template>

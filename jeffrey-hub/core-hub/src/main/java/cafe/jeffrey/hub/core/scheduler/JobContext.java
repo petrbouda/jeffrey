@@ -58,12 +58,6 @@ public record JobContext(Map<String, String> parameters) {
         return Optional.ofNullable(parameters.get(key));
     }
 
-    /**
-     * Checks if a parameter exists.
-     */
-    public boolean hasParameter(String key) {
-        return parameters.containsKey(key);
-    }
 
     /**
      * Returns true if this is an empty context (default execution).

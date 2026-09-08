@@ -1,6 +1,6 @@
 <template>
   <div>
-    <CustomDisabledFeatureAlert v-if="isDisabled" :title="disabledTitle" :eventType="eventType" />
+    <CustomDisabledFeatureAlert v-if="isDisabled" :title="disabledTitle" :event-type="eventType" />
 
     <div v-else>
       <LoadingState v-if="isLoading" />

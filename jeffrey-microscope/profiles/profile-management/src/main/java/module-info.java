@@ -23,7 +23,6 @@ module cafe.jeffrey.microscope.profile.management {
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires cafe.jeffrey.microscope.profile.persistence.jdbc;
     requires cafe.jeffrey.microscope.profile.flamegraph;
-    requires cafe.jeffrey.microscope.profile.heapdump;
     requires cafe.jeffrey.microscope.profile.heapdump.oql;
     requires cafe.jeffrey.microscope.profile.subsecond;
     requires transitive cafe.jeffrey.microscope.profile.threads;
@@ -32,7 +31,6 @@ module cafe.jeffrey.microscope.profile.management {
     requires transitive cafe.jeffrey.microscope.profile.custom.events;
     requires transitive cafe.jeffrey.microscope.profile.heapdump.orchestration;
     requires cafe.jeffrey.microscope.profile.timeseries;
-    requires cafe.jeffrey.microscope.profile.frame.ir;
     requires cafe.jeffrey.microscope.profile.parser.jdk;
     requires cafe.jeffrey.microscope.profile.parser.api;
     requires cafe.jeffrey.microscope.profile.parser.raw;
@@ -72,7 +70,6 @@ module cafe.jeffrey.microscope.profile.management {
     exports cafe.jeffrey.profile.manager;
     exports cafe.jeffrey.profile.manager.action;
     exports cafe.jeffrey.profile.manager.builder;
-    exports cafe.jeffrey.profile.manager.model;
     exports cafe.jeffrey.profile.manager.model.container;
     exports cafe.jeffrey.profile.manager.model.span;
     exports cafe.jeffrey.profile.manager.registry;

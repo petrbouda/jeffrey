@@ -44,15 +44,6 @@ public abstract class FileSystemUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemUtils.class);
 
-    public static String filenameWithoutExtension(Path path) {
-        String fileName = path.getFileName().toString();
-        int dotIndex = fileName.lastIndexOf('.');
-        if (dotIndex == -1) {
-            return fileName;
-        } else {
-            return fileName.substring(0, dotIndex);
-        }
-    }
 
     public static boolean isNotHidden(Path path) {
         try {

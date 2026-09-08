@@ -94,7 +94,9 @@ const getBarValue = (call: GrpcCall): number => {
 };
 
 const maxBarValue = computed(() => {
-  if (props.calls.length === 0) return 1;
+  if (props.calls.length === 0) {
+    return 1;
+  }
   return Math.max(...props.calls.map(c => getBarValue(c)));
 });
 

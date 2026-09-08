@@ -3,7 +3,7 @@
     <CustomDisabledFeatureAlert
       v-if="isGrpcDashboardDisabled"
       :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
-      eventType="gRPC exchange"
+      event-type="gRPC exchange"
     />
 
     <div v-else>
@@ -74,7 +74,9 @@ const {
 } = useTechnologyData<GrpcTrafficData>(() => client.getTraffic(), isGrpcDashboardDisabled);
 
 const createHistogramChart = async () => {
-  if (!histogramChartRef.value || !trafficData.value?.sizeBuckets?.length) return;
+  if (!histogramChartRef.value || !trafficData.value?.sizeBuckets?.length) {
+    return;
+  }
 
   if (histogramChart) {
     histogramChart.destroy();

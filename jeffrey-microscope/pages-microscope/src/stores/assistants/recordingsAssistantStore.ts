@@ -147,7 +147,9 @@ const loadRecentRecordings = async () => {
  */
 const startAnalysis = async () => {
   const file = selectedFile.value;
-  if (!file) return;
+  if (!file) {
+    return;
+  }
 
   const isHeapDump = selectedFileType.value === 'hprof';
 

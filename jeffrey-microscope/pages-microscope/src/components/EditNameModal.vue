@@ -74,7 +74,7 @@ onMounted(() => {
     </template>
     <template #footer>
       <button class="btn btn-secondary" @click="emit('close')">Cancel</button>
-      <button class="btn btn-primary" @click="emit('submit')" :disabled="!modelValue.trim()">
+      <button class="btn btn-primary" :disabled="!modelValue.trim()" @click="emit('submit')">
         {{ submitLabel }}
       </button>
     </template>

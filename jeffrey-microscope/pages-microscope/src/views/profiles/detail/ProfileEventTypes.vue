@@ -22,10 +22,10 @@
             <div class="input-group search-container">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
+                v-model="searchText"
                 type="text"
                 class="form-control search-input"
                 placeholder="Search events..."
-                v-model="searchText"
                 @input="filterEvents"
               />
               <button
@@ -53,15 +53,15 @@
                     <div class="tree-controls">
                       <button
                         class="btn btn-sm btn-outline-primary btn-xs px-1"
-                        @click="collapseAll"
                         title="Collapse All"
+                        @click="collapseAll"
                       >
                         <i class="bi bi-arrows-collapse"></i>
                       </button>
                       <button
                         class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
-                        @click="expandAll"
                         title="Expand All"
+                        @click="expandAll"
                       >
                         <i class="bi bi-arrows-expand"></i>
                       </button>
@@ -154,8 +154,8 @@
                           node.data.count > 0
                         "
                         class="btn btn-sm btn-danger action-btn"
-                        @click="viewFlamegraph(node)"
                         title="View event flamegraph"
+                        @click="viewFlamegraph(node)"
                       >
                         <i class="bi bi-fire"></i> Flame
                       </button>
@@ -167,16 +167,16 @@
                           node.data.count > 0
                         "
                         class="btn btn-sm btn-warning action-btn"
-                        @click="viewTimeSeries(node)"
                         title="View event time series"
+                        @click="viewTimeSeries(node)"
                       >
                         <i class="bi bi-graph-up"></i> TimeSeries
                       </button>
                       <button
                         v-if="node.leaf && node.data.count && node.data.count > 0"
                         class="btn btn-sm btn-primary action-btn"
-                        @click="viewEventDetails(node)"
                         title="View event details"
+                        @click="viewEventDetails(node)"
                       >
                         <i class="bi bi-eye"></i> View
                       </button>
@@ -213,7 +213,7 @@
       :show-footer="false"
       @update:show="showFlamegraphDialog = $event"
     >
-      <div id="scrollable-wrapper" style="padding: 0.75rem" v-if="showFlamegraphDialog">
+      <div v-if="showFlamegraphDialog" id="scrollable-wrapper" style="padding: 0.75rem">
         <TimeSeriesChart
           :graph-updater="graphUpdater"
           :primary-axis-type="AxisFormatType.NUMBER"
@@ -224,7 +224,7 @@
         <FlamegraphComponent
           :with-timeseries="true"
           :use-weight="false"
-          scrollableWrapperClass="scrollable-wrapper"
+          scrollable-wrapper-class="scrollable-wrapper"
           :flamegraph-tooltip="flamegraphTooltip"
           :graph-updater="graphUpdater"
           @loaded="scrollToTop"
@@ -518,8 +518,8 @@ const filterEvents = () => {
     // Only match leaf nodes by name and code
     const nodeMatches = Boolean(
       node.leaf &&
-        (node.data.name.toLowerCase().includes(search) ||
-          (node.data.code && node.data.code.toLowerCase().includes(search)))
+      (node.data.name.toLowerCase().includes(search) ||
+        (node.data.code && node.data.code.toLowerCase().includes(search)))
     );
 
     // No additional filtering applied

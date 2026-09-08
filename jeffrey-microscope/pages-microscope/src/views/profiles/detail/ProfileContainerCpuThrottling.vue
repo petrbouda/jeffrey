@@ -136,7 +136,9 @@ const verdict = computed(() => data.value?.verdict ?? null);
 const verdictVariant = computed<Variant>(() =>
   verdict.value ? SEVERITY_VARIANT[verdict.value.severity] : 'secondary'
 );
-const verdictIcon = computed(() => (verdict.value ? SEVERITY_ICON[verdict.value.severity] : 'bi-dash-circle'));
+const verdictIcon = computed(() =>
+  verdict.value ? SEVERITY_ICON[verdict.value.severity] : 'bi-dash-circle'
+);
 
 // ---- formatting helpers ----
 const formatMillis = (ms: number): string => {
@@ -148,7 +150,9 @@ const formatMillis = (ms: number): string => {
 const formatPct = (pct: number): string => `${pct.toFixed(1)}%`;
 // CPU limit shown as the CFS quota in ms (quota = cores × period), consistent with the CFS period.
 const formatQuotaMillis = (cores: number | null, cfsPeriodMillis: number | null): string =>
-  cores == null || cfsPeriodMillis == null ? 'unlimited' : `${Math.round(cores * cfsPeriodMillis)} ms`;
+  cores == null || cfsPeriodMillis == null
+    ? 'unlimited'
+    : `${Math.round(cores * cfsPeriodMillis)} ms`;
 
 // ---- KPI strip ----
 const kpiMetrics = computed(() => {
@@ -220,7 +224,9 @@ const clearBrush = () => {
   brushRange.value = null;
 };
 
-const maxWindowRatio = computed(() => filteredWindows.value.reduce((max, w) => Math.max(max, w.ratioPct), 0));
+const maxWindowRatio = computed(() =>
+  filteredWindows.value.reduce((max, w) => Math.max(max, w.ratioPct), 0)
+);
 
 const windowsView = useTableView(() => filteredWindows.value, {
   searchableText: w => formatWindowRange(w)
@@ -306,7 +312,9 @@ watch(rankMode, () => {
 
 const periodReady = computed(() => cpuEventType.value !== null && selectedWindow.value !== null);
 const periodDataProvider = computed<SubSecondDataProvider | null>(() =>
-  cpuEventType.value ? new SubSecondDataProviderImpl(profileId, cpuEventType.value, false, bucketSizeMs.value) : null
+  cpuEventType.value
+    ? new SubSecondDataProviderImpl(profileId, cpuEventType.value, false, bucketSizeMs.value)
+    : null
 );
 const periodTimeRange = computed<TimeRange | null>(() =>
   selectedWindow.value
@@ -343,23 +351,33 @@ const ssMetric = ref<SsMetric>('periods');
 const ssTimeseriesData = computed<number[][]>(() =>
   (data.value?.timeseries ?? []).map(p => [
     p.timestampMillis / 1000,
-    ssMetric.value === 'periods' ? p.throttledPeriodsDelta : Number(p.throttledTimeMillisDelta.toFixed(1))
+    ssMetric.value === 'periods'
+      ? p.throttledPeriodsDelta
+      : Number(p.throttledTimeMillisDelta.toFixed(1))
   ])
 );
 const ssHasTimeseries = computed(() => ssTimeseriesData.value.length > 0);
-const ssTitle = computed(() => (ssMetric.value === 'periods' ? 'Throttled periods' : 'Throttled time'));
+const ssTitle = computed(() =>
+  ssMetric.value === 'periods' ? 'Throttled periods' : 'Throttled time'
+);
 const ssAxisType = computed(() =>
   ssMetric.value === 'periods' ? AxisFormatType.NUMBER : AxisFormatType.DURATION_IN_MILLIS
 );
 const ssDataProvider = computed<SubSecondDataProvider | null>(() =>
-  cpuEventType.value ? new SubSecondDataProviderImpl(profileId, cpuEventType.value, false, ssBucketSizeMs.value) : null
+  cpuEventType.value
+    ? new SubSecondDataProviderImpl(profileId, cpuEventType.value, false, ssBucketSizeMs.value)
+    : null
 );
 // Remount the heatmap when the bucket size (or event type) changes.
 const ssHeatmapKey = computed(() => `${ssBucketSizeMs.value}-${cpuEventType.value}`);
 
 const onSsTimeRangeChange = (payload: { start: number; end: number; isZoomed: boolean }) => {
   if (payload.isZoomed) {
-    const range = new TimeRange(Math.floor(payload.start * 1000), Math.ceil(payload.end * 1000), false);
+    const range = new TimeRange(
+      Math.floor(payload.start * 1000),
+      Math.ceil(payload.end * 1000),
+      false
+    );
     ssSubSecondRef.value?.reloadWithTimeRange(range);
   } else {
     ssSubSecondRef.value?.reloadWithTimeRange();
@@ -482,7 +500,7 @@ onMounted(() => {
               :visible-minutes="10"
               :zoom-enabled="true"
               time-unit="seconds"
-              @update:timeRange="onTimeRangeChange"
+              @update:time-range="onTimeRangeChange"
             />
           </div>
 
@@ -493,7 +511,9 @@ onMounted(() => {
           <EmptyState
             v-if="filteredWindows.length === 0"
             icon="bi-check-circle"
-            :title="windows.length === 0 ? 'No throttled windows' : 'No windows in the selected range'"
+            :title="
+              windows.length === 0 ? 'No throttled windows' : 'No windows in the selected range'
+            "
             :description="
               windows.length === 0
                 ? 'The container never hit its CPU quota during this recording.'
@@ -505,7 +525,13 @@ onMounted(() => {
               <TableToolbar v-model="windowsView.query" search-placeholder="Filter windows...">
                 <span class="toolbar-info">Windows</span>
                 <template #filters>
-                  <Badge key-label="Total" :value="windowsView.matchCount" variant="secondary" size="s" borderless />
+                  <Badge
+                    key-label="Total"
+                    :value="windowsView.matchCount"
+                    variant="secondary"
+                    size="s"
+                    borderless
+                  />
                   <button v-if="brushRange" type="button" class="brush-clear" @click="clearBrush">
                     <i class="bi bi-funnel-fill"></i>
                     {{ brushRange.start.toFixed(0) }}–{{ brushRange.end.toFixed(0) }} s
@@ -532,12 +558,19 @@ onMounted(() => {
                 @click="selectWindow(window)"
               >
                 <td class="window-range">{{ formatWindowRange(window) }}</td>
-                <td class="text-end"><strong>{{ formatPct(window.ratioPct) }}</strong></td>
+                <td class="text-end">
+                  <strong>{{ formatPct(window.ratioPct) }}</strong>
+                </td>
                 <td class="text-end">{{ formatMillis(window.throttledTimeMillis) }}</td>
-                <td class="text-end">{{ FormattingService.formatNumber(window.throttledPeriods) }}</td>
+                <td class="text-end">
+                  {{ FormattingService.formatNumber(window.throttledPeriods) }}
+                </td>
                 <td>
                   <div class="share-bar">
-                    <div class="share-bar-fill" :style="{ width: shareBarWidth(window.ratioPct) + '%' }"></div>
+                    <div
+                      class="share-bar-fill"
+                      :style="{ width: shareBarWidth(window.ratioPct) + '%' }"
+                    ></div>
                   </div>
                 </td>
                 <td class="text-end"><span class="inspect-link">Inspect ›</span></td>
@@ -620,7 +653,9 @@ onMounted(() => {
                     </div>
                     <div class="ps">
                       <span class="ps-k">Periods</span>
-                      <span class="ps-v">{{ FormattingService.formatNumber(w.throttledPeriods) }}</span>
+                      <span class="ps-v">{{
+                        FormattingService.formatNumber(w.throttledPeriods)
+                      }}</span>
                     </div>
                   </div>
                 </div>
@@ -716,7 +751,7 @@ onMounted(() => {
                 :zoom-enabled="true"
                 :fixed-window-minutes="5"
                 time-unit="seconds"
-                @update:timeRange="onSsTimeRangeChange"
+                @update:time-range="onSsTimeRangeChange"
               />
             </div>
 
@@ -762,27 +797,37 @@ onMounted(() => {
             <AboutCallout variant="intro">
               <p>
                 A container with a CPU limit gets a slice of CPU time — a <strong>quota</strong> —
-                every scheduling <strong>period</strong> (the Linux CFS period, 100&nbsp;ms by default).
-                Burn through the quota before the period ends and the kernel <strong>parks every one of
-                your threads</strong> until the next period refills it. That pause is throttling.
+                every scheduling <strong>period</strong> (the Linux CFS period, 100&nbsp;ms by
+                default). Burn through the quota before the period ends and the kernel
+                <strong>parks every one of your threads</strong> until the next period refills it.
+                That pause is throttling.
               </p>
             </AboutCallout>
 
             <AboutSection icon="bi-cpu" title="Quota, period, and the saw-tooth">
               <p>
-                With a <code>0.5</code>-core limit you get 50&nbsp;ms of CPU per 100&nbsp;ms period. A
-                burst that wants a full core runs flat-out for ~50&nbsp;ms, then sits idle for the
-                remaining ~50&nbsp;ms — a repeating <em>saw-tooth</em>. On the Period Detail heatmap that
-                shows up as activity at the start of each 100&nbsp;ms band and a quiet tail after it.
+                With a <code>0.5</code>-core limit you get 50&nbsp;ms of CPU per 100&nbsp;ms period.
+                A burst that wants a full core runs flat-out for ~50&nbsp;ms, then sits idle for the
+                remaining ~50&nbsp;ms — a repeating <em>saw-tooth</em>. On the Period Detail heatmap
+                that shows up as activity at the start of each 100&nbsp;ms band and a quiet tail
+                after it.
               </p>
               <FeatureGrid>
-                <FeatureCard icon="bi-thermometer-half" variant="danger" title="Throttling masquerades as latency">
-                  Unexplained periodic latency in a container with a low CPU quota is often throttling,
-                  not your code — it looks like GC or lock contention but isn't.
+                <FeatureCard
+                  icon="bi-thermometer-half"
+                  variant="danger"
+                  title="Throttling masquerades as latency"
+                >
+                  Unexplained periodic latency in a container with a low CPU quota is often
+                  throttling, not your code — it looks like GC or lock contention but isn't.
                 </FeatureCard>
-                <FeatureCard icon="bi-graph-up-arrow" variant="warning" title="Warm-up vs steady-state">
-                  A burst of throttling during start-up (JIT warm-up) is benign; sustained throttling
-                  long after warm-up means the limit is too low for the workload.
+                <FeatureCard
+                  icon="bi-graph-up-arrow"
+                  variant="warning"
+                  title="Warm-up vs steady-state"
+                >
+                  A burst of throttling during start-up (JIT warm-up) is benign; sustained
+                  throttling long after warm-up means the limit is too low for the workload.
                 </FeatureCard>
               </FeatureGrid>
             </AboutSection>
@@ -790,33 +835,46 @@ onMounted(() => {
             <AboutSection icon="bi-search" title="Reading the Period Detail heatmap">
               <ul>
                 <li><strong>X-axis</strong> — seconds across the selected 30&nbsp;s period.</li>
-                <li><strong>Y-axis</strong> — sub-second position, bucketed (1–5&nbsp;ms); darker = more CPU samples.</li>
                 <li>
-                  <strong>Repeating quiet bands</strong> aligned to the 100&nbsp;ms CFS period are stalls —
-                  the quota was spent and threads were parked.
+                  <strong>Y-axis</strong> — sub-second position, bucketed (1–5&nbsp;ms); darker =
+                  more CPU samples.
                 </li>
                 <li>
-                  <strong>Select a region</strong> → a flamegraph of the CPU samples in that slice shows
-                  exactly which methods burned the quota.
+                  <strong>Repeating quiet bands</strong> aligned to the 100&nbsp;ms CFS period are
+                  stalls — the quota was spent and threads were parked.
+                </li>
+                <li>
+                  <strong>Select a region</strong> → a flamegraph of the CPU samples in that slice
+                  shows exactly which methods burned the quota.
                 </li>
               </ul>
             </AboutSection>
 
             <AboutSection icon="bi-broadcast" title="How JFR emits this">
               <p>
-                The verdict and the 30&nbsp;s trend come from <code>jdk.ContainerCPUThrottling</code>,
-                emitted every 30&nbsp;s by default with cumulative kernel counters:
+                The verdict and the 30&nbsp;s trend come from
+                <code>jdk.ContainerCPUThrottling</code>, emitted every 30&nbsp;s by default with
+                cumulative kernel counters:
               </p>
               <ul>
-                <li><code>cpuElapsedSlices</code> — CFS periods elapsed (cgroup <code>nr_periods</code>).</li>
-                <li><code>cpuThrottledSlices</code> — periods throttled (cgroup <code>nr_throttled</code>).</li>
-                <li><code>cpuThrottledTime</code> — total nanoseconds parked (cgroup <code>throttled_time</code>).</li>
+                <li>
+                  <code>cpuElapsedSlices</code> — CFS periods elapsed (cgroup
+                  <code>nr_periods</code>).
+                </li>
+                <li>
+                  <code>cpuThrottledSlices</code> — periods throttled (cgroup
+                  <code>nr_throttled</code>).
+                </li>
+                <li>
+                  <code>cpuThrottledTime</code> — total nanoseconds parked (cgroup
+                  <code>throttled_time</code>).
+                </li>
               </ul>
               <p>
                 Because the counters are cumulative since the container started, Jeffrey deltas
                 consecutive samples to report throttling <em>within</em> the recording window. The
-                heatmap instead uses CPU execution samples, so it reveals the intra-period saw-tooth the
-                30&nbsp;s counters can't.
+                heatmap instead uses CPU execution samples, so it reveals the intra-period saw-tooth
+                the 30&nbsp;s counters can't.
               </p>
             </AboutSection>
           </AboutPanel>
@@ -832,9 +890,18 @@ onMounted(() => {
         @update:show="showDialog = $event"
       >
         <template #header>
-          <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="showDialog = false"
+          ></button>
         </template>
-        <SearchBarComponent v-if="showDialog" :graph-updater="graphUpdater" :with-timeseries="false" />
+        <SearchBarComponent
+          v-if="showDialog"
+          :graph-updater="graphUpdater"
+          :with-timeseries="false"
+        />
         <FlamegraphComponent
           v-if="showDialog"
           :with-timeseries="false"
@@ -920,7 +987,6 @@ onMounted(() => {
   color: var(--color-secondary);
 }
 
-
 .chart-container {
   width: 100%;
 }
@@ -965,7 +1031,7 @@ onMounted(() => {
 }
 .brush-clear:hover {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .window-row {
@@ -1057,7 +1123,7 @@ onMounted(() => {
   height: 44px;
   border-radius: var(--radius-md);
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-white);
   display: grid;
   place-items: center;
   font-size: 1.25rem;
@@ -1115,7 +1181,10 @@ onMounted(() => {
   flex: none;
   display: grid;
   place-items: center;
-  background: conic-gradient(var(--sev, var(--color-primary)) calc(var(--pct) * 1%), var(--color-lighter) 0);
+  background: conic-gradient(
+    var(--sev, var(--color-primary)) calc(var(--pct) * 1%),
+    var(--color-lighter) 0
+  );
 }
 .ratio-ring > span {
   width: 48px;

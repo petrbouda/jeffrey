@@ -38,7 +38,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.atomic.LongAdder;
@@ -287,31 +286,6 @@ public final class HeapDumpDatabaseClient {
 
     // ---- Read side ----
 
-    public <T> Optional<T> queryScalar(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
-        JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
-        event.begin();
-        Optional<T> result = Optional.empty();
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            bind(ps, params);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    result = Optional.ofNullable(mapper.map(rs));
-                }
-            }
-            event.end();
-        } catch (SQLException e) {
-            event.failed(e);
-            throw new RuntimeException("Heap-dump scalar query failed: " + stmt + ": " + e.getMessage(), e);
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = result.isPresent() ? 1 : 0;
-                event.params = paramsToJson(params);
-                event.commitSpan();
-            }
-        }
-        return result;
-    }
 
     public <T> List<T> queryList(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);

@@ -1,5 +1,5 @@
 <template>
-  <div class="ets-root" ref="rootRef">
+  <div ref="rootRef" class="ets-root">
     <!-- Tag input area -->
     <div class="ets-tags-input" :class="{ focused: dropdownOpen }" @click="openDropdown">
       <span
@@ -28,7 +28,7 @@
 
     <!-- Dropdown -->
     <Teleport to="body">
-      <div v-if="dropdownOpen" class="ets-dropdown" :style="dropdownStyle" ref="dropdownRef">
+      <div v-if="dropdownOpen" ref="dropdownRef" class="ets-dropdown" :style="dropdownStyle">
         <!-- Search -->
         <div class="ets-dropdown-search">
           <i class="bi bi-search ets-search-icon"></i>
@@ -120,7 +120,9 @@ const dropdownStyle = ref<Record<string, string>>({});
 
 const filteredCategories = computed(() => {
   const q = searchQuery.value.toLowerCase();
-  if (!q) return EVENT_TYPE_CATALOG;
+  if (!q) {
+    return EVENT_TYPE_CATALOG;
+  }
 
   return EVENT_TYPE_CATALOG.map(cat => ({
     ...cat,
@@ -188,7 +190,9 @@ function openDropdown() {
 }
 
 function updateDropdownPosition() {
-  if (!rootRef.value) return;
+  if (!rootRef.value) {
+    return;
+  }
   const rect = rootRef.value.getBoundingClientRect();
   dropdownStyle.value = {
     position: 'fixed',

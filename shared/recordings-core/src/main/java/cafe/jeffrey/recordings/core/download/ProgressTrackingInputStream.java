@@ -109,10 +109,4 @@ public class ProgressTrackingInputStream extends FilterInputStream {
         return fileName;
     }
 
-    /**
-     * Returns the total number of bytes read so far.
-     */
-    public long getBytesRead() {
-        return bytesRead;
-    }
 }

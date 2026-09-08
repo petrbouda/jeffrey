@@ -27,7 +27,9 @@ const packageName = computed(() => {
 
 const packageColorClass = computed(() => {
   const pkg = packageName.value;
-  if (!pkg) return '';
+  if (!pkg) {
+    return '';
+  }
   return isJdkPackage(pkg) ? 'cd-pkg-jdk' : 'cd-pkg-other';
 });
 </script>

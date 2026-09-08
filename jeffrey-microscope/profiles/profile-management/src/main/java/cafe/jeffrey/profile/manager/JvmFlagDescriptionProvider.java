@@ -65,24 +65,6 @@ public class JvmFlagDescriptionProvider {
         return desc != null ? desc.category() : null;
     }
 
-    /**
-     * Checks if a description exists for the given flag.
-     *
-     * @param flagName the name of the flag
-     * @return true if description exists
-     */
-    public boolean hasDescription(String flagName) {
-        return descriptions.containsKey(flagName);
-    }
-
-    /**
-     * Gets the total number of flag descriptions loaded.
-     *
-     * @return the count of loaded descriptions
-     */
-    public int getDescriptionCount() {
-        return descriptions.size();
-    }
 
     private Map<String, FlagDescription> loadDescriptions() {
         try (InputStream is = getClass().getResourceAsStream(RESOURCE_PATH)) {

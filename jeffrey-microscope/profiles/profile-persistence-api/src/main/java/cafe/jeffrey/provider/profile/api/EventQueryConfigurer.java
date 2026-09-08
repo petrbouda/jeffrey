@@ -153,15 +153,6 @@ public class EventQueryConfigurer {
         return this;
     }
 
-    /**
-     * Limit the event-stream to a single thread.
-     *
-     * @param threadInfo thread information
-     * @return instance of the event-stream configurer
-     */
-    public EventQueryConfigurer withSpecifiedThread(ThreadInfo threadInfo) {
-        return threadInfo == null ? this : withSpecifiedThreads(List.of(threadInfo));
-    }
 
     /**
      * Limit the event-stream to a set of threads — the timeline draws one lane per group of

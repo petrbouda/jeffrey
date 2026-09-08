@@ -242,24 +242,24 @@ const SCALAR_TYPES = new Set([
 ]);
 
 const allServices = computed<GrpcService[]>(() => {
-  if (!docs.value) return [];
+  if (!docs.value) {return [];}
   return docs.value.files.flatMap(f => f.services);
 });
 
 const allMessages = computed<GrpcMessage[]>(() => {
-  if (!docs.value) return [];
+  if (!docs.value) {return [];}
   const msgs = docs.value.files.flatMap(f => f.messages);
   // Filter out request/response wrappers that have no interesting fields
   return msgs.filter(m => !m.name.endsWith('Request') && !m.name.endsWith('Response'));
 });
 
 const allEnums = computed<GrpcEnum[]>(() => {
-  if (!docs.value) return [];
+  if (!docs.value) {return [];}
   return docs.value.files.flatMap(f => f.enums);
 });
 
 const messageMap = computed<Map<string, GrpcMessage>>(() => {
-  if (!docs.value) return new Map();
+  if (!docs.value) {return new Map();}
   const map = new Map<string, GrpcMessage>();
   for (const file of docs.value.files) {
     for (const msg of file.messages) {
@@ -271,7 +271,7 @@ const messageMap = computed<Map<string, GrpcMessage>>(() => {
 
 const getMessage = (name: string): GrpcMessage | undefined => {
   const msg = messageMap.value.get(name);
-  if (msg && msg.fields.length > 0) return msg;
+  if (msg && msg.fields.length > 0) {return msg;}
   return undefined;
 };
 

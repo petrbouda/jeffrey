@@ -112,18 +112,18 @@ const updatePosition = () => {
 };
 
 const selectedItem = computed(() => {
-  if (props.modelValue == null) return null;
+  if (props.modelValue == null) {return null;}
   return props.items.find(item => item.label === props.modelValue) || null;
 });
 
 const filteredItems = computed(() => {
-  if (!searchQuery.value) return props.items;
+  if (!searchQuery.value) {return props.items;}
   const query = searchQuery.value.toLowerCase();
   return props.items.filter(item => item.label.toLowerCase().includes(query));
 });
 
 const highlightMatch = (text: string): string => {
-  if (!searchQuery.value) return text;
+  if (!searchQuery.value) {return text;}
   const query = searchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`(${query})`, 'gi');
   return text.replace(regex, '<strong class="highlight">$1</strong>');

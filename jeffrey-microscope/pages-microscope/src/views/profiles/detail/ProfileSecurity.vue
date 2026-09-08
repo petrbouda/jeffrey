@@ -41,7 +41,10 @@
           <div class="col-lg-4">
             <DataTable v-if="data!.protocols.length > 0">
               <template #toolbar>
-                <TableToolbar v-model="protocolsView.query" search-placeholder="Filter protocols...">
+                <TableToolbar
+                  v-model="protocolsView.query"
+                  search-placeholder="Filter protocols..."
+                >
                   <span class="toolbar-info">Protocol Versions</span>
                   <template #filters>
                     <Badge
@@ -218,13 +221,7 @@
               <td>{{ FormattingService.formatTimestamp(c.validUntil) }}</td>
               <td class="text-end">{{ FormattingService.formatNumber(c.validationCount) }}</td>
               <td>
-                <Badge
-                  v-if="c.weakKey"
-                  value="weak key"
-                  variant="danger"
-                  size="xs"
-                  class="me-1"
-                />
+                <Badge v-if="c.weakKey" value="weak key" variant="danger" size="xs" class="me-1" />
                 <Badge
                   v-if="c.weakSignature"
                   value="weak sig"
@@ -483,7 +480,11 @@
             </FeatureGrid>
           </AboutSection>
 
-          <AboutCallout variant="tip" title="Treat flagged items as a checklist" icon="bi-lightbulb-fill">
+          <AboutCallout
+            variant="tip"
+            title="Treat flagged items as a checklist"
+            icon="bi-lightbulb-fill"
+          >
             Legacy TLS protocols, weak keys/signatures, expiring certificates, and rejected
             deserialization are the rows worth acting on first — they are concrete, fixable security
             findings, not just informational telemetry.
@@ -507,9 +508,7 @@
                 <code>jdk.Deserialization</code> — Java deserialization attempts (filter status,
                 sizes, depth).
               </li>
-              <li>
-                <code>jdk.SecurityProviderService</code> — JCA provider/algorithm lookups.
-              </li>
+              <li><code>jdk.SecurityProviderService</code> — JCA provider/algorithm lookups.</li>
             </ul>
             <p>
               These security events are <strong>generally disabled by default</strong> in the

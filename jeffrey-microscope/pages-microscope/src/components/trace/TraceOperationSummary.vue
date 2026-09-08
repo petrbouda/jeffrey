@@ -28,91 +28,91 @@
     <StatsTable :metrics="metrics" />
 
     <MainCard :bottom-margin="false">
-        <template #header>
-          <MainCardHeader icon="bi bi-bar-chart-steps" title="Latency distribution">
-            <template #actions>
-              <span class="card-note">{{ sampleNote ?? `${traces.length} traces` }}</span>
-            </template>
-          </MainCardHeader>
-        </template>
+      <template #header>
+        <MainCardHeader icon="bi bi-bar-chart-steps" title="Latency distribution">
+          <template #actions>
+            <span class="card-note">{{ sampleNote ?? `${traces.length} traces` }}</span>
+          </template>
+        </MainCardHeader>
+      </template>
 
-        <EmptyState
-          v-if="histogram.buckets.length === 0"
-          title="Nothing to plot"
-          description="This operation has no completed traces."
-          icon="bi-bar-chart-steps"
-        />
-        <div v-else class="histogram">
-          <div class="histogram-bars">
-            <!--
+      <EmptyState
+        v-if="histogram.buckets.length === 0"
+        title="Nothing to plot"
+        description="This operation has no completed traces."
+        icon="bi-bar-chart-steps"
+      />
+      <div v-else class="histogram">
+        <div class="histogram-bars">
+          <!--
               Height is share of the fullest bucket, so a single outlier stays visible next to a
               cluster instead of collapsing to a hairline.
             -->
-            <div
-              v-for="(bucket, index) in histogram.buckets"
-              :key="index"
-              class="histogram-bar"
-              :style="{ height: barHeight(bucket.count) }"
-              :title="bucketTitle(bucket)"
-            ></div>
-          </div>
-          <div class="histogram-axis">
-            <span>{{ duration(histogram.from) }}</span>
-            <span>{{ duration((histogram.from + histogram.to) / 2) }}</span>
-            <span>{{ duration(histogram.to) }}</span>
-          </div>
+          <div
+            v-for="(bucket, index) in histogram.buckets"
+            :key="index"
+            class="histogram-bar"
+            :style="{ height: barHeight(bucket.count) }"
+            :title="bucketTitle(bucket)"
+          ></div>
         </div>
+        <div class="histogram-axis">
+          <span>{{ duration(histogram.from) }}</span>
+          <span>{{ duration((histogram.from + histogram.to) / 2) }}</span>
+          <span>{{ duration(histogram.to) }}</span>
+        </div>
+      </div>
     </MainCard>
 
     <MainCard :bottom-margin="false">
-        <template #header>
-          <MainCardHeader icon="bi bi-list-nested" title="Top spans by time">
-            <template #actions>
-              <!--
+      <template #header>
+        <MainCardHeader icon="bi bi-list-nested" title="Top spans by time">
+          <template #actions>
+            <!--
                 The two rankings answer different questions and routinely disagree: a span that only
                 wraps three slow queries tops the inclusive list and barely registers on the self
                 one. Switching between them is how you tell "where the request is" from "what to go
                 and fix", so the toggle sits on the card rather than being a preference.
               -->
-              <!-- The ranking key, a sibling pill to the mode: both govern what the list below says. -->
-              <span class="span-seg" role="group" aria-label="Rank spans by">
-                <button
-                  v-for="option in SPAN_SORT_OPTIONS"
-                  :key="option.key"
-                  type="button"
-                  :class="{ on: spanSort === option.key }"
-                  :title="`Rank the spans by ${sortLabel(option)}`"
-                  @click="spanSort = option.key"
-                >
-                  {{ sortLabel(option) }}
-                </button>
-              </span>
-              <span class="span-seg" role="group" aria-label="Time reading">
-                <button
-                  v-for="mode in SPAN_MODES"
-                  :key="mode.key"
-                  type="button"
-                  :class="{ on: spanMode === mode.key }"
-                  :title="mode.title"
-                  @click="spanMode = mode.key"
-                >
-                  {{ mode.label }}
-                </button>
-              </span>
-            </template>
-          </MainCardHeader>
-        </template>
+            <!-- The ranking key, a sibling pill to the mode: both govern what the list below says. -->
+            <span class="span-seg" role="group" aria-label="Rank spans by">
+              <button
+                v-for="option in SPAN_SORT_OPTIONS"
+                :key="option.key"
+                type="button"
+                :class="{ on: spanSort === option.key }"
+                :title="`Rank the spans by ${sortLabel(option)}`"
+                @click="spanSort = option.key"
+              >
+                {{ sortLabel(option) }}
+              </button>
+            </span>
+            <span class="span-seg" role="group" aria-label="Time reading">
+              <button
+                v-for="mode in SPAN_MODES"
+                :key="mode.key"
+                type="button"
+                :class="{ on: spanMode === mode.key }"
+                :title="mode.title"
+                @click="spanMode = mode.key"
+              >
+                {{ mode.label }}
+              </button>
+            </span>
+          </template>
+        </MainCardHeader>
+      </template>
 
-        <LoadingState v-if="loading" message="Loading the span breakdown..." />
-        <!-- A failed fetch must not claim every trace is a single span. -->
-        <ErrorState v-else-if="error" :message="error" @retry="load" />
-        <EmptyState
-          v-else-if="spans.length === 0"
-          title="No nested spans"
-          description="Every trace of this operation is a single span."
-          icon="bi-list-nested"
-        />
-        <!--
+      <LoadingState v-if="loading" message="Loading the span breakdown..." />
+      <!-- A failed fetch must not claim every trace is a single span. -->
+      <ErrorState v-else-if="error" :message="error" @retry="load" />
+      <EmptyState
+        v-else-if="spans.length === 0"
+        title="No nested spans"
+        description="Every trace of this operation is a single span."
+        icon="bi-list-nested"
+      />
+      <!--
           One line per span, columns aligned: the total alone cannot separate "one span that is
           always slow" from "a fast span called a thousand times", which are different problems
           with different fixes — the Calls, P50 and Max columns say which one each row is, and
@@ -123,52 +123,50 @@
           instrumented, and waits the derivation promoted out of JDK events. Read as bare names,
           "Socket read" sits among the mapper calls looking like a method somebody wrote.
         -->
-        <div v-else class="span-grid">
-          <div class="span-grid-head">
-            <span></span>
-            <span>Span</span>
-            <span>Share</span>
-            <span class="span-end">Total</span>
-            <span class="span-end">Calls</span>
-            <span class="span-end">{{ spanMode === 'total' ? 'Max' : 'Own' }}</span>
-            <span class="span-end">P99</span>
-            <span class="span-end">P50</span>
-          </div>
-          <div
-            v-for="span in rankedSpans"
-            :key="spanKey(span)"
-            class="span-grid-row"
-            :style="{ '--span-color': spanColor(span) }"
-          >
-            <span class="span-rail"></span>
-            <span class="span-name">
-              <!--
+      <div v-else class="span-grid">
+        <div class="span-grid-head">
+          <span></span>
+          <span>Span</span>
+          <span>Share</span>
+          <span class="span-end">Total</span>
+          <span class="span-end">Calls</span>
+          <span class="span-end">{{ spanMode === 'total' ? 'Max' : 'Own' }}</span>
+          <span class="span-end">P99</span>
+          <span class="span-end">P50</span>
+        </div>
+        <div
+          v-for="span in rankedSpans"
+          :key="spanKey(span)"
+          class="span-grid-row"
+          :style="{ '--span-color': spanColor(span) }"
+        >
+          <span class="span-rail"></span>
+          <span class="span-name">
+            <!--
                 A promoted wait leaves the monospace face behind: "Socket read" is a label this
                 application wrote for a JDK event, not an identifier from anyone's source.
               -->
-              <span
-                class="span-label"
-                :class="{ promoted: isPromoted(span) }"
-                :title="span.name"
-              >{{ span.name }}</span>
-              <span class="span-type" :title="spanTypeTitle(span)">{{ span.eventType }}</span>
-            </span>
-            <span class="span-track">
-              <span class="span-fill" :style="{ width: spanShare(span) }"></span>
-            </span>
-            <span class="span-total">{{ duration(spanTime(span)) }}</span>
-            <span class="span-cell" :title="spanReachTitle(span)">{{ span.occurrences }}</span>
-            <span v-if="spanMode === 'total'" class="span-cell">{{ duration(span.maxNanos) }}</span>
-            <span v-else class="span-cell" :title="ownShareTitle(span)">{{ ownShare(span) }}</span>
-            <span class="span-cell">
-              {{ duration(spanMode === 'self' ? span.p99SelfNanos : span.p99Nanos) }}
-            </span>
-            <span class="span-cell">
-              {{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}
-            </span>
-          </div>
+            <span class="span-label" :class="{ promoted: isPromoted(span) }" :title="span.name">{{
+              span.name
+            }}</span>
+            <span class="span-type" :title="spanTypeTitle(span)">{{ span.eventType }}</span>
+          </span>
+          <span class="span-track">
+            <span class="span-fill" :style="{ width: spanShare(span) }"></span>
+          </span>
+          <span class="span-total">{{ duration(spanTime(span)) }}</span>
+          <span class="span-cell" :title="spanReachTitle(span)">{{ span.occurrences }}</span>
+          <span v-if="spanMode === 'total'" class="span-cell">{{ duration(span.maxNanos) }}</span>
+          <span v-else class="span-cell" :title="ownShareTitle(span)">{{ ownShare(span) }}</span>
+          <span class="span-cell">
+            {{ duration(spanMode === 'self' ? span.p99SelfNanos : span.p99Nanos) }}
+          </span>
+          <span class="span-cell">
+            {{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}
+          </span>
         </div>
-      </MainCard>
+      </div>
+    </MainCard>
 
     <!--
       The slowest traces as the cards Search Traces draws, so a trace reads the same way whichever
@@ -201,7 +199,6 @@
       empty-description="This operation has no completed traces."
       @open="(trace: TraceRow) => emit('openTrace', trace)"
     />
-
   </div>
 </template>
 
@@ -248,10 +245,10 @@ const MIN_HISTOGRAM_BUCKETS = 6;
 /** The breakdown is a ranking, not a catalogue; the tail of a long list is never read. */
 const DISPLAYED_SPANS = 8;
 /**
-  * A summary shows the worst few; the Slowest Traces tab is where the whole ranking lives. Twenty
-  * rather than five since the row went to one line — five was what fitted when a trace cost 98px,
-  * and at 40px twenty is the same amount of page.
-  */
+ * A summary shows the worst few; the Slowest Traces tab is where the whole ranking lives. Twenty
+ * rather than five since the row went to one line — five was what fitted when a trace cost 98px,
+ * and at 40px twenty is the same amount of page.
+ */
 const SLOWEST_SHOWN = 20;
 /** Below this an own-work share rounds to 0%, where "<1%" is the more honest reading. */
 const MIN_REPORTED_SHARE_PERCENT = 1;

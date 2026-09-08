@@ -37,9 +37,9 @@
     >
       <p>
         A thread dump (<code>jdk.ThreadDump</code>) is a periodic, full
-        <code>jstack</code>-style snapshot of every thread — its state, stack and held/awaited
-        locks — emitted by the JVM on a fixed interval. Jeffrey parses each dump and correlates
-        them across the recording, so this page stays empty until at least one is present.
+        <code>jstack</code>-style snapshot of every thread — its state, stack and held/awaited locks
+        — emitted by the JVM on a fixed interval. Jeffrey parses each dump and correlates them
+        across the recording, so this page stays empty until at least one is present.
       </p>
       <p>
         In the JDK's bundled configurations this event is <strong>disabled</strong> in the lean
@@ -95,10 +95,21 @@
 
         <DataTable v-if="data!.lockContention.length > 0" class="mt-4">
           <template #toolbar>
-            <TableToolbar v-model="lockContentionView.query" search-placeholder="Filter monitors...">
-              <span class="toolbar-info">Lock Contention <span class="muted">(worst dump)</span></span>
+            <TableToolbar
+              v-model="lockContentionView.query"
+              search-placeholder="Filter monitors..."
+            >
+              <span class="toolbar-info"
+                >Lock Contention <span class="muted">(worst dump)</span></span
+              >
               <template #filters>
-                <Badge key-label="Total" :value="lockContentionView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="lockContentionView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -112,7 +123,9 @@
           </thead>
           <tbody>
             <tr v-for="(c, i) in lockContentionView.visible" :key="i">
-              <td><code>{{ c.monitorId }}</code></td>
+              <td>
+                <code>{{ c.monitorId }}</code>
+              </td>
               <td class="class-cell" :title="c.monitorClass ?? ''">
                 <ClassNameDisplay v-if="c.monitorClass" :class-name="c.monitorClass" />
                 <span v-else>—</span>
@@ -150,7 +163,13 @@
             <TableToolbar v-model="stuckThreadsView.query" search-placeholder="Filter threads...">
               <span class="toolbar-info">Stuck Threads</span>
               <template #filters>
-                <Badge key-label="Total" :value="stuckThreadsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="stuckThreadsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -167,7 +186,9 @@
             <tr v-for="(s, i) in stuckThreadsView.visible" :key="i">
               <td>{{ s.name }}</td>
               <td><Badge :value="s.state" :variant="stateVariant(s.state)" size="s" /></td>
-              <td><code>{{ s.topFrame }}</code></td>
+              <td>
+                <code>{{ s.topFrame }}</code>
+              </td>
               <td class="text-end">{{ s.consecutiveDumps }}</td>
               <td class="text-end">{{ formatOffset(s.stuckForMillis) }}</td>
             </tr>
@@ -199,13 +220,13 @@
             use-case="Brush a region on the lower chart to limit the dump picker to that interval — zoom into a spike or the moments around a deadlock."
           />
           <TimeSeriesChart
-            :primaryData="threadSeries"
-            primaryTitle="Live threads"
-            :xAnnotations="deadlockAnnotations"
+            :primary-data="threadSeries"
+            primary-title="Live threads"
+            :x-annotations="deadlockAnnotations"
             time-unit="milliseconds"
-            :visibleMinutes="6000"
-            :zoomEnabled="true"
-            @update:timeRange="onRange"
+            :visible-minutes="6000"
+            :zoom-enabled="true"
+            @update:time-range="onRange"
           />
         </div>
 
@@ -217,7 +238,11 @@
             @change="loadDump"
           >
             <option v-for="d in windowedDumps" :key="d.index" :value="d.index">
-              {{ formatOffset(d.timeOffsetMillis) }} · {{ d.threadCount }} threads<template v-if="d.deadlockCount > 0"> · ⚠ deadlock</template>
+              {{ formatOffset(d.timeOffsetMillis) }} · {{ d.threadCount }} threads<template
+                v-if="d.deadlockCount > 0"
+              >
+                · ⚠ deadlock</template
+              >
             </option>
           </select>
 
@@ -246,7 +271,11 @@
             type="button"
             class="tdb-toggle"
             :class="{ on: grouped }"
-            :title="grouped ? 'One row per unique stack — toggle off for one row per thread' : 'One row per thread — toggle on to merge identical stacks'"
+            :title="
+              grouped
+                ? 'One row per unique stack — toggle off for one row per thread'
+                : 'One row per thread — toggle on to merge identical stacks'
+            "
             @click="grouped = !grouped"
           >
             <span class="sw"></span> Group identical stacks
@@ -295,7 +324,9 @@
                   :class="{ sel: selectedGroup && selectedGroup.key === g.key }"
                   @click="selectedKey = g.key"
                 >
-                  <span class="tdb-count" :class="{ one: g.members.length === 1 }">{{ g.members.length }}×</span>
+                  <span class="tdb-count" :class="{ one: g.members.length === 1 }"
+                    >{{ g.members.length }}×</span
+                  >
                   <span class="tdb-col">
                     <span class="tdb-name">{{ groupTitle(g) }}</span>
                     <span class="tdb-frame">{{ topFrame(g.members[0]) }}</span>
@@ -329,25 +360,41 @@
           <div class="tdb-detail">
             <template v-if="grouped && selectedGroup">
               <div class="tdb-dhd">
-                <Badge :value="selectedGroup.state" :variant="stateVariant(selectedGroup.state)" size="s" />
+                <Badge
+                  :value="selectedGroup.state"
+                  :variant="stateVariant(selectedGroup.state)"
+                  size="s"
+                />
                 <h3 class="tdb-title">{{ groupTitle(selectedGroup) }}</h3>
-                <span v-if="selectedGroup.members.length > 1" class="tdb-count">{{ selectedGroup.members.length }}×</span>
+                <span v-if="selectedGroup.members.length > 1" class="tdb-count"
+                  >{{ selectedGroup.members.length }}×</span
+                >
               </div>
               <div class="tdb-meta">
-                <span>Threads <b>{{ selectedGroup.members.length }}</b></span>
-                <span>Group <b>{{ selectedGroup.members[0].group }}</b></span>
+                <span
+                  >Threads <b>{{ selectedGroup.members.length }}</b></span
+                >
+                <span
+                  >Group <b>{{ selectedGroup.members[0].group }}</b></span
+                >
               </div>
               <pre class="tdb-stack">{{ stackText(selectedGroup.members[0]) }}</pre>
               <ul v-if="selectedGroup.members[0].locks.length" class="tdb-locks">
                 <li v-for="(l, li) in selectedGroup.members[0].locks" :key="li">
-                  {{ lockLabel(l.kind) }} <code>{{ l.monitorId }}</code><span v-if="l.monitorClass"> (a {{ l.monitorClass }})</span>
+                  {{ lockLabel(l.kind) }} <code>{{ l.monitorId }}</code
+                  ><span v-if="l.monitorClass"> (a {{ l.monitorClass }})</span>
                 </li>
               </ul>
               <div v-if="selectedGroup.members.length > 1" class="tdb-members">
-                <div class="tdb-members-hd">Threads in this group ({{ selectedGroup.members.length }})</div>
+                <div class="tdb-members-hd">
+                  Threads in this group ({{ selectedGroup.members.length }})
+                </div>
                 <DataTable>
                   <thead>
-                    <tr><th>Thread</th><th class="text-end">Locks</th></tr>
+                    <tr>
+                      <th>Thread</th>
+                      <th class="text-end">Locks</th>
+                    </tr>
                   </thead>
                   <tbody>
                     <tr v-for="(m, mi) in selectedGroup.members" :key="mi">
@@ -361,17 +408,26 @@
 
             <template v-else-if="!grouped && selectedThread">
               <div class="tdb-dhd">
-                <Badge :value="selectedThread.state" :variant="stateVariant(selectedThread.state)" size="s" />
+                <Badge
+                  :value="selectedThread.state"
+                  :variant="stateVariant(selectedThread.state)"
+                  size="s"
+                />
                 <h3 class="tdb-title">{{ selectedThread.name }}</h3>
               </div>
               <div class="tdb-meta">
-                <span>Group <b>{{ selectedThread.group }}</b></span>
-                <span>Locks <b>{{ selectedThread.locks.length }}</b></span>
+                <span
+                  >Group <b>{{ selectedThread.group }}</b></span
+                >
+                <span
+                  >Locks <b>{{ selectedThread.locks.length }}</b></span
+                >
               </div>
               <pre class="tdb-stack">{{ stackText(selectedThread) }}</pre>
               <ul v-if="selectedThread.locks.length" class="tdb-locks">
                 <li v-for="(l, li) in selectedThread.locks" :key="li">
-                  {{ lockLabel(l.kind) }} <code>{{ l.monitorId }}</code><span v-if="l.monitorClass"> (a {{ l.monitorClass }})</span>
+                  {{ lockLabel(l.kind) }} <code>{{ l.monitorId }}</code
+                  ><span v-if="l.monitorClass"> (a {{ l.monitorClass }})</span>
                 </li>
               </ul>
             </template>
@@ -390,10 +446,11 @@
         >
           <AboutCallout variant="intro">
             <p>
-              The JVM periodically emits a full textual thread dump (<code>jdk.ThreadDump</code>, like
-              <code>jstack</code>): every thread's state, stack and held/awaited locks. Jeffrey parses
-              each dump and correlates them across the recording, so you get trends instead of a single
-              snapshot.
+              The JVM periodically emits a full textual thread dump (<code>jdk.ThreadDump</code>,
+              like
+              <code>jstack</code>): every thread's state, stack and held/awaited locks. Jeffrey
+              parses each dump and correlates them across the recording, so you get trends instead
+              of a single snapshot.
             </p>
           </AboutCallout>
 
@@ -405,9 +462,10 @@
           <AboutSection icon="bi-graph-up" title="What the Views Show">
             <FeatureGrid>
               <FeatureCard icon="bi-search" variant="primary" title="Browser">
-                A master&ndash;detail view of any dump: threads sharing an identical stack are grouped (with a
-                count) so idle pools collapse to one row — pick a group or thread to read its full stack and
-                held/awaited locks. Toggle grouping off for a per-thread list, or switch to raw text.
+                A master&ndash;detail view of any dump: threads sharing an identical stack are
+                grouped (with a count) so idle pools collapse to one row — pick a group or thread to
+                read its full stack and held/awaited locks. Toggle grouping off for a per-thread
+                list, or switch to raw text.
               </FeatureCard>
               <FeatureCard icon="bi-lock" variant="danger" title="Locks & Deadlocks">
                 JVM-reported deadlocks and the most-contended monitors with their waiters and owner.
@@ -424,8 +482,8 @@
                 <code>jdk.ThreadDump</code> — a periodic, full <code>jstack</code>-style snapshot of
                 every thread (state, stack, held/awaited locks), emitted on a fixed interval. It is
                 <strong>disabled</strong> in the bundled <code>default</code> config but
-                <strong>enabled</strong> in <code>profile</code> with <code>period=60s</code> (one dump
-                per minute) — so a <code>default</code>-config recording has none.
+                <strong>enabled</strong> in <code>profile</code> with <code>period=60s</code> (one
+                dump per minute) — so a <code>default</code>-config recording has none.
               </li>
             </ul>
           </AboutSection>
@@ -519,7 +577,8 @@ const lockLabel = (kind: ThreadLockKind): string => {
   }
 };
 
-const formatOffset = (millis: number): string => FormattingService.formatDuration2Units(millis * 1_000_000);
+const formatOffset = (millis: number): string =>
+  FormattingService.formatDuration2Units(millis * 1_000_000);
 
 const lockContentionView = useTableView(() => data.value?.lockContention ?? [], {
   searchableText: c => c.monitorClass ?? ''
@@ -549,7 +608,9 @@ const metrics = computed(() => {
       title: 'Thread Dumps',
       value: FormattingService.formatNumber(h.dumpCount),
       variant: 'highlight' as const,
-      breakdown: [{ label: 'Peak Threads', value: FormattingService.formatNumber(h.peakThreadCount) }]
+      breakdown: [
+        { label: 'Peak Threads', value: FormattingService.formatNumber(h.peakThreadCount) }
+      ]
     },
     {
       icon: 'exclamation-octagon',
@@ -596,7 +657,7 @@ interface StackGroup {
 const topFrame = (t: ParsedThread): string => (t.frames.length ? t.frames[0] : '(no Java frames)');
 
 const stackText = (t: ParsedThread): string =>
-  t.frames.length ? t.frames.map((f) => '  at ' + f).join('\n') : '(no Java frames)';
+  t.frames.length ? t.frames.map(f => '  at ' + f).join('\n') : '(no Java frames)';
 
 // A multi-thread group's display name collapses a numeric pool suffix to "-∗".
 const groupTitle = (g: StackGroup): string => {
@@ -623,11 +684,11 @@ const stateCounts = computed<Record<string, number>>(() => {
   return c;
 });
 
-const presentStates = computed<ThreadState[]>(() => STATE_ORDER.filter((s) => stateCounts.value[s]));
+const presentStates = computed<ThreadState[]>(() => STATE_ORDER.filter(s => stateCounts.value[s]));
 
 const visibleThreads = computed<ParsedThread[]>(() => {
   const query = browseQuery.value.trim().toLowerCase();
-  return dumpThreads.value.filter((t) => {
+  return dumpThreads.value.filter(t => {
     if (browseStateFilter.value && t.state !== browseStateFilter.value) {
       return false;
     }
@@ -651,37 +712,37 @@ const buildGroups = (list: ParsedThread[]): StackGroup[] => {
 };
 
 const groupSections = computed(() =>
-  STATE_ORDER.map((state) => ({
+  STATE_ORDER.map(state => ({
     state,
-    groups: buildGroups(visibleThreads.value.filter((t) => t.state === state))
-  })).filter((sec) => sec.groups.length > 0)
+    groups: buildGroups(visibleThreads.value.filter(t => t.state === state))
+  })).filter(sec => sec.groups.length > 0)
 );
 
 const flatSections = computed(() =>
-  STATE_ORDER.map((state) => ({
+  STATE_ORDER.map(state => ({
     state,
     threads: visibleThreads.value
-      .filter((t) => t.state === state)
+      .filter(t => t.state === state)
       .sort((a, b) => a.name.localeCompare(b.name))
-  })).filter((sec) => sec.threads.length > 0)
+  })).filter(sec => sec.threads.length > 0)
 );
 
 // Selection falls back to the first item whenever the current pick is filtered/grouped away.
 const selectedGroup = computed<StackGroup | null>(() => {
-  const all = groupSections.value.flatMap((s) => s.groups);
-  return all.find((g) => g.key === selectedKey.value) ?? all[0] ?? null;
+  const all = groupSections.value.flatMap(s => s.groups);
+  return all.find(g => g.key === selectedKey.value) ?? all[0] ?? null;
 });
 
 const selectedThread = computed<ParsedThread | null>(() => {
-  const all = flatSections.value.flatMap((s) => s.threads);
-  return all.find((t) => t.name === selectedName.value) ?? all[0] ?? null;
+  const all = flatSections.value.flatMap(s => s.threads);
+  return all.find(t => t.name === selectedName.value) ?? all[0] ?? null;
 });
 
 // ----- Time-span picker: a threads-over-time chart whose brush limits the dump list -----
 const timeWindow = ref<{ start: number; end: number } | null>(null);
 
 const threadSeries = computed<number[][]>(() =>
-  (data.value?.dumps ?? []).map((d) => [d.timeOffsetMillis, d.threadCount])
+  (data.value?.dumps ?? []).map(d => [d.timeOffsetMillis, d.threadCount])
 );
 
 const escapeHtml = (value: string): string =>
@@ -704,7 +765,7 @@ const deadlockAnnotations = computed<ChartAnnotation[]>(() => {
 
   return [...byTime.entries()].map(([time, list]) => {
     const count = list.length;
-    const threads = [...new Set(list.flatMap((e) => e.involvedThreads))];
+    const threads = [...new Set(list.flatMap(e => e.involvedThreads))];
     const threadSummary = threads.length > 0 ? escapeHtml(threads.join(' ↔ ')) : '—';
     const tooltipHtml =
       '<div class="tsc-anno-tip-title">⚠ Deadlock</div>' +
@@ -721,7 +782,7 @@ const windowedDumps = computed(() => {
   if (!w) {
     return dumps;
   }
-  return dumps.filter((d) => d.timeOffsetMillis >= w.start && d.timeOffsetMillis <= w.end);
+  return dumps.filter(d => d.timeOffsetMillis >= w.start && d.timeOffsetMillis <= w.end);
 });
 
 const onRange = (payload: { start: number; end: number; isZoomed: boolean }): void => {
@@ -729,8 +790,8 @@ const onRange = (payload: { start: number; end: number; isZoomed: boolean }): vo
 };
 
 // When the window changes, keep the loaded dump valid — snap to the first one in range.
-watch(windowedDumps, (dumps) => {
-  if (dumps.length > 0 && !dumps.some((d) => d.index === selectedIndex.value)) {
+watch(windowedDumps, dumps => {
+  if (dumps.length > 0 && !dumps.some(d => d.index === selectedIndex.value)) {
     selectedIndex.value = dumps[0].index;
     loadDump();
   }
@@ -768,7 +829,7 @@ const loadData = async () => {
   }
 };
 
-watch(activeTab, (tab) => {
+watch(activeTab, tab => {
   if (tab === 'browse' && !selectedDump.value && (data.value?.dumps.length ?? 0) > 0) {
     loadDump();
   }

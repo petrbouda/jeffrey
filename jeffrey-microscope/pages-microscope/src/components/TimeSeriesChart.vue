@@ -1,10 +1,6 @@
 <template>
   <LoadingIndicator v-if="isLoading" text="Generating Timeseries..." />
-  <div
-    class="apex-time-series-chart"
-    ref="chartContainer"
-    v-show="!isLoading && hasRenderableData"
-  >
+  <div v-show="!isLoading && hasRenderableData" ref="chartContainer" class="apex-time-series-chart">
     <div class="chart-content">
       <!-- Main chart -->
       <div class="main-chart-container">
@@ -23,8 +19,8 @@
         <!-- Select all button in top right corner of brush chart -->
         <button
           class="reset-zoom-btn reset-zoom-btn-corner"
-          @click="onSelectEntireRange"
           title="Select entire range"
+          @click="onSelectEntireRange"
         >
           <i class="bi bi-arrows-angle-expand"></i>
         </button>
@@ -149,8 +145,12 @@ const searchHighlightColor = ChartColors.chartColor('highlight');
 
 // Computed chart type based on props
 const effectiveChartType = computed(() => {
-  if (props.showPoints) return 'scatter';
-  if (props.chartType === 'bar') return 'bar';
+  if (props.showPoints) {
+    return 'scatter';
+  }
+  if (props.chartType === 'bar') {
+    return 'bar';
+  }
   return 'area';
 });
 
@@ -268,7 +268,9 @@ const secondaryMaxValue = ref(0);
 
 // Round bytes to a "nice" value (uses base-2: 1, 2, 4, 8 multipliers of KB/MB/GB)
 const roundToNiceBytes = (value: number): number => {
-  if (value <= 0) return 0;
+  if (value <= 0) {
+    return 0;
+  }
 
   // Find the appropriate unit (1024^n)
   const units = [1, 1024, 1024 * 1024, 1024 * 1024 * 1024, 1024 * 1024 * 1024 * 1024];
@@ -301,15 +303,21 @@ const roundToNiceBytes = (value: number): number => {
 
 // Helper function to find max value in a data series with padding
 const findMaxValueInSeries = (data: number[][] | undefined, axisType?: AxisFormatType): number => {
-  if (!data || data.length === 0) return 0;
+  if (!data || data.length === 0) {
+    return 0;
+  }
 
   let max = 0;
   for (let i = 0; i < data.length; i++) {
     const value = data[i][1];
-    if (value > max) max = value;
+    if (value > max) {
+      max = value;
+    }
   }
 
-  if (max <= 0) return 0;
+  if (max <= 0) {
+    return 0;
+  }
 
   // For bytes, round to nice byte values
   if (axisType === AxisFormatType.BYTES) {
@@ -358,7 +366,9 @@ const calculateMaxYValues = (): void => {
       const secondaryValue = secondaryData?.[i]?.[1] || 0;
       const tertiaryValue = tertiaryData?.[i]?.[1] || 0;
       const sum = primaryValue + secondaryValue + tertiaryValue;
-      if (sum > maxSum) maxSum = sum;
+      if (sum > maxSum) {
+        maxSum = sum;
+      }
     }
 
     // For bytes, round to nice byte values; otherwise add 10% padding
@@ -413,16 +423,24 @@ const calculateMinMaxTimeValues = (): void => {
 
   for (let i = 0; i < primaryData.length; i++) {
     const point = primaryData[i];
-    if (point[0] < min) min = point[0];
-    if (point[0] > max) max = point[0];
+    if (point[0] < min) {
+      min = point[0];
+    }
+    if (point[0] > max) {
+      max = point[0];
+    }
   }
 
   // Include secondary data in time range if available
   if (secondaryData && secondaryData.length > 0) {
     for (let i = 0; i < secondaryData.length; i++) {
       const point = secondaryData[i];
-      if (point[0] < min) min = point[0];
-      if (point[0] > max) max = point[0];
+      if (point[0] < min) {
+        min = point[0];
+      }
+      if (point[0] > max) {
+        max = point[0];
+      }
     }
   }
 

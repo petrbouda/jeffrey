@@ -24,7 +24,6 @@ module cafe.jeffrey.microscope.profile.flamegraph {
     requires transitive cafe.jeffrey.microscope.profile.frame.ir;
     requires transitive cafe.jeffrey.microscope.profile.timeseries;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
-    requires cafe.jeffrey.microscope.profile.parser.jdk;
     requires transitive com.google.protobuf;
     requires tools.jackson.databind;
     requires org.slf4j;

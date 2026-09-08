@@ -37,9 +37,9 @@ Use this skill when you need to:
 
 ### 1. Identify Benchmark
 
-Find or create the benchmark class in `jmh-tests/src/main/java/pbouda/jeffrey/jmh/`:
+Find or create the benchmark class in `jmh-tests/src/main/java/cafe/jeffrey/jmh/`:
 ```bash
-ls jmh-tests/src/main/java/pbouda/jeffrey/jmh/
+ls jmh-tests/src/main/java/cafe/jeffrey/jmh/
 ```
 
 ### 2. Run Baseline

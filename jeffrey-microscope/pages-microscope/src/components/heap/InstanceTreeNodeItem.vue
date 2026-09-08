@@ -71,8 +71,8 @@
         v-if="childrenHasMore"
         class="btn btn-sm btn-outline-primary load-more-btn"
         :style="{ marginLeft: (depth + 1) * 20 + 24 + 'px' }"
-        @click="loadMoreChildNodes"
         :disabled="loadingMore"
+        @click="loadMoreChildNodes"
       >
         <span v-if="loadingMore" class="spinner-border spinner-border-sm me-1"></span>
         <i v-else class="bi bi-plus-circle me-1"></i>
@@ -161,7 +161,9 @@ const simpleClassName = computed(() => {
 const truncatedValue = computed(() => {
   const value = props.node.value;
   const maxLen = 500;
-  if (!value || value.length <= maxLen) return value;
+  if (!value || value.length <= maxLen) {
+    return value;
+  }
   return value.substring(0, maxLen) + '...';
 });
 
@@ -196,7 +198,9 @@ const remainingCount = computed(() => {
 });
 
 const toggleExpand = async () => {
-  if (!props.node.hasChildren) return;
+  if (!props.node.hasChildren) {
+    return;
+  }
 
   isExpanded.value = !isExpanded.value;
 
@@ -207,7 +211,9 @@ const toggleExpand = async () => {
 };
 
 const loadChildren = async () => {
-  if (!props.client) return;
+  if (!props.client) {
+    return;
+  }
 
   loadingChildren.value = true;
 
@@ -228,7 +234,9 @@ const loadChildren = async () => {
 };
 
 const loadMoreChildNodes = async () => {
-  if (!props.client || !childrenHasMore.value) return;
+  if (!props.client || !childrenHasMore.value) {
+    return;
+  }
 
   loadingMore.value = true;
 

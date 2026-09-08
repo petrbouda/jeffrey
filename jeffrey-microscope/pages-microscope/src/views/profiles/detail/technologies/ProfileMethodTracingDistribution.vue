@@ -123,8 +123,9 @@ const CHART_COLORS = ChartColors.chartPalette(6);
 
 // Computed properties
 const invocationChartData = computed<DonutChartData>(() => {
-  if (!overviewData.value)
+  if (!overviewData.value) {
     return { series: [], labels: [], colors: [], legendItems: [], totalValue: '0' };
+  }
   const items = overviewData.value.topMethodsByCount.slice(0, 6);
   return {
     series: items.map(m => m.invocationCount),
@@ -140,8 +141,9 @@ const invocationChartData = computed<DonutChartData>(() => {
 });
 
 const durationChartData = computed<DonutChartData>(() => {
-  if (!overviewData.value)
+  if (!overviewData.value) {
     return { series: [], labels: [], colors: [], legendItems: [], totalValue: '0' };
+  }
   const items = overviewData.value.topMethodsByDuration.slice(0, 6);
   return {
     series: items.map(m => m.totalDuration),
@@ -163,4 +165,3 @@ function getShortMethodName(className: string, methodName: string): string {
   return methodName ? `${shortClassName}#${methodName}` : shortClassName;
 }
 </script>
-

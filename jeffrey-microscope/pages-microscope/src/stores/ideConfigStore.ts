@@ -29,7 +29,7 @@ function loadOnce(): Promise<void> {
   }
   loadPromise = new IdeConfigClient()
     .getConfig()
-    .then((cfg) => {
+    .then(cfg => {
       config.value = cfg;
     })
     .catch(() => {
@@ -49,5 +49,5 @@ function isJfrProfilerMode(): boolean {
 export default {
   loadOnce,
   isEnabled,
-  isJfrProfilerMode,
+  isJfrProfilerMode
 };

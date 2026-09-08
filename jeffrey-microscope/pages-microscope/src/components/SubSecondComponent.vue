@@ -84,7 +84,10 @@ function marginalValueMeta(): { label: string; format: (value: number) => string
     return { label: 'allocated', format: (value: number) => FormattingService.formatBytes(value) };
   }
   if (EventTypes.isBlockingEventType(props.eventType) && props.useWeight) {
-    return { label: 'blocked time', format: (value: number) => FormattingService.formatDuration(value) };
+    return {
+      label: 'blocked time',
+      format: (value: number) => FormattingService.formatDuration(value)
+    };
   }
   return { label: 'samples', format: (value: number) => FormattingService.formatNumber(value) };
 }
@@ -158,11 +161,15 @@ function renderColorbar() {
   }
 
   ctx.fillStyle = text;
-  ctx.font = "600 10px ui-monospace, monospace";
+  ctx.font = '600 10px ui-monospace, monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   for (let i = 0; i <= COLORBAR_BINS; i++) {
-    ctx.fillText(format(Math.round((marginalMax * i) / COLORBAR_BINS)), x + i * binWidth, y + h + 5);
+    ctx.fillText(
+      format(Math.round((marginalMax * i) / COLORBAR_BINS)),
+      x + i * binWidth,
+      y + h + 5
+    );
   }
 }
 
@@ -287,11 +294,17 @@ function destroyAllHeatmaps() {
 
   // Clear containers
   const primary = document.getElementById('primary');
-  if (primary) primary.innerHTML = '';
+  if (primary) {
+    primary.innerHTML = '';
+  }
   const secondary = document.getElementById('secondary');
-  if (secondary) secondary.innerHTML = '';
+  if (secondary) {
+    secondary.innerHTML = '';
+  }
   const difference = document.getElementById('difference');
-  if (difference) difference.innerHTML = '';
+  if (difference) {
+    difference.innerHTML = '';
+  }
 }
 
 const initializeHeatmaps = (timeRange?: TimeRange) => {
@@ -445,7 +458,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
     </div>
 
     <div class="subsecond-main">
-      <div class="heatmap-container" id="heatmaps" style="overflow-x: scroll">
+      <div id="heatmaps" class="heatmap-container" style="overflow-x: scroll">
         <!-- Difference heatmap (shown in difference mode) -->
         <div v-show="mode === 'difference' && isDifferential" id="difference"></div>
 

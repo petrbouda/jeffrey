@@ -57,7 +57,7 @@ paths:
   `events-modal-dialog` is defined globally in `assets/styles.scss`. Use the `/new-modal` skill. Reference: `views/global/RecordingsView.vue`
 
 ### Shared CSS
-- Check `@/styles/shared-components.css` and `@/assets/_sidebar-menu.scss` before adding scoped styles
+- Check `@shared/styles/shared-components.css` and `@/assets/_sidebar-menu.scss` before adding scoped styles
 - Extract commonly reused scoped patterns to shared CSS files
 
 ### Timestamps

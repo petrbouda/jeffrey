@@ -33,7 +33,9 @@
     <div v-else class="row g-4">
       <!-- Left: form -->
       <div class="col-lg-6">
-        <label class="form-label mb-1 small text-uppercase fw-semibold text-muted">Event type</label>
+        <label class="form-label mb-1 small text-uppercase fw-semibold text-muted"
+          >Event type</label
+        >
         <SearchableSelect
           v-model="selectedLabel"
           :items="selectItems"
@@ -54,9 +56,9 @@
           :class="{ disabled: !selectedEvent || !selectedEvent.hasWeight }"
         >
           <input
+            v-model="includeWeight"
             type="checkbox"
             class="weight-option__box"
-            v-model="includeWeight"
             :disabled="!selectedEvent || !selectedEvent.hasWeight || busy"
           />
           <span class="weight-option__body">
@@ -71,7 +73,9 @@
         </label>
 
         <div class="mt-4">
-          <label class="form-label mb-1 small text-uppercase fw-semibold text-muted">Filename</label>
+          <label class="form-label mb-1 small text-uppercase fw-semibold text-muted"
+            >Filename</label
+          >
           <div class="filename-box mono">{{ filename }}</div>
         </div>
       </div>
@@ -82,14 +86,17 @@
           <div class="summary-title">Selected event</div>
           <template v-if="selectedEvent">
             <div class="summary-row">
-              <span class="text-muted">Event</span><span class="fw-semibold">{{ selectedEvent.label }}</span>
+              <span class="text-muted">Event</span
+              ><span class="fw-semibold">{{ selectedEvent.label }}</span>
             </div>
             <div class="summary-row">
               <span class="text-muted">Code</span><span class="mono">{{ selectedEvent.code }}</span>
             </div>
             <div class="summary-row">
               <span class="text-muted">Samples</span>
-              <span class="fw-semibold">{{ FormattingService.formatNumber(selectedEvent.samples) }}</span>
+              <span class="fw-semibold">{{
+                FormattingService.formatNumber(selectedEvent.samples)
+              }}</span>
             </div>
             <div class="summary-row">
               <span class="text-muted">Weight</span>
@@ -208,7 +215,11 @@ const sampleTypeText = computed(() => {
     return '';
   }
   const base = selectedEvent.value.sampleType;
-  if (includeWeight.value && selectedEvent.value.hasWeight && selectedEvent.value.weightSampleType) {
+  if (
+    includeWeight.value &&
+    selectedEvent.value.hasWeight &&
+    selectedEvent.value.weightSampleType
+  ) {
     return `${base} + ${selectedEvent.value.weightSampleType}`;
   }
   return base;
@@ -282,10 +293,7 @@ async function addToRecordings(): Promise<void> {
   adding.value = true;
   try {
     const client = new ProfileToolsClient(profileId);
-    const result = await client.addPprofToRecordings(
-      selectedEvent.value.code,
-      includeWeight.value
-    );
+    const result = await client.addPprofToRecordings(selectedEvent.value.code, includeWeight.value);
     addedRecordingId.value = result.recordingId;
     ToastService.success('Added to Recordings', 'The pprof file is available in Recordings.');
   } catch (error) {

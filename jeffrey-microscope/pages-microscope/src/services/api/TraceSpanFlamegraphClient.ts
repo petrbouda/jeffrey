@@ -76,4 +76,3 @@ export default class TraceSpanFlamegraphClient extends RemoteFlamegraphClient {
     return Promise.reject(new Error('Saving trace-scoped flamegraphs is not supported'));
   }
 }
-

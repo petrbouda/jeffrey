@@ -99,7 +99,9 @@ const isInstancesActive = computed(() => {
 });
 
 async function initializeProject() {
-  if (!projectId.value || !workspaceId.value || !hubId.value) return;
+  if (!projectId.value || !workspaceId.value || !hubId.value) {
+    return;
+  }
 
   try {
     const projectClient = new ProjectClient(hubId.value, workspaceId.value, projectId.value);

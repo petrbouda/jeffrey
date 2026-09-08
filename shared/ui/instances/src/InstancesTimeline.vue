@@ -769,7 +769,7 @@ function sessionBarClass(session: ProjectInstanceSession, idx: number): string[]
   const kind = session.isActive ? 'active' : 'finished';
   const shade = idx % 2 === 0 ? 'strong' : 'light';
   const classes = [`${kind}-${shade}`];
-  if (idx === 0) classes.push('first');
+  if (idx === 0) {classes.push('first');}
   return classes;
 }
 
@@ -878,13 +878,13 @@ function isRowExpanded(typeName: string, fieldKey: string): boolean {
 function toggleRow(typeName: string, fieldKey: string): void {
   const next = new Set(expandedRows.value);
   const k = rowKey(typeName, fieldKey);
-  if (next.has(k)) next.delete(k);
-  else next.add(k);
+  if (next.has(k)) {next.delete(k);}
+  else {next.add(k);}
   expandedRows.value = next;
 }
 
 function rowDisplay(row: FieldRow, typeName: string): string {
-  if (!row.truncatable || isRowExpanded(typeName, row.key)) return row.display;
+  if (!row.truncatable || isRowExpanded(typeName, row.key)) {return row.display;}
   return row.display.slice(0, LONG_VALUE_TRUNCATE_AT) + '…';
 }
 
@@ -933,7 +933,7 @@ function envCards(env: Record<string, Record<string, unknown>>, isActive: boolea
   const entries: { order: number; card: EnvCard }[] = [];
 
   for (const typeName of Object.keys(CARD_ORDER)) {
-    if (typeName === OS_TYPE || typeName === VIRT_TYPE) continue;
+    if (typeName === OS_TYPE || typeName === VIRT_TYPE) {continue;}
     const fields = env[typeName];
     const order =
       typeName === 'jdk.Shutdown' && isActive ? SHUTDOWN_ACTIVE_ORDER : CARD_ORDER[typeName];
@@ -968,7 +968,7 @@ function envCards(env: Record<string, Record<string, unknown>>, isActive: boolea
   });
 
   for (const [typeName, fields] of Object.entries(env)) {
-    if (CARD_ORDER[typeName] !== undefined) continue;
+    if (CARD_ORDER[typeName] !== undefined) {continue;}
     entries.push({
       order: 1000,
       card: {
@@ -1004,7 +1004,7 @@ function fieldLabel(key: string): string {
 }
 
 function inferValue(key: string, value: unknown): FieldRow | null {
-  if (value == null) return null;
+  if (value == null) {return null;}
   if (typeof value === 'boolean') {
     return {
       key,
@@ -1043,7 +1043,7 @@ function inferValue(key: string, value: unknown): FieldRow | null {
     return { key, label: fieldLabel(key), display: value.toLocaleString(), mono: true };
   }
   if (typeof value === 'string') {
-    if (value.length === 0) return null;
+    if (value.length === 0) {return null;}
     return {
       key,
       label: fieldLabel(key),

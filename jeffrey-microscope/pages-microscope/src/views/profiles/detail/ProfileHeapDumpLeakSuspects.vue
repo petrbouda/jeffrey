@@ -54,7 +54,7 @@
           </p>
         </div>
         <label class="form-check small mb-0">
-          <input type="checkbox" class="form-check-input" v-model="includeBootstrap" />
+          <input v-model="includeBootstrap" type="checkbox" class="form-check-input" />
           <span class="form-check-label">Include bootstrap</span>
         </label>
       </div>
@@ -63,7 +63,13 @@
           <TableToolbar v-model="loadersView.query" search-placeholder="Filter class loaders...">
             <span class="toolbar-info">Top Leaking Class Loaders</span>
             <template #filters>
-              <Badge key-label="Total" :value="loadersView.matchCount" variant="secondary" size="s" borderless />
+              <Badge
+                key-label="Total"
+                :value="loadersView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
             </template>
           </TableToolbar>
         </template>
@@ -191,7 +197,7 @@
           <i class="bi bi-lightbulb-fill"></i>
           {{ suspect.reason }}
         </div>
-        <div class="va-actions" v-if="suspect.objectId">
+        <div v-if="suspect.objectId" class="va-actions">
           <InstanceActionButtons
             :object-id="suspect.objectId"
             @show-referrers="openTreeModal($event, 'REFERRERS')"
@@ -230,7 +236,10 @@ import TableShowMore from '@shared/components/table/TableShowMore.vue';
 import Badge from '@shared/components/Badge.vue';
 import { useTableView } from '@/composables/useTableView';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import LeakSuspectsReport, { LeakSuspect, ClassLoaderLeakSummary } from '@/services/api/model/LeakSuspectsReport';
+import LeakSuspectsReport, {
+  LeakSuspect,
+  ClassLoaderLeakSummary
+} from '@/services/api/model/LeakSuspectsReport';
 import FormattingService from '@shared/services/FormattingService';
 const route = useRoute();
 const router = useRouter();
@@ -244,7 +253,9 @@ const report = ref<LeakSuspectsReport | null>(null);
 const includeBootstrap = ref(false);
 
 const visibleLoaders = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   const loaders = report.value.topLeakingClassLoaders ?? [];
   return includeBootstrap.value ? loaders : loaders.filter(l => l.classLoaderId !== 0);
 });
@@ -260,7 +271,9 @@ const treeModalMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
 let client: HeapDumpClient;
 
 const summaryMetrics = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   return [
     {
       icon: 'bug',
@@ -283,8 +296,12 @@ const simpleClassName = (name: string): string => {
 };
 
 const getSeverityClass = (suspect: LeakSuspect): string => {
-  if (suspect.heapPercentage >= 30) return 'critical';
-  if (suspect.heapPercentage >= 15) return 'warning';
+  if (suspect.heapPercentage >= 30) {
+    return 'critical';
+  }
+  if (suspect.heapPercentage >= 15) {
+    return 'warning';
+  }
   return 'info';
 };
 
@@ -349,7 +366,9 @@ const loadData = async () => {
 
 onMounted(() => {
   const workspaceContent = document.querySelector('.workspace-content');
-  if (workspaceContent) workspaceContent.scrollTop = 0;
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
   loadData();
 });
 </script>

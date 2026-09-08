@@ -19,7 +19,7 @@
 export default class FormattingService {
   static UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
 
-  // eslint-disable-next-line no-loss-of-precision
+   
   static LONG_MAX: number = 9223372036854775807;
   static NO_TIMESTAMP: number = -9223372036854776000;
 
@@ -192,8 +192,8 @@ export default class FormattingService {
     if (num === undefined || num === null) {
       return '-';
     }
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    if (num >= 1000000) {return (num / 1000000).toFixed(1) + 'M';}
+    if (num >= 1000) {return (num / 1000).toFixed(1) + 'K';}
     return num.toString();
   }
 
@@ -224,7 +224,7 @@ export default class FormattingService {
   }
 
   static formatTimestampUTC(millis: number | undefined | null): string {
-    if (!millis) return '-';
+    if (!millis) {return '-';}
     return new Date(millis)
       .toISOString()
       .replace('T', ' ')
@@ -239,7 +239,7 @@ export default class FormattingService {
    * there would make two timestamps a few pixels apart disagree.
    */
   static formatTimestampUTCShort(millis: number | undefined | null): string {
-    if (!millis) return '-';
+    if (!millis) {return '-';}
     return new Date(millis).toISOString().slice(5, 16).replace('T', ' ') + ' UTC';
   }
 
@@ -291,15 +291,15 @@ export default class FormattingService {
   }
 
   static formatDurationFromMillis(startMs: number, endMs: number | null | undefined): string {
-    if (!startMs || !endMs) return '\u2014';
+    if (!startMs || !endMs) {return '\u2014';}
     const durationMs = endMs - startMs;
-    if (durationMs <= 0) return '\u2014';
+    if (durationMs <= 0) {return '\u2014';}
     return FormattingService.formatDurationInMillis2Units(durationMs);
   }
 
   static formatObjectParams(params: Record<string, string>): string {
     const entries = Object.entries(params);
-    if (entries.length === 0) return '';
+    if (entries.length === 0) {return '';}
     return entries.map(([k, v]) => `${k}=${v}`).join(', ');
   }
 }

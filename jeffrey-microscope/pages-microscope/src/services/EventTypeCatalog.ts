@@ -12,11 +12,21 @@ export interface EventTypeCategory {
 export function getEventTypePrefix(
   name: string
 ): 'jdk' | 'jeffrey' | 'profiler' | 'pprof' | 'otel' | 'custom' {
-  if (name.startsWith('jdk.')) return 'jdk';
-  if (name.startsWith('jeffrey.')) return 'jeffrey';
-  if (name.startsWith('profiler.')) return 'profiler';
-  if (name.startsWith('pprof.')) return 'pprof';
-  if (name.startsWith('otel.')) return 'otel';
+  if (name.startsWith('jdk.')) {
+    return 'jdk';
+  }
+  if (name.startsWith('jeffrey.')) {
+    return 'jeffrey';
+  }
+  if (name.startsWith('profiler.')) {
+    return 'profiler';
+  }
+  if (name.startsWith('pprof.')) {
+    return 'pprof';
+  }
+  if (name.startsWith('otel.')) {
+    return 'otel';
+  }
   return 'custom';
 }
 

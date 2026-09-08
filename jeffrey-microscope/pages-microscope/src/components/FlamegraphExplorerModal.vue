@@ -34,7 +34,12 @@
   >
     <template #header>
       <h5 class="modal-title"><i class="bi bi-fire me-2"></i>{{ eventType }} — {{ scopeLabel }}</h5>
-      <button type="button" class="btn-close" @click="$emit('update:show', false)" aria-label="Close" />
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Close"
+        @click="$emit('update:show', false)"
+      />
     </template>
 
     <!--

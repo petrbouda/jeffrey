@@ -65,7 +65,10 @@
 
 <script setup lang="ts">
 import ProfileSidebarItem from '@/components/profile/ProfileSidebarItem.vue';
-import type { DifferentialType, ProfileNavItem } from '@/views/profiles/navigation/profileNavConfig';
+import type {
+  DifferentialType,
+  ProfileNavItem
+} from '@/views/profiles/navigation/profileNavConfig';
 
 defineProps<{
   item: ProfileNavItem;

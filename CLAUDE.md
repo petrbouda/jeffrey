@@ -116,7 +116,6 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - **Axios**: 1.8.3 — HTTP client
 - **Konva**: 9.3.20 — Canvas rendering
 - **Protobuf**: 7.4.0 — Binary data (flamegraph)
-- **marked**: 17.0.1 — Markdown rendering
 - **mitt**: 3.0.1 — Event bus
 
 ## Project Structure
@@ -209,8 +208,6 @@ jeffrey/
 │   ├── build-provisioner-native/     # Native image build
 │   ├── build-agent/                   # Agent build
 │   └── scripts/                       # Build scripts
-├── jmh-tests/                         # JMH benchmarks
-├── manual-tests/                      # Manual testing
 ├── docker/                            # Docker configurations
 └── pom.xml                            # Root Maven configuration
 ```

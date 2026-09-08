@@ -481,51 +481,51 @@
 
         <AboutSection icon="bi-toggles" title="JVM String Deduplication">
           <div class="flag-cards">
-          <div class="flag-card">
-            <div class="flag-header">
-              <code class="flag-code">-XX:+UseStringDeduplication</code>
-              <span class="flag-badge">GC Feature</span>
+            <div class="flag-card">
+              <div class="flag-header">
+                <code class="flag-code">-XX:+UseStringDeduplication</code>
+                <span class="flag-badge">GC Feature</span>
+              </div>
+              <div class="flag-body">
+                <p>
+                  When enabled, the garbage collector automatically finds String objects with
+                  identical content and makes them share the same <code>byte[]</code> array during
+                  GC cycles.
+                </p>
+                <div class="gc-support">
+                  <span class="gc-label">Supported:</span>
+                  <span class="gc-tag">G1 (JDK 8u20+)</span>
+                  <span class="gc-tag">ZGC (JDK 18+)</span>
+                  <span class="gc-tag">Shenandoah (JDK 18+)</span>
+                  <span class="gc-tag">Serial (JDK 18+)</span>
+                  <span class="gc-tag">Parallel (JDK 18+)</span>
+                </div>
+              </div>
             </div>
-            <div class="flag-body">
-              <p>
-                When enabled, the garbage collector automatically finds String objects with
-                identical content and makes them share the same <code>byte[]</code> array during GC
-                cycles.
-              </p>
-              <div class="gc-support">
-                <span class="gc-label">Supported:</span>
-                <span class="gc-tag">G1 (JDK 8u20+)</span>
-                <span class="gc-tag">ZGC (JDK 18+)</span>
-                <span class="gc-tag">Shenandoah (JDK 18+)</span>
-                <span class="gc-tag">Serial (JDK 18+)</span>
-                <span class="gc-tag">Parallel (JDK 18+)</span>
+
+            <div class="flag-card">
+              <div class="flag-header">
+                <code class="flag-code">-XX:StringDeduplicationAgeThreshold=3</code>
+                <span class="flag-badge">Default: 3</span>
+              </div>
+              <div class="flag-body">
+                <p>
+                  Specifies the number of garbage collection cycles a String must survive before
+                  becoming a candidate for deduplication.
+                </p>
+                <ul class="flag-details">
+                  <li>
+                    <strong>Lower value (1-2):</strong> More aggressive deduplication, processes
+                    strings sooner but may deduplicate short-lived strings unnecessarily
+                  </li>
+                  <li>
+                    <strong>Higher value (4+):</strong> Only long-lived strings are deduplicated,
+                    reducing overhead but potentially missing savings
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
-
-          <div class="flag-card">
-            <div class="flag-header">
-              <code class="flag-code">-XX:StringDeduplicationAgeThreshold=3</code>
-              <span class="flag-badge">Default: 3</span>
-            </div>
-            <div class="flag-body">
-              <p>
-                Specifies the number of garbage collection cycles a String must survive before
-                becoming a candidate for deduplication.
-              </p>
-              <ul class="flag-details">
-                <li>
-                  <strong>Lower value (1-2):</strong> More aggressive deduplication, processes
-                  strings sooner but may deduplicate short-lived strings unnecessarily
-                </li>
-                <li>
-                  <strong>Higher value (4+):</strong> Only long-lived strings are deduplicated,
-                  reducing overhead but potentially missing savings
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
         </AboutSection>
 
         <AboutSection icon="bi-lightning-charge" title="What It Helps With">
@@ -545,11 +545,15 @@
           </div>
         </AboutSection>
 
-        <AboutCallout variant="note" title="Why is sharing high without the flag?" icon="bi-lightbulb-fill">
+        <AboutCallout
+          variant="note"
+          title="Why is sharing high without the flag?"
+          icon="bi-lightbulb-fill"
+        >
           <p>
-            High sharing without <code>UseStringDeduplication</code> is normal. It comes from
-            string literals, framework interning, and JVM metadata. The "Potential Savings" metric
-            shows additional memory that could be saved by enabling the flag.
+            High sharing without <code>UseStringDeduplication</code> is normal. It comes from string
+            literals, framework interning, and JVM metadata. The "Potential Savings" metric shows
+            additional memory that could be saved by enabling the flag.
           </p>
         </AboutCallout>
       </AboutPanel>
@@ -656,7 +660,9 @@ const analysisTabs = [
 ];
 
 const summaryMetrics = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   return [
     {
       icon: 'fonts',
@@ -698,7 +704,9 @@ const summaryMetrics = computed(() => {
 });
 
 const memoryChartData = computed<DonutChartData>(() => {
-  if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  if (!report.value) {
+    return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  }
   return {
     series: [
       report.value.potentialSavings,
@@ -726,7 +734,9 @@ const memoryChartData = computed<DonutChartData>(() => {
 });
 
 const arrayChartData = computed<DonutChartData>(() => {
-  if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  if (!report.value) {
+    return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  }
   return {
     series: [report.value.sharedArrays, report.value.uniqueArrays - report.value.sharedArrays],
     labels: ['Shared Arrays', 'Unique Arrays'],
@@ -763,12 +773,16 @@ const maxInstanceRetained = computed(() => {
 });
 
 const maxDeduplicatedSavings = computed(() => {
-  if (!report.value || report.value.alreadyDeduplicated.length === 0) return 0;
+  if (!report.value || report.value.alreadyDeduplicated.length === 0) {
+    return 0;
+  }
   return Math.max(...report.value.alreadyDeduplicated.map(e => e.savings));
 });
 
 const maxOpportunitySavings = computed(() => {
-  if (!report.value || report.value.opportunities.length === 0) return 0;
+  if (!report.value || report.value.opportunities.length === 0) {
+    return 0;
+  }
   return Math.max(...report.value.opportunities.map(e => e.savings));
 });
 
@@ -818,7 +832,9 @@ const sortedTopRetained = computed(() => {
 
 // Sorted deduplicated entries
 const sortedDeduplicated = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   const entries = [...report.value.alreadyDeduplicated];
   const direction = dedupSortDirection.value === 'asc' ? 1 : -1;
 
@@ -841,7 +857,9 @@ const sortedDeduplicated = computed(() => {
 
 // Sorted opportunities entries
 const sortedOpportunities = computed(() => {
-  if (!report.value) return [];
+  if (!report.value) {
+    return [];
+  }
   const entries = [...report.value.opportunities];
   const direction = oppSortDirection.value === 'asc' ? 1 : -1;
 
@@ -928,12 +946,16 @@ const openInstanceDetailPanel = (objectId: number) => {
 };
 
 const getDeduplicatedPercentage = (entry: StringDeduplicationEntry): number => {
-  if (maxDeduplicatedSavings.value === 0) return 0;
+  if (maxDeduplicatedSavings.value === 0) {
+    return 0;
+  }
   return (entry.savings / maxDeduplicatedSavings.value) * 100;
 };
 
 const getOpportunityPercentage = (entry: StringDeduplicationEntry): number => {
-  if (maxOpportunitySavings.value === 0) return 0;
+  if (maxOpportunitySavings.value === 0) {
+    return 0;
+  }
   return (entry.savings / maxOpportunitySavings.value) * 100;
 };
 

@@ -35,7 +35,7 @@ function open(insts: IdeInstanceView[], selected: string | null): Promise<Picked
   instances.value = insts;
   selectedProjectId.value = selected;
   show.value = true;
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     resolver = resolve;
   });
 }

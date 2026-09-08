@@ -147,7 +147,7 @@
                   <span class="topic-name">{{ topicLabel(rule.topic) }}</span>
                 </td>
                 <td class="col-score">
-                  <div class="severity-bar-wrapper" v-if="parseScore(rule.score) != null">
+                  <div v-if="parseScore(rule.score) != null" class="severity-bar-wrapper">
                     <div class="severity-bar-track">
                       <div
                         class="severity-bar-fill"
@@ -385,7 +385,9 @@ function toggleRow(index: number) {
 }
 
 function parseScore(score: string | null): number | null {
-  if (score == null) return null;
+  if (score == null) {
+    return null;
+  }
   const parsed = parseFloat(score);
   return isNaN(parsed) ? null : Math.round(parsed * 10) / 10;
 }

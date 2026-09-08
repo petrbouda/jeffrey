@@ -20,11 +20,11 @@
   <div>
     <div class="tree-toolbar">
       <label class="toggle">
-        <input type="checkbox" v-model="hideJdk" />
+        <input v-model="hideJdk" type="checkbox" />
         <span>Hide JDK loaders</span>
       </label>
       <label class="toggle">
-        <input type="checkbox" v-model="onlyPinnedTransitive" />
+        <input v-model="onlyPinnedTransitive" type="checkbox" />
         <span>Only pinned (transitive)</span>
       </label>
       <button class="btn btn-sm btn-outline-secondary" @click="expandAll">Expand all</button>
@@ -52,8 +52,8 @@
             v-if="row.hasChildren"
             class="chevron"
             :class="{ open: isExpanded(row.loader.objectId) }"
-            @click.stop="toggleExpanded(row.loader.objectId)"
             :aria-label="isExpanded(row.loader.objectId) ? 'Collapse' : 'Expand'"
+            @click.stop="toggleExpanded(row.loader.objectId)"
           >
             <i class="bi bi-chevron-right"></i>
           </button>

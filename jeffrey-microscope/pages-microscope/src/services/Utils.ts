@@ -102,11 +102,21 @@ export default class Utils {
    * Extracts the display value from a TypedValue (typed JFR event field).
    */
   static typedValueToDisplay(tv: TypedValue): string {
-    if (tv.stringValue !== undefined) return tv.stringValue;
-    if (tv.longValue !== undefined) return String(tv.longValue);
-    if (tv.doubleValue !== undefined) return String(tv.doubleValue);
-    if (tv.floatValue !== undefined) return String(tv.floatValue);
-    if (tv.boolValue !== undefined) return String(tv.boolValue);
+    if (tv.stringValue !== undefined) {
+      return tv.stringValue;
+    }
+    if (tv.longValue !== undefined) {
+      return String(tv.longValue);
+    }
+    if (tv.doubleValue !== undefined) {
+      return String(tv.doubleValue);
+    }
+    if (tv.floatValue !== undefined) {
+      return String(tv.floatValue);
+    }
+    if (tv.boolValue !== undefined) {
+      return String(tv.boolValue);
+    }
     return '';
   }
 

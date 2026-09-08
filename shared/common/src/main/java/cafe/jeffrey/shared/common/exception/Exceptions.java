@@ -18,20 +18,7 @@
 
 package cafe.jeffrey.shared.common.exception;
 
-import java.net.URI;
-
 public abstract class Exceptions {
-    public static JeffreyException fromErrorResponse(ErrorResponse errorResponse) {
-        if (errorResponse == null) {
-            throw internal("Error response cannot be null");
-        }
-
-        return switch (errorResponse.type()) {
-            case CLIENT -> new JeffreyClientException(errorResponse.code(), errorResponse.message());
-            case INTERNAL -> new JeffreyInternalException(errorResponse.code(), errorResponse.message());
-        };
-    }
-
     public static JeffreyInternalException internal(String message) {
         return new JeffreyInternalException(ErrorCode.UNKNOWN_ERROR_RESPONSE, message);
     }
@@ -71,10 +58,6 @@ public abstract class Exceptions {
                 "No finished recording files found in session: %s. The session may still be actively recording.".formatted(sessionId));
     }
 
-    public static RemoteJeffreyUnavailableException remoteJeffreyUnavailable(URI uri, Throwable cause) {
-        return new RemoteJeffreyUnavailableException(uri, cause);
-    }
-
     /**
      * A 404 for a resource that has no error code of its own — a trace, a span, anything addressed
      * by an id inside a profile rather than by a top-level entity id.
@@ -89,13 +72,5 @@ public abstract class Exceptions {
 
     public static JeffreyInternalException compressionError(String message) {
         return new JeffreyInternalException(ErrorCode.COMPRESSION_ERROR, message);
-    }
-
-    public static RemoteJeffreyException fromRemoteErrorResponse(URI uri, ErrorResponse errorResponse) {
-        if (errorResponse == null) {
-            throw internal("Error response cannot be null");
-        }
-
-        return new RemoteJeffreyException(uri, errorResponse.type(), errorResponse.code(), errorResponse.message());
     }
 }

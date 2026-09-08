@@ -24,11 +24,13 @@
         and field names). They report native memory that never shows up on the heap chart.
       </p>
       <p>
-        In the JDK's bundled configs these events are <strong>disabled in the lean
-        <code>default</code> config</strong> and <strong>enabled in <code>profile</code></strong>
-        (sampled every 10&nbsp;s). An empty page therefore almost always means the recording used the
-        <code>default</code> config — re-record with <code>settings=profile</code>, or enable the two
-        events explicitly, and the data will appear.
+        In the JDK's bundled configs these events are
+        <strong>disabled in the lean <code>default</code> config</strong> and
+        <strong>enabled in <code>profile</code></strong>
+        (sampled every 10&nbsp;s). An empty page therefore almost always means the recording used
+        the
+        <code>default</code> config — re-record with <code>settings=profile</code>, or enable the
+        two events explicitly, and the data will appear.
       </p>
 
       <template #action>
@@ -43,8 +45,8 @@
         </p>
         <pre class="jfc-block">{{ jfcSnippet }}</pre>
         <p>
-          Re-import the <code>.jfr</code> into Jeffrey afterwards. Both events are low-volume periodic
-          samples, so leaving them on for the whole run is cheap.
+          Re-import the <code>.jfr</code> into Jeffrey afterwards. Both events are low-volume
+          periodic samples, so leaving them on for the whole run is cheap.
         </p>
       </template>
     </DisabledEventsNotice>
@@ -145,7 +147,8 @@
             <FeatureGrid>
               <FeatureCard icon="bi-list-ol" variant="primary" title="Entries">
                 Entry counts of the String and Symbol tables over time. A steadily climbing
-                string-table count points to interned-string growth (often <code>String.intern()</code>
+                string-table count points to interned-string growth (often
+                <code>String.intern()</code>
                 misuse); symbol growth tracks class/method-name churn.
               </FeatureCard>
               <FeatureCard icon="bi-hdd" variant="info" title="Footprint">
@@ -156,8 +159,8 @@
               <FeatureCard icon="bi-recycle" variant="success" title="Deduplication">
                 String-deduplication activity per second — strings deduplicated and heap bytes
                 reclaimed. G1/Shenandoah collapse duplicate <code>char[]</code> backing arrays under
-                <code>-XX:+UseStringDeduplication</code>; the bytes-saved line quantifies the heap it
-                reclaims.
+                <code>-XX:+UseStringDeduplication</code>; the bytes-saved line quantifies the heap
+                it reclaims.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -170,8 +173,8 @@
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.StringTableStatistics</code> — periodic stats for the interned-String table
-                (entry count, bucket count, total size). Sampled every 10&nbsp;s.
+                <code>jdk.StringTableStatistics</code> — periodic stats for the interned-String
+                table (entry count, bucket count, total size). Sampled every 10&nbsp;s.
               </li>
               <li>
                 <code>jdk.SymbolTableStatistics</code> — periodic stats for the Symbol table (the
@@ -179,10 +182,11 @@
               </li>
             </ul>
             <p>
-              Both events are <strong>disabled in the bundled <code>default</code> config</strong>
-              and <strong>enabled in <code>profile</code></strong>. An empty page almost always means
-              the recording used <code>default</code> — re-record with
-              <code>settings=profile</code>, or enable the two events explicitly.
+              Both events are
+              <strong>disabled in the bundled <code>default</code> config</strong> and
+              <strong>enabled in <code>profile</code></strong
+              >. An empty page almost always means the recording used <code>default</code> —
+              re-record with <code>settings=profile</code>, or enable the two events explicitly.
             </p>
           </AboutSection>
         </AboutPanel>

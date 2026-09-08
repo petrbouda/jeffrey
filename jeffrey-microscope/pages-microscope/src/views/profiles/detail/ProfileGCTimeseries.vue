@@ -139,7 +139,9 @@ let client: ProfileGCClient;
 // Reload timeseries data when the user switches tab.
 watch(activeTab, async newId => {
   const tab = gcTimeseriesTabs.find(t => t.id === newId);
-  if (!tab?.type) return;
+  if (!tab?.type) {
+    return;
+  }
   currentTimeseriesType.value = tab.type;
   try {
     if (!client) {

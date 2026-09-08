@@ -27,7 +27,7 @@ const app = createApp(App);
 
 // Use plugins
 app.use(router);
-app.component('apexchart', VueApexCharts);
+app.component('Apexchart', VueApexCharts);
 
 // Mount app
 app.mount('#app');

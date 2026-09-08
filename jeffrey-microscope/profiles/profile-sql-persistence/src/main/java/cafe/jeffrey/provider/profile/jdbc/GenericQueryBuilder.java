@@ -99,15 +99,6 @@ public class GenericQueryBuilder implements QueryBuilder {
         }
     }
 
-    public GenericQueryBuilder addGroupBy(String group) {
-        builder.groupBy(group);
-        return this;
-    }
-
-    public GenericQueryBuilder addOrderBy(String order) {
-        builder.orderBy(order);
-        return this;
-    }
 
     @Override
     public GenericQueryBuilder merge(SQLBuilder builder) {

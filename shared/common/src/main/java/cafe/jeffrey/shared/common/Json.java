@@ -140,15 +140,6 @@ public abstract class Json {
         return MAPPER.valueToTree(content);
     }
 
-    public static String toPrettyString(Object obj) {
-        try {
-            return mapper()
-                    .writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(obj);
-        } catch (JacksonException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     public static String toString(Object obj) {
         try {

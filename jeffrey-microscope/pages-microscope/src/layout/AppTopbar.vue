@@ -24,8 +24,8 @@
           <button
             v-if="isProfilePage"
             class="topbar-back-btn"
-            @click="$router.push('/recordings')"
             title="Back to Recordings"
+            @click="$router.push('/recordings')"
           >
             <i class="bi bi-arrow-return-left"></i>
             <span>Recordings</span>
@@ -35,8 +35,8 @@
           <button
             v-if="isProjectPage"
             class="topbar-back-btn"
-            @click="$router.push('/workspaces')"
             title="Back to workspaces"
+            @click="$router.push('/workspaces')"
           >
             <i class="bi bi-arrow-return-left"></i>
             <span>Workspaces</span>

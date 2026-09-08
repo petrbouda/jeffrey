@@ -86,7 +86,7 @@
               {{ event.collectorName }}
             </span>
           </div>
-          <div class="info-item" v-if="event.type">
+          <div v-if="event.type" class="info-item">
             <span class="info-label">GC Type:</span>
             <span class="info-value">{{ event.type }}</span>
           </div>
@@ -214,13 +214,17 @@ const getDifferenceBarClass = (beforeGC: number, afterGC: number) => {
 };
 
 const getDifferencePercentage = (beforeGC: number, afterGC: number) => {
-  if (beforeGC === 0) return 0;
+  if (beforeGC === 0) {
+    return 0;
+  }
   const difference = Math.abs(afterGC - beforeGC);
   return Math.min((difference / beforeGC) * 100, 100);
 };
 
 const getMemoryPercentage = (used: number, total: number) => {
-  if (total === 0) return 0;
+  if (total === 0) {
+    return 0;
+  }
   return Math.min((used / total) * 100, 100);
 };
 </script>

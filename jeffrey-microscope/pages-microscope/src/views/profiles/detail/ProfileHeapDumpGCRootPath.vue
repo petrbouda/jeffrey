@@ -31,7 +31,7 @@
 
     <!-- Search Form -->
     <div class="search-bar mb-4">
-      <form @submit.prevent="findPaths" class="d-flex align-items-center gap-3">
+      <form class="d-flex align-items-center gap-3" @submit.prevent="findPaths">
         <div class="input-group search-input-group">
           <span class="input-group-text">
             <i class="bi bi-search search-icon"></i>
@@ -46,7 +46,7 @@
           />
         </div>
         <label class="form-check mb-0 text-nowrap">
-          <input class="form-check-input" type="checkbox" v-model="excludeWeakRefs" />
+          <input v-model="excludeWeakRefs" class="form-check-input" type="checkbox" />
           <span class="form-check-label small text-muted">Exclude weak refs</span>
         </label>
         <button
@@ -154,7 +154,9 @@ const parsedObjectId = (): number | null => {
 
 const findPaths = async () => {
   const objectId = parsedObjectId();
-  if (!objectId) return;
+  if (!objectId) {
+    return;
+  }
 
   searching.value = true;
   searchError.value = null;

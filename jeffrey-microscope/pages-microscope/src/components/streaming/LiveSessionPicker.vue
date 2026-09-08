@@ -96,7 +96,9 @@ const instanceGroups = ref<InstanceGroup[]>([]);
 const maxVisibleInstances = ref(5);
 
 const allFilteredGroups = computed(() => {
-  if (!searchQuery.value) return instanceGroups.value;
+  if (!searchQuery.value) {
+    return instanceGroups.value;
+  }
   const q = searchQuery.value.toLowerCase();
   return instanceGroups.value
     .map(group => ({
@@ -119,8 +121,12 @@ async function loadSessions() {
     const instances = await client.list(true);
 
     instances.sort((a, b) => {
-      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
-      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
+      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') {
+        return -1;
+      }
+      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') {
+        return 1;
+      }
       return b.createdAt - a.createdAt;
     });
 

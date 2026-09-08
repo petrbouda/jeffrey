@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.core.scheduler.job.descriptor;
 
 import java.time.Duration;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Locale;
@@ -90,19 +89,6 @@ public abstract class JobDescriptorUtils {
         return bytes;
     }
 
-    /**
-     * Resolves a required duration param written in the operator-friendly notation used in
-     * {@code scheduler-defaults.properties} ({@code 30s}, {@code 15m}, {@code 1h}, {@code 7d})
-     * or in ISO-8601.
-     */
-    public static Duration resolveDuration(Map<String, String> params, String name) {
-        String value = resolveString(params, name);
-        try {
-            return parseDuration(value);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException(name + " is not a valid duration: " + value, e);
-        }
-    }
 
     /**
      * Parses the shorthand duration notation accepted in scheduler configuration

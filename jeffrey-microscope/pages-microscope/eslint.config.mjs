@@ -60,6 +60,10 @@ export default defineConfigWithVueTs(
     rules: {
       'no-console': 'warn',
       'no-debugger': 'warn',
+      // CLAUDE.md: every if/else/for/while body is braced, even a one-line early return. Enforced
+      // rather than reviewed, because the dangling-statement form is invisible in a diff until the
+      // second statement is added under it.
+      curly: ['error', 'all'],
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
       'vue/no-v-html': 'off',
       'vue/multi-word-component-names': 'off',

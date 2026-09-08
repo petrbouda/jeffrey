@@ -91,7 +91,7 @@ Run `mvn compile` on `shared/hub-api` to generate the Java gRPC stubs from the p
 
 ### Step 3: Implement gRPC Service on jeffrey-hub
 
-Create a gRPC service in `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/grpc/`:
+Create a gRPC service in `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/grpc/`:
 
 ```java
 /*
@@ -208,7 +208,7 @@ public class YourFeatureGrpcService extends YourFeatureServiceGrpc.YourFeatureSe
 
 ### Step 4: Create gRPC Client on jeffrey-microscope
 
-Create a gRPC client in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/`:
+Create a gRPC client in `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/client/`:
 
 ```java
 /*
@@ -282,7 +282,7 @@ public class RemoteYourFeatureClient {
 
 ### Step 5: Wire Client into HubClients Record
 
-Add the new client to the `HubClients` record in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/HubClients.java`:
+Add the new client to the `HubClients` record in `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/client/HubClients.java`:
 
 ```java
 public record HubClients(
@@ -306,7 +306,7 @@ Also update the factory method that creates `HubClients` to instantiate `RemoteY
 
 ### Step 6: Create Manager Interface
 
-Create a manager interface in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/`:
+Create a manager interface in `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/manager/`:
 
 ```java
 // YourFeatureManager.java
@@ -373,7 +373,7 @@ public class RemoteYourFeatureManager implements YourFeatureManager {
 
 ### Step 9: Add to ProjectManager Interface
 
-Add the manager method to `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/ProjectManager.java`:
+Add the manager method to `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/manager/project/ProjectManager.java`:
 
 ```java
 YourFeatureManager yourFeatureManager();
@@ -395,7 +395,7 @@ public YourFeatureManager yourFeatureManager() {
 
 ### Step 11: Implement in RemoteProjectManager
 
-In `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/RemoteProjectManager.java`:
+In `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/manager/project/RemoteProjectManager.java`:
 
 ```java
 @Override
@@ -409,7 +409,7 @@ public YourFeatureManager yourFeatureManager() {
 
 ### Step 12: Create Internal REST Resource
 
-Create the internal resource in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/resources/project/`:
+Create the internal resource in `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/resources/project/`:
 
 ```java
 // YourFeatureResource.java
@@ -439,7 +439,7 @@ public class YourFeatureResource {
 
 ### Step 13: Wire Internal Resource
 
-Add to `ProjectResource.java` in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/resources/project/`:
+Add to `ProjectResource.java` in `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/resources/project/`:
 
 ```java
 @Path("/your-feature")
@@ -496,14 +496,14 @@ const data = await YourFeatureClient.fetchProjectFeature(workspaceId.value, proj
 | Component | Path |
 |-----------|------|
 | Proto files | `shared/hub-api/src/main/proto/jeffrey/api/v1/` |
-| gRPC service implementations | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/grpc/` |
-| gRPC clients | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/` |
-| HubClients record | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/HubClients.java` |
-| GrpcHubConnection | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/GrpcHubConnection.java` |
-| Manager interfaces | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/` |
-| ProjectManager interface | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/ProjectManager.java` |
-| RemoteProjectManager | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/RemoteProjectManager.java` |
-| Internal REST resources | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/resources/project/` |
+| gRPC service implementations | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/grpc/` |
+| gRPC clients | `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/client/` |
+| HubClients record | `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/client/HubClients.java` |
+| GrpcHubConnection | `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/client/GrpcHubConnection.java` |
+| Manager interfaces | `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/manager/` |
+| ProjectManager interface | `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/manager/project/ProjectManager.java` |
+| RemoteProjectManager | `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/manager/project/RemoteProjectManager.java` |
+| Internal REST resources | `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/resources/project/` |
 | Frontend API clients | `jeffrey-microscope/pages-microscope/src/services/api/` |
 
 ## Verification

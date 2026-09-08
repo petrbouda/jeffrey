@@ -1,5 +1,5 @@
 <template>
-  <div v-if="command" class="command-display" @click="copy" title="Click to copy command">
+  <div v-if="command" class="command-display" title="Click to copy command" @click="copy">
     <div class="command-display-header">
       <slot name="header-left">
         <div class="command-display-label">
@@ -19,9 +19,9 @@
           <button
             v-if="deletable"
             class="command-display-btn command-display-btn--danger"
-            @click.stop="$emit('delete')"
             :disabled="deleting"
             title="Delete settings"
+            @click.stop="$emit('delete')"
           >
             <span v-if="deleting" class="spinner-border spinner-border-sm" role="status"></span>
             <template v-else><i class="bi bi-trash"></i></template>

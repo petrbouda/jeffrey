@@ -38,8 +38,8 @@
       <p>
         <code>jdk.NativeLibraryLoad</code> and <code>jdk.NativeLibraryUnload</code> record each
         native dynamic-library load/unload with its <strong>duration</strong> and a
-        <strong>success</strong> flag — unlike the static <code>jdk.NativeLibrary</code> inventory on
-        the Native Memory page. This page stays empty until at least one of them is present.
+        <strong>success</strong> flag — unlike the static <code>jdk.NativeLibrary</code> inventory
+        on the Native Memory page. This page stays empty until at least one of them is present.
       </p>
       <p>
         Both events were <strong>added in JDK&nbsp;24</strong>, where they are
@@ -47,26 +47,33 @@
         <code>profile</code> configurations (with <code>stackTrace=true</code> and a
         <code>0&nbsp;ms</code> threshold). The most common reason for an empty page is therefore a
         recording captured on a <strong>JDK older than 24</strong>, where these events simply do not
-        exist — upgrade to JDK&nbsp;24+ and re-record. If you are already on JDK&nbsp;24+ and still see
-        nothing, a minimal or custom configuration disabled them; the command above re-enables them on
-        top of the <code>profile</code> config.
+        exist — upgrade to JDK&nbsp;24+ and re-record. If you are already on JDK&nbsp;24+ and still
+        see nothing, a minimal or custom configuration disabled them; the command above re-enables
+        them on top of the <code>profile</code> config.
       </p>
 
       <template #action>
         <p>
           <strong>Reusable <code>.jfc</code> overlay.</strong> Save this as
-          <code>native-library-loads.jfc</code> if you would rather keep the settings in a file (still
-          requires JDK&nbsp;24+):
+          <code>native-library-loads.jfc</code> if you would rather keep the settings in a file
+          (still requires JDK&nbsp;24+):
         </p>
         <pre class="jfc-block">{{ jfcSnippet }}</pre>
         <ul>
           <li>
             At launch —
-            <code>java -XX:StartFlightRecording=settings=profile,settings=native-library-loads.jfc,filename=app.jfr,dumponexit=true -jar app.jar</code>
+            <code
+              >java
+              -XX:StartFlightRecording=settings=profile,settings=native-library-loads.jfc,filename=app.jfr,dumponexit=true
+              -jar app.jar</code
+            >
           </li>
           <li>
             On a running JVM —
-            <code>jcmd &lt;pid&gt; JFR.start name=libs settings=profile settings=native-library-loads.jfc filename=app.jfr</code>
+            <code
+              >jcmd &lt;pid&gt; JFR.start name=libs settings=profile
+              settings=native-library-loads.jfc filename=app.jfr</code
+            >
           </li>
         </ul>
       </template>
@@ -94,7 +101,13 @@
                   <input v-model="failuresOnly" type="checkbox" />
                   Failures only
                 </label>
-                <Badge key-label="Shown" :value="operationsView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Shown"
+                  :value="operationsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -126,7 +139,9 @@
               <td class="text-end">
                 {{ FormattingService.formatDuration2Units(op.timeOffsetMillis * 1_000_000) }}
               </td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(op.durationNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(op.durationNanos) }}
+              </td>
               <td>
                 <Badge
                   :value="op.success ? 'OK' : 'Failed'"
@@ -134,7 +149,9 @@
                   size="s"
                 />
               </td>
-              <td class="error-cell" :title="op.errorMessage ?? ''">{{ op.errorMessage ?? '—' }}</td>
+              <td class="error-cell" :title="op.errorMessage ?? ''">
+                {{ op.errorMessage ?? '—' }}
+              </td>
             </tr>
           </tbody>
           <template #footer>
@@ -171,29 +188,32 @@
 
       <!-- About -->
       <div v-show="activeTab === 'about'">
-        <AboutPanel
-          icon="bi-question-circle"
-          title="Understanding Native Library Loads"
-        >
+        <AboutPanel icon="bi-question-circle" title="Understanding Native Library Loads">
           <AboutSection icon="bi-box-arrow-in-down" title="What Native Library Loads Tell You">
             <p>
               The JVM loads native dynamic libraries (<code>.so</code> / <code>.dll</code> /
               <code>.dylib</code>) for JNI code, the JDK's own native pieces, and agents.
               <code>jdk.NativeLibraryLoad</code> and <code>jdk.NativeLibraryUnload</code> (JDK 24+)
-              record each operation with its <strong>duration</strong> and a <strong>success</strong>
-              flag, unlike the static <code>jdk.NativeLibrary</code> inventory on the Native Memory page.
+              record each operation with its <strong>duration</strong> and a
+              <strong>success</strong> flag, unlike the static
+              <code>jdk.NativeLibrary</code> inventory on the Native Memory page.
             </p>
-            <AboutCallout variant="warning" title="Failed loads are real bugs" icon="bi-exclamation-triangle-fill">
-              A failed load (a missing or ABI-incompatible native dependency) often surfaces only as a
-              later <code>UnsatisfiedLinkError</code>. The error message here is the earliest signal.
+            <AboutCallout
+              variant="warning"
+              title="Failed loads are real bugs"
+              icon="bi-exclamation-triangle-fill"
+            >
+              A failed load (a missing or ABI-incompatible native dependency) often surfaces only as
+              a later <code>UnsatisfiedLinkError</code>. The error message here is the earliest
+              signal.
             </AboutCallout>
           </AboutSection>
 
           <AboutSection icon="bi-graph-up" title="Reading the Views">
             <FeatureGrid>
               <FeatureCard icon="bi-list-ol" variant="primary" title="Operations">
-                Every load/unload, slowest first, with duration, status and error — find slow loads and
-                failures at a glance.
+                Every load/unload, slowest first, with duration, status and error — find slow loads
+                and failures at a glance.
               </FeatureCard>
               <FeatureCard icon="bi-activity" variant="success" title="Timeline">
                 Loads/unloads per second. A burst long after startup points at lazy JNI loading or
@@ -265,10 +285,10 @@ const activeTab = ref('operations');
 
 const allOperations = computed<LibraryOperation[]>(() => data.value?.operations ?? []);
 const filteredOperations = computed<LibraryOperation[]>(() =>
-  failuresOnly.value ? allOperations.value.filter((op) => !op.success) : allOperations.value
+  failuresOnly.value ? allOperations.value.filter(op => !op.success) : allOperations.value
 );
 const operationsView = useTableView<LibraryOperation>(filteredOperations, {
-  searchableText: (op) => op.name
+  searchableText: op => op.name
 });
 
 // Split a library path into its file name and parent directory for a two-line cell.

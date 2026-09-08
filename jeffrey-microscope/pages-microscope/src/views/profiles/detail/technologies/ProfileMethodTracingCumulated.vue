@@ -71,12 +71,12 @@
             <div class="input-group search-container" style="width: 280px">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
+                v-model="searchQuery"
                 type="text"
                 class="form-control search-input"
                 :placeholder="
                   mode === 'method' ? 'Filter by class or method...' : 'Filter by class...'
                 "
-                v-model="searchQuery"
               />
               <button
                 v-if="searchQuery"
@@ -188,8 +188,12 @@ const tableTitle = computed(() =>
 );
 
 const filteredItems = computed(() => {
-  if (!data.value) return [];
-  if (!searchQuery.value.trim()) return data.value.items;
+  if (!data.value) {
+    return [];
+  }
+  if (!searchQuery.value.trim()) {
+    return data.value.items;
+  }
 
   const query = searchQuery.value.toLowerCase();
   return data.value.items.filter(item => {

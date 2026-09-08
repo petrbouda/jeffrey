@@ -28,13 +28,13 @@
         <div class="chart-container">
           <TimeSeriesChart
             :key="metric"
-            :primaryData="primarySeries"
-            :primaryTitle="primaryTitle"
-            :secondaryData="secondarySeries"
-            :secondaryTitle="secondaryTitle"
-            :primaryAxisType="metricAxisType"
-            :secondaryAxisType="metricAxisType"
-            :visibleMinutes="60"
+            :primary-data="primarySeries"
+            :primary-title="primaryTitle"
+            :secondary-data="secondarySeries"
+            :secondary-title="secondaryTitle"
+            :primary-axis-type="metricAxisType"
+            :secondary-axis-type="metricAxisType"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -49,12 +49,12 @@
           :command="ioEnableCommand"
         >
           <p>
-            Per-file totals come from <code>jdk.FileRead</code> and <code>jdk.FileWrite</code>. In the
-            bundled <code>default</code>/<code>profile</code> configs these are <strong>enabled but
-            threshold-gated</strong> (only operations slower than ~1&nbsp;ms are kept, and they are
-            throttled), so light or fast file I/O leaves this empty. The copyable command keeps the
-            <code>profile</code> config and sets both events to <code>threshold=0ms</code> to capture
-            every operation.
+            Per-file totals come from <code>jdk.FileRead</code> and <code>jdk.FileWrite</code>. In
+            the bundled <code>default</code>/<code>profile</code> configs these are
+            <strong>enabled but threshold-gated</strong> (only operations slower than ~1&nbsp;ms are
+            kept, and they are throttled), so light or fast file I/O leaves this empty. The copyable
+            command keeps the <code>profile</code> config and sets both events to
+            <code>threshold=0ms</code> to capture every operation.
           </p>
         </DisabledEventsNotice>
         <DataTable v-else>
@@ -127,10 +127,11 @@
           :command="ioEnableCommand"
         >
           <p>
-            The per-directory rollup aggregates <code>jdk.FileRead</code> / <code>jdk.FileWrite</code>
-            events. They are <strong>enabled but threshold-gated</strong> (~1&nbsp;ms) and throttled in
-            the bundled configs, so there is nothing to aggregate here yet. The command above un-gates
-            them (<code>threshold=0ms</code>) on top of the <code>profile</code> config.
+            The per-directory rollup aggregates <code>jdk.FileRead</code> /
+            <code>jdk.FileWrite</code> events. They are
+            <strong>enabled but threshold-gated</strong> (~1&nbsp;ms) and throttled in the bundled
+            configs, so there is nothing to aggregate here yet. The command above un-gates them
+            (<code>threshold=0ms</code>) on top of the <code>profile</code> config.
           </p>
         </DisabledEventsNotice>
         <DataTable v-else>
@@ -202,9 +203,10 @@
         >
           <p>
             The slowest-operations list is built from individual <code>jdk.FileRead</code> /
-            <code>jdk.FileWrite</code> events, which are <strong>enabled but threshold-gated</strong>
-            (~1&nbsp;ms) and throttled in the bundled configs. With no qualifying operations the list
-            stays empty — the command above captures every read/write by setting
+            <code>jdk.FileWrite</code> events, which are
+            <strong>enabled but threshold-gated</strong>
+            (~1&nbsp;ms) and throttled in the bundled configs. With no qualifying operations the
+            list stays empty — the command above captures every read/write by setting
             <code>threshold=0ms</code>.
           </p>
         </DisabledEventsNotice>
@@ -274,23 +276,23 @@
           <p>
             An <strong>fsync</strong> (<code>FileChannel.force()</code> /
             <code>FileDescriptor.sync()</code>) flushes buffered writes — and optionally metadata —
-            durably to disk. JFR reports it as <code>jdk.FileForce</code>, which carries latency only,
-            no byte count.
+            durably to disk. JFR reports it as <code>jdk.FileForce</code>, which carries latency
+            only, no byte count.
           </p>
           <p>
             In the JDK's bundled <code>default</code> and <code>profile</code> configs this event is
             <strong>enabled but threshold-gated</strong> (≈20&nbsp;ms in <code>default</code>,
-            10&nbsp;ms in <code>profile</code>), and some minimal/older configs disable it outright. An
-            empty tab usually means your fsyncs were faster than that threshold — not that none
+            10&nbsp;ms in <code>profile</code>), and some minimal/older configs disable it outright.
+            An empty tab usually means your fsyncs were faster than that threshold — not that none
             happened.
           </p>
 
           <template #action>
             <p>
-              <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps the
-              bundled <code>profile</code> config and adds <code>jdk.FileForce#enabled=true</code> with
-              <code>threshold=0ms</code> so every force is captured (the same command also un-gates
-              reads/writes for the other tabs).
+              <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps
+              the bundled <code>profile</code> config and adds
+              <code>jdk.FileForce#enabled=true</code> with <code>threshold=0ms</code> so every force
+              is captured (the same command also un-gates reads/writes for the other tabs).
             </p>
             <p>
               <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
@@ -420,9 +422,9 @@
             </ul>
             <p>
               All three are <strong>enabled but threshold-gated</strong> in the bundled
-              <code>default</code> / <code>profile</code> configs (reads and writes at ~1&nbsp;ms and
-              throttled, forces at 10–20&nbsp;ms), and disabled outright in some minimal configs — so
-              the file tabs can be empty even when the app does file I/O. Lower the
+              <code>default</code> / <code>profile</code> configs (reads and writes at ~1&nbsp;ms
+              and throttled, forces at 10–20&nbsp;ms), and disabled outright in some minimal configs
+              — so the file tabs can be empty even when the app does file I/O. Lower the
               <code>threshold</code> (down to <code>0ms</code>) to capture everything.
             </p>
           </AboutSection>

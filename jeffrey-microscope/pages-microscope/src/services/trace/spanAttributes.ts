@@ -107,7 +107,7 @@ export function spanDetail(
     return EMPTY_DETAIL;
   }
 
-  const byName = new Map(fields.map((field) => [field.field, field]));
+  const byName = new Map(fields.map(field => [field.field, field]));
   const eventEntries = entriesOf(eventFieldsJson);
   const sql = eventEntries.find(([key]) => key === SQL_FIELD)?.[1];
 
@@ -162,7 +162,11 @@ function attributeRow(key: string, value: unknown): SpanDetailRow {
  * label. A field the metadata does not describe still renders — a recording can be older than the
  * event class it came from — it just falls back to its own name and no formatting.
  */
-function eventFieldRow(key: string, value: unknown, field: EventFieldRow | undefined): SpanDetailRow {
+function eventFieldRow(
+  key: string,
+  value: unknown,
+  field: EventFieldRow | undefined
+): SpanDetailRow {
   return {
     key,
     label: field?.label ?? key,
@@ -171,7 +175,10 @@ function eventFieldRow(key: string, value: unknown, field: EventFieldRow | undef
   };
 }
 
-function typedValue(value: unknown, contentType: string | null): { value: string; absent: boolean } {
+function typedValue(
+  value: unknown,
+  contentType: string | null
+): { value: string; absent: boolean } {
   if (typeof value === 'number' && contentType !== null) {
     // A negative measurement was not taken. JFR's own convention, and the reason an HTTP exchange
     // that never read a body reports -1 rather than 0 -- which would claim an empty body.

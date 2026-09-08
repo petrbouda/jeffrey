@@ -18,7 +18,6 @@
 module cafe.jeffrey.microscope.profile.timeseries {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.profile.common;
-    requires transitive cafe.jeffrey.microscope.profile.frame.ir;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires cafe.jeffrey.microscope.profile.parser.api;
     requires org.eclipse.collections.api;

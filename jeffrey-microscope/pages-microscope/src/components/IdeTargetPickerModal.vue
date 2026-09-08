@@ -26,7 +26,9 @@
     :show-footer="true"
     @update:show="onShowChange"
   >
-    <p class="picker-intro">Choose which open IDE window to use for this profile. Your choice is remembered.</p>
+    <p class="picker-intro">
+      Choose which open IDE window to use for this profile. Your choice is remembered.
+    </p>
 
     <div v-for="instance in store.instances.value" :key="instance.port" class="ide-group">
       <div class="ide-group-header">
@@ -42,10 +44,10 @@
         :class="{ 'is-selected': selectedKey === rowKey(instance.port, project.id) }"
       >
         <input
+          v-model="selectedKey"
           type="radio"
           name="ideTarget"
           :value="rowKey(instance.port, project.id)"
-          v-model="selectedKey"
         />
         <div class="ide-row-main">
           <div class="ide-row-title">
@@ -55,7 +57,9 @@
           </div>
           <div class="ide-row-meta">
             <span v-if="project.vcsBranch" class="ide-branch">{{ project.vcsBranch }}</span>
-            <span v-if="project.headCommit" class="ide-commit">{{ shortCommit(project.headCommit) }}</span>
+            <span v-if="project.headCommit" class="ide-commit">{{
+              shortCommit(project.headCommit)
+            }}</span>
             <span v-if="project.basePath" class="ide-path">{{ project.basePath }}</span>
           </div>
         </div>
@@ -70,8 +74,15 @@
     />
 
     <template #footer>
-      <button type="button" class="btn btn-outline-secondary btn-sm" @click="onCancel">Cancel</button>
-      <button type="button" class="btn btn-primary btn-sm" :disabled="!selectedKey" @click="onConnect">
+      <button type="button" class="btn btn-outline-secondary btn-sm" @click="onCancel">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary btn-sm"
+        :disabled="!selectedKey"
+        @click="onConnect"
+      >
         Connect
       </button>
     </template>
@@ -102,22 +113,22 @@ function rowKey(port: number, projectId: string): string {
 }
 
 function initSelection(): void {
-  const flat = store.instances.value.flatMap((instance) =>
-    instance.projects.map((project) => ({ port: instance.port, project }))
+  const flat = store.instances.value.flatMap(instance =>
+    instance.projects.map(project => ({ port: instance.port, project }))
   );
   if (flat.length === 0) {
     selectedKey.value = '';
     return;
   }
-  const cached = flat.find((entry) => entry.project.id === store.selectedProjectId.value);
-  const match = flat.find((entry) => entry.project.hasClass);
+  const cached = flat.find(entry => entry.project.id === store.selectedProjectId.value);
+  const match = flat.find(entry => entry.project.hasClass);
   const chosen = cached ?? match ?? flat[0];
   selectedKey.value = rowKey(chosen.port, chosen.project.id);
 }
 
 watch(
   () => store.show.value,
-  (visible) => {
+  visible => {
     if (visible) {
       initSelection();
     }

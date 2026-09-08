@@ -168,8 +168,12 @@ export default class ProtobufConverter {
    * Protobuf int64 values can be Long objects when using protobufjs.
    */
   private static toLong(value: number | Long | null | undefined): number {
-    if (value == null) return 0;
-    if (typeof value === 'number') return value;
+    if (value == null) {
+      return 0;
+    }
+    if (typeof value === 'number') {
+      return value;
+    }
     // Long object from protobufjs
     return (value as any).toNumber?.() ?? 0;
   }

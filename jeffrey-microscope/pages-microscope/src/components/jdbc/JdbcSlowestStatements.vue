@@ -75,7 +75,9 @@ const sortedStatements = computed(() =>
 );
 
 const maxExecutionTime = computed(() => {
-  if (props.statements.length === 0) return 1;
+  if (props.statements.length === 0) {
+    return 1;
+  }
   return Math.max(...props.statements.map(s => s.executionTime));
 });
 

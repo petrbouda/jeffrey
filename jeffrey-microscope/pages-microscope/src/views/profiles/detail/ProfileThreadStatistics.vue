@@ -49,9 +49,9 @@
                   </span>
                   <button
                     class="flame-btn"
-                    @click="viewThreadAllocationFlamegraph(thread)"
                     title="View thread allocation flamegraph"
                     :disabled="!allocationType"
+                    @click="viewThreadAllocationFlamegraph(thread)"
                   >
                     <i class="bi bi-fire"></i>
                   </button>
@@ -94,8 +94,8 @@
                     <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
                     <button
                       class="flame-btn"
-                      @click="viewThreadCpuProfile(thread)"
                       title="View thread CPU flamegraph"
+                      @click="viewThreadCpuProfile(thread)"
                     >
                       <i class="bi bi-fire"></i>
                     </button>
@@ -128,8 +128,8 @@
                     <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
                     <button
                       class="flame-btn"
-                      @click="viewThreadCpuProfile(thread)"
                       title="View thread CPU flamegraph"
+                      @click="viewThreadCpuProfile(thread)"
                     >
                       <i class="bi bi-fire"></i>
                     </button>
@@ -153,11 +153,11 @@
           <button
             type="button"
             class="btn-close"
-            @click="showFlamegraphModal = false"
             aria-label="Close"
+            @click="showFlamegraphModal = false"
           ></button>
         </template>
-        <div id="scrollable-wrapper" style="padding: 0.75rem" v-if="showFlamegraphModal">
+        <div v-if="showFlamegraphModal" id="scrollable-wrapper" style="padding: 0.75rem">
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <TimeSeriesChart
             :graph-updater="graphUpdater"
@@ -171,7 +171,7 @@
           <FlamegraphComponent
             :with-timeseries="true"
             :use-weight="useWeightForModal"
-            scrollableWrapperClass="scrollable-wrapper"
+            scrollable-wrapper-class="scrollable-wrapper"
             :flamegraph-tooltip="flamegraphTooltip"
             :graph-updater="graphUpdater"
             @loaded="scrollToTop"
@@ -395,7 +395,9 @@ const reservedStackView = useTableView(() => reservedStackActivations.value ?? [
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
-  if (!threadStats.value) return [];
+  if (!threadStats.value) {
+    return [];
+  }
 
   return [
     {

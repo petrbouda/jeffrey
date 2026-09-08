@@ -62,7 +62,7 @@
       </div>
 
       <!-- Concurrent Phases Section -->
-      <div class="phases-section" v-if="event.phases && event.phases.length > 0">
+      <div v-if="event.phases && event.phases.length > 0" class="phases-section">
         <div class="section-header">
           <h6><i class="bi bi-layers me-2"></i>Concurrent Phases ({{ event.phases.length }})</h6>
         </div>
@@ -91,7 +91,7 @@
       </div>
 
       <!-- No Phases Message -->
-      <div class="phases-section" v-else>
+      <div v-else class="phases-section">
         <div class="section-header">
           <h6><i class="bi bi-layers me-2"></i>Concurrent Phases</h6>
         </div>

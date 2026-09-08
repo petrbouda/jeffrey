@@ -53,9 +53,9 @@ let chart: ApexCharts | null = null;
 
 const renderChart = async () => {
   await nextTick();
-  if (!chartRef.value || props.data.series.length === 0) return;
+  if (!chartRef.value || props.data.series.length === 0) {return;}
 
-  if (chart) chart.destroy();
+  if (chart) {chart.destroy();}
 
   chart = new ApexCharts(chartRef.value, {
     chart: {

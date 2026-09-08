@@ -35,7 +35,7 @@ const HEADER_OFFSET = 100; // Header height + padding for detection
 let ticking = false;
 
 const updateActiveHeading = (): void => {
-  if (props.headings.length === 0) return;
+  if (props.headings.length === 0) {return;}
 
   let currentActive = '';
 

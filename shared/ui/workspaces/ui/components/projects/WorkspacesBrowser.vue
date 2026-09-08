@@ -1222,7 +1222,7 @@ onMounted(refreshServers);
 }
 
 .view-switcher button.active {
-  background: var(--color-card, #ffffff);
+  background: var(--color-card, var(--color-white));
   color: var(--color-primary-hover);
   box-shadow: var(--shadow-sm);
 }

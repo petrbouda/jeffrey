@@ -39,23 +39,23 @@ describe('spanDetail', () => {
     // event type's schema. Merging them makes `sql` look like something attached by hand.
     const detail = spanDetail('{"scopeId":"abc"}', '{"rows":6}');
 
-    expect(detail.attributes.map((row) => row.key)).toEqual(['scopeId']);
-    expect(detail.eventFields.map((row) => row.key)).toEqual(['rows']);
+    expect(detail.attributes.map(row => row.key)).toEqual(['scopeId']);
+    expect(detail.eventFields.map(row => row.key)).toEqual(['rows']);
   });
 
-  it('keeps the recording\'s own field order rather than sorting the keys', () => {
+  it("keeps the recording's own field order rather than sorting the keys", () => {
     // An exchange records method, then URI, then status code; reading them in that order is how
     // the request is reconstructed. Alphabetising would put the status first and the method last.
     const detail = spanDetail(null, '{"method":"GET","uri":"/api/config","statusCode":200}');
 
-    expect(detail.eventFields.map((row) => row.key)).toEqual(['method', 'uri', 'statusCode']);
+    expect(detail.eventFields.map(row => row.key)).toEqual(['method', 'uri', 'statusCode']);
   });
 
   it('pulls the statement out so it can be drawn as code', () => {
     const detail = spanDetail(null, '{"sql":"SELECT 1\\nFROM spans","rows":6}');
 
     expect(detail.sql).toBe('SELECT 1\nFROM spans');
-    expect(detail.eventFields.map((row) => row.key)).toEqual(['rows']);
+    expect(detail.eventFields.map(row => row.key)).toEqual(['rows']);
   });
 
   it('ignores an empty statement rather than drawing an empty code block', () => {
@@ -117,7 +117,9 @@ describe('spanDetail', () => {
     });
 
     it('leaves a number alone when the recording gave it no content type', () => {
-      const detail = spanDetail(null, '{"statusCode":200}', [field('statusCode', 'Response Status')]);
+      const detail = spanDetail(null, '{"statusCode":200}', [
+        field('statusCode', 'Response Status')
+      ]);
 
       expect(detail.eventFields[0].value).toBe('200');
     });
@@ -152,8 +154,8 @@ describe('spanDetail', () => {
       // flag is not a missing one; treating either as falsy blanks out the spans worth looking at.
       const detail = spanDetail(null, '{"rows":0,"cached":false}');
 
-      expect(detail.eventFields.map((row) => row.value)).toEqual(['0', 'false']);
-      expect(detail.eventFields.every((row) => !row.absent)).toBe(true);
+      expect(detail.eventFields.map(row => row.value)).toEqual(['0', 'false']);
+      expect(detail.eventFields.every(row => !row.absent)).toBe(true);
     });
   });
 
@@ -180,8 +182,8 @@ describe('spanDetail', () => {
     it('reads a bare map, keeping the order the emitter chose', () => {
       const rows = attributeRows('{"upstream":"acme-pay","failures":5,"open":true}');
 
-      expect(rows.map((row) => row.key)).toEqual(['upstream', 'failures', 'open']);
-      expect(rows.map((row) => row.value)).toEqual(['acme-pay', '5', 'true']);
+      expect(rows.map(row => row.key)).toEqual(['upstream', 'failures', 'open']);
+      expect(rows.map(row => row.value)).toEqual(['acme-pay', '5', 'true']);
     });
 
     it('reads nothing from a carrier that attached nothing', () => {
@@ -190,7 +192,7 @@ describe('spanDetail', () => {
       expect(attributeRows('{}')).toEqual([]);
     });
 
-    it('surfaces text it cannot parse, the same way a span\'s attributes do', () => {
+    it("surfaces text it cannot parse, the same way a span's attributes do", () => {
       expect(attributeRows('not json at all')).toEqual([
         { key: 'raw', label: 'raw', description: null, value: 'not json at all', absent: false }
       ]);

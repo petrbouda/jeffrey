@@ -26,12 +26,12 @@ When there is no data, render `<EmptyState>` as a sibling instead of an empty `D
 ### Imports
 
 ```ts
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
-import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
-import TableShowMore from '@/components/table/TableShowMore.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import Badge from '@/components/Badge.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
+import SortableTableHeader from '@shared/components/table/SortableTableHeader.vue';
+import TableShowMore from '@shared/components/table/TableShowMore.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import Badge from '@shared/components/Badge.vue';
 ```
 
 ### Template skeleton

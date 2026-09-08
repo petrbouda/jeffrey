@@ -100,9 +100,9 @@ function resetTimeseriesZoom() {
               <span class="mode-label">{{ threadModeLabel }}</span>
               <label class="toggle-switch">
                 <input
+                  v-model="useThreadMode"
                   type="checkbox"
                   class="toggle-input"
-                  v-model="useThreadMode"
                   @change="onModeChange()"
                 />
                 <span class="toggle-slider"></span>
@@ -112,9 +112,9 @@ function resetTimeseriesZoom() {
               <span class="mode-label">{{ weightModeLabel }}</span>
               <label class="toggle-switch">
                 <input
+                  v-model="useWeight"
                   type="checkbox"
                   class="toggle-input"
-                  v-model="useWeight"
                   @change="onModeChange()"
                 />
                 <span class="toggle-slider"></span>
@@ -126,7 +126,7 @@ function resetTimeseriesZoom() {
         <!-- Spacer to push loading and matched to the right -->
         <div class="flex-grow-1"></div>
 
-        <div class="d-flex align-items-center me-3" v-if="isLoading">
+        <div v-if="isLoading" class="d-flex align-items-center me-3">
           <div
             class="spinner-border spinner-border-sm text-primary"
             style="height: 18px; width: 18px"
@@ -136,10 +136,10 @@ function resetTimeseriesZoom() {
           </div>
         </div>
         <span
-          class="matched-badge"
-          @click="resetSearch()"
           v-if="searchMatched != null"
+          class="matched-badge"
           title="Click to reset search"
+          @click="resetSearch()"
         >
           {{ searchMatched }}%
         </span>
@@ -148,11 +148,11 @@ function resetTimeseriesZoom() {
       <div class="col-6 d-flex">
         <div class="input-group">
           <input
+            v-model="searchValue"
             type="text"
             class="form-control"
-            v-model="searchValue"
-            @keydown.enter="search"
             placeholder="Search"
+            @keydown.enter="search"
           />
           <button class="btn btn-primary d-flex align-items-center" @click="search()">
             <i class="bi bi-arrow-right"></i>

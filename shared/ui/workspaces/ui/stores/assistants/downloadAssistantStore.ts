@@ -65,7 +65,7 @@ const hasActiveDownloads = computed(() =>
  */
 const aggregateProgress = computed(() => {
   const entries = Array.from(downloads.value.values());
-  if (entries.length === 0) return 0;
+  if (entries.length === 0) {return 0;}
 
   const totalBytes = entries.reduce((sum, e) => sum + (e.progress.totalBytes || 0), 0);
   const downloadedBytes = entries.reduce((sum, e) => sum + (e.progress.downloadedBytes || 0), 0);
@@ -78,7 +78,7 @@ const aggregateProgress = computed(() => {
  */
 const aggregateStatus = computed(() => {
   const entries = Array.from(downloads.value.values());
-  if (entries.length === 0) return null;
+  if (entries.length === 0) {return null;}
 
   // Priority: FAILED > CANCELLED > DOWNLOADING/PENDING/PROCESSING > COMPLETED
   if (entries.some(e => e.progress.status === DownloadTaskStatus.FAILED)) {
@@ -159,7 +159,7 @@ const startDownload = async (
       },
       () => {
         const entry = downloads.value.get(task.taskId);
-        if (entry?.onComplete) entry.onComplete();
+        if (entry?.onComplete) {entry.onComplete();}
       },
       error => {
         ToastService.error('Download Failed', error);
@@ -175,7 +175,7 @@ const startDownload = async (
  */
 const cancelDownload = async (taskId: string) => {
   const entry = downloads.value.get(taskId);
-  if (!entry) return;
+  if (!entry) {return;}
 
   // Cancel on server
   try {
@@ -197,7 +197,7 @@ const cancelDownload = async (taskId: string) => {
  */
 const closeDownload = (taskId: string) => {
   const entry = downloads.value.get(taskId);
-  if (!entry) return;
+  if (!entry) {return;}
 
   // Cleanup resources
   entry.client.unsubscribe();

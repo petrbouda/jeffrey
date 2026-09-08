@@ -42,7 +42,7 @@ Review changed Vue files for design system violations and component reuse.
 
 ### Shared CSS Reuse
 - Before adding scoped styles, check if the pattern already exists in:
-  - `@/styles/shared-components.css` — common UI patterns
+  - `@shared/styles/shared-components.css` — common UI patterns
   - `@/assets/_sidebar-menu.scss` — sidebar navigation
 - If a commonly reused pattern is found only in scoped styles, recommend extracting it to shared CSS
 

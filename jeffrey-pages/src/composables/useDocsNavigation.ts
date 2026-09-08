@@ -550,15 +550,15 @@ export const docsNavigation: DocSection[] = [...microscopeNavigation, ...microsc
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
-  if (!cleaned) return null;
+  if (!cleaned) {return null;}
   const first = cleaned.split('/')[0];
-  if (MICROSCOPE_MCP_SEGMENTS.has(first)) return 'microscope-mcp';
-  if (MICROSCOPE_SEGMENTS.has(first)) return 'microscope';
-  if (HUB_SEGMENTS.has(first)) return 'hub';
-  if (PROVISIONER_SEGMENTS.has(first)) return 'provisioner';
-  if (JIB_SEGMENTS.has(first)) return 'jib';
-  if (INTELLIJ_PLUGIN_SEGMENTS.has(first)) return 'intellij-plugin';
-  if (TRACING_SEGMENTS.has(first)) return 'tracing';
+  if (MICROSCOPE_MCP_SEGMENTS.has(first)) {return 'microscope-mcp';}
+  if (MICROSCOPE_SEGMENTS.has(first)) {return 'microscope';}
+  if (HUB_SEGMENTS.has(first)) {return 'hub';}
+  if (PROVISIONER_SEGMENTS.has(first)) {return 'provisioner';}
+  if (JIB_SEGMENTS.has(first)) {return 'jib';}
+  if (INTELLIJ_PLUGIN_SEGMENTS.has(first)) {return 'intellij-plugin';}
+  if (TRACING_SEGMENTS.has(first)) {return 'tracing';}
   return null;
 }
 
@@ -586,7 +586,7 @@ export function navigationForProduct(product: Product): DocSection[] {
 
 // Resolve the URL for a sidebar page entry, honoring the absolute `to` override.
 export function pageHref(sectionPath: string, page: DocPage): string {
-  if (page.to) return page.to;
+  if (page.to) {return page.to;}
   return `/docs/${sectionPath}/${page.path ?? ''}`;
 }
 
@@ -616,9 +616,9 @@ export function getAllDocs(): { title: string; section: string; path: string }[]
 
 export function findCurrentPage(category: string, page: string): CurrentPageInfo | null {
   const section = docsNavigation.find(s => s.path === category);
-  if (!section) return null;
+  if (!section) {return null;}
   const pageInfo = section.children.find(p => p.path === page);
-  if (!pageInfo) return null;
+  if (!pageInfo) {return null;}
   return {
     ...pageInfo,
     section: section.title,
@@ -698,7 +698,7 @@ export function getBreadcrumbs(routePath: string): BreadcrumbItem[] {
             break;
           }
         }
-        if (foundPage) break;
+        if (foundPage) {break;}
       }
       if (pageHref(section.path, page) === routePath) {
         foundPage = page;
@@ -706,7 +706,7 @@ export function getBreadcrumbs(routePath: string): BreadcrumbItem[] {
       }
     }
 
-    if (!foundPage) continue;
+    if (!foundPage) {continue;}
 
     const breadcrumbs: BreadcrumbItem[] = [];
     const isSinglePageSection = section.children.length === 1;

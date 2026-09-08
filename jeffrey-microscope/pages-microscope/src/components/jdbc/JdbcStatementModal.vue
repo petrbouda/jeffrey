@@ -73,7 +73,7 @@
       </div>
 
       <!-- Parameters -->
-      <div class="parameters-section" v-if="statement.parameters && statement.parameters !== '[]'">
+      <div v-if="statement.parameters && statement.parameters !== '[]'" class="parameters-section">
         <div class="section-header">
           <h6><i class="bi bi-gear me-2"></i>Parameters</h6>
           <button type="button" class="btn btn-sm btn-outline-secondary" @click="copyParameters">
@@ -88,7 +88,7 @@
       </div>
 
       <!-- No Parameters Message -->
-      <div class="parameters-section" v-else>
+      <div v-else class="parameters-section">
         <div class="section-header">
           <h6><i class="bi bi-gear me-2"></i>Parameters</h6>
         </div>
@@ -119,7 +119,9 @@ const props = defineProps<Props>();
 defineEmits(['update:show']);
 
 const formatSql = (sql: string): string => {
-  if (!sql) return '';
+  if (!sql) {
+    return '';
+  }
 
   // Basic SQL formatting - add line breaks after major keywords
   return sql
@@ -144,7 +146,9 @@ const formatSql = (sql: string): string => {
 };
 
 const formatParameters = (parameters: string): string => {
-  if (!parameters || parameters === '[]') return 'No parameters';
+  if (!parameters || parameters === '[]') {
+    return 'No parameters';
+  }
 
   try {
     // Try to parse as JSON array and format nicely

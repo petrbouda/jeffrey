@@ -343,9 +343,6 @@ public class SQLBuilder {
         return new CompositeCondition(LogicalOperator.OR, conditions);
     }
 
-    public static Condition notInOrNullInts(String column, List<Integer> values) {
-        return new NotInOrNullCondition(column, values.stream().map(LongLiteral::new).toList());
-    }
 
     public static Condition notInOrNull(String column, List<String> values) {
         return new NotInOrNullCondition(column, values.stream().map(StringLiteral::new).toList());

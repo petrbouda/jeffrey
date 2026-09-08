@@ -134,7 +134,7 @@ interface TypeGroupPanel {
 // --- Utility functions ---
 const parseSessionName = (name: string): { sessionInstance: string; sessionId: string } => {
   const slashIndex = name.indexOf('/');
-  if (slashIndex === -1) return { sessionInstance: name, sessionId: '' };
+  if (slashIndex === -1) {return { sessionInstance: name, sessionId: '' };}
   return {
     sessionInstance: name.substring(0, slashIndex),
     sessionId: name.substring(slashIndex + 1)
@@ -177,7 +177,7 @@ const failedGroupSummary = (group: FailedSessionGroup): string => {
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
-    if (file.isRecording || file.fileType === RecordingFileType.ASPROF) return 1;
+    if (file.isRecording || file.fileType === RecordingFileType.ASPROF) {return 1;}
     return 0;
   };
 
@@ -305,7 +305,7 @@ const clearAllSelections = (sessionId: string) => {
 };
 
 const getSelectedCount = (sessionId: string): number => {
-  if (!selectedRepositoryFile.value[sessionId]) return 0;
+  if (!selectedRepositoryFile.value[sessionId]) {return 0;}
   return Object.values(selectedRepositoryFile.value[sessionId]).filter(Boolean).length;
 };
 
@@ -319,7 +319,7 @@ const toggleSourceSelection = (sessionId: string, sourceId: string) => {
 
 const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   const session = props.sessions.find(s => s.id === sessionId);
-  if (!session) return;
+  if (!session) {return;}
 
   if (!selectedRepositoryFile.value[sessionId]) {
     selectedRepositoryFile.value[sessionId] = {};
@@ -333,9 +333,9 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
 };
 
 const isAllGroupFilesSelected = (sessionId: string, panel: TypeGroupPanel): boolean => {
-  if (!selectedRepositoryFile.value[sessionId]) return false;
+  if (!selectedRepositoryFile.value[sessionId]) {return false;}
   const selectableFiles = panel.files.filter(f => !isCheckboxDisabled(f));
-  if (selectableFiles.length === 0) return false;
+  if (selectableFiles.length === 0) {return false;}
   return selectableFiles.every(f => selectedRepositoryFile.value[sessionId][f.id]);
 };
 
@@ -422,7 +422,7 @@ const downloadSession = async (sessionId: string) => {
 const downloadSelectedSources = async (sessionId: string) => {
   try {
     const session = props.sessions.find(s => s.id === sessionId);
-    if (!session) return;
+    if (!session) {return;}
 
     const selectedSources = session.files.filter(
       source => selectedRepositoryFile.value[sessionId][source.id]
@@ -466,7 +466,7 @@ const downloadSelectedSources = async (sessionId: string) => {
 
 const deleteSelectedSources = async (sessionId: string) => {
   const session = props.sessions.find(s => s.id === sessionId);
-  if (!session) return;
+  if (!session) {return;}
 
   const selectedSources = session.files.filter(
     source => selectedRepositoryFile.value[sessionId][source.id]
@@ -482,11 +482,11 @@ const deleteSelectedSources = async (sessionId: string) => {
 };
 
 const confirmDeleteSelectedFiles = async () => {
-  if (!sessionIdWithFilesToDelete.value) return;
+  if (!sessionIdWithFilesToDelete.value) {return;}
 
   const sessionId = sessionIdWithFilesToDelete.value;
   const session = props.sessions.find(s => s.id === sessionId);
-  if (!session) return;
+  if (!session) {return;}
 
   deletingSelectedFiles.value = true;
 
@@ -552,7 +552,7 @@ const togglePinned = async (session: RecordingSession) => {
 };
 
 const confirmDeleteSession = async () => {
-  if (!sessionToDelete.value) return;
+  if (!sessionToDelete.value) {return;}
 
   deletingSession.value = true;
 
@@ -574,7 +574,7 @@ const confirmDeleteSession = async () => {
 // --- Rotation group logic ---
 const parseRotatedFilename = (filename: string): { baseName: string; suffix: number } | null => {
   const match = filename.match(/^(.+)\.(\d+)$/);
-  if (!match) return null;
+  if (!match) {return null;}
   return { baseName: match[1], suffix: parseInt(match[2], 10) };
 };
 
@@ -648,7 +648,7 @@ const hasMoreRecordingGroups = (session: RecordingSession): boolean => {
 
 const showMoreRecordingGroups = (sessionId: string) => {
   const session = props.sessions.find(s => s.id === sessionId);
-  if (!session) return;
+  if (!session) {return;}
   visibleFilesCount.value[sessionId] = getRecordingGroupedFiles(session).length;
 };
 
@@ -663,9 +663,9 @@ const getArtifactGroupMap = (
   const sortedFiles = getSortedRecordings(session);
   const groupMap = new Map<ArtifactTypeGroup, RepositoryFile[]>();
   for (const file of sortedFiles) {
-    if (isRecordingOrTempFile(file)) continue;
+    if (isRecordingOrTempFile(file)) {continue;}
     const groupKey = FILE_TYPE_TO_GROUP[file.fileType] || 'UNKNOWN';
-    if (!groupMap.has(groupKey)) groupMap.set(groupKey, []);
+    if (!groupMap.has(groupKey)) {groupMap.set(groupKey, []);}
     groupMap.get(groupKey)!.push(file);
   }
   return groupMap;
@@ -678,10 +678,10 @@ const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
   const groupMap = getArtifactGroupMap(session);
   const panels: TypeGroupPanel[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
-    if (groupKey === 'JFR_RECORDING') continue;
+    if (groupKey === 'JFR_RECORDING') {continue;}
     const files = groupMap.get(groupKey);
-    if (!files) continue;
-    if (files.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) continue;
+    if (!files) {continue;}
+    if (files.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) {continue;}
     panels.push({
       groupKey,
       display: TYPE_GROUP_DISPLAY[groupKey],
@@ -697,7 +697,7 @@ const getStandaloneArtifactFiles = (session: RecordingSession): RepositoryFile[]
   const groupMap = getArtifactGroupMap(session);
   const standalone: RepositoryFile[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
-    if (groupKey === 'JFR_RECORDING') continue;
+    if (groupKey === 'JFR_RECORDING') {continue;}
     const files = groupMap.get(groupKey);
     if (files && files.length === 1 && !ALWAYS_GROUPED.has(groupKey)) {
       standalone.push(files[0]);
@@ -756,9 +756,9 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
     classes.push('source-selected');
   }
 
-  if (source.status === RecordingStatus.ACTIVE) classes.push('source-active');
-  else if (source.status === RecordingStatus.FINISHED) classes.push('source-finished');
-  else if (source.status === RecordingStatus.UNKNOWN) classes.push('source-unknown');
+  if (source.status === RecordingStatus.ACTIVE) {classes.push('source-active');}
+  else if (source.status === RecordingStatus.FINISHED) {classes.push('source-finished');}
+  else if (source.status === RecordingStatus.UNKNOWN) {classes.push('source-unknown');}
 
   return classes.join(' ');
 };

@@ -47,7 +47,6 @@
         :primary-axis-type="AxisFormatType.NUMBER"
         :secondary-axis-type="AxisFormatType.NUMBER"
       />
-
     </MainCard>
 
     <EmptyState

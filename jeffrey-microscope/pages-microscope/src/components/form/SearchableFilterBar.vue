@@ -75,11 +75,11 @@
     </div>
     <button
       v-if="modelValue"
+      class="filter-clear-btn"
       @click="
         $emit('update:modelValue', null);
         $emit('clear');
       "
-      class="filter-clear-btn"
     >
       <i class="bi bi-x-lg"></i> Clear
     </button>
@@ -122,7 +122,9 @@ defineEmits<{
 }>();
 
 const selectedItem = computed(() => {
-  if (!props.modelValue) return null;
+  if (!props.modelValue) {
+    return null;
+  }
   return props.items.find(i => i.label === props.modelValue) || null;
 });
 

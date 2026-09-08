@@ -33,8 +33,6 @@ import cafe.jeffrey.profile.heapdump.oql.ast.SelectClause.SelectModifier;
 import cafe.jeffrey.profile.heapdump.oql.ast.UnaryOperator;
 import cafe.jeffrey.profile.heapdump.oql.grammar.OqlBaseVisitor;
 import cafe.jeffrey.profile.heapdump.oql.grammar.OqlParser;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -464,16 +462,4 @@ final class OqlAstBuilder extends OqlBaseVisitor<Object> {
         return out.toString();
     }
 
-    private static int line(ParserRuleContext ctx) {
-        return ctx.getStart().getLine();
-    }
-
-    private static int col(ParserRuleContext ctx) {
-        return ctx.getStart().getCharPositionInLine();
-    }
-
-    @SuppressWarnings("unused")
-    private static String text(TerminalNode node) {
-        return node == null ? null : node.getText();
-    }
 }

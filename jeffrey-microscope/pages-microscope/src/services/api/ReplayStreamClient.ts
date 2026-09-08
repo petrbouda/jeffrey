@@ -74,14 +74,18 @@ export default class ReplayStreamClient {
     });
 
     this.eventSource.addEventListener('complete', () => {
-      if (finished) return;
+      if (finished) {
+        return;
+      }
       finished = true;
       this.cancel();
       onComplete();
     });
 
     this.eventSource.addEventListener('replayError', (event: MessageEvent) => {
-      if (finished) return;
+      if (finished) {
+        return;
+      }
       finished = true;
       this.cancel();
       onError(event.data || 'Replay error');
@@ -89,7 +93,9 @@ export default class ReplayStreamClient {
 
     this.eventSource.onerror = () => {
       this.cancel();
-      if (finished) return;
+      if (finished) {
+        return;
+      }
       finished = true;
       onComplete();
     };

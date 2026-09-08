@@ -218,7 +218,7 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
         :zoom-enabled="true"
         :fixed-window-minutes="5"
         time-unit="seconds"
-        @update:timeRange="onTimeRangeChange"
+        @update:time-range="onTimeRangeChange"
       />
     </div>
 
@@ -244,8 +244,8 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
         <button
           type="button"
           class="btn-close"
-          @click="showDialog = false"
           aria-label="Close"
+          @click="showDialog = false"
         ></button>
       </template>
       <SearchBarComponent

@@ -89,8 +89,8 @@
                 <button
                   v-if="item.node.hasChildren"
                   class="btn btn-expand me-1"
-                  @click="toggleExpand(item, index)"
                   :disabled="item.loading"
+                  @click="toggleExpand(item, index)"
                 >
                   <span
                     v-if="item.loading"
@@ -278,9 +278,15 @@ const simpleClassName = (fqn: string): string => {
 };
 
 const getBarColor = (percent: number): string => {
-  if (percent >= 50) return '#dc3545';
-  if (percent >= 25) return '#fd7e14';
-  if (percent >= 10) return '#ffc107';
+  if (percent >= 50) {
+    return '#dc3545';
+  }
+  if (percent >= 25) {
+    return '#fd7e14';
+  }
+  if (percent >= 10) {
+    return '#ffc107';
+  }
   return '#4285F4';
 };
 
@@ -376,7 +382,9 @@ const findParent = (
 
 const loadMoreChildren = async (loadMoreItem: TreeItem, loadMoreIndex: number) => {
   const parent = findParent(loadMoreIndex, loadMoreItem.loadMoreParentObjectId!);
-  if (!parent) return;
+  if (!parent) {
+    return;
+  }
 
   loadMoreItem.loading = true;
   try {
@@ -418,7 +426,9 @@ const loadMoreChildren = async (loadMoreItem: TreeItem, loadMoreIndex: number) =
 
 const loadAllChildren = async (loadMoreItem: TreeItem, loadMoreIndex: number) => {
   const parent = findParent(loadMoreIndex, loadMoreItem.loadMoreParentObjectId!);
-  if (!parent) return;
+  if (!parent) {
+    return;
+  }
 
   loadMoreItem.loading = true;
   try {

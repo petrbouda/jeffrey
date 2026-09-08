@@ -90,7 +90,7 @@ const getGroupMap = (files: RecordingFile[]): Map<ArtifactTypeGroup, RecordingFi
   const groupMap = new Map<ArtifactTypeGroup, RecordingFile[]>();
   for (const file of files) {
     const groupKey = FILE_TYPE_TO_GROUP[file.type] || 'UNKNOWN';
-    if (!groupMap.has(groupKey)) groupMap.set(groupKey, []);
+    if (!groupMap.has(groupKey)) {groupMap.set(groupKey, []);}
     groupMap.get(groupKey)!.push(file);
   }
   return groupMap;
@@ -101,8 +101,8 @@ const getTypeGroupPanels = (files: RecordingFile[]): TypeGroupPanel[] => {
   const panels: TypeGroupPanel[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
     const groupFiles = groupMap.get(groupKey);
-    if (!groupFiles) continue;
-    if (groupFiles.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) continue;
+    if (!groupFiles) {continue;}
+    if (groupFiles.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) {continue;}
     panels.push({
       groupKey,
       display: TYPE_GROUP_DISPLAY[groupKey],

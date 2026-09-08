@@ -13,9 +13,9 @@ export default defineConfig({
   },
   resolve: {
     // Mirrors vite.config.ts, including the exact-match regex pins. `@shared` sources live above the
-    // app root and have no node_modules of their own, so their bare `axios`/`marked`/`dompurify`
-    // imports must be resolved against THIS app's node_modules — without the pins, any test that
-    // reaches a shared service fails to resolve rather than fails an assertion.
+    // app root and have no node_modules of their own, so their bare `axios` imports must be resolved
+    // against THIS app's node_modules — without the pins, any test that reaches a shared service
+    // fails to resolve rather than fails an assertion.
     alias: [
       {
         find: '@instances',
@@ -39,14 +39,6 @@ export default defineConfig({
         find: /^apexcharts$/,
         replacement: fileURLToPath(new URL('./node_modules/apexcharts', import.meta.url))
       },
-      {
-        find: /^marked$/,
-        replacement: fileURLToPath(new URL('./node_modules/marked', import.meta.url))
-      },
-      {
-        find: /^dompurify$/,
-        replacement: fileURLToPath(new URL('./node_modules/dompurify', import.meta.url))
-      },
       // Prefix (not exact) match: SourceViewerModal imports highlight.js subpaths.
       {
         find: 'highlight.js',
@@ -60,9 +52,6 @@ export default defineConfig({
     // module-root-agnostic because the shared modules disagree on it (common uses src/, workspaces ui/).
     include: ['src/**/*.{test,spec}.ts', '../../shared/ui/**/*.{test,spec}.ts'],
     globals: true,
-    // jsdom rather than node: the markdown renderer sanitizes against a real DOM, and its tests assert
-    // that a hostile attribute is stripped — not merely escaped, which is what a string check would
-    // let through.
-    environment: 'jsdom'
+    environment: 'node'
   }
 });

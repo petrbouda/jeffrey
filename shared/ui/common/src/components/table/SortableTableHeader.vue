@@ -34,7 +34,7 @@ defineEmits<{
 const isActive = computed(() => props.sortColumn === props.column);
 
 const sortIcon = computed(() => {
-  if (!isActive.value) return 'bi-arrow-down-up';
+  if (!isActive.value) {return 'bi-arrow-down-up';}
   return props.sortDirection === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down';
 });
 </script>

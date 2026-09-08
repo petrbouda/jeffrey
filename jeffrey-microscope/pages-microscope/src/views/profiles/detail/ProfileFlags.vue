@@ -24,23 +24,23 @@
           <div class="input-group search-container" style="max-width: 400px">
             <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
             <input
+              v-model="searchTerm"
               type="text"
               class="form-control search-input"
               placeholder="Filter by flag name..."
-              v-model="searchTerm"
               autocomplete="off"
             />
             <button
               v-if="searchTerm"
               class="btn btn-outline-secondary clear-btn"
               type="button"
-              @click="searchTerm = ''"
               title="Clear filter"
+              @click="searchTerm = ''"
             >
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
-          <div class="filter-info" v-if="searchTerm">
+          <div v-if="searchTerm" class="filter-info">
             Showing {{ filteredFlagCount }} of {{ flagsData?.totalFlags }} flags
           </div>
         </div>
@@ -97,8 +97,8 @@
                         v-if="flag.hasChanged"
                         class="expand-btn"
                         type="button"
-                        @click="toggleExpand(flag.name)"
                         :title="isExpanded(flag.name) ? 'Collapse' : 'Show change history'"
+                        @click="toggleExpand(flag.name)"
                       >
                         <i
                           class="bi"
@@ -204,34 +204,34 @@
                 memory) and workload characteristics. The JVM optimizes these for best performance.
               </FeatureCard>
               <FeatureCard icon="bi-box" variant="neutral" title="Default">
-                Flags using their built-in default values as defined in the JVM implementation. These
-                weren't explicitly set or modified by any other mechanism.
+                Flags using their built-in default values as defined in the JVM implementation.
+                These weren't explicitly set or modified by any other mechanism.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
 
           <AboutSection icon="bi-list-check" title="Flag Types">
             <div class="type-list">
-            <div class="type-item">
-              <Badge value="Boolean" variant="blue" size="s" />
-              <span>Toggle flags that can be <code>true</code> or <code>false</code></span>
-            </div>
-            <div class="type-item">
-              <Badge value="Int" variant="purple" size="s" />
-              <span>32-bit signed integer values</span>
-            </div>
-            <div class="type-item">
-              <Badge value="Long" variant="purple" size="s" />
-              <span>64-bit signed integer values (often used for memory sizes)</span>
-            </div>
-            <div class="type-item">
-              <Badge value="UnsignedInt" variant="orange" size="s" />
-              <span>32-bit unsigned integer values</span>
-            </div>
-            <div class="type-item">
-              <Badge value="String" variant="teal" size="s" />
-              <span>Text values for paths, names, or complex configurations</span>
-            </div>
+              <div class="type-item">
+                <Badge value="Boolean" variant="blue" size="s" />
+                <span>Toggle flags that can be <code>true</code> or <code>false</code></span>
+              </div>
+              <div class="type-item">
+                <Badge value="Int" variant="purple" size="s" />
+                <span>32-bit signed integer values</span>
+              </div>
+              <div class="type-item">
+                <Badge value="Long" variant="purple" size="s" />
+                <span>64-bit signed integer values (often used for memory sizes)</span>
+              </div>
+              <div class="type-item">
+                <Badge value="UnsignedInt" variant="orange" size="s" />
+                <span>32-bit unsigned integer values</span>
+              </div>
+              <div class="type-item">
+                <Badge value="String" variant="teal" size="s" />
+                <span>Text values for paths, names, or complex configurations</span>
+              </div>
             </div>
           </AboutSection>
 
@@ -258,19 +258,20 @@
 
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <p>
-              JFR captures the JVM's flags at startup and whenever they change, so this page is built
-              from a handful of flag events rather than a live query:
+              JFR captures the JVM's flags at startup and whenever they change, so this page is
+              built from a handful of flag events rather than a live query:
             </p>
             <ul>
               <li>
                 <code>jdk.BooleanFlag</code>, <code>jdk.IntFlag</code>, <code>jdk.LongFlag</code>,
                 <code>jdk.UnsignedIntFlag</code>/<code>UnsignedLongFlag</code>,
-                <code>jdk.DoubleFlag</code>, <code>jdk.StringFlag</code> — one per flag, carrying its
-                value and <em>origin</em> (command line, ergonomic, default…).
+                <code>jdk.DoubleFlag</code>, <code>jdk.StringFlag</code> — one per flag, carrying
+                its value and <em>origin</em> (command line, ergonomic, default…).
               </li>
               <li>
-                The matching <code>*FlagChanged</code> events fire when a flag is altered at runtime via
-                JMX or <code>jcmd</code> — that's how a flag is marked <strong>Changed</strong> here.
+                The matching <code>*FlagChanged</code> events fire when a flag is altered at runtime
+                via JMX or <code>jcmd</code> — that's how a flag is marked
+                <strong>Changed</strong> here.
               </li>
             </ul>
           </AboutSection>
@@ -357,7 +358,9 @@ const activeTab = ref(analysisTabs[0].id);
 
 // Computed metrics for StatsTable
 const summaryMetrics = computed(() => {
-  if (!flagsData.value) return [];
+  if (!flagsData.value) {
+    return [];
+  }
   return [
     {
       icon: 'flag',
@@ -376,7 +379,9 @@ const summaryMetrics = computed(() => {
 
 // Flatten all flags into a single array
 const allFlags = computed(() => {
-  if (!flagsData.value?.flagsByOrigin) return [];
+  if (!flagsData.value?.flagsByOrigin) {
+    return [];
+  }
 
   const flags: JvmFlag[] = [];
   for (const flagList of Object.values(flagsData.value.flagsByOrigin)) {

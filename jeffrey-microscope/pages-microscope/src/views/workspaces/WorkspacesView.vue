@@ -29,10 +29,9 @@
         :hub-id="hubId"
         :workspace-id="workspaceId"
         @restore="restore"
-        @open="(t) => navigateToProject(t.hubId, t.projectId, t.workspaceId)"
+        @open="t => navigateToProject(t.hubId, t.projectId, t.workspaceId)"
       />
     </template>
-
 
     <template #tab-settings="{ hubId, workspaceId, workspaceName }">
       <WorkspaceProfilerSettings
@@ -70,7 +69,6 @@ const queryParam = (key: string): string | null => {
 };
 const initialHubId = computed(() => queryParam('hubId'));
 const initialWorkspaceId = computed(() => queryParam('workspaceId'));
-
 </script>
 
 <style scoped>

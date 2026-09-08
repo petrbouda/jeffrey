@@ -10,8 +10,8 @@
           <div class="info-strip-text">
             <div class="info-strip-heading">How to enable these dashboards?</div>
             <div class="info-strip-sub">
-              Add <code>cafe.jeffrey-analyst:jeffrey-events</code> to your app to emit proper
-              events — dashboards activate when events are detected.
+              Add <code>cafe.jeffrey-analyst:jeffrey-events</code> to your app to emit proper events
+              — dashboards activate when events are detected.
             </div>
           </div>
           <div class="info-strip-actions">
@@ -100,7 +100,8 @@ const technologies = [
   {
     id: 'async-profiler',
     name: 'Async-Profiler Spans',
-    description: 'Span-level latency intervals from async-profiler — by-tag breakdown and slowest spans',
+    description:
+      'Span-level latency intervals from async-profiler — by-tag breakdown and slowest spans',
     icon: 'bi-bounding-box',
     colorClass: 'color-spans',
     route: `/profiles/${profileId}/technologies/async-profiler/spans`,

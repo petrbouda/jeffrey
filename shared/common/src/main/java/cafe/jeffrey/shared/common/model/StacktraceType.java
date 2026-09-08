@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.shared.common.model;
 
-import java.util.Optional;
 
 public enum StacktraceType {
     JVM(0),
@@ -41,12 +40,4 @@ public enum StacktraceType {
         return id;
     }
 
-    public static Optional<StacktraceType> fromId(int id) {
-        for (StacktraceType tag : VALUES) {
-            if (tag.id() == id) {
-                return Optional.of(tag);
-            }
-        }
-        return Optional.empty();
-    }
 }

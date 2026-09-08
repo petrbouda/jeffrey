@@ -41,9 +41,9 @@
           <h5>Drag & Drop Heap Dump Here</h5>
           <p class="text-muted small mb-3">or click anywhere to browse files</p>
           <input
-            type="file"
-            ref="fileInputRef"
             id="heapDumpFileInput"
+            ref="fileInputRef"
+            type="file"
             class="d-none"
             accept=".hprof,.hprof.gz"
             @change="handleFileSelect"
@@ -62,15 +62,15 @@
             <div>
               <button
                 class="btn btn-success btn-sm me-2"
-                @click="uploadHeapDump"
                 :disabled="uploading"
+                @click="uploadHeapDump"
               >
                 <i class="bi bi-cloud-upload me-1"></i>Upload
               </button>
               <button
                 class="btn btn-outline-secondary btn-sm"
-                @click="removeFile"
                 :disabled="uploading"
+                @click="removeFile"
               >
                 <i class="bi bi-x-lg me-1"></i>Clear
               </button>
@@ -136,7 +136,7 @@
                 </ul>
               </div>
             </div>
-            <button class="error-dismiss-btn" @click="dismissInitError" title="Dismiss">
+            <button class="error-dismiss-btn" title="Dismiss" @click="dismissInitError">
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
@@ -183,8 +183,8 @@
               <div class="sanitize-actions">
                 <button
                   class="btn btn-warning-gradient"
-                  @click="sanitizeHeapDump"
                   :disabled="sanitizing"
+                  @click="sanitizeHeapDump"
                 >
                   <span v-if="sanitizing">
                     <span class="spinner-border spinner-border-sm me-2"></span>Repairing...
@@ -196,7 +196,7 @@
                 </button>
               </div>
             </div>
-            <button class="sanitize-dismiss-btn" @click="dismissSanitize" title="Dismiss">
+            <button class="sanitize-dismiss-btn" title="Dismiss" @click="dismissSanitize">
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
@@ -234,12 +234,12 @@
                 <label class="option-label mb-2">Compressed Oops</label>
                 <div class="form-check">
                   <input
+                    id="coopsAuto"
+                    v-model="compressedOopsChoice"
                     class="form-check-input"
                     type="radio"
                     name="compressedOops"
-                    id="coopsAuto"
                     value="auto"
-                    v-model="compressedOopsChoice"
                   />
                   <label class="form-check-label" for="coopsAuto">
                     Auto-detect <small class="text-muted">(recommended)</small>
@@ -247,23 +247,23 @@
                 </div>
                 <div class="form-check">
                   <input
+                    id="coopsEnabled"
+                    v-model="compressedOopsChoice"
                     class="form-check-input"
                     type="radio"
                     name="compressedOops"
-                    id="coopsEnabled"
                     value="enabled"
-                    v-model="compressedOopsChoice"
                   />
                   <label class="form-check-label" for="coopsEnabled">Enabled</label>
                 </div>
                 <div class="form-check">
                   <input
+                    id="coopsDisabled"
+                    v-model="compressedOopsChoice"
                     class="form-check-input"
                     type="radio"
                     name="compressedOops"
-                    id="coopsDisabled"
                     value="disabled"
-                    v-model="compressedOopsChoice"
                   />
                   <label class="form-check-label" for="coopsDisabled">Disabled</label>
                 </div>
@@ -413,7 +413,9 @@ const resetSteps = () => {
 const tickNow = ref(Date.now());
 let tickInterval: ReturnType<typeof setInterval> | null = null;
 const startTick = () => {
-  if (tickInterval !== null) return;
+  if (tickInterval !== null) {
+    return;
+  }
   tickNow.value = Date.now();
   tickInterval = setInterval(() => {
     tickNow.value = Date.now();
@@ -431,7 +433,9 @@ const stopTick = () => {
 const lastInitResult = ref<InitPipelineResult | null>(null);
 
 const lastInitResultSteps = computed<TimelineStep[]>(() => {
-  if (!lastInitResult.value) return [];
+  if (!lastInitResult.value) {
+    return [];
+  }
   return lastInitResult.value.stages.map(s => ({
     id: s.id,
     status: s.status as TimelineStep['status'],
@@ -473,7 +477,9 @@ let client: HeapDumpClient;
 
 // Summary metrics for StatsTable
 const summaryMetrics = computed(() => {
-  if (!lastSummary.value) return [];
+  if (!lastSummary.value) {
+    return [];
+  }
   return [
     {
       icon: 'collection',
@@ -747,7 +753,9 @@ const removeFile = () => {
 };
 
 const uploadHeapDump = async () => {
-  if (!uploadFile.value || !client) return;
+  if (!uploadFile.value || !client) {
+    return;
+  }
 
   uploading.value = true;
   uploadProgress.value = 0;

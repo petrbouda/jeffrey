@@ -28,13 +28,13 @@
         <div class="chart-container">
           <TimeSeriesChart
             :key="metric"
-            :primaryData="primarySeries"
-            :primaryTitle="primaryTitle"
-            :secondaryData="secondarySeries"
-            :secondaryTitle="secondaryTitle"
-            :primaryAxisType="metricAxisType"
-            :secondaryAxisType="metricAxisType"
-            :visibleMinutes="60"
+            :primary-data="primarySeries"
+            :primary-title="primaryTitle"
+            :secondary-data="secondarySeries"
+            :secondary-title="secondaryTitle"
+            :primary-axis-type="metricAxisType"
+            :secondary-axis-type="metricAxisType"
+            :visible-minutes="60"
           />
         </div>
       </div>
@@ -87,7 +87,9 @@
           <div class="selected-peer-card">
             <div class="selected-peer-header">
               <Badge value="Single peer" variant="violet" size="xs" borderless />
-              <span class="selected-peer-target" :title="selectedPeer ?? ''">{{ selectedPeer }}</span>
+              <span class="selected-peer-target" :title="selectedPeer ?? ''">{{
+                selectedPeer
+              }}</span>
               <span class="selected-peer-summary">{{ selectedPeerSummary }}</span>
             </div>
             <!--
@@ -99,15 +101,15 @@
               <TimeSeriesChart
                 v-else-if="activeTab === 'peer-timeline'"
                 :key="`${selectedPeer ?? 'none'}-${metric}`"
-                :primaryData="selectedPeerPrimarySeries"
-                :primaryTitle="primaryTitle"
-                :secondaryData="selectedPeerSecondarySeries"
-                :secondaryTitle="secondaryTitle"
-                :primaryColor="peerReadColor"
-                :secondaryColor="peerWriteColor"
-                :primaryAxisType="metricAxisType"
-                :secondaryAxisType="metricAxisType"
-                :visibleMinutes="60"
+                :primary-data="selectedPeerPrimarySeries"
+                :primary-title="primaryTitle"
+                :secondary-data="selectedPeerSecondarySeries"
+                :secondary-title="secondaryTitle"
+                :primary-color="peerReadColor"
+                :secondary-color="peerWriteColor"
+                :primary-axis-type="metricAxisType"
+                :secondary-axis-type="metricAxisType"
+                :visible-minutes="60"
               />
             </div>
           </div>
@@ -124,18 +126,19 @@
           :command="ioEnableCommand"
         >
           <p>
-            Per-peer totals come from <code>jdk.SocketRead</code> and <code>jdk.SocketWrite</code>. In
-            the bundled <code>default</code>/<code>profile</code> configs these are
-            <strong>enabled but threshold-gated</strong> (≈1&nbsp;ms) and throttled, so light or fast
-            socket I/O leaves this empty — only operations that block longer than the threshold are
-            recorded. The copyable command keeps the <code>profile</code> config and sets both events
-            to <code>threshold=0ms</code> to capture every operation.
+            Per-peer totals come from <code>jdk.SocketRead</code> and <code>jdk.SocketWrite</code>.
+            In the bundled <code>default</code>/<code>profile</code> configs these are
+            <strong>enabled but threshold-gated</strong> (≈1&nbsp;ms) and throttled, so light or
+            fast socket I/O leaves this empty — only operations that block longer than the threshold
+            are recorded. The copyable command keeps the <code>profile</code> config and sets both
+            events to <code>threshold=0ms</code> to capture every operation.
           </p>
 
           <template #action>
             <p>
-              <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps the
-              bundled <code>profile</code> config and adds <code>jdk.SocketRead#threshold=0ms</code> /
+              <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps
+              the bundled <code>profile</code> config and adds
+              <code>jdk.SocketRead#threshold=0ms</code> /
               <code>jdk.SocketWrite#threshold=0ms</code> so every read and write is captured.
             </p>
             <p>
@@ -156,7 +159,13 @@
             <TableToolbar v-model="peersView.query" search-placeholder="Filter peers...">
               <span class="toolbar-info">Socket peers</span>
               <template #filters>
-                <Badge key-label="Total" :value="peersView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="peersView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -177,10 +186,15 @@
               <td class="text-end">{{ FormattingService.formatBytes(peer.bytes) }}</td>
               <td>
                 <div class="share-bar">
-                  <div class="share-bar-fill" :style="{ width: shareWidth(peer.bytes) + '%' }"></div>
+                  <div
+                    class="share-bar-fill"
+                    :style="{ width: shareWidth(peer.bytes) + '%' }"
+                  ></div>
                 </div>
               </td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(peer.totalNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(peer.totalNanos) }}
+              </td>
               <td class="text-end">{{ FormattingService.formatDuration2Units(peer.maxNanos) }}</td>
             </tr>
           </tbody>
@@ -208,9 +222,10 @@
         >
           <p>
             The slowest-operations list is built from individual <code>jdk.SocketRead</code> /
-            <code>jdk.SocketWrite</code> events, which are <strong>enabled but threshold-gated</strong>
-            (≈1&nbsp;ms) and throttled in the bundled configs. With no qualifying operations the list
-            stays empty — the command above captures every read/write by setting
+            <code>jdk.SocketWrite</code> events, which are
+            <strong>enabled but threshold-gated</strong>
+            (≈1&nbsp;ms) and throttled in the bundled configs. With no qualifying operations the
+            list stays empty — the command above captures every read/write by setting
             <code>threshold=0ms</code>.
           </p>
         </DisabledEventsNotice>
@@ -219,7 +234,13 @@
             <TableToolbar v-model="slowestView.query" search-placeholder="Filter operations...">
               <span class="toolbar-info">Slowest operations</span>
               <template #filters>
-                <Badge key-label="Showing" :value="slowestView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Showing"
+                  :value="slowestView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -234,10 +255,14 @@
           </thead>
           <tbody>
             <tr v-for="(op, index) in slowestView.visible" :key="index">
-              <td><Badge :value="op.kind" :variant="kindVariant(op.kind)" size="xs" borderless /></td>
+              <td>
+                <Badge :value="op.kind" :variant="kindVariant(op.kind)" size="xs" borderless />
+              </td>
               <td class="target-cell" :title="op.target">{{ op.target }}</td>
               <td class="text-end">{{ FormattingService.formatBytes(op.bytes) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(op.durationNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(op.durationNanos) }}
+              </td>
               <td class="text-muted">{{ op.thread ?? '—' }}</td>
             </tr>
           </tbody>
@@ -264,17 +289,17 @@
           <AboutCallout variant="intro">
             <p>
               A blocking socket read or write parks the calling thread until the kernel has data (or
-              has accepted the bytes). That wait is real latency — and unlike CPU work, it doesn't show
-              up in a flame graph. This page attributes that time to the peers (<code>host:port</code>)
-              your application talks to.
+              has accepted the bytes). That wait is real latency — and unlike CPU work, it doesn't
+              show up in a flame graph. This page attributes that time to the peers
+              (<code>host:port</code>) your application talks to.
             </p>
           </AboutCallout>
 
           <AboutSection icon="bi-ethernet" title="What the Views Show">
             <FeatureGrid>
               <FeatureCard icon="bi-graph-up" variant="primary" title="Throughput">
-                Bytes read vs written per second. A read plateau usually means you're waiting on a slow
-                upstream; a write plateau means a slow or backpressured downstream.
+                Bytes read vs written per second. A read plateau usually means you're waiting on a
+                slow upstream; a write plateau means a slow or backpressured downstream.
               </FeatureCard>
               <FeatureCard icon="bi-hdd-network" variant="info" title="Top Peers">
                 Every <code>host:port</code> ranked by bytes, with op count and total/max time. The
@@ -294,17 +319,17 @@
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.SocketRead</code> — host, address, port, <code>bytesRead</code>, timeout and
-                an end-of-stream flag, plus the operation <code>duration</code>.
+                <code>jdk.SocketRead</code> — host, address, port, <code>bytesRead</code>, timeout
+                and an end-of-stream flag, plus the operation <code>duration</code>.
               </li>
               <li>
-                <code>jdk.SocketWrite</code> — host, address, port and <code>bytesWritten</code> with
-                duration.
+                <code>jdk.SocketWrite</code> — host, address, port and
+                <code>bytesWritten</code> with duration.
               </li>
             </ul>
             <p>
-              Both are <strong>threshold-gated</strong>: JFR records an event only when the operation
-              blocks longer than the configured threshold, so very fast I/O won't appear.
+              Both are <strong>threshold-gated</strong>: JFR records an event only when the
+              operation blocks longer than the configured threshold, so very fast I/O won't appear.
             </p>
           </AboutSection>
         </AboutPanel>
@@ -392,10 +417,10 @@ const peerTimelineLoading = ref(false);
 const galleryLoading = ref(false);
 
 const slowestView = useTableView<IoOperation>(slowest, {
-  searchableText: (r) => `${r.target} ${r.thread ?? ''}`
+  searchableText: r => `${r.target} ${r.thread ?? ''}`
 });
 const peersView = useTableView<IoEndpoint>(peers, {
-  searchableText: (r) => r.target
+  searchableText: r => r.target
 });
 
 const activeTab = ref('total');

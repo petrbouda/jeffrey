@@ -19,7 +19,6 @@ package cafe.jeffrey.profile.heapdump.oql.executor;
 
 import cafe.jeffrey.profile.heapdump.oql.ast.BinaryOperator;
 import cafe.jeffrey.profile.heapdump.oql.ast.OqlExpr;
-import cafe.jeffrey.profile.heapdump.oql.ast.UnaryOperator;
 import cafe.jeffrey.profile.heapdump.oql.function.DominatorFunctions;
 import cafe.jeffrey.profile.heapdump.oql.function.FuzzyTextFunctions;
 import cafe.jeffrey.profile.heapdump.oql.function.GraphWalkFunctions;
@@ -32,7 +31,6 @@ import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -401,10 +399,5 @@ final class ExprEvaluator {
             return StringFunctions.toStringValue(row.view(), inst, c);
         }
         return v.toString();
-    }
-
-    @SuppressWarnings("unused")
-    private static List<Object> evalArgs(List<Object> args) {
-        return new ArrayList<>(args);
     }
 }

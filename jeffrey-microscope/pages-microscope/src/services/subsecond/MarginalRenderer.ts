@@ -95,7 +95,9 @@ export default class MarginalRenderer {
 
     const cssWidth = this.width();
     const container = document.getElementById(this.heatmapContainerId);
-    const cssHeight = container ? container.clientHeight : Math.round(bottomRect.bottom - topRect.top) + 40;
+    const cssHeight = container
+      ? container.clientHeight
+      : Math.round(bottomRect.bottom - topRect.top) + 40;
 
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas.style.width = cssWidth + 'px';
@@ -133,7 +135,12 @@ export default class MarginalRenderer {
     for (let r = 0; r < rowCount; r++) {
       const barWidth = (this.rowSums[r] / this.rowMax) * barSpace;
       const y = plotBottom - (r + 1) * rowHeight;
-      ctx.fillRect(barBase - barWidth, y + 0.5, Math.max(0, barWidth), Math.max(0.5, rowHeight - 1));
+      ctx.fillRect(
+        barBase - barWidth,
+        y + 0.5,
+        Math.max(0, barWidth),
+        Math.max(0.5, rowHeight - 1)
+      );
     }
   }
 
@@ -151,6 +158,16 @@ export default class MarginalRenderer {
         .join('');
     }
     const num = parseInt(normalized, 16);
-    return 'rgba(' + ((num >> 16) & 255) + ',' + ((num >> 8) & 255) + ',' + (num & 255) + ',' + alpha + ')';
+    return (
+      'rgba(' +
+      ((num >> 16) & 255) +
+      ',' +
+      ((num >> 8) & 255) +
+      ',' +
+      (num & 255) +
+      ',' +
+      alpha +
+      ')'
+    );
   }
 }

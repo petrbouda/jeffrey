@@ -98,9 +98,7 @@ export default class ProfileToolsClient extends BaseProfileClient {
   }
 
   /** Generates an OTLP file for the selected event types and adds it to the profile's project as a recording. */
-  public addOtlpToRecordings(
-    selections: OtlpExportSelection[]
-  ): Promise<{ recordingId: string }> {
+  public addOtlpToRecordings(selections: OtlpExportSelection[]): Promise<{ recordingId: string }> {
     return this.post<{ recordingId: string }>('/otlp/add-to-recordings', { selections });
   }
 }
