@@ -142,9 +142,13 @@ public class IdeRecordingLookup {
 
     /**
      * The analysis is reported through two flags rather than through whether {@code findings} came
-     * back empty. A profile reaches READY before its auto analysis finishes — the warm-up starts the
-     * run and does not wait for it — so the panel needs to tell a run still going from one that
-     * cleared the recording, and reading "computed" off a non-empty list conflates the two.
+     * back empty, because "the rules found nothing" and "the rules did not run" are different
+     * answers and an empty list is both of them.
+     * <p>
+     * A profile imported now arrives with its findings: the rule set runs alongside the parse and the
+     * warming stage waits for it. The flags still matter for everything that predates that — profiles
+     * imported before it, a recording whose file has since gone, a run that failed — and the panel
+     * still waits on them, because a plugin talks to whatever Microscope the developer is running.
      */
     private ProfileSummary summarize(ProfileManager profileManager, String filename) {
         ProfileInfo info = profileManager.info();

@@ -113,7 +113,8 @@ final class ProfileCapabilityGaps {
 
     private static final String AUTO_ANALYSIS_PENDING_GAP =
             "The auto-analysis rule set has not run for this profile, so topFindings is empty for that reason "
-                    + "and not because nothing was flagged.";
+                    + "and not because nothing was flagged. An import runs the rules before the profile is "
+                    + "usable, so this is a profile imported before that was so, or one whose run failed.";
     private static final String AUTO_ANALYSIS_PENDING_REMEDY =
             "jvm_autoAnalysis with compute true runs it now; it reads the whole recording, which takes a while.";
     private static final String AUTO_ANALYSIS_IMPOSSIBLE_REMEDY =

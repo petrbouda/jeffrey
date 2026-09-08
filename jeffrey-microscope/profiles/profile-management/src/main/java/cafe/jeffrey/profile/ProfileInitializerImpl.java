@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.pipeline.PipelineRun;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
@@ -45,6 +46,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ProfileInitializerImpl implements ProfileInitializer {
@@ -136,6 +138,13 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
         DataSource dataSource = lease.dataSource();
 
+        // Before the parse, not after it. The JMC rule set reads the recording file rather than
+        // anything the parse produces, so it has nothing to wait for, and overlapping the two makes
+        // the import cost the longer of them instead of both. It is joined in the warming stage at
+        // the end, which is also where the findings it produced are written.
+        CompletableFuture<List<AutoAnalysisResult>> autoAnalysis =
+                profileDataInitializer.startAutoAnalysis(profileInfo, recordingPath);
+
         // Store profile context (workspace_id, project_id) in the profile database.
         // Skipped for Recordings profiles, where workspace and project are null.
         if (profileInfo.projectId() != null && profileInfo.workspaceId() != null) {
@@ -193,13 +202,21 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         // to be finished, and the warming only ever writes cache entries it can rebuild.
         run.runStage(ProfileInitStages.CHECKPOINT, infrastructureClient::walCheckpoint);
 
-        // Last, and deliberately not waited for. Everything above leaves the profile queryable --
-        // events, traces, event types, threads are all written -- so this is the point the profile
-        // is usable, and the caller enables it as soon as we return. The thread bands and the auto
-        // analysis are caches: warming them eagerly is worth doing, but making every user
-        // wait for them before they can open a flamegraph is not. The stage therefore measures
-        // starting the warming, not finishing it; the warming holds its own lease until it is done.
-        run.runStage(ProfileInitStages.WARMUP, () -> profileDataInitializer.initialize(profileManager));
+        // Last, and waited for. Everything above leaves the profile queryable -- events, traces,
+        // event types, threads are all written -- and the warming adds the two cached views a reader
+        // expects to find already there: the thread bands, and the auto analysis this run started
+        // before the parse and now collects.
+        //
+        // Waiting is what makes the findings a fact about a profile rather than a race against it.
+        // A profile used to reach the caller with its rules still running, so every reader -- the
+        // summary dashboard, the MCP tools, the IDE panel -- had to tell a run still going from one
+        // that never happened, and could only do it by polling. Because the rules ran alongside the
+        // parse rather than after it, what is left to wait for here is usually nothing.
+        //
+        // The warming never completes exceptionally: a view that fails to warm is computed on demand
+        // instead, so it costs the first reader time and costs the import nothing.
+        run.runStage(ProfileInitStages.WARMUP,
+                () -> profileDataInitializer.initialize(profileManager, autoAnalysis).join());
 
         return profileManager;
     }

@@ -536,10 +536,17 @@ which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`g
 `exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
 category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
 
-They also **arrive after the profile does**. `ProfileInitStages.WARMUP` starts the rule set and does
-not wait for it — "the stage covers starting them, not finishing them" — so a recording reaches READY
-with its findings still in flight, and the panel that asked once painted that gap as *never computed*
-for the life of the tab. It now draws the **same callout the two pipelines use** — spinner, *Running
+They used to **arrive after the profile did**, and the panel still knows how to wait for them.
+`ProfileInitStages.WARMUP` once started the rule set without waiting — "the stage covers starting
+them, not finishing them" — so a recording reached READY with its findings in flight, and the panel
+that asked once painted that gap as *never computed* for the life of the tab. Microscope now starts
+the rules **before the parse** rather than after it (`ProfileDataInitializer.startAutoAnalysis`,
+joined and cached by the warming stage), because the JMC toolkit reads the recording file and nothing
+the parse writes: the import costs the longer of the two passes instead of both, and a profile that
+answers at all answers with its findings.
+The wait therefore no longer happens for a fresh import, and the machinery for it stays anyway —
+a plugin talks to whatever Microscope the developer is running, and profiles imported before the
+change still have none. It draws the **same callout the two pipelines use** — spinner, *Running
 the analysis rules*, and a bar left **indeterminate**, because there are no stages to count and a
 determinate one would sit frozen at zero for the whole wait (`waitingCallout`, a sibling of
 `progressCallout` rather than a nullable `PipelineBuild` threaded through it). It is the one callout

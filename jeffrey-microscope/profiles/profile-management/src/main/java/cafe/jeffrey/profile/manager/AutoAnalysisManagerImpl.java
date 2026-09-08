@@ -121,13 +121,29 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
         }
     }
 
+    @Override
+    public void store(List<AutoAnalysisResult> results) {
+        if (results == null) {
+            return;
+        }
+        cache(results);
+    }
+
     private List<AutoAnalysisResult> runRuleSet() {
         Path recordingPath = recordingPathResolver.get()
                 .orElseThrow(() -> new IllegalStateException("Recording file not found"));
 
         LOG.info("Generating auto analysis: recording={}", recordingPath);
 
-        List<AutoAnalysisResult> results = ruleSet.apply(recordingPath).stream()
+        return cache(ruleSet.apply(recordingPath));
+    }
+
+    /**
+     * Orders the findings and writes them, whichever path produced them, so that the run the import
+     * starts and the run a reader asks for cannot disagree about what a cached analysis looks like.
+     */
+    private List<AutoAnalysisResult> cache(List<AutoAnalysisResult> findings) {
+        List<AutoAnalysisResult> results = findings.stream()
                 .sorted(Comparator.comparing(a -> a.severity().order()))
                 .toList();
 

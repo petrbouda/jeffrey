@@ -27,6 +27,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import org.mockito.ArgumentCaptor;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -115,6 +117,55 @@ class AutoAnalysisManagerImplTest {
                     List.of("warned", "informed", "passed", "ignored"),
                     results.stream().map(AutoAnalysisResult::rule).toList());
             verify(cacheRepository).put(eq(CacheKey.PROFILE_AUTO_ANALYSIS), eq(results));
+        }
+    }
+
+    /**
+     * The import runs the rule set itself, alongside the parse, and hands the findings here. What it
+     * stores has to be indistinguishable from what a run started through this manager would leave
+     * behind, or the same profile would read differently depending on which path produced it.
+     */
+    @Nested
+    @DisplayName("Storing a run from elsewhere")
+    class Storing {
+
+        @Test
+        @DisplayName("orders and caches them exactly as a run of its own would")
+        void ordersAndCaches() {
+            manager(_ -> {
+                throw new AssertionError("the rule set must not run when findings are handed in");
+            }).store(List.of(
+                    result("passed", Severity.OK),
+                    result("warned", Severity.WARNING)));
+
+            ArgumentCaptor<List<AutoAnalysisResult>> stored = ArgumentCaptor.captor();
+            verify(cacheRepository).put(eq(CacheKey.PROFILE_AUTO_ANALYSIS), stored.capture());
+            assertEquals(
+                    List.of("warned", "passed"),
+                    stored.getValue().stream().map(AutoAnalysisResult::rule).toList());
+        }
+
+        /**
+         * A run that was skipped or failed produces nothing. Caching an empty list for it would read
+         * ever after as a rule set that ran and flagged nothing.
+         */
+        @Test
+        @DisplayName("caches nothing when the run produced nothing")
+        void ignoresAbsentFindings() {
+            manager(_ -> List.of()).store(null);
+
+            verify(cacheRepository, never()).put(any(), any());
+        }
+
+        /**
+         * An empty list is a real answer: the rules ran and cleared the recording.
+         */
+        @Test
+        @DisplayName("caches an empty result, which is a run that flagged nothing")
+        void cachesAnEmptyResult() {
+            manager(_ -> List.of()).store(List.of());
+
+            verify(cacheRepository).put(eq(CacheKey.PROFILE_AUTO_ANALYSIS), eq(List.of()));
         }
     }
 

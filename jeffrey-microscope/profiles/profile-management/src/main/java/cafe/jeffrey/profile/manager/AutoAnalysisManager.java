@@ -60,4 +60,13 @@ public interface AutoAnalysisManager {
      */
     List<AutoAnalysisResult> generate();
 
+    /**
+     * Caches findings that a run started elsewhere produced, in place of running the rule set here.
+     * <p>
+     * The import starts the rules against the recording file before it parses that same file, since
+     * the two share nothing else, and hands the result here once the database has been written.
+     * Ordering is applied on the way in, so a stored list reads exactly as a generated one does.
+     */
+    void store(List<AutoAnalysisResult> results);
+
 }
