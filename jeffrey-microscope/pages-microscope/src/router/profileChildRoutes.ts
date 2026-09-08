@@ -37,12 +37,6 @@ const analysisRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'ai-analysis',
-    name: 'profile-ai-analysis',
-    component: () => import('@/views/profiles/ProfileAiJfrAnalysis.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'event-types',
     name: 'profile-event-types',
     component: () => import('@/views/profiles/detail/ProfileEventTypes.vue'),
@@ -368,12 +362,6 @@ const heapDumpRoutes = [
     path: 'heap-dump/threads',
     name: 'profile-heap-dump-threads',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpThreads.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'heap-dump/ai-analysis',
-    name: 'profile-heap-dump-ai-analysis',
-    component: () => import('@/views/profiles/ProfileHeapDumpAiAnalysis.vue'),
     meta: { layout: 'profile' }
   },
   {

@@ -28,7 +28,7 @@ import FlamegraphData from '@/services/api/model/FlamegraphData';
 import SettingsClient from '@/services/api/SettingsClient';
 import MessageBus from '@/services/MessageBus.ts';
 import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
-import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
+import AiExportButton from '@/components/export/AiExportButton.vue';
 import DifferentialRootHeader from '@/components/DifferentialRootHeader.vue';
 import PrimaryRootHeader from '@/components/PrimaryRootHeader.vue';
 import type { AiExportSource } from '@/composables/useAiExport';
@@ -338,10 +338,9 @@ function search(value: string | null) {
     <AiExportButton
       v-if="aiExportContext"
       :build-source="buildAiExportSource"
-      tooltip="Export flamegraph for AI analysis"
+      tooltip="Export this flamegraph for a coding agent"
       :disabled="aiExportContext.graphMode === 'DIFFERENTIAL'"
       disabled-tooltip="Differential export coming soon"
-      show-settings
     />
   </div>
   <DifferentialRootHeader

@@ -19,11 +19,13 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapComputeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDiffMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
@@ -39,8 +41,6 @@ import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TraceAttributesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
-import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.shared.common.Json;
@@ -123,10 +123,7 @@ class SpringAiToolConformanceTest {
             IdeMcpTools.class);
 
     /** Where a {@code @Tool} class may live and still be reachable over MCP. */
-    private static final List<String> TOOL_PACKAGES = List.of(
-            "cafe.jeffrey.microscope.core.mcp.tools",
-            "cafe.jeffrey.profile.ai.duckdb.jfr.tools",
-            "cafe.jeffrey.profile.ai.duckdb.heapdump.tools");
+    private static final List<String> TOOL_PACKAGES = List.of("cafe.jeffrey.microscope.core.mcp.tools");
 
     private static final String TEST_PREFIX = "test";
 

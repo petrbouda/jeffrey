@@ -147,7 +147,7 @@ public final class McpProfileContextCache implements AutoCloseable {
      * Drops a profile whose context can no longer be trusted — it was deleted, or its pool was closed
      * under us. The next call re-resolves it, which is the honest answer either way.
      */
-    public void evict(String profileId) {
+    void evict(String profileId) {
         McpProfileContext removed = contexts.remove(profileId);
         if (removed != null) {
             LOG.debug("Evicting MCP profile context: profile_id={}", profileId);
@@ -170,7 +170,7 @@ public final class McpProfileContextCache implements AutoCloseable {
     }
 
     /**
-     * @return how many profiles are currently pinned; for tests and the status endpoint
+     * @return how many profiles are currently pinned; for tests
      */
     public int size() {
         return contexts.size();

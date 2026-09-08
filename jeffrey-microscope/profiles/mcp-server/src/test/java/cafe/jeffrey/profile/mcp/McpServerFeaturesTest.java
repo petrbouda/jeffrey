@@ -23,14 +23,12 @@ import org.springframework.ai.tool.annotation.Tool;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What one endpoint offers. A null provider is how an endpoint says it does not offer a capability,
- * so the nullability here is the contract rather than an oversight — and the envelope reads it to
- * decide what {@code initialize} advertises.
+ * What one endpoint offers. All three providers are required and resolved per request, so an endpoint
+ * that cannot serve one of them is refused at construction rather than at the first call.
  */
 class McpServerFeaturesTest {
 
@@ -38,33 +36,29 @@ class McpServerFeaturesTest {
             new ReflectiveToolset(new Tools(), "sample");
 
     @Test
-    void anEndpointWithToolsAloneAdvertisesNothingElse() {
-        McpServerFeatures features = McpServerFeatures.ofTools(() -> TOOLSET);
-
-        assertFalse(features.hasPrompts());
-        assertFalse(features.hasResources());
-        assertEquals(1, features.tools().get().specs().size());
-    }
-
-    @Test
-    void carriesPromptsAndResourcesWhenAnEndpointHasThem() {
+    void carriesEveryCapabilityAnEndpointOffers() {
         McpServerFeatures features = new McpServerFeatures(
                 () -> TOOLSET,
-                () -> new Prompts(),
-                () -> new Resources());
+                Prompts::new,
+                Resources::new);
 
-        assertTrue(features.hasPrompts());
-        assertTrue(features.hasResources());
+        assertEquals(1, features.tools().get().specs().size());
+        assertNotNull(features.prompts().get());
+        assertNotNull(features.resources().get());
     }
 
     /**
-     * Tools are the one thing every endpoint has. A features record without them describes nothing
-     * that could serve a request, so it refuses to exist rather than failing at the first call.
+     * A features record missing any of the three describes an endpoint that cannot answer a method the
+     * envelope will advertise, so it refuses to exist rather than failing at the first call.
      */
     @Test
-    void refusesToDescribeAnEndpointWithNoTools() {
+    void refusesToDescribeAnEndpointMissingACapability() {
         assertThrows(IllegalArgumentException.class,
-                () -> new McpServerFeatures(null, null, null));
+                () -> new McpServerFeatures(null, Prompts::new, Resources::new));
+        assertThrows(IllegalArgumentException.class,
+                () -> new McpServerFeatures(() -> TOOLSET, null, Resources::new));
+        assertThrows(IllegalArgumentException.class,
+                () -> new McpServerFeatures(() -> TOOLSET, Prompts::new, null));
     }
 
     /**
@@ -73,9 +67,12 @@ class McpServerFeaturesTest {
      */
     @Test
     void doesNotResolveItsProvidersOnConstruction() {
-        McpServerFeatures features = McpServerFeatures.ofTools(() -> {
-            throw new IllegalStateException("resolved too early");
-        });
+        McpServerFeatures features = new McpServerFeatures(
+                () -> {
+                    throw new IllegalStateException("resolved too early");
+                },
+                Prompts::new,
+                Resources::new);
 
         assertThrows(IllegalStateException.class, () -> features.tools().get());
     }

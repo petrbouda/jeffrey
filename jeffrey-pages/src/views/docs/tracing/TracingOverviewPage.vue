@@ -217,7 +217,7 @@ const tasteSpans = [
           to="/docs/tracing/analysis"
           icon="bi bi-bar-chart"
           title="Analyzing Traces"
-          description="The waterfall, Traces by Operation, attribute search and the AI export."
+          description="The waterfall, Traces by Operation, attribute search and the agent export."
         />
       </div>
     </div>

@@ -48,7 +48,7 @@ public final class UiLinks {
      * generating side omits false ones entirely, so a link must do the same rather than send
      * {@code false} and rely on it being parsed.
      */
-    public static final String TRUE = "true";
+    private static final String TRUE = "true";
 
     private UiLinks() {
     }

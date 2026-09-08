@@ -33,23 +33,20 @@ import java.util.function.Predicate;
  */
 public enum SettingType {
 
-    /** Any value, including the empty string (used for unset secrets). */
+    /** Any value, including the empty string. */
     STRING(value -> true),
 
     /** A whole number greater than zero — token budgets, timeouts. */
     POSITIVE_INT(value -> parseInt(value) instanceof Integer parsed && parsed > 0),
 
     /**
-     * A percentage in the exclusive range {@code (0, 100)}. Matches the invariant enforced by
-     * {@code AiExportConfig}, which is constructed per flamegraph request.
+     * A percentage in the exclusive range {@code (0, 100)}: a threshold of zero prunes nothing and one
+     * of a hundred prunes everything, so neither is a value a flamegraph can be drawn from.
      */
     PERCENTAGE(value -> parseDouble(value) instanceof Double parsed && parsed > 0.0 && parsed < 100.0),
 
     /** A logging level name understood by the logging system, case-insensitive. */
     LOG_LEVEL(SettingType::isLogLevel),
-
-    /** One of the supported AI providers, or {@code none} to disable AI entirely. */
-    AI_PROVIDER(SettingType::isAiProvider),
 
     /** Flamegraph frame label layout. */
     FRAME_TEXT_MODE(SettingType::isFrameTextMode),
@@ -58,7 +55,6 @@ public enum SettingType {
     BOOLEAN(SettingType::isBoolean);
 
     private static final Set<String> LOG_LEVELS = Set.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF");
-    private static final Set<String> AI_PROVIDERS = Set.of("none", "claude", "chatgpt", "ollama", "claude-code");
     private static final Set<String> FRAME_TEXT_MODES = Set.of("single-line", "two-line");
     private static final Set<String> BOOLEANS = Set.of("true", "false");
 
@@ -81,10 +77,6 @@ public enum SettingType {
 
     private static boolean isLogLevel(String value) {
         return LOG_LEVELS.contains(upperCase(value));
-    }
-
-    private static boolean isAiProvider(String value) {
-        return AI_PROVIDERS.contains(lowerCase(value));
     }
 
     private static boolean isFrameTextMode(String value) {

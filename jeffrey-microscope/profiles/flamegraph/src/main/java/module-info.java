@@ -31,7 +31,7 @@ module cafe.jeffrey.microscope.profile.flamegraph {
     requires cafe.jeffrey.jfr.events;
 
     exports cafe.jeffrey.flamegraph;
-    exports cafe.jeffrey.flamegraph.ai;
+    exports cafe.jeffrey.flamegraph.export;
     exports cafe.jeffrey.flamegraph.api;
     exports cafe.jeffrey.flamegraph.diff;
     exports cafe.jeffrey.flamegraph.provider;

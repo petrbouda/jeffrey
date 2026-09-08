@@ -7,7 +7,7 @@ This skill documents how to create a new assistant component in the Jeffrey code
 | Type | Scope | Location | Example |
 |------|-------|----------|---------|
 | **Global** | App-wide, persists across navigation | Rendered in `App.vue` | DownloadAssistant |
-| **Local** | Single page, context-specific | Rendered in page component | OqlAssistant |
+| **Local** | Single page, context-specific | Rendered in page component | none at present |
 
 ## Consistent Behavior (IMPORTANT)
 
@@ -25,15 +25,16 @@ This skill documents how to create a new assistant component in the Jeffrey code
 ## Directory Structure
 
 ```
-jeffrey-microscope/pages-microscope/src/components/assistants/
-├── global/                              # Global assistants (App.vue level)
-│   └── {Name}Assistant.vue
-├── local/                               # Local assistants (page-specific)
-│   └── {Name}Assistant.vue
+shared/ui/common/src/components/assistants/       # @shared - the reusable pieces
 ├── AssistantPanel.vue                   # Shared base panel component
-├── AssistantMinimizedButton.vue         # Shared reusable minimized button
+└── AssistantMinimizedButton.vue         # Shared reusable minimized button
+
+jeffrey-microscope/pages-microscope/src/components/assistants/
 ├── AssistantMinimizedContainer.vue      # Container for minimized buttons (handles row layout)
-└── index.ts                             # Barrel export
+└── index.ts                             # Barrel export, re-exporting the shared pieces
+
+shared/ui/workspaces/ui/components/assistants/global/  # a global assistant lives with its feature
+└── {Name}Assistant.vue
 
 jeffrey-microscope/pages-microscope/src/stores/assistants/
 ├── {name}AssistantStore.ts              # Global store (for global assistants)
@@ -137,7 +138,7 @@ defineEmits<{
 
 ### For Local Assistants
 
-Location: `/jeffrey-microscope/pages-microscope/src/components/{feature}/{Name}Assistant.vue` or `/jeffrey-microscope/pages-microscope/src/components/assistants/local/{Name}Assistant.vue`
+Location: `/jeffrey-microscope/pages-microscope/src/components/{feature}/{Name}Assistant.vue`
 
 **Key difference from Global Assistants:**
 - The minimized button should be visible immediately when entering the page
@@ -290,8 +291,7 @@ const closeAssistant = () => {
 
 **Important:** Always assign a fixed `order` value to each assistant to maintain consistent positioning. Reserved order values:
 - `1` - DownloadAssistant (global)
-- `2` - OqlAssistant (local)
-- `3-9` - Reserved for future assistants
+- `2-9` - Reserved for future assistants
 - `10+` - Available for new assistants
 
 Note: Position is handled by `AssistantMinimizedContainer` - buttons are automatically arranged in a row at bottom-right based on their `order` value.
@@ -312,8 +312,5 @@ Note: Position is handled by `AssistantMinimizedContainer` - buttons are automat
 - Badge shows download count or percentage
 - Order: 1
 
-### OqlAssistant (Local)
-- Icon: `bi-terminal`
-- Badge shows "OQL"
-- Order: 2
-- Button visible immediately on page load
+Note: an "assistant" here is a progress or activity panel. It has nothing to do with a model; Jeffrey
+calls no provider. See the MCP server for the AI integration.

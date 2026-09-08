@@ -60,7 +60,7 @@ class McpFindingsTest {
         @Test
         void carriesTheIdAndTheEvidenceInInsertionOrder() {
             McpFinding finding = McpFinding.of("gc", "pauses")
-                    .warning()
+                    .severity(Severity.WARNING)
                     .title("Long GC pauses")
                     .evidence("totalPauseMillis", 1234)
                     .evidence("collections", 17)
@@ -82,7 +82,7 @@ class McpFindingsTest {
         @Test
         void rendersAsPlainJsonForAToolResult() {
             String json = Json.toString(McpFinding.of("container", "cpu-throttling")
-                    .critical()
+                    .severity(Severity.CRITICAL)
                     .title("Throttled")
                     .evidence("peakRatioPct", 42.5)
                     .build());

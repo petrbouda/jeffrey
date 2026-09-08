@@ -42,9 +42,6 @@ public enum NotificationCategory {
     /** The connection to a hub, and anything that crosses it. */
     HUB,
 
-    /** Model calls: the assistants, the OQL helper. */
-    AI,
-
     /** Everything about the process itself that fits nowhere above. */
     SYSTEM
 }

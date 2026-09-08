@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.ai.WeightContext;
+import cafe.jeffrey.flamegraph.export.WeightContext;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.DifferentialFlamegraphManager;

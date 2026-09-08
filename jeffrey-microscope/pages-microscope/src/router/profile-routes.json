@@ -1,5 +1,4 @@
 [
-  "ai-analysis",
   "allocations",
   "auto-analysis",
   "blocking-operations",
@@ -20,7 +19,6 @@
   "garbage-collection/g1",
   "garbage-collection/timeseries",
   "garbage-collection/zgc",
-  "heap-dump/ai-analysis",
   "heap-dump/biggest-collections",
   "heap-dump/biggest-objects",
   "heap-dump/classloader-analysis",

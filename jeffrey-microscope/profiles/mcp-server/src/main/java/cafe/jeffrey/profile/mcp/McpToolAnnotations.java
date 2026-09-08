@@ -22,7 +22,7 @@ package cafe.jeffrey.profile.mcp;
  * <p>
  * MCP calls these {@code annotations} on a tool. They exist so a reader can tell a tool that only looks
  * at a profile from one that imports a file or pulls a recording off a hub, without having to read
- * every description. Jeffrey has three writers among a hundred-odd tools, so the honest default is
+ * every description. Jeffrey has six writers among a hundred-odd tools, so the honest default is
  * read-only and the exceptions declare themselves with {@link McpToolHints}.
  * <p>
  * {@code destructive} is false throughout: nothing Jeffrey exposes deletes a profile or a recording.

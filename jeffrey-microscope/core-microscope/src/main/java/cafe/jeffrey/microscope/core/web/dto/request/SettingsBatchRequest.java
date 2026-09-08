@@ -41,10 +41,9 @@ public record SettingsBatchRequest(List<Item> items) {
     /**
      * @param category logical grouping the setting belongs to
      * @param name     full property name
-     * @param value    plaintext value
-     * @param secret   whether the value must be encrypted at rest
+     * @param value    the value to store
      */
-    public record Item(String category, String name, String value, boolean secret) {
+    public record Item(String category, String name, String value) {
 
         public Item {
             if (category == null || category.isBlank()) {

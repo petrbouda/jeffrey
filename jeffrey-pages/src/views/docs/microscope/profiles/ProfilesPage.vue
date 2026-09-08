@@ -376,18 +376,10 @@ const folderStructure = `$JEFFREY_HOME/
           title="Threads"
           description="Reconstruct the threads captured in the heap dump — their stack frames and the objects they retain — straight from the snapshot, no live recording required."
         />
-        <DocsFeatureCard
-          icon="bi bi-stars"
-          title="AI Heap Dump Analysis"
-          description="Conversational analysis over your heap dump — ask about retained sizes, suspected leaks, dominator chains, and string duplication in natural language."
-        />
       </div>
 
       <p class="docs-read-more">
         <router-link to="/docs/microscope/profiles/heap-dump">Read the Heap Dump Analysis reference &rarr;</router-link>
-      </p>
-      <p class="docs-read-more">
-        <router-link to="/docs/ai/heap-dump-analysis">Read the AI Heap Dump Analysis reference &rarr;</router-link>
       </p>
 
       <h2 id="tools">Tools</h2>

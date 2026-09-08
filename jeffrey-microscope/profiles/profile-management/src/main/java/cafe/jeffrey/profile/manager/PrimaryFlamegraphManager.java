@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+import cafe.jeffrey.flamegraph.export.AiExportConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

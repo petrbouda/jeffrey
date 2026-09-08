@@ -18,5 +18,5 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-public record SettingsResponse(String category, String name, String value, boolean secret) {
+public record SettingsResponse(String category, String name, String value) {
 }

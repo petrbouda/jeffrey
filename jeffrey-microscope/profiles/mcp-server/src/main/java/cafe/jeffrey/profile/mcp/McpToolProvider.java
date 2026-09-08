@@ -28,9 +28,6 @@ import java.util.List;
  * target resolved per call from a profile id ({@link ProfileScopedToolset}), and the union of several
  * families ({@link CompositeToolset}). Anything else belongs in a {@code @Tool} class rather than in a
  * fourth kind of provider.
- * <p>
- * Distinct from {@code cafe.jeffrey.profile.ai.chat.McpToolset}, which describes an MCP server to a
- * <em>client</em> (name, URL, allowed tools). This is the server side.
  */
 public sealed interface McpToolProvider
         permits ReflectiveToolset, ProfileScopedToolset, CompositeToolset {

@@ -24,10 +24,9 @@ import java.time.Duration;
  * The two ways pipelines legitimately differ in how their runs are governed.
  *
  * <p>Both defaults say "no limit", because a limit should be something a pipeline asks for rather than
- * something it inherits. A ceiling only earns its keep when a run holds a scarce external resource: the
- * heap dump's work is local CPU and IO, so capping it would only serialise a user against themselves,
- * while an AI run holds a provider call open for minutes and a handful of them at once will hit a rate
- * limit. Likewise a TTL is right when a finished run is superseded by something durable, and wrong when
+ * something it inherits. A ceiling only earns its keep when a run holds a scarce external resource:
+ * the heap dump's work is local CPU and IO, so capping it would only serialise a user against
+ * themselves. Likewise a TTL is right when a finished run is superseded by something durable, and wrong when
  * the run summary itself is what a page displays.</p>
  *
  * @param maxConcurrentRuns how many runs may execute at once across all keys, or {@link #UNBOUNDED}

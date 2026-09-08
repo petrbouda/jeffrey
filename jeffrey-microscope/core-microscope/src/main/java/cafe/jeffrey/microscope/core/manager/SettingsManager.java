@@ -28,8 +28,6 @@ import cafe.jeffrey.microscope.persistence.api.Setting;
 import cafe.jeffrey.microscope.persistence.api.SettingsRepository;
 import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
 import cafe.jeffrey.shared.common.config.SettingsStore;
-import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
-import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.HashSet;
@@ -39,8 +37,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Business logic for application settings. Validates incoming values, encrypts secrets, persists the
- * change, and applies it to the running application.
+ * Business logic for application settings. Validates incoming values, persists the change, and
+ * applies it to the running application.
  * <p>
  * A saved setting takes effect immediately, and by the time this method returns: the plaintext value
  * is written into the live {@link SettingsStore}, and everything that consumes a setting reads the
@@ -69,33 +67,27 @@ public class SettingsManager {
             "OFF", LogLevel.OFF);
 
     private final SettingsRepository settingsRepository;
-    private final SecretEncryptor secretEncryptor;
     private final SettingsStore settingsStore;
     private final SettingsMetadata settingsMetadata;
     private final LoggingSystem loggingSystem;
-    private final MachineFingerprint.BindingMode bindingMode;
 
     public SettingsManager(
             SettingsRepository settingsRepository,
-            SecretEncryptor secretEncryptor,
-            MachineFingerprint machineFingerprint,
             SettingsStore settingsStore,
             SettingsMetadata settingsMetadata,
             LoggingSystem loggingSystem) {
 
         this.settingsRepository = settingsRepository;
-        this.secretEncryptor = secretEncryptor;
         this.settingsStore = settingsStore;
         this.settingsMetadata = settingsMetadata;
         this.loggingSystem = loggingSystem;
-        this.bindingMode = machineFingerprint.resolve().mode();
     }
 
     /**
      * Validates, persists, and applies a single setting.
      */
-    public void upsert(String category, String name, String value, boolean secret) {
-        upsertAll(List.of(new SettingUpdate(category, name, value, secret)));
+    public void upsert(String category, String name, String value) {
+        upsertAll(List.of(new SettingUpdate(category, name, value)));
     }
 
     /**
@@ -118,15 +110,13 @@ public class SettingsManager {
 
         Set<String> changed = new HashSet<>();
         for (SettingUpdate update : updates) {
-            String storedValue = update.secret() ? secretEncryptor.encrypt(update.value()) : update.value();
-            settingsRepository.upsert(new Setting(update.category(), update.name(), storedValue, update.secret()));
+            settingsRepository.upsert(new Setting(update.category(), update.name(), update.value()));
 
             if (settingsStore.put(update.name(), update.value())) {
                 changed.add(update.name());
             }
 
-            LOG.info("Setting updated: category={} name={} secret={}",
-                    update.category(), update.name(), update.secret());
+            LOG.info("Setting updated: category={} name={}", update.category(), update.name());
         }
 
         if (changed.contains(MicroscopeSettingKeys.LOGGING_LEVEL)) {
@@ -156,13 +146,6 @@ public class SettingsManager {
      */
     public String getResolvedValue(String name) {
         return settingsStore.getString(name, "");
-    }
-
-    /**
-     * Returns the encryption binding mode (MACHINE_BOUND or USER_BOUND).
-     */
-    public MachineFingerprint.BindingMode getBindingMode() {
-        return bindingMode;
     }
 
     private void validate(SettingUpdate update) {

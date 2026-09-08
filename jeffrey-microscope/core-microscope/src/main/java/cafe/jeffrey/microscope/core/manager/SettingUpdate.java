@@ -19,15 +19,13 @@
 package cafe.jeffrey.microscope.core.manager;
 
 /**
- * A single setting to write. Values arrive in plaintext; encryption of secrets happens inside
- * {@link SettingsManager} on the way to the database.
+ * A single setting to write.
  *
  * @param category logical grouping the setting belongs to
  * @param name     full property name
- * @param value    plaintext value
- * @param secret   whether the value must be encrypted at rest
+ * @param value    the value to store
  */
-public record SettingUpdate(String category, String name, String value, boolean secret) {
+public record SettingUpdate(String category, String name, String value) {
 
     public SettingUpdate {
         if (category == null || category.isBlank()) {

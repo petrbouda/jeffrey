@@ -223,9 +223,9 @@ rather than pulling rows back to count them.
 
 ## One statement, and no way out of the database
 
-`jfr_executeModification` is not exposed to external clients: data cleanup and frame renaming happen
-in the Jeffrey UI. Two rules follow from how the read tools are sandboxed, and both fail loudly
-rather than silently:
+The `jfr_` family has no write tool: every call reads, and a profile's data is never rewritten
+through MCP. Two rules follow from how the read tools are sandboxed, and both fail loudly rather
+than silently:
 
 - **One statement per call.** Anything after a semicolon is refused before the query runs. Send the
   `SELECT` on its own.

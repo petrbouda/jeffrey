@@ -23,7 +23,6 @@ import tools.jackson.databind.JsonNode;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -44,7 +43,6 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
     private static final String PROFILE_ID_DESCRIPTION =
             "Id of the profile to work on, as listed by profiles_list.";
 
-    private final String prefix;
     private final ToolMethodIndex index;
     private final Function<String, T> targetResolver;
 
@@ -54,20 +52,7 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
      * @param targetResolver builds the tool object for one profile id
      */
     public ProfileScopedToolset(Class<T> targetType, String prefix, Function<String, T> targetResolver) {
-        this(targetType, prefix, targetResolver, Set.of());
-    }
-
-    /**
-     * @param excludedMethods {@code @Tool} methods of {@code targetType} to leave out — a family that
-     *                        is offered read-only omits its write tools rather than advertising ones
-     *                        that always refuse
-     */
-    public ProfileScopedToolset(
-            Class<T> targetType,
-            String prefix,
-            Function<String, T> targetResolver,
-            Set<String> excludedMethods) {
-        this(targetType, prefix, targetResolver, excludedMethods, McpToolAnnotations.READ_ONLY);
+        this(targetType, prefix, targetResolver, McpToolAnnotations.READ_ONLY);
     }
 
     /**
@@ -79,14 +64,11 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
             Class<T> targetType,
             String prefix,
             Function<String, T> targetResolver,
-            Set<String> excludedMethods,
             McpToolAnnotations defaultAnnotations) {
-        this.prefix = prefix;
         this.index = new ToolMethodIndex(
                 targetType,
                 prefix,
                 List.of(new ToolMethodIndex.SyntheticParam(PROFILE_ID_ARGUMENT, PROFILE_ID_DESCRIPTION)),
-                excludedMethods,
                 defaultAnnotations);
         this.targetResolver = targetResolver;
     }
@@ -107,13 +89,6 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
         Object[] args = index.bindArguments(method, arguments);
         T target = targetResolver.apply(profileId);
         return ToolInvocation.invoke(toolName, method, target, args);
-    }
-
-    /**
-     * The prefix these tools carry, so a caller can name the family it is registering.
-     */
-    public String prefix() {
-        return prefix;
     }
 
     private static String readProfileId(JsonNode arguments) {

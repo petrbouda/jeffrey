@@ -85,7 +85,6 @@ class ProfileScopedToolsetTest {
         void prefixesToolNames() {
             List<String> names = toolset.specs().stream().map(McpToolSpec::name).toList();
             assertTrue(names.contains("sample_describe"));
-            assertEquals("sample", toolset.prefix());
         }
     }
 

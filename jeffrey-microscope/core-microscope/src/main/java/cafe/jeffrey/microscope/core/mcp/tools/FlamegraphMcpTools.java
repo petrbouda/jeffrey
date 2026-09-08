@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+import cafe.jeffrey.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.GraphType;

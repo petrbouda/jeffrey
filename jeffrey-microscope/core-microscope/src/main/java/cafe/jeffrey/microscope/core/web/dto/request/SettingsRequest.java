@@ -18,5 +18,5 @@
 
 package cafe.jeffrey.microscope.core.web.dto.request;
 
-public record SettingsRequest(String value, boolean secret) {
+public record SettingsRequest(String value) {
 }

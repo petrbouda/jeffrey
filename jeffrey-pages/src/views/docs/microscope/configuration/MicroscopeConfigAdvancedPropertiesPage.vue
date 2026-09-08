@@ -131,6 +131,16 @@ onMounted(() => {
             <td><code>single-line</code></td>
             <td>How frame labels are laid out within frames: <code>single-line</code> or <code>two-line</code>. Also selectable in Settings.</td>
           </tr>
+          <tr>
+            <td><code>jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct</code></td>
+            <td><code>1.0</code></td>
+            <td>
+              Prune threshold for the Markdown flamegraph export handed to a coding agent &mdash; the
+              Copy-for-AI buttons and the MCP flamegraph, compare and trace-span exports. Subtrees below
+              this share of the samples are dropped; coarser than the visualization threshold to keep the
+              export compact. Static, unlike the two above: not editable in Settings, takes a restart.
+            </td>
+          </tr>
         </tbody>
       </table>
 

@@ -21,10 +21,9 @@ package cafe.jeffrey.microscope.persistence.api;
 /**
  * Represents a single application setting stored in the database.
  *
- * @param category logical grouping (e.g., "ai", "logging")
- * @param name     full Spring property name (e.g., "jeffrey.microscope.ai.provider")
- * @param value    plain text for regular settings, Base64-encoded ciphertext for secrets
- * @param secret   whether the value is encrypted
+ * @param category logical grouping (e.g., "logging", "visualization")
+ * @param name     full Spring property name (e.g., "logging.level.cafe.jeffrey")
+ * @param value    the stored value
  */
-public record Setting(String category, String name, String value, boolean secret) {
+public record Setting(String category, String name, String value) {
 }

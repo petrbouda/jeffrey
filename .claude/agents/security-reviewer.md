@@ -21,12 +21,6 @@ Review code changes for security concerns, focusing on Jeffrey's sensitive areas
 - CORS configuration is appropriate
 - Content-Type validation for uploads
 
-### AI Integration (Spring AI)
-- Prompt injection risks in user-supplied data sent to AI models
-- API keys not hardcoded or logged
-- Response sanitization before displaying to users
-- Rate limiting on AI endpoints
-
 ### Database (DuckDB)
 - SQL injection via string concatenation (should use parameterized queries)
 - Proper escaping of JSONB field access
@@ -50,7 +44,7 @@ Review code changes for security concerns, focusing on Jeffrey's sensitive areas
 Run this agent when changes touch:
 - File upload or download handlers
 - REST endpoint definitions or modifications
-- AI/LLM integration code
+- MCP tool definitions and their input handling
 - Database query construction
 - Authentication or session management
 - Frontend rendering of dynamic content

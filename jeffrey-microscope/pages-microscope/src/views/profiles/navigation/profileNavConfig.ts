@@ -29,7 +29,7 @@ export interface ProfileNavItem {
   subPath?: string;
   /** Feature keys checked via `isFeatureDisabled`; the item is disabled when ANY key is disabled. */
   disabledKeys?: string[];
-  /** Extra CSS class rendered next to `nav-item` (e.g. `nav-item-ai`). */
+  /** Extra CSS class rendered next to `nav-item`. */
   cssClass?: string;
   /** Renders as an `<a>` emitting `navigate-differential` (with lock icon) instead of a router-link. */
   differentialType?: DifferentialType;
@@ -91,8 +91,6 @@ function techModeItem(
 }
 
 const HEAP_DUMP_KEY = 'heap-dump';
-const AI_ANALYSIS_KEY = 'ai-analysis';
-const AI_ITEM_CLASS = 'nav-item-ai';
 
 function httpGroups(mode: TechnologyQueryMode): TechnologyNavGroup[] {
   return [
@@ -227,13 +225,7 @@ export const profileNavSections: Record<
     },
     {
       title: 'INSIGHTS',
-      items: [
-        item('JFR AI Analysis', 'bi-stars', '/ai-analysis', {
-          disabledKeys: [AI_ANALYSIS_KEY],
-          cssClass: AI_ITEM_CLASS
-        }),
-        item('Auto Analysis', 'bi-robot', '/auto-analysis')
-      ]
+      items: [item('Auto Analysis', 'bi-robot', '/auto-analysis')]
     },
     {
       title: 'PROFILE',
@@ -405,10 +397,6 @@ export const profileNavSections: Record<
       title: 'OVERVIEW',
       items: [
         item('Heap Dump Overview', 'bi-memory', '/heap-dump/overview'),
-        item('AI Analysis', 'bi-stars', '/heap-dump/ai-analysis', {
-          disabledKeys: [HEAP_DUMP_KEY, AI_ANALYSIS_KEY],
-          cssClass: AI_ITEM_CLASS
-        }),
         item('OQL Query', 'bi-terminal', '/heap-dump/oql', { disabledKeys: [HEAP_DUMP_KEY] }),
         item('Heap Diff', 'bi-layers-half', '/heap-dump/diff', { disabledKeys: [HEAP_DUMP_KEY] })
       ]

@@ -20,20 +20,16 @@ package cafe.jeffrey.profile.mcp;
 import java.util.function.Supplier;
 
 /**
- * What one endpoint offers: its tools, and optionally its prompts and resources.
+ * What one endpoint offers: its tools, its prompts and its resources.
  * <p>
  * The envelope used to take a supplier of tools alone, which was right while tools were all there was.
- * Prompts and resources are resolved the same lazy way and for the same reason — {@code initialize}
- * and {@code ping} must answer even when building the toolset would fail — so they travel together
- * rather than as three parameters that have to be kept in the same order at every call site.
- * <p>
- * A provider left null is a capability the endpoint does not advertise. The per-profile endpoint the
- * headless CLI uses offers only tools, because a prompt telling a reader which family to start with is
- * meaningless to a client that was handed one profile and one toolset.
+ * All three are resolved the same lazy way and for the same reason: {@code initialize} and {@code ping}
+ * must answer even when building the toolset would fail, so they travel together rather than as three
+ * parameters that have to be kept in the same order at every call site.
  *
  * @param tools     the toolset, resolved per request
- * @param prompts   the prompts, or null when this endpoint offers none
- * @param resources the resources, or null when this endpoint offers none
+ * @param prompts   the prompts, resolved per request
+ * @param resources the resources, resolved per request
  */
 public record McpServerFeatures(
         Supplier<McpToolProvider> tools,
@@ -44,20 +40,11 @@ public record McpServerFeatures(
         if (tools == null) {
             throw new IllegalArgumentException("tools must not be null");
         }
-    }
-
-    /**
-     * An endpoint that offers tools and nothing else.
-     */
-    public static McpServerFeatures ofTools(Supplier<McpToolProvider> tools) {
-        return new McpServerFeatures(tools, null, null);
-    }
-
-    public boolean hasPrompts() {
-        return prompts != null;
-    }
-
-    public boolean hasResources() {
-        return resources != null;
+        if (prompts == null) {
+            throw new IllegalArgumentException("prompts must not be null");
+        }
+        if (resources == null) {
+            throw new IllegalArgumentException("resources must not be null");
+        }
     }
 }

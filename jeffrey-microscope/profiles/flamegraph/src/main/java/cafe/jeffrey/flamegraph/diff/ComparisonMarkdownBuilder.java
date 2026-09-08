@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.flamegraph.diff;
 
-import cafe.jeffrey.flamegraph.ai.WeightContext;
+import cafe.jeffrey.flamegraph.export.WeightContext;
 
 import java.util.List;
 import java.util.Locale;

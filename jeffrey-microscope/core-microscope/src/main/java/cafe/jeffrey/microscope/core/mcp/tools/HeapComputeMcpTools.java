@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.profile.common.pipeline.StageProgress;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;

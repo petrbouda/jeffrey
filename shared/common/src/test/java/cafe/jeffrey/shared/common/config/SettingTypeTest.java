@@ -36,7 +36,7 @@ class SettingTypeTest {
         }
 
         @Test
-        void emptyIsAcceptedBecauseUnsetSecretsAreStoredAsEmpty() {
+        void emptyIsAccepted() {
             assertTrue(SettingType.STRING.isValid(""));
         }
 
@@ -99,7 +99,7 @@ class SettingTypeTest {
         }
 
         @Test
-        void rejectsZeroBecauseAiExportConfigRequiresAnExclusiveRange() {
+        void rejectsZeroBecauseTheRangeIsExclusive() {
             assertFalse(SettingType.PERCENTAGE.isValid("0"));
         }
 
@@ -144,30 +144,6 @@ class SettingTypeTest {
     }
 
     @Nested
-    class AiProviders {
-
-        @Test
-        void acceptsNone() {
-            assertTrue(SettingType.AI_PROVIDER.isValid("none"));
-        }
-
-        @Test
-        void acceptsClaudeCode() {
-            assertTrue(SettingType.AI_PROVIDER.isValid("claude-code"));
-        }
-
-        @Test
-        void acceptsMixedCase() {
-            assertTrue(SettingType.AI_PROVIDER.isValid("Claude"));
-        }
-
-        @Test
-        void rejectsUnknownProvider() {
-            assertFalse(SettingType.AI_PROVIDER.isValid("gemini"));
-        }
-    }
-
-    @Nested
     class FrameTextModes {
 
         @Test
@@ -191,14 +167,14 @@ class SettingTypeTest {
 
         @Test
         void declaredKeyResolvesToItsType() {
-            assertEquals(SettingType.POSITIVE_INT,
-                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.AI_MAX_TOKENS));
+            assertEquals(SettingType.FRAME_TEXT_MODE,
+                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE));
         }
 
         @Test
         void thresholdsArePercentages() {
             assertEquals(SettingType.PERCENTAGE,
-                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.AI_EXPORT_MIN_FRAME_THRESHOLD_PCT));
+                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT));
         }
 
         @Test

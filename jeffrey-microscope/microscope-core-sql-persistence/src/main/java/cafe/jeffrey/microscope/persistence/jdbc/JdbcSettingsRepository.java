@@ -47,9 +47,9 @@ public class JdbcSettingsRepository implements SettingsRepository {
 
     //language=SQL
     private static final String UPSERT = """
-            INSERT INTO settings (category, name, value, secret)
-            VALUES (:category, :name, :value, :secret)
-            ON CONFLICT (category, name) DO UPDATE SET value = :value, secret = :secret""";
+            INSERT INTO settings (category, name, value)
+            VALUES (:category, :name, :value)
+            ON CONFLICT (category, name) DO UPDATE SET value = :value""";
 
     //language=SQL
     private static final String DELETE =
@@ -104,8 +104,7 @@ public class JdbcSettingsRepository implements SettingsRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("category", setting.category())
                 .addValue("name", setting.name())
-                .addValue("value", setting.value())
-                .addValue("secret", setting.secret());
+                .addValue("value", setting.value());
 
         databaseClient.update(StatementLabel.UPSERT_SETTING, UPSERT, params);
     }
@@ -131,7 +130,6 @@ public class JdbcSettingsRepository implements SettingsRepository {
         return (rs, _) -> new Setting(
                 rs.getString("category"),
                 rs.getString("name"),
-                rs.getString("value"),
-                rs.getBoolean("secret"));
+                rs.getString("value"));
     }
 }

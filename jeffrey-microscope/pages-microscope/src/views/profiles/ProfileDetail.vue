@@ -355,7 +355,6 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'method-tracing': FeatureType.METHOD_TRACING_DASHBOARD,
     'async-profiler': FeatureType.ASYNC_PROFILER_SPANS,
     traces: FeatureType.TRACES,
-    'ai-analysis': FeatureType.AI_ANALYSIS,
     'heap-dump': FeatureType.HEAP_DUMP,
     subsecond: FeatureType.SUBSECOND
   };
@@ -666,24 +665,11 @@ const handleHeapDumpStatusChanged = (ready: boolean) => {
   }
 };
 
-// The AI provider is applied without a restart, so the feature list this page cached on mount can go
-// stale while the page stays open. Re-fetch rather than toggle a flag: enabling AI can affect several
-// features at once, and the backend is the authority on which.
-const handleAiSettingsChanged = async () => {
-  try {
-    disabledFeatures.value = await new ProfileFeaturesClient(profileId).getDisabledFeatures();
-  } catch (error) {
-    console.error('Failed to refresh disabled features:', error);
-  }
-};
-
 // Set up message bus listener
 MessageBus.on(MessageBus.HEAP_DUMP_STATUS_CHANGED, handleHeapDumpStatusChanged);
-MessageBus.on(MessageBus.AI_SETTINGS_CHANGED, handleAiSettingsChanged);
 
 onUnmounted(() => {
   MessageBus.off(MessageBus.HEAP_DUMP_STATUS_CHANGED, handleHeapDumpStatusChanged);
-  MessageBus.off(MessageBus.AI_SETTINGS_CHANGED, handleAiSettingsChanged);
 });
 </script>
 

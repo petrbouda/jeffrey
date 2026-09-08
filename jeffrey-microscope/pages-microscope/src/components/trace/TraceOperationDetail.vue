@@ -30,7 +30,7 @@
         -->
         <AiExportButton
           :build-source="buildAiExportSource"
-          tooltip="Export this operation for AI analysis"
+          tooltip="Export this operation for a coding agent"
         />
       </div>
 
@@ -126,7 +126,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
+import AiExportButton from '@/components/export/AiExportButton.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
 import LoadingState from '@shared/components/LoadingState.vue';

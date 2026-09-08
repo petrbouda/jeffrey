@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
@@ -42,10 +43,9 @@ import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
-import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapComputeMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.CompositeToolset;
@@ -59,7 +59,6 @@ import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Assembles the tool families the external MCP server advertises.
@@ -79,9 +78,8 @@ import java.util.Set;
  * manager behind the matching Jeffrey UI page, which is what keeps a subsystem question to one call
  * instead of a handful of invented SQL queries, several of which a reader reliably gets wrong.
  * <p>
- * Every analysis family here is read-only. {@code DuckDbMcpTools} is constructed with its
- * single-argument constructor, which leaves {@code executeModification} refusing — an external client
- * gets to read a profile's data, not to rewrite it.
+ * Every analysis family here is read-only, the {@link DuckDbMcpTools} SQL family included — an
+ * external client gets to read a profile's data, not to rewrite it.
  * <p>
  * {@link RecordingsMcpTools} is the one exception, and it writes at a different level: it does not
  * change an analysed profile, it creates one, which is what lets a reader analyse a recording without
@@ -114,13 +112,6 @@ public class McpToolsetAssembler {
     private static final String PREFIX_HUBS = "hubs";
     private static final String PREFIX_IDE = "ide";
 
-    /**
-     * The one JFR tool that writes. Left out of the family rather than left in to refuse: an
-     * advertised tool that always answers "not enabled" spends a slot in the model's context and
-     * invites a call that cannot succeed.
-     */
-    static final Set<String> WRITE_TOOLS = Set.of("executeModification");
-
     private final McpToolProvider toolset;
 
     public McpToolsetAssembler(
@@ -146,8 +137,7 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(EventTypeMcpTools.class, PREFIX_JFR,
                         profileId -> new EventTypeMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(DuckDbMcpTools.class, PREFIX_JFR,
-                        profileId -> new DuckDbMcpTools(contextCache.context(profileId).dataSource()),
-                        WRITE_TOOLS),
+                        profileId -> new DuckDbMcpTools(contextCache.context(profileId).dataSource())),
                 new ProfileScopedToolset<>(FlamegraphMcpTools.class, PREFIX_FLAMEGRAPH,
                         profileId -> new FlamegraphMcpTools(
                                 profileManager(contextCache, profileId),
@@ -190,10 +180,9 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(HeapComputeMcpTools.class, PREFIX_HEAP,
                         profileId -> new HeapComputeMcpTools(
                                 profileManager(contextCache, profileId), heapDumpInitService),
-                        Set.of(),
                         McpToolAnnotations.CREATES),
                 new ReflectiveToolset(
-                        recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES)));
+                        recordingsMcpTools, PREFIX_RECORDINGS, McpToolAnnotations.CREATES)));
 
         if (properties.ideEnabled()) {
             // Read-only as a family: three of its five tools observe. The two that do not — linking
@@ -205,13 +194,12 @@ public class McpToolsetAssembler {
                             profileManager(contextCache, profileId),
                             recordingCommitResolver,
                             profileId),
-                    Set.of(),
                     McpToolAnnotations.READS_REMOTE));
         }
 
         if (properties.hubsEnabled()) {
             families.add(new ReflectiveToolset(
-                    hubsMcpTools, PREFIX_HUBS, Set.of(), McpToolAnnotations.READS_REMOTE));
+                    hubsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
         }
 
         this.toolset = new CompositeToolset(retained(families, properties));

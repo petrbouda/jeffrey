@@ -19,7 +19,6 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.shared.common.Json;
 
 import java.util.List;
 

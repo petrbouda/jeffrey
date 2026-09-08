@@ -34,8 +34,7 @@ const headings = [
   { id: 'update-check', text: 'Update Check', level: 2 },
   { id: 'hubs', text: 'Declared Hubs', level: 2 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
-  { id: 'ide-integration', text: 'IDE Integration', level: 2 },
-  { id: 'ai-assistant', text: 'AI Assistant', level: 2 }
+  { id: 'ide-integration', text: 'IDE Integration', level: 2 }
 ];
 
 const hubsPropertiesExample = `jeffrey.microscope.hubs.production.name=Production
@@ -364,59 +363,13 @@ onMounted(() => {
         </tbody>
       </table>
 
-      <h2 id="ai-assistant">AI Assistant</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.microscope.ai.provider</code></td>
-            <td><code>none</code></td>
-            <td>
-              AI provider. One of <code>claude</code>, <code>chatgpt</code>, <code>ollama</code>, <code>claude-code</code>, or <code>none</code> (disabled).
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.ai.model</code></td>
-            <td><code>claude-opus-5</code></td>
-            <td>Model identifier matching the chosen provider.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.ai.max-tokens</code></td>
-            <td><code>128000</code></td>
-            <td>Maximum tokens in an AI response.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.ai.source-access.enabled</code></td>
-            <td><code>false</code></td>
-            <td>
-              Lets an AI analysis read the checkout of the IDE window the profile is linked to, so a
-              finding lands on the code rather than stopping at a method name. Off by default because
-              it is the one setting that sends source to the configured AI provider. Read-only, and
-              only ever the linked directory.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <DocsCallout type="tip">
-        <strong>API key:</strong> store the provider's API key as a
-        <router-link to="/docs/microscope/configuration/secrets">secret</router-link>
-        rather than placing it in <code>application.properties</code>.
-      </DocsCallout>
-
       <DocsCallout type="info">
         <strong>Editable at runtime:</strong> every category in <strong>Settings</strong> in the
-        Microscope UI is hot-reloaded — the AI properties above, the log level
-        (<code>logging.level.cafe.jeffrey</code>) and the flamegraph thresholds. A change saved there is
-        stored in the Microscope database and applied immediately — switching AI provider, pasting an API
-        key or raising the log level does not need a restart. Values stored that way take precedence over
-        <code>application.properties</code>, system properties and environment variables.
+        Microscope UI is hot-reloaded — the log level (<code>logging.level.cafe.jeffrey</code>), the
+        flamegraph threshold and the frame text mode. A change saved there is stored in the
+        Microscope database and applied immediately — raising the log level does not need a restart.
+        Values stored that way take precedence over <code>application.properties</code>, system
+        properties and environment variables.
       </DocsCallout>
     </div>
 

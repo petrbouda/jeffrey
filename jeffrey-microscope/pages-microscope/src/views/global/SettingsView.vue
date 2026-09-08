@@ -5,25 +5,8 @@
         <MainCardHeader icon="bi bi-sliders" title="Settings" />
       </template>
 
-      <!-- Encryption Warning -->
-      <div v-if="encryptionMode === 'USER_BOUND'" class="encryption-warning">
-        <i class="bi bi-info-circle"></i>
-        <span
-          >Machine-specific encryption unavailable. Secrets are encrypted with user-level binding
-          only.</span
-        >
-      </div>
-
       <!-- Tabs -->
       <div class="settings-tabs">
-        <button
-          class="settings-tab"
-          :class="{ active: activeTab === 'ai' }"
-          @click="activeTab = 'ai'"
-        >
-          <i class="bi bi-robot"></i>
-          AI Configuration
-        </button>
         <button
           class="settings-tab"
           :class="{ active: activeTab === 'general' }"
@@ -40,233 +23,6 @@
           <i class="bi bi-bar-chart"></i>
           Visualization
         </button>
-        <button
-          class="settings-tab"
-          :class="{ active: activeTab === 'ai-export' }"
-          @click="activeTab = 'ai-export'"
-        >
-          <i class="bi bi-stars"></i>
-          AI Export
-        </button>
-      </div>
-
-      <!-- AI Configuration Tab -->
-      <div v-if="activeTab === 'ai'" class="settings-content">
-        <div class="content-header-with-toggle">
-          <div class="toggle-area">
-            <span class="toggle-label">Enable AI</span>
-            <label class="toggle-switch">
-              <input
-                type="checkbox"
-                class="toggle-input"
-                v-model="aiToggle"
-                @change="onAiToggleChange"
-              />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div v-if="isClaudeCode" class="ai-subscription-panel">
-          <i class="bi bi-stars ai-sub-icon"></i>
-          <div class="ai-sub-body">
-            <div class="ai-sub-title">Claude Code uses your Claude subscription</div>
-            <div class="ai-sub-point">
-              <i class="bi bi-credit-card-2-front"></i>
-              <span>
-                Your <strong>Claude (Anthropic) subscription will be used</strong> — no API key
-                required.
-              </span>
-            </div>
-            <div class="ai-sub-point">
-              <i class="bi bi-shield-check"></i>
-              <span>
-                By enabling, you
-                <strong
-                  >agree to comply with Anthropic's
-                  <a
-                    href="https://www.anthropic.com/legal/consumer-terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >Terms of Service</a
-                  ></strong
-                >.
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-form-grid" :class="{ 'settings-form-disabled': !aiEnabled }">
-          <div class="settings-form-group">
-            <label class="settings-label">Provider</label>
-            <select
-              :value="settings.get('jeffrey.microscope.ai.provider')"
-              @change="
-                setSetting(
-                  'jeffrey.microscope.ai.provider',
-                  ($event.target as HTMLSelectElement).value
-                )
-              "
-              class="form-control select-with-indicator"
-              :disabled="!aiEnabled"
-            >
-              <option value="claude">Claude (Anthropic)</option>
-              <option value="claude-code">Claude Code (subscription)</option>
-              <option value="chatgpt">ChatGPT (OpenAI)</option>
-              <option value="ollama">Ollama (self-hosted)</option>
-            </select>
-          </div>
-          <div class="settings-form-group">
-            <label class="settings-label">Model</label>
-            <input
-              type="text"
-              :value="settings.get('jeffrey.microscope.ai.model')"
-              @input="
-                setSetting('jeffrey.microscope.ai.model', ($event.target as HTMLInputElement).value)
-              "
-              class="form-control"
-              :disabled="!aiEnabled"
-              placeholder="Enter model name"
-            />
-          </div>
-          <div v-if="isOllama" class="settings-form-group">
-            <label class="settings-label">Base URL</label>
-            <input
-              type="text"
-              :value="settings.get('jeffrey.microscope.ai.base-url')"
-              @input="
-                setSetting(
-                  'jeffrey.microscope.ai.base-url',
-                  ($event.target as HTMLInputElement).value
-                )
-              "
-              class="form-control"
-              :disabled="!aiEnabled"
-              placeholder="http://localhost:11434"
-            />
-            <div class="settings-hint">
-              <i class="bi bi-hdd-network"></i> URL of your self-hosted Ollama server
-            </div>
-          </div>
-          <div v-else-if="isClaudeCode" class="settings-form-group">
-            <label class="settings-label">Claude CLI Path</label>
-            <input
-              type="text"
-              :value="settings.get('jeffrey.microscope.ai.cli-path')"
-              @input="
-                setSetting(
-                  'jeffrey.microscope.ai.cli-path',
-                  ($event.target as HTMLInputElement).value
-                )
-              "
-              class="form-control"
-              :disabled="!aiEnabled"
-              placeholder="claude"
-            />
-            <div class="settings-hint">
-              <i class="bi bi-terminal"></i> Uses your logged-in Claude subscription via the Claude
-              Code CLI — no API key required. The CLI must be installed and authenticated on the
-              host running Jeffrey.
-            </div>
-          </div>
-          <div v-else class="settings-form-group">
-            <label class="settings-label">API Key</label>
-            <div class="password-wrap">
-              <input
-                :type="showApiKey ? 'text' : 'password'"
-                :value="settings.get('jeffrey.microscope.ai.api-key')"
-                @input="
-                  setSetting(
-                    'jeffrey.microscope.ai.api-key',
-                    ($event.target as HTMLInputElement).value
-                  )
-                "
-                class="form-control"
-                :disabled="!aiEnabled"
-                placeholder="Enter your API key"
-              />
-              <button class="toggle-eye" @click="showApiKey = !showApiKey">
-                <i :class="showApiKey ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-              </button>
-            </div>
-            <div class="settings-hint">
-              <i class="bi bi-lock"></i> Encrypted at rest with machine-bound key
-            </div>
-          </div>
-          <div v-if="!isClaudeCode" class="settings-form-group">
-            <label class="settings-label">Max Tokens</label>
-            <input
-              type="number"
-              :value="settings.get('jeffrey.microscope.ai.max-tokens')"
-              @input="
-                setSetting(
-                  'jeffrey.microscope.ai.max-tokens',
-                  ($event.target as HTMLInputElement).value
-                )
-              "
-              class="form-control"
-              :disabled="!aiEnabled"
-              placeholder="128000"
-            />
-            <div class="settings-hint">Maximum token limit per AI request</div>
-          </div>
-          <div v-if="isClaudeCode" class="settings-form-group">
-            <label class="settings-label">Timeout (seconds)</label>
-            <input
-              type="number"
-              :value="settings.get('jeffrey.microscope.ai.timeout-seconds')"
-              @input="
-                setSetting(
-                  'jeffrey.microscope.ai.timeout-seconds',
-                  ($event.target as HTMLInputElement).value
-                )
-              "
-              class="form-control"
-              :disabled="!aiEnabled"
-              placeholder="600"
-            />
-            <div class="settings-hint">
-              Maximum time to wait for a Claude Code response. Agentic tool loops can take longer
-              than a single API call.
-            </div>
-          </div>
-        </div>
-
-        <div
-          v-if="currentModels.length > 0"
-          class="models-reference"
-          :class="{ 'settings-form-disabled': !aiEnabled }"
-        >
-          <h4 class="models-reference-title">Available Models</h4>
-          <DataTable>
-            <thead>
-              <tr>
-                <th>Model</th>
-                <th>Max Output Tokens</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="model in currentModels"
-                :key="model.id"
-                class="model-row"
-                :class="{
-                  'model-row-selected': settings.get('jeffrey.microscope.ai.model') === model.id
-                }"
-                @click="selectModel(model)"
-              >
-                <td>{{ model.id }}</td>
-                <td>{{ model.maxTokens.toLocaleString() }}</td>
-              </tr>
-            </tbody>
-          </DataTable>
-        </div>
-
-        <div class="settings-actions">
-          <button class="btn-primary" @click="saveAiSettings" :disabled="saving || !aiEnabled">
-            {{ saving ? 'Saving...' : 'Save Changes' }}
-          </button>
-        </div>
       </div>
 
       <!-- General Tab -->
@@ -361,45 +117,6 @@
           </button>
         </div>
       </div>
-
-      <!-- AI Export Tab -->
-      <div v-if="activeTab === 'ai-export'" id="ai-export" class="settings-content">
-        <div class="settings-form-grid settings-form-grid-single">
-          <div class="settings-form-group">
-            <label class="settings-label">Flamegraph — Minimum Frame Threshold (%)</label>
-            <input
-              type="number"
-              :value="
-                settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct')
-              "
-              @input="
-                setSetting(
-                  'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
-                  ($event.target as HTMLInputElement).value
-                )
-              "
-              class="form-control"
-              style="max-width: 300px"
-              min="0"
-              max="100"
-              step="0.01"
-              placeholder="1.0"
-            />
-            <div class="settings-hint">
-              Subtrees representing less than this percentage of total samples are dropped from the
-              AI export. Same semantics as the visualization threshold, but tuned coarser to keep
-              the LLM payload compact. Default: 1.0%
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-actions">
-          <button class="btn-primary" @click="saveAiExportSettings" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save Changes' }}
-          </button>
-        </div>
-      </div>
-
     </MainCard>
   </div>
 </template>
@@ -407,65 +124,25 @@
 <script setup lang="ts">
 import '@shared/styles/form-utilities.css';
 import '@shared/styles/shared-components.css';
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import SettingsClient, { type SettingUpdate } from '@/services/api/SettingsClient';
-import MessageBus from '@/services/MessageBus';
 import ToastService from '@shared/services/ToastService';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
-import DataTable from '@shared/components/table/DataTable.vue';
 
 const route = useRoute();
-const SUPPORTED_TABS: ReadonlySet<string> = new Set([
-  'ai',
-  'general',
-  'visualization',
-  'ai-export'
-]);
-
-interface ModelInfo {
-  id: string;
-  maxTokens: number;
-}
-
-// One entry per model line, always its latest release. Aliases rather than dated snapshot
-// IDs — an alias resolves to the current release, so the list does not go stale on the next
-// point release. Older versions stay usable: the Model field above takes any ID you type.
-const claudeModels: ModelInfo[] = [
-  { id: 'claude-fable-5', maxTokens: 128000 },
-  { id: 'claude-opus-5', maxTokens: 128000 },
-  { id: 'claude-sonnet-5', maxTokens: 128000 },
-  { id: 'claude-haiku-4-5', maxTokens: 64000 }
-];
-
-const chatgptModels: ModelInfo[] = [
-  { id: 'gpt-5.5', maxTokens: 128000 },
-  { id: 'gpt-5.4', maxTokens: 128000 },
-  { id: 'gpt-4.1', maxTokens: 32768 },
-  { id: 'gpt-4o', maxTokens: 16384 }
-];
-
-// Tool-capable Ollama models are recommended — the DuckDB/heap-dump analysis
-// features rely on tool calling. maxTokens maps to Ollama's num_predict (max output).
-const ollamaModels: ModelInfo[] = [
-  { id: 'llama4', maxTokens: 8192 },
-  { id: 'qwen3', maxTokens: 8192 },
-  { id: 'gemma4', maxTokens: 8192 },
-  { id: 'mistral-small', maxTokens: 8192 }
-];
+const SUPPORTED_TABS: ReadonlySet<string> = new Set(['general', 'visualization']);
 
 const client = new SettingsClient();
 
-const activeTab = ref('ai');
+const activeTab = ref('general');
 watch(activeTab, tab => {
   if (tab === 'visualization') {
     nextTick(() => drawPreviews());
   }
 });
-const showApiKey = ref(false);
 const saving = ref(false);
-const encryptionMode = ref('');
 
 const settings = reactive(new Map<string, string>());
 const frameTextMode = ref('single-line');
@@ -473,29 +150,8 @@ const frameTextMode = ref('single-line');
 const previewSingleLine = ref<HTMLCanvasElement | null>(null);
 const previewTwoLine = ref<HTMLCanvasElement | null>(null);
 
-const aiToggle = ref(false);
-const aiEnabled = computed(() => aiToggle.value);
-
-const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
-const isClaudeCode = computed(
-  () => settings.get('jeffrey.microscope.ai.provider') === 'claude-code'
-);
-
-const currentModels = computed(() => {
-  const provider = settings.get('jeffrey.microscope.ai.provider');
-  if (provider === 'claude' || provider === 'claude-code') return claudeModels;
-  if (provider === 'chatgpt') return chatgptModels;
-  if (provider === 'ollama') return ollamaModels;
-  return [];
-});
-
 function setSetting(name: string, value: string) {
   settings.set(name, value);
-}
-
-function selectModel(model: ModelInfo) {
-  settings.set('jeffrey.microscope.ai.model', model.id);
-  settings.set('jeffrey.microscope.ai.max-tokens', String(model.maxTokens));
 }
 
 onMounted(async () => {
@@ -505,15 +161,12 @@ onMounted(async () => {
   }
 
   try {
-    const [fetched, status] = await Promise.all([client.fetchAll(), client.fetchStatus()]);
-
-    encryptionMode.value = status.encryptionMode;
+    const fetched = await client.fetchAll();
 
     for (const setting of fetched) {
       settings.set(setting.name, setting.value);
     }
 
-    aiToggle.value = settings.get('jeffrey.microscope.ai.provider') !== 'none';
     frameTextMode.value =
       settings.get('jeffrey.microscope.visualization.flamegraph.frame-text-mode') || 'single-line';
 
@@ -628,77 +281,13 @@ function drawTwoLinePreview() {
   }
 }
 
-async function onAiToggleChange() {
-  if (!aiToggle.value) {
-    saving.value = true;
-    try {
-      await client.upsert('ai', 'jeffrey.microscope.ai.provider', 'none', false);
-      settings.set('jeffrey.microscope.ai.provider', 'none');
-      announceAiChange('AI disabled');
-    } catch (e) {
-      console.error('Failed to disable AI', e);
-      ToastService.error('Settings', 'Failed to disable AI');
-      aiToggle.value = true;
-    } finally {
-      saving.value = false;
-    }
-  } else {
-    if (
-      settings.get('jeffrey.microscope.ai.provider') === 'none' ||
-      !settings.get('jeffrey.microscope.ai.provider')
-    ) {
-      settings.set('jeffrey.microscope.ai.provider', 'claude');
-      settings.set('jeffrey.microscope.ai.model', 'claude-opus-5');
-    }
-  }
-}
-
-async function saveAiSettings() {
-  const apiKey = settings.get('jeffrey.microscope.ai.api-key') || '';
-  const updates: SettingUpdate[] = [
-    aiSetting(
-      'jeffrey.microscope.ai.provider',
-      settings.get('jeffrey.microscope.ai.provider') || ''
-    ),
-    aiSetting('jeffrey.microscope.ai.model', settings.get('jeffrey.microscope.ai.model') || ''),
-    aiSetting(
-      'jeffrey.microscope.ai.max-tokens',
-      settings.get('jeffrey.microscope.ai.max-tokens') || ''
-    ),
-    aiSetting(
-      'jeffrey.microscope.ai.base-url',
-      settings.get('jeffrey.microscope.ai.base-url') || ''
-    ),
-    aiSetting(
-      'jeffrey.microscope.ai.cli-path',
-      settings.get('jeffrey.microscope.ai.cli-path') || 'claude'
-    ),
-    aiSetting(
-      'jeffrey.microscope.ai.timeout-seconds',
-      settings.get('jeffrey.microscope.ai.timeout-seconds') || '600'
-    ),
-    // A masked key is what the server sent us, not something the user typed — saving it back would
-    // overwrite the real key with its own mask.
-    ...(apiKey && !apiKey.includes('****')
-      ? [{ category: 'ai', name: 'jeffrey.microscope.ai.api-key', value: apiKey, secret: true }]
-      : [])
-  ];
-
-  await save(updates, () => announceAiChange('AI settings applied'));
-}
-
-function aiSetting(name: string, value: string): SettingUpdate {
-  return { category: 'ai', name, value, secret: false };
-}
-
 async function saveGeneralSettings() {
   await save(
     [
       {
         category: 'logging',
         name: 'logging.level.cafe.jeffrey',
-        value: settings.get('logging.level.cafe.jeffrey') || '',
-        secret: false
+        value: settings.get('logging.level.cafe.jeffrey') || ''
       }
     ],
     () => ToastService.success('Settings', 'Log level applied')
@@ -712,32 +301,15 @@ async function saveVisualizationSettings() {
         category: 'visualization',
         name: 'jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct',
         value:
-          settings.get('jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct') || '',
-        secret: false
+          settings.get('jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct') || ''
       },
       {
         category: 'visualization',
         name: 'jeffrey.microscope.visualization.flamegraph.frame-text-mode',
-        value: frameTextMode.value,
-        secret: false
+        value: frameTextMode.value
       }
     ],
     () => ToastService.success('Settings', 'Visualization settings applied')
-  );
-}
-
-async function saveAiExportSettings() {
-  await save(
-    [
-      {
-        category: 'ai-export',
-        name: 'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
-        value:
-          settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct') || '',
-        secret: false
-      }
-    ],
-    () => ToastService.success('Settings', 'AI export settings applied')
   );
 }
 
@@ -758,32 +330,9 @@ async function save(updates: SettingUpdate[], onSaved: () => void) {
     saving.value = false;
   }
 }
-
-/**
- * The backend applies an AI change immediately, but rebuilding the backend can take a moment and open
- * profile pages cached their feature list on mount — so tell them to refresh it.
- */
-function announceAiChange(message: string) {
-  ToastService.success('Settings', message);
-  MessageBus.emit(MessageBus.AI_SETTINGS_CHANGED, null);
-}
 </script>
 
 <style scoped>
-.encryption-warning {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--color-info-bg);
-  border: 1px solid var(--color-info-border);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  color: var(--color-info-text);
-  font-size: 13px;
-  font-weight: 500;
-}
-
 .settings-tabs {
   display: flex;
   gap: 0;
@@ -876,183 +425,6 @@ function announceAiChange(message: string) {
   font-size: 11px;
   color: var(--color-text-muted);
   margin-top: 4px;
-}
-
-/* Claude Code subscription / ToS notice */
-.ai-subscription-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 14px 16px;
-  margin-bottom: 22px;
-  border-radius: 10px;
-  border: 1px solid var(--color-primary-border, #9ba8ff);
-  background: linear-gradient(120deg, var(--color-primary-light), rgba(139, 92, 246, 0.08));
-}
-
-.ai-sub-icon {
-  font-size: 1.3rem;
-  color: var(--color-primary);
-  margin-top: 1px;
-}
-
-.ai-sub-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.ai-sub-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--color-dark);
-  margin-bottom: 7px;
-}
-
-.ai-sub-point {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12.5px;
-  color: var(--color-text);
-  line-height: 1.5;
-  margin: 5px 0;
-}
-
-.ai-sub-point i {
-  color: var(--color-primary);
-  margin-top: 2px;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
-.ai-sub-point strong {
-  color: var(--color-dark);
-  font-weight: 700;
-}
-
-.ai-sub-point a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.ai-sub-point a:hover {
-  text-decoration: underline;
-}
-
-.password-wrap {
-  position: relative;
-}
-
-.password-wrap .form-control {
-  padding-right: 40px;
-}
-
-.password-wrap .toggle-eye {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px;
-}
-
-.settings-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-
-.content-header-with-toggle {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-}
-
-.content-header-with-toggle h3 {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.content-header-with-toggle p {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin: 0;
-}
-
-.toggle-area {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.toggle-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.settings-form-disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.btn-primary {
-  padding: 9px 24px;
-  background: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary:hover {
-  background: var(--color-primary-hover);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.form-control:disabled {
-  background: var(--color-bg-hover);
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.models-reference {
-  margin-bottom: 24px;
-}
-
-.models-reference-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
-}
-
-.model-row {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.model-row:hover {
-  background: var(--color-bg-hover);
-}
-
-.model-row-selected {
-  background: var(--color-bg-hover);
-  font-weight: 600;
 }
 
 .frame-mode-cards {

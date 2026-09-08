@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.flamegraph.diff;
 
-import cafe.jeffrey.flamegraph.ai.AiExportConfig;
-import cafe.jeffrey.flamegraph.ai.WeightContext;
+import cafe.jeffrey.flamegraph.export.AiExportConfig;
+import cafe.jeffrey.flamegraph.export.WeightContext;
 import cafe.jeffrey.frameir.DiffFrame;
 import cafe.jeffrey.shared.common.model.Type;
 

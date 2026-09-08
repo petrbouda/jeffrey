@@ -51,7 +51,7 @@
           <AiExportButton
             v-if="mode !== 'flamegraph'"
             :build-source="buildAiExportSource"
-            tooltip="Export this trace for AI analysis"
+            tooltip="Export this trace for a coding agent"
             :disabled="!detail"
             disabled-tooltip="Waiting for the trace to load"
           />
@@ -229,7 +229,7 @@ import FormattingService from '@shared/services/FormattingService';
 
 import TraceWaterfall from '@/components/trace/TraceWaterfall.vue';
 import TraceWhySlowPanel from '@/components/trace/TraceWhySlowPanel.vue';
-import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
+import AiExportButton from '@/components/export/AiExportButton.vue';
 import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';

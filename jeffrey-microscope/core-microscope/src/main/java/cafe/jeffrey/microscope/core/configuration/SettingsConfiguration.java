@@ -25,8 +25,6 @@ import cafe.jeffrey.microscope.core.manager.SettingsManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcSettingsRepository;
 import cafe.jeffrey.shared.common.config.SettingsStore;
-import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
-import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 
 /**
  * Wires the settings write path.
@@ -45,13 +43,9 @@ public class SettingsConfiguration {
             SettingsMetadata settingsMetadata,
             LoggingSystem loggingSystem) {
 
-        var machineFingerprint = new MachineFingerprint();
-        var secretEncryptor = new SecretEncryptor(machineFingerprint);
         var settingsRepository = new JdbcSettingsRepository(localCorePersistenceProvider.databaseClientProvider());
         return new SettingsManager(
                 settingsRepository,
-                secretEncryptor,
-                machineFingerprint,
                 settingsStore,
                 settingsMetadata,
                 loggingSystem);

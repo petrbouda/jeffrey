@@ -350,11 +350,6 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsMicroscopeConfigAdvancedProps',
         component: () => import('@/views/docs/microscope/configuration/MicroscopeConfigAdvancedPropertiesPage.vue')
       },
-      {
-        path: 'microscope/configuration/secrets',
-        name: 'DocsMicroscopeConfigSecrets',
-        component: () => import('@/views/docs/microscope/configuration/ConfigurationSecretsPage.vue')
-      },
 
       // ──── Jeffrey Hub ────
       {
@@ -439,27 +434,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/agent/AgentOverviewPage.vue')
       },
 
-      // ──── AI Analysis ────
-      {
-        path: 'ai/overview',
-        name: 'DocsAiOverview',
-        component: () => import('@/views/docs/ai/AiOverviewPage.vue')
-      },
-      {
-        path: 'ai/jfr-analysis',
-        name: 'DocsAiJfrAnalysis',
-        component: () => import('@/views/docs/ai/AiJfrAnalysisPage.vue')
-      },
-      {
-        path: 'ai/heap-dump-analysis',
-        name: 'DocsAiHeapDumpAnalysis',
-        component: () => import('@/views/docs/ai/AiHeapDumpAnalysisPage.vue')
-      },
-      {
-        path: 'ai/oql-assistant',
-        name: 'DocsAiOqlAssistant',
-        component: () => import('@/views/docs/ai/AiOqlAssistantPage.vue')
-      },
       // The MCP integration moved to its own top-level product at /docs/microscope-mcp.
       { path: 'ai/claude-code-plugin', redirect: '/docs/microscope-mcp/claude-code' },
 
@@ -752,7 +726,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'configuration/overview', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'configuration/application-properties', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'configuration/advanced-properties', redirect: '/docs/microscope/configuration/advanced-properties' },
-      { path: 'configuration/secrets', redirect: '/docs/microscope/configuration/secrets' },
+      { path: 'configuration/secrets', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'architecture/public-api', redirect: '/docs/hub/grpc-api' },
       { path: 'jeffrey-jfr-events/overview', redirect: '/docs/tracing/events' },
       { path: 'features/overview', redirect: '/docs/getting-started/introduction' },

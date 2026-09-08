@@ -20,5 +20,4 @@ export default interface Setting {
   category: string;
   name: string;
   value: string;
-  secret: boolean;
 }

@@ -65,7 +65,7 @@ onMounted(() => {
 
       <DocsCallout type="info">
         <strong>No analysis on Server.</strong> Flame graphs, heap dump
-        forensics, and the AI assistant all live in Microscope. Server only collects and serves
+        forensics, and the MCP server all live in Microscope. Server only collects and serves
         — that keeps expensive profile processing off your production infrastructure and on
         developer machines.
       </DocsCallout>

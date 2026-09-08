@@ -1,0 +1,525 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.flamegraph.export;
+
+import cafe.jeffrey.frameir.Frame;
+import cafe.jeffrey.profile.common.model.FrameType;
+import cafe.jeffrey.shared.common.model.Type;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.LongFunction;
+
+/**
+ * Builds an AI-friendly Markdown export from a {@link Frame} tree.
+ * <p>
+ * Output is plain CommonMark — preamble, a YAML-ish header, then a
+ * markdown nested bullet list that mirrors the flamegraph tree. Each
+ * frame appears exactly once; depth is encoded by two-space
+ * indentation; the parent is the bullet at one indent level less.
+ * Per-node metrics expose total, self, and the rolled-up weight of
+ * any children pruned below the configured threshold, plus a
+ * compact tag describing the frame's JVM tier (C1 / C2 / interpreted
+ * / inlined / native / cpp / kernel) so an LLM can spot tuning
+ * signals without asking.
+ * <p>
+ * The walk uses the same math as {@code FlameGraphProtoBuilder}:
+ * descend into a child iff
+ * {@code child.totalSamples() >= (root.totalSamples * threshold / 100)}.
+ */
+public final class FlamegraphAiMarkdownBuilder {
+
+    private static final String AI_PREAMBLE = """
+            # How to read this profile
+
+            This document is a **single flamegraph snapshot** exported by Jeffrey
+            (a JVM performance analyst) for AI-assisted interpretation. Treat it as
+            the authoritative description of one event type over one time
+            window — not as a generic stack-trace dump.
+
+            ## Sections
+
+            1. **Header (YAML-ish)** — machine context: event type, unit,
+               totals, filters in effect, and the prune threshold.
+            2. **Call tree** — a markdown nested bullet list where every kept
+               frame appears exactly once. Indentation (two spaces per level)
+               encodes call depth: a bullet nested under another bullet was
+               called by the bullet above it. Each line has the form:
+
+                   - <method> [<type-tag>] — <totalSamples> (<total%>, self <selfSamples>[, +pruned <prunedTailSamples>])
+
+               For a **weighted** event type (allocation, blocking, method
+               latency — the header carries a `weight_unit`) every line gets a
+               second clause after ` · ` in that unit:
+
+                   ... · <totalWeight> (<weight%>, self <selfWeight>[, +pruned <prunedTailWeight>])
+
+               Read the weight clause first on those profiles: it is the bytes
+               (or nanoseconds) the subtree accounts for, which is what the
+               question is about. The sample count is how often the site was
+               seen. One sample of a 170 MB array outweighs a hundred samples
+               of small objects, and only the weight clause shows that.
+
+               - `<totalSamples>` / `<total%>` is this frame's full subtree
+                 weight — same as the bar width in the visual flamegraph.
+               - `<selfSamples>` is what stayed at this exact frame (didn't
+                 go deeper). For a true tree leaf, `self ≈ total`; for an
+                 interior orchestration frame, `self << total`.
+               - `+pruned <N>` (when present) is the cumulative weight of
+                 this frame's children that fell below the prune threshold
+                 and were dropped from the output. It's annotated here so
+                 the deeper detail isn't silently lost — you know "there's
+                 more under this frame but it's small".
+               - Children are listed sorted by `total` descending — by total
+                 weight on a weighted profile, by total samples otherwise — so
+                 the heaviest call path under any parent is the first nested
+                 bullet.
+
+               **Sample-conservation invariant:** for every kept frame N,
+               `Σ surviving-children-totals + selfSamples + prunedTail ==
+               N.totalSamples`. Nothing is double-counted; nothing is
+               silently dropped.
+
+            ## Frame type tag
+
+            Every bullet (except the synthetic `[root]` container) carries a
+            `[...]` tag describing where the frame ran:
+
+            - `[C2]` — JIT-compiled at the C2 tier (fully optimised).
+            - `[C1]` — JIT-compiled at the C1 tier (intermediate
+              optimisation).
+            - `[INT]` — interpreted (no JIT yet).
+            - `[INL]` — inlined into the caller (no separate frame at
+              runtime).
+            - `[C1: 950, C2: 50]` (or any subset of `INT, C1, C2, INL`)
+              — samples for this frame are split across compilation
+              tiers. This is the key signal for JVM tuning: a hot
+              method showing `[C1: ..., C2: ...]` is being promoted;
+              one stuck at `[C1]` only is a candidate for investigation
+              (CompileThreshold, inlining caps, OSR behaviour, method
+              size). Tier order in mixed tags is always INT, C1, C2,
+              INL.
+            - `[NATIVE]` — JNI / libc / userland native code.
+            - `[CPP]` — JVM runtime internals (GC threads, JIT compiler
+              threads, safepoint machinery — C++ inside the JVM).
+            - `[KERNEL]` — kernel-space samples (syscalls).
+            - `[UNKNOWN]` — frame type couldn't be classified.
+            - `[SYNTHETIC]` — structural markers (thread names,
+              allocated/blocking-object placeholders, collapsed and truncated
+              subtrees); do not treat these as real call frames.
+
+            ## Unit semantics
+
+            - Counts in the tree are always **sample counts**. Each
+              sample corresponds to one event.
+            - For CPU/wall-clock events: one sample ≈ one sampling interval
+              of that thread on-CPU (or on/off-CPU for wall-clock).
+            - For allocation events (`OBJECT_ALLOCATION_*`): one sample =
+              one recorded allocation event, and the **weight** is the bytes
+              it stands for. JFR samples allocations by TLAB turnover, so a
+              sample's weight is the allocation volume it represents, not the
+              size of one object; per-frame weights sum the same way samples do.
+            - For blocking events (`JAVA_MONITOR_*`, `THREAD_PARK`,
+              `THREAD_SLEEP`): one sample = one wait. **Weight** =
+              cumulative wait time in nanoseconds.
+
+            ## What was pruned
+
+            Subtrees whose total falls below the configured threshold (see
+            header `prune_threshold_pct`) are dropped from the tree — measured
+            in weight on a weighted profile, in samples otherwise, so a single
+            huge allocation is never pruned for being seen once. What is
+            pruned is rolled up into its parent's `+pruned` annotation in the
+            same unit, so the totals are preserved even when the deeper
+            detail isn't. **Absence is not zero** — if a
+            path you expected to see is missing entirely, it was below the
+            threshold for its parent.
+
+            ## Format notes
+
+            - Frame labels are method signatures. The sanitiser replaces
+              semicolons and newlines inside names with `_` so each bullet
+              occupies exactly one line.
+            - A label may carry a source line, as `Class.method:214`. It is
+              printed only when every sample at that node reported the same
+              line, so a line that is shown is the line — not one call site
+              of several. A frame with no line either was sampled at more
+              than one (a method called from several places in its caller,
+              or a hot loop spanning lines) or carries no line information
+              at all, as native and inlined frames do. **Absence of a line
+              is not absence of a location**; it means the tree cannot name
+              a single one.
+            - A line is a starting point for reading, never a citation on
+              its own. Open the file before describing what the code does:
+              the line comes from the profiled build, which may not be the
+              checkout in front of you.
+            - The list is plain CommonMark — every line is `- <stuff>` at
+              some indentation. Render it as a tree.
+
+            ## What you can do with this
+
+            - Identify the dominant on-CPU / allocation / blocking call
+              paths by scanning the heaviest top-level bullets and walking
+              deeper.
+            - Distinguish leaf hotspots (`self ≈ total`) from orchestration
+              nodes (`self << total`) at a glance.
+            - Spot JVM tuning opportunities via the type tag: methods stuck
+              in `[C1]` or split `[C1: ..., C2: ...]` are candidates for
+              C2 promotion investigation.
+            - Flag pruning-sensitive conclusions: a parent with a large
+              `+pruned` annotation has detail you're not seeing.
+            - Suggest concrete code investigations or fixes for the worst
+              offenders, citing the call path (read by walking from the
+              bullet back to its less-indented ancestors) and, where one is
+              printed, opening the file at the line given.
+
+            ---
+            """;
+
+    private static final String ANALYSIS_HEADING = "## How to analyze this profile";
+    private static final String TREE_HEADING = "## Call tree";
+    private static final String ROOT_LABEL = "[root]";
+    private static final String EMPTY_TREE_NOTE = "(empty tree — no samples above the prune threshold)";
+    private static final String INDENT_UNIT = "  ";
+    private static final String BULLET_PREFIX = "- ";
+    private static final String DASH_SEPARATOR = " — ";
+    private static final String LINE_SEPARATOR = ":";
+
+    private static final String TAG_C2 = "C2";
+    private static final String TAG_C1 = "C1";
+    private static final String TAG_INT = "INT";
+    private static final String TAG_INL = "INL";
+    private static final String TAG_NATIVE = "NATIVE";
+    private static final String TAG_CPP = "CPP";
+    private static final String TAG_KERNEL = "KERNEL";
+    private static final String TAG_UNKNOWN = "UNKNOWN";
+    private static final String TAG_SYNTHETIC = "SYNTHETIC";
+
+    private static final String THREADS_MODE_HEADER = "threads_mode";
+    private static final String THREADS_MODE_PER_THREAD = "per-thread";
+    private static final String THREADS_MODE_AGGREGATED = "aggregated";
+
+    private static final String WEIGHT_SEPARATOR = " · ";
+
+    private final Type eventType;
+    private final AiExportConfig config;
+    private final WeightContext ctx;
+    private final AnalysisCategory category;
+    private final List<HeaderField> extraHeaderFields = new ArrayList<>();
+
+    public FlamegraphAiMarkdownBuilder(Type eventType, AiExportConfig config) {
+        this.eventType = eventType;
+        this.config = config;
+        this.ctx = WeightContext.of(eventType);
+        this.category = AnalysisCategory.resolve(eventType);
+    }
+
+    /**
+     * Adds an extra {@code key: value} line to the YAML-ish header.
+     * Useful for filter/time-range disclosure provided by the caller.
+     */
+    public FlamegraphAiMarkdownBuilder withHeaderField(String key, String value) {
+        extraHeaderFields.add(new HeaderField(key, value));
+        return this;
+    }
+
+    /**
+     * Declares whether the flamegraph was produced in per-thread or
+     * aggregated mode. Emitted as {@code threads_mode: per-thread} or
+     * {@code threads_mode: aggregated} in the YAML-ish header.
+     */
+    public FlamegraphAiMarkdownBuilder withThreadMode(boolean perThread) {
+        extraHeaderFields.add(new HeaderField(
+                THREADS_MODE_HEADER,
+                perThread ? THREADS_MODE_PER_THREAD : THREADS_MODE_AGGREGATED));
+        return this;
+    }
+
+    public String build(Frame root) {
+        long totalSamples = root.totalSamples();
+        long totalWeight = root.totalWeight();
+        // The threshold is a share of what the profile measures: weight when the event carries
+        // one, samples otherwise. A one-sample allocation of a huge array is a finding, not noise.
+        long minMeasure = (long) (measure(root) * config.minFrameThresholdPct() / 100.0);
+
+        StringBuilder out = new StringBuilder(8192);
+        out.append(AI_PREAMBLE).append('\n');
+        renderHeader(out, totalSamples, totalWeight);
+        out.append('\n').append('\n');
+        renderAnalysisInstruction(out);
+        renderTree(out, root, totalSamples, minMeasure);
+        return out.toString();
+    }
+
+    /** What a frame is measured by for pruning and ordering: its weight on a weighted profile. */
+    private long measure(Frame frame) {
+        return ctx.weighted() ? frame.totalWeight() : frame.totalSamples();
+    }
+
+    private void renderAnalysisInstruction(StringBuilder out) {
+        out.append(ANALYSIS_HEADING).append('\n').append('\n');
+        out.append(category.instruction());
+        out.append('\n').append('\n');
+    }
+
+    private void renderHeader(StringBuilder out, long totalSamples, long totalWeight) {
+        out.append("event_type: ").append(eventType.code()).append('\n');
+        out.append("unit: ").append(ctx.unit()).append('\n');
+        out.append("samples_total: ").append(totalSamples).append('\n');
+        if (ctx.weightUnit() != null) {
+            out.append("weight_unit: ").append(ctx.weightUnit()).append('\n');
+            out.append("weight_total: ").append(totalWeight);
+            if (ctx.totalFormatter() != null) {
+                out.append(" (").append(ctx.totalFormatter().apply(totalWeight)).append(')');
+            }
+            out.append('\n');
+        }
+        for (HeaderField field : extraHeaderFields) {
+            out.append(field.key()).append(": ").append(field.value()).append('\n');
+        }
+        out.append("prune_threshold_pct: ").append(config.minFrameThresholdPct());
+    }
+
+    private void renderTree(StringBuilder out, Frame root, long totalSamples, long minMeasure) {
+        out.append(TREE_HEADING).append('\n').append('\n');
+        renderRootLine(out, root, totalSamples, minMeasure);
+
+        List<Map.Entry<String, Frame>> survivingChildren = survivingChildrenSorted(root, minMeasure);
+        if (survivingChildren.isEmpty()) {
+            out.append(INDENT_UNIT).append(BULLET_PREFIX).append(EMPTY_TREE_NOTE).append('\n');
+            return;
+        }
+
+        for (Map.Entry<String, Frame> entry : survivingChildren) {
+            renderFrame(out, entry.getKey(), entry.getValue(), 1, root, minMeasure);
+        }
+    }
+
+    private void renderRootLine(StringBuilder out, Frame root, long totalSamples, long minMeasure) {
+        out.append(BULLET_PREFIX).append(ROOT_LABEL).append(DASH_SEPARATOR).append(totalSamples);
+        if (totalSamples > 0) {
+            out.append(" (100%");
+            long prunedTail = prunedTailSamples(root, minMeasure);
+            if (prunedTail > 0) {
+                out.append(", +pruned ").append(prunedTail);
+            }
+            out.append(')');
+        }
+        if (ctx.weighted() && root.totalWeight() > 0) {
+            out.append(WEIGHT_SEPARATOR).append(ctx.valueFormatter().apply(root.totalWeight()));
+            out.append(" (100%");
+            long prunedWeight = prunedTailWeight(root, minMeasure);
+            if (prunedWeight > 0) {
+                out.append(", +pruned ").append(ctx.valueFormatter().apply(prunedWeight));
+            }
+            out.append(')');
+        }
+        out.append('\n');
+    }
+
+    private void renderFrame(
+            StringBuilder out,
+            String name,
+            Frame frame,
+            int depth,
+            Frame root,
+            long minMeasure) {
+
+        out.append(INDENT_UNIT.repeat(depth)).append(BULLET_PREFIX);
+        out.append(sanitizeFrame(name));
+        appendSourceLine(out, frame);
+        out.append(" [").append(resolveTypeTag(frame)).append(']');
+        out.append(DASH_SEPARATOR).append(frame.totalSamples());
+        out.append(" (").append(formatPercent(frame.totalSamples(), root.totalSamples()));
+        out.append(", self ").append(frame.selfSamples());
+        long prunedTail = prunedTailSamples(frame, minMeasure);
+        if (prunedTail > 0) {
+            out.append(", +pruned ").append(prunedTail);
+        }
+        out.append(')');
+        if (ctx.weighted()) {
+            renderWeightClause(out, frame, root, minMeasure);
+        }
+        out.append('\n');
+
+        for (Map.Entry<String, Frame> entry : survivingChildrenSorted(frame, minMeasure)) {
+            renderFrame(out, entry.getKey(), entry.getValue(), depth + 1, root, minMeasure);
+        }
+    }
+
+    /**
+     * The weight clause of a weighted profile's line: the subtree's weight, its share of the
+     * root's, the frame's own, and what its pruned children came to in the same unit.
+     */
+    private void renderWeightClause(StringBuilder out, Frame frame, Frame root, long minMeasure) {
+        LongFunction<String> format = ctx.valueFormatter();
+        out.append(WEIGHT_SEPARATOR).append(format.apply(frame.totalWeight()));
+        out.append(" (").append(formatPercent(frame.totalWeight(), root.totalWeight()));
+        out.append(", self ").append(format.apply(frame.selfWeight()));
+        long prunedWeight = prunedTailWeight(frame, minMeasure);
+        if (prunedWeight > 0) {
+            out.append(", +pruned ").append(format.apply(prunedWeight));
+        }
+        out.append(')');
+    }
+
+    private List<Map.Entry<String, Frame>> survivingChildrenSorted(Frame frame, long minMeasure) {
+        List<Map.Entry<String, Frame>> survivors = new ArrayList<>();
+        for (Map.Entry<String, Frame> entry : frame.entrySet()) {
+            if (measure(entry.getValue()) >= minMeasure) {
+                survivors.add(entry);
+            }
+        }
+        survivors.sort(Comparator.<Map.Entry<String, Frame>>comparingLong(e -> measure(e.getValue()))
+                .thenComparingLong(e -> e.getValue().totalSamples())
+                .reversed());
+        return survivors;
+    }
+
+    private long prunedTailSamples(Frame frame, long minMeasure) {
+        long pruned = 0;
+        for (Frame child : frame.values()) {
+            if (measure(child) < minMeasure) {
+                pruned += child.totalSamples();
+            }
+        }
+        return pruned;
+    }
+
+    private long prunedTailWeight(Frame frame, long minMeasure) {
+        long pruned = 0;
+        for (Frame child : frame.values()) {
+            if (measure(child) < minMeasure) {
+                pruned += child.totalWeight();
+            }
+        }
+        return pruned;
+    }
+
+    private static String formatPercent(long part, long whole) {
+        if (whole <= 0) {
+            return "0.0%";
+        }
+        double pct = 100.0 * part / whole;
+        return String.format(Locale.ROOT, "%.1f%%", pct);
+    }
+
+    private static String resolveTypeTag(Frame frame) {
+        long intS = frame.interpretedSamples();
+        long c1S = frame.c1Samples();
+        long c2S = frame.jitCompiledSamples();
+        long inlS = frame.inlinedSamples();
+
+        int nonZeroTiers = (intS > 0 ? 1 : 0)
+                + (c1S > 0 ? 1 : 0)
+                + (c2S > 0 ? 1 : 0)
+                + (inlS > 0 ? 1 : 0);
+
+        if (nonZeroTiers == 0) {
+            return nonJavaTag(frame.frameType());
+        }
+
+        if (nonZeroTiers == 1) {
+            if (c2S > 0) {
+                return TAG_C2;
+            }
+            if (c1S > 0) {
+                return TAG_C1;
+            }
+            if (intS > 0) {
+                return TAG_INT;
+            }
+            return TAG_INL;
+        }
+
+        StringBuilder tag = new StringBuilder();
+        if (intS > 0) {
+            appendTierEntry(tag, TAG_INT, intS);
+        }
+        if (c1S > 0) {
+            appendTierEntry(tag, TAG_C1, c1S);
+        }
+        if (c2S > 0) {
+            appendTierEntry(tag, TAG_C2, c2S);
+        }
+        if (inlS > 0) {
+            appendTierEntry(tag, TAG_INL, inlS);
+        }
+        return tag.toString();
+    }
+
+    private static String nonJavaTag(FrameType frameType) {
+        return switch (frameType) {
+            case NATIVE -> TAG_NATIVE;
+            case CPP -> TAG_CPP;
+            case KERNEL -> TAG_KERNEL;
+            case UNKNOWN -> TAG_UNKNOWN;
+            case THREAD_NAME_SYNTHETIC,
+                 ALLOCATED_OBJECT_SYNTHETIC,
+                 ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
+                 ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
+                 BLOCKING_OBJECT_SYNTHETIC,
+                 TRACED_METHOD_SYNTHETIC,
+                 COLLAPSED_SYNTHETIC,
+                 TRUNCATED_SYNTHETIC,
+                 HIGHLIGHTED_WARNING -> TAG_SYNTHETIC;
+            case C1_COMPILED -> TAG_C1;
+            case JIT_COMPILED -> TAG_C2;
+            case INTERPRETED -> TAG_INT;
+            case INLINED -> TAG_INL;
+        };
+    }
+
+    private static void appendTierEntry(StringBuilder b, String label, long count) {
+        if (b.length() > 0) {
+            b.append(", ");
+        }
+        b.append(label).append(": ").append(count);
+    }
+
+    /**
+     * The frame's source line, when the tree knows exactly one.
+     * <p>
+     * Nodes merge by method name, so a node stands for every sample of that method at that point in
+     * the tree and keeps the line of whichever sample arrived first. Printing that unconditionally
+     * would hand a reader one call site out of several with nothing to say so — and the readers of
+     * this document map frames to code for a living, so a plausible wrong line is worse for them than
+     * no line at all. It is printed only when every sample agreed, which is the common case for a
+     * leaf in a tight loop and for a method with a single call site.
+     */
+    private static void appendSourceLine(StringBuilder out, Frame frame) {
+        if (frame.lineNumber() > 0 && frame.lineNumberAgreed()) {
+            out.append(LINE_SEPARATOR).append(frame.lineNumber());
+        }
+    }
+
+    private static String sanitizeFrame(String title) {
+        if (title == null) {
+            return "?";
+        }
+        return title.replace(';', '_').replace('\n', '_').replace('\r', '_');
+    }
+
+    private record HeaderField(String key, String value) {
+    }
+
+}

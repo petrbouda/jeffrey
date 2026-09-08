@@ -92,7 +92,7 @@ export default class IdeTargetService {
         ideName: instance.ideName,
         projectName: project.name,
         // Sent with the selection so the link records which checkout on disk it means, not just
-        // which window: that is what an AI analysis is later allowed to read.
+        // which window: that is what the ide_ MCP tools resolve a frame against.
         basePath: project.basePath,
         pid: instance.pid,
         hasClass: project.hasClass

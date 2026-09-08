@@ -98,4 +98,5 @@ SQL spelling. Reach for SQL when the question is about the tables, and OQL when 
 Shallow size is the object itself; retained size is what dies with it, and only the second answers
 "who is holding this memory". Object ids are stable within one dump and meaningless across dumps.
 
-Jeffrey's OQL engine is not exposed over MCP; OQL queries have to be run in the Jeffrey UI.
+`heap_oql` answers with a link that opens the same query in Jeffrey's OQL console, so a result worth
+keeping can be handed to someone reading the UI rather than re-typed there.

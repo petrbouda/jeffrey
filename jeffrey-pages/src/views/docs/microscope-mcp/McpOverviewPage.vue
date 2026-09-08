@@ -27,7 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'why-it-exists', text: 'Why It Exists', level: 2 },
-  { id: 'not-the-in-app-assistant', text: 'Not the In-App Assistant', level: 2 },
+  { id: 'the-one-ai-integration', text: 'The One AI Integration', level: 2 },
   { id: 'how-a-request-travels', text: 'How a Request Travels', level: 2 },
   { id: 'what-it-can-read', text: 'What It Can Read', level: 2 },
   { id: 'more-than-tools', text: 'More Than Tools', level: 2 },
@@ -58,47 +58,9 @@ onMounted(() => {
 
       <p>With the MCP server the profile comes to the code instead. The agent is already sitting in your repository; it can now pull <code>jdk.ExecutionSample</code> for the profile you just recorded, see that 21% of the samples land in one method, open that method's actual source, and tell you whether the two agree. The interesting questions &mdash; <em>&ldquo;the profile says this loop is hot; is it doing what I think it is?&rdquo;</em> &mdash; only become askable when both halves are in front of the same reader.</p>
 
-      <h2 id="not-the-in-app-assistant">Not the In-App Assistant</h2>
-      <p>Jeffrey has two AI integrations and they point in opposite directions.</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>AI Analysis</th>
-            <th>Microscope MCP</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Where the conversation happens</td>
-            <td>Inside the Jeffrey UI</td>
-            <td>In your terminal, in your repository</td>
-          </tr>
-          <tr>
-            <td>Who calls whom</td>
-            <td>Jeffrey calls out to a model provider</td>
-            <td>A client calls in to Jeffrey</td>
-          </tr>
-          <tr>
-            <td>Scope</td>
-            <td>One profile, the one you have open</td>
-            <td>Every profile in the installation</td>
-          </tr>
-          <tr>
-            <td>Sees your source code</td>
-            <td>No</td>
-            <td>Yes &mdash; the client is already in your checkout</td>
-          </tr>
-          <tr>
-            <td>Configuration</td>
-            <td>A provider and an API key or a local subscription</td>
-            <td>Nothing to configure; the client brings its own model</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p>They are not alternatives; running both is normal. The <router-link to="/docs/ai/overview">AI Analysis</router-link> pages cover the in-app side. What used to be the third thing &mdash; the Profile Advisor, which read one source folder from inside Jeffrey and proposed a patch &mdash; is now the <router-link to="/docs/microscope-mcp/skills#advise-jfr"><code>advise-jfr</code> skill</router-link> on this side: the same job, done by the agent that can also build, test and re-profile.</p>
+      <h2 id="the-one-ai-integration">The One AI Integration</h2>
+      <p>This is the only way a model reads a Jeffrey profile. Earlier releases also carried an assistant <em>inside</em> the UI &mdash; a chat page over the open profile, an OQL helper on the heap-dump console, and before that a Profile Advisor that read one source folder and proposed a patch. All of it pointed the other way: Jeffrey called out to a provider you configured, saw one profile at a time, and never saw your code.</p>
+      <p>They are gone, and their jobs moved here. The chat pages are the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> and <router-link to="/docs/microscope-mcp/skills#analyze-heap"><code>analyze-heap</code></router-link> skills over the same tools, plus the ninety or so dashboard tools the in-app model never had; the Advisor is the <router-link to="/docs/microscope-mcp/skills#advise-jfr"><code>advise-jfr</code></router-link> skill, the same job done by the agent that can also build, test and re-profile; the OQL helper is <code>heap_oql</code> and the <router-link to="/docs/microscope-mcp/skills#heap-sql"><code>heap-sql</code></router-link> skill. Nothing in Jeffrey holds an API key any more: the client brings its own model, and Jeffrey only ever answers.</p>
 
       <h2 id="how-a-request-travels">How a Request Travels</h2>
       <p>The server speaks <strong>MCP over Streamable HTTP</strong> &mdash; JSON-RPC 2.0 against a single endpoint, <code>POST /api/internal/mcp</code>, on the Jeffrey Microscope you already run. There is no separate process to start and no extra port to open.</p>
