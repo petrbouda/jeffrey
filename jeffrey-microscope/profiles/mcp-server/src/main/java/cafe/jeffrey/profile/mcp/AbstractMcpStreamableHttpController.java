@@ -20,29 +20,25 @@ package cafe.jeffrey.profile.mcp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 /**
  * Generic MCP Streamable-HTTP (JSON-RPC 2.0) endpoint exposing Jeffrey's reflective analysis tools to
- * the Claude Code CLI. This base owns the protocol envelope — {@code initialize}, {@code ping},
- * {@code tools/list}, {@code tools/call}, notifications, and the success/error response shape — so each
- * deployment's controller only declares its own request mapping and resolves the scope-specific
- * {@link McpToolProvider}.
+ * an external client. This base owns the protocol envelope — {@code initialize}, {@code ping},
+ * {@code tools/list}, {@code tools/call}, prompts, resources, notifications, and the success/error
+ * response shape — so a controller only declares its own request mapping and the
+ * {@link McpServerFeatures} it serves.
  * <p>
- * Subclasses keep their own {@code @RestController}/{@code @RequestMapping}/{@code @PostMapping} plus the
- * scope query parameters they need (e.g. {@code profileId+toolset}), and delegate to
- * {@link #dispatch(JsonNode, Supplier)} with a supplier that builds the toolset for that request. The
- * supplier is invoked lazily, only for {@code tools/list} and {@code tools/call}.
+ * A subclass keeps its own {@code @RestController}/{@code @RequestMapping}/{@code @PostMapping} and
+ * delegates to {@link #dispatch(JsonNode, String, McpServerFeatures)}. Every provider inside the
+ * features is invoked lazily, only for the methods that need it.
  */
 public abstract class AbstractMcpStreamableHttpController {
 
@@ -119,22 +115,6 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final int ERROR_INTERNAL = -32603;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-
-    /**
-     * Routes a single JSON-RPC request. Notifications (no {@code id}) are acknowledged with no body;
-     * {@code tools/list} and {@code tools/call} resolve the toolset via {@code toolsetSupplier}.
-     */
-    protected ResponseEntity<JsonNode> dispatch(JsonNode request, Supplier<McpToolProvider> toolsetSupplier) {
-        return dispatch(request, McpServerFeatures.ofTools(toolsetSupplier));
-    }
-
-    /**
-     * Routes a JSON-RPC body against everything the endpoint offers, without inspecting the protocol
-     * version the client negotiated. Kept for endpoints that do not read request headers.
-     */
-    protected ResponseEntity<JsonNode> dispatch(JsonNode request, McpServerFeatures features) {
-        return dispatch(request, null, features);
-    }
 
     /**
      * Routes a JSON-RPC body — one request, or a batch of them — against everything the endpoint
@@ -225,21 +205,18 @@ public abstract class AbstractMcpStreamableHttpController {
 
         try {
             return switch (method) {
-                case METHOD_INITIALIZE -> initializeResult(id, request, features);
+                case METHOD_INITIALIZE -> initializeResult(id, request);
                 case METHOD_PING -> success(id, Json.createObject());
                 case METHOD_TOOLS_LIST -> toolsList(id, features.tools().get());
                 case METHOD_TOOLS_CALL -> toolsCall(id, features.tools().get(), request.path(FIELD_PARAMS));
-                case METHOD_PROMPTS_LIST -> promptsList(id, prompts(features));
-                case METHOD_PROMPTS_GET -> promptsGet(id, prompts(features), request.path(FIELD_PARAMS));
-                case METHOD_RESOURCES_LIST -> resourcesList(id, resources(features));
-                case METHOD_RESOURCES_TEMPLATES_LIST -> resourceTemplatesList(id, resources(features));
-                case METHOD_RESOURCES_READ -> resourcesRead(id, resources(features), request.path(FIELD_PARAMS));
+                case METHOD_PROMPTS_LIST -> promptsList(id, features.prompts().get());
+                case METHOD_PROMPTS_GET -> promptsGet(id, features.prompts().get(), request.path(FIELD_PARAMS));
+                case METHOD_RESOURCES_LIST -> resourcesList(id, features.resources().get());
+                case METHOD_RESOURCES_TEMPLATES_LIST -> resourceTemplatesList(id, features.resources().get());
+                case METHOD_RESOURCES_READ ->
+                        resourcesRead(id, features.resources().get(), request.path(FIELD_PARAMS));
                 default -> error(id, ERROR_METHOD_NOT_FOUND, "Method not found: " + method);
             };
-        } catch (UnsupportedOperationException e) {
-            // A capability this endpoint never advertised. Method-not-found is the honest answer: the
-            // method exists in the protocol, it is this server that does not offer it.
-            return error(id, ERROR_METHOD_NOT_FOUND, e.getMessage());
         } catch (IllegalArgumentException e) {
             log.warn("Invalid MCP request: method={} message={}", method, e.getMessage());
             return error(id, ERROR_INVALID_PARAMS, e.getMessage());
@@ -249,21 +226,7 @@ public abstract class AbstractMcpStreamableHttpController {
         }
     }
 
-    private static McpPromptProvider prompts(McpServerFeatures features) {
-        if (!features.hasPrompts()) {
-            throw new UnsupportedOperationException("This endpoint offers no prompts");
-        }
-        return features.prompts().get();
-    }
-
-    private static McpResourceProvider resources(McpServerFeatures features) {
-        if (!features.hasResources()) {
-            throw new UnsupportedOperationException("This endpoint offers no resources");
-        }
-        return features.resources().get();
-    }
-
-    private JsonNode initializeResult(JsonNode id, JsonNode request, McpServerFeatures features) {
+    private JsonNode initializeResult(JsonNode id, JsonNode request) {
         String requestedProtocol = request.path(FIELD_PARAMS).path(FIELD_PROTOCOL_VERSION).asString();
         // Agreeing to whatever the client names is not negotiation — it promises a version this server
         // may not speak. An unrecognised one is answered with what it does speak, and the client decides.
@@ -274,12 +237,8 @@ public abstract class AbstractMcpStreamableHttpController {
         result.put(FIELD_PROTOCOL_VERSION, protocolVersion);
         ObjectNode capabilities = result.putObject(FIELD_CAPABILITIES);
         capabilities.putObject(FIELD_TOOLS).put(FIELD_LIST_CHANGED, false);
-        if (features.hasPrompts()) {
-            capabilities.putObject(FIELD_PROMPTS).put(FIELD_LIST_CHANGED, false);
-        }
-        if (features.hasResources()) {
-            capabilities.putObject(FIELD_RESOURCES).put(FIELD_SUBSCRIBE, false).put(FIELD_LIST_CHANGED, false);
-        }
+        capabilities.putObject(FIELD_PROMPTS).put(FIELD_LIST_CHANGED, false);
+        capabilities.putObject(FIELD_RESOURCES).put(FIELD_SUBSCRIBE, false).put(FIELD_LIST_CHANGED, false);
         ObjectNode serverInfo = result.putObject(FIELD_SERVER_INFO);
         serverInfo.put(FIELD_NAME, SERVER_NAME);
         serverInfo.put(FIELD_VERSION, SERVER_VERSION);

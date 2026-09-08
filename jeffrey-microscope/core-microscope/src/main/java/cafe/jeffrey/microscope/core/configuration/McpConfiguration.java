@@ -159,7 +159,7 @@ public class McpConfiguration {
     }
 
     /**
-     * The prompts both MCP endpoints serve — the plugin's skills, copied onto the classpath at build
+     * The prompts the MCP endpoint serves — the plugin's skills, copied onto the classpath at build
      * time. Declared here rather than built inside the controller so the controller keeps the single
      * constructor component scanning needs.
      */

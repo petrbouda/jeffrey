@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.flamegraph.diff;
 
-import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+import cafe.jeffrey.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.frameir.DiffTreeGenerator;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.profile.common.model.FrameType;

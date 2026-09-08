@@ -124,22 +124,6 @@ public record McpFinding(
             return this;
         }
 
-        public Builder critical() {
-            return severity(Severity.CRITICAL);
-        }
-
-        public Builder warning() {
-            return severity(Severity.WARNING);
-        }
-
-        public Builder info() {
-            return severity(Severity.INFO);
-        }
-
-        public Builder ok() {
-            return severity(Severity.OK);
-        }
-
         public Builder title(String title) {
             this.title = title;
             return this;

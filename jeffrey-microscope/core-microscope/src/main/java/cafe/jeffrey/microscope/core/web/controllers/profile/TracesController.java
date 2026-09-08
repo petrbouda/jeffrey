@@ -19,8 +19,8 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.trace.TraceAiMarkdownBuilder;
-import cafe.jeffrey.profile.ai.trace.TraceOperationAiMarkdownBuilder;
+import cafe.jeffrey.profile.trace.export.TraceAiMarkdownBuilder;
+import cafe.jeffrey.profile.trace.export.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
@@ -93,7 +93,7 @@ public class TracesController {
     private static final String MARKDOWN_MEDIA_TYPE = "text/markdown;charset=UTF-8";
     /**
      * How much of an operation an AI bundle carries. Wider than the UI's twenty, because a reader
-     * scrolls and a model does not, and narrow enough that the document still fits a chat window.
+     * scrolls and a model does not, and narrow enough to stay inside an agent's context window.
      */
     private static final int AI_EXPORT_SPANS_LIMIT = 40;
     /** Exemplars to name at the end of an operation bundle, as candidates to export individually. */

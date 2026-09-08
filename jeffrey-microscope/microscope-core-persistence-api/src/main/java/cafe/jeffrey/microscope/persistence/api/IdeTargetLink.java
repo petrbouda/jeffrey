@@ -30,8 +30,8 @@ package cafe.jeffrey.microscope.persistence.api;
  *                    and what discovery matches on to find the window again
  * @param projectName the window's display name, kept so the UI can name the link without scanning
  * @param ideName     the IDE's product name, for the same reason
- * @param basePath    the project's directory on disk — the checkout this profile is about, and the
- *                    one an AI analysis may be allowed to read
+ * @param basePath    the project's directory on disk — the checkout this profile is about, and what
+ *                    the {@code ide_} MCP tools resolve a frame against
  */
 public record IdeTargetLink(
         String projectId,

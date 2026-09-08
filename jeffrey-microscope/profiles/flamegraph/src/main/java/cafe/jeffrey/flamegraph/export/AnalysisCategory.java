@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.flamegraph.ai;
+package cafe.jeffrey.flamegraph.export;
 
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.Type;
@@ -33,12 +33,12 @@ import java.util.Set;
  * loading — the intended loud-startup-failure behaviour.
  */
 enum AnalysisCategory {
-    ALLOCATION("classpath:flamegraph-ai/analysis-allocation.md"),
-    NATIVE_MEMORY("classpath:flamegraph-ai/analysis-native-memory.md"),
-    CPU("classpath:flamegraph-ai/analysis-cpu.md"),
-    WALL_CLOCK("classpath:flamegraph-ai/analysis-wall-clock.md"),
-    BLOCKING("classpath:flamegraph-ai/analysis-blocking.md"),
-    GENERIC("classpath:flamegraph-ai/analysis-generic.md");
+    ALLOCATION("classpath:flamegraph-export/analysis-allocation.md"),
+    NATIVE_MEMORY("classpath:flamegraph-export/analysis-native-memory.md"),
+    CPU("classpath:flamegraph-export/analysis-cpu.md"),
+    WALL_CLOCK("classpath:flamegraph-export/analysis-wall-clock.md"),
+    BLOCKING("classpath:flamegraph-export/analysis-blocking.md"),
+    GENERIC("classpath:flamegraph-export/analysis-generic.md");
 
     private static final Set<Type> NATIVE_MEMORY_TYPES = Set.of(Type.MALLOC, Type.NATIVE_LEAK);
 

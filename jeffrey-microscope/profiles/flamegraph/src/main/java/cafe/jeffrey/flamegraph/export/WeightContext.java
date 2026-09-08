@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.flamegraph.ai;
+package cafe.jeffrey.flamegraph.export;
 
 import cafe.jeffrey.shared.common.BytesUtils;
 import cafe.jeffrey.shared.common.DurationUtils;

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.trace;
+package cafe.jeffrey.profile.trace.export;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;

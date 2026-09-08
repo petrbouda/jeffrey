@@ -43,9 +43,8 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import java.util.List;
 
 /**
- * Adapts a {@link HeapDumpManager} to the {@link HeapDumpToolsDelegate} contract consumed by the heap
- * dump AI tools. Shared by the heap dump AI analysis controller (Spring AI path) and the MCP server
- * (Claude Code path) so both expose identical heap dump capabilities.
+ * Adapts a {@link HeapDumpManager} to the {@link HeapDumpToolsDelegate} contract the {@code heap_}
+ * MCP tools read through, so those tools depend on the delegate rather than on the manager itself.
  */
 public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements HeapDumpToolsDelegate {
 

@@ -73,7 +73,7 @@ onMounted(() => {
               </div>
               <div class="arch-layer">
                 <div class="arch-chip analysis"><i class="bi bi-globe"></i> HTTP &amp; JDBC</div>
-                <div class="arch-chip ai"><i class="bi bi-plug"></i> MCP Server</div>
+                <div class="arch-chip mcp"><i class="bi bi-plug"></i> MCP Server</div>
                 <div class="arch-chip entry"><i class="bi bi-record-circle"></i> Recordings</div>
               </div>
               <div class="arch-section-label">Storage</div>
@@ -234,7 +234,7 @@ onMounted(() => {
 .arch-chip i { font-size: 0.75rem; }
 
 .arch-chip.analysis { background: #fef3c7; color: #92400e; }
-.arch-chip.ai { background: #cffafe; color: #155e75; }
+.arch-chip.mcp { background: #cffafe; color: #155e75; }
 .arch-chip.server-feat { background: #f3f4f6; color: #374151; }
 .arch-chip.entry { background: #ecfdf5; color: #065f46; }
 

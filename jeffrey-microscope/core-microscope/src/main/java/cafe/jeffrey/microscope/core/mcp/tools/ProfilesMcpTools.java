@@ -120,14 +120,4 @@ public class ProfilesMcpTools {
     private static String projectOf(ProfileInfo profile) {
         return profile.projectId() == null ? QUICK_ANALYSIS_PROJECT : profile.projectId();
     }
-
-    /**
-     * Keeps a name on one table row: a pipe in a profile name would otherwise split the cell.
-     */
-    private static String sanitize(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace('|', '/').replace('\n', ' ').replace('\r', ' ');
-    }
 }

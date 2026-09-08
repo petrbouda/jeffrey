@@ -44,7 +44,7 @@ Review code changes for security concerns, focusing on Jeffrey's sensitive areas
 Run this agent when changes touch:
 - File upload or download handlers
 - REST endpoint definitions or modifications
-- AI/LLM integration code
+- MCP tool definitions and their input handling
 - Database query construction
 - Authentication or session management
 - Frontend rendering of dynamic content

@@ -66,7 +66,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `core-microscope/.../mcp/` — the MCP endpoint. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, on by default and switched off only by the `jeffrey.microscope.mcp.enabled` application property, read at startup). It also serves MCP **prompts** (the plugin's skills, copied onto the classpath at build time) and **resources** (the profile catalogue, plus summary and flamegraph URI templates). Most tools are read-only; six are not, though none of them changes an analysed profile: `recordings_analyzeFile` and `recordings_analyzeRecording` import a recording file from the machine Jeffrey runs on, `heap_prepare` builds a dominator tree or a cached report, `hubs_download` pulls a recording off a remote hub, and `ide_link` and `ide_open` link an IDE window to a profile and open a file in it. The hint is per **tool**, not per family — `recordings_list`, `recordings_status` and `heap_status` sit in those families and only read, and `McpToolsetAssemblerTest` pins the write set so neither kind of drift is silent. The last two have switches (`jeffrey.microscope.mcp.hubs.enabled`, `jeffrey.microscope.mcp.ide.enabled`), because they are the two that reach outside this server: one off the machine altogether, one into the editor running beside it. `jeffrey.microscope.mcp.families` narrows what is advertised at all. The endpoint does not authenticate — `McpRequestGuard` applies only the `Origin` rejection the MCP spec asks of a local server, so what limits access is the bind address and whatever proxy sits in front. It is the only MCP endpoint: the loopback `/api/internal/mcp/claude-code` that once served a headless CLI Jeffrey spawned for itself went with the in-app AI. The `jfr_` and `heap_` tool classes (`DuckDbMcpTools`, `HeapDumpMcpTools`, `HeapDumpToolsDelegate`) live in `mcp/tools/` beside every other family
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
-- `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, GC, Threads, HeapDump, AI)
+- `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, GC, Threads, HeapDump)
 - `recording-parser/` — recording parsing (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser)
 - `profile-sql-persistence` — Per-profile DuckDB persistence (isolated database per profile)
 - `profile-persistence-api` — Persistence interfaces for profile domain
@@ -342,10 +342,10 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **Composition API**: Preferred over Options API
 - **TypeScript**: Strict typing with interfaces for API models
 - **Design Tokens**: CSS custom properties in `shared/ui/common/src/assets/design-tokens.css` (import as `@shared/assets/design-tokens.css`) — always use these for colors, spacing, typography
-- **Composables**: Reusable reactive logic in `jeffrey-microscope/pages-microscope/src/composables/` (useModal, useNavigation, useAiAnalysis, useWorkspaceType, etc.)
+- **Composables**: Reusable reactive logic in `jeffrey-microscope/pages-microscope/src/composables/` (useNavigation, useTableView, useFlamegraphPanels, useAiExport, etc.)
 - **API Clients**: Two base classes in `jeffrey-microscope/pages-microscope/src/services/api/`:
   - `BasePlatformClient` — for workspace/project APIs (used by WorkspaceClient, ProjectClient)
-  - `BaseProfileClient` — for profile feature APIs (used by OqlAssistantClient, ProfileMethodTracingClient, etc.)
+  - `BaseProfileClient` — for profile feature APIs (used by ProfileMethodTracingClient, HeapDumpClient, etc.)
 - **State Management**: Simple ref-based stores in `jeffrey-microscope/pages-microscope/src/stores/` (not Pinia)
 - **Protobuf**: Used for flamegraph binary data; regenerate with `npm run proto:generate`
 - **Styling**: Use shared CSS files first, then scoped CSS for component-specific styles

@@ -408,8 +408,8 @@ const closeImageModal = (): void => {
                 and gRPC analysis using custom JFR events
               </li>
               <li>
-                <strong>AI-powered analysis</strong> — asking questions about your recording in natural language
-                and getting answers backed by real data
+                <strong>Analysis from your coding agent</strong> — Microscope's MCP server lets a Claude Code
+                or Codex session in your own repository read the same profiles you are looking at
               </li>
             </ul>
 

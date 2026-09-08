@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+import cafe.jeffrey.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import cafe.jeffrey.subsecond.db.api.DbBasedSubSecondGeneratorImpl;

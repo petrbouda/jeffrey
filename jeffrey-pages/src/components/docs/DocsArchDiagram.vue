@@ -62,7 +62,7 @@ withDefaults(defineProps<{
           <div class="arch-layer">
             <div v-if="variant === 'tracing'" class="arch-chip analysis"><i class="bi bi-bezier2"></i> Traces</div>
             <div class="arch-chip analysis"><i class="bi bi-globe"></i> HTTP &amp; JDBC</div>
-            <div class="arch-chip ai"><i class="bi bi-plug"></i> MCP Server</div>
+            <div class="arch-chip mcp"><i class="bi bi-plug"></i> MCP Server</div>
             <div v-if="variant !== 'tracing'" class="arch-chip entry"><i class="bi bi-record-circle"></i> Recordings</div>
           </div>
           <div class="arch-section-label">Storage</div>
@@ -287,7 +287,7 @@ withDefaults(defineProps<{
 .arch-chip.grpc-c { background: #ede9fe; color: #6d28d9; }
 .arch-chip.grpc-s { background: #ede9fe; color: #6d28d9; }
 .arch-chip.analysis { background: #fef3c7; color: #92400e; }
-.arch-chip.ai { background: #cffafe; color: #155e75; }
+.arch-chip.mcp { background: #cffafe; color: #155e75; }
 .arch-chip.streaming { background: #fce7f3; color: #9d174d; }
 .arch-chip.scheduler { background: #e0e7ff; color: #3730a3; }
 .arch-chip.server-feat { background: #f3f4f6; color: #374151; }

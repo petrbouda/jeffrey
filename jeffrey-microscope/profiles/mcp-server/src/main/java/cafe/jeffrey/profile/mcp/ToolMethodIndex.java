@@ -71,23 +71,6 @@ final class ToolMethodIndex {
      *                         they are added to every schema and marked required, because a caller that
      *                         omits one cannot be served at all
      */
-    ToolMethodIndex(Class<?> targetType, String prefix, List<SyntheticParam> syntheticParams) {
-        this(targetType, prefix, syntheticParams, Set.of(), McpToolAnnotations.READ_ONLY);
-    }
-
-    /**
-     * @param excludedMethods method names to leave out of this toolset entirely. A tool an endpoint
-     *                        will always refuse is worse than an absent one: it spends a slot in the
-     *                        model's context and invites a call that cannot succeed.
-     */
-    ToolMethodIndex(
-            Class<?> targetType,
-            String prefix,
-            List<SyntheticParam> syntheticParams,
-            Set<String> excludedMethods) {
-        this(targetType, prefix, syntheticParams, excludedMethods, McpToolAnnotations.READ_ONLY);
-    }
-
     /**
      * @param defaultAnnotations what the tools of this family do to the world, for the ones that do not
      *                           declare it themselves with {@link McpToolHints}
@@ -96,9 +79,8 @@ final class ToolMethodIndex {
             Class<?> targetType,
             String prefix,
             List<SyntheticParam> syntheticParams,
-            Set<String> excludedMethods,
             McpToolAnnotations defaultAnnotations) {
-        for (Method method : toolMethods(targetType, excludedMethods)) {
+        for (Method method : toolMethods(targetType)) {
             // The name and the description are Spring AI's own reading of the annotation rather than a
             // second one written here. Jeffrey adds the family prefix and nothing else, so a tool that
             // names itself with @Tool(name=...) is called what it says, instead of being silently
@@ -132,14 +114,11 @@ final class ToolMethodIndex {
      * return them differently between runs of the same build. Unsorted, the order a family's tools
      * appear in {@code tools/list} is what a model reads first, and it could change under a client
      * without a line of Jeffrey changing.
-     * <p>
-     * {@code excludedMethods} names Java methods rather than tools, because that is what a caller
-     * excluding one is looking at.
      */
-    private static List<Method> toolMethods(Class<?> targetType, Set<String> excludedMethods) {
+    private static List<Method> toolMethods(Class<?> targetType) {
         List<Method> methods = new ArrayList<>();
         for (Method method : targetType.getMethods()) {
-            if (method.isAnnotationPresent(Tool.class) && !excludedMethods.contains(method.getName())) {
+            if (method.isAnnotationPresent(Tool.class)) {
                 methods.add(method);
             }
         }

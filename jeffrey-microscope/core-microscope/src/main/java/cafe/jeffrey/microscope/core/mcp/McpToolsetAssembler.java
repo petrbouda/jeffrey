@@ -59,7 +59,6 @@ import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Assembles the tool families the external MCP server advertises.
@@ -181,10 +180,9 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(HeapComputeMcpTools.class, PREFIX_HEAP,
                         profileId -> new HeapComputeMcpTools(
                                 profileManager(contextCache, profileId), heapDumpInitService),
-                        Set.of(),
                         McpToolAnnotations.CREATES),
                 new ReflectiveToolset(
-                        recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES)));
+                        recordingsMcpTools, PREFIX_RECORDINGS, McpToolAnnotations.CREATES)));
 
         if (properties.ideEnabled()) {
             // Read-only as a family: three of its five tools observe. The two that do not — linking
@@ -196,13 +194,12 @@ public class McpToolsetAssembler {
                             profileManager(contextCache, profileId),
                             recordingCommitResolver,
                             profileId),
-                    Set.of(),
                     McpToolAnnotations.READS_REMOTE));
         }
 
         if (properties.hubsEnabled()) {
             families.add(new ReflectiveToolset(
-                    hubsMcpTools, PREFIX_HUBS, Set.of(), McpToolAnnotations.READS_REMOTE));
+                    hubsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
         }
 
         this.toolset = new CompositeToolset(retained(families, properties));

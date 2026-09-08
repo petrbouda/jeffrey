@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code ExternalMcpControllerTest} covers the same envelope over real HTTP; this one lives beside the
  * class it tests so a change to the protocol can be checked without building the deployment that
  * happens to mount it, and so the cases that have no natural place in a controller test — a batch, a
- * body that is not an object, an endpoint offering no prompts — are stated where the rules are written.
+ * body that is not an object — are stated where the rules are written.
  */
 class AbstractMcpStreamableHttpControllerTest {
 
@@ -48,15 +48,15 @@ class AbstractMcpStreamableHttpControllerTest {
             {"jsonrpc":"2.0","id":1,"method":"ping"}""";
 
     private final Envelope envelope = new Envelope();
-    private final McpServerFeatures toolsOnly =
-            McpServerFeatures.ofTools(() -> new ReflectiveToolset(new SampleTools(), "test"));
+    private final McpServerFeatures features = new McpServerFeatures(
+            () -> new ReflectiveToolset(new SampleTools(), "test"), Prompts::new, Resources::new);
 
     private JsonNode dispatch(String body) {
-        return envelope.dispatch(Json.readTree(body), toolsOnly).getBody();
+        return respond(body).getBody();
     }
 
     private ResponseEntity<JsonNode> respond(String body) {
-        return envelope.dispatch(Json.readTree(body), toolsOnly);
+        return envelope.dispatch(Json.readTree(body), null, features);
     }
 
     @Nested
@@ -140,7 +140,7 @@ class AbstractMcpStreamableHttpControllerTest {
             ResponseEntity<JsonNode> response = envelope.dispatch(
                     Json.readTree(PING),
                     "2099-01-01",
-                    toolsOnly);
+                    features);
 
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertEquals(-32600, response.getBody().get("error").get("code").asInt());
@@ -151,7 +151,7 @@ class AbstractMcpStreamableHttpControllerTest {
             ResponseEntity<JsonNode> response = envelope.dispatch(
                     Json.readTree(PING),
                     PROTOCOL_VERSION,
-                    toolsOnly);
+                    features);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertTrue(response.getBody().has("result"));
@@ -162,7 +162,7 @@ class AbstractMcpStreamableHttpControllerTest {
             ResponseEntity<JsonNode> response = envelope.dispatch(
                     Json.readTree(PING),
                     null,
-                    toolsOnly);
+                    features);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
         }
@@ -211,40 +211,66 @@ class AbstractMcpStreamableHttpControllerTest {
     class Capabilities {
 
         @Test
-        void advertisesOnlyWhatTheEndpointOffers() {
+        void advertisesEveryCapabilityTheEndpointOffers() {
             JsonNode result = dispatch("""
                     {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}""")
                     .get("result");
 
             assertTrue(result.get("capabilities").has("tools"));
-            assertFalse(result.get("capabilities").has("prompts"));
-            assertFalse(result.get("capabilities").has("resources"));
+            assertTrue(result.get("capabilities").has("prompts"));
+            assertTrue(result.get("capabilities").has("resources"));
         }
 
         @Test
-        void answersMethodNotFoundForACapabilityItDoesNotOffer() {
+        void answersMethodNotFoundForAMethodTheProtocolDoesNotHave() {
             JsonNode response = dispatch("""
-                    {"jsonrpc":"2.0","id":1,"method":"prompts/list"}""");
+                    {"jsonrpc":"2.0","id":1,"method":"tools/invent"}""");
 
             assertEquals(-32601, response.get("error").get("code").asInt());
         }
     }
 
     /**
-     * The envelope with nothing around it. The real controllers add their own mapping and gating; this
+     * The envelope with nothing around it. The real controller adds its own mapping and gating; this
      * one only makes the protected method reachable from a test.
      */
     private static final class Envelope extends AbstractMcpStreamableHttpController {
 
         @Override
-        public ResponseEntity<JsonNode> dispatch(JsonNode request, McpServerFeatures features) {
-            return super.dispatch(request, features);
-        }
-
-        @Override
         public ResponseEntity<JsonNode> dispatch(
                 JsonNode request, String protocolVersionHeader, McpServerFeatures features) {
             return super.dispatch(request, protocolVersionHeader, features);
+        }
+    }
+
+    private static final class Prompts implements McpPromptProvider {
+
+        @Override
+        public List<McpPrompt> prompts() {
+            return List.of();
+        }
+
+        @Override
+        public McpPrompt prompt(String name) {
+            throw new IllegalArgumentException("Unknown prompt: " + name);
+        }
+    }
+
+    private static final class Resources implements McpResourceProvider {
+
+        @Override
+        public List<McpResource> resources() {
+            return List.of();
+        }
+
+        @Override
+        public List<McpResource> templates() {
+            return List.of();
+        }
+
+        @Override
+        public Contents read(String uri) {
+            throw new IllegalArgumentException("Unknown resource: " + uri);
         }
     }
 

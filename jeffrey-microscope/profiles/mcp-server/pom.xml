@@ -37,16 +37,19 @@
             <artifactId>jeffrey-events</artifactId>
         </dependency>
 
-        <!-- Spring AI - the @Tool/@ToolParam annotations the toolsets reflect over -->
+        <!-- Spring AI - the @Tool/@ToolParam annotations and ToolUtils the toolsets reflect over.
+             spring-ai-model is where those live; the chat client would only add machinery for calling
+             a provider, which Jeffrey never does. -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-client-chat</artifactId>
+            <artifactId>spring-ai-model</artifactId>
         </dependency>
 
-        <!-- ResponseEntity for the JSON-RPC endpoint base class -->
+        <!-- ResponseEntity for the JSON-RPC endpoint base class. spring-web alone: this module owns
+             the protocol, not the mapping, so it needs no servlet container and no MVC. -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
         </dependency>
 
         <!-- Jeffrey dependencies -->

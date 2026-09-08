@@ -72,7 +72,7 @@ onMounted(() => {
           <h3>Heap Dumps</h3>
           <p>Class histograms, dominator trees, leak suspects, and OQL queries — straight from a single dump file.</p>
         </div>
-        <div class="value-tile tile-ai">
+        <div class="value-tile tile-mcp">
           <div class="value-icon"><i class="bi bi-plug"></i></div>
           <h3>Microscope MCP</h3>
           <p>Analyse every profile from a Claude Code or Codex session in your own repository — the agent reads the profile and the source side by side.</p>
@@ -299,8 +299,8 @@ onMounted(() => {
 .tile-heap .value-icon   { background: #fee2e2; color: #b91c1c; }
 .tile-heap:hover         { border-color: #fca5a5; }
 
-.tile-ai .value-icon     { background: #cffafe; color: #0e7490; }
-.tile-ai:hover           { border-color: #67e8f9; }
+.tile-mcp .value-icon     { background: #cffafe; color: #0e7490; }
+.tile-mcp:hover           { border-color: #67e8f9; }
 
 /* ============ USECASE LIST ============ */
 .usecase-list {

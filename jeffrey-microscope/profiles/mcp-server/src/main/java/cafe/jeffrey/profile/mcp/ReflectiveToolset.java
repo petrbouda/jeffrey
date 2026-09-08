@@ -24,13 +24,12 @@ import tools.jackson.databind.JsonNode;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Adapts an object whose methods are annotated with Spring AI's {@link Tool}/{@link ToolParam} into a
- * set of MCP tools. The same {@code @Tool} implementations that drive the in-process Spring AI
- * tool-calling path are reused here and exposed over MCP to a Claude Code CLI, so there is a single
- * source of truth for the analysis tools.
+ * set of MCP tools. Only the annotations are borrowed: Jeffrey re-derives the name, the description
+ * and the JSON Schema itself, because it needs a prefixed, profile-scoped tool that Spring AI's own
+ * machinery does not produce.
  * <p>
  * The target is fixed for the lifetime of the toolset. When it has to be chosen per call — one object
  * per profile, say — use {@link ProfileScopedToolset} instead.
@@ -45,17 +44,7 @@ public final class ReflectiveToolset implements McpToolProvider {
     private final ToolMethodIndex index;
 
     public ReflectiveToolset(Object target, String prefix) {
-        this(target, prefix, Set.of());
-    }
-
-    /**
-     * @param excludedMethods tool method names to leave out of this toolset entirely, for a target
-     *                        carrying a tool this endpoint will always refuse. Advertising one costs
-     *                        a slot in the model's context and invites a call that cannot succeed,
-     *                        which is why the exclusion happens here rather than in the tool.
-     */
-    public ReflectiveToolset(Object target, String prefix, Set<String> excludedMethods) {
-        this(target, prefix, excludedMethods, McpToolAnnotations.READ_ONLY);
+        this(target, prefix, McpToolAnnotations.READ_ONLY);
     }
 
     /**
@@ -63,14 +52,9 @@ public final class ReflectiveToolset implements McpToolProvider {
      *                           almost every Jeffrey family; one that writes says so here, and a single
      *                           method that differs from its neighbours says so with {@link McpToolHints}.
      */
-    public ReflectiveToolset(
-            Object target,
-            String prefix,
-            Set<String> excludedMethods,
-            McpToolAnnotations defaultAnnotations) {
+    public ReflectiveToolset(Object target, String prefix, McpToolAnnotations defaultAnnotations) {
         this.target = target;
-        this.index = new ToolMethodIndex(
-                target.getClass(), prefix, List.of(), excludedMethods, defaultAnnotations);
+        this.index = new ToolMethodIndex(target.getClass(), prefix, List.of(), defaultAnnotations);
     }
 
     @Override

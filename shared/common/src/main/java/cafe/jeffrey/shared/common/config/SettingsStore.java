@@ -53,7 +53,7 @@ public final class SettingsStore {
 
     /**
      * @param defaults      declared settings and their default values; defines the permanent key set
-     * @param initialValues resolved overrides (already decrypted); entries with unknown names are ignored
+     * @param initialValues resolved overrides; entries with unknown names are ignored
      */
     public SettingsStore(Map<String, String> defaults, Map<String, String> initialValues) {
         this.defaults = Map.copyOf(defaults);

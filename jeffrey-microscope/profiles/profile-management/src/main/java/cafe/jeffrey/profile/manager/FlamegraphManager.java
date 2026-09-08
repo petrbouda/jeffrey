@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+import cafe.jeffrey.flamegraph.export.AiExportConfig;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -73,7 +73,7 @@ public interface FlamegraphManager {
      * independent of the visualization threshold).
      *
      * @param graphParameters graph parameters
-     * @return Markdown string suitable for pasting into an LLM
+     * @return Markdown string suitable for handing to a coding agent
      * @throws UnsupportedOperationException for graph modes that do not support AI export
      */
     String generateAiExport(GraphParameters graphParameters);
@@ -84,7 +84,7 @@ public interface FlamegraphManager {
      *
      * @param graphParameters graph parameters
      * @param aiExportConfig  threshold override, or {@code null} for the configured default
-     * @return Markdown string suitable for pasting into an LLM
+     * @return Markdown string suitable for handing to a coding agent
      * @throws UnsupportedOperationException for graph modes that do not support AI export
      */
     String generateAiExport(GraphParameters graphParameters, AiExportConfig aiExportConfig);

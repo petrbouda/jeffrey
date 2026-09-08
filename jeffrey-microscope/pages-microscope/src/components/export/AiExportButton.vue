@@ -27,7 +27,7 @@ const props = defineProps<{
    * returns null instead of exporting an empty document.
    */
   buildSource: () => AiExportSource | null;
-  /** What the button says it will export, e.g. "Export this trace for AI analysis". */
+  /** What the button says it will export, e.g. "Export this trace for a coding agent". */
   tooltip: string;
   disabled?: boolean;
   disabledTooltip?: string;

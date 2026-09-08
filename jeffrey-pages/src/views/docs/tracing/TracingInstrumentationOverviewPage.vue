@@ -423,7 +423,7 @@ const composedSpans = [
           <tr>
             <td><code>ReflectiveToolset</code></td>
             <td><code>inSpanOf</code></td>
-            <td>Each AI MCP tool invocation, separating model time from query time</td>
+            <td>Each MCP tool invocation, separating client time from query time</td>
           </tr>
         </tbody>
       </table>

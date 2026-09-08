@@ -25,7 +25,6 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.flamegraph;
     requires cafe.jeffrey.microscope.profile.heapdump;
     requires cafe.jeffrey.microscope.profile.heapdump.oql;
-    requires transitive cafe.jeffrey.microscope.profile.mcp;
     requires cafe.jeffrey.microscope.profile.subsecond;
     requires transitive cafe.jeffrey.microscope.profile.threads;
     requires transitive cafe.jeffrey.microscope.profile.gc;

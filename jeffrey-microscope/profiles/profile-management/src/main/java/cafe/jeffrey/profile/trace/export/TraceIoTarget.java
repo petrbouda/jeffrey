@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.trace;
+package cafe.jeffrey.profile.trace.export;
 
 /**
  * Every operation of one kind against one target — a file path, or a {@code host:port} — collapsed

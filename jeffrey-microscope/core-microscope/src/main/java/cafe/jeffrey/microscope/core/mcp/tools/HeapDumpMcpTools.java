@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Heap dump tools for AI-powered heap analysis.
+ * Heap dump tools: the {@code heap_} MCP family.
  * Provides methods that can be called by AI models to explore and analyze Java heap dumps.
  */
 public class HeapDumpMcpTools {

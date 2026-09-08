@@ -44,7 +44,6 @@ import java.util.Map;
  */
 public class EventTypeMcpTools {
 
-    private static final String EVENT_TYPES_VIEW = "event-types";
     private static final String EVENTS_VIEW = "events";
     private static final String EVENT_TYPE_PARAM = "eventType";
 

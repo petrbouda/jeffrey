@@ -124,9 +124,8 @@ final class ProfileCapabilityGaps {
 
     /**
      * One sentence per feature the profile lacks, naming the events it is gated on so the reader can
-     * tell "never instrumented" from "instrumented, nothing happened". Features that describe the
-     * installation rather than the recording (AI analysis) are not here, and a feature without an
-     * entry is reported by name alone.
+     * tell "never instrumented" from "instrumented, nothing happened". A feature without an entry is
+     * reported by name alone.
      */
     private static final Map<FeatureType, FeatureGap> FEATURE_GAPS = Map.ofEntries(
             entry(FeatureType.TRACES, new FeatureGap(
