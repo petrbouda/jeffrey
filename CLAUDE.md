@@ -532,9 +532,11 @@ Icons are hand-authored inline SVG in `web/PanelSvg`, and that is forced rather 
 while reaching into `AllIcons` by resource path would pin the plugin to internal paths that move.
 
 The auto-analysis findings are **titled by the rule that fired** — `GC Pauses`, `Thrown Errors` —
-which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`garbage_collection`,
-`exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
-category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
+which arrives on `Finding.rule` already. JMC's `IRule.getTopic()` (`garbage_collection`,
+`exceptions`, `lock_instances`) now rides along on `AutoAnalysisResult.topic`, where it is the
+category an `McpFinding` merges on and what picks its `nextTool`, and the Auto Analysis page filters
+by. The **IDE response deliberately does not carry it**: the panel's allowance is one line per
+finding, and a grouping header is the structure that allowance exists to refuse.
 
 They **arrive with the profile**, and the panel therefore draws them once and never polls. Microscope
 starts the rule set **before the parse** rather than after it

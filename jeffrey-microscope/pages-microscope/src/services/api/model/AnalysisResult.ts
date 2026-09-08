@@ -22,6 +22,12 @@ export default class AnalysisResult {
     public explanation: string,
     public summary: string,
     public solution: string,
-    public score: string
+    public score: string,
+    /**
+     * The JMC rule topic the rule belongs to - garbage_collection, exceptions, lock_instances -
+     * which is the subsystem a reader scans for rather than the rule's own name. Null for a result
+     * cached before the field existed.
+     */
+    public topic: string | null
   ) {}
 }
