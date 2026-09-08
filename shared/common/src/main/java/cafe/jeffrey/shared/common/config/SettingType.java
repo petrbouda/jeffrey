@@ -40,8 +40,8 @@ public enum SettingType {
     POSITIVE_INT(value -> parseInt(value) instanceof Integer parsed && parsed > 0),
 
     /**
-     * A percentage in the exclusive range {@code (0, 100)}. Matches the invariant enforced by
-     * {@code AiExportConfig}, which is constructed per flamegraph request.
+     * A percentage in the exclusive range {@code (0, 100)}: a threshold of zero prunes nothing and one
+     * of a hundred prunes everything, so neither is a value a flamegraph can be drawn from.
      */
     PERCENTAGE(value -> parseDouble(value) instanceof Double parsed && parsed > 0.0 && parsed < 100.0),
 

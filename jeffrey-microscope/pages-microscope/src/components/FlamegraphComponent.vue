@@ -341,7 +341,6 @@ function search(value: string | null) {
       tooltip="Export flamegraph for AI analysis"
       :disabled="aiExportContext.graphMode === 'DIFFERENTIAL'"
       disabled-tooltip="Differential export coming soon"
-      show-settings
     />
   </div>
   <DifferentialRootHeader

@@ -99,7 +99,7 @@ class SettingTypeTest {
         }
 
         @Test
-        void rejectsZeroBecauseAiExportConfigRequiresAnExclusiveRange() {
+        void rejectsZeroBecauseTheRangeIsExclusive() {
             assertFalse(SettingType.PERCENTAGE.isValid("0"));
         }
 
@@ -174,7 +174,7 @@ class SettingTypeTest {
         @Test
         void thresholdsArePercentages() {
             assertEquals(SettingType.PERCENTAGE,
-                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.AI_EXPORT_MIN_FRAME_THRESHOLD_PCT));
+                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT));
         }
 
         @Test

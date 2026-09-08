@@ -18,7 +18,6 @@
 
 <script setup lang="ts">
 import { ref, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
 import { clipboardAvailable, useAiExport, type AiExportSource } from '@/composables/useAiExport';
 
 const props = defineProps<{
@@ -32,14 +31,8 @@ const props = defineProps<{
   tooltip: string;
   disabled?: boolean;
   disabledTooltip?: string;
-  /**
-   * Whether to offer the AI-export settings link. That page configures a flamegraph prune threshold,
-   * which means nothing to a trace, so the item is opt-in rather than always present.
-   */
-  showSettings?: boolean;
 }>();
 
-const router = useRouter();
 const { copyToClipboard, downloadAsFile } = useAiExport();
 
 /**
@@ -129,11 +122,6 @@ async function onDownload() {
     closeMenu();
   }
 }
-
-function onOpenSettings() {
-  closeMenu();
-  router.push({ path: '/settings', hash: '#ai-export' });
-}
 </script>
 
 <template>
@@ -177,16 +165,6 @@ function onOpenSettings() {
       <button class="ai-export-menu-item" role="menuitem" @click="onDownload">
         <i class="bi bi-download"></i>
         <span>Download as .md</span>
-      </button>
-      <div v-if="showSettings" class="ai-export-menu-divider"></div>
-      <button
-        v-if="showSettings"
-        class="ai-export-menu-item ai-export-menu-secondary"
-        role="menuitem"
-        @click="onOpenSettings"
-      >
-        <i class="bi bi-gear"></i>
-        <span>AI Export settings…</span>
       </button>
     </div>
   </div>
@@ -297,17 +275,6 @@ function onOpenSettings() {
   color: var(--color-text-muted);
   font-size: 12px;
   width: 14px;
-}
-
-.ai-export-menu-secondary {
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.ai-export-menu-divider {
-  height: 1px;
-  background: var(--color-border-light);
-  margin: 4px 0;
 }
 
 .ai-export-menu-off {

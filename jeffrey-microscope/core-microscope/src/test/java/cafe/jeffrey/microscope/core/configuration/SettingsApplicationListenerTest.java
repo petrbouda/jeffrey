@@ -105,7 +105,6 @@ class SettingsApplicationListenerTest {
             ConfigurableEnvironment environment = prepare();
 
             assertNotNull(environment.getProperty(MicroscopeSettingKeys.FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT));
-            assertNotNull(environment.getProperty(MicroscopeSettingKeys.AI_EXPORT_MIN_FRAME_THRESHOLD_PCT));
         }
     }
 
@@ -167,7 +166,7 @@ class SettingsApplicationListenerTest {
             assertTrue(source.containsProperty(MicroscopeSettingKeys.LOGGING_LEVEL));
             // Moves by one whenever a setting is declared — deliberately, since a key that never
             // reaches the property source reads to the rest of the app as "not configurable".
-            assertEquals(4, source.getPropertyNames().length);
+            assertEquals(3, source.getPropertyNames().length);
         }
     }
 

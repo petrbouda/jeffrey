@@ -67,8 +67,8 @@ public interface FlamegraphManager {
 
     /**
      * Generate an AI-friendly Markdown export of the flamegraph. The export
-     * walks the unpruned IR and applies its own threshold (set at bean
-     * construction from
+     * walks the unpruned IR and applies its own threshold (the static
+     * application property
      * {@code jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct},
      * independent of the visualization threshold).
      *

@@ -366,7 +366,7 @@ onMounted(() => {
       <DocsCallout type="info">
         <strong>Editable at runtime:</strong> every category in <strong>Settings</strong> in the
         Microscope UI is hot-reloaded — the log level (<code>logging.level.cafe.jeffrey</code>), the
-        flamegraph thresholds and the agent-export threshold. A change saved there is stored in the
+        flamegraph threshold and the frame text mode. A change saved there is stored in the
         Microscope database and applied immediately — raising the log level does not need a restart.
         Values stored that way take precedence over <code>application.properties</code>, system
         properties and environment variables.

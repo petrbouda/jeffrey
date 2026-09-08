@@ -25,8 +25,8 @@ import java.util.Map;
  * value domain of each one.
  * <p>
  * The names are needed by modules that have no other module in common — the logging key by
- * {@code core-microscope}, the visualization and export keys by {@code profile-management} and the
- * MCP tools — so they live here rather than being repeated per module. The HOCON file remains the
+ * {@code core-microscope}, the visualization keys by {@code profile-management} — so they live here
+ * rather than being repeated per module. The HOCON file remains the
  * source of truth for the <em>defaults</em>; this class only names the keys and their types.
  */
 public final class MicroscopeSettingKeys {
@@ -37,14 +37,11 @@ public final class MicroscopeSettingKeys {
             "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct";
     public static final String FLAMEGRAPH_FRAME_TEXT_MODE =
             "jeffrey.microscope.visualization.flamegraph.frame-text-mode";
-    public static final String AI_EXPORT_MIN_FRAME_THRESHOLD_PCT =
-            "jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct";
 
     private static final Map<String, SettingType> TYPES = Map.ofEntries(
             Map.entry(LOGGING_LEVEL, SettingType.LOG_LEVEL),
             Map.entry(FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT, SettingType.PERCENTAGE),
-            Map.entry(FLAMEGRAPH_FRAME_TEXT_MODE, SettingType.FRAME_TEXT_MODE),
-            Map.entry(AI_EXPORT_MIN_FRAME_THRESHOLD_PCT, SettingType.PERCENTAGE));
+            Map.entry(FLAMEGRAPH_FRAME_TEXT_MODE, SettingType.FRAME_TEXT_MODE));
 
     private MicroscopeSettingKeys() {
     }

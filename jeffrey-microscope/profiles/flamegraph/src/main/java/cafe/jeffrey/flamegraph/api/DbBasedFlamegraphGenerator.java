@@ -121,7 +121,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
      * Generate an AI-friendly Markdown export of the flamegraph. Walks the
      * unpruned IR (visualization prune is skipped — AI export applies its
      * own threshold from {@link #aiExportConfig} so the LLM payload stays
-     * compact). Threshold is set at bean construction from
+     * compact). The threshold is the static application property
      * {@code jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct}.
      */
     public String generateAiExport(GraphParameters params) {

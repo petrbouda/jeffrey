@@ -23,14 +23,6 @@
           <i class="bi bi-bar-chart"></i>
           Visualization
         </button>
-        <button
-          class="settings-tab"
-          :class="{ active: activeTab === 'ai-export' }"
-          @click="activeTab = 'ai-export'"
-        >
-          <i class="bi bi-stars"></i>
-          Agent Export
-        </button>
       </div>
 
       <!-- General Tab -->
@@ -125,45 +117,6 @@
           </button>
         </div>
       </div>
-
-      <!-- Agent Export Tab -->
-      <div v-if="activeTab === 'ai-export'" id="ai-export" class="settings-content">
-        <div class="settings-form-grid settings-form-grid-single">
-          <div class="settings-form-group">
-            <label class="settings-label">Flamegraph — Minimum Frame Threshold (%)</label>
-            <input
-              type="number"
-              :value="
-                settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct')
-              "
-              @input="
-                setSetting(
-                  'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
-                  ($event.target as HTMLInputElement).value
-                )
-              "
-              class="form-control"
-              style="max-width: 300px"
-              min="0"
-              max="100"
-              step="0.01"
-              placeholder="1.0"
-            />
-            <div class="settings-hint">
-              Subtrees representing less than this percentage of total samples are dropped from the
-              Markdown export handed to a coding agent, whether copied from a flamegraph or fetched
-              through the MCP server. Same semantics as the visualization threshold, but tuned
-              coarser to keep the payload compact. Default: 1.0%
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-actions">
-          <button class="btn-primary" @click="saveAiExportSettings" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save Changes' }}
-          </button>
-        </div>
-      </div>
     </MainCard>
   </div>
 </template>
@@ -179,7 +132,7 @@ import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 
 const route = useRoute();
-const SUPPORTED_TABS: ReadonlySet<string> = new Set(['general', 'visualization', 'ai-export']);
+const SUPPORTED_TABS: ReadonlySet<string> = new Set(['general', 'visualization']);
 
 const client = new SettingsClient();
 
@@ -357,19 +310,6 @@ async function saveVisualizationSettings() {
       }
     ],
     () => ToastService.success('Settings', 'Visualization settings applied')
-  );
-}
-
-async function saveAiExportSettings() {
-  await save(
-    [
-      {
-        category: 'ai-export',
-        name: 'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
-        value: settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct') || ''
-      }
-    ],
-    () => ToastService.success('Settings', 'Agent export settings applied')
   );
 }
 
