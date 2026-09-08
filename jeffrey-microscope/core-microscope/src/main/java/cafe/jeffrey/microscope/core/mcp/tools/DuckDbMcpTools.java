@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.jfr.tools;
+package cafe.jeffrey.microscope.core.mcp.tools;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DuckDB tools for AI-powered JFR profile analysis.
- * Provides methods that can be called by AI models to query and analyze JFR events stored in DuckDB.
+ * The {@code jfr_} SQL family of the MCP server: read-only DuckDB access to the events a profile
+ * stores, for the questions no dashboard tool answers. Every tool here reads; the family has no
+ * write tool, so an external client gets to read a profile's data, never to rewrite it.
  */
 public class DuckDbMcpTools {
 
@@ -51,15 +52,9 @@ public class DuckDbMcpTools {
                     + "after a semicolon.";
 
     private final DataSource dataSource;
-    private final boolean canModify;
 
     public DuckDbMcpTools(DataSource dataSource) {
-        this(dataSource, false);
-    }
-
-    public DuckDbMcpTools(DataSource dataSource, boolean canModify) {
         this.dataSource = dataSource;
-        this.canModify = canModify;
     }
 
     @Tool(description = "List all tables in the JFR profile database. Returns table names that can be queried.")
@@ -340,54 +335,6 @@ public class DuckDbMcpTools {
         } catch (SQLException e) {
             LOG.error("Failed to get profile info: message={}", e.getMessage(), e);
             return "Error: Failed to get profile info: " + e.getMessage();
-        }
-    }
-
-    @Tool(description = "Execute a data modification query (UPDATE or DELETE) on the JFR profile database. " +
-            "Use this to remove events, obfuscate frame names, anonymize thread names, or clean up data. " +
-            "This tool is only available when modification mode is explicitly enabled by the user. " +
-            "A WHERE clause is required to prevent accidental full-table modifications.")
-    public String executeModification(
-            @ToolParam(required = false, description = "SQL UPDATE or DELETE query. Must include a WHERE clause for safety.")
-            String query) {
-
-        if (!canModify) {
-            return "Error: Data modification is not enabled. The user must enable 'Allow Modifications' in the UI to use this tool.";
-        }
-
-        if (query == null || query.isBlank()) {
-            return "Error: Query is required";
-        }
-
-        String normalizedQuery = query.trim().toLowerCase();
-
-        // Only allow UPDATE and DELETE
-        if (!normalizedQuery.startsWith("update") && !normalizedQuery.startsWith("delete")) {
-            return "Error: Only UPDATE and DELETE queries are allowed. Use executeQuery for SELECT statements.";
-        }
-
-        // Require WHERE clause for safety
-        if (!normalizedQuery.contains("where")) {
-            return "Error: A WHERE clause is required to prevent accidental full-table modifications. " +
-                    "If you really want to affect all rows, use 'WHERE 1=1' explicitly.";
-        }
-
-        // Prevent modifications to system tables
-        if (normalizedQuery.contains("flyway_") || normalizedQuery.contains("profile_info")) {
-            return "Error: Modifications to system tables (flyway_*, profile_info) are not allowed.";
-        }
-
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            int affectedRows = stmt.executeUpdate(query);
-
-            LOG.info("Executed modification query: query={} affectedRows={}", query, affectedRows);
-
-            return String.format("Successfully executed modification. %d row(s) affected.", affectedRows);
-        } catch (SQLException e) {
-            LOG.error("Failed to execute modification: query={} message={}", query, e.getMessage(), e);
-            return "Error: Modification failed: " + e.getMessage();
         }
     }
 

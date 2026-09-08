@@ -37,8 +37,6 @@ import java.util.function.Function;
  * rejected on write and unknown rows loaded from the database are ignored. That keeps the key set
  * stable for the Spring property source built on top of this store.
  * <p>
- * Secrets are held here in <em>plaintext</em> — the encrypted form only ever exists in the database.
- * <p>
  * Every typed getter is total. A malformed value is logged and falls back to the setting's declared
  * default, then to the caller's fallback; getters never throw, because they are called from request
  * paths where a bad stored value must not become a failed request.

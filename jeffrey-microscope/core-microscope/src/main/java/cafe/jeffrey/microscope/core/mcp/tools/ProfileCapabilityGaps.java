@@ -223,7 +223,7 @@ final class ProfileCapabilityGaps {
 
     private static void addFeatureGaps(List<CapabilityGap> gaps, List<FeatureType> disabledFeatures) {
         for (FeatureType feature : disabledFeatures) {
-            if (feature == FeatureType.HEAP_DUMP || feature == FeatureType.AI_ANALYSIS) {
+            if (feature == FeatureType.HEAP_DUMP) {
                 continue;
             }
             FeatureGap text = FEATURE_GAPS.get(feature);

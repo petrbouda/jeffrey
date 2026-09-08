@@ -24,7 +24,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -54,8 +53,6 @@ class ProfileFeaturesControllerTest {
     @Mock
     HeapDumpManager heapDumpManager;
 
-    @Mock
-    JfrAnalysisAssistantService assistantService;
 
     @Test
     void disabledIncludesAiAndHeapDumpWhenUnavailable() {
@@ -64,22 +61,21 @@ class ProfileFeaturesControllerTest {
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
         when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JDK));
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
-        when(assistantService.isAvailable()).thenReturn(false);
         when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver, assistantService));
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/features/disabled"))
                 .hasStatusOk()
                 .bodyJson()
-                .hasPathSatisfying("$", v -> assertThat(v).asArray().contains("AI_ANALYSIS", "HEAP_DUMP"));
+                .hasPathSatisfying("$", v -> assertThat(v).asArray().contains("HEAP_DUMP"));
     }
 
     @Test
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver, assistantService));
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver));
 
         assertThat(mvc.get().uri("/api/internal/profiles/ghost/features/disabled"))
                 .hasStatus(404)

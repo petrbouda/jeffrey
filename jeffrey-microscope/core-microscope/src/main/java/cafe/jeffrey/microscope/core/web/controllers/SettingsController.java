@@ -33,13 +33,10 @@ import cafe.jeffrey.microscope.core.web.dto.request.SettingsRequest;
 import cafe.jeffrey.microscope.core.web.dto.response.SettingsResponse;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/internal/settings")
 public class SettingsController {
-
-    private static final String MASK = "****";
 
     private final SettingsManager settingsManager;
     private final SettingsMetadata settingsMetadata;
@@ -56,11 +53,6 @@ public class SettingsController {
                 .toList();
     }
 
-    @GetMapping("/status")
-    public Map<String, Object> status() {
-        return Map.of("encryptionMode", settingsManager.getBindingMode().name());
-    }
-
     @GetMapping("/{category}")
     public List<SettingsResponse> findByCategory(@PathVariable("category") String category) {
         return settingsMetadata.byCategory(category).stream()
@@ -71,7 +63,7 @@ public class SettingsController {
     @PutMapping
     public void upsertAll(@RequestBody SettingsBatchRequest request) {
         List<SettingUpdate> updates = request.items().stream()
-                .map(item -> new SettingUpdate(item.category(), item.name(), item.value(), item.secret()))
+                .map(item -> new SettingUpdate(item.category(), item.name(), item.value()))
                 .toList();
 
         settingsManager.upsertAll(updates);
@@ -85,24 +77,11 @@ public class SettingsController {
 
         // {*name} captures with a leading slash; strip it for compatibility.
         String settingName = name.startsWith("/") ? name.substring(1) : name;
-        settingsManager.upsert(category, settingName, request.value(), request.secret());
+        settingsManager.upsert(category, settingName, request.value());
     }
 
     private SettingsResponse toResponse(SettingDescriptor descriptor) {
         String value = settingsManager.getResolvedValue(descriptor.name());
-        if (descriptor.secret()) {
-            value = maskValue(value);
-        }
-        return new SettingsResponse(descriptor.category(), descriptor.name(), value, descriptor.secret());
-    }
-
-    private static String maskValue(String value) {
-        if (value == null || value.isEmpty()) {
-            return "";
-        }
-        if (value.length() <= 8) {
-            return MASK;
-        }
-        return value.substring(0, 4) + MASK + value.substring(value.length() - 4);
+        return new SettingsResponse(descriptor.category(), descriptor.name(), value);
     }
 }

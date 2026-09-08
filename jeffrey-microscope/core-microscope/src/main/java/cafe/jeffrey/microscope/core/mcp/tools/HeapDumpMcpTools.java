@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.heapdump.tools;
+package cafe.jeffrey.microscope.core.mcp.tools;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

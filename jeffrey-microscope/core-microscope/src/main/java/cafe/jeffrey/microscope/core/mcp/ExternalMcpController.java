@@ -31,19 +31,16 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
 /**
- * MCP Streamable-HTTP server for an <em>external</em> client — an interactive Claude Code session in
- * the developer's own repository, rather than the headless CLI Jeffrey spawns for itself.
+ * MCP Streamable-HTTP server for an <em>external</em> client — an interactive Claude Code or Codex
+ * session in the developer's own repository. Jeffrey's only MCP endpoint, and its only AI integration:
+ * Jeffrey never calls a model itself, the client brings one and calls in.
  * <p>
  * One server for the whole installation: the profile is a tool argument rather than a query parameter,
  * so a reader registers this endpoint once and can then move between profiles, and between the JFR,
- * flamegraph, trace and heap-dump families, inside one session. The per-profile, provider-gated
- * endpoint at {@code /api/internal/mcp/claude-code} stays as it is — it serves a different client with
- * different needs, and folding the two together would mean branching on which query parameters happen
- * to be present.
+ * flamegraph, trace and heap-dump families, inside one session.
  * <p>
  * Serving is on by default and switched off only through the {@code jeffrey.microscope.mcp.enabled}
- * application property, fixed at wiring time — unlike the sibling controller, whose provider gate is a
- * live setting checked per request. While it is off the endpoint answers 404: a disabled server should
+ * application property, fixed at wiring time. While it is off the endpoint answers 404: a disabled server should
  * look like no server at all, not like one refusing to talk.
  * <p>
  * Almost every tool it exposes reads. Four families do not — importing a recording, building a heap

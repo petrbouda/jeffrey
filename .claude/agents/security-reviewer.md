@@ -21,12 +21,6 @@ Review code changes for security concerns, focusing on Jeffrey's sensitive areas
 - CORS configuration is appropriate
 - Content-Type validation for uploads
 
-### AI Integration (Spring AI)
-- Prompt injection risks in user-supplied data sent to AI models
-- API keys not hardcoded or logged
-- Response sanitization before displaying to users
-- Rate limiting on AI endpoints
-
 ### Database (DuckDB)
 - SQL injection via string concatenation (should use parameterized queries)
 - Proper escaping of JSONB field access

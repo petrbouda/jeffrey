@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -41,13 +40,9 @@ public class ProfileFeaturesController {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileFeaturesController.class);
 
     private final ProfileManagerResolver resolver;
-    private final JfrAnalysisAssistantService assistantService;
 
-    public ProfileFeaturesController(
-            ProfileManagerResolver resolver,
-            JfrAnalysisAssistantService assistantService) {
+    public ProfileFeaturesController(ProfileManagerResolver resolver) {
         this.resolver = resolver;
-        this.assistantService = assistantService;
     }
 
     @GetMapping("/disabled")
@@ -56,9 +51,6 @@ public class ProfileFeaturesController {
         ProfileManager pm = resolver.resolve(profileId);
         HeapDumpManager heapDumpManager = pm.heapDumpManager();
         List<FeatureType> disabled = new ArrayList<>(pm.featuresManager().getDisabledFeatures());
-        if (!assistantService.isAvailable()) {
-            disabled.add(FeatureType.AI_ANALYSIS);
-        }
         if (!heapDumpManager.heapDumpExists() || !heapDumpManager.isCacheReady()) {
             disabled.add(FeatureType.HEAP_DUMP);
         }

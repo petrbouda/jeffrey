@@ -27,7 +27,6 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.core.manager.SettingUpdate;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
-import cafe.jeffrey.shared.common.encryption.MachineFingerprint.BindingMode;
 
 import java.util.List;
 
@@ -58,30 +57,6 @@ class SettingsControllerTest {
     }
 
     @Test
-    void exposesStatus() {
-        when(settingsManager.getBindingMode()).thenReturn(BindingMode.MACHINE_BOUND);
-
-        MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
-
-        assertThat(mvc.get().uri("/api/internal/settings/status"))
-                .hasStatusOk()
-                .bodyJson()
-                .hasPathSatisfying("$.encryptionMode", v -> assertThat(v).asString().isEqualTo("MACHINE_BOUND"));
-    }
-
-    @Test
-    void statusNoLongerReportsARestartRequirement() {
-        when(settingsManager.getBindingMode()).thenReturn(BindingMode.MACHINE_BOUND);
-
-        MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
-
-        assertThat(mvc.get().uri("/api/internal/settings/status"))
-                .hasStatusOk()
-                .bodyJson()
-                .doesNotHavePath("$.restartRequired");
-    }
-
-    @Test
     void batchUpsertAppliesEverySettingInOneCall() {
         MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
 
@@ -89,28 +64,28 @@ class SettingsControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"items":[
-                          {"category":"ai","name":"jeffrey.microscope.ai.provider","value":"ollama","secret":false},
-                          {"category":"ai","name":"jeffrey.microscope.ai.api-key","value":"secret","secret":true}
+                          {"category":"visualization","name":"jeffrey.microscope.visualization.flamegraph.frame-text-mode","value":"two-line"},
+                          {"category":"logging","name":"logging.level.cafe.jeffrey","value":"DEBUG"}
                         ]}
                         """))
                 .hasStatusOk();
 
         verify(settingsManager).upsertAll(List.of(
-                new SettingUpdate("ai", "jeffrey.microscope.ai.provider", "ollama", false),
-                new SettingUpdate("ai", "jeffrey.microscope.ai.api-key", "secret", true)));
+                new SettingUpdate("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "two-line"),
+                new SettingUpdate("logging", "logging.level.cafe.jeffrey", "DEBUG")));
     }
 
     @Test
     void singleUpsertStripsTheLeadingSlashFromTheWildcardName() {
         MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
 
-        assertThat(mvc.put().uri("/api/internal/settings/ai/jeffrey.microscope.ai.provider")
+        assertThat(mvc.put().uri("/api/internal/settings/logging/logging.level.cafe.jeffrey")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"value":"claude-code","secret":false}
+                        {"value":"WARN"}
                         """))
                 .hasStatusOk();
 
-        verify(settingsManager).upsert("ai", "jeffrey.microscope.ai.provider", "claude-code", false);
+        verify(settingsManager).upsert("logging", "logging.level.cafe.jeffrey", "WARN");
     }
 }

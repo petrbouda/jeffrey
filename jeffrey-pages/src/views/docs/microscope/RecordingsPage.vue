@@ -53,7 +53,7 @@ onMounted(() => {
           The <strong>Recordings</strong> page is where every artifact you investigate lands —
           whether you uploaded it yourself or it was auto-downloaded from a live project session.
           Drop a JFR recording or a heap dump, click <em>Analyze</em>, and you're a profile away
-          from flame graphs, timelines, dominator trees, and the AI assistant.
+          from flame graphs, timelines, dominator trees, and your coding agent over MCP.
         </p>
       </section>
 
@@ -82,7 +82,7 @@ onMounted(() => {
             <li><i class="bi bi-bar-chart"></i> Class histograms</li>
             <li><i class="bi bi-diagram-3"></i> Dominator tree exploration</li>
             <li><i class="bi bi-bug"></i> Leak suspects</li>
-            <li><i class="bi bi-terminal"></i> OQL queries (with AI assistant)</li>
+            <li><i class="bi bi-terminal"></i> OQL queries</li>
           </ul>
           <p class="artifact-extension">
             <code>.hprof</code> &nbsp;·&nbsp; <code>.hprof.gz</code>
@@ -173,7 +173,7 @@ onMounted(() => {
           <div class="step-number">3</div>
           <div class="step-content">
             <h4><i class="bi bi-search"></i> Investigate</h4>
-            <p>Open the profile to access flame graphs, timeseries, thread analysis, dominator trees — and chat with the AI assistant about what it sees.</p>
+            <p>Open the profile to access flame graphs, timeseries, thread analysis, dominator trees — or point a coding agent at it over MCP.</p>
           </div>
         </div>
       </div>

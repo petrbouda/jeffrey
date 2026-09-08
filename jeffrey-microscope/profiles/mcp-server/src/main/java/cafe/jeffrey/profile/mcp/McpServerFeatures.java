@@ -27,9 +27,9 @@ import java.util.function.Supplier;
  * and {@code ping} must answer even when building the toolset would fail — so they travel together
  * rather than as three parameters that have to be kept in the same order at every call site.
  * <p>
- * A provider left null is a capability the endpoint does not advertise. The per-profile endpoint the
- * headless CLI uses offers only tools, because a prompt telling a reader which family to start with is
- * meaningless to a client that was handed one profile and one toolset.
+ * A provider left null is a capability the endpoint does not advertise: an endpoint handed one
+ * profile and one toolset has no use for a prompt telling a reader which family to start with, and
+ * {@link #ofTools} builds exactly that.
  *
  * @param tools     the toolset, resolved per request
  * @param prompts   the prompts, or null when this endpoint offers none

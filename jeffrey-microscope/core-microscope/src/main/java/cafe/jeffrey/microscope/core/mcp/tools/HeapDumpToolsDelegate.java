@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.heapdump.tools;
+package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.profile.heapdump.model.*;
 import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;

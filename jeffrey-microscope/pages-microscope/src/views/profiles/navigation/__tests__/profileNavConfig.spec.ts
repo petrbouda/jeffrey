@@ -70,11 +70,11 @@ describe('profileNavConfig', () => {
   const allItems = collectAllItems();
 
   it('collects a sane number of nav items', () => {
-    // 6 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
+    // 5 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
     // + 16 Application (incl. Memory Issues submenu) + 4 Traces (Traces by Operation,
     // Search Traces, Attribute Values, Latency by Attributes) + 4 Visualization
-    // + 17 HeapDump + 4 Tools + 35 Technologies
-    expect(allItems.length).toBe(105);
+    // + 16 HeapDump + 4 Tools + 35 Technologies
+    expect(allItems.length).toBe(103);
   });
 
   it('every item has a label and a bootstrap icon', () => {
@@ -163,7 +163,6 @@ describe('profileNavConfig', () => {
     const profilePath = (subPath: string) => `/profiles/${SAMPLE_PROFILE_ID}${subPath}`;
 
     expect(getModeForPath(profilePath('/overview'))).toBe('Overview');
-    expect(getModeForPath(profilePath('/ai-analysis'))).toBe('Overview');
     expect(getModeForPath(profilePath('/event-types'))).toBe('Overview');
     expect(getModeForPath(profilePath('/events'))).toBe('Overview');
     expect(getModeForPath(profilePath('/thread-statistics'))).toBe('Application');
@@ -181,7 +180,9 @@ describe('profileNavConfig', () => {
     // Traces is its own mode now, and `method-tracing` must stay a technology despite the near-name.
     expect(getModeForPath(profilePath('/traces/operations'))).toBe('Traces');
     expect(getModeForPath(profilePath('/traces/attributes/search'))).toBe('Traces');
-    expect(getModeForPath(profilePath('/technologies/method-tracing/slowest'))).toBe('Technologies');
+    expect(getModeForPath(profilePath('/technologies/method-tracing/slowest'))).toBe(
+      'Technologies'
+    );
     expect(getModeForPath(profilePath('/flamegraphs/primary'))).toBe('Visualization');
     expect(getModeForPath(profilePath('/subsecond/primary'))).toBe('Visualization');
     expect(getModeForPath(profilePath('/heap-dump/overview'))).toBe('HeapDump');

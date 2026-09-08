@@ -168,15 +168,6 @@ class McpToolsetAssemblerTest {
             assertTrue(names.contains("jvm_container"));
             assertTrue(names.contains("jvm_configuration"));
         }
-
-        /**
-         * The one JFR tool that writes inside a profile stays out either way — ingestion creates
-         * profiles, it does not open the door to rewriting one.
-         */
-        @Test
-        void stillLeavesTheJfrWriteToolOut() {
-            assertFalse(toolNames(true).contains("jfr_executeModification"));
-        }
     }
 
     @Nested
@@ -241,13 +232,9 @@ class McpToolsetAssemblerTest {
         /** {@code family_toolName} as it appears inside prose. */
         private static final Pattern REFERENCE = Pattern.compile("\\b([a-z][a-z]*_[a-zA-Z][a-zA-Z0-9]*)\\b");
 
-        /**
-         * Names that look like a tool reference and are not: deliberate counter-examples, and the one
-         * write tool the external server excludes on purpose.
-         */
+        /** Names that look like a tool reference and are not: deliberate counter-examples. */
         private static final Set<String> NOT_REFERENCES = Set.of(
-                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list",
-                "jfr_executeModification");
+                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list");
 
         private List<McpToolSpec> specs() {
             return assembler(true).toolset().specs();

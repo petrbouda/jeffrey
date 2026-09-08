@@ -33,7 +33,7 @@ const headings = [
   { id: 'waste', text: 'Wasted Memory', level: 2 },
   { id: 'runtime', text: 'Runtime', level: 2 },
   { id: 'query-compare', text: 'Query & Compare', level: 2 },
-  { id: 'ai-analysis', text: 'AI Analysis', level: 2 }
+  { id: 'from-an-agent', text: 'From a Coding Agent', level: 2 }
 ];
 
 onMounted(() => {
@@ -186,11 +186,11 @@ onMounted(() => {
         />
       </div>
 
-      <h2 id="ai-analysis">AI Analysis</h2>
-      <p>The <strong>AI Heap Dump Analysis</strong> assistant investigates the dump conversationally — ask about retained sizes, suspected leaks, dominator chains, string duplication and class-loader unloadability in natural language, and it drives the same tools described above.</p>
+      <h2 id="from-an-agent">From a Coding Agent</h2>
+      <p>Every view above is also a tool of the <strong>Microscope MCP</strong> server, so a Claude Code or Codex session in your repository can ask about retained sizes, suspected leaks, dominator chains, string duplication and class-loader unloadability in natural language and drive the same analysis — with the <code>analyze-heap</code> skill as its method and <code>heap_oql</code> for the questions the reports do not answer.</p>
 
       <p class="docs-read-more">
-        <router-link to="/docs/ai/heap-dump-analysis">Read the AI Heap Dump Analysis reference &rarr;</router-link>
+        <router-link to="/docs/microscope-mcp/tools#heap">Read the heap tool reference &rarr;</router-link>
       </p>
     </div>
 

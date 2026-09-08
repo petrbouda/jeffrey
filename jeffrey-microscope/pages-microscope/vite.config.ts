@@ -34,15 +34,6 @@ export default defineConfig({
         find: /^apexcharts$/,
         replacement: fileURLToPath(new URL('./node_modules/apexcharts', import.meta.url))
       },
-      // Pinned for @shared MarkdownRenderer, which renders model-authored markdown through both.
-      {
-        find: /^marked$/,
-        replacement: fileURLToPath(new URL('./node_modules/marked', import.meta.url))
-      },
-      {
-        find: /^dompurify$/,
-        replacement: fileURLToPath(new URL('./node_modules/dompurify', import.meta.url))
-      },
       // Prefix (not exact) match: SourceViewerModal imports highlight.js subpaths such as
       // `highlight.js/lib/core` and `highlight.js/lib/languages/java`.
       {

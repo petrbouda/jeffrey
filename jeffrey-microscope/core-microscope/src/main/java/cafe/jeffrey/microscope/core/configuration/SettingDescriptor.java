@@ -24,17 +24,15 @@ import cafe.jeffrey.shared.common.config.SettingType;
 /**
  * Metadata for a single setting parsed from the HOCON file.
  *
- * @param category     logical grouping (e.g., "ai", "logging")
- * @param name         full Spring property name (e.g., "jeffrey.microscope.ai.provider")
- * @param defaultValue default value from HOCON (empty string for secrets)
- * @param secret       whether this setting holds an encrypted value
+ * @param category     logical grouping (e.g., "logging", "visualization")
+ * @param name         full Spring property name (e.g., "logging.level.cafe.jeffrey")
+ * @param defaultValue default value from HOCON
  * @param type         value domain, used to reject malformed values before they are stored
  */
 public record SettingDescriptor(
         String category,
         String name,
         String defaultValue,
-        boolean secret,
         SettingType type) {
 
     public SettingDescriptor {
@@ -52,7 +50,7 @@ public record SettingDescriptor(
     /**
      * Creates a descriptor whose type is looked up from the declared key registry.
      */
-    public static SettingDescriptor of(String category, String name, String defaultValue, boolean secret) {
-        return new SettingDescriptor(category, name, defaultValue, secret, MicroscopeSettingKeys.typeOf(name));
+    public static SettingDescriptor of(String category, String name, String defaultValue) {
+        return new SettingDescriptor(category, name, defaultValue, MicroscopeSettingKeys.typeOf(name));
     }
 }

@@ -33,8 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SettingsStoreTest {
 
-    private static final String PROVIDER = "jeffrey.microscope.ai.provider";
-    private static final String MAX_TOKENS = "jeffrey.microscope.ai.max-tokens";
+    private static final String PROVIDER = "jeffrey.microscope.test.provider";
+    private static final String MAX_TOKENS = "jeffrey.microscope.test.max-tokens";
     private static final String THRESHOLD = "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct";
 
     private static final Map<String, String> DEFAULTS = Map.of(
@@ -159,9 +159,9 @@ class SettingsStoreTest {
         }
 
         @Test
-        void getStringKeepsEmptyValueBecauseUnsetSecretsAreMeaningful() {
-            SettingsStore store = new SettingsStore(Map.of("api-key", ""), Map.of());
-            assertEquals("", store.getString("api-key", "fallback"));
+        void getStringKeepsAnEmptyValue() {
+            SettingsStore store = new SettingsStore(Map.of("jeffrey.empty", ""), Map.of());
+            assertEquals("", store.getString("jeffrey.empty", "fallback"));
         }
     }
 

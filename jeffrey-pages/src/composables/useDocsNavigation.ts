@@ -82,7 +82,7 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
 // Top-level path segments owned by each product. Used for product detection from the route.
 // 'local' is kept here so a direct hit on a legacy URL still resolves to the Microscope sidebar
 // in the brief moment before the router redirects to /docs/microscope/*.
-const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events', 'ai']);
+const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events']);
 // The MCP integration is its own product. Its segment is distinct from 'microscope', so a
 // /docs/microscope-mcp/* URL never resolves to the Microscope sidebar.
 const MICROSCOPE_MCP_SEGMENTS = new Set(['microscope-mcp']);
@@ -207,8 +207,7 @@ export const microscopeNavigation: DocSection[] = [
     icon: 'bi-gear',
     children: [
       { title: 'Application Properties', to: '/docs/microscope/configuration/application-properties' },
-      { title: 'Advanced Properties', to: '/docs/microscope/configuration/advanced-properties' },
-      { title: 'Secrets', to: '/docs/microscope/configuration/secrets' }
+      { title: 'Advanced Properties', to: '/docs/microscope/configuration/advanced-properties' }
     ]
   },
   {
@@ -226,17 +225,6 @@ export const microscopeNavigation: DocSection[] = [
     icon: 'bi-bezier2',
     crossLink: true,
     children: [{ title: 'Jeffrey Tracing docs', to: '/docs/tracing' }]
-  },
-  {
-    title: 'AI Analysis',
-    path: 'ai',
-    icon: 'bi-robot',
-    children: [
-      { title: 'Overview & Configuration', path: 'overview' },
-      { title: 'JFR Analysis', path: 'jfr-analysis' },
-      { title: 'Heap Dump Analysis', path: 'heap-dump-analysis' },
-      { title: 'OQL Assistant', path: 'oql-assistant' }
-    ]
   },
   {
     // The MCP integration has its own top-level documentation section; Microscope keeps just a link.
@@ -292,14 +280,6 @@ export const microscopeMcpNavigation: DocSection[] = [
     path: '_microscope-mcp-recipes',
     icon: 'bi-lightbulb',
     children: [{ title: 'Recipes', to: '/docs/microscope-mcp/recipes' }]
-  },
-  {
-    // The in-app assistant is the other direction; Microscope MCP keeps just a link.
-    title: 'AI Analysis',
-    path: '_microscope-mcp-ai-link',
-    icon: 'bi-robot',
-    crossLink: true,
-    children: [{ title: 'AI Analysis docs', to: '/docs/ai/overview' }]
   }
 ];
 

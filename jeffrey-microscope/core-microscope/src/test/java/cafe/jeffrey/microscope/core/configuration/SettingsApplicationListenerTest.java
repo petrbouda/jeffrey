@@ -31,8 +31,6 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.mock.env.MockEnvironment;
 import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
 import cafe.jeffrey.shared.common.config.SettingsStore;
-import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
-import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -46,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Covers the boot path that resolves settings before the application context exists: HOCON defaults,
- * database overrides, secret decryption, and installing the live store into the Environment.
+ * database overrides, and installing the live store into the Environment.
  */
 class SettingsApplicationListenerTest {
 
@@ -73,7 +71,7 @@ class SettingsApplicationListenerTest {
         return environment;
     }
 
-    private void writeSetting(String name, String value, boolean secret) {
+    private void writeSetting(String name, String value) {
         String jdbcUrl = "jdbc:duckdb:" + homeDir.resolve(DB_FILENAME);
         try (Connection conn = DriverManager.getConnection(jdbcUrl);
              Statement stmt = conn.createStatement()) {
@@ -83,11 +81,9 @@ class SettingsApplicationListenerTest {
                         category VARCHAR NOT NULL,
                         name     VARCHAR NOT NULL,
                         value    VARCHAR NOT NULL,
-                        secret   BOOLEAN NOT NULL DEFAULT false,
                         PRIMARY KEY (category, name))
                     """);
-            stmt.execute("INSERT INTO settings VALUES ('ai', '%s', '%s', %s)"
-                    .formatted(name, value, secret));
+            stmt.execute("INSERT INTO settings VALUES ('visualization', '%s', '%s')".formatted(name, value));
         } catch (Exception e) {
             throw new IllegalStateException("Could not seed the settings table", e);
         }
@@ -100,7 +96,7 @@ class SettingsApplicationListenerTest {
         void hoconDefaultsAreVisibleWithoutADatabase() {
             ConfigurableEnvironment environment = prepare();
 
-            assertEquals("none", environment.getProperty(MicroscopeSettingKeys.AI_PROVIDER));
+            assertEquals("single-line", environment.getProperty(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE));
             assertEquals("INFO", environment.getProperty(MicroscopeSettingKeys.LOGGING_LEVEL));
         }
 
@@ -108,16 +104,8 @@ class SettingsApplicationListenerTest {
         void everyDeclaredSettingIsPresent() {
             ConfigurableEnvironment environment = prepare();
 
-            assertNotNull(environment.getProperty(MicroscopeSettingKeys.AI_MAX_TOKENS));
             assertNotNull(environment.getProperty(MicroscopeSettingKeys.FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT));
             assertNotNull(environment.getProperty(MicroscopeSettingKeys.AI_EXPORT_MIN_FRAME_THRESHOLD_PCT));
-        }
-
-        @Test
-        void secretDefaultsToEmpty() {
-            ConfigurableEnvironment environment = prepare();
-
-            assertEquals("", environment.getProperty(MicroscopeSettingKeys.AI_API_KEY));
         }
     }
 
@@ -126,31 +114,23 @@ class SettingsApplicationListenerTest {
 
         @Test
         void storedValueOverridesTheDefault() {
-            writeSetting(MicroscopeSettingKeys.AI_PROVIDER, "ollama", false);
+            writeSetting(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE, "two-line");
 
-            assertEquals("ollama", prepare().getProperty(MicroscopeSettingKeys.AI_PROVIDER));
+            assertEquals("two-line", prepare().getProperty(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE));
         }
 
         @Test
         void unstoredSettingKeepsItsDefault() {
-            writeSetting(MicroscopeSettingKeys.AI_PROVIDER, "ollama", false);
+            writeSetting(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE, "two-line");
 
             assertEquals("INFO", prepare().getProperty(MicroscopeSettingKeys.LOGGING_LEVEL));
         }
 
         @Test
-        void secretIsDecryptedBeforeItReachesTheEnvironment() {
-            SecretEncryptor encryptor = new SecretEncryptor(new MachineFingerprint());
-            writeSetting(MicroscopeSettingKeys.AI_API_KEY, encryptor.encrypt("sk-ant-secret"), true);
-
-            assertEquals("sk-ant-secret", prepare().getProperty(MicroscopeSettingKeys.AI_API_KEY));
-        }
-
-        @Test
         void settingRemovedFromTheSchemaIsIgnored() {
-            writeSetting("jeffrey.microscope.ai.retired", "value", false);
+            writeSetting("jeffrey.microscope.visualization.retired", "value");
 
-            assertEquals(null, prepare().getProperty("jeffrey.microscope.ai.retired"));
+            assertEquals(null, prepare().getProperty("jeffrey.microscope.visualization.retired"));
         }
     }
 
@@ -171,9 +151,9 @@ class SettingsApplicationListenerTest {
 
             SettingsPropertySource source =
                     (SettingsPropertySource) environment.getPropertySources().get(SettingsPropertySource.NAME);
-            source.getSource().put(MicroscopeSettingKeys.AI_PROVIDER, "claude-code");
+            source.getSource().put(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE, "two-line");
 
-            assertEquals("claude-code", environment.getProperty(MicroscopeSettingKeys.AI_PROVIDER));
+            assertEquals("two-line", environment.getProperty(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE));
         }
 
         @Test
@@ -183,11 +163,11 @@ class SettingsApplicationListenerTest {
             SettingsPropertySource source =
                     (SettingsPropertySource) environment.getPropertySources().get(SettingsPropertySource.NAME);
 
-            assertTrue(source.containsProperty(MicroscopeSettingKeys.AI_PROVIDER));
+            assertTrue(source.containsProperty(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE));
             assertTrue(source.containsProperty(MicroscopeSettingKeys.LOGGING_LEVEL));
             // Moves by one whenever a setting is declared — deliberately, since a key that never
             // reaches the property source reads to the rest of the app as "not configurable".
-            assertEquals(12, source.getPropertyNames().length);
+            assertEquals(4, source.getPropertyNames().length);
         }
     }
 
@@ -219,10 +199,11 @@ class SettingsApplicationListenerTest {
                     new SpringApplication(), new String[0], context));
 
             SettingsMetadata metadata = context.getBeanFactory().getBean(SettingsMetadata.class);
-            SettingDescriptor maxTokens = metadata.find(MicroscopeSettingKeys.AI_MAX_TOKENS).orElseThrow();
+            SettingDescriptor threshold =
+                    metadata.find(MicroscopeSettingKeys.FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT).orElseThrow();
 
-            assertTrue(maxTokens.type().isValid("4096"));
-            assertTrue(!maxTokens.type().isValid("not-a-number"));
+            assertTrue(threshold.type().isValid("1.5"));
+            assertTrue(!threshold.type().isValid("not-a-number"));
         }
     }
 }

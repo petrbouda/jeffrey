@@ -36,8 +36,6 @@ import IdeTargetPickerModal from '@/components/IdeTargetPickerModal.vue';
 import { downloadAssistantStore as downloadStore } from '@/stores/assistants';
 import VersionClient from '@/services/api/VersionClient';
 import { showUpdateCheckToast } from '@/services/UpdateCheckToast';
-import AiProviderDetectClient from '@/services/api/AiProviderDetectClient';
-import { showClaudeCodeEnableToast } from '@/services/ClaudeCodeEnableToast';
 
 onMounted(async () => {
   // Initialize Bootstrap tooltips
@@ -54,16 +52,6 @@ onMounted(async () => {
     }
   } catch {
     // silently ignore update check failures
-  }
-
-  // Offer to enable Claude Code when its CLI is installed but no AI provider is configured.
-  try {
-    const detect = await new AiProviderDetectClient().detect();
-    if (detect?.claudeCodeDetected && !detect.aiConfigured) {
-      showClaudeCodeEnableToast();
-    }
-  } catch {
-    // silently ignore detection failures
   }
 });
 </script>

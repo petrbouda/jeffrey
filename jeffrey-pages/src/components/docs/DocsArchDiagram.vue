@@ -62,7 +62,7 @@ withDefaults(defineProps<{
           <div class="arch-layer">
             <div v-if="variant === 'tracing'" class="arch-chip analysis"><i class="bi bi-bezier2"></i> Traces</div>
             <div class="arch-chip analysis"><i class="bi bi-globe"></i> HTTP &amp; JDBC</div>
-            <div class="arch-chip ai"><i class="bi bi-robot"></i> AI Analysis</div>
+            <div class="arch-chip ai"><i class="bi bi-plug"></i> MCP Server</div>
             <div v-if="variant !== 'tracing'" class="arch-chip entry"><i class="bi bi-record-circle"></i> Recordings</div>
           </div>
           <div class="arch-section-label">Storage</div>

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.jfr.tools;
+package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.test.DuckDBTest;
 import org.junit.jupiter.api.DisplayName;

@@ -60,7 +60,7 @@ onMounted(() => {
           <span class="hero-promo-body">
             <strong>No JFR yet?</strong> The
             <strong>Tour with Examples</strong> image ships with pre-loaded sample recordings —
-            poke at flame graphs and the AI assistant before instrumenting your own
+            poke at flame graphs and dashboards before instrumenting your own
             application.
           </span>
           <span class="hero-promo-arrow"><i class="bi bi-arrow-right"></i></span>
@@ -147,7 +147,7 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> <strong>Flame graphs</strong> — total, allocation, lock, wall-clock; differential views for two-profile comparisons.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Timeseries &amp; sub-second timelines</strong> — see hot spots over time, zoom into millisecond windows.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Threads, GC, JIT, safepoints</strong> — every JFR event surfaced as a usable view.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>AI assistant</strong> — chat with Claude or OpenAI over the active profile or heap dump.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Microscope MCP</strong> — analyse the same profiles from a Claude Code or Codex session in your repository.</li>
       </ul>
 
       <DocsCallout type="tip">

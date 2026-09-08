@@ -33,8 +33,6 @@ import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.persistence.api.Setting;
 import cafe.jeffrey.microscope.persistence.api.SettingsRepository;
 import cafe.jeffrey.shared.common.config.SettingsStore;
-import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
-import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 
 import java.util.List;
@@ -44,34 +42,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class SettingsManagerTest {
 
-    private static final String AI_CATEGORY = "ai";
+    private static final String VISUALIZATION_CATEGORY = "visualization";
     private static final String LOGGING_CATEGORY = "logging";
-    private static final String PROVIDER = "jeffrey.microscope.ai.provider";
-    private static final String API_KEY = "jeffrey.microscope.ai.api-key";
-    private static final String MAX_TOKENS = "jeffrey.microscope.ai.max-tokens";
+    private static final String FRAME_TEXT_MODE = "jeffrey.microscope.visualization.flamegraph.frame-text-mode";
+    private static final String MIN_FRAME_THRESHOLD = "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct";
     private static final String LOG_LEVEL = "logging.level.cafe.jeffrey";
     private static final String JEFFREY_LOGGER = "cafe.jeffrey";
 
     private static final SettingsMetadata METADATA = new SettingsMetadata(List.of(
-            SettingDescriptor.of(AI_CATEGORY, PROVIDER, "none", false),
-            SettingDescriptor.of(AI_CATEGORY, API_KEY, "", true),
-            SettingDescriptor.of(AI_CATEGORY, MAX_TOKENS, "128000", false),
-            SettingDescriptor.of(LOGGING_CATEGORY, LOG_LEVEL, "INFO", false)));
+            SettingDescriptor.of(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "single-line"),
+            SettingDescriptor.of(VISUALIZATION_CATEGORY, MIN_FRAME_THRESHOLD, "0.05"),
+            SettingDescriptor.of(LOGGING_CATEGORY, LOG_LEVEL, "INFO")));
 
     @Mock
     private SettingsRepository settingsRepository;
-
-    @Mock
-    private SecretEncryptor secretEncryptor;
-
-    @Mock
-    private MachineFingerprint machineFingerprint;
 
     @Mock
     private LoggingSystem loggingSystem;
@@ -81,33 +70,18 @@ class SettingsManagerTest {
 
     @BeforeEach
     void setUp() {
-        when(machineFingerprint.resolve()).thenReturn(
-                new MachineFingerprint.Result("test-fingerprint", MachineFingerprint.BindingMode.MACHINE_BOUND));
-
         store = new SettingsStore(METADATA.defaults(), Map.of());
-        manager = new SettingsManager(
-                settingsRepository, secretEncryptor, machineFingerprint, store, METADATA, loggingSystem);
+        manager = new SettingsManager(settingsRepository, store, METADATA, loggingSystem);
     }
 
     @Nested
     class UpsertSetting {
 
         @Test
-        void storesPlainValueForNonSecret() {
-            manager.upsert(AI_CATEGORY, PROVIDER, "claude", false);
+        void storesTheValue() {
+            manager.upsert(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line");
 
-            verify(settingsRepository).upsert(new Setting(AI_CATEGORY, PROVIDER, "claude", false));
-            verifyNoInteractions(secretEncryptor);
-        }
-
-        @Test
-        void encryptsValueForSecret() {
-            when(secretEncryptor.encrypt("sk-ant-api03-key")).thenReturn("encrypted-base64");
-
-            manager.upsert(AI_CATEGORY, API_KEY, "sk-ant-api03-key", true);
-
-            verify(secretEncryptor).encrypt("sk-ant-api03-key");
-            verify(settingsRepository).upsert(new Setting(AI_CATEGORY, API_KEY, "encrypted-base64", true));
+            verify(settingsRepository).upsert(new Setting(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line"));
         }
     }
 
@@ -116,26 +90,16 @@ class SettingsManagerTest {
 
         @Test
         void newValueIsImmediatelyReadable() {
-            manager.upsert(AI_CATEGORY, PROVIDER, "ollama", false);
+            manager.upsert(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line");
 
-            assertEquals("ollama", manager.getResolvedValue(PROVIDER));
-        }
-
-        @Test
-        void storeHoldsPlaintextWhileTheRepositoryHoldsCiphertext() {
-            when(secretEncryptor.encrypt("sk-ant-api03-key")).thenReturn("encrypted-base64");
-
-            manager.upsert(AI_CATEGORY, API_KEY, "sk-ant-api03-key", true);
-
-            verify(settingsRepository).upsert(new Setting(AI_CATEGORY, API_KEY, "encrypted-base64", true));
-            assertEquals("sk-ant-api03-key", store.get(API_KEY));
+            assertEquals("two-line", manager.getResolvedValue(FRAME_TEXT_MODE));
         }
 
         @Test
         void unwrittenSettingKeepsItsDefault() {
-            manager.upsert(AI_CATEGORY, PROVIDER, "ollama", false);
+            manager.upsert(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line");
 
-            assertEquals("128000", manager.getResolvedValue(MAX_TOKENS));
+            assertEquals("0.05", manager.getResolvedValue(MIN_FRAME_THRESHOLD));
         }
     }
 
@@ -148,21 +112,21 @@ class SettingsManagerTest {
 
         @Test
         void appliesTheNewLevel() {
-            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "DEBUG", false);
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "DEBUG");
 
             verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.DEBUG);
         }
 
         @Test
         void normalisesCase() {
-            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "debug", false);
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "debug");
 
             verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.DEBUG);
         }
 
         @Test
         void isAppliedBeforeTheCallReturns() {
-            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "WARN", false);
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "WARN");
 
             // No awaiting: the apply is synchronous, so a plain verify is enough.
             verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.WARN);
@@ -170,16 +134,16 @@ class SettingsManagerTest {
 
         @Test
         void anUnrelatedSettingLeavesTheLoggingSystemAlone() {
-            manager.upsert(AI_CATEGORY, PROVIDER, "ollama", false);
+            manager.upsert(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line");
 
             verifyNoInteractions(loggingSystem);
         }
 
         @Test
         void rewritingTheSameLevelChangesNothing() {
-            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "INFO", false);
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "INFO");
 
-            verify(settingsRepository).upsert(new Setting(LOGGING_CATEGORY, LOG_LEVEL, "INFO", false));
+            verify(settingsRepository).upsert(new Setting(LOGGING_CATEGORY, LOG_LEVEL, "INFO"));
             verifyNoInteractions(loggingSystem);
         }
     }
@@ -190,23 +154,23 @@ class SettingsManagerTest {
         @Test
         void unknownSettingIsRejected() {
             assertThrows(JeffreyClientException.class,
-                    () -> manager.upsert(AI_CATEGORY, "jeffrey.microscope.ai.unknown", "x", false));
+                    () -> manager.upsert(VISUALIZATION_CATEGORY, "jeffrey.microscope.visualization.unknown", "x"));
 
             verifyNoInteractions(settingsRepository);
         }
 
         @Test
-        void malformedIntIsRejected() {
+        void malformedPercentageIsRejected() {
             assertThrows(JeffreyClientException.class,
-                    () -> manager.upsert(AI_CATEGORY, MAX_TOKENS, "not-a-number", false));
+                    () -> manager.upsert(VISUALIZATION_CATEGORY, MIN_FRAME_THRESHOLD, "not-a-number"));
 
             verifyNoInteractions(settingsRepository);
         }
 
         @Test
-        void unknownProviderIsRejected() {
+        void unknownFrameTextModeIsRejected() {
             assertThrows(JeffreyClientException.class,
-                    () -> manager.upsert(AI_CATEGORY, PROVIDER, "gemini", false));
+                    () -> manager.upsert(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "three-line"));
 
             verifyNoInteractions(settingsRepository);
         }
@@ -214,7 +178,7 @@ class SettingsManagerTest {
         @Test
         void unknownLogLevelIsRejected() {
             assertThrows(JeffreyClientException.class,
-                    () -> manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "VERBOSE", false));
+                    () -> manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "VERBOSE"));
 
             verifyNoInteractions(settingsRepository);
             verifyNoInteractions(loggingSystem);
@@ -223,21 +187,21 @@ class SettingsManagerTest {
         @Test
         void rejectedValueDoesNotReachTheStore() {
             assertThrows(JeffreyClientException.class,
-                    () -> manager.upsert(AI_CATEGORY, MAX_TOKENS, "not-a-number", false));
+                    () -> manager.upsert(VISUALIZATION_CATEGORY, MIN_FRAME_THRESHOLD, "not-a-number"));
 
-            assertEquals("128000", store.get(MAX_TOKENS));
+            assertEquals("0.05", store.get(MIN_FRAME_THRESHOLD));
         }
 
         @Test
         void oneBadValueRejectsTheWholeBatch() {
             List<SettingUpdate> updates = List.of(
-                    new SettingUpdate(AI_CATEGORY, PROVIDER, "ollama", false),
-                    new SettingUpdate(AI_CATEGORY, MAX_TOKENS, "not-a-number", false));
+                    new SettingUpdate(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line"),
+                    new SettingUpdate(VISUALIZATION_CATEGORY, MIN_FRAME_THRESHOLD, "not-a-number"));
 
             assertThrows(JeffreyClientException.class, () -> manager.upsertAll(updates));
 
             verifyNoInteractions(settingsRepository);
-            assertEquals("none", store.get(PROVIDER));
+            assertEquals("single-line", store.get(FRAME_TEXT_MODE));
         }
     }
 
@@ -247,28 +211,28 @@ class SettingsManagerTest {
         @Test
         void writesEverySettingToTheRepository() {
             manager.upsertAll(List.of(
-                    new SettingUpdate(AI_CATEGORY, PROVIDER, "ollama", false),
-                    new SettingUpdate(AI_CATEGORY, MAX_TOKENS, "4096", false)));
+                    new SettingUpdate(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line"),
+                    new SettingUpdate(VISUALIZATION_CATEGORY, MIN_FRAME_THRESHOLD, "1.5")));
 
-            verify(settingsRepository).upsert(new Setting(AI_CATEGORY, PROVIDER, "ollama", false));
-            verify(settingsRepository).upsert(new Setting(AI_CATEGORY, MAX_TOKENS, "4096", false));
+            verify(settingsRepository).upsert(new Setting(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line"));
+            verify(settingsRepository).upsert(new Setting(VISUALIZATION_CATEGORY, MIN_FRAME_THRESHOLD, "1.5"));
         }
 
         @Test
         void everyValueIsInTheStoreWhenTheCallReturns() {
             manager.upsertAll(List.of(
-                    new SettingUpdate(AI_CATEGORY, PROVIDER, "ollama", false),
-                    new SettingUpdate(AI_CATEGORY, MAX_TOKENS, "4096", false)));
+                    new SettingUpdate(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line"),
+                    new SettingUpdate(VISUALIZATION_CATEGORY, MIN_FRAME_THRESHOLD, "1.5")));
 
-            assertEquals("ollama", store.get(PROVIDER));
-            assertEquals("4096", store.get(MAX_TOKENS));
+            assertEquals("two-line", store.get(FRAME_TEXT_MODE));
+            assertEquals("1.5", store.get(MIN_FRAME_THRESHOLD));
         }
 
         @Test
         void appliesTheLogLevelOnceWhenItIsPartOfTheBatch() {
             manager.upsertAll(List.of(
-                    new SettingUpdate(AI_CATEGORY, PROVIDER, "ollama", false),
-                    new SettingUpdate(LOGGING_CATEGORY, LOG_LEVEL, "ERROR", false)));
+                    new SettingUpdate(VISUALIZATION_CATEGORY, FRAME_TEXT_MODE, "two-line"),
+                    new SettingUpdate(LOGGING_CATEGORY, LOG_LEVEL, "ERROR")));
 
             verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.ERROR);
         }
@@ -278,26 +242,6 @@ class SettingsManagerTest {
             manager.upsertAll(List.of());
 
             verifyNoInteractions(settingsRepository);
-        }
-    }
-
-    @Nested
-    class BindingMode {
-
-        @Test
-        void returnsMachineBound() {
-            assertEquals(MachineFingerprint.BindingMode.MACHINE_BOUND, manager.getBindingMode());
-        }
-
-        @Test
-        void returnsUserBoundWhenFallback() {
-            when(machineFingerprint.resolve()).thenReturn(
-                    new MachineFingerprint.Result("user-only", MachineFingerprint.BindingMode.USER_BOUND));
-
-            SettingsManager fallbackManager = new SettingsManager(
-                    settingsRepository, secretEncryptor, machineFingerprint, store, METADATA, loggingSystem);
-
-            assertEquals(MachineFingerprint.BindingMode.USER_BOUND, fallbackManager.getBindingMode());
         }
     }
 }

@@ -31,9 +31,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.env.ConfigurableEnvironment;
 import cafe.jeffrey.shared.common.config.SettingsStore;
-import cafe.jeffrey.shared.common.encryption.EncryptionException;
-import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
-import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,9 +57,8 @@ import java.util.Map;
  *
  * <p>Resolution order:
  * <ol>
- *   <li>HOCON defaults from {@code settings-mappings.conf} (properties + empty-string secret defaults)</li>
- *   <li>Database overrides for all settings (both properties and secrets)</li>
- *   <li>Secret values are decrypted before injection</li>
+ *   <li>HOCON defaults from {@code settings-mappings.conf}</li>
+ *   <li>Database overrides for all settings</li>
  * </ol>
  *
  * <p>The resolved values are held in a mutable {@link SettingsStore} rather than copied into a
@@ -84,7 +80,7 @@ public class SettingsApplicationListener implements GenericApplicationListener {
     private SettingsMetadata settingsMetadata;
     private SettingsStore settingsStore;
 
-    private record DbSetting(String name, String value, boolean secret) {
+    private record DbSetting(String name, String value) {
     }
 
     @Override
@@ -129,32 +125,11 @@ public class SettingsApplicationListener implements GenericApplicationListener {
         LOG.info("Injected settings into Spring Environment: keys={}", settingsStore.names());
     }
 
-    /**
-     * Turns the stored rows into resolved values, decrypting secrets. A row that cannot be decrypted
-     * is dropped so the setting falls back to its declared default.
-     */
-    private Map<String, String> resolveOverrides(List<DbSetting> dbSettings) {
-        SecretEncryptor encryptor = createEncryptorIfNeeded(dbSettings);
+    private static Map<String, String> resolveOverrides(List<DbSetting> dbSettings) {
         Map<String, String> overrides = new HashMap<>();
-
         for (DbSetting setting : dbSettings) {
-            if (!setting.secret()) {
-                overrides.put(setting.name(), setting.value());
-                continue;
-            }
-
-            if (encryptor == null) {
-                continue;
-            }
-
-            try {
-                overrides.put(setting.name(), encryptor.decrypt(setting.value()));
-            } catch (EncryptionException e) {
-                LOG.warn("Failed to decrypt setting, keeping default: name={} message={}",
-                        setting.name(), e.getMessage());
-            }
+            overrides.put(setting.name(), setting.value());
         }
-
         return overrides;
     }
 
@@ -173,38 +148,21 @@ public class SettingsApplicationListener implements GenericApplicationListener {
         List<SettingDescriptor> descriptors = new ArrayList<>();
 
         if (config.hasPath("settings.properties")) {
-            collectDescriptors(config.getConfig("settings.properties"), false, descriptors);
-        }
-        if (config.hasPath("settings.secrets")) {
-            collectDescriptors(config.getConfig("settings.secrets"), true, descriptors);
+            collectDescriptors(config.getConfig("settings.properties"), descriptors);
         }
 
         return new SettingsMetadata(List.copyOf(descriptors));
     }
 
-    private static void collectDescriptors(Config section, boolean secret, List<SettingDescriptor> descriptors) {
+    private static void collectDescriptors(Config section, List<SettingDescriptor> descriptors) {
         for (Map.Entry<String, ConfigValue> categoryEntry : section.root().entrySet()) {
             String category = categoryEntry.getKey();
             Config categoryConfig = section.getConfig(category);
             for (Map.Entry<String, ConfigValue> entry : categoryConfig.entrySet()) {
                 String propertyName = entry.getKey();
                 String defaultValue = categoryConfig.getString(propertyName);
-                descriptors.add(SettingDescriptor.of(category, propertyName, defaultValue, secret));
+                descriptors.add(SettingDescriptor.of(category, propertyName, defaultValue));
             }
-        }
-    }
-
-    private SecretEncryptor createEncryptorIfNeeded(List<DbSetting> dbSettings) {
-        boolean hasSecrets = dbSettings.stream().anyMatch(DbSetting::secret);
-        if (!hasSecrets) {
-            return null;
-        }
-        try {
-            return new SecretEncryptor(new MachineFingerprint());
-        } catch (Exception e) {
-            LOG.warn("Could not initialize encryption, secret settings will use defaults: {}",
-                    e.getMessage());
-            return null;
         }
     }
 
@@ -214,13 +172,10 @@ public class SettingsApplicationListener implements GenericApplicationListener {
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl);
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT name, value, secret FROM settings")) {
+             ResultSet rs = stmt.executeQuery("SELECT name, value FROM settings")) {
 
             while (rs.next()) {
-                settings.add(new DbSetting(
-                        rs.getString("name"),
-                        rs.getString("value"),
-                        rs.getBoolean("secret")));
+                settings.add(new DbSetting(rs.getString("name"), rs.getString("value")));
             }
         } catch (Exception e) {
             LOG.debug("Could not load settings from database (may not exist yet): {}", e.getMessage());

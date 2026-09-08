@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
-import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpToolsDelegate;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;

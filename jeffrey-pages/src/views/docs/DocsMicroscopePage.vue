@@ -28,7 +28,7 @@ const headings = [
   { id: 'architecture', text: 'Architecture', level: 2 },
   { id: 'server-connection', text: 'Connection to Jeffrey Hub', level: 3 },
   { id: 'recording-pipeline', text: 'Recording → Profile Pipeline', level: 3 },
-  { id: 'ai-integration', text: 'AI Integration', level: 3 }
+  { id: 'mcp-integration', text: 'MCP Integration', level: 3 }
 ];
 
 onMounted(() => {
@@ -73,7 +73,7 @@ onMounted(() => {
               </div>
               <div class="arch-layer">
                 <div class="arch-chip analysis"><i class="bi bi-globe"></i> HTTP &amp; JDBC</div>
-                <div class="arch-chip ai"><i class="bi bi-robot"></i> AI Analysis</div>
+                <div class="arch-chip ai"><i class="bi bi-plug"></i> MCP Server</div>
                 <div class="arch-chip entry"><i class="bi bi-record-circle"></i> Recordings</div>
               </div>
               <div class="arch-section-label">Storage</div>
@@ -137,13 +137,11 @@ onMounted(() => {
         <div class="flow-node"><i class="bi bi-graph-up"></i><span>Analysis</span></div>
       </div>
 
-      <h3 id="ai-integration">AI Integration</h3>
-      <p>The assistant is wired through Spring AI with pluggable Claude, ChatGPT, Ollama, and Claude Code providers, selected by <code>jeffrey.microscope.ai.provider</code> and <code>jeffrey.microscope.ai.model</code>. Two MCP servers expose the data: <code>duckdb-jfr-mcp</code> answers JFR questions by running OQL against the active profile's DuckDB, and <code>duckdb-heapdump-mcp</code> handles heap-dump queries. Configuration and capability detail live on the <router-link to="/docs/ai/overview">AI Overview</router-link> page. A third MCP server points the other way &mdash; it lets an outside Claude Code session read every analysed profile, build one from a recording file, and pull a recording off a connected Jeffrey Hub to analyse; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
+      <h3 id="mcp-integration">MCP Integration</h3>
+      <p>Microscope carries no model of its own. Its AI integration is an MCP server on <code>POST /api/internal/mcp</code> that an outside coding agent &mdash; a Claude Code or Codex session in your repository &mdash; calls into: it reads every analysed profile through a hundred-odd tools (the dashboards, flamegraph and trace exports, SQL over the profile database, the heap-dump index and OQL), builds a profile from a recording file, and pulls a recording off a connected Jeffrey Hub. The client brings its own model and Jeffrey only answers; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
 
       <div class="arch-flow">
-        <div class="flow-node"><i class="bi bi-chat-dots"></i><span>Assistant</span></div>
-        <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-        <div class="flow-node"><i class="bi bi-robot"></i><span>Spring AI<br><small>Claude / ChatGPT / Ollama / Claude Code</small></span></div>
+        <div class="flow-node"><i class="bi bi-terminal"></i><span>Coding agent<br><small>Claude Code / Codex / any MCP client</small></span></div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
         <div class="flow-node"><i class="bi bi-plug"></i><span>MCP Server</span></div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -380,7 +378,7 @@ onMounted(() => {
   color: #7c3aed;
 }
 
-/* ===== ARCH FLOW STRIP (pipeline / AI wiring) ===== */
+/* ===== ARCH FLOW STRIP (pipeline / MCP wiring) ===== */
 .arch-flow {
   display: flex;
   flex-wrap: wrap;

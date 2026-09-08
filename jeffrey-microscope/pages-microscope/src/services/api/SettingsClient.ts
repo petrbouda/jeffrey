@@ -23,7 +23,6 @@ export interface SettingUpdate {
   category: string;
   name: string;
   value: string;
-  secret: boolean;
 }
 
 export default class SettingsClient extends BasePlatformClient {
@@ -39,8 +38,8 @@ export default class SettingsClient extends BasePlatformClient {
     return super.get<Setting[]>(`/${category}`);
   }
 
-  upsert(category: string, name: string, value: string, secret: boolean): Promise<void> {
-    return super.put<void>(`/${category}/${name}`, { value, secret });
+  upsert(category: string, name: string, value: string): Promise<void> {
+    return super.put<void>(`/${category}/${name}`, { value });
   }
 
   /**
@@ -50,9 +49,5 @@ export default class SettingsClient extends BasePlatformClient {
    */
   upsertAll(items: SettingUpdate[]): Promise<void> {
     return super.put<void>('', { items });
-  }
-
-  fetchStatus(): Promise<{ encryptionMode: string }> {
-    return super.get<{ encryptionMode: string }>('/status');
   }
 }

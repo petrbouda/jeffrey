@@ -186,7 +186,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <ul>
         <li><strong>Where to start.</strong> Nothing in a tool list says that <code>profiles_list</code> comes first, or that <code>profiles_features</code> saves three dead ends.</li>
         <li><strong>What to do about a hotspot.</strong> An export ends where the profile ends, at a call path and a percentage. Getting from there to an edit in the repository &mdash; and knowing when not to trust the mapping &mdash; is a workflow, not a reading instruction.</li>
-        <li><strong>The two database schemas.</strong> Jeffrey&rsquo;s in-app assistant is given the JFR and heap-dump schemas in its system prompt. An external client never sees that prompt, so without a skill it would be guessing at column names.</li>
+        <li><strong>The two database schemas.</strong> Nothing in a tool list says what the <code>events</code> table&rsquo;s JSON <code>fields</code> column holds per event type, or which heap-index tables join on what. Without a skill an external client would be guessing at column names.</li>
       </ul>
 
       <h2 id="analyze-jfr">analyze-jfr</h2>

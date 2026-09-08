@@ -5,7 +5,7 @@
 
 <p align="center">
   <strong>Open a JFR recording or heap dump and read flamegraphs that <em>finally</em> render fast.</strong><br/>
-  A self-hosted performance analyst for the JVM — flamegraphs, heap dumps, JVM dashboards and an AI assistant, all in one app.
+  A self-hosted performance analyst for the JVM — flamegraphs, heap dumps, JVM dashboards, and an MCP server for your coding agent, all in one app.
 </p>
 
 <p align="center">
@@ -59,7 +59,7 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 
 | Product                                                                                         | What it does |
 |-------------------------------------------------------------------------------------------------|---|
-| **[Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)**                      | The standalone analyzer. Open a JFR recording or heap dump — or connect to a Hub — and read flamegraphs, sub-second timelines, JVM & tech dashboards, plus an AI assistant. Runs as a JAR or container. |
+| **[Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)**                      | The standalone analyzer. Open a JFR recording or heap dump — or connect to a Hub — and read flamegraphs, sub-second timelines and JVM & tech dashboards. Runs as a JAR or container. |
 | **[Jeffrey Hub](https://www.jeffrey-analyst.cafe/docs/hub)**                                    | A containerised collector for Kubernetes. Collects JFR recordings, artifacts and lifecycle events from your running services via shared volume, and serves them over gRPC to Microscope. |
 | **[IntelliJ Plugin](https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope)**            | Jump from any flamegraph frame straight to the source line in your open IntelliJ — Java & Kotlin — or pull inline source back into the profile. |
 | **[Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp)**                      | Analyse your profiles from an interactive Claude Code or Codex session in your own repository — list recordings, query their tables, and pull flamegraph, trace and heap-dump exports, so the profile and the source code sit in front of the same reader. One `/plugin install microscope@jeffrey`, or `codex plugin marketplace add petrbouda/jeffrey`. |

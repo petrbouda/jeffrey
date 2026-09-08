@@ -48,10 +48,6 @@ const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
 
 const ideToggle = `jeffrey.microscope.mcp.ide.enabled=false`;
 
-const sourceAccessToggle = `# Off by default: lets Jeffrey's own AI analysis read the checkout of the
-# IDE window a profile is linked to. Read-only, and only that directory.
-jeffrey.microscope.ai.source-access.enabled=true`;
-
 const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
 
@@ -129,14 +125,6 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>Its own switch for the same reason as <code>hubs_</code>, one step closer to home. Every other family reads a recording Jeffrey already holds; this one reaches into another process on this machine, and <code>ide_open</code> moves a developer&rsquo;s cursor while they are working. Nothing here reads a file the IDE does not already have open as a trusted project, and nothing writes to the checkout &mdash; but an installation that would rather an agent never touched the editor turns the family off here.</p>
 
       <p>With the family on, it still answers nothing until a window is linked to the profile: a lookup links the single unambiguous candidate and otherwise reports the candidates rather than guessing between two checkouts.</p>
-
-      <h3>Letting Jeffrey&rsquo;s own AI read the sources</h3>
-      <p>Separately from the MCP server, Jeffrey&rsquo;s <router-link to="/docs/ai">in-app AI analysis</router-link> can be given read access to the same linked checkout, so it can point at a loop rather than stopping at a method name:</p>
-      <DocsCodeBlock :code="sourceAccessToggle" language="properties" />
-
-      <DocsCallout type="warning" title="This one sends source to your AI provider">
-        It is off by default, and it is the only setting here that does. With it on, an analysis of a profile with a linked IDE window runs with that directory as its working directory and the reading tools granted &mdash; no writing, no shell, and no other directory &mdash; and its system prompt says so, with the rule that it opens a file before naming it. A profile with no linked window is unaffected, and its prompt does not mention reading code at all. Turn it on when the provider you have configured is one you would already paste code into.
-      </DocsCallout>
 
       <h2 id="trimming-the-tool-list">Trimming the Tool List</h2>
       <p>Jeffrey advertises a hundred-odd tools across eighteen families. Claude Code fetches their schemas on demand; Codex loads every one of them into the model&rsquo;s context on every turn. For a reader who only ever asks one kind of question, that is a lot to carry, and the endpoint can be told to advertise less:</p>

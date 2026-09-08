@@ -36,7 +36,7 @@ class SettingTypeTest {
         }
 
         @Test
-        void emptyIsAcceptedBecauseUnsetSecretsAreStoredAsEmpty() {
+        void emptyIsAccepted() {
             assertTrue(SettingType.STRING.isValid(""));
         }
 
@@ -144,30 +144,6 @@ class SettingTypeTest {
     }
 
     @Nested
-    class AiProviders {
-
-        @Test
-        void acceptsNone() {
-            assertTrue(SettingType.AI_PROVIDER.isValid("none"));
-        }
-
-        @Test
-        void acceptsClaudeCode() {
-            assertTrue(SettingType.AI_PROVIDER.isValid("claude-code"));
-        }
-
-        @Test
-        void acceptsMixedCase() {
-            assertTrue(SettingType.AI_PROVIDER.isValid("Claude"));
-        }
-
-        @Test
-        void rejectsUnknownProvider() {
-            assertFalse(SettingType.AI_PROVIDER.isValid("gemini"));
-        }
-    }
-
-    @Nested
     class FrameTextModes {
 
         @Test
@@ -191,8 +167,8 @@ class SettingTypeTest {
 
         @Test
         void declaredKeyResolvesToItsType() {
-            assertEquals(SettingType.POSITIVE_INT,
-                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.AI_MAX_TOKENS));
+            assertEquals(SettingType.FRAME_TEXT_MODE,
+                    MicroscopeSettingKeys.typeOf(MicroscopeSettingKeys.FLAMEGRAPH_FRAME_TEXT_MODE));
         }
 
         @Test

@@ -119,10 +119,6 @@
               Clear
             </button>
             <div class="toolbar-divider"></div>
-            <button v-if="aiAvailable" class="btn btn-sm btn-ai-assistant" @click="openAssistant">
-              <i class="bi bi-stars me-1"></i>
-              AI Assistant
-            </button>
             <span class="kbd-hint d-none d-md-inline"> <kbd>⌘</kbd><kbd>↵</kbd> to run </span>
           </div>
           <div class="toolbar-group">
@@ -335,118 +331,7 @@
           </DataTable>
         </div>
       </div>
-
-      <!-- AI Assistant Not Configured Panel -->
-      <div
-        v-if="aiChecked && !aiAvailable"
-        class="ai-config-panel"
-        :class="{ 'ai-config-minimized': aiPanelMinimized }"
-      >
-        <button class="ai-config-toggle" @click="aiPanelMinimized = !aiPanelMinimized">
-          <span>{{ aiPanelMinimized ? 'Show' : 'Hide' }}</span>
-          <i class="bi" :class="aiPanelMinimized ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
-        </button>
-
-        <div
-          v-if="aiPanelMinimized"
-          class="ai-config-minimized-content"
-          @click="aiPanelMinimized = false"
-        >
-          <div class="ai-config-minimized-icon">
-            <i class="bi bi-stars"></i>
-          </div>
-          <span class="ai-config-minimized-text">AI Assistant available - click to configure</span>
-        </div>
-
-        <div v-else class="ai-config-content">
-          <div class="ai-config-icon">
-            <i class="bi bi-stars"></i>
-          </div>
-          <div class="ai-config-text">
-            <h5 class="ai-config-title">AI Assistant Available</h5>
-            <p class="ai-config-description">
-              Unlock the power of AI to help you write OQL queries. Describe what you're looking for
-              in natural language and let AI generate the query for you.
-            </p>
-            <div class="ai-providers-note">
-              <i class="bi bi-check-circle-fill"></i>
-              <span
-                >Supports&nbsp;<strong>Anthropic Claude</strong>&nbsp;and&nbsp;<strong
-                  >OpenAI ChatGPT</strong
-                ></span
-              >
-            </div>
-          </div>
-          <div class="ai-config-features">
-            <div class="ai-feature">
-              <i class="bi bi-chat-dots"></i>
-              <span>Natural language queries</span>
-            </div>
-            <div class="ai-feature">
-              <i class="bi bi-lightning-charge"></i>
-              <span>Instant query generation</span>
-            </div>
-            <div class="ai-feature">
-              <i class="bi bi-mortarboard"></i>
-              <span>Learn OQL syntax</span>
-            </div>
-          </div>
-
-          <div class="ai-config-setup">
-            <div class="config-section">
-              <div class="config-section-title">
-                <i class="bi bi-file-earmark-code me-2"></i>
-                application.properties
-              </div>
-              <div class="config-code">
-                <code>jeffrey.ai.provider=<span class="code-value">claude</span></code>
-                <code
-                  ># Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929,
-                  claude-sonnet-4-20250514</code
-                >
-                <code># ChatGPT: gpt-4o, gpt-4o-mini, o3-mini</code>
-                <code
-                  >jeffrey.ai.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code
-                >
-              </div>
-            </div>
-
-            <div class="config-section">
-              <div class="config-section-title">
-                <i class="bi bi-key me-2"></i>
-                secrets.properties
-              </div>
-              <div class="config-code">
-                <code>jeffrey.ai.api-key=<span class="code-value">sk-ant-...</span></code>
-              </div>
-              <div class="config-hint-text">
-                Get your API key from
-                <a href="https://console.anthropic.com" target="_blank" rel="noopener"
-                  >console.anthropic.com</a
-                >
-              </div>
-            </div>
-          </div>
-        </div>
-        <div v-if="!aiPanelMinimized" class="ai-config-decoration">
-          <div class="decoration-circle circle-1"></div>
-          <div class="decoration-circle circle-2"></div>
-          <div class="decoration-circle circle-3"></div>
-        </div>
-      </div>
     </div>
-
-    <!-- AI Assistant (overlay, always mounted) -->
-    <OqlAssistant
-      :is-open="showAssistant"
-      :is-expanded="assistantExpanded"
-      :profile-id="profileId"
-      @close="closeAssistant"
-      @expand="openAssistant"
-      @minimize="assistantExpanded = false"
-      @apply="applyQueryFromAssistant"
-      @run="runQueryFromAssistant"
-    />
 
     <!-- Instance Tree Modal (overlay, always mounted) -->
     <InstanceTreeModal
@@ -477,7 +362,6 @@ import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import OqlAssistant from '@/components/oql/OqlAssistant.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
@@ -486,7 +370,6 @@ import DataTable from '@shared/components/table/DataTable.vue';
 import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import TabBar, { type TabBarItem } from '@shared/components/TabBar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import FormattingService from '@shared/services/FormattingService';
 
@@ -501,16 +384,6 @@ const cacheReady = ref(false);
 
 const oqlLimit = ref(50);
 const scanLargeStrings = ref(false);
-
-const showAssistant = ref(false);
-const assistantExpanded = ref(false);
-const aiAvailable = ref(false);
-const aiChecked = ref(false);
-const aiPanelMinimized = ref(sessionStorage.getItem('oql-ai-panel-minimized') === 'true');
-
-watch(aiPanelMinimized, value => {
-  sessionStorage.setItem('oql-ai-panel-minimized', String(value));
-});
 
 const showTreeModal = ref(false);
 const selectedObjectId = ref<number | null>(null);
@@ -1145,32 +1018,6 @@ const useExample = (q: string) => {
 };
 
 // =============================================================================
-// AI Assistant
-// =============================================================================
-
-const openAssistant = () => {
-  showAssistant.value = true;
-  assistantExpanded.value = true;
-};
-
-const closeAssistant = () => {
-  showAssistant.value = false;
-  assistantExpanded.value = false;
-};
-
-const applyQueryFromAssistant = (q: string) => {
-  query.value = q;
-  closeAssistant();
-  focusEditor();
-};
-
-const runQueryFromAssistant = async (q: string) => {
-  query.value = q;
-  closeAssistant();
-  await executeActive();
-};
-
-// =============================================================================
 // Modals
 // =============================================================================
 
@@ -1190,20 +1037,8 @@ const openInstanceDetailPanel = (objectId: number) => {
 };
 
 // =============================================================================
-// AI availability + page load
+// Page load
 // =============================================================================
-
-const checkAiAvailability = async () => {
-  try {
-    const aiClient = new OqlAssistantClient(profileId);
-    const status = await aiClient.getStatus();
-    aiAvailable.value = Boolean(status.enabled && status.configured);
-  } catch {
-    aiAvailable.value = false;
-  } finally {
-    aiChecked.value = true;
-  }
-};
 
 const scrollToTop = () => {
   const workspaceContent = document.querySelector('.workspace-content');
@@ -1223,7 +1058,6 @@ const loadData = async () => {
 
     if (heapExists.value) {
       cacheReady.value = await client.isCacheReady();
-      checkAiAvailability();
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to initialize OQL interface';
@@ -1769,332 +1603,5 @@ onMounted(() => {
 .pill-error {
   color: var(--color-danger-hover);
   background: var(--color-danger-light);
-}
-
-/* ==== AI Assistant Button ================================================ */
-.btn-ai-assistant {
-  background: linear-gradient(
-    135deg,
-    var(--color-violet) 0%,
-    var(--color-violet-dark) 50%,
-    var(--color-violet-deeper) 100%
-  );
-  border: none;
-  color: white;
-  font-weight: 500;
-  font-size: 0.8rem;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
-  transition: all 0.25s ease;
-  position: relative;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.btn-ai-assistant::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
-}
-.btn-ai-assistant:hover {
-  background: linear-gradient(
-    135deg,
-    var(--color-violet-border-light) 0%,
-    var(--color-violet) 50%,
-    var(--color-violet-dark) 100%
-  );
-  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5);
-  transform: translateY(-1px);
-  color: white;
-}
-.btn-ai-assistant:hover::before {
-  left: 100%;
-}
-.btn-ai-assistant:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
-}
-.btn-ai-assistant i {
-  font-size: 0.9rem;
-  line-height: 1;
-}
-@keyframes sparkle {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.15);
-  }
-}
-
-/* AI Configuration Panel */
-.ai-config-panel {
-  position: relative;
-  background: linear-gradient(
-    135deg,
-    var(--color-violet-light-bg) 0%,
-    var(--color-violet-lighter-bg) 50%,
-    var(--color-violet-lightest-bg) 100%
-  );
-  border: 1px solid var(--color-violet-border);
-  border-radius: 12px;
-  padding: 1.5rem 2rem;
-  margin-top: 1rem;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-.ai-config-panel.ai-config-minimized {
-  padding: 0.75rem 1rem;
-}
-.ai-config-toggle {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--color-violet-border-light);
-  background: white;
-  color: var(--color-violet-dark);
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  z-index: 2;
-  box-shadow: 0 1px 3px rgba(124, 58, 237, 0.1);
-}
-.ai-config-toggle:hover {
-  background: var(--color-violet-hover-bg);
-  border-color: var(--color-violet-border-light);
-  color: var(--color-violet-deeper);
-  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
-}
-.ai-config-toggle i {
-  font-size: 0.7rem;
-}
-.ai-config-minimized-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  padding-right: 2rem;
-}
-.ai-config-minimized-icon {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-violet-dark) 100%);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.ai-config-minimized-icon i {
-  font-size: 1rem;
-  color: white;
-  animation: sparkle 3s ease-in-out infinite;
-}
-.ai-config-minimized-text {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-violet-deeper);
-}
-.ai-config-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-.ai-config-icon {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(
-    135deg,
-    var(--color-violet) 0%,
-    var(--color-violet-dark) 50%,
-    var(--color-violet-deeper) 100%
-  );
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
-}
-.ai-config-icon i {
-  font-size: 1.75rem;
-  color: white;
-  animation: sparkle 3s ease-in-out infinite;
-}
-.ai-config-text {
-  max-width: 480px;
-  margin-bottom: 1.25rem;
-}
-.ai-config-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-violet-darkest);
-  margin-bottom: 0.5rem;
-}
-.ai-config-description {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  line-height: 1.6;
-  margin-bottom: 0.5rem;
-}
-.ai-providers-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.8rem;
-  color: var(--color-success-hover);
-  background: rgba(5, 150, 105, 0.1);
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-}
-.ai-providers-note strong {
-  color: var(--color-success-hover);
-}
-.ai-config-features {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.ai-feature {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  color: var(--color-violet-dark);
-  background: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
-  border: 1px solid var(--color-violet-border);
-}
-.ai-feature i {
-  font-size: 1rem;
-}
-.ai-config-setup {
-  display: flex;
-  gap: 1.5rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.config-section {
-  background: white;
-  border: 1px solid var(--color-violet-border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  min-width: 280px;
-  text-align: left;
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
-}
-.config-section-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-violet-dark);
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-}
-.config-code {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-.config-code code {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--color-text);
-  background: var(--color-violet-light-bg);
-  padding: 0.375rem 0.625rem;
-  border-radius: 4px;
-  border: 1px solid var(--color-violet-lightest-bg);
-}
-.config-code .code-value {
-  color: var(--color-violet-dark);
-  font-weight: 600;
-}
-.config-hint-text {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  margin-top: 0.5rem;
-}
-.config-hint-text a {
-  color: var(--color-violet-dark);
-  text-decoration: none;
-  font-weight: 500;
-}
-.config-hint-text a:hover {
-  text-decoration: underline;
-}
-.ai-config-decoration {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-.decoration-circle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.15;
-}
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  background: linear-gradient(135deg, var(--color-violet), var(--color-violet-dark));
-  top: -80px;
-  right: -60px;
-  animation: float 8s ease-in-out infinite;
-}
-.circle-2 {
-  width: 120px;
-  height: 120px;
-  background: linear-gradient(135deg, var(--color-violet-border-light), var(--color-violet));
-  bottom: -40px;
-  left: -30px;
-  animation: float 6s ease-in-out infinite reverse;
-}
-.circle-3 {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(
-    135deg,
-    var(--color-violet-border-light),
-    var(--color-violet-border-light)
-  );
-  top: 50%;
-  left: 15%;
-  animation: float 10s ease-in-out infinite;
-}
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-20px) scale(1.05);
-  }
 }
 </style>

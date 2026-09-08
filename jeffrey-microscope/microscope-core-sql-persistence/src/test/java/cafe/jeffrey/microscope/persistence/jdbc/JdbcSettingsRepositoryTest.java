@@ -42,36 +42,23 @@ class JdbcSettingsRepositoryTest {
         void insertsNewSetting(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.provider", "claude", false));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "single-line"));
 
-            Optional<Setting> result = repository.find("ai", "jeffrey.microscope.ai.provider");
+            Optional<Setting> result = repository.find("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode");
             assertTrue(result.isPresent());
-            assertEquals("claude", result.get().value());
-            assertFalse(result.get().secret());
+            assertEquals("single-line", result.get().value());
         }
 
         @Test
         void updatesExistingSetting(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.provider", "claude", false));
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.provider", "chatgpt", false));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "single-line"));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "two-line"));
 
-            Optional<Setting> result = repository.find("ai", "jeffrey.microscope.ai.provider");
+            Optional<Setting> result = repository.find("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode");
             assertTrue(result.isPresent());
-            assertEquals("chatgpt", result.get().value());
-        }
-
-        @Test
-        void insertsSecretSetting(DataSource dataSource) {
-            JdbcSettingsRepository repository = createRepository(dataSource);
-
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.api-key", "encrypted-value", true));
-
-            Optional<Setting> result = repository.find("ai", "jeffrey.microscope.ai.api-key");
-            assertTrue(result.isPresent());
-            assertTrue(result.get().secret());
-            assertEquals("encrypted-value", result.get().value());
+            assertEquals("two-line", result.get().value());
         }
     }
 
@@ -94,9 +81,9 @@ class JdbcSettingsRepositoryTest {
         void returnsAllSettings(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.provider", "claude", false));
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.model", "opus", false));
-            repository.upsert(new Setting("logging", "logging.level.cafe.jeffrey", "DEBUG", false));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "single-line"));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct", "0.05"));
+            repository.upsert(new Setting("logging", "logging.level.cafe.jeffrey", "DEBUG"));
 
             List<Setting> all = repository.findAll();
             assertEquals(3, all.size());
@@ -118,13 +105,13 @@ class JdbcSettingsRepositoryTest {
         void returnsOnlyMatchingCategory(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.provider", "claude", false));
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.model", "opus", false));
-            repository.upsert(new Setting("logging", "logging.level.cafe.jeffrey", "DEBUG", false));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "single-line"));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct", "0.05"));
+            repository.upsert(new Setting("logging", "logging.level.cafe.jeffrey", "DEBUG"));
 
-            List<Setting> aiSettings = repository.findByCategory("ai");
-            assertEquals(2, aiSettings.size());
-            assertTrue(aiSettings.stream().allMatch(s -> "ai".equals(s.category())));
+            List<Setting> visualization = repository.findByCategory("visualization");
+            assertEquals(2, visualization.size());
+            assertTrue(visualization.stream().allMatch(s -> "visualization".equals(s.category())));
         }
     }
 
@@ -135,13 +122,13 @@ class JdbcSettingsRepositoryTest {
         void deletesSingleSetting(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.provider", "claude", false));
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.model", "opus", false));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "single-line"));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct", "0.05"));
 
-            repository.delete("ai", "jeffrey.microscope.ai.provider");
+            repository.delete("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode");
 
-            assertTrue(repository.find("ai", "jeffrey.microscope.ai.provider").isEmpty());
-            assertTrue(repository.find("ai", "jeffrey.microscope.ai.model").isPresent());
+            assertTrue(repository.find("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode").isEmpty());
+            assertTrue(repository.find("visualization", "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct").isPresent());
         }
     }
 
@@ -152,13 +139,13 @@ class JdbcSettingsRepositoryTest {
         void deletesAllInCategory(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.provider", "claude", false));
-            repository.upsert(new Setting("ai", "jeffrey.microscope.ai.model", "opus", false));
-            repository.upsert(new Setting("logging", "logging.level.cafe.jeffrey", "DEBUG", false));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.frame-text-mode", "single-line"));
+            repository.upsert(new Setting("visualization", "jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct", "0.05"));
+            repository.upsert(new Setting("logging", "logging.level.cafe.jeffrey", "DEBUG"));
 
-            repository.deleteByCategory("ai");
+            repository.deleteByCategory("visualization");
 
-            assertTrue(repository.findByCategory("ai").isEmpty());
+            assertTrue(repository.findByCategory("visualization").isEmpty());
             assertEquals(1, repository.findByCategory("logging").size());
         }
     }
