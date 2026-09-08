@@ -32,6 +32,7 @@ const headings = [
   { id: 'what-it-is-given', text: 'What It Is Given', level: 2 },
   { id: 'what-it-returns', text: 'What It Returns', level: 2 },
   { id: 'what-it-never-does', text: 'What It Never Does', level: 2 },
+  { id: 'the-lead', text: 'The Lead, for the Open-Ended Question', level: 2 },
   { id: 'delegating-to-it', text: 'Delegating to It', level: 2 },
   { id: 'when-not-to', text: 'When Not To', level: 2 }
 ];
@@ -68,7 +69,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
     />
 
     <div class="docs-content">
-      <p><code>profile-analyst</code> reads a Jeffrey export end to end and returns only the findings. <code>heap-triage</code> does the same for a heap dump, and will build a missing dominator tree or report with <code>heap_prepare</code> rather than reporting an empty result. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not these.</p>
+      <p><code>profile-analyst</code> reads a Jeffrey export end to end and returns only the findings. <code>heap-triage</code> does the same for a heap dump, and will build a missing dominator tree or report with <code>heap_prepare</code> rather than reporting an empty result. <code>profile-lead</code> is for the question that names no dimension &mdash; it triages, dispatches those two, and merges what they return into <a href="#the-lead">one report</a>. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not these.</p>
 
       <h2 id="why-a-separate-agent">Why a Separate Agent</h2>
       <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four in <code>advise-jfr</code>, one per group. Pulled into your session, they crowd out the thing that has to happen next: reading the actual source behind the frames, and holding the conversation about what to change.</p>
@@ -76,9 +77,9 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <p>So the reading happens somewhere else. The analyst runs the sequence, follows the profile where it leads &mdash; deeper into a heavy subtree, a lower <code>thresholdPct</code> on one path, the GC-root path of the class the histogram named &mdash; and returns a report. Everything it read stays in its context, not yours. Extra reads cost you nothing, which is why it is told to keep going until it can name the causes rather than stopping at the first export.</p>
 
       <h2 id="installing-it">Installing It</h2>
-      <p>In <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> they arrive with the plugin as <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code>, and there is nothing to do.</p>
+      <p>In <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> they arrive with the plugin as <code>microscope:profile-analyst</code>, <code>microscope:heap-triage</code> and <code>microscope:profile-lead</code>, and there is nothing to do.</p>
 
-      <p>In <router-link to="/docs/microscope-mcp/codex">Codex</router-link> it is a file to copy. The Agent Plugins format defines exactly two component types &mdash; skills and MCP servers &mdash; so no plugin can hand a Codex install an agent, however the plugin was written. They ship as <code>codex/agents/profile-analyst.toml</code> and <code>codex/agents/heap-triage.toml</code>; copy them to <code>~/.codex/agents/</code> for every repository, or <code>.codex/agents/</code> for one.</p>
+      <p>In <router-link to="/docs/microscope-mcp/codex">Codex</router-link> it is a file to copy. The Agent Plugins format defines exactly two component types &mdash; skills and MCP servers &mdash; so no plugin can hand a Codex install an agent, however the plugin was written. They ship as <code>codex/agents/profile-analyst.toml</code>, <code>codex/agents/heap-triage.toml</code> and <code>codex/agents/profile-lead.toml</code>; copy them to <code>~/.codex/agents/</code> for every repository, or <code>.codex/agents/</code> for one.</p>
 
       <p>The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
 
@@ -111,6 +112,13 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <DocsCallout type="warning" title="Enforced in Claude Code, instructed in Codex">
         The Claude Code subagent is denied file tools and both writing families &mdash; <code>recordings_</code> and <code>hubs_</code> &mdash; in its own definition, so the first two rules hold whatever the model decides. Codex has no per-agent tool deny-list: its copy is sandboxed read-only against your files, and the rest is instruction. To make it a wall there, deny both families at the server with <code>disabled_tools</code> &mdash; the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page has the block.
       </DocsCallout>
+
+      <h2 id="the-lead">The Lead, for the Open-Ended Question</h2>
+      <p>The analyst and the heap specialist each take one question. &ldquo;Why is this service slow&rdquo; and &ldquo;review this recording&rdquo; are not one question, and running every family in your session to find out which one it is fills the conversation with the orientation calls before anything has been read. <code>profile-lead</code> is that orientation, moved out of your session.</p>
+
+      <p>It works in a fixed order. <strong>It triages itself, and never delegates that step</strong> &mdash; <code>profiles_summary</code> with its <code>capabilityGaps</code> read before anything else, then <code>jvm_sections</code>, <code>flamegraph_list</code> and <code>profiles_samplerHealth</code> &mdash; because every routing decision depends on it. <strong>It dispatches only what the summary justifies</strong>, all at once, each delegation carrying the profile id, the recording length, the one question and the figure that prompted it, so a specialist starts from evidence rather than from the beginning. A dimension the summary does not point at is not investigated; it goes under <em>Not assessed</em> with the gap that explains why. <strong>It merges</strong> &mdash; the tools&rsquo; findings carry a stable id, so the same condition reported by a rule and by a dashboard collapses into one, the more severe kept &mdash; and ranks by share of wall clock, of samples or of the heap, never by how confident a specialist sounded. Where two specialists disagree, the more direct measurement wins and the report says the question was contested.</p>
+
+      <p>What it holds is as deliberate as what it does: the orientation tools, <code>compare_list</code>, and the two specialists &mdash; and no export tool of its own, so it cannot drift into reading a flamegraph in the middle of coordinating. Like the other two it has no file tools, makes no recommendations and writes nothing. It writes to the <router-link to="/docs/microscope-mcp/skills#report"><code>report</code></router-link> skill&rsquo;s shape, and its model is inherited from the session rather than pinned.</p>
 
       <h2 id="delegating-to-it">Delegating to It</h2>
       <p>Usually you do not: the skills delegate on your behalf when more than one export is in play. To do it yourself, give it the id and the one question.</p>

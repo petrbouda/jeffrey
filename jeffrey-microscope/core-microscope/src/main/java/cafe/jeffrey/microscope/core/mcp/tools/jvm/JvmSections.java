@@ -54,6 +54,28 @@ public class JvmSections {
     }
 
     /**
+     * Every dashboard the {@code jvm_} family serves, in the order a reader works through them. The
+     * one list, so that the family and the capability gaps a profile summary reports are built from
+     * the same sections and cannot disagree about what the recording is missing.
+     */
+    public static JvmSections standard(ProfileManager profileManager) {
+        return new JvmSections(profileManager, List.of(
+                new AutoAnalysisSection(profileManager),
+                new GcSection(profileManager),
+                new GcDetailSection(profileManager),
+                new SafepointsSection(profileManager),
+                new JitSection(profileManager),
+                new ThreadsSection(profileManager),
+                new NativeMemorySection(profileManager),
+                new ClassLoadingSection(profileManager),
+                new ExceptionsSection(profileManager),
+                new SystemSection(profileManager),
+                new SecuritySection(profileManager),
+                new ContainerSection(profileManager),
+                new ConfigurationSection(profileManager)));
+    }
+
+    /**
      * Every section with the events it needs and whether this recording carries them, in the order a
      * reader would work through them.
      */
@@ -74,6 +96,19 @@ public class JvmSections {
      */
     public JvmSection get(String id) {
         return sections.get(id);
+    }
+
+    /**
+     * The section registered under an id, as its own type — for the few that answer more than
+     * "render me" and are called by their own methods.
+     */
+    public <T extends JvmSection> T get(String id, Class<T> type) {
+        JvmSection section = sections.get(id);
+        if (!type.isInstance(section)) {
+            throw new IllegalArgumentException(
+                    "No section of type " + type.getSimpleName() + " registered under id '" + id + "'");
+        }
+        return type.cast(section);
     }
 
     /**

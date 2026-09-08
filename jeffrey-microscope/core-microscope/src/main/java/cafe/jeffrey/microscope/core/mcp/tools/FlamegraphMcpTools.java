@@ -28,9 +28,7 @@ import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.model.WeightKind;
 import cafe.jeffrey.profile.model.WeightOption;
-import cafe.jeffrey.profile.panel.FlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
@@ -41,7 +39,6 @@ import cafe.jeffrey.shared.common.model.time.UndefinedTimeRange;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -93,8 +90,7 @@ public class FlamegraphMcpTools {
     private static final String UNIT_NANOSECONDS = "nanoseconds";
 
     private final ProfileManager profileManager;
-    private final JfrFlamegraphPanelProvider jfrPanelProvider;
-    private final StackSampleFlamegraphPanelProvider stackSamplePanelProvider;
+    private final FlamegraphCatalog catalog;
 
     public FlamegraphMcpTools(
             ProfileManager profileManager,
@@ -102,8 +98,7 @@ public class FlamegraphMcpTools {
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider) {
 
         this.profileManager = profileManager;
-        this.jfrPanelProvider = jfrPanelProvider;
-        this.stackSamplePanelProvider = stackSamplePanelProvider;
+        this.catalog = new FlamegraphCatalog(profileManager, jfrPanelProvider, stackSamplePanelProvider);
     }
 
     @Tool(description = "List the flamegraphs this profile can actually produce: one entry per event "
@@ -112,22 +107,14 @@ public class FlamegraphMcpTools {
             + "valid eventType values for this profile. 'notRecorded' names the standard groups this "
             + "recording is missing — a profiler-configuration finding to report, not an error.")
     public String list() {
-        List<FlamegraphPanel> panels = panelProvider().panels(
-                profileManager.flamegraphManager().eventSummaries(), PanelContext.PRIMARY);
-
-        List<GraphableType> available = new ArrayList<>();
-        List<MissingGroup> notRecorded = new ArrayList<>();
-        for (FlamegraphPanel panel : panels) {
-            // The JFR provider emits the full catalog of standard sections, filling the ones this
-            // recording has no samples for with a zero-sample placeholder so the frontend grid stays
-            // complete. Graphing a placeholder yields an empty tree, so it is reported as a gap in what
-            // the profiler captured rather than offered as a valid eventType.
-            if (panel.event().primary().samples() > 0) {
-                available.add(GraphableType.from(panel));
-            } else {
-                notRecorded.add(new MissingGroup(panel.section(), panel.title()));
-            }
-        }
+        // A placeholder panel graphs to an empty tree, so the catalog's split decides what is offered
+        // as a valid eventType and what is reported as a gap in what the profiler captured.
+        List<GraphableType> available = catalog.recorded().stream()
+                .map(GraphableType::from)
+                .toList();
+        List<MissingGroup> notRecorded = catalog.notRecorded().stream()
+                .map(panel -> new MissingGroup(panel.section(), panel.title()))
+                .toList();
 
         if (available.isEmpty()) {
             return NOTHING_TO_GRAPH;
@@ -139,17 +126,6 @@ public class FlamegraphMcpTools {
                 UiLinks.view(profileManager.info().id(), GRID_VIEW)));
     }
 
-    /**
-     * The grid this profile's format is drawn as — the same split the UI routes make. pprof and OTLP
-     * carry their own sample dimensions rather than JFR event types, so running them through the JFR
-     * catalog would report every dimension they do have as missing.
-     */
-    private FlamegraphPanelProvider panelProvider() {
-        if (profileManager.info().eventSource().isFlamegraphOnlyImport()) {
-            return stackSamplePanelProvider;
-        }
-        return jfrPanelProvider;
-    }
 
     @Tool(description = "Export a flamegraph as Markdown for reading: a nested call tree where every "
             + "frame carries its total samples, its self samples and its JIT tier, plus a preamble "

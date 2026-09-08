@@ -41,6 +41,26 @@ auto-analysis findings when they have been computed.
 A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch to the
 `analyze-heap` skill, because flamegraphs and traces do not apply to it.
 
+## Route from the summary — never open with a flamegraph
+
+A flamegraph of a recording that spent its time waiting reports the application as idle, and a
+graph of a five-minute average hides a thirty-second spike. So the first export is decided by what
+`profiles_summary` says, not by habit. Read three things from it and route:
+
+| What the summary shows | Go to |
+|---|---|
+| `capabilityGaps` names something the question needs | Say so first; a question the recording cannot answer is reported as **not assessed**, never as a negative result — the `report` skill has the shape |
+| `topFindings` carries a rule that fired | The `jvm_` section the finding's `nextTool` names, for the figures behind the rule — a fired rule is a lead, not a diagnosis |
+| The question is "this endpoint is slow" and `TRACES` is not in `disabledFeatures` | `traces_` — *Latency: work the traces first* below; `http_overview` and `jdbc_overview` when it is |
+| Execution or CPU-time samples dominate `eventTypes` | `flamegraph_export` of that type, after `timeline_hotWindows` when the shape over time matters |
+| Threads spent the time waiting rather than running | `blocking_` and `io_` — the waiting a CPU graph cannot see |
+| Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
+| `jdk.OldObjectSample` is recorded, or the heap grows across the recording | `memory_leakCandidates`; a heap dump and `analyze-heap` for what retains it |
+| Two profiles of the same workload | `compare-jfr` |
+| `autoAnalysisPending` is true | `jvm_autoAnalysis` with `compute: true` if the reader wants the rules now; the other families answer either way |
+
+Run more than one route when the summary points at more than one. They are independent.
+
 ## 2. Pick the family that matches the question
 
 | Family | Tools |
@@ -313,6 +333,15 @@ ways to reach it:
 
 The `advise-jfr` skill carries the full profile-to-code-change workflow.
 
+## Write it up
+
+The `report` skill defines the shape of a finding — symptom, the tool call and its figures,
+interpretation, recommendation, confidence — and the rules that decide whether the report is
+usable: every number names the call that produced it, shares say what they are a share of, counts
+become rates against the recording length, sampled and rule-based evidence is capped at medium
+confidence, and what the profile could not answer goes in its own **Not assessed** section rather
+than passing as a clean result. Follow it for anything the user reads.
+
 ## When something fails
 
 - `Profile … has no heap dump` → it is a JFR recording; stay with `jfr_`, `flamegraph_`, `traces_`.
@@ -331,4 +360,4 @@ The `advise-jfr` skill carries the full profile-to-code-change workflow.
 
 Related skills: `analyze-heap` for a heap dump, `compare-jfr` when there is a before and an after
 to weigh against each other, `jfr-sql` for raw SQL against the profile, `advise-jfr` to go from a
-hotspot to an edit in this repository.
+hotspot to an edit in this repository, `report` for the shape every finding is written in.

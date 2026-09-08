@@ -85,7 +85,7 @@ comparable, say why and either re-record or stop.
 `compare_movements` ranks what grew and what shrank; `compare_flamegraph` shows where in the call
 tree. Use `useWeight: true` when comparing allocation or lock time rather than sample counts.
 
-Report:
+Report, in the `report` skill's shape:
 
 - **The verdict first** — slower, faster, or indistinguishable — and the figure it rests on.
 - **Where**, as a frame with its share on each side.
@@ -105,4 +105,5 @@ hunting until something fits.
   confident that makes it.
 
 Related skills: `profile-run` for the recording flags, `compare-jfr` for reading a pair that already
-exists, `advise-jfr` for turning a confirmed regression into a fix.
+exists, `advise-jfr` for turning a confirmed regression into a fix, `report` for how the verdict and
+its uncertainty are written down.

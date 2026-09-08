@@ -59,7 +59,7 @@ class AutoAnalysisManagerImplTest {
     private final ProfileCacheRepository cacheRepository = mock(ProfileCacheRepository.class);
 
     private static AutoAnalysisResult result(String rule, Severity severity) {
-        return new AutoAnalysisResult(rule, severity, "explanation", "summary", "solution", "50");
+        return new AutoAnalysisResult(rule, severity, "explanation", "summary", "solution", "50", "garbage_collection");
     }
 
     private AutoAnalysisManagerImpl manager(

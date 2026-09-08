@@ -19,11 +19,16 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileCapabilityGaps.CapabilityGap;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisFindings;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.mcp.finding.McpFinding;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
@@ -117,10 +122,18 @@ public class ProfileMcpTools {
 
     private final ProfileManager profileManager;
     private final RecordingCommitResolver recordingCommitResolver;
+    private final ProfileCapabilityGaps capabilityGaps;
 
-    public ProfileMcpTools(ProfileManager profileManager, RecordingCommitResolver recordingCommitResolver) {
+    public ProfileMcpTools(
+            ProfileManager profileManager,
+            RecordingCommitResolver recordingCommitResolver,
+            JfrFlamegraphPanelProvider jfrPanelProvider,
+            StackSampleFlamegraphPanelProvider stackSamplePanelProvider) {
+
         this.profileManager = profileManager;
         this.recordingCommitResolver = recordingCommitResolver;
+        this.capabilityGaps = new ProfileCapabilityGaps(
+                profileManager, new FlamegraphCatalog(profileManager, jfrPanelProvider, stackSamplePanelProvider));
     }
 
     @Tool(description = "Details of one profile: its identity, the recording window it covers, how "
@@ -147,14 +160,17 @@ public class ProfileMcpTools {
                 UiLinks.profile(info.id())));
     }
 
-    @Tool(description = "What this profile can answer: which analysis features it has the data for, and "
-            + "every event type it recorded with its sample and weight totals. Call this after "
-            + "profiles_list to learn whether a profile carries traces, a heap dump or the "
+    @Tool(description = "What this profile can answer: which analysis features it has the data for, "
+            + "every event type it recorded with its sample and weight totals, and capabilityGaps — "
+            + "in words, what this recording cannot answer and which tools that leaves empty. Call "
+            + "this after profiles_list to learn whether a profile carries traces, a heap dump or the "
             + "instrumentation dashboards before asking for them.")
     public String features() {
+        List<FeatureType> disabled = disabledFeatures();
         return McpToolOutput.json(new ProfileCapabilities(
-                disabledFeatures().stream().map(Enum::name).sorted().toList(),
-                recordedEventTypes()));
+                disabled.stream().map(Enum::name).sorted().toList(),
+                recordedEventTypes(),
+                capabilityGaps.gaps(disabled)));
     }
 
     private List<RecordedEventType> recordedEventTypes() {
@@ -189,13 +205,17 @@ public class ProfileMcpTools {
 
     @Tool(description = "One call that orients you in a profile: what it is and what it covers, which "
             + "analysis features it has data for, every event type it recorded with its totals, "
-            + "whether the samples can be trusted, and the auto-analysis findings when they have been "
-            + "computed. Start here rather than with profiles_get, profiles_features and "
-            + "profiles_samplerHealth in turn — this is those three and the findings, and what it "
-            + "reports decides which family answers the question.")
+            + "the auto-analysis findings that flagged something when they have been computed, and "
+            + "capabilityGaps — in words, every question this recording cannot answer and which "
+            + "tools that leaves empty. Start here rather than with profiles_get, profiles_features "
+            + "and profiles_samplerHealth in turn — this is those three and the findings, and what "
+            + "it reports decides which family answers the question. Read capabilityGaps before "
+            + "believing any negative result: a question the recording never captured is not a "
+            + "clean one.")
     public String summary() {
         ProfileInfo info = profileManager.info();
-        List<AutoAnalysisResult> findings = profileManager.autoAnalysisManager().analysisResults();
+        List<AutoAnalysisResult> results = profileManager.autoAnalysisManager().analysisResults();
+        List<FeatureType> disabled = disabledFeatures();
 
         return LinkedOutput.json(new ProfileSummary(
                 info.id(),
@@ -203,10 +223,13 @@ public class ProfileMcpTools {
                 info.eventSource().name(),
                 info.profilingStartedAt() == null ? null : info.profilingStartedAt().toEpochMilli(),
                 info.profilingFinishedAt() == null ? null : info.profilingFinishedAt().toEpochMilli(),
-                disabledFeatures().stream().map(Enum::name).sorted().toList(),
+                disabled.stream().map(Enum::name).sorted().toList(),
                 recordedEventTypes(),
-                findings.stream().limit(TOP_FINDINGS_LIMIT).map(Finding::of).toList(),
-                findings.isEmpty(),
+                AutoAnalysisFindings.flagged(results).stream().limit(TOP_FINDINGS_LIMIT).toList(),
+                // Whether the cache key is present, not whether the list is: a run that flagged nothing
+                // caches an empty list, and read the other way it is indistinguishable from no run.
+                !profileManager.autoAnalysisManager().isComputed(),
+                capabilityGaps.gaps(disabled),
                 UiLinks.profile(info.id())));
     }
 
@@ -273,14 +296,22 @@ public class ProfileMcpTools {
         return disabled;
     }
 
+    /**
+     * @param capabilityGaps what this recording cannot answer, in words, with what would close each gap
+     */
     private record ProfileCapabilities(
             List<String> disabledFeatures,
-            List<RecordedEventType> eventTypes) {
+            List<RecordedEventType> eventTypes,
+            List<CapabilityGap> capabilityGaps) {
     }
 
     /**
-     * @param autoAnalysisComputed false when nothing has run the rule set yet, which is why findings is
-     *                             empty — different from a profile the rules found nothing wrong with
+     * @param topFindings         the auto-analysis rules that flagged something, most severe first, in
+     *                            the shared finding shape — the passes are left to jvm_autoAnalysis
+     * @param autoAnalysisPending true when nothing has run the rule set yet, which is why topFindings
+     *                            is empty — different from a profile the rules found nothing wrong with
+     * @param capabilityGaps      what this recording cannot answer, in words, with what would close
+     *                            each gap — read before any negative result is believed
      */
     private record ProfileSummary(
             String profileId,
@@ -290,16 +321,10 @@ public class ProfileMcpTools {
             Long finishedAtMillis,
             List<String> disabledFeatures,
             List<RecordedEventType> eventTypes,
-            List<Finding> topFindings,
+            List<McpFinding> topFindings,
             boolean autoAnalysisPending,
+            List<CapabilityGap> capabilityGaps,
             String uiLink) {
-    }
-
-    private record Finding(String rule, String severity, String summary) {
-
-        static Finding of(AutoAnalysisResult result) {
-            return new Finding(result.rule(), result.severity().name(), result.summary());
-        }
     }
 
     private record SamplerHealth(

@@ -139,7 +139,10 @@ public class McpToolsetAssembler {
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
                 new ProfileScopedToolset<>(ProfileMcpTools.class, PREFIX_PROFILES,
                         profileId -> new ProfileMcpTools(
-                                profileManager(contextCache, profileId), recordingCommitResolver)),
+                                profileManager(contextCache, profileId),
+                                recordingCommitResolver,
+                                jfrPanelProvider,
+                                stackSamplePanelProvider)),
                 new ProfileScopedToolset<>(EventTypeMcpTools.class, PREFIX_JFR,
                         profileId -> new EventTypeMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(DuckDbMcpTools.class, PREFIX_JFR,

@@ -26,6 +26,7 @@ skills:
   - analyze-jfr
   - analyze-heap
   - compare-jfr
+  - report
 color: orange
 ---
 
@@ -64,7 +65,10 @@ Do the reading yourself, and never spawn another agent.
 ## What you return
 
 Findings only, in the units the export used, so a reader who never sees the document can check
-every claim against it. Keep it under roughly forty lines.
+every claim against it. Keep it under roughly forty lines. The `report` skill is preloaded and its
+rules hold here in full — every figure names its call, shares say what they are a share of,
+sampled and rule-based evidence is capped at medium confidence, and what the profile could not
+answer is returned under **Not assessed** rather than left out.
 
 For a flamegraph or trace:
 

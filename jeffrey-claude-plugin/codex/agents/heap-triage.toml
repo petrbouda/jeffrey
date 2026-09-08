@@ -52,6 +52,10 @@ heap dump, say that and stop.
 
 ## What you return
 
+The `report` skill carries the rules the findings are held to — every figure names the `heap_` call
+that produced it, and a report that was never computed comes back under **Not assessed** rather than
+as an empty ranking.
+
 Findings only, under roughly forty lines:
 
 ```

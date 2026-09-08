@@ -120,11 +120,15 @@ both) and not the case for a Jeffrey in a container or on another host.
   re-profile on request
 - `jfr-sql` — the JFR schema and the DuckDB idioms that go with it
 - `heap-sql` — the heap-dump index schema
+- `report` — the shape every finding is written in, and the evidence rules behind it: every figure
+  names its tool call, shares say what they are a share of, sampled and rule-based evidence is
+  capped at medium confidence, and what the recording could not answer is reported apart from the
+  findings
 
 The exports carry their own reading instructions, so the skills stay short: they cover the
 workflows and the two schemas, not things the tool output already explains.
 
-**Two agents.** `profile-analyst` is the general one. A single flamegraph export can run to 120,000 characters,
+**Three agents.** `profile-analyst` is the general one. A single flamegraph export can run to 120,000 characters,
 and a question usually takes several. The analyst runs a sequence and returns only the findings — the
 hot frames with their shares, or the retaining classes with their GC-root paths — leaving everything
 it read in its own context. The skills hand it the reading and keep what needs your conversation:
@@ -134,16 +138,25 @@ mapping frames onto the checkout, the recommendation, and every question put to 
 route, and will build a missing dominator tree or report with `heap_prepare` rather than reporting an
 empty result.
 
-Claude Code gets them from the plugin as `microscope:profile-analyst` and `microscope:heap-triage`,
-restricted to the reading tools so they cannot touch your files, import a recording, pull one off a
-hub, move your editor or propose an edit. **Agent Plugins
-defines only skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
-[`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml) and
-[`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) to `~/.codex/agents/` instead. Those
-versions are sandboxed read-only, but their tool restriction is instruction-level rather than
+`profile-lead` is for the open-ended question — "why is this service slow", "review this recording" —
+where nobody has said which dimension to look at. It triages from `profiles_summary` itself, reads
+the capability gaps before anything else, dispatches `profile-analyst` and `heap-triage` only for
+the dimensions the summary justifies and all at once, then merges what comes back: findings carry a
+stable id, so the same condition reported twice collapses into one, ranked by share of wall clock,
+of samples or of the heap. It holds the orientation tools and the two specialists, and no export
+tool of its own.
+
+Claude Code gets them from the plugin as `microscope:profile-analyst`, `microscope:heap-triage` and
+`microscope:profile-lead`, restricted to the reading tools so they cannot touch your files, import
+a recording, pull one off a hub, move your editor or propose an edit. **Agent Plugins defines only
+skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
+[`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml),
+[`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) and
+[`codex/agents/profile-lead.toml`](codex/agents/profile-lead.toml) to `~/.codex/agents/` instead.
+Those versions are sandboxed read-only, but their tool restriction is instruction-level rather than
 enforced.
 
-**Prompts and resources.** The server also serves the nine skills over the protocol itself, as MCP
+**Prompts and resources.** The server also serves the ten skills over the protocol itself, as MCP
 prompts — the same files the plugin ships, copied onto the server's classpath when it is built, so
 the two cannot drift. A client that cannot install a plugin (Cursor, VS Code, Kiro, anything
 registered by hand) gets them through `prompts/list` and `prompts/get` rather than being left with
@@ -209,13 +222,15 @@ jeffrey-claude-plugin/
 ├── .codex-plugin/
 │   └── plugin.json           Codex-native manifest, pointing at the same skills and mcp.json
 ├── hooks/                    SessionStart check — is Jeffrey actually serving (Claude Code only)
-├── skills/                   Nine skills, read by both formats
+├── skills/                   Ten skills, read by both formats
 ├── agents/
 │   ├── profile-analyst.md    Claude Code subagent
-│   └── heap-triage.md        …and the heap specialist
+│   ├── heap-triage.md        …the heap specialist
+│   └── profile-lead.md       …and the lead that triages, dispatches the two and merges their findings
 └── codex/agents/
     ├── profile-analyst.toml  The same agents as Codex custom agents, installed by hand
-    └── heap-triage.toml
+    ├── heap-triage.toml
+    └── profile-lead.toml
 ```
 
 The directory keeps its `jeffrey-claude-plugin` name so existing installs and marketplace entries

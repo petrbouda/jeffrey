@@ -128,6 +128,10 @@ A dump shows a state, not a trend. One dump cannot distinguish a leak from a lar
   say which of the two you are claiming, and ask for a second dump taken later when it matters.
 - If the repository is open alongside, read the real source of the retaining field before naming
   a cause. Do not infer a code path from a class name.
+- Write it up in the `report` skill's shape: class name, retained bytes and the GC-root path
+  together as the evidence, the `heap_` call that produced each figure, and a **Not assessed**
+  section for every report that was not computed rather than an empty ranking passed off as
+  "nothing retains memory".
 
 ## When something fails
 

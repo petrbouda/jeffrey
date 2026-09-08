@@ -18,11 +18,18 @@
 
 package cafe.jeffrey.profile.common.analysis;
 
+/**
+ * @param topic the JMC rule topic the rule belongs to — {@code garbage_collection}, {@code exceptions},
+ *              {@code lock_instances} — which is what groups findings by subsystem and routes a reader
+ *              to the dashboard that carries the figures. Null for a result cached before the field
+ *              existed
+ */
 public record AutoAnalysisResult(
         String rule,
         Severity severity,
         String explanation,
         String summary,
         String solution,
-        String score) implements AnalysisResult {
+        String score,
+        String topic) implements AnalysisResult {
 }
