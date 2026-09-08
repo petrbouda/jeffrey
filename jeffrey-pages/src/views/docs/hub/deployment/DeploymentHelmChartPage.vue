@@ -281,13 +281,12 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         :code="serverImage"
       />
 
-      <p>Three lines of <code>application.properties</code> activate <code>copy-libs</code>:</p>
+      <p>Two lines of <code>application.properties</code> activate <code>copy-libs</code>:</p>
 
       <DocsCodeBlock
         language="properties"
         code="jeffrey.hub.copy-libs.enabled=true
-jeffrey.hub.home.dir=\${JEFFREY_HOME}
-spring.profiles.include=trace-file-log"
+jeffrey.hub.home.dir=\${JEFFREY_HOME}"
       />
 
       <p>The Service exposes both protocols on a single ClusterIP:</p>
