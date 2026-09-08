@@ -262,7 +262,7 @@ class ExternalMcpControllerTest {
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.result.prompts[*].name").asArray()
-                    .contains("analyze-jfr", "analyze-heap", "compare-jfr");
+                    .contains("analyze-jfr", "analyze-heap", "compare-jfr", "report");
         }
 
         @Test

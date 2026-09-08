@@ -201,9 +201,10 @@ jeffrey/
 │   ├── .codex-plugin/plugin.json      # Codex-native manifest, pointing at the same skills and mcp.json
 │   ├── hooks/                         # SessionStart check — is Jeffrey actually serving (Claude Code only)
 │   ├── skills/                        # analyze-jfr, analyze-heap, analyze-hub, compare-jfr, profile-run,
-│   │                                  #   regression-check, advise-jfr, jfr-sql, heap-sql — also served as MCP prompts
-│   ├── agents/                        # profile-analyst and heap-triage — read an export, return only the findings
-│   └── codex/agents/                  # The same two agents as Codex TOMLs, installed by hand
+│   │                                  #   regression-check, advise-jfr, jfr-sql, heap-sql, report — also served as MCP prompts
+│   ├── agents/                        # profile-analyst and heap-triage read an export and return only the findings;
+│   │                                  #   profile-lead triages, dispatches those two and merges what they return
+│   └── codex/agents/                  # The same three agents as Codex TOMLs, installed by hand
 ├── .claude-plugin/marketplace.json    # Makes the repo a Claude Code plugin marketplace
 ├── .agents/plugins/marketplace.json   # …and a Codex one; Codex reads either
 ├── jeffrey-intellij-plugin/           # The IntelliJ companion — standalone Gradle build, never
@@ -433,7 +434,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
 - AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
-- **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside coding agent — an interactive Claude Code or Codex session in the developer's own repository — calls *in* and reads every analysed profile. Its analysis tools are read-only; the six that are not (`recordings_analyzeFile`, `recordings_analyzeRecording`, `heap_prepare`, `hubs_download`, `ide_link`, `ide_open`) create profiles or caches, pull a recording off another machine, or act on the developer's editor, rather than changing an analysed profile — each declaring it through its own `readOnlyHint` rather than inheriting its family's. Two have properties of their own — `jeffrey.microscope.mcp.hubs.enabled` and `jeffrey.microscope.mcp.ide.enabled` — because they are the two that reach outside this server: `hubs_` off the machine Jeffrey runs on, `ide_` into the IntelliJ running beside it. `ide_` is what closes the loop the exports leave open, answering where a frame lives from the IDE's own indexes rather than from a grep; `ide_resolve` deliberately does not move the editor, which `ide_open` does. Its protocol layer is `profiles/mcp-server`, and it also serves the skills as MCP prompts and the profile catalogue as MCP resources, so a client that cannot install a plugin is not left with a hundred tools and no account of how to use them. It is packaged as the `microscope` plugin, which carries a Claude Code manifest (`/plugin install microscope@jeffrey`) and an [Agent Plugins](https://agent-plugins.org/) one (`codex plugin marketplace add petrbouda/jeffrey`) over one set of skills. Two things do not survive the portable format — a user-configurable endpoint URL and the subagents — so a Codex user gets a fixed `localhost:8585` and hand-copied `codex/agents/profile-analyst.toml` and `codex/agents/heap-triage.toml`
+- **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside coding agent — an interactive Claude Code or Codex session in the developer's own repository — calls *in* and reads every analysed profile. Its analysis tools are read-only; the six that are not (`recordings_analyzeFile`, `recordings_analyzeRecording`, `heap_prepare`, `hubs_download`, `ide_link`, `ide_open`) create profiles or caches, pull a recording off another machine, or act on the developer's editor, rather than changing an analysed profile — each declaring it through its own `readOnlyHint` rather than inheriting its family's. Two have properties of their own — `jeffrey.microscope.mcp.hubs.enabled` and `jeffrey.microscope.mcp.ide.enabled` — because they are the two that reach outside this server: `hubs_` off the machine Jeffrey runs on, `ide_` into the IntelliJ running beside it. `ide_` is what closes the loop the exports leave open, answering where a frame lives from the IDE's own indexes rather than from a grep; `ide_resolve` deliberately does not move the editor, which `ide_open` does. Its protocol layer is `profiles/mcp-server`, and it also serves the skills as MCP prompts and the profile catalogue as MCP resources, so a client that cannot install a plugin is not left with a hundred tools and no account of how to use them. It is packaged as the `microscope` plugin, which carries a Claude Code manifest (`/plugin install microscope@jeffrey`) and an [Agent Plugins](https://agent-plugins.org/) one (`codex plugin marketplace add petrbouda/jeffrey`) over one set of skills. Two things do not survive the portable format — a user-configurable endpoint URL and the subagents — so a Codex user gets a fixed `localhost:8585` and hand-copied `codex/agents/profile-analyst.toml`, `codex/agents/heap-triage.toml` and `codex/agents/profile-lead.toml`. The two tools that judge rather than report — `jvm_autoAnalysis` and the throttling verdict in `jvm_container` — emit one shared finding record (`McpFinding` in `profiles/mcp-server`, id `category:subject` so the same condition from two tools merges, with `source`, `evidence` and `nextTool`); `profiles_summary` leads with the rules that flagged something and carries `capabilityGaps`, the questions a recording cannot answer in words, assembled by `ProfileCapabilityGaps` from the disabled features, the unrecorded flamegraph groups, the `jvm_` sections with no events, the sampler's dropped samples and an auto-analysis that never ran. The `report` skill is the evidence discipline every other skill and all three agents write to
 
 ## IntelliJ Plugin
 
@@ -531,27 +532,28 @@ Icons are hand-authored inline SVG in `web/PanelSvg`, and that is forced rather 
 while reaching into `AllIcons` by resource path would pin the plugin to internal paths that move.
 
 The auto-analysis findings are **titled by the rule that fired** — `GC Pauses`, `Thrown Errors` —
-which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`garbage_collection`,
-`exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
-category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
+which arrives on `Finding.rule` already. JMC's `IRule.getTopic()` (`garbage_collection`,
+`exceptions`, `lock_instances`) now rides along on `AutoAnalysisResult.topic`, where it is the
+category an `McpFinding` merges on and what picks its `nextTool`, and the Auto Analysis page filters
+by. The **IDE response deliberately does not carry it**: the panel's allowance is one line per
+finding, and a grouping header is the structure that allowance exists to refuse.
 
-They also **arrive after the profile does**. `ProfileInitStages.WARMUP` starts the rule set and does
-not wait for it — "the stage covers starting them, not finishing them" — so a recording reaches READY
-with its findings still in flight, and the panel that asked once painted that gap as *never computed*
-for the life of the tab. It now draws the **same callout the two pipelines use** — spinner, *Running
-the analysis rules*, and a bar left **indeterminate**, because there are no stages to count and a
-determinate one would sit frozen at zero for the whole wait (`waitingCallout`, a sibling of
-`progressCallout` rather than a nullable `PipelineBuild` threaded through it). It is the one callout
-with no action: the only button worth offering would start the run already going. Meanwhile the panel
-re-asks `by-path` every three seconds, for three minutes, until `RecordingState.awaitingAnalysis()`
-stops holding. What makes that terminable is on the
-Microscope side: `analysisComputed` is `AutoAnalysisManager.isComputed()` — whether the cache key is
-**present** — rather than whether the findings list is non-empty, because a run that flagged nothing
-caches an empty list and read the old way is indistinguishable from a run that never happened. That
-recording now reads `Nothing flagged.`, and `analysisPossible` (from `canGenerate()`) is what
-separates a wait from a recording whose file is gone, which keeps the old sentence and its link. A
-Microscope too old to send the field defaults it to false, so the panel behaves as it always did
-rather than waiting on an answer that will never come.
+They **arrive with the profile**, and the panel therefore draws them once and never polls. Microscope
+starts the rule set **before the parse** rather than after it
+(`ProfileDataInitializer.startAutoAnalysis`, joined and cached by the warming stage), because the JMC
+toolkit reads the recording file and nothing the parse writes: the import costs the longer of the two
+passes instead of both, and a profile that answers at all answers with its findings. The wait that
+used to sit here — `awaitingAnalysis()`, a three-second `by-path` poll for three minutes, and an
+indeterminate `waitingCallout` — is **gone**, and removing it was the point rather than a tidy-up: a
+ready profile with no findings no longer means a run in flight, so the spinner would have been a lie
+that never resolved.
+What is left is two flags and three sentences. `analysisComputed` is `AutoAnalysisManager.isComputed()`
+— whether the cache key is **present** — rather than whether the findings list is non-empty, because a
+run that flagged nothing caches an empty list and read the other way is indistinguishable from a run
+that never happened; that recording reads `Nothing flagged.` `analysisPossible` (from `canGenerate()`)
+then separates a rule set that **failed**, which the panel offers to run again, from a recording
+Microscope no longer has, where it says so and offers nothing — the one case where *Run it in
+Microscope* would be a button that cannot work.
 
 The header well draws the **flame for a recording and an object graph for a heap dump** (`PanelSvg`
 key `heap`, `JeffreyIcons.HEAP_DUMP` on the Swing side), decided by `RecordingState.isHeapDumpFile()`

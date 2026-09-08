@@ -61,8 +61,13 @@ public final class ProfileInitStages {
     public static final String CHECKPOINT = "checkpoint";
 
     /**
-     * Starts the thread bands and the auto analysis. The stage covers starting them, not
-     * finishing them: they are caches, and the profile is usable without them.
+     * Waits for the thread bands and the auto analysis, and writes the findings the analysis
+     * produced.
+     * <p>
+     * The stage covers finishing them, not merely starting them, so a profile that exists at all has
+     * the views a reader expects to find already there. What it actually waits for is small: the
+     * rule set was started before {@link #PARSE} rather than after this stage, because it reads the
+     * recording file and not the database, so by the time the parse is done it usually is too.
      */
     public static final String WARMUP = "warmup";
 

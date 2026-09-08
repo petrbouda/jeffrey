@@ -106,6 +106,14 @@ of the change.
 - **This is one event type's distribution, not a benchmark.** A CPU profile that shifted work into
   a shorter path may still have regressed end-to-end latency. Nothing here measures wall-clock
   improvement of the application; do not claim it did.
+- **Nothing moved is a result too.** When `compare_movements` ranks nothing above the pruning
+  threshold, report exactly that — "no movement above the threshold on this event type" — and not
+  that the two builds perform identically: a change smaller than run-to-run variance is invisible
+  to this method, and the report says so.
+
+Write the result in the `report` skill's shape: the comparability verdict first, then each movement
+with the `compare_movements` call and its figures, the confidence the comparability notes allow, and
+the two profile ids with which one was the baseline.
 
 ## 6. Tie it back to the change
 
@@ -136,4 +144,5 @@ discussed turn by turn.
   candidate renames, before believing it.
 
 Related skills: `analyze-jfr` for a single profile, `advise-jfr` to turn a located regression into
-an edit, `jfr-sql` for raw SQL against either profile.
+an edit, `jfr-sql` for raw SQL against either profile, `report` for the shape the result is written
+in.

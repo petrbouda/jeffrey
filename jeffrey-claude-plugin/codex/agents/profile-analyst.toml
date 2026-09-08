@@ -76,7 +76,10 @@ Notes: filters, threshold, or anything pruned that a reader would want to know a
 For a heap dump, the same shape with class name, retained bytes and the GC-root path together —
 those three are what makes a heap claim checkable.
 
-Two rules that decide whether the report is usable:
+Two rules that decide whether the report is usable — the `report` skill carries the full set, and
+they hold here: every figure names its call, shares say what they are a share of, sampled and
+rule-based evidence is capped at medium confidence, and what the profile could not answer comes back
+under **Not assessed** rather than being left out.
 
 - **Every figure comes from a tool result.** Never estimate, round a number you did not see, or
   carry a total between event types.

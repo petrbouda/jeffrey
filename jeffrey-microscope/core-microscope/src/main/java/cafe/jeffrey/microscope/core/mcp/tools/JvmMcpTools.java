@@ -141,27 +141,13 @@ public class JvmMcpTools {
 
     public JvmMcpTools(ProfileManager profileManager) {
         this.profileManager = profileManager;
-        // Two of the sections answer more than "render me": auto analysis reports whether it has been
-        // computed at all, and configuration is asked for one tab at a time. They are built here and
-        // handed to the registry so there is one instance of each, not one per caller.
-        this.autoAnalysisSection = new AutoAnalysisSection(profileManager);
-        this.configurationSection = new ConfigurationSection(profileManager);
-        this.gcDetailSection = new GcDetailSection(profileManager);
-
-        this.sections = new JvmSections(profileManager, List.of(
-                autoAnalysisSection,
-                new GcSection(profileManager),
-                gcDetailSection,
-                new SafepointsSection(profileManager),
-                new JitSection(profileManager),
-                new ThreadsSection(profileManager),
-                new NativeMemorySection(profileManager),
-                new ClassLoadingSection(profileManager),
-                new ExceptionsSection(profileManager),
-                new SystemSection(profileManager),
-                new SecuritySection(profileManager),
-                new ContainerSection(profileManager),
-                configurationSection));
+        this.sections = JvmSections.standard(profileManager);
+        // Three of the sections answer more than "render me": auto analysis reports whether it has
+        // been computed at all, and configuration and the GC detail are asked for one page at a time.
+        // They are taken from the registry rather than built again so there is one instance of each.
+        this.autoAnalysisSection = sections.get(AutoAnalysisSection.ID, AutoAnalysisSection.class);
+        this.configurationSection = sections.get(ConfigurationSection.ID, ConfigurationSection.class);
+        this.gcDetailSection = sections.get(GcDetailSection.ID, GcDetailSection.class);
     }
 
     @Tool(description = "Which machine-level dashboards this profile can answer — garbage collection, "

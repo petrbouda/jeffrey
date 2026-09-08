@@ -102,10 +102,10 @@ public class PanelHtmlTest {
     }
 
     @Test
-    public void saysAnalysisIsNotComputedRatherThanShowingNothingWrong() {
-        String html = PanelHtml.details(ready(List.of()), FILE, URL);
+    public void saysAnalysisDidNotRunRatherThanShowingNothingWrong() {
+        String html = PanelHtml.details(withSummary(analysisMissing()), FILE, URL);
 
-        assertTrue(html.contains("Not computed for this profile yet."));
+        assertTrue(html.contains("The analysis rules did not run for this profile."));
         assertTrue(html.contains("Run it in Microscope"));
     }
 
@@ -202,24 +202,22 @@ public class PanelHtmlTest {
     }
 
     /**
-     * The fallback pane says what the other renderer's callout says, in one line. No box, no spinner
-     * and no bar -- Swing's HTML kit draws none of them -- but the same sentence, and no link, since
-     * the run it would offer is the one already going.
+     * The fallback pane says it in one line -- no box, no spinner and no bar, since Swing's HTML kit
+     * draws none of them -- and offers no run for a recording Microscope no longer has.
      */
     @Test
-    public void anAnalysisStillRunningSaysSoWithoutOfferingToStartIt() {
-        String html = PanelHtml.details(withSummary(awaitingAnalysis()), FILE, URL);
+    public void anAnalysisThatCannotRunOffersNothingToPress() {
+        String html = PanelHtml.details(ready(List.of()), FILE, URL);
 
-        assertTrue(html.contains("Running the analysis rules"));
-        assertTrue(html.contains("the tab updates itself when it is done"));
-        assertFalse(html.contains("Not computed for this profile yet."));
-        assertFalse("nothing to press while it runs", html.contains("Run it in Microscope"));
+        assertTrue(html.contains("Microscope no longer has the recording file."));
+        assertFalse(html.contains("The analysis rules did not run for this profile."));
+        assertFalse("there is no run to offer", html.contains("Run it in Microscope"));
     }
 
     // --- fixtures -----------------------------------------------------------------------------
 
-    /** A ready profile whose findings have not landed, and still can. */
-    private static RecordingState.ProfileSummary awaitingAnalysis() {
+    /** A ready profile whose rule set failed, and which can therefore be run again. */
+    private static RecordingState.ProfileSummary analysisMissing() {
         return new RecordingState.ProfileSummary(
                 RecordingState.Kind.RECORDING, "jeffrey-20260904-180108",
                 new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),

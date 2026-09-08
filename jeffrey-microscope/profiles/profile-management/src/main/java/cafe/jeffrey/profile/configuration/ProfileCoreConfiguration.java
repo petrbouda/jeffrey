@@ -50,6 +50,7 @@ import cafe.jeffrey.profile.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
+import cafe.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
 import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
 import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
@@ -70,7 +71,6 @@ import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -263,9 +263,10 @@ public class ProfileCoreConfiguration {
     }
 
     /**
-     * The blocking/concurrent switches are gone with the work itself: the warming no longer holds
-     * the profile back, so there is nothing left to decide about how long to wait for it. It runs on
-     * the bulk pool, which exists so an import cannot queue ahead of an interactive request.
+     * The import waits for the warming, so there is no blocking switch left to offer: what used to
+     * be the question -- how long to wait for a cache -- is answered by starting the expensive half
+     * of it alongside the parse instead of after it. It runs on the bulk pool, which exists so an
+     * import cannot queue ahead of an interactive request.
      */
     @Bean
     public ProfileDataInitializer profileDataInitializer(
@@ -273,9 +274,11 @@ public class ProfileCoreConfiguration {
 
         if (enabled) {
             return new ProfileDataInitializerImpl(
-                    profileDatabaseProvider, Schedulers.sharedBulkParallel());
+                    profileDatabaseProvider,
+                    Schedulers.sharedBulkParallel(),
+                    AutoAnalysisDataProvider::generate);
         } else {
-            return _ -> CompletableFuture.completedFuture(null);
+            return ProfileDataInitializer.disabled();
         }
     }
 }

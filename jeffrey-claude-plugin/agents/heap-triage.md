@@ -10,6 +10,7 @@ model: inherit
 skills:
   - analyze-heap
   - heap-sql
+  - report
 color: red
 ---
 
@@ -53,7 +54,9 @@ when you can name the causes and their sizes.
 
 ## What you return
 
-Findings only, under roughly forty lines, in the units the tools used:
+Findings only, under roughly forty lines, in the units the tools used, and by the `report` skill's
+rules — every figure names the `heap_` call that produced it, and a report that was never computed
+is returned under **Not assessed** rather than as an empty ranking:
 
 ```
 ## <what is holding the memory>

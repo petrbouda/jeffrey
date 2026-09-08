@@ -92,42 +92,35 @@ public class WebPanelHtmlTest {
         assertFalse("one finding must not read as plural", html.contains("1 findings"));
     }
 
-    /** The heading survives with the count dropped; a vanished section reads as a rendering bug. */
-    @Test
-    public void anUncomputedAnalysisKeepsItsHeadingAndOffersToRunIt() {
-        String html = document(withSummary(new RecordingState.ProfileSummary(
-                RecordingState.Kind.RECORDING, "profile",
-                new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
-                null, false, false, List.of(), List.of())));
-
-        assertTrue(html.contains("Auto-analysis"));
-        assertTrue(html.contains("Not computed for this profile yet."));
-        assertTrue(html.contains("data-action='view:auto-analysis'"));
-    }
-
     /**
-     * The gap between a profile being ready and its findings existing. Saying "not computed" there is
-     * wrong, and offering to run the analysis is worse: the run is already going.
+     * A run that failed. Microscope runs the rules alongside the parse and waits for them, so a ready
+     * profile without findings is not one that is still working — and the honest offer is another run.
+     * The heading survives with the count dropped; a vanished section reads as a rendering bug.
      */
     @Test
-    public void anAnalysisStillRunningSaysSoAndOffersNothingToPress() {
+    public void anUncomputedAnalysisKeepsItsHeadingAndOffersToRunIt() {
         String html = document(withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.RECORDING, "profile",
                 new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
                 null, false, true, List.of(), List.of())));
 
         assertTrue(html.contains("Auto-analysis"));
-        assertTrue(html.contains("Running the analysis rules"));
-        assertTrue("the same box the pipelines use", html.contains("class='callout'"));
-        assertTrue("the wait carries a spinner", html.contains("class='spin'"));
-        // Indeterminate on purpose: there are no stages to count, and the determinate bar would sit
-        // frozen at zero for the whole wait.
-        assertTrue(html.contains("<div class='prog'><i></i></div>"));
-        assertFalse("the bar cannot report a fraction it does not have", html.contains("prog det"));
-        assertFalse(html.contains("Not computed for this profile yet."));
-        // The section offers no link of its own -- the run it would start is already going. The
-        // auto-analysis tile in the grid below is a different thing and stays where it is.
-        assertFalse("nothing to press while it runs", html.contains("Run it in Microscope"));
+        assertTrue(html.contains("The analysis rules did not run for this profile."));
+        assertTrue(html.contains("data-action='view:auto-analysis'"));
+        assertFalse("nothing is running, so nothing spins", html.contains("class='callout'"));
+    }
+
+    /** A recording Microscope no longer has. There is no run left to offer, so none is offered. */
+    @Test
+    public void anAnalysisThatCannotRunOffersNothingToPress() {
+        String html = document(withSummary(new RecordingState.ProfileSummary(
+                RecordingState.Kind.RECORDING, "profile",
+                new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
+                null, false, false, List.of(), List.of())));
+
+        assertTrue(html.contains("Auto-analysis"));
+        assertTrue(html.contains("Microscope no longer has the recording file."));
+        assertFalse(html.contains("Run it in Microscope"));
     }
 
     /** A recording the rules cleared is a result, and used to be reported as an absence. */
@@ -140,8 +133,7 @@ public class WebPanelHtmlTest {
 
         assertTrue(html.contains("Nothing flagged."));
         assertTrue(html.contains("0 findings"));
-        assertFalse(html.contains("Not computed for this profile yet."));
-        assertFalse(html.contains("Running the analysis rules"));
+        assertFalse(html.contains("The analysis rules did not run"));
     }
 
     @Test

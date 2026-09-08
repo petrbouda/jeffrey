@@ -18,26 +18,64 @@
 
 package cafe.jeffrey.profile.manager.action;
 
+import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
 
+import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Warms the profile views that are expensive to compute and cheap to keep: the thread viewer's
- * and the Thread Viewer's bands. Both are cached in the profile's own database, so this only ever
- * decides <em>when</em> the work happens, never whether the view is available.
+ * Warms the views a profile is expected to have ready by the time anyone opens it.
  * <p>
- * That is why it does not block the profile from opening. The events are queryable before this
- * starts, and everything these views need is already written; warming them first only meant every
- * user waited for a thread-viewer frame tree before they could look at a flamegraph.
+ * The two halves are called at opposite ends of the import, and deliberately so. The JMC rule set
+ * reads the recording <em>file</em> and never the profile database, so it has nothing to wait for:
+ * {@link #startAutoAnalysis} launches it before the parse, and {@link #initialize} collects it after
+ * the database is written. The import therefore costs the longer of the two rather than both.
  */
 public interface ProfileDataInitializer {
 
     /**
-     * Starts warming the profile's cached views and returns immediately.
+     * Starts the JMC rule set over the recording file, before it has been parsed.
      *
-     * @return completes when every view has been warmed, or completes exceptionally if one failed.
-     * Callers that merely want the profile usable can ignore it; tests and progress reporting await it.
+     * @return the findings, or {@code null} when the rules were skipped or failed. Never completes
+     * exceptionally: the analysis is a cache, and a profile without it is a poorer profile rather
+     * than a failed import.
      */
-    CompletableFuture<Void> initialize(ProfileManager profileManager);
+    CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(ProfileInfo profileInfo, Path recordingPath);
+
+    /**
+     * Warms the remaining views and stores whatever {@link #startAutoAnalysis} produced.
+     *
+     * @param autoAnalysis the run started before the parse, joined here rather than started again
+     * @return completes when every view has been warmed and the findings are cached. The import
+     * pipeline waits for it, so that a profile which answers at all answers with its findings.
+     */
+    CompletableFuture<Void> initialize(
+            ProfileManager profileManager, CompletableFuture<List<AutoAnalysisResult>> autoAnalysis);
+
+    /**
+     * Warms nothing, for the installation that switched the warming off. Every view is computed on
+     * demand instead, so the first reader pays what the import would have.
+     */
+    static ProfileDataInitializer disabled() {
+        return new ProfileDataInitializer() {
+
+            @Override
+            public CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(
+                    ProfileInfo profileInfo, Path recordingPath) {
+
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletableFuture<Void> initialize(
+                    ProfileManager profileManager,
+                    CompletableFuture<List<AutoAnalysisResult>> autoAnalysis) {
+
+                return CompletableFuture.completedFuture(null);
+            }
+        };
+    }
 }

@@ -67,7 +67,8 @@ mcp_servers.jeffrey.enabled = false`;
 
 const agentInstall = `mkdir -p ~/.codex/agents
 cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
-cp jeffrey/jeffrey-claude-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
+cp jeffrey/jeffrey-claude-plugin/codex/agents/heap-triage.toml ~/.codex/agents/
+cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-lead.toml ~/.codex/agents/`;
 
 const approvalRule = `[mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"`;
@@ -127,7 +128,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The skills keep working either way &mdash; they name tools by the part after the prefix, and the server is still called <code>jeffrey</code>. Only the registration moves.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you every tool. The plugin adds the endpoint already configured, and <strong>nine skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
+      <p>Registering the server by hand gives you every tool. The plugin adds the endpoint already configured, and <strong>ten skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
       <ul>
         <li><code>$analyze-jfr</code> &mdash; where to start and which family answers which question</li>
         <li><code>$analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-four heap tools have to be run in</li>
@@ -143,7 +144,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>They are the same files Claude Code loads &mdash; both clients read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the skill directory is shared rather than duplicated. The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists. <code>/skills</code> lists what the session actually loaded.</p>
 
       <h2 id="the-analyst-agent">The Agents</h2>
-      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and answering a question properly often takes several. The <router-link to="/docs/microscope-mcp/agent">two agents</router-link> &mdash; <code>profile-analyst</code> for a profile, <code>heap-triage</code> for a heap dump &mdash; run a sequence and return only the findings &mdash; the hot frames with their <code>total</code> and <code>self</code> shares, or the retaining classes with their retained bytes and GC-root paths &mdash; leaving everything they read in their own context.</p>
+      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and answering a question properly often takes several. The <router-link to="/docs/microscope-mcp/agent">three agents</router-link> &mdash; <code>profile-analyst</code> for a profile, <code>heap-triage</code> for a heap dump, <code>profile-lead</code> to triage an open-ended question and dispatch those two &mdash; run a sequence and return only the findings &mdash; the hot frames with their <code>total</code> and <code>self</code> shares, or the retaining classes with their retained bytes and GC-root paths &mdash; leaving everything they read in their own context.</p>
 
       <p><strong>A Codex plugin cannot carry them.</strong> Agent Plugins defines exactly two component types, skills and MCP servers; agents are not among them. So the plugin ships both as files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />

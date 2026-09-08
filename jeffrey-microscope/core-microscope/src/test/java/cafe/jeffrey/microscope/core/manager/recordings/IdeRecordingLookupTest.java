@@ -394,7 +394,7 @@ class IdeRecordingLookupTest {
         when(profileManager.autoAnalysisManager().analysisResults()).thenReturn(List.of(
                 new AutoAnalysisResult(
                         "gc-pauses", Severity.WARNING, "3 pauses above 200 ms",
-                        "Long GC pauses", "Tune the collector", "341")));
+                        "Long GC pauses", "Tune the collector", "341", "garbage_collection")));
         when(profileManager.autoAnalysisManager().isComputed()).thenReturn(true);
         when(profileManager.autoAnalysisManager().canGenerate()).thenReturn(true);
         // Deep stubs answer null for an unstubbed List, and the disabled-features scan reads one.

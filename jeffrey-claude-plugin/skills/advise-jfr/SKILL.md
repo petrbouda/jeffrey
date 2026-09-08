@@ -139,10 +139,13 @@ Hold to these rules — they are what separates a recommendation from a guess:
 
 ## 5. Recommend, then stop
 
-Write the recommendation in this shape:
+Write the recommendation in this shape — it is the `report` skill's shape, with the code findings
+carrying the recommendation the analysis stage left out:
 
 - **Summary** — what dominates, across every source you read, in two or three sentences. Say which
-  evidence you used and which you skipped because the profile does not carry it.
+  evidence you used and which you skipped because the profile does not carry it — the
+  `capabilityGaps` from `profiles_summary` that touched the question belong here, as **not
+  assessed**, never as a negative result.
 - **Code findings.** One **`### <file>: <method>`** section each: the cause, why it is hot according
   to the profile (the frame and its share, the operation and its p95, the monitor and its blocked
   time — whichever measured it), and the proposed change in prose — minimal, behaviour-preserving,
@@ -153,6 +156,8 @@ Write the recommendation in this shape:
   as an edit would misrepresent both the fix and the risk. Give the setting, its current value, the
   evidence, and what to change it to.
 - **Not located** — hotspots that could not be mapped to this repository, if any.
+- **Confidence per finding**, with what caps it: sampled data, a lossy sampler
+  (`profiles_samplerHealth`), a rule that fired rather than a figure that was measured.
 
 Then ask which findings to apply, and wait for the answer. This is the gate.
 

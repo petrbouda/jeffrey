@@ -25,7 +25,11 @@ import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
 import cafe.jeffrey.profile.manager.ExceptionsManager;
+import cafe.jeffrey.profile.common.event.ContainerConfiguration;
 import cafe.jeffrey.profile.manager.ClassLoadingManager;
+import cafe.jeffrey.profile.manager.ContainerManager;
+import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
+import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
 import cafe.jeffrey.profile.manager.SystemResourcesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -67,6 +71,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -374,7 +379,7 @@ class JvmMcpToolsTest {
                     .thenReturn(List.of(new AutoAnalysisResult(
                             "Long GC Pauses", AnalysisResult.Severity.WARNING,
                             "Pauses above 100ms were observed", "GC pauses are long",
-                            "Consider a larger young generation", "78")));
+                            "Consider a larger young generation", "78", "garbage_collection")));
 
             String result = tools().autoAnalysis(true);
 
@@ -382,19 +387,115 @@ class JvmMcpToolsTest {
             assertTrue(result.contains("\"rule\":\"Long GC Pauses\""));
         }
 
+        /**
+         * The rules are reported in the shared finding shape: a stable id from the JMC topic and the
+         * rule, the tool that carries the figures, and the score as evidence — so a reader can merge
+         * them with what the dashboards say rather than re-parse prose.
+         */
         @Test
-        void returnsTheCachedFindingsWithTheirSeverity() {
+        void returnsTheCachedFindingsInTheSharedShape() {
             recorded();
             when(autoAnalysisManager.analysisResults()).thenReturn(List.of(new AutoAnalysisResult(
                     "Long GC Pauses", AnalysisResult.Severity.WARNING,
                     "Pauses above 100ms were observed", "GC pauses are long",
-                    "Consider a larger young generation", "78")));
+                    "Consider a larger young generation", "78", "garbage_collection")));
 
             String result = tools().autoAnalysis(null);
 
-            assertTrue(result.contains("\"rule\":\"Long GC Pauses\""));
-            assertTrue(result.contains("\"severity\":\"WARNING\""));
-            assertTrue(result.contains("\"findingCount\":1"));
+            assertTrue(result.contains("\"id\":\"garbage_collection:long-gc-pauses\""), result);
+            assertTrue(result.contains("\"severity\":\"WARNING\""), result);
+            assertTrue(result.contains("\"title\":\"GC pauses are long\""), result);
+            assertTrue(result.contains("\"source\":\"jvm_autoAnalysis\""), result);
+            assertTrue(result.contains("\"nextTool\":\"jvm_gc\""), result);
+            assertTrue(result.contains("\"rule\":\"Long GC Pauses\",\"score\":\"78\""), result);
+            assertTrue(result.contains("\"findingCounts\":{\"CRITICAL\":0,\"WARNING\":1,\"INFO\":0,\"OK\":0}"), result);
+        }
+
+        /**
+         * A rule with no events to run on did not pass. It is listed apart from the findings, so a
+         * reader never takes "not evaluated" for "checked and fine".
+         */
+        @Test
+        void listsTheRulesThatCouldNotRunApartFromTheFindings() {
+            recorded();
+            when(autoAnalysisManager.analysisResults()).thenReturn(List.of(
+                    new AutoAnalysisResult(
+                            "Allocated Classes", AnalysisResult.Severity.NA,
+                            "No allocation events", "Not applicable", null, null, "tlab"),
+                    new AutoAnalysisResult(
+                            "Thrown Errors", AnalysisResult.Severity.OK,
+                            "No errors were thrown", "No errors thrown", null, "0", "exceptions")));
+
+            String result = tools().autoAnalysis(null);
+
+            assertTrue(result.contains("\"notEvaluated\":[\"Allocated Classes\"]"), result);
+            assertTrue(result.contains("\"id\":\"exceptions:thrown-errors\""), result);
+            assertTrue(result.contains("\"severity\":\"OK\""), result);
+            assertFalse(result.contains("\"id\":\"tlab:allocated-classes\""), result);
+        }
+    }
+
+    /**
+     * The throttling verdict is the other judgement the surface makes on its own, so it comes back
+     * in the same finding shape as the rules — same id discipline, the counters as evidence.
+     */
+    @Nested
+    class Container {
+
+        private final ContainerManager containerManager = mock(ContainerManager.class);
+
+        private void throttling(ContainerCpuThrottlingData.Verdict verdict) {
+            recorded(EventTypeName.CONTAINER_CONFIGURATION);
+            when(profileManager.containerManager()).thenReturn(containerManager);
+            when(containerManager.configuration()).thenReturn(new ContainerConfigurationData(
+                    new ContainerConfiguration("cgroupv2", 100_000L, 200_000L, 1024L, 2L, 0L, -1L, -1L, 0L, 0L)));
+            when(containerManager.throttling()).thenReturn(new ContainerCpuThrottlingData(
+                    verdict,
+                    new ContainerCpuThrottlingData.Summary(1000, 250, 4200.0, 25.0, 80.0, 2.0, 100.0, 2L),
+                    List.of(),
+                    List.of()));
+        }
+
+        @Test
+        void reportsTheVerdictAsAFindingWithItsCounters() {
+            throttling(new ContainerCpuThrottlingData.Verdict(
+                    true, ContainerCpuThrottlingData.Severity.HIGH, "CPU throttled",
+                    "The scheduler throttled a quarter of the periods"));
+
+            String result = tools().container();
+
+            assertTrue(result.contains("\"id\":\"container:cpu-throttling\""), result);
+            assertTrue(result.contains("\"severity\":\"CRITICAL\""), result);
+            assertTrue(result.contains("\"source\":\"jvm_container\""), result);
+            assertTrue(result.contains("\"throttledPeriods\":250"), result);
+            assertTrue(result.contains("\"peakRatioPct\":80.0"), result);
+            assertTrue(result.contains("\"nextTool\":\"jvm_threads\""), result);
+            assertTrue(result.contains("\"action\":\"Compare the CPU limit"), result);
+        }
+
+        @Test
+        void reportsAPassAsAnOkFindingWithNoAction() {
+            throttling(new ContainerCpuThrottlingData.Verdict(
+                    false, ContainerCpuThrottlingData.Severity.NONE, "Not throttled", "No throttled periods"));
+
+            String result = tools().container();
+
+            assertTrue(result.contains("\"severity\":\"OK\""), result);
+            assertTrue(result.contains("\"action\":null"), result);
+        }
+
+        /**
+         * A verdict the data cannot support is not a finding of any severity: the recording lacks what
+         * the question needs, and the summary's capability gaps say so.
+         */
+        @Test
+        void reportsNoFindingWhenTheDataCannotSupportAVerdict() {
+            throttling(new ContainerCpuThrottlingData.Verdict(
+                    false, ContainerCpuThrottlingData.Severity.NOT_APPLICABLE, "Unknown", "No throttling events"));
+
+            String result = tools().container();
+
+            assertTrue(result.contains("\"findings\":[]"), result);
         }
     }
 

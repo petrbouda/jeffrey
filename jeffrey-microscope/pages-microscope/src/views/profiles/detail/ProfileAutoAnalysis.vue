@@ -97,12 +97,21 @@
                   <option value="INFO">Information</option>
                   <option value="OK">Passed</option>
                 </select>
+                <select
+                  v-if="topics.length > 1"
+                  v-model="topicFilter"
+                  class="form-select form-select-sm"
+                >
+                  <option value="">All Subsystems</option>
+                  <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
+                </select>
               </template>
             </TableToolbar>
           </template>
           <thead>
             <tr>
               <th class="col-rule">Rule</th>
+              <th class="col-topic">Subsystem</th>
               <th
                 class="col-score"
                 title="Severity score (0-100). Higher values indicate more significant findings."
@@ -134,6 +143,9 @@
                     <span class="rule-name">{{ rule.rule }}</span>
                   </div>
                 </td>
+                <td class="col-topic">
+                  <span class="topic-name">{{ topicLabel(rule.topic) }}</span>
+                </td>
                 <td class="col-score">
                   <div class="severity-bar-wrapper" v-if="parseScore(rule.score) != null">
                     <div class="severity-bar-track">
@@ -159,7 +171,7 @@
 
               <!-- Expandable Row Details -->
               <tr v-if="expandedRows.has(index)" class="details-row">
-                <td colspan="3" class="p-0">
+                <td colspan="4" class="p-0">
                   <div class="row-details">
                     <div class="details-grid">
                       <div v-if="rule.summary" class="detail-item">
@@ -228,8 +240,30 @@ const phase = ref<Phase>('idle');
 const errorMessage = ref('');
 
 const severityFilter = ref('');
+const topicFilter = ref('');
 const searchQuery = ref('');
 const expandedRows = ref<Set<number>>(new Set());
+
+/**
+ * The JMC topic as a reader would say it: garbage_collection reads Garbage Collection. Rules whose
+ * topic the recording did not carry are gathered under one label rather than dropped, so the filter
+ * can always account for every row.
+ */
+const UNCATEGORISED = 'Uncategorised';
+
+function topicLabel(topic: string | null | undefined): string {
+  if (!topic) {
+    return UNCATEGORISED;
+  }
+  return topic
+    .split(/[_\s]+/)
+    .filter(word => word.length > 0)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/** Every subsystem the rules actually reported on, so the filter never offers an empty selection. */
+const topics = computed(() => [...new Set(rules.value.map(rule => topicLabel(rule.topic)))].sort());
 
 const severityOrder: Record<string, number> = {
   WARNING: 0,
@@ -246,10 +280,17 @@ const filteredAndSortedRules = computed(() => {
     result = result.filter(r => r.severity === severityFilter.value);
   }
 
+  if (topicFilter.value) {
+    result = result.filter(r => topicLabel(r.topic) === topicFilter.value);
+  }
+
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(
-      r => r.rule.toLowerCase().includes(query) || r.summary?.toLowerCase().includes(query)
+      r =>
+        r.rule.toLowerCase().includes(query) ||
+        r.summary?.toLowerCase().includes(query) ||
+        topicLabel(r.topic).toLowerCase().includes(query)
     );
   }
 
@@ -547,7 +588,16 @@ function getSeverityColor(severity: string): string {
 }
 
 .rules-table .col-rule {
-  width: 50%;
+  width: 40%;
+}
+
+.rules-table .col-topic {
+  width: 180px;
+}
+
+.topic-name {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
 }
 
 .rule-cell {

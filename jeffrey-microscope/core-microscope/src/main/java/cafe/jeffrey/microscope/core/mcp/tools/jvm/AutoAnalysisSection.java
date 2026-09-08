@@ -20,41 +20,36 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.mcp.finding.McpFinding;
+import cafe.jeffrey.profile.mcp.finding.McpFindings;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * Jeffrey's Auto Analysis: the JMC rule set run over the whole recording, as a list of findings with
- * a severity, an explanation and a suggested fix.
+ * The JMC rule set over the whole recording, as findings in the shared shape.
  * <p>
- * The cheapest first question about any profile. A few dozen rules look at everything at once — the
- * collector, the compiler, safepoints, allocation, I/O, thread state, the recording's own settings —
- * and each finding names a subsystem to go and look at, which is what turns "analyse this profile"
- * from a guess about where to start into a ranked list.
- * <p>
- * Read from the profile's cache rather than computed here, deliberately. Generating it loads the
- * whole recording through the JMC toolkit, which is bounded neither in time nor in memory by anything
- * this server controls; an MCP call that quietly does that would be a poor trade for a tool whose
- * point is being cheap. The Auto Analysis page in the Jeffrey UI computes and caches it, and every
- * call afterwards is a cache read — the same arrangement the pre-computed heap-dump reports use.
+ * The rules are the one place in the surface that makes a judgement rather than reporting a figure,
+ * which is why their output is the shared finding record rather than a dashboard of its own: a
+ * reader merges it with what the dashboards say, by id, instead of re-parsing prose. A rule that
+ * could not run on this recording is listed apart from the findings, because "did not run" and
+ * "passed" must never read the same.
  */
 public record AutoAnalysisSection(ProfileManager profileManager) implements JvmSection {
 
     public static final String ID = "autoAnalysis";
-
     private static final String TITLE = "Auto Analysis";
 
-    /**
-     * The rules run over the recording file rather than over its parsed event types, so no particular
-     * event has to be present for the section to be answerable.
-     */
     private static final Set<Type> EVENT_TYPES = Set.of();
 
     private static final List<String> NEXT_STEPS = List.of(
-            "Each finding names a subsystem: follow it into the matching jvm_ section for the figures "
-                    + "rather than repeating the rule's suggestion as a conclusion.",
+            "Each finding names its category and a nextTool: follow it there for the figures rather than "
+                    + "repeating the rule's action as a conclusion. A rule applies fixed thresholds that "
+                    + "know nothing about this service's normal behaviour, so a fired rule is a lead.",
+            "notEvaluated lists the rules that had no events to run on. They did not pass — that part of "
+                    + "the recording cannot be assessed, and belongs in a report as such.",
             "The rules never read your source. Check a finding against the profile and the checkout before "
                     + "acting on it.");
 
@@ -80,46 +75,26 @@ public record AutoAnalysisSection(ProfileManager profileManager) implements JvmS
 
     @Override
     public Object render() {
-        List<Finding> findings = profileManager.autoAnalysisManager().analysisResults().stream()
-                .map(AutoAnalysisSection::finding)
-                .toList();
-
-        return new AutoAnalysisDashboard(findings.size(), findings);
+        List<AutoAnalysisResult> results = profileManager.autoAnalysisManager().analysisResults();
+        List<McpFinding> findings = AutoAnalysisFindings.findings(results);
+        return new AutoAnalysisDashboard(
+                McpFindings.countBySeverity(findings),
+                findings,
+                AutoAnalysisFindings.notEvaluated(results));
     }
 
-    /**
-     * Whether the analysis has been computed for this profile. False means nobody has opened the Auto
-     * Analysis page yet, not that the recording has nothing to report.
-     */
     public boolean isComputed() {
         return !profileManager.autoAnalysisManager().analysisResults().isEmpty();
     }
 
-    private static Finding finding(AutoAnalysisResult result) {
-        return new Finding(
-                result.rule(),
-                result.severity() == null ? null : result.severity().name(),
-                result.score(),
-                result.summary(),
-                result.explanation(),
-                result.solution());
-    }
-
-    private record AutoAnalysisDashboard(int findingCount, List<Finding> findings) {
-    }
-
     /**
-     * @param rule     the rule that fired, which is also the subsystem to follow up in
-     * @param severity how seriously the rule set took it, most severe first in the list
-     * @param solution what the rule suggests doing about it — a starting point to check against the
-     *                 profile, never a conclusion to repeat
+     * @param findingCounts how many findings of each severity, every severity present even at zero
+     * @param findings      every rule that reached a verdict, the passes included, ordered by severity
+     * @param notEvaluated  the rules the recording had no events for — gaps, not findings
      */
-    private record Finding(
-            String rule,
-            String severity,
-            String score,
-            String summary,
-            String explanation,
-            String solution) {
+    private record AutoAnalysisDashboard(
+            Map<String, Integer> findingCounts,
+            List<McpFinding> findings,
+            List<String> notEvaluated) {
     }
 }

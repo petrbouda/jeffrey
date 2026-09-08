@@ -163,6 +163,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. Six write, and no more: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code> and <code>heap_status</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families, the two that reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
 
+      <p id="findings"><strong>The two tools that judge share one finding shape.</strong> Almost everything here reports figures and routes; two tools go further and say something is wrong &mdash; <code>jvm_autoAnalysis</code>, the JMC rule set, and the throttling verdict in <code>jvm_container</code> &mdash; and both emit the same record rather than a shape of their own: <code>id</code> (<code>category:subject</code>, stable across tools, so the same condition reported twice collapses into one), <code>severity</code> (<code>CRITICAL</code>, <code>WARNING</code>, <code>INFO</code>, or <code>OK</code> for a check that ran and passed), <code>category</code>, <code>title</code>, <code>detail</code>, <code>source</code> (the tool that produced it), <code>evidence</code> (the figures it rests on), <code>action</code> (the source&rsquo;s suggestion, not a diagnosis) and <code>nextTool</code> (the call that carries the figures in full). <code>profiles_summary</code> leads with the ones that flagged something. A rule that had no events to run on is not a finding of any severity: it goes under <code>notEvaluated</code>, and the summary&rsquo;s <code>capabilityGaps</code> say what it would have needed.</p>
+
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
 
       <h2 id="family-map">Which Family Answers Your Question</h2>
@@ -306,7 +308,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><code>profiles_summary</code></td>
             <td><code>profileId</code></td>
-            <td>What one profile is, what it can answer, every event type it recorded and the top auto-analysis findings &mdash; <code>profiles_get</code>, <code>features</code> and <code>samplerHealth</code> in one call. The orienting question, in one round trip instead of four</td>
+            <td>What one profile is, what it can answer, every event type it recorded, the auto-analysis rules that flagged something (as <a href="#findings">findings</a>) and <code>capabilityGaps</code> &mdash; in words, every question this recording cannot answer, which tools that leaves empty, and what would close each gap next time. <code>profiles_get</code>, <code>features</code> and <code>samplerHealth</code> in one call: the orienting question, in one round trip instead of four. Read the gaps before believing any negative result</td>
           </tr>
           <tr>
             <td><code>profiles_get</code></td>
@@ -316,7 +318,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><code>profiles_features</code></td>
             <td><code>profileId</code></td>
-            <td>Which analysis features this profile has the data for, plus every event type recorded with sample counts</td>
+            <td>Which analysis features this profile has the data for, every event type recorded with sample counts, and the same <code>capabilityGaps</code> list the summary carries</td>
           </tr>
           <tr>
             <td><code>profiles_link</code></td>
@@ -517,7 +519,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><code>jvm_autoAnalysis</code></td>
             <td><code>profileId</code>, <code>compute?</code> (false)</td>
-            <td>Jeffrey&rsquo;s rule set over the recording &mdash; findings with a severity, an explanation and a suggested fix. Cached; <code>compute</code> runs it when nothing has, which reads the whole recording and is slow</td>
+            <td>Jeffrey&rsquo;s rule set over the recording, as <a href="#findings">findings</a>: every rule that reached a verdict, the passes included, plus <code>findingCounts</code> by severity and <code>notEvaluated</code> &mdash; the rules that had no events to run on, which did not pass. Cached; <code>compute</code> runs it when nothing has, which reads the whole recording and is slow</td>
           </tr>
           <tr>
             <td><code>jvm_gc</code></td>

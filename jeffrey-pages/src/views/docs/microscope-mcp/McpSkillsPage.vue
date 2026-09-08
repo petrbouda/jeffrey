@@ -37,6 +37,7 @@ const headings = [
   { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
+  { id: 'report', text: 'report', level: 2 },
   { id: 'the-analyst', text: 'The Agents They Delegate To', level: 2 },
   { id: 'invoking-one-directly', text: 'Invoking One Directly', level: 2 },
   { id: 'what-they-deliberately-omit', text: 'What They Deliberately Omit', level: 2 }
@@ -56,7 +57,8 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "did the last three commits regress performance?"        -> regression-check
 "what should I change in this repo to fix it?"           -> advise-jfr
 "how many events of each type are in the recording?"     -> jfr-sql
-"which threads still reference that classloader?"        -> heap-sql`;
+"which threads still reference that classloader?"        -> heap-sql
+"write up what you found"                                -> report`;
 
 const invoke = `# Claude Code
 /microscope:analyze-jfr
@@ -68,6 +70,7 @@ const invoke = `# Claude Code
 /microscope:advise-jfr
 /microscope:jfr-sql
 /microscope:heap-sql
+/microscope:report
 
 # Codex
 $analyze-jfr
@@ -78,7 +81,8 @@ $profile-run
 $regression-check
 $advise-jfr
 $jfr-sql
-$heap-sql`;
+$heap-sql
+$report`;
 
 const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?
 /microscope:advise-jfr 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
@@ -104,15 +108,15 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships nine skills and <router-link to="/docs/microscope-mcp/agent">two agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The plugin ships ten skills and <router-link to="/docs/microscope-mcp/agent">three agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
-      <p>The nine are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it may call, and a body:</p>
+      <p>The ten are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it may call, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
 
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
-      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the nine cover between them, and what each one needs before it can start.</p>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the ten cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">
         <thead>
           <tr>
@@ -166,6 +170,11 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <td>The heap tools do not answer it, and it needs raw SQL</td>
             <td><a href="#heap-sql"><code>heap-sql</code></a></td>
             <td>A heap dump, indexed</td>
+          </tr>
+          <tr>
+            <td>&ldquo;What did you find?&rdquo; &mdash; writing any of the above up for a reader</td>
+            <td><a href="#report"><code>report</code></a></td>
+            <td>An analysis one of the other skills has done</td>
           </tr>
         </tbody>
       </table>
@@ -534,10 +543,44 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         </aside>
       </div>
 
+      <h2 id="report">report</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;So what did you find?&rdquo;</p>
+          <span class="skill-role">The evidence discipline</span>
+        </div>
+
+        <p>The one skill that calls no tool. It is the shape every finding is written in and the rules that decide whether a report can be checked by someone who never saw the tool output &mdash; and the other skills and all three agents point at it once their reading is done.</p>
+
+        <section class="skill-block">
+          <h4>The shape</h4>
+          <ul>
+            <li>Findings ranked by impact &mdash; the share of wall clock, of samples, or of the heap each one accounts for &mdash; never by how confident the wording sounds. Each carries a symptom, the <strong>tool call and its figures</strong>, an interpretation, a recommendation or &ldquo;none yet&rdquo;, and a confidence.</li>
+            <li>A <strong>Not assessed</strong> section, always: the questions this recording could not answer, carried in from <code>capabilityGaps</code> on <code>profiles_summary</code>, with the remedy each gap names.</li>
+            <li>A reproduction block at the end &mdash; the profile id and the calls with their arguments, in order &mdash; so the next reader or the next agent can re-run the whole thing.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>Every figure names the call that produced it.</strong> A number that cannot be traced to a tool result in this session is deleted or measured, never kept.</li>
+            <li><strong>Shares say what they are a share of.</strong> An export&rsquo;s <code>self</code> and <code>total</code> are shares of <em>that export&rsquo;s</em> total, under its threshold and window; counts become rates against the recording length; pause time becomes a fraction of wall clock.</li>
+            <li><strong>What caps a finding at medium confidence</strong>, said out loud each time: sampled data, a lossy sampler (<code>profiles_samplerHealth</code>), a rule that fired in <code>jvm_autoAnalysis</code> rather than a figure that was measured, a leak candidate without a GC-root path, a comparison whose <code>compare_list</code> notes fired, a correlation in time, and a frame never read in source.</li>
+            <li>A recommendation names a file and a line that were read, the change, its expected effect and how it will be verified; configuration findings stay apart from code findings.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>&ldquo;No allocation hotspots found&rdquo; is wrong when the allocation group was never recorded, and &ldquo;no contention&rdquo; is wrong when the blocking events are threshold-gated and nothing crossed the threshold. A gap reported is useful; a gap passed off as a clean result sends the reader down a path with no data under it &mdash; which is why the section exists and is never optional.</p>
+        </aside>
+      </div>
+
       <h2 id="the-analyst">The Agents They Delegate To</h2>
       <p>Four of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
 
-      <p>So there are agents, and the skills hand them the reading &mdash; <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code> from the Claude Code plugin, or the custom agents a Codex user copies in. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
+      <p>So there are agents, and the skills hand them the reading &mdash; <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code> from the Claude Code plugin, or the custom agents a Codex user copies in; a third, <code>microscope:profile-lead</code>, triages an open-ended question and dispatches those two. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 
       <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>recordings_</code> and no <code>hubs_</code>, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 

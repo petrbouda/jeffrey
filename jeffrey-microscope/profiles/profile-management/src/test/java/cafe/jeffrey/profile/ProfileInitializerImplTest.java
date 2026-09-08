@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile;
 
+import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.common.pipeline.StageProgress;
@@ -53,8 +54,16 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
+import static org.awaitility.Awaitility.await;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -134,6 +143,13 @@ class ProfileInitializerImplTest {
         when(clientProvider.provide(any())).thenReturn(mock(DatabaseClient.class));
         when(profileRepositories.databaseClientProvider(dataSource)).thenReturn(clientProvider);
 
+        // The warming stage joins what these return, so a null future would fail the pipeline rather
+        // than the assertion the test is making.
+        when(profileDataInitializer.startAutoAnalysis(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        when(profileDataInitializer.initialize(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
         return new ProfileInitializerImpl(
                 profileRepositories,
                 databaseManager,
@@ -164,7 +180,72 @@ class ProfileInitializerImplTest {
         inOrder.verify(eventWriter).onComplete();
         inOrder.verify(traceRepository).derive();
         inOrder.verify(traceAttributeRepository).derive();
-        inOrder.verify(profileDataInitializer).initialize(any());
+        inOrder.verify(profileDataInitializer).initialize(any(), any());
+    }
+
+    /**
+     * The rule set reads the recording file and nothing the parse writes, so it is started before
+     * the parse and collected after it. Started afterwards instead, the import would cost both
+     * passes end to end rather than the longer of the two.
+     */
+    @Test
+    @DisplayName("starts the auto analysis before parsing, and collects it in the warming")
+    void startsTheAutoAnalysisBeforeParsing() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        Path recording = Path.of("recording.jfr");
+
+        initializer(profileInfo).initialize(profileInfo, null, recording);
+
+        InOrder inOrder = inOrder(profileDataInitializer, recordingEventParser);
+        inOrder.verify(profileDataInitializer).startAutoAnalysis(profileInfo, recording);
+        inOrder.verify(recordingEventParser).start(any(), any());
+        inOrder.verify(profileDataInitializer).initialize(any(), any());
+    }
+
+    /**
+     * The findings the analysis produced reach the warming rather than being dropped between the two
+     * halves — without this the rules would run and nothing would ever be cached.
+     */
+    @Test
+    @DisplayName("hands the started analysis to the warming")
+    void handsTheStartedAnalysisToTheWarming() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        CompletableFuture<List<AutoAnalysisResult>> started = CompletableFuture.completedFuture(List.of());
+
+        // Built first: the helper stubs both halves with completed futures, which would overwrite
+        // the one this test is about.
+        ProfileInitializerImpl initializer = initializer(profileInfo);
+        when(profileDataInitializer.startAutoAnalysis(any(), any())).thenReturn(started);
+
+        initializer.initialize(profileInfo, null, Path.of("recording.jfr"));
+
+        verify(profileDataInitializer).initialize(any(), eq(started));
+    }
+
+    /**
+     * The stage waits for the warming rather than merely starting it, which is what makes a
+     * profile's findings a fact about it rather than a race against it.
+     */
+    @Test
+    @DisplayName("waits for the warming before the pipeline completes")
+    void waitsForTheWarming() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        CompletableFuture<Void> warming = new CompletableFuture<>();
+
+        ProfileInitializerImpl initializer = initializer(profileInfo);
+        when(profileDataInitializer.initialize(any(), any())).thenReturn(warming);
+
+        CompletableFuture<Void> pipeline = CompletableFuture.runAsync(
+                () -> initializer.initialize(profileInfo, null, Path.of("recording.jfr")));
+
+        await().during(200, MILLISECONDS).atMost(2, SECONDS)
+                .untilAsserted(() -> assertFalse(pipeline.isDone(), "the pipeline did not wait for the warming"));
+
+        warming.complete(null);
+        await().atMost(5, SECONDS).untilAsserted(() -> assertTrue(pipeline.isDone()));
     }
 
     @Test
@@ -183,7 +264,7 @@ class ProfileInitializerImplTest {
         verify(traceAttributeRepository, never()).derive();
 
         // The rest of the initialization is unaffected -- skipping traces is not skipping the profile.
-        verify(profileDataInitializer).initialize(any());
+        verify(profileDataInitializer).initialize(any(), any());
     }
 
     @Nested

@@ -19,12 +19,19 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.profile.common.analysis.AnalysisResult;
+import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.feature.FeatureType;
+import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.SamplerHealthManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -86,8 +93,18 @@ class ProfileMcpToolsTest {
     @Mock
     RecordingCommitResolver recordingCommitResolver;
 
+    @Mock
+    SamplerHealthManager samplerHealthManager;
+
+    @Mock
+    AutoAnalysisManager autoAnalysisManager;
+
     private ProfileMcpTools tools() {
-        return new ProfileMcpTools(profileManager, recordingCommitResolver);
+        return new ProfileMcpTools(
+                profileManager,
+                recordingCommitResolver,
+                new JfrFlamegraphPanelProvider(),
+                new StackSampleFlamegraphPanelProvider());
     }
 
     private void stubProfile(RecordingEventSource eventSource) {
@@ -97,9 +114,24 @@ class ProfileMcpToolsTest {
         when(profileManager.featuresManager()).thenReturn(featuresManager);
         when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
+        when(profileManager.samplerHealthManager()).thenReturn(samplerHealthManager);
+        when(profileManager.autoAnalysisManager()).thenReturn(autoAnalysisManager);
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
         when(flamegraphManager.allEventSummaries()).thenReturn(List.of());
+        when(flamegraphManager.eventSummaries()).thenReturn(List.of());
+        when(samplerHealthManager.cpuTimeSampleLoss()).thenReturn(CpuTimeSampleLoss.EMPTY);
+        when(autoAnalysisManager.analysisResults()).thenReturn(List.of());
+        when(autoAnalysisManager.isComputed()).thenReturn(true);
         when(recordingCommitResolver.resolve("rec-1")).thenReturn(Optional.empty());
+    }
+
+    private static EventSummaryResult recorded(String eventType, long samples) {
+        return new EventSummaryResult(new EventSummary(
+                eventType, eventType, null, null, samples, 0, true, false, List.of(), null, null));
+    }
+
+    private static AutoAnalysisResult rule(String rule, AnalysisResult.Severity severity, String topic) {
+        return new AutoAnalysisResult(rule, severity, "explanation", rule + " summary", "solution", "50", topic);
     }
 
     @Nested
@@ -179,6 +211,190 @@ class ProfileMcpToolsTest {
 
             assertTrue(result.contains(FeatureType.SUBSECOND.name()));
             assertTrue(result.contains(FeatureType.TIMESERIES.name()));
+        }
+
+        @Test
+        void carriesTheCapabilityGapsBesideTheDisabledFeatures() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(featuresManager.getDisabledFeatures()).thenReturn(List.of(FeatureType.TRACES));
+
+            String result = tools().features();
+
+            assertTrue(result.contains("\"capabilityGaps\":["), result);
+            assertTrue(result.contains("\"subject\":\"TRACES\""), result);
+            assertTrue(result.contains("This profile holds no traces"), result);
+        }
+    }
+
+    /**
+     * What the summary says a profile cannot answer. Every line is a fact about the recording — an
+     * event type the profiler never captured, a report never built — and never a verdict about the
+     * application.
+     */
+    @Nested
+    class CapabilityGaps {
+
+        @Test
+        void namesTheFlamegraphGroupsTheProfilerNeverRecorded() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(flamegraphManager.eventSummaries()).thenReturn(List.of(
+                    recorded("jdk.ExecutionSample", 4200)));
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("\"subject\":\"allocation\""), result);
+            assertTrue(result.contains("The recording holds no Allocation Samples (jdk.ObjectAllocationInNewTLAB)"), result);
+            assertTrue(result.contains("cannot be assessed from this profile"), result);
+            assertFalse(result.contains("\"subject\":\"execution\""), result);
+        }
+
+        @Test
+        void namesTheJvmSectionsWithNoEventsBehindThem() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(flamegraphManager.allEventSummaries()).thenReturn(List.of(
+                    recorded("jdk.GarbageCollection", 12)));
+
+            String result = tools().summary();
+
+            assertFalse(result.contains("\"subject\":\"jvm_gc\""), result);
+            assertTrue(result.contains("\"subject\":\"jvm_safepoints\""), result);
+            assertTrue(result.contains("so jvm_safepoints has nothing to render"), result);
+        }
+
+        /**
+         * The GC overview and its detail pages are gated on the same events; one sentence about those
+         * events is enough.
+         */
+        @Test
+        void saysOnceWhenTwoSectionsAreGatedOnTheSameEvents() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("\"subject\":\"jvm_gc\""), result);
+            assertFalse(result.contains("\"subject\":\"jvm_gcDetail\""), result);
+        }
+
+        @Test
+        void tellsAMissingHeapDumpFromAnUnindexedOne() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(false);
+
+            assertTrue(tools().summary().contains("This profile has no heap dump"));
+
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(false);
+
+            String result = tools().summary();
+            assertTrue(result.contains("index has not been built"), result);
+            assertTrue(result.contains("heap_prepare builds it"), result);
+        }
+
+        @Test
+        void reportsTheSamplesTheKernelDroppedAsAFactAboutEveryCpuShare() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(samplerHealthManager.cpuTimeSampleLoss()).thenReturn(new CpuTimeSampleLoss(900, 100, 3));
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("\"subject\":\"sampler\""), result);
+            assertTrue(result.contains("dropped 100 of 1,000 samples (10.0%) in 3 loss events"), result);
+        }
+
+        @Test
+        void saysWhenTheRulesHaveNotRunRatherThanLettingAnEmptyListPassAsClean() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(autoAnalysisManager.isComputed()).thenReturn(false);
+            when(autoAnalysisManager.canGenerate()).thenReturn(true);
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("\"subject\":\"autoAnalysis\""), result);
+            assertTrue(result.contains("jvm_autoAnalysis with compute true"), result);
+        }
+
+        /**
+         * The gap is the only thing that separates "the rules ran and cleared the recording" from
+         * "the rules did not run", since both leave topFindings empty. A profile whose rules ran must
+         * therefore not carry it.
+         */
+        @Test
+        void doesNotClaimTheRulesAreMissingWhenTheyRan() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("\"topFindings\":[]"), result);
+            assertFalse(result.contains("\"subject\":\"autoAnalysis\""), result);
+        }
+
+        /**
+         * A heap dump is not a recording. One sentence explains every JFR family away; listing each of
+         * them as missing would bury it.
+         */
+        @Test
+        void describesAHeapDumpProfileInOneLineRatherThanAsEveryJfrFamilyMissing() {
+            stubProfile(RecordingEventSource.HEAP_DUMP);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("This profile is a heap dump"), result);
+            assertFalse(result.contains("\"subject\":\"jvm_gc\""), result);
+            assertFalse(result.contains("\"subject\":\"allocation\""), result);
+        }
+
+        @Test
+        void describesAnImportedSampleSetInOneLine() {
+            stubProfile(RecordingEventSource.PPROF);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("imported pprof sample set"), result);
+            assertFalse(result.contains("\"subject\":\"jvm_gc\""), result);
+        }
+    }
+
+    /**
+     * The summary leads with the rules that flagged something, in the shared finding shape, so the
+     * first thing a reader sees names a category and the tool with the figures behind it.
+     */
+    @Nested
+    class TopFindings {
+
+        @Test
+        void leadsWithTheRulesThatFlaggedSomethingAndLeavesThePassesToTheFullTool() {
+            stubProfile(RecordingEventSource.JDK);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(autoAnalysisManager.analysisResults()).thenReturn(List.of(
+                    rule("Long GC Pauses", AnalysisResult.Severity.WARNING, "garbage_collection"),
+                    rule("Thrown Errors", AnalysisResult.Severity.OK, "exceptions"),
+                    rule("Allocated Classes", AnalysisResult.Severity.NA, "tlab")));
+
+            String result = tools().summary();
+
+            assertTrue(result.contains("\"id\":\"garbage_collection:long-gc-pauses\""), result);
+            assertTrue(result.contains("\"nextTool\":\"jvm_gc\""), result);
+            assertFalse(result.contains("exceptions:thrown-errors"), result);
+            assertFalse(result.contains("tlab:allocated-classes"), result);
         }
     }
 
