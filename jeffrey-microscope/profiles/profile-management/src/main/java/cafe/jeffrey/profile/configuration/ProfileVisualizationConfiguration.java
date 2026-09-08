@@ -40,14 +40,13 @@ import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
-import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
-import cafe.jeffrey.shared.common.config.SettingsStore;
 
 import javax.sql.DataSource;
 
 public class ProfileVisualizationConfiguration {
 
-    private static final double DEFAULT_MIN_FRAME_THRESHOLD_PCT = 0.05;
+    private static final String MIN_FRAME_THRESHOLD_PCT_PROPERTY =
+            "${jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct:0.05}";
 
     private static final String AI_EXPORT_MIN_FRAME_THRESHOLD_PCT_PROPERTY =
             "${jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct:1.0}";
@@ -89,15 +88,13 @@ public class ProfileVisualizationConfiguration {
     }
 
     /**
-     * The visualization threshold is read inside the lambda, not captured around it. A factory is
-     * invoked once per flamegraph request, so reading there is what makes an edit in the settings page
-     * apply to the very next graph instead of the next restart. The agent-export threshold is the
-     * opposite: a static application property, captured once as an {@link AiExportConfig} whose
-     * constructor rejects a value outside {@code (0, 100)} at boot rather than on the first export.
+     * Both thresholds are static application properties, captured once when the factory bean is built.
+     * The agent-export one becomes an {@link AiExportConfig}, whose constructor rejects a value outside
+     * {@code (0, 100)} at boot rather than on the first export.
      */
     @Bean
     public FlamegraphManager.Factory flamegraphFactory(
-            SettingsStore settingsStore,
+            @Value(MIN_FRAME_THRESHOLD_PCT_PROPERTY) double minFrameThresholdPct,
             @Value(AI_EXPORT_MIN_FRAME_THRESHOLD_PCT_PROPERTY) double aiExportMinFrameThresholdPct) {
 
         AiExportConfig aiExportConfig = new AiExportConfig(aiExportMinFrameThresholdPct);
@@ -107,13 +104,13 @@ public class ProfileVisualizationConfiguration {
             ProfileEventStreamRepository eventRepository = profileRepositories.newEventStreamRepository(profileDb);
             return new PrimaryFlamegraphManager(eventTypeRepository,
                     new DbBasedFlamegraphGenerator(
-                            eventRepository, minFrameThresholdPct(settingsStore), aiExportConfig));
+                            eventRepository, minFrameThresholdPct, aiExportConfig));
         };
     }
 
     @Bean
     public FlamegraphManager.DifferentialFactory differentialGraphFactory(
-            SettingsStore settingsStore,
+            @Value(MIN_FRAME_THRESHOLD_PCT_PROPERTY) double minFrameThresholdPct,
             @Value(AI_EXPORT_MIN_FRAME_THRESHOLD_PCT_PROPERTY) double aiExportMinFrameThresholdPct) {
 
         AiExportConfig aiExportConfig = new AiExportConfig(aiExportMinFrameThresholdPct);
@@ -128,15 +125,10 @@ public class ProfileVisualizationConfiguration {
                     new DbBasedDiffgraphGenerator(
                             profileRepositories.newEventStreamRepository(primaryDb),
                             profileRepositories.newEventStreamRepository(secondaryDb),
-                            minFrameThresholdPct(settingsStore)),
+                            minFrameThresholdPct),
                     aiExportConfig
             );
         };
-    }
-
-    private static double minFrameThresholdPct(SettingsStore settingsStore) {
-        return settingsStore.getDouble(
-                MicroscopeSettingKeys.FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT, DEFAULT_MIN_FRAME_THRESHOLD_PCT);
     }
 
     @Bean

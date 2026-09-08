@@ -16,7 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default interface InstanceSettings {
-    deploymentMode: string
-    quickAnalysisEnabled: boolean
+export enum FrameTextMode {
+  SINGLE_LINE = 'single-line',
+  TWO_LINE = 'two-line'
+}
+
+export default interface VisualizationConfig {
+  frameTextMode: FrameTextMode;
 }

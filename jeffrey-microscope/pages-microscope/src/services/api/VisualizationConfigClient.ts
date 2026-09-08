@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@shared/services/api/BasePlatformClient'
-import type InstanceSettings from '@/services/api/model/InstanceSettings'
+import BasePlatformClient from '@shared/services/api/BasePlatformClient';
+import type VisualizationConfig from '@/services/api/model/VisualizationConfig';
 
-export default class SettingsClient extends BasePlatformClient {
-    constructor() {
-        super('/settings')
-    }
+export default class VisualizationConfigClient extends BasePlatformClient {
+  constructor() {
+    super('/config/visualization');
+  }
 
-    getSettings(): Promise<InstanceSettings> {
-        return this.get<InstanceSettings>()
-    }
+  getConfig(): Promise<VisualizationConfig> {
+    return this.get<VisualizationConfig>('', undefined, { suppressToast: true });
+  }
 }

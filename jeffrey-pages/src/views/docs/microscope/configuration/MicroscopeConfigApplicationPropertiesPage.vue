@@ -364,12 +364,11 @@ onMounted(() => {
       </table>
 
       <DocsCallout type="info">
-        <strong>Editable at runtime:</strong> every category in <strong>Settings</strong> in the
-        Microscope UI is hot-reloaded — the log level (<code>logging.level.cafe.jeffrey</code>), the
-        flamegraph threshold and the frame text mode. A change saved there is stored in the
-        Microscope database and applied immediately — raising the log level does not need a restart.
-        Values stored that way take precedence over <code>application.properties</code>, system
-        properties and environment variables.
+        <strong>Configuration is static:</strong> every property is read once at startup. There is no
+        Settings page and nothing is stored in the Microscope database — the log level
+        (<code>logging.level.cafe.jeffrey</code>), the flamegraph threshold and the frame text mode
+        are all set in <code>application.properties</code>, as a system property or through an
+        environment variable, and take effect on the next restart.
       </DocsCallout>
     </div>
 
