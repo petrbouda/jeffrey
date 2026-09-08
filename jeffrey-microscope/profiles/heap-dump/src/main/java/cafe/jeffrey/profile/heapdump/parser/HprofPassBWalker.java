@@ -154,9 +154,16 @@ public final class HprofPassBWalker {
                 warnings.addAll(wc.warnings);
             }
 
+            // Each table's shards are dropped as soon as they are in the index DB. All three sets
+            // were written by the workers before any of them loaded, so they coexist on disk here —
+            // and outbound_ref, the heaviest of the three, is still to come while the first two are
+            // freed. A load that throws skips its clear and leaves the whole directory to close().
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_INSTANCE, INSTANCE_TABLE);
+            staging.clearTable(INSTANCE_TABLE);
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_GC_ROOT, GC_ROOT_TABLE);
+            staging.clearTable(GC_ROOT_TABLE);
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_OUTBOUND_REF, OUTBOUND_REF_TABLE);
+            staging.clearTable(OUTBOUND_REF_TABLE);
 
             return new PassBOutput(instanceCount, gcRootCount, outboundRefCount, subRecordCount,
                     primArrInfo, warnings);

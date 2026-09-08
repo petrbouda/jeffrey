@@ -364,7 +364,11 @@ public final class DominatorTreeBuilder {
             } finally {
                 client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
             }
+            // Outside the finally: the pragma has to be restored whether or not the load succeeded,
+            // whereas the shards are only dropped once they are safely in the index DB.
+            staging.clearTable(DOMINATOR_TABLE);
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
+            staging.clearTable(RETAINED_SIZE_TABLE);
         }
     }
 
