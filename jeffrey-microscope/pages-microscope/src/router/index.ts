@@ -43,11 +43,6 @@ const router = createRouter({
           path: 'workspaces',
           name: 'workspaces',
           component: () => import('@/views/workspaces/WorkspacesView.vue')
-        },
-        {
-          path: 'settings',
-          name: 'settings',
-          component: () => import('@/views/global/SettingsView.vue')
         }
       ]
     },

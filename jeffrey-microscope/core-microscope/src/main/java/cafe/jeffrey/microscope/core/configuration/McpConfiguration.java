@@ -49,10 +49,9 @@ import java.util.Set;
  * Wiring for the external MCP server — the endpoint an interactive Claude Code session connects to.
  * <p>
  * The server is on by default, ingestion included. Both flags are read once here, from application
- * properties rather than from the live settings: exposing every profile to whatever can reach the
- * address — and letting it import a file from this machine — belongs with the bind address and the
- * reverse proxy, decided when the installation is deployed, not with the preferences a reader edits in
- * the UI.
+ * properties: exposing every profile to whatever can reach the address — and letting it import a file
+ * from this machine — belongs with the bind address and the reverse proxy, decided when the
+ * installation is deployed.
  */
 @Configuration
 public class McpConfiguration {

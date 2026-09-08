@@ -89,8 +89,7 @@ spec:
 
 const copyLibsProperties = `# helm/jeffrey-hub/application.properties
 jeffrey.hub.copy-libs.enabled=true
-jeffrey.hub.home.dir=\${JEFFREY_HOME}
-spring.profiles.include=trace-file-log`;
+jeffrey.hub.home.dir=\${JEFFREY_HOME}`;
 
 const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME (from sharedVolume.mountPath)
 └── libs/
@@ -254,7 +253,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
       <h2 id="copy-libs">copy-libs Properties</h2>
       <p>
         Jeffrey Hub's <code>copy-libs</code> feature publishes the provisioner bundle into the
-        shared volume after the JVM has started. Activate it with three lines in
+        shared volume after the JVM has started. Activate it with two lines in
         <a href="https://github.com/petrbouda/jeffrey-testapp/blob/main/helm/jeffrey-hub/application.properties" target="_blank" rel="noopener">
           <code>helm/jeffrey-hub/application.properties</code></a>:
       </p>

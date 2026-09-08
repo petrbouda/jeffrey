@@ -23,10 +23,9 @@ import java.util.Set;
 /**
  * Static configuration of the external MCP server at {@code /api/internal/mcp}.
  * <p>
- * Read once from {@code jeffrey.microscope.mcp.*} at wiring time rather than from the live settings:
- * the server is on by default, and whether an installation exposes it is a deployment decision made
- * alongside the bind address and the reverse proxy, not a switch a reader flips from the Settings page.
- * Turning it off is therefore an application property and takes a restart.
+ * Read once from {@code jeffrey.microscope.mcp.*} at wiring time: the server is on by default, and
+ * whether an installation exposes it is a deployment decision made alongside the bind address and the
+ * reverse proxy. Turning it off is an application property and takes a restart.
  * <p>
  * The endpoint has no authentication of its own, in common with everything else under
  * {@code /api/internal}. What limits who can reach it is the address Jeffrey binds to and whatever

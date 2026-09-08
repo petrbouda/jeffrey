@@ -19,7 +19,6 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.configuration.ApplicationStartedListener;
-import cafe.jeffrey.microscope.core.configuration.SettingsApplicationListener;
 import cafe.jeffrey.shared.common.JeffreyVersion;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
@@ -53,7 +52,6 @@ public class MicroscopeApplication implements WebMvcConfigurer {
     private static void runApplication(String[] args) {
         SpringApplication app = new SpringApplication(MicroscopeApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
-        app.addListeners(new SettingsApplicationListener());
         app.addListeners(new ApplicationStartedListener());
         app.run(args);
     }

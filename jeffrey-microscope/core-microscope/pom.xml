@@ -74,10 +74,6 @@
 
         <!-- Third-party -->
         <dependency>
-            <groupId>com.typesafe</groupId>
-            <artifactId>config</artifactId>
-        </dependency>
-        <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-events</artifactId>
         </dependency>

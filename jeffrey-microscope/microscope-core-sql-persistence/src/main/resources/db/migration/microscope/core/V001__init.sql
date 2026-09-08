@@ -134,19 +134,6 @@ CREATE TABLE IF NOT EXISTS profiler_settings
 );
 
 --
--- APPLICATION SETTINGS TABLE
--- Stores user-configurable application settings as key-value pairs grouped by category.
---
-
-CREATE TABLE IF NOT EXISTS settings
-(
-    category VARCHAR NOT NULL,
-    name     VARCHAR NOT NULL,
-    value    VARCHAR NOT NULL,
-    PRIMARY KEY (category, name)
-);
-
---
 -- IDE TARGETS TABLE
 -- The IntelliJ window a profile is linked to, so a jump to source survives a restart.
 -- Only the durable half of the link is stored: the port and pid a window had are meaningless

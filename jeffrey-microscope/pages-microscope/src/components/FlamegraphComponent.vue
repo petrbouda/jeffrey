@@ -25,7 +25,8 @@ import FlamegraphContextMenu from '@/services/flamegraphs/FlamegraphContextMenu'
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FlamegraphData from '@/services/api/model/FlamegraphData';
-import SettingsClient from '@/services/api/SettingsClient';
+import VisualizationConfigClient from '@/services/api/VisualizationConfigClient';
+import { FrameTextMode } from '@/services/api/model/VisualizationConfig';
 import MessageBus from '@/services/MessageBus.ts';
 import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
 import AiExportButton from '@/components/export/AiExportButton.vue';
@@ -233,15 +234,12 @@ onMounted(() => {
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
 
-    // Apply default text mode from settings
+    // Apply the configured default text mode
     if (defaultTwoLineMode === null) {
-      new SettingsClient()
-        .fetchByCategory('visualization')
-        .then(settings => {
-          const mode = settings.find(
-            s => s.name === 'jeffrey.microscope.visualization.flamegraph.frame-text-mode'
-          );
-          defaultTwoLineMode = mode?.value === 'two-line';
+      new VisualizationConfigClient()
+        .getConfig()
+        .then(config => {
+          defaultTwoLineMode = config.frameTextMode === FrameTextMode.TWO_LINE;
           if (defaultTwoLineMode) {
             twoLineMode.value = true;
             flamegraph.setTwoLineMode(true);
