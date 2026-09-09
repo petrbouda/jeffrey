@@ -3,7 +3,7 @@
   "mcpServers": {
     "jeffrey": {
       "type": "streamable-http",
-      "url": "http://localhost:8585/api/internal/mcp"
+      "url": "http://localhost:8585/api/mcp"
     }
   }
 }

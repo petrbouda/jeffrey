@@ -43,7 +43,7 @@ import java.util.Set;
 @ExtendWith(MockitoExtension.class)
 class ExternalMcpControllerTest {
 
-    private static final String URI = "/api/internal/mcp";
+    private static final String URI = ExternalMcpController.PATH;
     private static final MediaType APPLICATION_JSON = MediaType.APPLICATION_JSON;
 
     private static final String INITIALIZE = """
@@ -186,6 +186,33 @@ class ExternalMcpControllerTest {
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(notification))
                     .hasStatus(202);
+        }
+    }
+
+    @Nested
+    class LegacyPath {
+
+        /**
+         * The endpoint moved out of {@code /api/internal/**}, but its old address is written down in
+         * every client that was configured before the move — a plugin's own settings, a hand-added
+         * server — where this repository cannot reach it. So the old path keeps answering, and keeps
+         * answering the same thing rather than redirecting: a JSON-RPC client that follows a redirect
+         * on a POST is not something to rely on.
+         */
+        @Test
+        void stillServesClientsConfiguredBeforeTheMove() {
+            assertThat(mvcWith(true).post().uri(ExternalMcpController.LEGACY_PATH)
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.serverInfo.name").asString().isEqualTo("jeffrey");
+        }
+
+        @Test
+        void answers404OnTheOldPathWhenTheServerIsOff() {
+            assertThat(mvcWith(false).post().uri(ExternalMcpController.LEGACY_PATH)
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatus(404);
         }
     }
 

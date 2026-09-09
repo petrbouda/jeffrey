@@ -255,7 +255,7 @@ onMounted(() => {
             <td><code>jeffrey.microscope.mcp.enabled</code></td>
             <td><code>true</code></td>
             <td>
-              Serves the MCP endpoint at <code>/api/internal/mcp</code>, which an external coding-agent
+              Serves the MCP endpoint at <code>/api/mcp</code>, which an external coding-agent
               session &mdash; Claude Code, Codex, anything that speaks MCP &mdash; reads profiles through. Set to <code>false</code> to make it answer
               <code>404</code>. Read at startup, so a change takes a restart. See
               <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.

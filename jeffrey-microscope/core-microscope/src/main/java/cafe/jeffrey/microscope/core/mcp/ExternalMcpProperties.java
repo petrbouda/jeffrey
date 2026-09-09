@@ -21,7 +21,7 @@ package cafe.jeffrey.microscope.core.mcp;
 import java.util.Set;
 
 /**
- * Static configuration of the external MCP server at {@code /api/internal/mcp}.
+ * Static configuration of the external MCP server at {@code /api/mcp}.
  * <p>
  * Read once from {@code jeffrey.microscope.mcp.*} at wiring time: the server is on by default, and
  * whether an installation exposes it is a deployment decision made alongside the bind address and the

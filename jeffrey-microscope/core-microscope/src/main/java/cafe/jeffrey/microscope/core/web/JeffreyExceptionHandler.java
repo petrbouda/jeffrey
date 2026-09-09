@@ -28,6 +28,7 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorResponse;
@@ -104,6 +105,27 @@ public class JeffreyExceptionHandler {
     public ResponseEntity<Void> handleMediaTypeNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
         LOG.debug("No acceptable representation for request: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+    }
+
+    /**
+     * Nothing is mapped at the requested path, so the dispatcher fell through to the static-resource
+     * handler and found no file there either. That is a 404 and only a 404: without this handler the
+     * catch-all below claimed it, answered 500 and wrote a stack trace at ERROR for what is usually a
+     * browser asking for a source map or a client probing a path that was never meant to exist.
+     *
+     * <p>The MCP endpoint is the routine source of the probes. A client opening a session looks for
+     * OAuth metadata first — {@code /api/mcp/.well-known/openid-configuration} and its
+     * siblings — and reads a 404 as "this server does not authenticate", which is exactly what Jeffrey
+     * wants to say. A 500 instead says the server broke while being asked.
+     *
+     * <p>Answered without a body, as the 405 and 406 handlers are: the request never reached the
+     * application, so there is nothing to describe, and a JSON body would only invite the content
+     * negotiation that a probe sending a narrow {@code Accept} header cannot satisfy.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResourceFound(NoResourceFoundException ex) {
+        LOG.debug("No handler and no static resource for request: path={}", ex.getResourcePath());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
     /**

@@ -26,11 +26,11 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
 
-const promptsCall = `curl -s http://localhost:8585/api/internal/mcp \\
+const promptsCall = `curl -s http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"analyze-jfr"}}'`;
 
-const resourcesCall = `curl -s http://localhost:8585/api/internal/mcp \\
+const resourcesCall = `curl -s http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"jeffrey://profiles"}}'`;
 
@@ -58,20 +58,20 @@ const vscodeMcpJson = `{
   "servers": {
     "jeffrey": {
       "type": "http",
-      "url": "http://localhost:8585/api/internal/mcp"
+      "url": "http://localhost:8585/api/mcp"
     }
   }
 }`;
 
-const manualAdd = `claude mcp add --transport http jeffrey http://localhost:8585/api/internal/mcp
+const manualAdd = `claude mcp add --transport http jeffrey http://localhost:8585/api/mcp
 
-codex mcp add jeffrey --url http://localhost:8585/api/internal/mcp`;
+codex mcp add jeffrey --url http://localhost:8585/api/mcp`;
 
 const mcpJson = `{
   "mcpServers": {
     "jeffrey": {
       "type": "http",
-      "url": "http://localhost:8585/api/internal/mcp"
+      "url": "http://localhost:8585/api/mcp"
     }
   }
 }`;
@@ -80,7 +80,7 @@ const versionProbe =
   'An MCP client asked for a protocol revision this server does not implement, and will fall back' +
   ' to initialize: version=2026-07-28 supported=2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25';
 
-const initialize = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
+const initialize = `curl -s -X POST http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{
     "jsonrpc": "2.0",
@@ -103,7 +103,7 @@ const initializeResult = `{
   }
 }`;
 
-const toolsCall = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
+const toolsCall = `curl -s -X POST http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{
     "jsonrpc": "2.0",

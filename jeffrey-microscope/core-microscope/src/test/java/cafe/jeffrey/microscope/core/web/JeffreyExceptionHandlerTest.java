@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.web;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.io.IOException;
 
@@ -40,6 +42,8 @@ class JeffreyExceptionHandlerTest {
     private static final String BROKEN_PIPE_MESSAGE =
             "ServletOutputStream failed to write: java.io.IOException: Broken pipe";
     private static final String SERIALIZATION_FAILURE_MESSAGE = "Could not write JSON: no serializer found";
+    private static final String MISSING_RESOURCE_URI = "/api/mcp/.well-known/openid-configuration";
+    private static final String MISSING_RESOURCE_PATH = "api/mcp/.well-known/openid-configuration";
 
     /**
      * Stands in for a controller whose response the container has already given up on — the SSE
@@ -77,6 +81,16 @@ class JeffreyExceptionHandlerTest {
         @GetMapping("/unwritable")
         public String unwritable() {
             throw new HttpMessageNotWritableException(SERIALIZATION_FAILURE_MESSAGE);
+        }
+
+        /**
+         * Reproduces the dispatcher falling through to the static-resource handler with nothing to
+         * serve — an MCP client probing for OAuth metadata under the endpoint's path is the routine
+         * case.
+         */
+        @GetMapping("/missing")
+        public String missing() throws NoResourceFoundException {
+            throw new NoResourceFoundException(HttpMethod.GET, MISSING_RESOURCE_URI, MISSING_RESOURCE_PATH);
         }
 
         @GetMapping("/fail")
@@ -146,6 +160,24 @@ class JeffreyExceptionHandlerTest {
                     .hasStatus(500)
                     .bodyJson()
                     .extractingPath("$.message").asString().contains(SERIALIZATION_FAILURE_MESSAGE);
+        }
+    }
+
+    @Nested
+    class MissingResources {
+
+        /**
+         * An unmapped path is a 404, not a server fault. It used to reach the catch-all handler,
+         * which answered 500 and logged a stack trace at ERROR every time an MCP client asked
+         * whether the endpoint authenticates — a question a 404 answers correctly.
+         */
+        @Test
+        void answerWithABodylessNotFound() {
+            MockMvcTester mvc = mockMvcTesterFor(new StubController());
+
+            assertThat(mvc.get().uri("/api/internal/test/missing"))
+                    .hasStatus(404)
+                    .body().isEmpty();
         }
     }
 
