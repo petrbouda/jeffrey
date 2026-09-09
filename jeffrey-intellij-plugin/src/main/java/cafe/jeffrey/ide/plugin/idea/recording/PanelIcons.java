@@ -36,17 +36,20 @@ import java.util.Map;
  */
 final class PanelIcons {
 
-    static final Map<String, Icon> BY_KEY = Map.of(
-            "flame", JeffreyIcons.FILE,
-            "heap", JeffreyIcons.HEAP_DUMP,
-            "analysis", AllIcons.General.InspectionsEye,
-            "subsecond", AllIcons.Vcs.History,
-            "allocations", AllIcons.Actions.ProfileMemory,
-            "gc", AllIcons.Actions.GC,
-            "threads", AllIcons.Debugger.Threads,
-            "jit", AllIcons.Actions.Lightning,
-            "events", AllIcons.Nodes.DataTables,
-            "traces", AllIcons.FileTypes.Diagram);
+    // Map.ofEntries rather than Map.of: the latter caps at ten pairs, which this reached when the
+    // differential views arrived.
+    static final Map<String, Icon> BY_KEY = Map.ofEntries(
+            Map.entry("flame", JeffreyIcons.FILE),
+            Map.entry("heap", JeffreyIcons.HEAP_DUMP),
+            Map.entry("analysis", AllIcons.General.InspectionsEye),
+            Map.entry("subsecond", AllIcons.Vcs.History),
+            Map.entry("allocations", AllIcons.Actions.ProfileMemory),
+            Map.entry("gc", AllIcons.Actions.GC),
+            Map.entry("threads", AllIcons.Debugger.Threads),
+            Map.entry("jit", AllIcons.Actions.Lightning),
+            Map.entry("events", AllIcons.Nodes.DataTables),
+            Map.entry("traces", AllIcons.FileTypes.Diagram),
+            Map.entry("diff", AllIcons.Actions.Diff));
 
     private PanelIcons() {
     }

@@ -278,6 +278,7 @@ const directProfileClient = new DirectProfileClient();
 import ProfileInfo from '@/services/api/model/ProfileInfo.ts';
 import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
 import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
+import { BASELINE_QUERY_PARAM, baselineIdFromQuery } from '@/services/BaselineQuery.ts';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
 import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus.ts';
@@ -443,11 +444,57 @@ watch(
   }
 );
 
+/**
+ * Adopts the baseline a URL named, so a link can open a comparison and not merely a profile.
+ *
+ * A baseline that cannot be loaded is reported rather than swallowed: the link asked for a
+ * comparison, and silently showing the primary alone would look like the comparison ran and found
+ * nothing. The page still opens — the guard below sends a differential path back to its primary.
+ */
+const adoptLinkedBaseline = async (baselineId: string) => {
+  try {
+    const linked = (await directProfileClient.getById(baselineId)) as ProfileWithContext;
+    const profileInfo: ProfileInfo = {
+      id: linked.id,
+      projectId: linked.projectId,
+      name: linked.name,
+      createdAt: linked.createdAt,
+      profilingStartedAt: linked.profilingStartedAt ?? null,
+      profilingFinishedAt: linked.profilingFinishedAt ?? null,
+      enabled: linked.enabled
+    };
+    SecondaryProfileService.update(profileInfo, profileId);
+  } catch (error) {
+    // Whatever the session was holding for this profile is dropped too. Restoring it would render a
+    // full comparison against a file the link did not name, beside a toast saying the baseline was
+    // unavailable — the one case where a reader cannot tell they are looking at the wrong pair.
+    console.error('Failed to load the baseline profile named by the URL:', error);
+    SecondaryProfileService.remove();
+    ToastService.warn(
+      'Baseline not available',
+      'The profile this link names as the baseline could not be loaded'
+    );
+  }
+};
+
 onMounted(async () => {
   // Drop a baseline that belongs to a different primary before anything can read it — the child
   // views mount only once `profile` is set below, so they never see the previous profile's
   // selection. Opening a profile starts without a comparison unless the baseline was picked here.
   SecondaryProfileService.retainFor(profileId);
+
+  // A URL may name the baseline itself — the IntelliJ plugin's comparison links do, because a
+  // comparison set up in its recording panel has nowhere else to travel. It is stored the same way
+  // the picker stores one, so everything downstream reads a single source.
+  //
+  // Before `profile` is assigned, and that ordering is the whole of it: the differential child
+  // mounts the moment `profile` is set, and it reads the baseline once on mount with no listener
+  // for a later one. Adopting afterwards leaves the page on the differential route with the
+  // comparison bar populated and the graph empty — a comparison that looks set up and is not.
+  const linkedBaselineId = baselineIdFromQuery(route.query[BASELINE_QUERY_PARAM], profileId);
+  if (linkedBaselineId) {
+    await adoptLinkedBaseline(linkedBaselineId);
+  }
 
   // IDE integration config + cached target status (cache-only read, no port scan).
   ideConfigStore.loadOnce();

@@ -50,6 +50,11 @@ final class RecordingFileEditor extends UserDataHolderBase implements FileEditor
         this.panel = new RecordingPanel(project, Path.of(file.getPath()));
     }
 
+    /** The panel behind this tab, so an action outside it can attach a baseline to a comparison. */
+    RecordingPanel panel() {
+        return panel;
+    }
+
     @Override
     public @NotNull JComponent getComponent() {
         return panel;

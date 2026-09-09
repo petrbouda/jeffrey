@@ -548,11 +548,44 @@ key `heap`, `JeffreyIcons.HEAP_DUMP` on the Swing side), decided by `RecordingSt
 the first paint. The accent bar is flame **only when Microscope answered**. Unreachable and failed mute it and the file
 icon, so the panel reads as wrong before a word of it does.
 
+**A pair, when there is one.** The panel holds an optional *baseline*: a second recording this one is
+measured against. `PanelState` is the pair — `RecordingState` stays the answer about one file, so
+"the baseline's baseline" is not a shape the types allow — and it decides everything that differs:
+the strip under the header, each figure's second value, which tiles are drawn, and whether the agent
+is asked to analyse or to compare. **The tab's own file is always the primary**; read the other way
+round every regression reports as an improvement, which is why *Swap* reopens the other file's tab
+with this one attached rather than flipping a flag someone downstream might not honour. Three ways
+in, all landing on the same panel: the panel's own *Compare with…* menu (this project's recordings
+from `FileTypeIndex`, each looked up through the same `by-path` call, so a comparable one can be
+picked before Microscope has to caution), one file selected beside an open panel, and two selected
+files where the newer opens as primary. A recording Microscope has never seen is imported first.
+There is deliberately **no direction dialog**: its only job was to confirm the direction before
+anything happened, and the strip states it afterwards in a place that can flip it.
+
+`Comparability` is the panel's whole opinion about the pair, and the reason it is drawn at all: any
+two recordings subtract cleanly and the result always looks like a finding, so `compare-jfr` makes
+`compare_list` its first call. This is the cheap half of that check over figures the panel already
+has — a window ratio past `WINDOW_TOLERANCE` (a quarter) or a different event type count reads as a
+callout above the tiles rather than a line, and the figure at fault is coloured. It reports **no
+movement, no delta and no share**: those need Microscope's scaling and pruning, and a signed number
+here would be a claim the panel has not earned. The tiles become `ProfileView.DIFFERENTIAL`, two
+views because two is all Microscope subtracts. Heap dumps are excluded everywhere — a dump compares
+with a dump, on its own diff page.
+
+The link out needed **one Microscope change**: the differential routes read `?baseline=<profileId>`
+(`BaselineQuery.ts`, adopted in `ProfileDetail`) and seed the same `SecondaryProfileService`
+selection its in-app picker writes. Without it a comparison set up here could not travel, since that
+selection lived only in session storage. The plugin spells the same parameter in `MicroscopeClient`.
+
 The ready state also hands the profile to a coding agent, sending `<cli> "Analyse Jeffrey profile
 <id>"` to a terminal tab. The **profileId, never the file path** — neither agent can parse a JFR and
 Microscope already has — and **no question of its own**: the method lives in the `analyze-jfr` skill,
 whose description fires on that exact phrase, and the panel does not know what the developer wants to
-ask. The agents are a list (`AgentCli.ALL`), not two branches.
+ask. The wording is `AgentTask`, a sealed triple — `AnalyseRecording`, `AnalyseHeapDump`, `Compare` —
+rather than one sentence with flags, because each phrase is the trigger for a different skill and a
+boolean that silently picks between them is how a dump ends up asked about with flamegraph tools; the
+comparison names the primary first and the baseline as the baseline, which is the whole of the
+direction. The agents are a list (`AgentCli.ALL`), not two branches.
 
 They render as **one split button**, not a button each. The primary half runs `AgentRow.primary()`;
 the chevron holds the rest, grouped into *Ready* and *Not on PATH*. An uninstalled agent stays in that
@@ -572,8 +605,8 @@ that genuinely changed no longer matches by name and size, so it already comes b
 analysed), and *Settings…* anywhere except the unreachable and failed states, which are the only two
 where a wrong address is the likely answer.
 
-Its UI is therefore a settings panel, one context-menu item, the file icon, and that panel, and stays
-that way.
+Its UI is therefore a settings panel, two context-menu items — *Analyze in Microscope* and the
+comparison beside it — the file icon, and that panel, and stays that way.
 
 Two rules that look like omissions and are not: resolution is Java-PSI and platform APIs only, with
 no dependency on the Kotlin plugin or Git4Idea, so nothing can fail to load in an IDE missing either;

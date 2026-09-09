@@ -176,6 +176,7 @@ final class WebPanelStyles {
               box-shadow:var(--shadow);padding:calc(5*var(--u));text-align:left;
             }
             .pop[hidden]{display:none}
+            .pop.wide{min-width:calc(430*var(--u))}
             .pop .grp{font-size:calc(10.5*var(--u));font-weight:600;letter-spacing:.07em;text-transform:uppercase;
                       color:var(--dim);padding:calc(7*var(--u)) calc(9*var(--u)) calc(4*var(--u))}
             .pop .divider{height:calc(1*var(--u));background:var(--border);margin:calc(5*var(--u)) 0}
@@ -185,14 +186,17 @@ final class WebPanelStyles {
                 cursor:pointer;text-align:left}
             .mi:hover{background:var(--hover)}
             .mi .n{font-weight:500}
-            .mi .tail{margin-left:auto;font-size:calc(11*var(--u));color:var(--dim);font-family:var(--mono)}
+            .mi .tail{margin-left:auto;font-size:calc(11*var(--u));color:var(--dim);font-family:var(--mono);
+                      padding-left:calc(18*var(--u))}
+            .mi .fname{font-size:calc(12.5*var(--u));font-weight:400;white-space:nowrap}
             .mi.dis{color:var(--dim);cursor:default}
             .mi.dis .n{font-weight:400}
             .mi.dis:hover{background:transparent}
             .pop .foot{padding:calc(8*var(--u)) calc(9*var(--u)) calc(4*var(--u));
                        border-top:calc(1*var(--u)) solid var(--border);margin-top:calc(5*var(--u));
-                       font-size:calc(11.5*var(--u));color:var(--sec);white-space:normal;
-                       max-width:calc(252*var(--u))}
+                       font-size:calc(11.5*var(--u));color:var(--sec);white-space:normal}
+            .pop:not(.wide) .foot{max-width:calc(252*var(--u))}
+            .pop.wide .foot{max-width:calc(430*var(--u))}
 
             .mark{
               width:calc(19*var(--u));height:calc(19*var(--u));border-radius:calc(5*var(--u));flex:none;
@@ -211,6 +215,25 @@ final class WebPanelStyles {
             .meter{height:calc(4*var(--u));border-radius:calc(2*var(--u));background:var(--border);
                    margin-top:calc(9*var(--u));overflow:hidden}
             .meter i{display:block;height:100%;border-radius:calc(2*var(--u));background:var(--fl)}
+
+            .base{display:flex;align-items:center;gap:calc(10*var(--u));flex-wrap:wrap;
+                  margin:calc(14*var(--u)) calc(24*var(--u)) 0;
+                  padding:calc(9*var(--u)) calc(12*var(--u));
+                  border:calc(1*var(--u)) solid var(--border);border-radius:calc(8*var(--u));
+                  background:var(--panel)}
+            .base .tag{font-size:calc(10.5*var(--u));font-weight:600;letter-spacing:.07em;
+                       text-transform:uppercase;color:var(--fl);flex:none}
+            .base .fname{font-size:calc(13*var(--u))}
+            .base .meta{font-size:calc(12*var(--u));color:var(--sec);white-space:nowrap}
+            .base .tools{margin-left:auto;display:flex;gap:calc(14*var(--u));flex:none;
+                         align-items:center}
+            .base .link{display:inline-flex;align-items:center;gap:calc(5*var(--u))}
+            .base .spin{color:var(--fl)}
+
+            .fig .bl{font-size:calc(11.5*var(--u));color:var(--sec);margin-top:calc(8*var(--u));
+                     padding-top:calc(7*var(--u));border-top:calc(1*var(--u)) solid var(--border);
+                     display:flex;gap:calc(6*var(--u));align-items:baseline}
+            .fig .bl b{font-weight:500;color:var(--text);font-size:calc(12.5*var(--u))}
 
             .body{padding:calc(24*var(--u)) calc(24*var(--u)) calc(26*var(--u))}
             .rule{height:calc(1*var(--u));background:var(--border);margin:calc(24*var(--u)) 0}

@@ -22,11 +22,17 @@ import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
 import cafe.jeffrey.ide.plugin.idea.recording.PipelineBuild;
 import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
+import cafe.jeffrey.ide.plugin.idea.recording.CompareCandidate;
+import cafe.jeffrey.ide.plugin.idea.recording.PanelState;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 import org.junit.Test;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -51,6 +57,11 @@ public class WebPanelHtmlTest {
 
     private static final AgentCli CLAUDE = new AgentCli("Claude", "claude");
     private static final AgentCli CODEX = new AgentCli("Codex", "codex");
+
+    /** Most assertions are about a panel with no comparison; the pair has its own tests below. */
+    private static PanelState panel(RecordingState state) {
+        return PanelState.of(state);
+    }
 
     @Test
     public void readyCarriesTheFourFigures() {
@@ -347,15 +358,238 @@ public class WebPanelHtmlTest {
     /** A switch the developer turned off should not leave a disabled control inviting a hunt. */
     @Test
     public void agentsDisabledRemovesTheSplitButtonEntirely() {
-        String html = WebPanelHtml.document(new WebPanelHtml.Content(
-                ready(List.of(), List.of()), FILE, URL, row(), false), "");
+        String html = WebPanelHtml.document(new WebPanelHtml.Content(panel(ready(List.of(), List.of())), FILE, URL, row(), false), "");
 
         assertFalse(html.contains("Analyse with"));
-        // The delegated listener always mentions data-menu; the split button's own markup is what
-        // must be gone.
+        // The delegated listener always mentions data-menu; the agent split button's own markup is
+        // what must be gone. Anchors as such are not the test — the baseline menu is one too, and it
+        // answers to a different switch.
         assertFalse(html.contains("aria-label='More agents'"));
-        assertFalse(html.contains("class='anchor'"));
+        assertFalse(html.contains("data-action='agent:"));
         assertTrue("the open button must survive", html.contains("data-action='open'"));
+    }
+
+    // --- comparing ------------------------------------------------------------------------------
+
+    /**
+     * Which file is the baseline is the half of a comparison that cannot be dropped: read the other
+     * way round, every regression reports as an improvement.
+     */
+    @Test
+    public void comparingNamesTheBaselineAndKeepsThePrimaryInTheHeader() {
+        String html = document(comparing());
+
+        assertTrue(html.contains("Baseline"));
+        assertTrue(html.contains("jeffrey-baseline.jfr"));
+        // the tab is still about its own recording
+        assertTrue(html.contains("jeffrey-20260904-180108"));
+        assertTrue(html.contains("compared against a baseline"));
+    }
+
+    /** Both sides' own numbers, never a delta: the delta is Microscope's to compute. */
+    @Test
+    public void comparingPutsTheBaselinesFiguresUnderThePrimarys() {
+        String html = document(panel(ready(List.of(), List.of()))
+                .withBaseline(otherRecording(4 * 60_000L, 106)));
+
+        assertTrue(html.contains("class='bl'"));
+        assertTrue("the baseline's window belongs under the primary's", html.contains("4 m"));
+        // Two facts, never their difference: a delta needs the scaling and pruning Microscope does,
+        // and a signed number here would be a claim the panel has not earned.
+        assertFalse("a delta is not the panel's to state", figuresBlock(html).contains("+"));
+        assertFalse(figuresBlock(html).contains("−"));
+    }
+
+    @Test
+    public void comparingOffersTheDifferentialViewsAndNothingElse() {
+        String html = document(comparing());
+
+        for (ProfileView view : ProfileView.DIFFERENTIAL) {
+            assertTrue("no tile for " + view.label(), html.contains("data-action='view:" + view.path() + "'"));
+        }
+        assertFalse("the single-profile flame graph has no place in a comparison",
+                html.contains("data-action='view:flamegraphs/primary'"));
+    }
+
+    /** A comparison is about the pair; the findings are about one recording. */
+    @Test
+    public void comparingReplacesTheFindingsWithTheVerdict() {
+        RecordingState flagged = ready(
+                List.of(new RecordingState.Finding("GC Pauses", "WARNING", "Long pauses.")), List.of());
+        String html = document(panel(flagged).withBaseline(otherRecording(5_539, 106)));
+
+        assertTrue(html.contains("Comparability"));
+        assertFalse(html.contains("GC Pauses"));
+    }
+
+    /** The caution a reader has to see before the numbers, not after. */
+    @Test
+    public void differingWindowsAreCalledOutAboveTheTiles() {
+        String html = document(panel(ready(List.of(), List.of()))
+                .withBaseline(otherRecording(4 * 60_000L, 87)));
+
+        assertTrue(html.contains("class='callout'"));
+        assertTrue(html.contains("not a like-for-like pair"));
+        // and the two figures at fault are the ones coloured
+        assertTrue(html.contains("class='fig bad'"));
+    }
+
+    @Test
+    public void aComparableePairIsStatedAsALineRatherThanACallout() {
+        String html = document(comparing());
+
+        assertTrue(html.contains("Comparability"));
+        assertFalse(html.contains("class='callout'"));
+        assertTrue(html.contains("the recordings cannot say"));
+    }
+
+    /** Swap and Clear live with the baseline, which is the only place the pair can be changed. */
+    @Test
+    public void comparingOffersSwapAndClear() {
+        String html = document(comparing());
+
+        assertTrue(html.contains("data-action='swap'"));
+        assertTrue(html.contains("data-action='uncompare'"));
+    }
+
+    /** Swapping to a baseline with no profile would leave the tab pointing at nothing. */
+    @Test
+    public void aBaselineStillImportingCanBeClearedButNotSwapped() {
+        PanelState state = panel(ready(List.of(), List.of())).withBaseline(new RecordingState(
+                RecordingState.Status.ANALYZING, "rec-2", null, "jeffrey-baseline.jfr", 8_000_000L, null));
+        String html = document(state);
+
+        assertTrue(html.contains("data-action='uncompare'"));
+        assertFalse(html.contains("data-action='swap'"));
+        assertTrue(html.contains("building its profile"));
+    }
+
+    /** The agent runs a different skill on a pair, and the wording is what picks it. */
+    @Test
+    public void theAgentButtonSaysCompareWhileComparing() {
+        assertTrue(document(comparing()).contains("Compare with Claude"));
+        assertFalse(document(comparing()).contains("Analyse with Claude"));
+        assertTrue(document(ready(List.of(), List.of())).contains("Analyse with Claude"));
+    }
+
+    /**
+     * The verdict and the links have to agree. A pair Microscope cannot subtract still gets its
+     * callout, but every tile keeps pointing at pages that can actually be drawn.
+     */
+    @Test
+    public void anIncomparablePairKeepsTheProfilesOwnTiles() {
+        RecordingState noFigures = new RecordingState(
+                RecordingState.Status.READY, "rec-2", "profile-2", "jeffrey-baseline.jfr", 8_000_000L,
+                new RecordingState.ProfileSummary(
+                        RecordingState.Kind.RECORDING, "baseline", null, null,
+                        true, true, List.of(), List.of()));
+        String html = document(panel(ready(List.of(), List.of())).withBaseline(noFigures));
+
+        assertTrue(html.contains("cannot be compared"));
+        assertTrue(html.contains("data-action='view:flamegraphs/primary'"));
+        assertFalse(html.contains("data-action='view:flamegraphs/differential'"));
+        // and the baseline is still named, so it can be cleared
+        assertTrue(html.contains("data-action='uncompare'"));
+    }
+
+    // --- picking a baseline ---------------------------------------------------------------------
+
+    /**
+     * The figures are in the menu so the choice is informed. Picking blind is how a four-minute run
+     * ends up as the baseline of a twenty-minute one, and the caution afterwards arrives too late.
+     */
+    @Test
+    public void theBaselineMenuListsCandidatesWithTheirFigures() {
+        String html = document(panel(ready(List.of(), List.of())).withCandidates(List.of(
+                new CompareCandidate(Path.of("/recordings/before.jfr"), otherRecording(16 * 60_000L, 99)))));
+
+        assertTrue(html.contains("Compare with…"));
+        assertTrue(html.contains("data-action='compare:/recordings/before.jfr'"));
+        assertTrue(html.contains("Ready in Microscope"));
+        assertTrue(html.contains("16 m"));
+    }
+
+    /** A recording Microscope has never seen is still offered: the panel knows how to import it. */
+    @Test
+    public void aCandidateWithNoProfileIsOfferedAndSaysItImportsFirst() {
+        RecordingState unseen = new RecordingState(
+                RecordingState.Status.NOT_IMPORTED, null, null, "before.jfr", 4_000L, null);
+        String html = document(panel(ready(List.of(), List.of())).withCandidates(
+                List.of(new CompareCandidate(Path.of("/recordings/before.jfr"), unseen))));
+
+        assertTrue(html.contains("Not analysed yet"));
+        assertTrue(html.contains("imports first"));
+        assertTrue("it must still be clickable", html.contains("data-action='compare:/recordings/before.jfr'"));
+    }
+
+    /** Once a pair exists the strip carries the choice; a second control for it would be a second truth. */
+    @Test
+    public void theBaselineMenuIsGoneOnceOneIsPicked() {
+        String html = document(comparing().withCandidates(List.of(
+                new CompareCandidate(Path.of("/recordings/before.jfr"), otherRecording(5_539, 106)))));
+
+        assertFalse(html.contains("Compare with…"));
+        assertFalse(html.contains("data-action='compare:"));
+    }
+
+    /**
+     * Every action the document can emit has to be one {@link CefPanelRenderer} routes.
+     *
+     * <p>Nothing else catches this. An action the renderer does not know reaches the log and the
+     * click does nothing — a dead button that looks exactly like a working one, which is how the
+     * comparison's own three actions were first shipped unrouted. The vocabulary is small enough to
+     * list, so it is listed: adding to it here without adding to the dispatcher fails this test.
+     */
+    @Test
+    public void theDocumentEmitsOnlyActionsTheRendererRoutes() {
+        Set<String> emitted = new TreeSet<>();
+        for (String html : everyState()) {
+            Matcher matcher = Pattern.compile("data-action='([^':]+):?").matcher(html);
+            while (matcher.find()) {
+                emitted.add(matcher.group(1));
+            }
+        }
+
+        assertEquals(
+                Set.of("agent", "analyze", "build-index", "check", "compare", "open", "retry",
+                        "settings", "swap", "uncompare", "view"),
+                emitted);
+    }
+
+    /**
+     * Every state's document closes every element it opens.
+     *
+     * <p>The panel is built by concatenating strings, so a missing {@code </div>} is a compile-clean
+     * mistake that reaches the developer as a collapsed layout — the figures and the tiles adopted
+     * as flex children of the header row, laid out beside it instead of under it. The comparison
+     * states nest deepest, which is where it would happen.
+     */
+    @Test
+    public void everyStatesDocumentIsBalanced() {
+        for (String html : everyState()) {
+            int depth = 0;
+            Matcher matcher = Pattern.compile("<(/?)div\\b").matcher(html);
+            while (matcher.find()) {
+                depth += matcher.group(1).isEmpty() ? 1 : -1;
+                assertTrue("a </div> closes an element that was never opened", depth >= 0);
+            }
+            assertEquals("unclosed <div> elements", 0, depth);
+        }
+    }
+
+    /** One document per panel state, so the sweep above sees every button the panel can draw. */
+    private static List<String> everyState() {
+        RecordingState dump = heapDump(false);
+        return List.of(
+                document(ready(List.of(), List.of())),
+                document(panel(ready(List.of(), List.of())).withCandidates(List.of(
+                        new CompareCandidate(Path.of("/recordings/before.jfr"), otherRecording(5_539, 106))))),
+                document(comparing()),
+                document(dump),
+                document(notImported()),
+                document(analyzing()),
+                document(unavailable()),
+                WebPanelHtml.failure("boom", "run.jfr", 1024L, ""));
     }
 
     // --- the rest -------------------------------------------------------------------------------
@@ -363,7 +597,7 @@ public class WebPanelHtmlTest {
     @Test
     public void theBridgeScriptIsCarriedIntoTheDocument() {
         String html = WebPanelHtml.document(
-                new WebPanelHtml.Content(ready(List.of(), List.of()), FILE, URL, row(), true),
+                new WebPanelHtml.Content(panel(ready(List.of(), List.of())), FILE, URL, row(), true),
                 "window.__jeffrey=function(a){/*bridge*/};");
 
         assertTrue(html.contains("/*bridge*/"));
@@ -430,8 +664,38 @@ public class WebPanelHtmlTest {
     }
 
     private static String document(RecordingState state, AgentRow agents) {
+        return document(panel(state), agents);
+    }
+
+    private static String document(PanelState state) {
+        return document(state, row());
+    }
+
+    private static String document(PanelState state, AgentRow agents) {
         return WebPanelHtml.document(
                 new WebPanelHtml.Content(state, FILE, URL, agents, true), "");
+    }
+
+    /** A second recording, so a pair can be built without every test spelling one out. */
+    private static RecordingState otherRecording(long durationMillis, int eventTypes) {
+        RecordingState.ProfileSummary summary = new RecordingState.ProfileSummary(
+                RecordingState.Kind.RECORDING, "jeffrey-baseline",
+                new RecordingState.RecordingFigures(durationMillis, 40_000, eventTypes, 353, 222),
+                null, true, true, List.of(), List.of());
+        return new RecordingState(
+                RecordingState.Status.READY, "rec-2", "profile-2",
+                "jeffrey-baseline.jfr", 8_000_000L, summary);
+    }
+
+    private static PanelState comparing() {
+        return panel(ready(List.of(), List.of())).withBaseline(otherRecording(5_539, 106));
+    }
+
+    /** The row of figure tiles, so an assertion about them cannot be answered by the stylesheet. */
+    private static String figuresBlock(String html) {
+        int start = html.indexOf("<div class='figs'>");
+        int end = html.indexOf("<div class='body'>", start);
+        return html.substring(start, end);
     }
 
     private static AgentRow row() {

@@ -20,8 +20,11 @@ package cafe.jeffrey.ide.plugin.idea.recording.web;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
+import cafe.jeffrey.ide.plugin.idea.recording.Comparability;
+import cafe.jeffrey.ide.plugin.idea.recording.CompareCandidate;
 import cafe.jeffrey.ide.plugin.idea.recording.Formats;
 import cafe.jeffrey.ide.plugin.idea.recording.Html;
+import cafe.jeffrey.ide.plugin.idea.recording.PanelState;
 import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
 import cafe.jeffrey.ide.plugin.idea.recording.PipelineBuild;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
@@ -98,6 +101,42 @@ public final class WebPanelHtml {
     private static final String AGENTS_FOOT =
             "Install any of these and it turns on by itself.";
 
+    /** The strip's label. Spelled out, because which side is which is the whole of a comparison. */
+    private static final String BASELINE_TAG = "Baseline";
+
+    private static final String SUBTITLE_COMPARED = "compared against a baseline";
+
+    private static final String BASELINE_READY = "profile ready";
+
+    private static final String BASELINE_IMPORTING = "importing it into Microscope…";
+
+    private static final String BASELINE_ANALYZING = "building its profile…";
+
+    private static final String BASELINE_UNAVAILABLE = "Microscope could not describe this file";
+
+    private static final String COMPARABILITY_SECTION = "Comparability";
+
+    private static final String COMPARE_MENU_LABEL = "Compare with…";
+
+    private static final String COMPARE_READY_GROUP = "Ready in Microscope";
+
+    private static final String COMPARE_PENDING_GROUP = "Not analysed yet";
+
+    private static final String COMPARE_PENDING_TAIL = "imports first";
+
+    private static final String COMPARE_EMPTY_FOOT =
+            "No other recording found in this project yet. Recordings are matched to Microscope by "
+            + "name and size, the same way this panel is.";
+
+    private static final String COMPARE_FOOT =
+            "The file opened here is the primary; the one picked here is what it is measured "
+            + "against. Swap exchanges them.";
+
+    /** The verb on the agent button. A comparison asks a different skill than a single profile does. */
+    private static final String AGENT_VERB_ANALYSE = "Analyse with ";
+
+    private static final String AGENT_VERB_COMPARE = "Compare with ";
+
     /**
      * What the document needs to draw itself.
      *
@@ -107,11 +146,16 @@ public final class WebPanelHtml {
      *                      is a setting they turned off themselves
      */
     public record Content(
-            RecordingState state,
+            PanelState state,
             Path file,
             String microscopeUrl,
             AgentRow agents,
             boolean agentsEnabled) {
+
+        /** The file this tab is about. Every state but the comparison strip is drawn from it. */
+        RecordingState recording() {
+            return state.recording();
+        }
     }
 
     private WebPanelHtml() {
@@ -153,7 +197,7 @@ public final class WebPanelHtml {
     }
 
     private static String body(Content content) {
-        RecordingState state = content.state();
+        RecordingState state = content.recording();
         return switch (state.status()) {
             case READY -> ready(content);
             case NOT_IMPORTED, IMPORTED -> notAnalysed(content);
@@ -165,63 +209,132 @@ public final class WebPanelHtml {
     // --- ready ----------------------------------------------------------------------------------
 
     private static String ready(Content content) {
-        RecordingState.ProfileSummary summary = content.state().summary();
+        RecordingState.ProfileSummary summary = content.recording().summary();
         if (summary == null) {
-            // READY without a summary should not happen, but a blank tab is the worst possible way to
-            // find that out. Fall back to the facts, which are true whatever Microscope answered.
             return notAnalysed(content);
         }
 
-        PipelineBuild build = content.state().build();
+        PanelState state = content.state();
+        Comparability verdict = state.comparability();
+        PipelineBuild build = content.recording().build();
         boolean building = build != null && !build.failed();
         String subtitle = (summary.isHeapDump() ? "Heap dump" : "JFR recording")
-                + " · " + Formats.bytes(content.state().sizeInBytes())
-                + " · " + (building ? SUBTITLE_BUILDING : SUBTITLE_READY);
+                + " · " + Formats.bytes(content.recording().sizeInBytes())
+                + " · " + (building ? SUBTITLE_BUILDING : SUBTITLE_READY)
+                + (state.hasBaseline() ? " · " + SUBTITLE_COMPARED : "");
 
         StringBuilder html = new StringBuilder(4096);
         html.append(accent(false))
-                .append(header(kindIcon(content.state()), false,
-                        "<div class='fname'>" + Html.escape(profileName(content.state())) + "</div>",
+                .append(header(kindIcon(content.recording()), false,
+                        "<div class='fname'>" + Html.escape(profileName(content.recording())) + "</div>",
                         subtitle,
                         readyActions(content)));
 
-        String figures = figures(summary);
+        if (state.hasBaseline()) {
+            html.append(baselineStrip(state));
+        }
+
+        String figures = figures(summary, state);
         if (!figures.isEmpty()) {
             html.append("<div class='figs'>").append(figures).append("</div>");
         }
 
         html.append("<div class='body'>");
-        // Only a dump explains itself here. A recording that reported no figures is a different and
-        // rarer thing, and telling its reader about a heap index would be a lie with a straight face.
         if (figures.isEmpty() && summary.isHeapDump()) {
             html.append(indexCallout(build));
         }
-        // A heap dump gets no findings section at all rather than an empty one: its verdict is Leak
-        // suspects, which already leads its tile grid.
         boolean ruled = false;
-        if (!summary.isHeapDump()) {
+        // A comparison replaces the findings rather than joining them: the findings describe this
+        // recording alone, and the question a reader opened the pair for is about the pair.
+        if (verdict != null) {
+            html.append(comparability(verdict));
+            ruled = true;
+        } else if (!summary.isHeapDump()) {
             html.append(findings(summary));
             ruled = true;
         }
-        html.append(views(summary, ruled)).append("</div>");
+        html.append(views(state, ruled)).append("</div>");
         return html.toString();
     }
 
-    private static String figures(RecordingState.ProfileSummary summary) {
+    /**
+     * The baseline, named under the header rather than beside the primary.
+     *
+     * <p>Two file names side by side would leave a reader working out which is which every time they
+     * look, and getting it backwards turns every regression into an improvement. One is the tab's
+     * title, the other is labelled {@code Baseline} and carries the controls that change it.
+     */
+    private static String baselineStrip(PanelState state) {
+        RecordingState baseline = state.baseline();
+        boolean ready = baseline.status() == RecordingState.Status.READY;
+
+        StringBuilder html = new StringBuilder(768).append("<div class='base'>");
+        if (!ready && baseline.status() != RecordingState.Status.UNAVAILABLE) {
+            html.append(PanelSvg.spinner());
+        }
+        html.append("<span class='tag'>").append(BASELINE_TAG).append("</span>")
+                .append("<span class='fname'>").append(Html.escape(baseline.filename())).append("</span>")
+                .append("<span class='meta'>").append(Html.escape(baselineMeta(baseline))).append("</span>")
+                .append("<div class='tools'>");
+        // Swap only once both sides can be opened: exchanging a baseline that has no profile yet
+        // would leave the tab pointing at a primary Microscope cannot draw.
+        if (state.isComparing()) {
+            html.append("<button type='button' class='link' data-action='swap'>")
+                    .append(PanelSvg.icon("swap", "chev")).append("Swap</button>");
+        }
+        return html.append("<button type='button' class='link' data-action='uncompare'>Clear</button>")
+                .append("</div></div>").toString();
+    }
+
+    private static String baselineMeta(RecordingState baseline) {
+        String state = switch (baseline.status()) {
+            case READY -> BASELINE_READY;
+            case ANALYZING -> BASELINE_ANALYZING;
+            case NOT_IMPORTED, IMPORTED -> BASELINE_IMPORTING;
+            case UNAVAILABLE -> BASELINE_UNAVAILABLE;
+        };
+        if (baseline.sizeInBytes() <= 0) {
+            return "· " + state;
+        }
+        return "· " + Formats.bytes(baseline.sizeInBytes()) + " · " + state;
+    }
+
+    /**
+     * The verdict on the pair, above the tiles that open it.
+     *
+     * <p>A line when the figures argue for the comparison and a callout when they argue against it,
+     * because the second is the one a reader has to see before the numbers rather than after. This
+     * is the panel's whole opinion about the pair: it reports no movement, no delta and no share,
+     * which are Microscope's to compute and the agent's to read.
+     */
+    private static String comparability(Comparability verdict) {
+        if (!verdict.isCautioned()) {
+            return "<div class='aa-head'><span class='sect'>" + COMPARABILITY_SECTION + "</span></div>"
+                    + "<p class='note last'>" + Html.escape(verdict.detail()) + "</p>";
+        }
+        return "<div class='callout'>"
+                + "<div class='iw'>" + PanelSvg.icon("warn") + "</div>"
+                + "<div class='grow'><div class='t'>" + Html.escape(verdict.headline()) + "</div>"
+                + "<div class='m'>" + Html.escape(verdict.detail()) + "</div></div>"
+                + "</div>";
+    }
+
+    private static String figures(RecordingState.ProfileSummary summary, PanelState state) {
         if (summary.isHeapDump()) {
             return heapFigures(summary.heap());
         }
-        return recordingFigures(summary.recording());
+        return recordingFigures(summary.recording(), baselineFigures(state), state.comparability());
     }
 
-    // --- the index callout ----------------------------------------------------------------------
+    /** The baseline's own figures, or null when there is no comparison to draw them from. */
+    private static RecordingState.RecordingFigures baselineFigures(PanelState state) {
+        if (!state.isComparing()) {
+            return null;
+        }
+        RecordingState.ProfileSummary summary = state.baseline().summary();
+        return summary == null ? null : summary.recording();
+    }
 
-    /**
-     * One box that says where the dump's index is. The sentence and its remedy are one object, and
-     * while the build runs the same box becomes the progress report — which stage, of how many, for
-     * how long — rather than a spinner somewhere else. A failure keeps the box and turns it red,
-     * with Microscope's own words and the button to go again.
-     */
     private static String indexCallout(PipelineBuild build) {
         if (build == null) {
             return "<div class='callout'>"
@@ -265,25 +378,44 @@ public final class WebPanelHtml {
                 + "</div>";
     }
 
-    private static String recordingFigures(RecordingState.RecordingFigures figures) {
+    /**
+     * The four figures, each carrying the baseline's own value beneath it while comparing.
+     *
+     * <p>Both sides' numbers rather than a delta between them. A delta is a claim about what changed,
+     * which needs the scaling and the pruning Microscope does; two numbers are facts, and they are
+     * enough for a reader to see that the pair is worth comparing at all. The figure the verdict
+     * blames is coloured, so the caution above has something to point at.
+     */
+    private static String recordingFigures(
+            RecordingState.RecordingFigures figures,
+            RecordingState.RecordingFigures baseline,
+            Comparability verdict) {
+
         if (figures == null) {
             return "";
         }
         double loss = figures.lossRatio();
-        return figure(Formats.duration(figures.durationInMillis()), "window", false, -1)
-                + figure(Formats.count(figures.sampleCount()), "samples", false, -1)
-                + figure(String.valueOf(figures.eventTypeCount()), "event types", false, -1)
-                + figure(Formats.lossRatio(loss), "sample loss", loss > 0, loss);
+        boolean windowsDiffer = verdict != null && verdict.windowsDiffer();
+        boolean eventTypesDiffer = verdict != null && verdict.eventTypesDiffer();
+
+        return figure(Formats.duration(figures.durationInMillis()), "window", windowsDiffer, -1,
+                        baseline == null ? null : Formats.duration(baseline.durationInMillis()))
+                + figure(Formats.count(figures.sampleCount()), "samples", false, -1,
+                        baseline == null ? null : Formats.count(baseline.sampleCount()))
+                + figure(String.valueOf(figures.eventTypeCount()), "event types", eventTypesDiffer, -1,
+                        baseline == null ? null : String.valueOf(baseline.eventTypeCount()))
+                + figure(Formats.lossRatio(loss), "sample loss", loss > 0, loss,
+                        baseline == null ? null : Formats.lossRatio(baseline.lossRatio()));
     }
 
     private static String heapFigures(RecordingState.HeapFigures figures) {
         if (figures == null || !figures.cacheReady()) {
             return "";
         }
-        return figure(Formats.bytes(figures.totalBytes()), "retained", false, -1)
-                + figure(Formats.count(figures.totalInstances()), "instances", false, -1)
-                + figure(Formats.count(figures.classCount()), "classes", false, -1)
-                + figure(Formats.count(figures.gcRootCount()), "GC roots", false, -1);
+        return figure(Formats.bytes(figures.totalBytes()), "retained", false, -1, null)
+                + figure(Formats.count(figures.totalInstances()), "instances", false, -1, null)
+                + figure(Formats.count(figures.classCount()), "classes", false, -1, null)
+                + figure(Formats.count(figures.gcRootCount()), "GC roots", false, -1, null);
     }
 
     /**
@@ -292,16 +424,23 @@ public final class WebPanelHtml {
      *
      * @param ratio 0..1 to draw a meter under the value, or negative for no meter
      */
-    private static String figure(String value, String label, boolean alarming, double ratio) {
+    private static String figure(
+            String value, String label, boolean alarming, double ratio, String baselineValue) {
+
         String meter = "";
         if (ratio >= 0) {
             long percent = Math.min(100, Math.round(ratio * 100));
             meter = "<div class='meter'><i style='width:" + percent + "%'></i></div>";
         }
+        String baseline = "";
+        if (baselineValue != null) {
+            baseline = "<div class='bl'><span>baseline</span><b class='tnum'>"
+                    + Html.escape(baselineValue) + "</b></div>";
+        }
         return "<div class='fig" + (alarming ? " bad" : "") + "'>"
                 + "<div class='v tnum'>" + Html.escape(value) + "</div>"
                 + "<div class='k'>" + Html.escape(label) + "</div>"
-                + meter + "</div>";
+                + meter + baseline + "</div>";
     }
 
     /**
@@ -350,7 +489,12 @@ public final class WebPanelHtml {
                 "Open auto-analysis in Microscope", "link aa-more")).toString();
     }
 
-    private static String views(RecordingState.ProfileSummary summary, boolean ruled) {
+    /**
+     * The tiles, which follow what the panel is showing: the two differential views while comparing,
+     * and this profile's own views otherwise.
+     */
+    private static String views(PanelState state, boolean ruled) {
+        RecordingState.ProfileSummary summary = state.recording().summary();
         StringBuilder html = new StringBuilder(2048);
         if (ruled) {
             html.append("<div class='rule'></div>");
@@ -360,7 +504,7 @@ public final class WebPanelHtml {
         // way a view with no data is drawn — dashed, dim, and not a button — with its own blurb
         // kept, because the tile is still the view it will become. The callout above says why.
         boolean locked = summary.indexMissing();
-        for (ProfileView view : summary.views()) {
+        for (ProfileView view : state.views()) {
             html.append(card(view, summary.disabledFeatures(), locked));
         }
         return html.append("</div>").toString();
@@ -390,7 +534,7 @@ public final class WebPanelHtml {
 
     private static String notAnalysed(Content content) {
         return accent(false)
-                + header(kindIcon(content.state()), false, plainTitle("Not analysed yet"),
+                + header(kindIcon(content.recording()), false, plainTitle("Not analysed yet"),
                         "Microscope has not seen this file",
                         buttons(button("analyze", "Analyze in Microscope", true, false)))
                 + "<div class='body' style='padding-top:calc(20*var(--u))'>"
@@ -405,12 +549,12 @@ public final class WebPanelHtml {
      * to show a bar that never moved, which is indistinguishable from one that has hung.
      */
     private static String analyzing(Content content) {
-        PipelineBuild build = content.state().build();
+        PipelineBuild build = content.recording().build();
         String body = build == null || build.failed()
                 ? "<div class='prog'><i></i></div>"
                 : progressCallout(ANALYZING_TITLE, build, "");
         return accent(false)
-                + header(kindIcon(content.state()), false, plainTitle("Building the profile"),
+                + header(kindIcon(content.recording()), false, plainTitle("Building the profile"),
                         "Parsing events and building views…",
                         buttons(button("check", "Check again", false, false)))
                 + "<div class='body' style='padding-top:calc(20*var(--u))'>"
@@ -438,8 +582,8 @@ public final class WebPanelHtml {
     private static String facts(Content content, boolean withPath) {
         Path parent = content.file().getParent();
         StringBuilder html = new StringBuilder(512).append("<dl class='facts'>")
-                .append(fact("File", content.state().filename()))
-                .append(fact("Size", Formats.bytes(content.state().sizeInBytes())));
+                .append(fact("File", content.recording().filename()))
+                .append(fact("Size", Formats.bytes(content.recording().sizeInBytes())));
         if (withPath) {
             html.append(fact("Path", parent == null ? "—" : parent.toString()));
         }
@@ -452,12 +596,85 @@ public final class WebPanelHtml {
 
     // --- the action row -------------------------------------------------------------------------
 
+    /**
+     * What a ready profile offers, in the order a developer reaches for them.
+     *
+     * <p>The comparison menu appears only when there is no baseline yet: once one is attached, the
+     * strip below carries Swap and Clear, and a second control for the same choice would be a second
+     * place to disagree about what the pair is.
+     */
     private static String readyActions(Content content) {
+        boolean comparing = content.state().isComparing();
         String open = button("open", "Open in Microscope", true, false);
+        String compare = content.state().hasBaseline() ? "" : compareSplitButton(content.state());
         if (!content.agentsEnabled()) {
-            return buttons(open);
+            return buttons(open + compare);
         }
-        return buttons(open + agentSplitButton(content.agents()));
+        return buttons(open + compare + agentSplitButton(content.agents(), comparing));
+    }
+
+    /**
+     * The recordings this one could be measured against.
+     *
+     * <p>Every entry is a file in this project that Microscope can read, with what it holds for it
+     * already looked up — the window and the sample count for a ready one, and for a file it has
+     * never seen, a note that picking it imports it first. Picking blind is how a reader ends up
+     * subtracting a four-minute run from a twenty-minute one, and the caution afterwards arrives too
+     * late to stop them believing it.
+     */
+    private static String compareSplitButton(PanelState state) {
+        List<CompareCandidate> candidates = state.candidates();
+
+        String main = "<button type='button' class='btn main' disabled>"
+                + PanelSvg.icon("diff") + Html.escape(COMPARE_MENU_LABEL) + "</button>";
+        if (!candidates.isEmpty()) {
+            main = "<button type='button' class='btn main' data-menu aria-haspopup='true'"
+                    + " aria-expanded='false'>"
+                    + PanelSvg.icon("diff") + Html.escape(COMPARE_MENU_LABEL) + "</button>";
+        }
+
+        StringBuilder menu = new StringBuilder(1024).append("<div class='pop wide' hidden>");
+        if (candidates.isEmpty()) {
+            menu.append("<div class='foot'>").append(COMPARE_EMPTY_FOOT).append("</div>");
+        } else {
+            menu.append(candidateGroup(COMPARE_READY_GROUP, candidates, true));
+            String pending = candidateGroup(COMPARE_PENDING_GROUP, candidates, false);
+            if (!pending.isEmpty()) {
+                menu.append("<div class='divider'></div>").append(pending);
+            }
+            menu.append("<div class='foot'>").append(COMPARE_FOOT).append("</div>");
+        }
+        menu.append("</div>");
+
+        return "<div class='anchor'><div class='split'>" + main
+                + "<button type='button' class='btn arrow' data-menu aria-haspopup='true'"
+                + " aria-expanded='false' aria-label='Pick a baseline'>"
+                + PanelSvg.icon("chevron", "chev") + "</button></div>"
+                + menu + "</div>";
+    }
+
+    /**
+     * One half of the menu. A recording with no profile is still offered rather than hidden: the
+     * panel knows how to import it, and hiding it would say Jeffrey cannot compare a file it can.
+     */
+    private static String candidateGroup(String title, List<CompareCandidate> candidates, boolean ready) {
+        StringBuilder html = new StringBuilder(512);
+        for (CompareCandidate candidate : candidates) {
+            if (candidate.isReady() != ready) {
+                continue;
+            }
+            if (html.isEmpty()) {
+                html.append("<div class='grp'>").append(Html.escape(title)).append("</div>");
+            }
+            String tail = ready ? candidate.figures() : COMPARE_PENDING_TAIL;
+            html.append("<button type='button' class='mi' data-action='compare:")
+                    .append(Html.escape(candidate.file().toString())).append("'>")
+                    .append(PanelSvg.icon("flame"))
+                    .append("<span class='n fname'>").append(Html.escape(candidate.filename()))
+                    .append("</span><span class='tail'>").append(Html.escape(tail))
+                    .append("</span></button>");
+        }
+        return html.toString();
     }
 
     /**
@@ -468,7 +685,8 @@ public final class WebPanelHtml {
      * the chevron holds the rest, and the row is the same width whether Jeffrey knows two agents or
      * eight.
      */
-    private static String agentSplitButton(AgentRow agents) {
+    private static String agentSplitButton(AgentRow agents, boolean comparing) {
+        String verb = comparing ? AGENT_VERB_COMPARE : AGENT_VERB_ANALYSE;
         List<AgentCli> ready = agents.ready();
         List<AgentCli> missing = agents.missing();
 
@@ -477,10 +695,10 @@ public final class WebPanelHtml {
             AgentCli primary = agents.primary();
             main = "<button type='button' class='btn main' data-action='agent:"
                     + Html.escape(primary.executable()) + "'>"
-                    + mark(primary, true) + "Analyse with " + Html.escape(primary.displayName())
+                    + mark(primary, true) + verb + Html.escape(primary.displayName())
                     + "</button>";
         } else {
-            main = "<button type='button' class='btn main' disabled>Analyse with an agent</button>";
+            main = "<button type='button' class='btn main' disabled>" + verb + "an agent</button>";
         }
 
         StringBuilder menu = new StringBuilder(768).append("<div class='pop' hidden>");
@@ -490,7 +708,7 @@ public final class WebPanelHtml {
                 menu.append("<button type='button' class='mi' data-action='agent:")
                         .append(Html.escape(agent.executable())).append("'>")
                         .append(mark(agent, true))
-                        .append("<span class='n'>Analyse with ").append(Html.escape(agent.displayName()))
+                        .append("<span class='n'>").append(verb).append(Html.escape(agent.displayName()))
                         .append("</span></button>");
             }
         }
@@ -578,19 +796,28 @@ public final class WebPanelHtml {
      */
     private static final String SCRIPT = """
             (function(){
-              var pop = document.querySelector('.pop');
-              var arrow = document.querySelector('[data-menu]');
+              function popFor(toggle){
+                var anchor = toggle.closest('.anchor');
+                return anchor ? anchor.querySelector('.pop') : null;
+              }
               function close(){
-                if(!pop){ return; }
-                pop.hidden = true;
-                arrow.setAttribute('aria-expanded','false');
+                var pops = document.querySelectorAll('.pop');
+                for(var i = 0; i < pops.length; i++){ pops[i].hidden = true; }
+                var toggles = document.querySelectorAll('[data-menu]');
+                for(var j = 0; j < toggles.length; j++){
+                  toggles[j].setAttribute('aria-expanded','false');
+                }
               }
               document.addEventListener('click', function(event){
                 var toggle = event.target.closest('[data-menu]');
-                if(toggle && pop){
-                  var open = pop.hidden;
-                  pop.hidden = !open;
-                  arrow.setAttribute('aria-expanded', String(open));
+                if(toggle){
+                  var pop = popFor(toggle);
+                  var opening = pop && pop.hidden;
+                  close();
+                  if(opening){
+                    pop.hidden = false;
+                    toggle.setAttribute('aria-expanded','true');
+                  }
                   return;
                 }
                 var target = event.target.closest('[data-action]');

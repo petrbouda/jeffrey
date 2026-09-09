@@ -93,14 +93,14 @@ public final class SwingPanelRenderer implements PanelRenderer {
     }
 
     @Override
-    public void render(RecordingState state) {
+    public void render(PanelState panel) {
         draw(() -> {
             String url = JeffreySettings.getInstance().microscopeUrl();
-            add(htmlPane(PanelHtml.header(state, file, url)));
+            add(htmlPane(PanelHtml.header(panel.recording(), file, url)));
             add(gap());
-            add(buttonsFor(state));
+            add(buttonsFor(panel));
             add(gap());
-            add(htmlPane(PanelHtml.details(state, file, url)));
+            add(htmlPane(PanelHtml.details(panel, file, url)));
         });
     }
 
@@ -138,13 +138,14 @@ public final class SwingPanelRenderer implements PanelRenderer {
 
     // --- buttons --------------------------------------------------------------------------------
 
-    private JComponent buttonsFor(RecordingState state) {
+    private JComponent buttonsFor(PanelState panel) {
+        RecordingState state = panel.recording();
         return switch (state.status()) {
             case NOT_IMPORTED, IMPORTED -> buttonRow(analyzeButton());
             // No "analyze again": a recording file does not change, so re-analysing the same bytes
             // would only import a second copy and build an identical profile. A file that really has
             // changed no longer matches by name and size, and comes back as never analysed anyway.
-            case READY -> buttonRow(readyButtons(state));
+            case READY -> buttonRow(readyButtons(panel));
             case ANALYZING -> analyzingControls();
             // Settings appears only here and on a failure — it is the one place the answer is likely
             // to be a wrong address. A button that is always present and almost never the fix teaches
@@ -177,11 +178,19 @@ public final class SwingPanelRenderer implements PanelRenderer {
      * machines that see it. An agent that is not installed keeps its button, disabled, so the row
      * looks the same everywhere.
      */
-    private JButton[] readyButtons(RecordingState state) {
-        boolean heapDump = state.summary() != null && state.summary().isHeapDump();
-
+    private JButton[] readyButtons(PanelState panel) {
+        RecordingState state = panel.recording();
         List<JButton> buttons = new ArrayList<>();
         buttons.add(button("Open in Microscope", event -> actions.openProfile()));
+        // No menu of candidates here: picking one needs a popup of file names with their figures,
+        // which is the kind of thing this engine cannot draw. A comparison is still started from the
+        // project view's own action, and once one exists these two change or end it.
+        if (panel.hasBaseline()) {
+            if (panel.isComparing()) {
+                buttons.add(button("Swap baseline", event -> actions.swapComparison()));
+            }
+            buttons.add(button("Clear baseline", event -> actions.clearComparison()));
+        }
         if (state.needsHeapIndex()) {
             PipelineBuild build = state.build();
             boolean building = build != null && !build.failed();
@@ -191,14 +200,15 @@ public final class SwingPanelRenderer implements PanelRenderer {
         }
         if (JeffreySettings.getInstance().areAgentsEnabled()) {
             for (AgentCli agent : AgentCli.ALL) {
-                buttons.add(agentButton(agent, heapDump));
+                buttons.add(agentButton(agent, panel.isComparing()));
             }
         }
         return buttons.toArray(new JButton[0]);
     }
 
-    private JButton agentButton(AgentCli agent, boolean heapDump) {
-        JButton button = button("Analyse with " + agent.displayName(), event -> actions.launchAgent(agent));
+    private JButton agentButton(AgentCli agent, boolean comparing) {
+        String verb = comparing ? "Compare with " : "Analyse with ";
+        JButton button = button(verb + agent.displayName(), event -> actions.launchAgent(agent));
         if (!agent.isInstalled()) {
             button.setEnabled(false);
         }

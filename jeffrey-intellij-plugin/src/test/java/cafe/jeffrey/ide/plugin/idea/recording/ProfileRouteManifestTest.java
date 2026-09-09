@@ -87,6 +87,7 @@ public class ProfileRouteManifestTest {
     private static List<ProfileView> allViews() {
         List<ProfileView> views = new ArrayList<>(ProfileView.RECORDING);
         views.addAll(ProfileView.HEAP);
+        views.addAll(ProfileView.DIFFERENTIAL);
         return views;
     }
 

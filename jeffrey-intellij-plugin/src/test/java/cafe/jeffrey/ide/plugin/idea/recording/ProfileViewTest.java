@@ -137,4 +137,33 @@ public class ProfileViewTest {
             assertFalse("trailing slash: " + view.path(), view.path().endsWith("/"));
         }
     }
+
+    /**
+     * Two views, because two is all Microscope subtracts. A tile for a differential page that does
+     * not exist would be a promise the panel cannot keep, and the router's catch-all would make it
+     * look like a working link to the wrong page.
+     */
+    @Test
+    public void theDifferentialViewsAreTheTwoMicroscopeActuallySubtracts() {
+        assertEquals(2, ProfileView.DIFFERENTIAL.size());
+        for (ProfileView view : ProfileView.DIFFERENTIAL) {
+            assertTrue(view.path(), view.path().endsWith("/differential"));
+            assertFalse(view.label().isBlank());
+            assertFalse(view.blurb().isBlank());
+        }
+    }
+
+    /** The flame graph leads: which methods moved is the question a comparison is opened for. */
+    @Test
+    public void theDifferentialFlameGraphComesFirst() {
+        assertEquals("flamegraphs/differential", ProfileView.DIFFERENTIAL.getFirst().path());
+    }
+
+    /** The sub-second heatmap is gated by the same feature as its single-profile sibling. */
+    @Test
+    public void theDifferentialSubSecondCarriesTheSameGateAsItsSibling() {
+        ProfileView differential = ProfileView.DIFFERENTIAL.getLast();
+        assertFalse(differential.isAvailable(List.of("SUBSECOND")));
+        assertTrue(differential.isAvailable(List.of("TRACES")));
+    }
 }

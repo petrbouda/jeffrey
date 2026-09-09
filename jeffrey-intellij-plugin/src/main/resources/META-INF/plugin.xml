@@ -17,8 +17,8 @@
         </p>
 
         <p>
-            <b>The plugin stays out of your way</b> — no toolbars, no tool windows, and a single
-            context-menu action. It runs quietly in the background and enriches Jeffrey Microscope,
+            <b>The plugin stays out of your way</b> — no toolbars, no tool windows, and two
+            context-menu actions. It runs quietly in the background and enriches Jeffrey Microscope,
             letting Microscope discover your open IntelliJ projects and either navigate straight to
             the matching code or download the sources back into the application directly.
         </p>
@@ -49,12 +49,20 @@
                 the build's progress until the figures arrive.
                 Rendered in the IDE's own browser, so it matches your theme and follows it when you
                 switch.</li>
+            <li><b>Compare two recordings</b> — a before and an after, measured against each other
+                without leaving the IDE. Select two recordings and pick <em>Compare in Microscope</em>,
+                select one while another's panel is open, or choose a baseline from the panel's own
+                menu, which lists this project's recordings with each one's window and sample count.
+                The panel names the baseline, prints its value under each figure, says whether the two
+                are a like-for-like pair, and links out to the differential flame graph with the
+                baseline already selected.</li>
             <li><b>Hand it to a coding agent</b> — one button starts Claude Code or Codex in a
                 terminal with the profile already identified, so the agent reads it through
                 Microscope rather than trying to parse a JFR it cannot open. It runs whichever agent
                 you used last, and its menu holds the rest — including the ones Jeffrey supports that
                 this machine does not have, so the row stays one button wide however many it
-                learns.</li>
+                learns. With a baseline attached it hands over both profiles, so the agent compares
+                them rather than reading one.</li>
             <li><b>Checkout awareness</b> — reports the branch and commit each window is on, so
                 Microscope can warn when a profile describes different code than you have open.</li>
             <li><b>Zero configuration</b> — Microscope discovers the IDE automatically over IntelliJ's
@@ -91,6 +99,16 @@
                 class="cafe.jeffrey.ide.plugin.idea.AnalyzeInMicroscopeAction"
                 text="Analyze in Microscope"
                 description="Open this JFR recording or heap dump in Jeffrey Microscope"
+                icon="/icons/jeffrey-icon.svg">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>
+        </action>
+        <!-- Text is set in update(): "Compare in Microscope" for a selected pair, "Compare with
+             <the open recording>" for one file beside an open panel. -->
+        <action id="cafe.jeffrey.ide.plugin.idea.CompareInMicroscope"
+                class="cafe.jeffrey.ide.plugin.idea.CompareInMicroscopeAction"
+                text="Compare in Microscope"
+                description="Measure this JFR recording against another one in Jeffrey Microscope"
                 icon="/icons/jeffrey-icon.svg">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
             <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>

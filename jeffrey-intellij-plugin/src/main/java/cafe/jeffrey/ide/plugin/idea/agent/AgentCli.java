@@ -41,27 +41,6 @@ public record AgentCli(String displayName, String executable) {
             new AgentCli("Codex", "codex"));
 
     /**
-     * The prompt both agents receive. Deliberately just the profile — no baked-in question.
-     *
-     * <p>The method lives in the skill, and the panel does not know what the developer wants to know.
-     * A recording that lost a third of its samples is the case that proves it: an opener like "where
-     * is the time going?" would have the agent rank hot paths that are biased exactly where it
-     * matters, instead of noticing the loss first.
-     *
-     * <p>The <b>profileId</b>, never the file path: neither agent can parse a JFR or an hprof, and
-     * Microscope has already done it.
-     *
-     * <p>The wording carries the phrase the right skill triggers on — {@code analyze-jfr} fires on "a
-     * Jeffrey profile", {@code analyze-heap} on "a heap dump". Sending a dump to the recording skill
-     * would have the agent reach for flamegraph tools against a profile that has none.
-     */
-    public static String prompt(String profileId, boolean heapDump) {
-        return heapDump
-                ? "Analyse the heap dump in Jeffrey profile " + profileId
-                : "Analyse Jeffrey profile " + profileId;
-    }
-
-    /**
      * A two-letter badge for the menu and the split button.
      *
      * <p>Two rather than one because the first letter collides immediately — Claude and Codex both
@@ -85,12 +64,12 @@ public record AgentCli(String displayName, String executable) {
     }
 
     /**
-     * The command line, with the prompt quoted as one argument. Only a profile id ever reaches the
-     * quoting, but it is done properly anyway — a command assembled by string concatenation and run in
-     * the developer's shell is not the place to assume well-formed input.
+     * The command line, with the task's sentence quoted as one argument. Only profile ids ever reach
+     * the quoting, but it is done properly anyway — a command assembled by string concatenation and
+     * run in the developer's shell is not the place to assume well-formed input.
      */
-    public String command(String profileId, boolean heapDump) {
-        return executable + " " + quote(prompt(profileId, heapDump));
+    public String command(AgentTask task) {
+        return executable + " " + quote(task.prompt());
     }
 
     private static String quote(String argument) {

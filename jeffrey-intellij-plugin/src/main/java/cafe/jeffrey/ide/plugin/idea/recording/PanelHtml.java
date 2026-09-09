@@ -78,7 +78,8 @@ final class PanelHtml {
      * The bottom pane: the findings and the tiles once a profile exists, the file's own facts before
      * then. Both are things the reader can act on; neither is a figure the recording produced.
      */
-    static String details(RecordingState state, Path file, String microscopeUrl) {
+    static String details(PanelState panel, Path file, String microscopeUrl) {
+        RecordingState state = panel.recording();
         StringBuilder html = new StringBuilder(2048);
         html.append("<html><body>");
 
@@ -91,13 +92,41 @@ final class PanelHtml {
             return html.append(facts(state, file, microscopeUrl)).append("</body></html>").toString();
         }
 
+        Comparability verdict = panel.comparability();
+        if (panel.hasBaseline()) {
+            html.append(baselineLine(panel, verdict));
+        }
         // Auto-analysis is a recording's verdict. A heap dump's is "Leak suspects", which leads its
-        // tile grid — so a dump gets no findings section rather than an empty one.
-        if (!summary.isHeapDump()) {
+        // tile grid — so a dump gets no findings section rather than an empty one. A comparison
+        // replaces it: the findings are about this recording, and the question here is about a pair.
+        if (verdict == null && !summary.isHeapDump()) {
             html.append(section("Auto-analysis")).append(findings(summary));
         }
-        html.append(section("Open a view")).append(tiles(summary));
+        html.append(section("Open a view"))
+                .append(tiles(panel.views(), summary.disabledFeatures(), summary.indexMissing()));
         return html.append("</body></html>").toString();
+    }
+
+    /**
+     * The baseline as two sentences, which is all this engine can carry.
+     *
+     * <p>The web renderer draws a strip with the figures side by side; Swing's kit has no grid worth
+     * the name, so the same facts are said in prose. Which file is the baseline is the half that
+     * cannot be dropped: read the other way round, every regression becomes an improvement.
+     */
+    private static String baselineLine(PanelState panel, Comparability verdict) {
+        StringBuilder html = new StringBuilder(512).append(section("Baseline"))
+                .append("<span class='sml'>")
+                .append(escape(panel.baseline().filename()));
+        if (!panel.isComparing()) {
+            html.append(" — not ready yet");
+        }
+        html.append("</span>");
+        if (verdict != null) {
+            html.append("<br><span class='").append(verdict.isCautioned() ? "warn" : "sml").append("'>")
+                    .append(escape(verdict.detail())).append("</span>");
+        }
+        return html.append("<br><br>").toString();
     }
 
     /**
@@ -227,10 +256,6 @@ final class PanelHtml {
         return "<td width='" + TILE_WIDTH + "' class='tile off'>"
                 + "<span class='off'>" + icon + "<b>" + escape(label) + "</b><br>"
                 + "<span class='sml'>" + escape(blurb) + "</span></span></td>";
-    }
-
-    private static String tiles(RecordingState.ProfileSummary summary) {
-        return tiles(summary.views(), summary.disabledFeatures(), summary.indexMissing());
     }
 
     /** {@code locked}: a dump without its index, where every tile is drawn off rather than linked. */
