@@ -1,7 +1,7 @@
 ---
 name: profile-run
 description: Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: "profile this benchmark", "record a JFR while the tests run", "why is this slow" with no recording in hand, or when a hotspot needs measuring rather than guessing.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* mcp_jeffrey_*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 argument-hint: "[what to run] [cpu|wall|alloc|lock]"
 ---
 

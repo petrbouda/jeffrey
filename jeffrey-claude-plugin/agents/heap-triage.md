@@ -6,9 +6,6 @@ tools:
   - mcp__plugin_microscope_jeffrey__profiles_*
   - mcp__jeffrey__heap_*
   - mcp__jeffrey__profiles_*
-  # Gemini CLI's spelling of the same two families.
-  - mcp_jeffrey_heap_*
-  - mcp_jeffrey_profiles_*
 model: inherit
 skills:
   - analyze-heap

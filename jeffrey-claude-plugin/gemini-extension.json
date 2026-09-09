@@ -2,9 +2,16 @@
   "name": "microscope",
   "version": "1.0.0",
   "description": "Analyze JVM recordings with a running Jeffrey Microscope — point it at a JFR file or heap dump to build a profile, then list analysed recordings, query their DuckDB tables, and pull flamegraph, trace and heap-dump exports without leaving the terminal.",
+  "settings": [
+    {
+      "name": "Jeffrey MCP endpoint",
+      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel — it is the address Microscope serves on, with /api/mcp appended.",
+      "envVar": "JEFFREY_MCP_ENDPOINT"
+    }
+  ],
   "mcpServers": {
     "jeffrey": {
-      "httpUrl": "http://localhost:8585/api/mcp",
+      "httpUrl": "${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}",
       "timeout": 900000
     }
   }

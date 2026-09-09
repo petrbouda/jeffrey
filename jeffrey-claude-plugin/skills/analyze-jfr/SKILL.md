@@ -1,7 +1,7 @@
 ---
 name: analyze-jfr
 description: Analyses a JVM profile held by a running Jeffrey Microscope — CPU, wall-clock, allocation, lock contention, trace latency, and the machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container and the JVM's configuration. Starts from the catalogue or from a .jfr file Jeffrey has not seen yet. Use whenever the user asks why something is slow, where the time goes, what is allocating, why GC pauses are long, what is pausing the JVM, what the JIT compiler or deoptimisation is doing, which threads are burning CPU, why memory grows outside the heap, whether the container is throttling, what a JFR recording or flamegraph shows, or mentions a Jeffrey profile, a .jfr file or async-profiler output. For a heap dump or .hprof file, analyze-heap applies instead.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* mcp_jeffrey_*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Analysing a Jeffrey profile
@@ -11,7 +11,8 @@ family that writes is `recordings_`, which turns a recording *file* into a profi
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+The part after it is exact and camelCase:
 `jfr_listTables`, not `jfr_list_tables`.
 
 ## 1. Get a `profileId`

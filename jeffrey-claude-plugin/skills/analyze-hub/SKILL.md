@@ -1,7 +1,7 @@
 ---
 name: analyze-hub
 description: Finds and analyses JVM recordings that live on a Jeffrey Hub rather than on this machine — the JFR recordings and heap dumps a deployed application produced. Use whenever the user asks about what an environment recorded rather than about a file they have: production, staging, a named service or pod, "the last hour", "since the deploy", "what the hub has", "why was prod slow this morning". It locates the session, pulls it into Jeffrey and hands off to analyze-jfr or analyze-heap. For a recording file already on this machine, analyze-jfr applies directly.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* mcp_jeffrey_*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Analysing a recording that lives on a Jeffrey Hub
@@ -12,7 +12,8 @@ ordinary profile that `analyze-jfr` and `analyze-heap` answer about.
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+The part after it is exact and camelCase:
 `hubs_sessions`, not `hubs_list_sessions`.
 
 If no `hubs_` tool is advertised, this Jeffrey has hub access switched off

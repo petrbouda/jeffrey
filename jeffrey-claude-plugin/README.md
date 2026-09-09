@@ -55,11 +55,14 @@ then `/plugins` in Codex, or work from a clone with `codex plugin marketplace ad
 **Gemini CLI:**
 
 ```bash
-gemini extensions install --path ./jeffrey/jeffrey-claude-plugin
+git clone https://github.com/petrbouda/jeffrey
+gemini extensions install ./jeffrey/jeffrey-claude-plugin
 ```
 
 Gemini installs an extension from a directory holding a `gemini-extension.json`, which is this
-directory in a clone. `/extensions` lists it, `/mcp` says whether it reached Jeffrey.
+directory in a clone. The GitHub-URL form does not work here: Gemini looks for the manifest at the
+root of what it clones, and in this repository it lives one directory down. `/extensions` lists it,
+`/mcp` says whether it reached Jeffrey.
 
 Any of them can also skip the plugin and register the endpoint by hand — the docs above cover
 `claude mcp add`, `codex mcp add`, Gemini's `mcpServers` block, and the raw JSON-RPC for anything
@@ -88,9 +91,14 @@ url = "http://localhost:9000/api/mcp"
 
 The skills keep working; only the server registration moves.
 
-**Gemini CLI is the same story.** Substitution in an extension manifest is documented for the `env`
-block, not for a server URL, so the extension's endpoint is fixed at `localhost:8585` too. Put your
-own address in `~/.gemini/settings.json` (or a project's `.gemini/settings.json`):
+**Gemini CLI has a setting, like Claude Code.** The extension declares one, and Gemini asks for it
+while installing; the manifest reads `${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}`, so the
+default stands until you give it something. `gemini extensions install` with `--skip-settings` skips
+the question, and exporting `JEFFREY_MCP_ENDPOINT` answers it from the environment instead — the same
+variable the session-start check reads, so both agree about where Jeffrey is.
+
+Registering the server yourself works too, in `~/.gemini/settings.json` for every project or a
+checkout's `.gemini/settings.json` for one:
 
 ```json
 {
@@ -103,7 +111,8 @@ own address in `~/.gemini/settings.json` (or a project's `.gemini/settings.json`
 ```
 
 `httpUrl` is Gemini's key for streamable HTTP; `url` there means SSE, which this server does not
-speak.
+speak. Keep the name `jeffrey`: the skills name tools by the part after the prefix, and the prefix is
+built from the server's name.
 
 ## What you get
 
@@ -190,12 +199,15 @@ skills and MCP servers**, so Codex cannot receive an agent from a plugin — cop
 Those versions are sandboxed read-only, but their tool restriction is instruction-level rather than
 enforced.
 
-**Gemini CLI takes two of the three from the extension**, `profile-analyst` and `heap-triage`, and
-`/agents` lists them. It cannot run `profile-lead`, whose whole job is dispatching those two, because
-a Gemini subagent may not call another subagent; lead the investigation from the main conversation
-there. Its subagents take an allow-list with no deny-list, so — as in Codex — what keeps the analyst
-off `recordings_`, `hubs_download` and the `ide_` tools is the rule in its instructions, not the
-client.
+**Gemini CLI gets two of the three, also as files to copy** —
+[`gemini/agents/profile-analyst.md`](gemini/agents/profile-analyst.md) and
+[`gemini/agents/heap-triage.md`](gemini/agents/heap-triage.md) to `~/.gemini/agents/` for every
+repository, or `.gemini/agents/` for one; `/agents` then lists them. The extension cannot carry them
+even though Gemini reads an extension's `agents/`: it validates that frontmatter strictly and rejects
+any key it does not define, and the plugin's own agents carry Claude Code's `disallowedTools`,
+`skills` and `color`. There is no `profile-lead` for Gemini at all — a Gemini subagent may not
+dispatch another subagent, and dispatching the other two is that agent's whole job — so lead an
+open-ended investigation from the main conversation there.
 
 **Prompts and resources.** The server also serves the ten skills over the protocol itself, as MCP
 prompts — the same files the plugin ships, copied onto the server's classpath when it is built, so
@@ -281,30 +293,39 @@ jeffrey-claude-plugin/
 ├── .codex-plugin/
 │   └── plugin.json           Codex-native manifest, pointing at the same skills and mcp.json
 ├── gemini-extension.json     Gemini CLI extension manifest — the same server, skills and agents
-├── hooks/                    SessionStart check — is Jeffrey actually serving (Claude Code only)
+├── hooks/                    SessionStart check — is Jeffrey actually serving (Claude Code and Gemini)
 ├── skills/                   Ten skills, read by all three formats
 ├── agents/
-│   ├── profile-analyst.md    Claude Code subagent, and a Gemini CLI subagent
-│   ├── heap-triage.md        …the heap specialist, likewise
+│   ├── profile-analyst.md    Claude Code subagent
+│   ├── heap-triage.md        …the heap specialist
 │   └── profile-lead.md       …and the lead that triages, dispatches the two and merges their findings
-└── codex/agents/
-    ├── profile-analyst.toml  The same agents as Codex custom agents, installed by hand
-    ├── heap-triage.toml
-    └── profile-lead.toml
+├── codex/agents/
+│   ├── profile-analyst.toml  The same agents as Codex custom agents, installed by hand
+│   ├── heap-triage.toml
+│   └── profile-lead.toml
+└── gemini/agents/
+    ├── profile-analyst.md    Two of them as Gemini CLI subagents, also installed by hand
+    └── heap-triage.md
 ```
 
 The directory keeps its `jeffrey-claude-plugin` name so existing installs and marketplace entries
 keep resolving; it serves all three clients.
 
-**The agents are shared, with one exception.** Gemini CLI discovers `agents/` from the extension, so
-`profile-analyst` and `heap-triage` carry their tool patterns in both spellings —
-`mcp__…__heap_*` for Claude Code and `mcp_jeffrey_heap_*` for Gemini. `profile-lead` carries only
-the Claude ones: a Gemini subagent cannot dispatch another subagent, and dispatch is all that agent
-does. Under Gemini the main conversation leads and the two specialists work beneath it.
+**One hook, two clients.** Both read `hooks/hooks.json` in the same shape and both spell a hook's
+output the same way, but they name the plugin's own directory differently — `CLAUDE_PLUGIN_ROOT` in
+the environment, `${extensionPath}` substituted into the command — so the command resolves whichever
+is there and exits silently when neither is, rather than reporting a missing script. It carries no
+`timeout` on purpose: Claude Code reads that field as seconds and Gemini as milliseconds, and the
+probe bounds itself at three seconds anyway.
 
-Gemini subagents also take an allow-list only, with no deny-list, so `profile-analyst`'s read-only
-promise rests there on the *No writing* rule in its own instructions — the same footing it has in
-Codex.
+**Three agent directories, one set of agents.** `agents/` is Claude Code's, and the only one a plugin
+carries; `codex/` and `gemini/` hold the same analyst and heap specialist in the dialect each of those
+clients validates, to be copied by hand. Gemini does read an installed extension's `agents/`, and logs
+a load error for each of the three Claude files, whose frontmatter its strict schema rejects — the
+errors are debug-level, and nothing else follows from them.
+
+In both hand-copied sets the read-only promise rests on the *No writing* rule in the agent's own
+instructions rather than on a deny-list the client does not have.
 
 ## Security
 

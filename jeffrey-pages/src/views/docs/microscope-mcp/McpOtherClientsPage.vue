@@ -156,7 +156,7 @@ const protocolError = `{
       <p>None of them can carry the three agents, for the reason that page gives: Agent Plugins defines skills and MCP servers, and nothing else. And in all of them the endpoint is fixed at <code>localhost:8585</code>, because the format forbids placeholder expansion in a server URL &mdash; a Jeffrey anywhere else is registered by hand, as below.</p>
 
       <DocsCallout type="info" title="Gemini CLI is not one of them">
-        It reads its own extension format rather than this manifest, and takes more from the package than these clients can &mdash; the skills and two of the three agents. It has a <router-link to="/docs/microscope-mcp/gemini">page of its own</router-link>. Its <code>mcpServers</code> entry also differs in one key that matters: <code>httpUrl</code> for Streamable HTTP, where <code>url</code> would mean SSE.
+        It reads its own extension format rather than this manifest, and takes more from the package than these clients can &mdash; the skills, the session-start check, and an endpoint you can point elsewhere. It has a <router-link to="/docs/microscope-mcp/gemini">page of its own</router-link>. Its <code>mcpServers</code> entry also differs in one key that matters: <code>httpUrl</code> for Streamable HTTP, where <code>url</code> would mean SSE.
       </DocsCallout>
 
       <h3 id="cursor">Cursor</h3>

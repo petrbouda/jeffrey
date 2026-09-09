@@ -1,7 +1,7 @@
 ---
 name: compare-jfr
 description: Compares two JVM profiles held by a running Jeffrey Microscope — a before and an after — using differential flamegraphs, to answer whether a change made the application slower, faster, or allocate more. Use whenever the user asks if a change regressed performance, what got slower or faster between two runs, to compare two recordings, benchmarks or branches, or mentions a baseline, a before/after or a performance regression. For a single profile, analyze-jfr applies instead; for a heap dump, analyze-heap.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* mcp_jeffrey_*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Comparing two Jeffrey profiles
@@ -12,7 +12,8 @@ measured against; a positive delta always means the primary spends *more*.
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+The part after it is exact and camelCase:
 `compare_movements`, not `compare_movements_list`.
 
 ## The one thing that makes this analysis worthless

@@ -5,8 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/jeffrey-status.sh",
-            "timeout": 5
+            "command": "sh -c 'root=\"$CLAUDE_PLUGIN_ROOT\"; [ -n \"$root\" ] || root=\"${extensionPath}\"; script=\"$root/hooks/jeffrey-status.sh\"; [ -x \"$script\" ] || exit 0; exec \"$script\"'"
           }
         ]
       }

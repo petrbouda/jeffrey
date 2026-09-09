@@ -1,7 +1,7 @@
 ---
 name: regression-check
 description: Decides whether a change made this project slower, by profiling two revisions the same way and weighing them against each other — build and record each, import both into a running Jeffrey Microscope, then report what moved and by how much. Use when the user asks whether a commit, branch or pull request regressed performance, wants a before-and-after measured rather than argued, or suspects a slowdown appeared somewhere in a range of commits.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* mcp_jeffrey_*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 argument-hint: "[baseline-ref] [candidate-ref] [workload]"
 ---
 

@@ -46,14 +46,21 @@ onMounted(() => {
 });
 
 const installLocal = `git clone https://github.com/petrbouda/jeffrey
-gemini extensions install --path ./jeffrey/jeffrey-claude-plugin`;
+gemini extensions install ./jeffrey/jeffrey-claude-plugin`;
 
 const manifest = `{
   "name": "microscope",
   "version": "1.0.0",
+  "settings": [
+    {
+      "name": "Jeffrey MCP endpoint",
+      "description": "URL of the Microscope MCP endpoint.",
+      "envVar": "JEFFREY_MCP_ENDPOINT"
+    }
+  ],
   "mcpServers": {
     "jeffrey": {
-      "httpUrl": "http://localhost:8585/api/mcp",
+      "httpUrl": "\${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}",
       "timeout": 900000
     }
   }
@@ -92,8 +99,13 @@ const familiesProperty = `# On the Jeffrey side, in application.properties
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
 
 const agentTools = `tools:
-  - mcp_jeffrey_heap_*
-  - mcp_jeffrey_profiles_*`;
+  - mcp_jeffrey_*`;
+
+const agentInstall = `mkdir -p ~/.gemini/agents
+cp jeffrey/jeffrey-claude-plugin/gemini/agents/profile-analyst.md ~/.gemini/agents/
+cp jeffrey/jeffrey-claude-plugin/gemini/agents/heap-triage.md ~/.gemini/agents/`;
+
+const endpointEnv = `export JEFFREY_MCP_ENDPOINT=http://localhost:9000/api/mcp`;
 
 const removal = `gemini extensions uninstall microscope`;
 
@@ -108,9 +120,9 @@ const update = `gemini extensions update microscope`;
     />
 
     <div class="docs-content">
-      <p>The <strong>Microscope plugin</strong> installs into Gemini CLI as an <strong>extension</strong>. One directory in the Jeffrey repository now carries three manifests &mdash; the one <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> reads, the <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> one <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and its neighbours read, and <code>gemini-extension.json</code> &mdash; over a single set of skills, a single set of agents and a single MCP server.</p>
+      <p>The <strong>Microscope plugin</strong> installs into Gemini CLI as an <strong>extension</strong>. One directory in the Jeffrey repository now carries three manifests &mdash; the one <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> reads, the <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> one <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and its neighbours read, and <code>gemini-extension.json</code> &mdash; over a single set of skills and a single MCP server.</p>
 
-      <p>Of the three clients, Gemini is the one that can carry the most: an extension bundles MCP servers, skills <em>and</em> subagents, where the portable format Codex reads defines only the first two.</p>
+      <p>What Gemini takes from the package is the server, the skills and the session-start check that says whether Jeffrey is actually running. The agents are copied by hand, for the reason <a href="#the-agents">below</a>.</p>
 
       <DocsCallout type="info" title="Jeffrey has to be running">
         The extension installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
@@ -122,21 +134,24 @@ const update = `gemini extensions update microscope`;
 
       <p>Start a new session afterwards &mdash; an extension's servers, skills and agents are loaded when the session begins, not mid-conversation. <code>/extensions</code> lists what loaded.</p>
 
-      <p>The manifest itself is four lines of substance:</p>
+      <p>The GitHub-URL form of that command does not work here: Gemini looks for the manifest at the root of whatever it clones, and in this repository it lives one directory down.</p>
+
+      <p>Gemini asks for the endpoint while installing &mdash; keep the default unless your Jeffrey is elsewhere. <code>--skip-settings</code> skips the question. The manifest behind it:</p>
       <DocsCodeBlock :code="manifest" language="json" />
 
       <p><code>httpUrl</code> is Gemini's key for <strong>Streamable HTTP</strong>. Its neighbour <code>url</code> means an SSE endpoint, which this server does not offer &mdash; using it is the one configuration mistake that produces a server which looks registered and never connects.</p>
 
       <h2 id="pointing-it-elsewhere">Pointing It Elsewhere</h2>
-      <p>The extension ships pointed at <code>http://localhost:8585/api/mcp</code>, and as in Codex <strong>that address is fixed</strong>. Gemini documents variable substitution in an extension manifest for <code>${extensionPath}</code> and for the <code>env</code> block, not for a server URL, so there is no per-machine endpoint setting of the kind Claude Code offers.</p>
+      <p><strong>Gemini has a setting, as Claude Code does</strong> &mdash; unlike Codex, where the endpoint really is fixed. The extension declares one, and the manifest reads it with a default, so <code>localhost:8585</code> stands until you give it something else. Answer the question at install time, or export the variable the setting is named after:</p>
+      <DocsCodeBlock :code="endpointEnv" language="bash" />
 
-      <p>For any other address &mdash; a different port, a container, an SSH tunnel &mdash; register the server yourself in <code>~/.gemini/settings.json</code> for every project, or a checkout's <code>.gemini/settings.json</code> for one:</p>
+      <p>That is the same variable the session-start check reads, so the probe and the tools cannot end up pointed at different machines. To skip the extension's server altogether, register your own in <code>~/.gemini/settings.json</code> for every project, or a checkout's <code>.gemini/settings.json</code> for one:</p>
       <DocsCodeBlock :code="customUrl" language="json" />
 
       <p>Keep the name <code>jeffrey</code>: the skills name tools by the part after the prefix, and the prefix is built from the server's name. Then remove the extension, or accept that the same tools are registered twice.</p>
 
       <h2 id="what-the-extension-adds">What the Extension Adds</h2>
-      <p>Registering the server by hand gives you every tool. The extension adds the endpoint already configured, the three agents below, and <strong>ten skills</strong>, which Gemini loads on its own when a question calls for one:</p>
+      <p>Registering the server by hand gives you every tool. The extension adds the endpoint already configured, a check that Jeffrey is serving when a session starts, and <strong>ten skills</strong>, which Gemini loads on its own when a question calls for one:</p>
       <ul>
         <li><code>analyze-jfr</code> &mdash; where to start and which family answers which question</li>
         <li><code>analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the heap tools have to be run in</li>
@@ -154,7 +169,14 @@ const update = `gemini extensions update microscope`;
       <h2 id="the-agents">The Agents</h2>
       <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and answering a question properly often takes several. The <router-link to="/docs/microscope-mcp/agent">agents</router-link> run a sequence and return only the findings, leaving everything they read in their own context.</p>
 
-      <p>Gemini takes <strong>two of the three</strong> from the extension &mdash; <code>profile-analyst</code> for a profile, <code>heap-triage</code> for a heap dump &mdash; and <code>/agents</code> lists them. It cannot run <code>profile-lead</code>, and that is a property of the client rather than an omission: <strong>a Gemini subagent may not dispatch another subagent</strong>, and dispatching the other two is the whole of what the lead does. Ask an open-ended question in the main conversation instead; <code>analyze-jfr</code> carries the same triage order, and the two specialists work beneath it.</p>
+      <p>Gemini gets <strong>two of the three</strong>, and they are files to copy:</p>
+      <DocsCodeBlock :code="agentInstall" language="bash" />
+
+      <p><code>~/.gemini/agents/</code> makes them available in every repository; <code>.gemini/agents/</code> inside a checkout scopes them to that one, and <code>/agents</code> lists what loaded. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
+
+      <p><strong>The extension cannot carry them</strong>, even though Gemini does read an installed extension's <code>agents/</code> directory. It validates that frontmatter against a strict schema and rejects any key it does not define, and the plugin's own agents carry Claude Code's <code>disallowedTools</code>, <code>skills</code> and <code>color</code>. Gemini logs a debug-level load error for each and carries on; the copies above are the same agents written in the dialect it accepts.</p>
+
+      <p>There is <strong>no <code>profile-lead</code> for Gemini at all</strong>, and that is a property of the client rather than an omission: <strong>a Gemini subagent may not dispatch another subagent</strong>, and dispatching the other two is the whole of what the lead does. Ask an open-ended question in the main conversation instead; <code>analyze-jfr</code> carries the same triage order, and the two specialists work beneath it.</p>
 
       <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off <code>recordings_</code>, <code>hubs_download</code> and the two <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep those tools away from the whole session instead:</p>
       <DocsCodeBlock :code="excludeWriters" language="json" />
@@ -163,7 +185,7 @@ const update = `gemini extensions update microscope`;
       <p>Gemini gives every MCP tool a fully qualified name of the form <code>mcp_{serverName}_{toolName}</code> &mdash; so <code>flamegraph_export</code> arrives as <code>mcp_jeffrey_flamegraph_export</code>, with single underscores where Claude Code and Codex use double ones. It matters in exactly two places: an allow-list you write by hand, and a subagent's <code>tools</code>:</p>
       <DocsCodeBlock :code="agentTools" language="yaml" />
 
-      <p>The agents this extension ships already carry both spellings. The part after the prefix is the same everywhere and is exact and camelCase: <code>jfr_listTables</code>, never <code>jfr_list_tables</code>.</p>
+      <p><strong>A wildcard there covers a server, not a family.</strong> <code>mcp_jeffrey_*</code> is valid and means every Jeffrey tool; <code>mcp_jeffrey_heap_*</code> is <em>not</em> a valid tool name, and one invalid entry makes the whole agent fail to load. Narrowing to a family means naming its tools one by one. The part after the prefix is the same everywhere and is exact and camelCase: <code>jfr_listTables</code>, never <code>jfr_list_tables</code>.</p>
 
       <h2 id="approvals">Approvals</h2>
       <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Every Jeffrey tool reads except the six named on the <router-link to="/docs/microscope-mcp/tools">tool reference</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
@@ -196,12 +218,12 @@ const update = `gemini extensions update microscope`;
       <p>To remove it:</p>
       <DocsCodeBlock :code="removal" language="bash" />
 
-      <p>Uninstalling takes the skills and the agents with it. It does not change anything inside Jeffrey &mdash; the MCP server keeps serving &mdash; and it does not touch a server you registered yourself in <code>settings.json</code>.</p>
+      <p>Uninstalling takes the skills and the session-start check with it. It does not change anything inside Jeffrey &mdash; the MCP server keeps serving &mdash; and it touches neither a server you registered yourself in <code>settings.json</code> nor an agent you copied into <code>~/.gemini/agents/</code>.</p>
 
       <h2 id="without-the-extension">Without the Extension</h2>
       <p>The endpoint is an ordinary MCP server, so the <code>mcpServers</code> block from <a href="#pointing-it-elsewhere">above</a> in <code>~/.gemini/settings.json</code> is the whole of it. Use the address you actually reach Jeffrey on &mdash; behind a container, a proxy or a non-default port, <code>localhost:8585</code> is not it.</p>
 
-      <p>What you give up is the skills and the agents: the entry sequence and the two database schemas. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first. The server also offers the skills as MCP <strong>prompts</strong>, so they are not lost &mdash; somebody has to ask for one rather than the client loading it.</p>
+      <p>What you give up is the skills and the session-start check: the entry sequence, the two database schemas, and being told when Jeffrey is not answering. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first. The server also offers the skills as MCP <strong>prompts</strong>, so they are not lost &mdash; somebody has to ask for one rather than the client loading it. The agents were never part of the extension anyway.</p>
 
       <h2 id="what-differs">What Differs from Claude Code</h2>
       <p>The tools and the skills are identical. Everything below is a property of the clients, not of Jeffrey.</p>
@@ -223,12 +245,12 @@ const update = `gemini extensions update microscope`;
           <tr>
             <td>Install</td>
             <td><code>/plugin install microscope@jeffrey</code></td>
-            <td><code>gemini extensions install --path …</code></td>
+            <td><code>gemini extensions install &lt;path&gt;</code></td>
           </tr>
           <tr>
             <td>Endpoint</td>
             <td>A per-machine setting</td>
-            <td>Fixed at <code>localhost:8585</code>, or your own <code>settings.json</code></td>
+            <td>A setting too, asked at install or read from the environment</td>
           </tr>
           <tr>
             <td>Tool prefix</td>
@@ -238,7 +260,7 @@ const update = `gemini extensions update microscope`;
           <tr>
             <td>Agents</td>
             <td>All three, from the plugin</td>
-            <td>Two: no subagent may dispatch another</td>
+            <td>Two, copied by hand: no subagent may dispatch another</td>
           </tr>
           <tr>
             <td>Read-only agents</td>

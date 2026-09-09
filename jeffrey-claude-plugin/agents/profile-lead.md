@@ -1,10 +1,6 @@
 ---
 name: profile-lead
 description: Leads an open-ended performance investigation of one Jeffrey Microscope profile — "why is this service slow", "review this recording", "what is wrong with this JVM" — when the question is not aimed at one dimension. Triages from profiles_summary, dispatches profile-analyst and heap-triage only for the dimensions the summary justifies, then merges, de-duplicates and ranks what comes back into one report with the capability gaps stated apart from the findings. Delegate the whole question to it rather than running every family in the main conversation. It reports findings with their evidence; it never maps them to source, edits anything, creates a profile, or decides what to change.
-# No Gemini CLI spelling of these, deliberately: a Gemini subagent cannot dispatch another subagent,
-# and this agent is nothing but dispatch — it holds the orientation tools and hands every export to
-# profile-analyst or heap-triage. Under Gemini the main conversation leads the investigation itself,
-# with the two specialists underneath it.
 tools:
   - mcp__plugin_microscope_jeffrey__profiles_*
   - mcp__plugin_microscope_jeffrey__jvm_sections
