@@ -6,9 +6,10 @@ analyses it, then lists the recordings you have analysed, queries their DuckDB t
 flamegraph, trace and heap-dump exports straight into a session in your own repository — so the
 profile and the source code are in front of the same reader.
 
-One package, two plugin formats. **Claude Code** reads `.claude-plugin/plugin.json`; **Codex** and
+One package, three plugin formats. **Claude Code** reads `.claude-plugin/plugin.json`; **Codex** and
 the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plugin.json` and
-`mcp.json`. The skills and the MCP server underneath are the same files for both.
+`mcp.json`; **Gemini CLI** reads `gemini-extension.json`. The skills and the MCP server underneath
+are the same files for all three.
 
 Every analysis tool is **read-only**, and every tool says so in its MCP annotations rather than
 leaving a client to infer it. Six do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
@@ -23,6 +24,7 @@ reach outside this server and have switches of their own —
 Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp) —
 [Claude Code](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/claude-code),
 [Codex](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/codex),
+[Gemini CLI](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/gemini),
 [other clients](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/other-clients).
 
 ## Install
@@ -50,8 +52,18 @@ codex plugin marketplace add petrbouda/jeffrey
 
 then `/plugins` in Codex, or work from a clone with `codex plugin marketplace add ./jeffrey`.
 
-Either client can also skip the plugin and register the endpoint by hand — the docs above cover
-`claude mcp add`, `codex mcp add`, and the raw JSON-RPC for anything else.
+**Gemini CLI:**
+
+```bash
+gemini extensions install --path ./jeffrey/jeffrey-claude-plugin
+```
+
+Gemini installs an extension from a directory holding a `gemini-extension.json`, which is this
+directory in a clone. `/extensions` lists it, `/mcp` says whether it reached Jeffrey.
+
+Any of them can also skip the plugin and register the endpoint by hand — the docs above cover
+`claude mcp add`, `codex mcp add`, Gemini's `mcpServers` block, and the raw JSON-RPC for anything
+else.
 
 ## Pointing it at your Jeffrey
 
@@ -75,6 +87,23 @@ url = "http://localhost:9000/api/mcp"
 ```
 
 The skills keep working; only the server registration moves.
+
+**Gemini CLI is the same story.** Substitution in an extension manifest is documented for the `env`
+block, not for a server URL, so the extension's endpoint is fixed at `localhost:8585` too. Put your
+own address in `~/.gemini/settings.json` (or a project's `.gemini/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "jeffrey": {
+      "httpUrl": "http://localhost:9000/api/mcp"
+    }
+  }
+}
+```
+
+`httpUrl` is Gemini's key for streamable HTTP; `url` there means SSE, which this server does not
+speak.
 
 ## What you get
 
@@ -106,7 +135,8 @@ runs on — Jeffrey opens it, the client does not upload it. That is the usual c
 both) and not the case for a Jeffrey in a container or on another host.
 
 **Skills**, which the agent picks up on its own and you can also invoke directly —
-`/microscope:analyze-jfr` in Claude Code, `$analyze-jfr` in Codex:
+`/microscope:analyze-jfr` in Claude Code, `$analyze-jfr` in Codex, and by name in Gemini CLI, which
+loads a skill when the question calls for it:
 
 - `analyze-jfr` — where to start and which family answers which question
 - `profile-run` — a workload that has not been recorded yet: what to run it under, for how long, and
@@ -160,6 +190,13 @@ skills and MCP servers**, so Codex cannot receive an agent from a plugin — cop
 Those versions are sandboxed read-only, but their tool restriction is instruction-level rather than
 enforced.
 
+**Gemini CLI takes two of the three from the extension**, `profile-analyst` and `heap-triage`, and
+`/agents` lists them. It cannot run `profile-lead`, whose whole job is dispatching those two, because
+a Gemini subagent may not call another subagent; lead the investigation from the main conversation
+there. Its subagents take an allow-list with no deny-list, so — as in Codex — what keeps the analyst
+off `recordings_`, `hubs_download` and the `ide_` tools is the rule in its instructions, not the
+client.
+
 **Prompts and resources.** The server also serves the ten skills over the protocol itself, as MCP
 prompts — the same files the plugin ships, copied onto the server's classpath when it is built, so
 the two cannot drift. A client that cannot install a plugin (Cursor, VS Code, Kiro, anything
@@ -177,7 +214,7 @@ instrument for a shared installation, and it composes with the three per-family 
 
 ## Permissions
 
-Both clients ask before each tool the first time. Every Jeffrey tool reads except the five named
+Every client asks before each tool the first time. Every Jeffrey tool reads except the five named
 above, so approving a family once is usually what you want — `hubs_` and `ide_` are the two worth
 reading twice, since one moves data off another machine and the other acts on your editor.
 
@@ -193,6 +230,24 @@ Codex, in `~/.codex/config.toml`:
 [mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"
 ```
+
+Gemini CLI keeps the same choice behind its prompt — *Always allow this tool* and *Always allow this
+server* build the allow-list as you go. To decide up front instead, mark the server trusted in
+`settings.json`, or name the tools you want without a prompt:
+
+```json
+{
+  "mcpServers": {
+    "jeffrey": {
+      "httpUrl": "http://localhost:8585/api/mcp",
+      "trust": true
+    }
+  }
+}
+```
+
+`trust` covers every tool on the server, `ide_` and `hubs_download` included, so it is the blunt
+instrument; `excludeTools` on the same entry is how you keep those two out of reach entirely.
 
 ## Try it
 
@@ -225,11 +280,12 @@ jeffrey-claude-plugin/
 │   └── plugin.json           Claude Code manifest — same plugin, with the configurable endpoint
 ├── .codex-plugin/
 │   └── plugin.json           Codex-native manifest, pointing at the same skills and mcp.json
+├── gemini-extension.json     Gemini CLI extension manifest — the same server, skills and agents
 ├── hooks/                    SessionStart check — is Jeffrey actually serving (Claude Code only)
-├── skills/                   Ten skills, read by both formats
+├── skills/                   Ten skills, read by all three formats
 ├── agents/
-│   ├── profile-analyst.md    Claude Code subagent
-│   ├── heap-triage.md        …the heap specialist
+│   ├── profile-analyst.md    Claude Code subagent, and a Gemini CLI subagent
+│   ├── heap-triage.md        …the heap specialist, likewise
 │   └── profile-lead.md       …and the lead that triages, dispatches the two and merges their findings
 └── codex/agents/
     ├── profile-analyst.toml  The same agents as Codex custom agents, installed by hand
@@ -238,7 +294,17 @@ jeffrey-claude-plugin/
 ```
 
 The directory keeps its `jeffrey-claude-plugin` name so existing installs and marketplace entries
-keep resolving; it serves both clients.
+keep resolving; it serves all three clients.
+
+**The agents are shared, with one exception.** Gemini CLI discovers `agents/` from the extension, so
+`profile-analyst` and `heap-triage` carry their tool patterns in both spellings —
+`mcp__…__heap_*` for Claude Code and `mcp_jeffrey_heap_*` for Gemini. `profile-lead` carries only
+the Claude ones: a Gemini subagent cannot dispatch another subagent, and dispatch is all that agent
+does. Under Gemini the main conversation leads and the two specialists work beneath it.
+
+Gemini subagents also take an allow-list only, with no deny-list, so `profile-analyst`'s read-only
+promise rests there on the *No writing* rule in its own instructions — the same footing it has in
+Codex.
 
 ## Security
 

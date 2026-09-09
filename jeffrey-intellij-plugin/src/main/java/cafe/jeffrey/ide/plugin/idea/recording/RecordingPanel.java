@@ -574,8 +574,8 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     }
 
     /**
-     * Hands the agent the profile id, never the file path — neither Claude Code nor Codex can parse a
-     * JFR, and Microscope has already done it. The prompt carries no question of its own: the method
+     * Hands the agent the profile id, never the file path — no coding agent can parse a JFR, and
+     * Microscope has already done it. The prompt carries no question of its own: the method
      * lives in the agent's {@code analyze-jfr} skill, and the panel does not know what the developer
      * wants to ask.
      *

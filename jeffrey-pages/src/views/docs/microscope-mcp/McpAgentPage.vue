@@ -81,6 +81,8 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
 
       <p>In <router-link to="/docs/microscope-mcp/codex">Codex</router-link> it is a file to copy. The Agent Plugins format defines exactly two component types &mdash; skills and MCP servers &mdash; so no plugin can hand a Codex install an agent, however the plugin was written. They ship as <code>codex/agents/profile-analyst.toml</code>, <code>codex/agents/heap-triage.toml</code> and <code>codex/agents/profile-lead.toml</code>; copy them to <code>~/.codex/agents/</code> for every repository, or <code>.codex/agents/</code> for one.</p>
 
+      <p>In <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> the extension carries <code>profile-analyst</code> and <code>heap-triage</code>, and <code>/agents</code> lists them &mdash; but not <code>profile-lead</code>, because a Gemini subagent may not dispatch another subagent and dispatch is all the lead does. Lead the investigation from the main conversation there.</p>
+
       <p>The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
 
       <h2 id="what-it-is-given">What It Is Given</h2>
@@ -109,8 +111,8 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
         <li><strong>No nesting.</strong> The skills it carries tell <em>their</em> reader to delegate export reading to the analyst; that instruction is written for your session, not for it. It does the reading itself and never spawns another agent.</li>
       </ul>
 
-      <DocsCallout type="warning" title="Enforced in Claude Code, instructed in Codex">
-        The Claude Code subagent is denied file tools and both writing families &mdash; <code>recordings_</code> and <code>hubs_</code> &mdash; in its own definition, so the first two rules hold whatever the model decides. Codex has no per-agent tool deny-list: its copy is sandboxed read-only against your files, and the rest is instruction. To make it a wall there, deny both families at the server with <code>disabled_tools</code> &mdash; the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page has the block.
+      <DocsCallout type="warning" title="Enforced in Claude Code, instructed elsewhere">
+        The Claude Code subagent is denied file tools and both writing families &mdash; <code>recordings_</code> and <code>hubs_</code> &mdash; in its own definition, so the first two rules hold whatever the model decides. Codex has no per-agent tool deny-list: its copy is sandboxed read-only against your files, and the rest is instruction. Gemini has no deny-list either, only an allow-list its wildcards widen. To make it a wall in either, keep those families away from the whole session &mdash; <code>disabled_tools</code> on the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page, <code>excludeTools</code> on the <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> one.
       </DocsCallout>
 
       <h2 id="the-lead">The Lead, for the Open-Ended Question</h2>

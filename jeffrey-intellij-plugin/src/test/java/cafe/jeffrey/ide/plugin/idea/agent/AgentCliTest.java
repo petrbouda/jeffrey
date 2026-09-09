@@ -34,19 +34,44 @@ public class AgentCliTest {
     private static final String PROFILE_ID = "01a0769f-a1bb-744f-962d-88b314030196";
 
     @Test
-    public void offersClaudeAndCodex() {
-        assertEquals(List.of("Claude", "Codex"), AgentCli.ALL.stream().map(AgentCli::displayName).toList());
-        assertEquals(List.of("claude", "codex"), AgentCli.ALL.stream().map(AgentCli::executable).toList());
+    public void offersClaudeCodexAndGemini() {
+        assertEquals(
+                List.of("Claude", "Codex", "Gemini"),
+                AgentCli.ALL.stream().map(AgentCli::displayName).toList());
+        assertEquals(
+                List.of("claude", "codex", "gemini"),
+                AgentCli.ALL.stream().map(AgentCli::executable).toList());
     }
 
     @Test
     public void quotesThePromptAsASingleArgument() {
         assertEquals(
                 "claude \"Analyse Jeffrey profile " + PROFILE_ID + "\"",
-                AgentCli.ALL.getFirst().command(new AgentTask.AnalyseRecording(PROFILE_ID)));
+                agent("claude").command(new AgentTask.AnalyseRecording(PROFILE_ID)));
         assertEquals(
                 "codex \"Analyse Jeffrey profile " + PROFILE_ID + "\"",
-                AgentCli.ALL.getLast().command(new AgentTask.AnalyseRecording(PROFILE_ID)));
+                agent("codex").command(new AgentTask.AnalyseRecording(PROFILE_ID)));
+    }
+
+    /**
+     * Gemini reads a positional prompt as a batch run: it would answer into a terminal tab and exit,
+     * where the panel is handing over a profile to talk about. {@code -i} is what keeps the session.
+     */
+    @Test
+    public void asksGeminiForAnInteractiveSession() {
+        assertEquals(
+                "gemini -i \"Analyse Jeffrey profile " + PROFILE_ID + "\"",
+                agent("gemini").command(new AgentTask.AnalyseRecording(PROFILE_ID)));
+    }
+
+    /** Whatever an agent puts before the prompt, the prompt itself stays one argument. */
+    @Test
+    public void everyAgentEndsWithTheQuotedPrompt() {
+        for (AgentCli agent : AgentCli.ALL) {
+            String command = agent.command(new AgentTask.AnalyseRecording(PROFILE_ID));
+            assertTrue(command.startsWith(agent.executable() + " "));
+            assertTrue(command.endsWith("\"Analyse Jeffrey profile " + PROFILE_ID + "\""));
+        }
     }
 
     /**
@@ -55,9 +80,16 @@ public class AgentCliTest {
      */
     @Test
     public void escapesQuotesAndBackslashes() {
-        String command = AgentCli.ALL.getFirst().command(new AgentTask.AnalyseRecording("a\"b\\c"));
+        String command = agent("claude").command(new AgentTask.AnalyseRecording("a\"b\\c"));
         assertEquals("claude \"Analyse Jeffrey profile a\\\"b\\\\c\"", command);
         assertTrue(command.startsWith("claude \""));
         assertTrue(command.endsWith("\""));
+    }
+
+    private static AgentCli agent(String executable) {
+        return AgentCli.ALL.stream()
+                .filter(candidate -> candidate.executable().equals(executable))
+                .findFirst()
+                .orElseThrow();
     }
 }

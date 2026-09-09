@@ -56,7 +56,7 @@
                 The panel names the baseline, prints its value under each figure, says whether the two
                 are a like-for-like pair, and links out to the differential flame graph with the
                 baseline already selected.</li>
-            <li><b>Hand it to a coding agent</b> — one button starts Claude Code or Codex in a
+            <li><b>Hand it to a coding agent</b> — one button starts Claude Code, Codex or Gemini in a
                 terminal with the profile already identified, so the agent reads it through
                 Microscope rather than trying to parse a JFR it cannot open. It runs whichever agent
                 you used last, and its menu holds the rest — including the ones Jeffrey supports that

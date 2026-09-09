@@ -47,7 +47,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside coding agent &mdash; an interactive Claude Code or Codex session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you &mdash; or find one that never reached this machine at all, on a connected Jeffrey Hub, and pull it down first.</p>
+      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside coding agent &mdash; an interactive Claude Code, Codex or Gemini CLI session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you &mdash; or find one that never reached this machine at all, on a connected Jeffrey Hub, and pull it down first.</p>
 
       <DocsCallout type="info" title="Reading is read-only">
         Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the <code>recordings_</code> and <code>hubs_</code> families, which create profiles rather than changing them &mdash; from a local file, and from a recording still on a connected hub &mdash; <code>heap_prepare</code>, which builds a heap dump&rsquo;s index and reports, and the <code>ide_</code> family, which can link an IDE window to a profile and open a file in your editor. The two that reach outside this server, <code>hubs_</code> and <code>ide_</code>, can each be switched off on their own.
@@ -193,6 +193,7 @@ onMounted(() => {
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
         <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; installing the plugin, pointing it at this Jeffrey, and the two subagents only that client can carry</li>
         <li><router-link to="/docs/microscope-mcp/codex">Codex</router-link> &mdash; the same plugin through the portable Agent Plugins format, and what changes with it</li>
+        <li><router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> &mdash; the same package again as a Gemini extension, which carries the skills and two of the three agents</li>
         <li><router-link to="/docs/microscope-mcp/recipes">Recipes</router-link> &mdash; worked sessions, from &ldquo;where does the time go&rdquo; to a leak hunt</li>
         <li><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> &mdash; Cursor, Copilot, VS Code and Kiro, connecting without a plugin, and the wire protocol</li>
       </ul>

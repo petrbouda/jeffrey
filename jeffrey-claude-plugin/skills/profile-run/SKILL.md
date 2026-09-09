@@ -1,7 +1,7 @@
 ---
 name: profile-run
 description: Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: "profile this benchmark", "record a JFR while the tests run", "why is this slow" with no recording in hand, or when a hotspot needs measuring rather than guessing.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* mcp_jeffrey_*
 argument-hint: "[what to run] [cpu|wall|alloc|lock]"
 ---
 
@@ -14,7 +14,8 @@ Requested scope: `$ARGUMENTS` — what to run, and optionally what to look for. 
 infer from the repository if a benchmark or a test is the obvious thing to profile.
 
 Tool names below omit the prefix your client puts in front of them
-(`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex).
+(`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex,
+`mcp_jeffrey_` in Gemini CLI).
 
 ## 1. Decide what to run, and say so before running it
 

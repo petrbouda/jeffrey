@@ -1,7 +1,7 @@
 ---
 name: analyze-heap
 description: Analyses a heap dump held by a running Jeffrey Microscope — what is holding the memory, what is leaking, which class loader survived a redeploy, where the waste is — starting from the catalogue or from a .hprof file Jeffrey has not seen yet. Use whenever the user asks what is holding memory, why the heap keeps growing, why the JVM ran out of memory, what is leaking, or mentions retained size, a dominator tree, GC roots, a heap dump or an .hprof file.
-allowed-tools: mcp__plugin_microscope_jeffrey__heap_* mcp__plugin_microscope_jeffrey__profiles_* mcp__plugin_microscope_jeffrey__recordings_* mcp__jeffrey__heap_* mcp__jeffrey__profiles_* mcp__jeffrey__recordings_*
+allowed-tools: mcp__plugin_microscope_jeffrey__heap_* mcp__plugin_microscope_jeffrey__profiles_* mcp__plugin_microscope_jeffrey__recordings_* mcp__jeffrey__heap_* mcp__jeffrey__profiles_* mcp__jeffrey__recordings_* mcp_jeffrey_heap_* mcp_jeffrey_profiles_* mcp_jeffrey_recordings_*
 ---
 
 # Analysing a heap dump
@@ -12,7 +12,7 @@ what kept it alive. Every tool here reads; none changes the dump.
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores. The part after it is exact and camelCase:
 `heap_getLeakSuspects`, not `heap_get_leak_suspects`.
 
 ## 1. Get a `profileId`

@@ -19,7 +19,7 @@ it actually carries.
 
 Tool names below omit the prefix your client puts in front of them
 (`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server).
+hand-registered server, `mcp_jeffrey_` in Gemini CLI).
 
 Two phases with a stop between them — **recommend**, then **change** — because an edit made
 before the recommendation has been read cannot be reviewed on its own terms. Track progress:

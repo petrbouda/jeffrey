@@ -55,8 +55,8 @@ public class WebPanelHtmlTest {
     private static final Path FILE = Path.of("/home/dev/jeffrey/jeffrey-20260904-180108.jfr");
     private static final String URL = "http://localhost:8585";
 
-    private static final AgentCli CLAUDE = new AgentCli("Claude", "claude");
-    private static final AgentCli CODEX = new AgentCli("Codex", "codex");
+    private static final AgentCli CLAUDE = new AgentCli("Claude", "claude", AgentCli.PromptStyle.POSITIONAL);
+    private static final AgentCli CODEX = new AgentCli("Codex", "codex", AgentCli.PromptStyle.POSITIONAL);
 
     /** Most assertions are about a panel with no comparison; the pair has its own tests below. */
     private static PanelState panel(RecordingState state) {

@@ -4,6 +4,10 @@ description: Reads one Jeffrey Microscope export end to end and returns only the
 tools:
   - mcp__plugin_microscope_jeffrey__*
   - mcp__jeffrey__*
+  # Gemini CLI names every MCP tool mcp_<server>_<tool>, and its subagents take an allow-list only.
+  # The deny-list below is Claude Code's; there, and in Codex, the "No writing" rule in the body is
+  # what keeps this agent off recordings_, hubs_download and the two ide_ tools.
+  - mcp_jeffrey_*
 disallowedTools:
   - mcp__plugin_microscope_jeffrey__recordings_analyzeFile
   - mcp__plugin_microscope_jeffrey__recordings_analyzeRecording
