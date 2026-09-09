@@ -76,20 +76,24 @@ const mcpJson = `{
   }
 }`;
 
+const versionProbe =
+  'An MCP client asked for a protocol revision this server does not implement, and will fall back' +
+  ' to initialize: version=2026-07-28 supported=2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25';
+
 const initialize = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{
     "jsonrpc": "2.0",
     "id": 1,
     "method": "initialize",
-    "params": { "protocolVersion": "2025-06-18" }
+    "params": { "protocolVersion": "2025-11-25" }
   }'`;
 
 const initializeResult = `{
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "protocolVersion": "2025-06-18",
+    "protocolVersion": "2025-11-25",
     "capabilities": {
       "tools": { "listChanged": false },
       "prompts": { "listChanged": false },
@@ -236,7 +240,11 @@ const protocolError = `{
         </tbody>
       </table>
 
-      <p>The server speaks <code>2024-11-05</code>, <code>2025-03-26</code> and <code>2025-06-18</code>, and <code>2025-06-18</code> is the default. <code>initialize</code> answers with the version the client asked for when it is one of those three, and with the default when it is not &mdash; echoing back an unrecognised version would promise a revision the server may not speak, so the client is told what it will actually get and decides from there.</p>
+      <p>The server speaks <code>2024-11-05</code>, <code>2025-03-26</code>, <code>2025-06-18</code> and <code>2025-11-25</code>, and <code>2025-11-25</code> is the default. <code>initialize</code> answers with the version the client asked for when it is one of those four, and with the default when it is not &mdash; echoing back an unrecognised version would promise a revision the server may not speak, so the client is told what it will actually get and decides from there.</p>
+
+      <p>Those are the revisions that open a session with <code>initialize</code>. From <code>2026-07-28</code> MCP works differently: there is no handshake, every request declares its own version in <code>_meta</code> and in the <code>MCP-Protocol-Version</code> header, and <code>server/discover</code> is mandatory. Jeffrey does not implement that yet. A client that speaks both eras tries the newer one first, and Jeffrey answers <code>400</code> with a plain JSON-RPC <code>-32600</code> naming what it does speak; the client reads a non-modern error as &ldquo;this server uses the handshake&rdquo; and opens with <code>initialize</code> instead, which is why a current client still works. A modern-only client does not, and the server log says so once per client:</p>
+
+      <DocsCodeBlock :code="versionProbe" language="text" />
 
       <DocsCallout type="info" title="Every tool says whether it writes">
         Each spec in <code>tools/list</code> carries MCP <code>annotations</code>: <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code> and <code>openWorldHint</code>. Almost everything Jeffrey exposes only reads a profile, and declares it. Six tools do not: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which pulls a recording off another machine and creates one here, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor running beside Jeffrey. Every tool answers for itself, not for its family: <code>recordings_list</code>, <code>recordings_status</code> and <code>heap_status</code> only read, and say so. <code>destructiveHint</code> is false throughout &mdash; nothing here deletes a profile, a recording or a dump &mdash; and <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families, the two that reach outside this installation. A client that gates approval on those hints does not need a hand-written deny-list.

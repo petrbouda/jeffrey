@@ -44,6 +44,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AbstractMcpStreamableHttpControllerTest {
 
     private static final String PROTOCOL_VERSION = "2025-06-18";
+
+    /** What this server implements, newest last. All of them open a session with {@code initialize}. */
+    private static final List<String> SUPPORTED_VERSIONS =
+            List.of("2024-11-05", "2025-03-26", PROTOCOL_VERSION, "2025-11-25");
     private static final String PING = """
             {"jsonrpc":"2.0","id":1,"method":"ping"}""";
 
@@ -144,6 +148,58 @@ class AbstractMcpStreamableHttpControllerTest {
 
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertEquals(-32600, response.getBody().get("error").get("code").asInt());
+        }
+
+        /**
+         * The refusal has to look like a server from the handshake era, because that is what decides
+         * whether a client that speaks both eras falls back or keeps retrying. It reads the body of
+         * the 400: a recognised modern error (-32022 {@code UnsupportedProtocolVersionError}, -32020
+         * {@code HeaderMismatch}) means "modern server, retry with a version it listed", anything
+         * else means "older server, open with {@code initialize}". This server only has the
+         * handshake, so -32022 here would send a working client into a retry loop.
+         */
+        @Test
+        void refusesTheCurrentRevisionAsAServerFromTheHandshakeEra() {
+            ResponseEntity<JsonNode> response = envelope.dispatch(
+                    Json.readTree(PING),
+                    "2026-07-28",
+                    features);
+
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+            assertEquals(-32600, response.getBody().get("error").get("code").asInt(),
+                    "-32022 would identify this as a modern server, which it is not");
+            assertFalse(response.getBody().get("error").has("data"),
+                    "a `supported` list under `data` is the modern error's shape");
+        }
+
+        /**
+         * Not decoration: a client refused this way has no machine-readable list to fall back on, so
+         * the sentence is the only place a person can see what the server would have accepted.
+         */
+        @Test
+        void namesWhatItDoesImplementInTheRefusal() {
+            ResponseEntity<JsonNode> response = envelope.dispatch(
+                    Json.readTree(PING),
+                    "2026-07-28",
+                    features);
+
+            String message = response.getBody().get("error").get("message").asString();
+            for (String version : SUPPORTED_VERSIONS) {
+                assertTrue(message.contains(version), () -> message + " does not name " + version);
+            }
+        }
+
+        /**
+         * Every handshake revision, pinned. Adding one is a claim that the envelope is unchanged
+         * across it; removing one drops a client that has no way to negotiate upward.
+         */
+        @Test
+        void servesEveryHandshakeRevision() {
+            for (String version : SUPPORTED_VERSIONS) {
+                ResponseEntity<JsonNode> response = envelope.dispatch(Json.readTree(PING), version, features);
+
+                assertEquals(HttpStatus.OK, response.getStatusCode(), "not served: " + version);
+            }
         }
 
         @Test

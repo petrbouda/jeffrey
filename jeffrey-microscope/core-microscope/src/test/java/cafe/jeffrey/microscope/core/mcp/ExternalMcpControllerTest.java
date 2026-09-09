@@ -222,7 +222,31 @@ class ExternalMcpControllerTest {
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(future))
                     .hasStatusOk()
                     .bodyJson()
-                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2025-06-18");
+                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2025-11-25");
+        }
+
+        /**
+         * The header is the strict half of the same question, and the refusal is what a client that
+         * speaks the current revision reads before falling back to the handshake above. Over real
+         * HTTP because it is the header rather than the body that decides, and a controller that
+         * stopped passing it would look fine everywhere else.
+         */
+        @Test
+        void refusesTheCurrentRevisionInTheHeaderAndSaysWhatItSpeaks() {
+            assertThat(mvcWith(true).post().uri(URI)
+                    .header("MCP-Protocol-Version", "2026-07-28")
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .bodyJson()
+                    .extractingPath("$.error.message").asString().contains("2025-11-25");
+        }
+
+        @Test
+        void servesTheNewestRevisionItImplements() {
+            assertThat(mvcWith(true).post().uri(URI)
+                    .header("MCP-Protocol-Version", "2025-11-25")
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk();
         }
 
         @Test
