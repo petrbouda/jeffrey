@@ -31,8 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
 /**
- * MCP Streamable-HTTP server for an <em>external</em> client — an interactive Claude Code or Codex
- * session in the developer's own repository. Jeffrey's only MCP endpoint, and its only AI integration:
+ * MCP Streamable-HTTP server for an <em>external</em> client — an interactive Claude Code, Codex or
+ * Gemini CLI session in the developer's own repository. Jeffrey's only MCP endpoint, and its only AI integration:
  * Jeffrey never calls a model itself, the client brings one and calls in.
  * <p>
  * One server for the whole installation: the profile is a tool argument rather than a query parameter,

@@ -30,7 +30,7 @@ import java.net.URI;
  * user's browser can post to {@code localhost} from any origin, so a server that ignores
  * {@code Origin} can be driven by a website the user merely visited — DNS rebinding, in the usual
  * telling. A coding agent sends no {@code Origin} header at all, so refusing a foreign one costs
- * Claude Code and Codex nothing and closes the browser path entirely.
+ * every coding agent nothing and closes the browser path entirely.
  * <p>
  * It is not authentication and does not stand in for any. The endpoint has none, in common with
  * everything else under {@code /api/internal}: what decides who may reach it is the address Jeffrey

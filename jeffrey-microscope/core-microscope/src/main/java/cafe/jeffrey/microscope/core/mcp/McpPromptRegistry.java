@@ -37,7 +37,7 @@ import java.util.Map;
  * <p>
  * The skills are what make a hundred tools usable: which family answers which question, the order to
  * run the heap tools in, that a comparison starts by asking whether two profiles are comparable at
- * all. A Claude Code or Codex user gets them from the plugin. Every other MCP client — Cursor, VS
+ * all. A Claude Code, Codex or Gemini CLI user gets them from the plugin. Every other MCP client — Cursor, VS
  * Code, Kiro, anything hand-registered — cannot install a plugin and was left with the tools and no
  * account of how to use them.
  * <p>
