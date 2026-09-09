@@ -23,8 +23,8 @@ import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.server.HubManager;
-import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -385,7 +385,7 @@ class HubsMcpToolsTest {
         private void resolvesTo(ProjectManager project) {
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo(HUB_ID, "production"));
-            when(resolver.resolveServer(HUB_ID)).thenReturn(hub);
+            when(resolver.resolveHub(HUB_ID)).thenReturn(hub);
             when(resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID)).thenReturn(
                     new ProjectManagerResolver.ProjectContext(
                             mock(WorkspaceManager.class), mock(ProjectsManager.class), project));
@@ -461,7 +461,7 @@ class HubsMcpToolsTest {
         @Test
         void explainsARefWhoseHubIsGone() {
             noLocalRecordings();
-            when(resolver.resolveServer(HUB_ID)).thenThrow(Exceptions.invalidRequest("Hub not found"));
+            when(resolver.resolveHub(HUB_ID)).thenThrow(Exceptions.invalidRequest("Hub not found"));
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class, () -> tools.download(REF.encode()));

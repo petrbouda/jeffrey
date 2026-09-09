@@ -40,9 +40,9 @@ const router = createRouter({
           component: () => import('@/views/global/RecordingsView.vue')
         },
         {
-          path: 'workspaces',
-          name: 'workspaces',
-          component: () => import('@/views/workspaces/WorkspacesView.vue')
+          path: 'hubs',
+          name: 'hubs',
+          component: () => import('@/views/hubs/HubsView.vue')
         }
       ]
     },
@@ -71,7 +71,7 @@ const router = createRouter({
         {
           path: 'projects',
           name: 'workspace-projects',
-          component: () => import('@/views/workspaces/WorkspacesView.vue')
+          component: () => import('@/views/hubs/HubsView.vue')
         },
         {
           path: 'projects/:projectId',
@@ -80,7 +80,7 @@ const router = createRouter({
             {
               path: '',
               name: 'project',
-              component: () => import('@/views/workspaces/detail/ProjectDetail.vue'),
+              component: () => import('@/views/projects/ProjectDetail.vue'),
               meta: { layout: 'project' },
               children: [
                 {
@@ -92,26 +92,26 @@ const router = createRouter({
                 {
                   path: 'settings',
                   name: 'project-settings',
-                  component: () => import('@/views/workspaces/detail/SettingsView.vue'),
+                  component: () => import('@/views/projects/ProjectSettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'profiler-settings',
                   name: 'project-profiler-settings',
                   component: () =>
-                    import('@/views/workspaces/detail/ProjectProfilerSettingsView.vue'),
+                    import('@/views/projects/ProjectProfilerSettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'events/live-stream',
                   name: 'project-live-stream',
-                  component: () => import('@/views/workspaces/detail/ProjectLiveStreamView.vue'),
+                  component: () => import('@/views/projects/ProjectLiveStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'events/replay-stream',
                   name: 'project-replay-stream',
-                  component: () => import('@/views/workspaces/detail/ProjectReplayStreamView.vue'),
+                  component: () => import('@/views/projects/ProjectReplayStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {

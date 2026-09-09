@@ -55,14 +55,14 @@ onMounted(() => {
         locally — Microscope just borrows the data.
       </p>
       <p>
-        Connecting Microscope to a server is a two-step process: register the server, then
+        Connecting Microscope to a hub is a two-step process: register the hub, then
         create or pick a workspace inside it.
       </p>
 
       <h2 id="add-hub">Step 1 — Add a Hub</h2>
       <p>
-        Open the <strong>Workspaces</strong> page from the top navigation. The left rail lists the
-        servers Microscope knows about; click the <strong>+</strong> button to add a new one.
+        Open the <strong>Hubs</strong> page from the top navigation. The left rail lists the
+        hubs Microscope knows about; click the <strong>+</strong> button to add a new one.
       </p>
 
       <table>
@@ -83,23 +83,23 @@ onMounted(() => {
           </tr>
           <tr>
             <td><strong>Port</strong></td>
-            <td>The gRPC port the server listens on.</td>
+            <td>The gRPC port the hub listens on.</td>
           </tr>
           <tr>
             <td><strong>Plaintext</strong></td>
-            <td>Toggle <em>off</em> for a TLS connection (recommended). Toggle <em>on</em> only for local development against a non-TLS server.</td>
+            <td>Toggle <em>off</em> for a TLS connection (recommended). Toggle <em>on</em> only for local development against a non-TLS hub.</td>
           </tr>
         </tbody>
       </table>
 
       <p>
-        Microscope contacts the server once to confirm it's reachable. If it isn't, the form
+        Microscope contacts the hub once to confirm it's reachable. If it isn't, the form
         surfaces a clear error (most often "cannot connect — check hostname/port/TLS").
-        On success the server appears in the rail with a status indicator.
+        On success the hub appears in the rail with a status indicator.
       </p>
 
       <DocsCallout type="tip">
-        <strong>Removing a server</strong> only removes Microscope's pointer to it — the server
+        <strong>Removing a hub</strong> only removes Microscope's pointer to it — the hub
         and its workspaces stay intact. Re-adding the same hostname/port restores access.
       </DocsCallout>
 
@@ -115,7 +115,7 @@ onMounted(() => {
 
       <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
       <p>
-        Pick a server in the rail, then click <strong>Create Workspace</strong> in the workspace
+        Pick a hub in the rail, then click <strong>Create Workspace</strong> in the workspace
         column. Microscope opens a side drawer with two fields:
       </p>
 
@@ -170,18 +170,18 @@ onMounted(() => {
           </tr>
           <tr>
             <td><strong>Offline</strong></td>
-            <td>Microscope reached the server but the workspace itself is not responding.</td>
-            <td>Check the server logs. The badge clears automatically once the workspace recovers.</td>
+            <td>Microscope reached the hub but the workspace itself is not responding.</td>
+            <td>Check the hub logs. The badge clears automatically once the workspace recovers.</td>
           </tr>
           <tr>
             <td><strong>Unavailable</strong></td>
-            <td>The workspace existed before but the server no longer reports it (likely deleted on the server).</td>
-            <td>Either restore it on the server or remove the stale entry from Microscope.</td>
+            <td>The workspace existed before but the hub no longer reports it (likely deleted on the hub).</td>
+            <td>Either restore it on the hub or remove the stale entry from Microscope.</td>
           </tr>
           <tr>
             <td><strong>Unknown</strong></td>
-            <td>Microscope can't reach the parent server at all (network, TLS, or the server is down).</td>
-            <td>Verify the server entry in the rail and your network/VPN.</td>
+            <td>Microscope can't reach the parent hub at all (network, TLS, or the hub is down).</td>
+            <td>Verify the hub entry in the rail and your network/VPN.</td>
           </tr>
         </tbody>
       </table>
@@ -207,8 +207,8 @@ onMounted(() => {
       <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>
       <ul>
         <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
-        <li><strong>Editing a server's hostname or port</strong> — remove and re-add the server entry instead.</li>
-        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the server level (TLS); there's no separate workspace-level token.</li>
+        <li><strong>Editing a hub's hostname or port</strong> — remove and re-add the hub entry instead.</li>
+        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the hub level (TLS); there's no separate workspace-level token.</li>
       </ul>
     </div>
 

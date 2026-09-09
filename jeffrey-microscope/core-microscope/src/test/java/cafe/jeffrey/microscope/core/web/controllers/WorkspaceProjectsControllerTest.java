@@ -24,8 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
-import cafe.jeffrey.shared.ui.workspace.controller.WorkspaceProjectsController;
+import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
+import cafe.jeffrey.shared.ui.hub.controller.WorkspaceProjectsController;
 
 import java.util.List;
 
@@ -37,7 +37,7 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class WorkspaceProjectsControllerTest {
 
     @Mock
-    WorkspaceBrowserAccess access;
+    HubBrowserAccess access;
 
     @Test
     void listsEmptyProjects() {

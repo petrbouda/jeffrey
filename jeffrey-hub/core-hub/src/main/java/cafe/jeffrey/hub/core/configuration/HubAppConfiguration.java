@@ -60,7 +60,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * Configuration beans specific to SERVER mode: scheduling, streaming, CopyLibs.
+ * Configuration beans specific to HUB mode: scheduling, streaming, CopyLibs.
  */
 @Configuration
 @Import({
@@ -91,7 +91,7 @@ public class HubAppConfiguration {
     }
 
     @Bean
-    public HubPersistenceProvider serverPersistenceProvider(
+    public HubPersistenceProvider hubPersistenceProvider(
             HubJeffreyDirs jeffreyDirs,
             @Value("${jeffrey.hub.persistence.database.url:}") String databaseUrl,
             Clock clock) {
@@ -106,13 +106,13 @@ public class HubAppConfiguration {
     }
 
     @Bean
-    public HubPlatformRepositories platformRepositories(HubPersistenceProvider serverPersistenceProvider) {
-        return serverPersistenceProvider.serverPlatformRepositories();
+    public HubPlatformRepositories platformRepositories(HubPersistenceProvider hubPersistenceProvider) {
+        return hubPersistenceProvider.hubPlatformRepositories();
     }
 
     @Bean
-    public DatabaseClientProvider databaseClientProvider(HubPersistenceProvider serverPersistenceProvider) {
-        return serverPersistenceProvider.databaseClientProvider();
+    public DatabaseClientProvider databaseClientProvider(HubPersistenceProvider hubPersistenceProvider) {
+        return hubPersistenceProvider.databaseClientProvider();
     }
 
     /**

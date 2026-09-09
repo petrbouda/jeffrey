@@ -34,7 +34,7 @@ public interface HubsRepository {
 
     Optional<HubInfo> find(String hubId);
 
-    HubInfo create(HubInfo serverInfo);
+    HubInfo create(HubInfo hubInfo);
 
     /**
      * Replaces the name, address and source of an existing row, keyed by {@code hubId}.
@@ -42,7 +42,7 @@ public interface HubsRepository {
      * still the same hub, and its id is referenced by the {@code origin.hubId} tag on every
      * recording downloaded from it.
      */
-    void update(HubInfo serverInfo);
+    void update(HubInfo hubInfo);
 
     void delete(String hubId);
 }

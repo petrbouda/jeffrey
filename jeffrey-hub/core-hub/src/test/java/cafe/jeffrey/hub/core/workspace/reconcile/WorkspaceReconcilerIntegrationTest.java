@@ -71,7 +71,7 @@ import static org.mockito.Mockito.*;
  * The reconciler materializes on-disk workspace declarations (marker files) into the
  * database — create-only, idempotent by natural keys, one transaction per entity.
  */
-@DuckDBTest(migration = "classpath:db/migration/server")
+@DuckDBTest(migration = "classpath:db/migration/hub")
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WorkspaceReconcilerIntegrationTest {

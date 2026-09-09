@@ -97,7 +97,7 @@ function getErrorTitle(error: ApiError): string {
         return 'Recording Session Not Found';
       case 'RECORDING_FILE_NOT_FOUND':
         return 'Recording File Not Found';
-      case 'REMOTE_JEFFREY_UNAVAILABLE':
+      case 'HUB_UNAVAILABLE':
         return 'Hub Unavailable';
       case 'EMPTY_RECORDING_SESSION':
         return 'Empty Recording Session';

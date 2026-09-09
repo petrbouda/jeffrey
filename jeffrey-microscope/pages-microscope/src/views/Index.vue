@@ -40,7 +40,7 @@ import VersionClient from '@/services/api/VersionClient';
 
 const navItems: NavItem[] = [
   { to: '/recordings', icon: 'bi bi-record-circle', label: 'Recordings' },
-  { to: '/workspaces', icon: 'bi bi-folder', label: 'Workspaces' }
+  { to: '/hubs', icon: 'bi bi-hdd-network', label: 'Hubs' }
 ];
 
 const version = ref('');

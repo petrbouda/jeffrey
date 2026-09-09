@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
-import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
 
 /**
  * Microscope's {@link RemoteProjectAccess} bridge: resolves the per-project remote managers via the

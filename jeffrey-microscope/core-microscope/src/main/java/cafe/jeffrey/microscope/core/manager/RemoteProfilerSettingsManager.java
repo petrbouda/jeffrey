@@ -22,7 +22,7 @@ import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
 
 /**
- * Remote implementation of ProfilerSettingsManager that calls the remote Jeffrey.
+ * Remote implementation of ProfilerSettingsManager that calls a Jeffrey Hub.
  * Used for REMOTE workspaces.
  */
 public class RemoteProfilerSettingsManager implements ProfilerSettingsManager {

@@ -59,10 +59,10 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 **jeffrey-microscope** (`jeffrey-microscope/`):
 - `core-microscope` — Main Spring Boot app (MicroscopeApplication), REST resources, managers, gRPC clients for remote workspace communication
 - `microscope-core-persistence-api` — Persistence interfaces for microscope core domain
-- `microscope-core-sql-persistence` — DuckDB persistence for microscope core (workspaces, projects, recordings, remote workspace connections)
+- `microscope-core-sql-persistence` — DuckDB persistence for microscope core (recordings, profiles, hub connections). Workspaces and projects are not stored locally
 - `pages-microscope` — Full-featured Vue 3 SPA frontend
 - `profiles/` — All profile analysis modules (see below)
-- REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/internal/profiles/{profileId}/**`
+- REST resources: `/api/internal/hubs/**` (a hub, its workspaces, their projects), `/api/internal/recordings/**`, `/api/internal/profiles/{profileId}/**`
 - `core-microscope/.../mcp/` — the MCP endpoint. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, on by default and switched off only by the `jeffrey.microscope.mcp.enabled` application property, read at startup). It also serves MCP **prompts** (the plugin's skills, copied onto the classpath at build time) and **resources** (the profile catalogue, plus summary and flamegraph URI templates). Most tools are read-only; six are not, though none of them changes an analysed profile: `recordings_analyzeFile` and `recordings_analyzeRecording` import a recording file from the machine Jeffrey runs on, `heap_prepare` builds a dominator tree or a cached report, `hubs_download` pulls a recording off a remote hub, and `ide_link` and `ide_open` link an IDE window to a profile and open a file in it. The hint is per **tool**, not per family — `recordings_list`, `recordings_status` and `heap_status` sit in those families and only read, and `McpToolsetAssemblerTest` pins the write set so neither kind of drift is silent. The last two have switches (`jeffrey.microscope.mcp.hubs.enabled`, `jeffrey.microscope.mcp.ide.enabled`), because they are the two that reach outside this server: one off the machine altogether, one into the editor running beside it. `jeffrey.microscope.mcp.families` narrows what is advertised at all. The endpoint does not authenticate — `McpRequestGuard` applies only the `Origin` rejection the MCP spec asks of a local server, so what limits access is the bind address and whatever proxy sits in front. It is the only MCP endpoint: the loopback `/api/internal/mcp/claude-code` that once served a headless CLI Jeffrey spawned for itself went with the in-app AI. The `jfr_` and `heap_` tool classes (`DuckDbMcpTools`, `HeapDumpMcpTools`, `HeapDumpToolsDelegate`) live in `mcp/tools/` beside every other family
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
@@ -356,9 +356,9 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - Formatting values use FormattingService, which provides consistent formatting across the application, propose a new function if you miss something
 - **Shared UI modules** (consumed via Vite aliases, defined identically in every `pages-*` app):
   - `@shared` → `shared/ui/common/src` — generic components, services (FormattingService, BasePlatformClient, HttpUtils, ToastService), styles, and design tokens
-  - `@workspaces` → `shared/ui/workspaces/ui` — remote-workspace/recording components + API clients
+  - `@hubs` → `shared/ui/hubs/ui` — the hub browser (hubs → workspaces → projects) + recording components and API clients
   - `@instances` → `shared/ui/instances/src` — instance views
-- **Shared-first (MUST, non-negotiable)**: Before writing any new markup or component, you MUST first check the shared modules — `@shared` first, then `@workspaces`/`@instances` — for an existing component to use, compose, or extend, and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup or a new component when no shared one fits. Never duplicate a shared component locally.
+- **Shared-first (MUST, non-negotiable)**: Before writing any new markup or component, you MUST first check the shared modules — `@shared` first, then `@hubs`/`@instances` — for an existing component to use, compose, or extend, and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup or a new component when no shared one fits. Never duplicate a shared component locally.
 - **Where a new component lives**: If it is **generic** (no page- or JFR-domain semantics — a chart, table, form input, badge, breadcrumb, layout container, modal, drawer, etc.), create it under `shared/ui/common/src/components/` (`@shared`), NOT app-local. An app's `src/components/` is reserved for components tied to a specific page/feature (profile analysis, flamegraph, heap, gc, jdbc, grpc, span, streaming, etc.). When unsure whether a component is generic, prefer `@shared`.
 
 #### UI Consistency Rules
@@ -631,7 +631,7 @@ the developer's cursor.
 
 ### Database Schema
 - Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/` — `V001__init.sql` (table schema)
-- Server migrations: `jeffrey-hub/hub-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
+- Server migrations: `jeffrey-hub/hub-sql-persistence/src/main/resources/db/migration/hub/V001__init.sql`
 - Profile migrations: `jeffrey-microscope/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
 - **Migration policy**: Keep table schema (`CREATE TABLE`) in `V001__init.sql` and edit it in place for schema changes. Seed data may live in a separate, purpose-named migration to keep schema and data concerns separated. The database is recreated from scratch on each startup, so editing these in development is safe.
 - JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)

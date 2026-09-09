@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DuckDBTest(migration = "classpath:db/migration/server")
+@DuckDBTest(migration = "classpath:db/migration/hub")
 class JdbcHubPlatformRepositoriesTest {
 
     private static final Clock FIXED_CLOCK = Clock.fixed(

@@ -46,7 +46,7 @@ public interface WorkspaceManager {
     ProjectsManager projectsManager();
 
     /**
-     * Returns the remote profiler client for this workspace's server, if available.
+     * Returns the remote profiler client for this workspace's hub, if available.
      * Only remote workspaces have a profiler client.
      */
     default Optional<ProfilerClient> profilerClient() {

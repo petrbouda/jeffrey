@@ -24,8 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
-import cafe.jeffrey.shared.ui.workspace.controller.ProjectController;
+import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
+import cafe.jeffrey.shared.ui.hub.controller.ProjectController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -35,7 +35,7 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class ProjectControllerTest {
 
     @Mock
-    WorkspaceBrowserAccess access;
+    HubBrowserAccess access;
 
     @Test
     void initializingAlwaysFalse() {

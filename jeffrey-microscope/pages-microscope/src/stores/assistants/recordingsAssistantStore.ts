@@ -17,8 +17,8 @@
  */
 
 import { ref, computed } from 'vue';
-import RecordingsClient from '@workspaces/services/api/RecordingsClient';
-import type Recording from '@workspaces/services/api/model/Recording';
+import RecordingsClient from '@hubs/services/api/RecordingsClient';
+import type Recording from '@hubs/services/api/model/Recording';
 
 const recordingsClient = new RecordingsClient();
 

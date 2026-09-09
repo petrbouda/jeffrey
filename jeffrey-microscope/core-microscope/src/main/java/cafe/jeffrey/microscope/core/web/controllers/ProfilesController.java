@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.server.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.dto.response.ProfileWithContextResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -54,11 +54,11 @@ public class ProfilesController {
 
     @GetMapping
     public List<ProfileWithContextResponse> listAllProfiles(@PathVariable("hubId") String hubId) {
-        HubManager server = resolver.resolveServer(hubId);
+        HubManager hub = resolver.resolveHub(hubId);
         List<ProfileWithContextResponse> allProfiles = new ArrayList<>();
 
-        for (WorkspaceInfo workspaceInfo : server.workspaces()) {
-            WorkspaceManager workspaceManager = server.workspace(workspaceInfo.id())
+        for (WorkspaceInfo workspaceInfo : hub.workspaces()) {
+            WorkspaceManager workspaceManager = hub.workspace(workspaceInfo.id())
                     .orElse(null);
             if (workspaceManager == null) {
                 continue;
@@ -75,7 +75,7 @@ public class ProfilesController {
         var result = allProfiles.stream()
                 .sorted(Comparator.comparingLong(ProfileWithContextResponse::createdAt).reversed())
                 .toList();
-        LOG.debug("Listed all profiles on server: hub_id={} count={}", hubId, result.size());
+        LOG.debug("Listed all profiles on hub: hub_id={} count={}", hubId, result.size());
         return result;
     }
 

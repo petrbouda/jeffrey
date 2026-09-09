@@ -72,9 +72,9 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import SearchInput from '@shared/components/form/SearchInput.vue';
 import FormattingService from '@shared/services/FormattingService';
-import ProjectInstanceClient from '@workspaces/services/api/ProjectInstanceClient';
-import type ProjectInstance from '@workspaces/services/api/model/ProjectInstance';
-import type ProjectInstanceSession from '@workspaces/services/api/model/ProjectInstanceSession';
+import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
+import type ProjectInstance from '@hubs/services/api/model/ProjectInstance';
+import type ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
 import type { SelectedSession } from './streamingTypes';
 
 interface InstanceGroup {

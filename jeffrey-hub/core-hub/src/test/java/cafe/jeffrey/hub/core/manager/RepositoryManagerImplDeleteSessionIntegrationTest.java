@@ -50,7 +50,7 @@ import static org.mockito.Mockito.*;
  * last — still inside the transaction so a storage failure rolls everything back and the
  * next retention tick retries.
  */
-@DuckDBTest(migration = "classpath:db/migration/server")
+@DuckDBTest(migration = "classpath:db/migration/hub")
 @ExtendWith(MockitoExtension.class)
 class RepositoryManagerImplDeleteSessionIntegrationTest {
 

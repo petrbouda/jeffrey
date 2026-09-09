@@ -9,7 +9,7 @@ paths:
 ### Component Reuse (shared-first — MUST)
 - Before writing any new markup or component, you MUST first check the shared UI modules for something to use, compose, or extend:
   - `@shared` → `shared/ui/common/src` (generic components, services, styles, design tokens)
-  - `@workspaces` → `shared/ui/workspaces/ui` (remote-workspace/recording components + clients)
+  - `@hubs` → `shared/ui/hubs/ui` (the hub browser + recording components and clients)
   - `@instances` → `shared/ui/instances/src` (instance views)
 - Only write custom markup or a new component when no shared one fits. Never duplicate a shared component locally.
 - Where a new component lives: if it is generic (no page/JFR-domain semantics — chart, table, form input, badge, breadcrumb, layout, modal, drawer, etc.), create it under `shared/ui/common/src/components/` (`@shared`), NOT app-local. App `src/components/` is reserved for components tied to a specific page/feature (profile analysis, flamegraph, heap, gc, jdbc, grpc, span, streaming, …). When unsure, prefer `@shared`.
@@ -33,7 +33,7 @@ paths:
 ### Pages
 - Scaffold a new page with `MainCard` -> `#header` slot holds `MainCardHeader` (props `icon`, `title`, `:badge?`, `#actions` slot) -> three-state pattern in the default slot
 - Live in `views/global/` (workspace/project scope) or `views/profiles/` (profile scope); API client extends `BasePlatformClient` or `BaseProfileClient`
-- Use the `/global-page` skill for the full scaffold. References: `views/global/RecordingsView.vue`, `views/global/WorkspacesView.vue`
+- Use the `/global-page` skill for the full scaffold. References: `views/global/RecordingsView.vue`, `views/hubs/HubsView.vue`
 
 ### Tables
 - Use the `components/table/DataTable.vue` family — do NOT hand-roll `<div class="table-responsive"><table>`; `DataTable` already renders the `table table-sm table-hover mb-0` markup inside a card

@@ -28,8 +28,8 @@ import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import java.util.function.Function;
 
 /**
- * Server-specific project manager — lean version without profile analysis,
- * recording management, or download capabilities. The server is a pure collector.
+ * Hub-specific project manager — lean version without profile analysis,
+ * recording management, or download capabilities. The hub is a pure collector.
  */
 public interface ProjectManager {
 

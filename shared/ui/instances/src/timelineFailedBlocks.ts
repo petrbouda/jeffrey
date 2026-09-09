@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ProjectInstanceSession from '@workspaces/services/api/model/ProjectInstanceSession.ts';
+import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession.ts';
 
 /**
  * A run of consecutive failed sessions in an instance's timeline, merged into

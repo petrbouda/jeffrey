@@ -71,7 +71,7 @@ class GrpcClientErrorsTest {
                     grpcError(Status.UNAVAILABLE, "Connection refused"));
 
             assertTrue(result.isInternalError());
-            assertEquals(ErrorCode.REMOTE_JEFFREY_UNAVAILABLE, result.getCode());
+            assertEquals(ErrorCode.HUB_UNAVAILABLE, result.getCode());
         }
 
         @Test
@@ -80,7 +80,7 @@ class GrpcClientErrorsTest {
                     grpcError(Status.DEADLINE_EXCEEDED, "Deadline exceeded"));
 
             assertTrue(result.isInternalError());
-            assertEquals(ErrorCode.REMOTE_JEFFREY_UNAVAILABLE, result.getCode());
+            assertEquals(ErrorCode.HUB_UNAVAILABLE, result.getCode());
         }
 
         @Test

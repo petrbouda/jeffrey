@@ -331,20 +331,20 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import RecordingsClient from '@workspaces/services/api/RecordingsClient';
+import RecordingsClient from '@hubs/services/api/RecordingsClient';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
-import RecordingCard from '@workspaces/components/RecordingCard.vue';
+import RecordingCard from '@hubs/components/RecordingCard.vue';
 import Badge from '@shared/components/Badge.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import RecordingFileGroupList from '@workspaces/components/RecordingFileGroupList.vue';
+import RecordingFileGroupList from '@hubs/components/RecordingFileGroupList.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
-import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
-import type Recording from '@workspaces/services/api/model/Recording';
-import { isInitializing } from '@workspaces/components/profileInitChips';
+import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
+import type Recording from '@hubs/services/api/model/Recording';
+import { isInitializing } from '@hubs/components/profileInitChips';
 import {
   HEAP_DUMP_SOURCE,
   OTEL_SOURCE,
@@ -626,7 +626,7 @@ const selectTypeFilter = (type: TypeFilter) => {
 
 // Origin breadcrumb derivation
 interface RecordingOrigin {
-  server: string;
+  hub: string;
   workspace: string;
   project: string;
 }
@@ -636,11 +636,11 @@ const buildOrigin = (recording: Recording): RecordingOrigin | undefined => {
   const sys = Object.fromEntries(
     tags.filter(t => t.key.startsWith('origin.')).map(t => [t.key, t.value])
   );
-  if (!sys['origin.server']) {
+  if (!sys['origin.hub']) {
     return undefined;
   }
   return {
-    server: sys['origin.server'],
+    hub: sys['origin.hub'],
     workspace: sys['origin.workspace'] ?? '',
     project: sys['origin.project'] ?? ''
   };

@@ -25,5 +25,5 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 @FunctionalInterface
 public interface WorkspaceManagerFactory {
 
-    WorkspaceManager create(HubInfo serverInfo, WorkspaceInfo workspaceInfo, HubClients remoteClients);
+    WorkspaceManager create(HubInfo hubInfo, WorkspaceInfo workspaceInfo, HubClients hubClients);
 }

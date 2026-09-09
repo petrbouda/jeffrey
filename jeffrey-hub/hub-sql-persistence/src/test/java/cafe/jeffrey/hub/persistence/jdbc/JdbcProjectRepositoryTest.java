@@ -35,7 +35,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DuckDBTest(migration = "classpath:db/migration/server")
+@DuckDBTest(migration = "classpath:db/migration/hub")
 class JdbcProjectRepositoryTest {
 
     @Nested

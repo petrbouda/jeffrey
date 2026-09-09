@@ -31,15 +31,15 @@
             <span>Recordings</span>
           </button>
 
-          <!-- Back to Workspaces button (only shown on project pages) -->
+          <!-- Back to Hubs button (only shown on project pages) -->
           <button
             v-if="isProjectPage"
             class="topbar-back-btn"
-            title="Back to workspaces"
-            @click="$router.push('/workspaces')"
+            title="Back to hubs"
+            @click="$router.push('/hubs')"
           >
             <i class="bi bi-arrow-return-left"></i>
-            <span>Workspaces</span>
+            <span>Hubs</span>
           </button>
         </div>
       </div>
