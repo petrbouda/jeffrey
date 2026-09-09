@@ -12,7 +12,8 @@ what kept it alive. Every tool here reads; none changes the dump.
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+The part after it is exact and camelCase:
 `heap_getLeakSuspects`, not `heap_get_leak_suspects`.
 
 ## 1. Get a `profileId`

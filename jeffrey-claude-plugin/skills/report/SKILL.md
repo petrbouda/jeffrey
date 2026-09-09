@@ -43,7 +43,7 @@ If you cannot name the call, you cannot make the claim. Delete it, or go and mea
 
 Tool names above omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server.
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
 
 ## Shares and rates, with the denominator stated
 

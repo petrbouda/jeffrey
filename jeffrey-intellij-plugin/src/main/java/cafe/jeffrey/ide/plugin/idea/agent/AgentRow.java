@@ -28,8 +28,8 @@ import java.util.List;
  * three agents and eight cost the same space, where a button each does not.
  *
  * <p>An agent that is not installed stays in the menu rather than disappearing, under a heading that
- * says why it cannot be pressed. Jeffrey supporting Codex is a fact about Jeffrey, and a developer
- * should not have to read {@code AgentCli.ALL} to discover it.
+ * says why it cannot be pressed. Jeffrey supporting Codex or Gemini is a fact about Jeffrey, and a
+ * developer should not have to read {@code AgentCli.ALL} to discover it.
  */
 public record AgentRow(List<Entry> entries, AgentCli primary) {
 

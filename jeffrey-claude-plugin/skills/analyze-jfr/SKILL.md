@@ -11,7 +11,8 @@ family that writes is `recordings_`, which turns a recording *file* into a profi
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+The part after it is exact and camelCase:
 `jfr_listTables`, not `jfr_list_tables`.
 
 ## 1. Get a `profileId`

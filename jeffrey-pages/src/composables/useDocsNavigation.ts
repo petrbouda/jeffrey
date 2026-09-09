@@ -262,6 +262,7 @@ export const microscopeMcpNavigation: DocSection[] = [
     children: [
       { title: 'Claude Code', to: '/docs/microscope-mcp/claude-code' },
       { title: 'Codex', to: '/docs/microscope-mcp/codex' },
+      { title: 'Gemini CLI', to: '/docs/microscope-mcp/gemini' },
       { title: 'Other Clients', to: '/docs/microscope-mcp/other-clients' }
     ]
   },

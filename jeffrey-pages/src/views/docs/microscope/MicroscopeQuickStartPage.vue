@@ -147,7 +147,7 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> <strong>Flame graphs</strong> — total, allocation, lock, wall-clock; differential views for two-profile comparisons.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Timeseries &amp; sub-second timelines</strong> — see hot spots over time, zoom into millisecond windows.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Threads, GC, JIT, safepoints</strong> — every JFR event surfaced as a usable view.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Microscope MCP</strong> — analyse the same profiles from a Claude Code or Codex session in your repository.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Microscope MCP</strong> — analyse the same profiles from a Claude Code, Codex or Gemini CLI session in your repository.</li>
       </ul>
 
       <DocsCallout type="tip">

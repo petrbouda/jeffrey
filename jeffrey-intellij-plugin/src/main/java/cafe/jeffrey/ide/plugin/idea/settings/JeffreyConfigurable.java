@@ -60,7 +60,7 @@ public final class JeffreyConfigurable implements Configurable {
         microscopeUrlField = new JBTextField(currentMicroscopeUrl());
         JBLabel urlLabel = new JBLabel("Used by \"Analyze in Microscope\" to send a recording or heap dump for analysis.");
         agentsCheckbox = new JBCheckBox("Offer to analyse a profile with a coding agent", currentAgentsEnabled());
-        JBLabel agentsLabel = new JBLabel("Adds buttons to a recording's tab that run Claude Code or Codex in a terminal.");
+        JBLabel agentsLabel = new JBLabel("Adds buttons to a recording's tab that run Claude Code, Codex or Gemini in a terminal.");
 
         return FormBuilder.createFormBuilder()
                 .addComponent(enabledCheckbox)

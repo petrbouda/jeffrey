@@ -138,10 +138,10 @@ onMounted(() => {
       </div>
 
       <h3 id="mcp-integration">MCP Integration</h3>
-      <p>Microscope carries no model of its own. Its AI integration is an MCP server on <code>POST /api/mcp</code> that an outside coding agent &mdash; a Claude Code or Codex session in your repository &mdash; calls into: it reads every analysed profile through a hundred-odd tools (the dashboards, flamegraph and trace exports, SQL over the profile database, the heap-dump index and OQL), builds a profile from a recording file, and pulls a recording off a connected Jeffrey Hub. The client brings its own model and Jeffrey only answers; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
+      <p>Microscope carries no model of its own. Its AI integration is an MCP server on <code>POST /api/mcp</code> that an outside coding agent &mdash; a Claude Code, Codex or Gemini CLI session in your repository &mdash; calls into: it reads every analysed profile through a hundred-odd tools (the dashboards, flamegraph and trace exports, SQL over the profile database, the heap-dump index and OQL), builds a profile from a recording file, and pulls a recording off a connected Jeffrey Hub. The client brings its own model and Jeffrey only answers; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
 
       <div class="arch-flow">
-        <div class="flow-node"><i class="bi bi-terminal"></i><span>Coding agent<br><small>Claude Code / Codex / any MCP client</small></span></div>
+        <div class="flow-node"><i class="bi bi-terminal"></i><span>Coding agent<br><small>Claude Code / Codex / Gemini / any MCP client</small></span></div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
         <div class="flow-node"><i class="bi bi-plug"></i><span>MCP Server</span></div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>

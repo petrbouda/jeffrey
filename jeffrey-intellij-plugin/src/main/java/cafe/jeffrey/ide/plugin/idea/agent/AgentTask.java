@@ -21,8 +21,8 @@ package cafe.jeffrey.ide.plugin.idea.agent;
 /**
  * What the panel asks a coding agent to do, as the sentence it is asked in.
  *
- * <p><b>Profile ids, never file paths.</b> Neither Claude Code nor Codex can parse a JFR or an
- * hprof, and Microscope has already done it — a path would send the agent to read bytes it cannot
+ * <p><b>Profile ids, never file paths.</b> No coding agent can parse a JFR or an hprof, and
+ * Microscope has already done it — a path would send the agent to read bytes it cannot
  * make sense of, when an id reaches the parsed profile through the MCP server.
  *
  * <p><b>No question of its own.</b> The method lives in the skill each sentence triggers, and the

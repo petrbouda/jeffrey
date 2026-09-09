@@ -21,6 +21,10 @@ set -uo pipefail
 # interpolates in exec form only). Without it a reader who moved Jeffrey to another port got working
 # tools and a hook still probing 8585, which opened every session by announcing that the server they
 # were about to use was not answering.
+#
+# JEFFREY_MCP_ENDPOINT is the second on purpose rather than as an afterthought: it is the env var the
+# Gemini CLI extension declares as its setting, so a Gemini reader who moved Jeffrey is answered by
+# the same line, and anyone else can export it.
 ENDPOINT="${CLAUDE_PLUGIN_OPTION_ENDPOINT_URL:-${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}}"
 
 if ! command -v curl >/dev/null 2>&1; then
@@ -35,7 +39,7 @@ response=$(curl -fsS --max-time 3 \
   -H 'Accept: application/json, text/event-stream' \
   -d "$INITIALIZE" 2>/dev/null) || {
   cat <<EOF
-{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Jeffrey is not answering at $ENDPOINT. Every microscope tool talks to that address, so they will all fail until Jeffrey is running there. Start Jeffrey, or point the plugin somewhere else: in Claude Code, /plugin -> microscope -> Jeffrey MCP endpoint. Do not retry the tools in the meantime -- tell the user."}}
+{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Jeffrey is not answering at $ENDPOINT. Every microscope tool talks to that address, so they will all fail until Jeffrey is running there. Start Jeffrey, or point the plugin somewhere else: in Claude Code, /plugin -> microscope -> Jeffrey MCP endpoint; in Gemini CLI, the extension's Jeffrey MCP endpoint setting, or JEFFREY_MCP_ENDPOINT in the environment. Do not retry the tools in the meantime -- tell the user."}}
 EOF
   exit 0
 }
@@ -46,7 +50,7 @@ case "$response" in
   *'"result"'*) ;;
   *)
     cat <<EOF
-{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Something is answering at $ENDPOINT but it is not a Jeffrey MCP server -- an initialize request came back without a JSON-RPC result. The microscope tools will fail. Check the endpoint: in Claude Code, /plugin -> microscope -> Jeffrey MCP endpoint."}}
+{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Something is answering at $ENDPOINT but it is not a Jeffrey MCP server -- an initialize request came back without a JSON-RPC result. The microscope tools will fail. Check the endpoint: in Claude Code, /plugin -> microscope -> Jeffrey MCP endpoint; in Gemini CLI, the extension's setting or JEFFREY_MCP_ENDPOINT."}}
 EOF
     ;;
 esac

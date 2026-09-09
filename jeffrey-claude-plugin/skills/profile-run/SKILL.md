@@ -14,7 +14,8 @@ Requested scope: `$ARGUMENTS` — what to run, and optionally what to look for. 
 infer from the repository if a benchmark or a test is the obvious thing to profile.
 
 Tool names below omit the prefix your client puts in front of them
-(`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex).
+(`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex,
+`mcp_jeffrey_` in Gemini CLI).
 
 ## 1. Decide what to run, and say so before running it
 

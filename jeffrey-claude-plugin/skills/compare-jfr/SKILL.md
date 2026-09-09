@@ -12,7 +12,8 @@ measured against; a positive delta always means the primary spends *more*.
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+The part after it is exact and camelCase:
 `compare_movements`, not `compare_movements_list`.
 
 ## The one thing that makes this analysis worthless

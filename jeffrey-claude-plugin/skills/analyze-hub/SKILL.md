@@ -12,7 +12,8 @@ ordinary profile that `analyze-jfr` and `analyze-heap` answer about.
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server. The part after it is exact and camelCase:
+hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+The part after it is exact and camelCase:
 `hubs_sessions`, not `hubs_list_sessions`.
 
 If no `hubs_` tool is advertised, this Jeffrey has hub access switched off

@@ -256,7 +256,7 @@ onMounted(() => {
             <td><code>true</code></td>
             <td>
               Serves the MCP endpoint at <code>/api/mcp</code>, which an external coding-agent
-              session &mdash; Claude Code, Codex, anything that speaks MCP &mdash; reads profiles through. Set to <code>false</code> to make it answer
+              session &mdash; Claude Code, Codex, Gemini CLI, anything that speaks MCP &mdash; reads profiles through. Set to <code>false</code> to make it answer
               <code>404</code>. Read at startup, so a change takes a restart. See
               <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
             </td>
@@ -308,7 +308,7 @@ onMounted(() => {
       <DocsCallout type="info">
         <strong>The endpoint also refuses a foreign <code>Origin</code> on its own</strong>, whatever
         these properties say &mdash; the DNS-rebinding check the MCP specification asks of a local HTTP
-        server. A CLI client sends no <code>Origin</code>, so Claude Code and Codex never notice.
+        server. A CLI client sends no <code>Origin</code>, so Claude Code, Codex and Gemini never notice.
       </DocsCallout>
 
       <h2 id="ide-integration">IDE Integration</h2>

@@ -121,7 +121,7 @@ jeffrey.microscope.ide.scan.port-end=63362</code></pre>
           defaults to
           <code>http://localhost:8585</code>.</li>
         <li><strong>Offer to analyse a profile with a coding agent.</strong> Adds the buttons on a
-          recording's tab that hand the profile to Claude Code or Codex in a terminal. This is the
+          recording's tab that hand the profile to Claude Code, Codex or Gemini in a terminal. This is the
           plugin's one reach outside itself, so it gets a switch of its own &mdash; turn it off and
           the tab keeps every figure and link, minus that row. The Terminal plugin is only an
           <em>optional</em> dependency (bundled everywhere, but switchable off): where it is absent
