@@ -132,7 +132,7 @@ const update = `gemini extensions update microscope`;
       <p>Gemini installs an extension from a directory holding a <code>gemini-extension.json</code>, which is <code>jeffrey-claude-plugin/</code> in a clone:</p>
       <DocsCodeBlock :code="installLocal" language="bash" />
 
-      <p>Start a new session afterwards &mdash; an extension's servers, skills and agents are loaded when the session begins, not mid-conversation. <code>/extensions</code> lists what loaded.</p>
+      <p>Start a new session afterwards &mdash; an extension's servers and skills are loaded when the session begins, not mid-conversation. <code>/extensions</code> lists what loaded.</p>
 
       <p>The GitHub-URL form of that command does not work here: Gemini looks for the manifest at the root of whatever it clones, and in this repository it lives one directory down.</p>
 
