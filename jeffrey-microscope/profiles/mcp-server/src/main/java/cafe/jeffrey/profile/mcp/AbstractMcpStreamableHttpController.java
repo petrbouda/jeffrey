@@ -26,6 +26,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -43,14 +45,23 @@ import java.util.Set;
 public abstract class AbstractMcpStreamableHttpController {
 
     private static final String JSONRPC_VERSION = "2.0";
-    private static final String DEFAULT_PROTOCOL_VERSION = "2025-06-18";
+
+    /** The newest revision this server implements, and what an unrecognised one is answered with. */
+    private static final String DEFAULT_PROTOCOL_VERSION = "2025-11-25";
 
     /**
-     * The revisions this server implements. The envelope has not changed across them in any way Jeffrey
-     * uses, so an older client is served as it asks; anything else is answered with the default.
+     * The revisions this server implements, oldest first. The envelope has not changed across them in
+     * any way Jeffrey uses — the additions between them (icons, tasks, elicitation, authorization
+     * discovery) are all optional and none are things this server sends — so an older client is
+     * served as it asks; anything else is answered with the default.
+     * <p>
+     * They are all <em>handshake</em> revisions: a session opens with {@code initialize}. From
+     * {@code 2026-07-28} the protocol works differently — every request carries its own version in
+     * {@code _meta}, {@code server/discover} is mandatory, and sessions are gone — and this server
+     * implements none of that. Ordered, because the set is also the sentence a refusal carries.
      */
-    private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS =
-            Set.of("2024-11-05", "2025-03-26", DEFAULT_PROTOCOL_VERSION);
+    private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS = Collections.unmodifiableSet(
+            new LinkedHashSet<>(List.of("2024-11-05", "2025-03-26", "2025-06-18", DEFAULT_PROTOCOL_VERSION)));
     private static final String SERVER_NAME = "jeffrey";
     private static final String SERVER_VERSION = "1.0.0";
 
@@ -109,10 +120,26 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final String ROLE_USER = "user";
     private static final String TOOL_ERROR_PREFIX = "Error: ";
 
+    /**
+     * Plain JSON-RPC codes, and a refused protocol version deliberately leaves through
+     * {@link #ERROR_INVALID_REQUEST} rather than through {@code -32022}
+     * ({@code UnsupportedProtocolVersionError}, from {@code 2026-07-28}) even though that code
+     * describes the refusal better.
+     * <p>
+     * A client that speaks both eras decides what this server is from the <em>body</em> of the 400 it
+     * gets back: a recognised modern error means "modern server, retry with a version it listed", and
+     * anything else means "older server, fall back to {@code initialize}". This server only has the
+     * handshake, so it must read as the second. Answering {@code -32022} would send a client that
+     * would otherwise work into a retry loop over versions none of which this server implements.
+     * Upgrade the code only together with the rest of the modern protocol.
+     */
     private static final int ERROR_INVALID_REQUEST = -32600;
     private static final int ERROR_METHOD_NOT_FOUND = -32601;
     private static final int ERROR_INVALID_PARAMS = -32602;
     private static final int ERROR_INTERNAL = -32603;
+
+    /** The supported revisions as a client-readable list, built once. */
+    private static final String SUPPORTED_VERSIONS_SENTENCE = String.join(", ", SUPPORTED_PROTOCOL_VERSIONS);
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -136,12 +163,18 @@ public abstract class AbstractMcpStreamableHttpController {
         if (protocolVersionHeader != null
                 && !protocolVersionHeader.isBlank()
                 && !SUPPORTED_PROTOCOL_VERSIONS.contains(protocolVersionHeader)) {
-            log.warn("Refused an MCP request naming an unsupported protocol: version={}",
-                    protocolVersionHeader);
+            // Routine rather than wrong: a client that speaks both eras opens with the newest version
+            // it has, and reads the refusal as "this server is older" before falling back to
+            // `initialize`. Logged so the fallback is visible when a client fails for some other
+            // reason, not because anything here needs attention.
+            log.info("An MCP client asked for a protocol revision this server does not implement,"
+                            + " and will fall back to initialize: version={} supported={}",
+                    protocolVersionHeader, SUPPORTED_VERSIONS_SENTENCE);
             return ResponseEntity.badRequest().body(error(
                     null,
                     ERROR_INVALID_REQUEST,
-                    "Unsupported MCP protocol version: " + protocolVersionHeader));
+                    "Unsupported MCP protocol version: " + protocolVersionHeader
+                            + ". This server implements " + SUPPORTED_VERSIONS_SENTENCE));
         }
 
         if (request == null || (!request.isObject() && !request.isArray())) {
