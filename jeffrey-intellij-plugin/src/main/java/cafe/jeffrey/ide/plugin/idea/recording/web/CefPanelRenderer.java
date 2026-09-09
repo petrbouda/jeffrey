@@ -22,7 +22,7 @@ import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
 import cafe.jeffrey.ide.plugin.idea.recording.PanelActions;
 import cafe.jeffrey.ide.plugin.idea.recording.PanelRenderer;
-import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
+import cafe.jeffrey.ide.plugin.idea.recording.PanelState;
 import cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
@@ -36,6 +36,7 @@ import com.intellij.util.ui.UIUtil;
 
 import java.util.function.Supplier;
 import javax.swing.JComponent;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
 /**
@@ -60,12 +61,17 @@ public final class CefPanelRenderer implements PanelRenderer, Disposable {
 
     private static final String VIEW_PREFIX = "view:";
     private static final String AGENT_PREFIX = "agent:";
+
+    /** Carries the picked baseline's absolute path, which is how the panel names a file. */
+    private static final String COMPARE_PREFIX = "compare:";
     private static final String ACTION_ANALYZE = "analyze";
     private static final String ACTION_RETRY = "retry";
     private static final String ACTION_CHECK = "check";
     private static final String ACTION_SETTINGS = "settings";
     private static final String ACTION_OPEN = "open";
     private static final String ACTION_BUILD_INDEX = "build-index";
+    private static final String ACTION_SWAP = "swap";
+    private static final String ACTION_UNCOMPARE = "uncompare";
 
     private final PanelActions actions;
     private final Path file;
@@ -108,7 +114,7 @@ public final class CefPanelRenderer implements PanelRenderer, Disposable {
     }
 
     @Override
-    public void render(RecordingState state) {
+    public void render(PanelState state) {
         AgentRow agents = AgentRow.resolve(AgentCli.ALL, JeffreySettings.getInstance().preferredAgent());
         WebPanelHtml.Content content = new WebPanelHtml.Content(
                 state,
@@ -170,6 +176,10 @@ public final class CefPanelRenderer implements PanelRenderer, Disposable {
             launchAgent(action.substring(AGENT_PREFIX.length()));
             return;
         }
+        if (action.startsWith(COMPARE_PREFIX)) {
+            compareWith(action.substring(COMPARE_PREFIX.length()));
+            return;
+        }
         switch (action) {
             case ACTION_ANALYZE -> actions.analyze();
             case ACTION_RETRY -> actions.retry();
@@ -177,9 +187,24 @@ public final class CefPanelRenderer implements PanelRenderer, Disposable {
             case ACTION_SETTINGS -> actions.openSettings();
             case ACTION_OPEN -> actions.openProfile();
             case ACTION_BUILD_INDEX -> actions.buildIndex();
+            case ACTION_SWAP -> actions.swapComparison();
+            case ACTION_UNCOMPARE -> actions.clearComparison();
             // An action the page sent that this build does not know is a bug in the pairing, not in
             // the developer's click — say so in the log and do nothing visible.
             default -> LOG.warn("Unknown panel action: action=" + action + " file=" + file);
+        }
+    }
+
+    /**
+     * A baseline the developer picked from the menu. The path is one this renderer put in the
+     * document itself, but it still comes back as text through the browser, so a value the
+     * filesystem cannot make sense of is logged rather than thrown at the panel.
+     */
+    private void compareWith(String path) {
+        try {
+            actions.compareWith(Path.of(path));
+        } catch (InvalidPathException e) {
+            LOG.warn("The panel asked to compare against a path that is not one: path=" + path, e);
         }
     }
 

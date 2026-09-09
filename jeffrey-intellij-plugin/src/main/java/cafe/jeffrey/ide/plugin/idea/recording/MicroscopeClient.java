@@ -51,6 +51,9 @@ public final class MicroscopeClient implements AutoCloseable {
     private static final String RECORDINGS = "/api/internal/recordings/recordings/";
     private static final String ANALYZE = "/analyze";
     private static final String PROFILES = "/profiles/";
+
+    /** How a profile URL names the baseline it should open against. Spelled `BASELINE_QUERY_PARAM` in the frontend. */
+    private static final String BASELINE_QUERY = "?baseline=";
     private static final String PROFILES_API = "/api/internal/profiles/";
     // The heap API is mounted at /heap; /heap-dump is the UI's route prefix, not the server's.
     private static final String HEAP_BUILD_INDEX = "/heap/initialize-all";
@@ -210,6 +213,22 @@ public final class MicroscopeClient implements AutoCloseable {
     /** One of that profile's views, addressed by the route's own sub-path. */
     public String viewUrl(String profileId, String viewPath) {
         return profileUrl(profileId) + "/" + viewPath;
+    }
+
+    /**
+     * The same view with a baseline preselected, which is what makes a comparison linkable.
+     *
+     * <p>Microscope's differential pages take their baseline from session storage, written by the
+     * picker inside the app; without this parameter a link could open the primary and nothing else,
+     * and a comparison set up in the recording panel would have to be set up a second time on the
+     * other side. A blank baseline yields the plain view rather than a URL with an empty parameter.
+     */
+    public String viewUrl(String profileId, String viewPath, String baselineProfileId) {
+        String url = viewUrl(profileId, viewPath);
+        if (baselineProfileId == null || baselineProfileId.isBlank()) {
+            return url;
+        }
+        return url + BASELINE_QUERY + encode(baselineProfileId);
     }
 
     private String requireId(HttpResponse<String> response, String field) throws IOException {

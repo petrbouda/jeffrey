@@ -42,8 +42,9 @@ import java.nio.charset.StandardCharsets;
  * never copied, and a Microscope that is not running fails as a browser error the developer can see
  * rather than as a silent no-op.
  *
- * <p>This is the plugin's only visible action. The rest of it stays headless — no tool window, no
- * toolbar — because a profiler UI belongs in Microscope, and a menu item that leads there is not one.
+ * <p>One of the plugin's two visible actions, the other being the comparison beside it in the same
+ * menu. The rest of it stays headless — no tool window, no toolbar — because a profiler UI belongs in
+ * Microscope, and a menu item that leads there is not one.
  */
 public final class AnalyzeInMicroscopeAction extends AnAction {
 

@@ -20,10 +20,12 @@ package cafe.jeffrey.ide.plugin.idea.recording;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 
+import java.nio.file.Path;
+
 /**
  * What the rendered panel can ask for.
  *
- * <p>An interface rather than a record of callbacks: these are eight named things a reader of the
+ * <p>An interface rather than a record of callbacks: these are eleven named things a reader of the
  * renderer needs to recognise, and {@code actions.analyze()} says more at the call site than the
  * fourth field of a constructor. {@link RecordingPanel} is the only implementation — it owns the
  * state machine, and the renderers own nothing but pixels.
@@ -53,4 +55,23 @@ public interface PanelActions {
 
     /** Hand the profile to a coding agent, and remember it as the one to offer first next time. */
     void launchAgent(AgentCli agent);
+
+    /**
+     * Measure this recording against another file, importing it first when Microscope has not seen
+     * it. The file opened here stays the primary: what is picked becomes the baseline.
+     */
+    void compareWith(Path baselineFile);
+
+    /**
+     * Exchange the primary and the baseline, by reopening the tab the other way round.
+     *
+     * <p>Its own action rather than a flag read further down, because direction is not a rendering
+     * detail: every consumer of the pair — the differential link, the agent's prompt, the figures —
+     * has to agree on it, and the only way to guarantee that is for there to be one place it is
+     * decided.
+     */
+    void swapComparison();
+
+    /** Drop the baseline and go back to a panel about one recording. */
+    void clearComparison();
 }

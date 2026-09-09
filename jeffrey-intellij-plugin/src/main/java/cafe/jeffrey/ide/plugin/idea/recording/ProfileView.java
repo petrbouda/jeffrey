@@ -80,6 +80,21 @@ public record ProfileView(String iconKey, String label, String blurb, String pat
             new ProfileView("subsecond", "OQL", "Query the heap directly", "heap-dump/oql", null));
 
     /**
+     * A comparison. Two views, because two is all Microscope subtracts — everything else it draws is
+     * about one profile, and a tile for a differential page that does not exist would be a promise
+     * the panel cannot keep.
+     *
+     * <p>The flame graph leads because it is the one that answers the question a comparison is
+     * opened for: which methods moved, and by how much. The sub-second heatmap says when, and is
+     * gated by the same feature as its single-profile sibling.
+     */
+    public static final List<ProfileView> DIFFERENTIAL = List.of(
+            new ProfileView("diff", "Differential flame graph", "Where work moved, frame by frame",
+                    "flamegraphs/differential", null),
+            new ProfileView("subsecond", "Differential sub-second", "Which seconds changed",
+                    "subsecond/differential", "SUBSECOND"));
+
+    /**
      * Whether this profile has data behind the view.
      *
      * <p>An ungated view is always available — which is the honest answer, not an optimistic one:

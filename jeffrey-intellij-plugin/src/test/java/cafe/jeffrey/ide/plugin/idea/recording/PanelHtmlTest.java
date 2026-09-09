@@ -62,6 +62,11 @@ public class PanelHtmlTest {
      * Colouring the loss figure is reserved for a measured loss. A recording that reports no sampler
      * health at all would otherwise be painted red for a number it never produced.
      */
+    /** Every details() assertion is about a panel with no comparison; the pair has its own tests. */
+    private static PanelState panel(RecordingState state) {
+        return PanelState.of(state);
+    }
+
     @Test
     public void coloursOnlyAMeasuredSampleLoss() {
         assertTrue(PanelHtml.header(ready(List.of()), FILE, URL).contains("num alarm"));
@@ -74,7 +79,7 @@ public class PanelHtmlTest {
 
     @Test
     public void tilesLinkEveryAvailableViewByItsPath() {
-        String html = PanelHtml.details(ready(List.of()), FILE, URL);
+        String html = PanelHtml.details(panel(ready(List.of())), FILE, URL);
 
         for (ProfileView view : ProfileView.RECORDING) {
             assertTrue("no tile for " + view.label(), html.contains(view.label()));
@@ -90,7 +95,7 @@ public class PanelHtmlTest {
      */
     @Test
     public void dimsAndUnlinksAViewTheRecordingHasNoDataFor() {
-        String html = PanelHtml.details(ready(List.of("TRACES")), FILE, URL);
+        String html = PanelHtml.details(panel(ready(List.of("TRACES"))), FILE, URL);
 
         assertTrue(html.contains("tile off"));
         assertTrue(html.contains("Not in this recording"));
@@ -103,7 +108,7 @@ public class PanelHtmlTest {
 
     @Test
     public void saysAnalysisDidNotRunRatherThanShowingNothingWrong() {
-        String html = PanelHtml.details(withSummary(analysisMissing()), FILE, URL);
+        String html = PanelHtml.details(panel(withSummary(analysisMissing())), FILE, URL);
 
         assertTrue(html.contains("The analysis rules did not run for this profile."));
         assertTrue(html.contains("Run it in Microscope"));
@@ -115,7 +120,7 @@ public class PanelHtmlTest {
                 new RecordingState.Finding("gc-pauses", "WARNING", "Long GC pauses"),
                 new RecordingState.Finding("sampler", "OK", "No sample loss"))));
 
-        String html = PanelHtml.details(state, FILE, URL);
+        String html = PanelHtml.details(panel(state), FILE, URL);
 
         assertTrue(html.contains("class='warn'>Long GC pauses"));
         assertTrue(html.contains("class=''>No sample loss"));
@@ -124,7 +129,7 @@ public class PanelHtmlTest {
     /** Before there is a profile the pane shows the file's own facts, which are true either way. */
     @Test
     public void showsTheFilesOwnFactsBeforeItIsAnalysed() {
-        String html = PanelHtml.details(notImported(), FILE, URL);
+        String html = PanelHtml.details(panel(notImported()), FILE, URL);
 
         assertTrue(html.contains("jeffrey-20260904-180108.jfr"));
         assertTrue(html.contains("/home/dev/jeffrey"));
@@ -162,7 +167,7 @@ public class PanelHtmlTest {
 
     @Test
     public void offersTheHeapTilesForAHeapDump() {
-        String html = PanelHtml.details(heapDump(true), FILE, URL);
+        String html = PanelHtml.details(panel(heapDump(true)), FILE, URL);
 
         for (ProfileView view : ProfileView.HEAP) {
             assertTrue("no tile for " + view.label(), html.contains(view.label()));
@@ -177,7 +182,7 @@ public class PanelHtmlTest {
      */
     @Test
     public void showsNoAutoAnalysisSectionForAHeapDump() {
-        String html = PanelHtml.details(heapDump(true), FILE, URL);
+        String html = PanelHtml.details(panel(heapDump(true)), FILE, URL);
 
         assertFalse(html.contains("Auto-analysis"));
         assertTrue(html.contains("Leak suspects"));
@@ -196,7 +201,7 @@ public class PanelHtmlTest {
 
         RecordingState awkward = new RecordingState(
                 RecordingState.Status.NOT_IMPORTED, null, null, "run'<x>.jfr", 1024, null);
-        String html = PanelHtml.details(awkward, Path.of("/tmp/run'<x>.jfr"), URL);
+        String html = PanelHtml.details(panel(awkward), Path.of("/tmp/run'<x>.jfr"), URL);
         assertFalse(html.contains("run'<x>"));
         assertTrue(html.contains("run&#39;&lt;x&gt;.jfr"));
     }
@@ -207,7 +212,7 @@ public class PanelHtmlTest {
      */
     @Test
     public void anAnalysisThatCannotRunOffersNothingToPress() {
-        String html = PanelHtml.details(ready(List.of()), FILE, URL);
+        String html = PanelHtml.details(panel(ready(List.of())), FILE, URL);
 
         assertTrue(html.contains("Microscope no longer has the recording file."));
         assertFalse(html.contains("The analysis rules did not run for this profile."));
@@ -243,7 +248,7 @@ public class PanelHtmlTest {
     /** The Swing pane gets the same rule: an un-indexed dump's tiles carry no link at all. */
     @Test
     public void anUnindexedHeapDumpLocksEveryTile() {
-        String html = PanelHtml.details(heapDump(false), FILE, URL);
+        String html = PanelHtml.details(panel(heapDump(false)), FILE, URL);
 
         assertFalse(html.contains("heap-dump/leak-suspects"));
         assertTrue(html.contains("tile off"));
@@ -273,5 +278,48 @@ public class PanelHtmlTest {
         return new RecordingState(
                 RecordingState.Status.NOT_IMPORTED, null, null,
                 "jeffrey-20260904-180108.jfr", 8_450_244L, null);
+    }
+
+    // --- comparing ------------------------------------------------------------------------------
+
+    /**
+     * The fallback renderer says the same facts in prose, because Swing's kit has no grid worth the
+     * name. Which file is the baseline is the half that cannot be dropped.
+     */
+    @Test
+    public void namesTheBaselineAndItsVerdict() {
+        String html = PanelHtml.details(comparing(), FILE, URL);
+
+        assertTrue(html.contains("Baseline"));
+        assertTrue(html.contains("before.jfr"));
+        assertTrue(html.contains("the recordings cannot say"));
+    }
+
+    @Test
+    public void comparingOffersTheDifferentialViewsInsteadOfTheProfilesOwn() {
+        String html = PanelHtml.details(comparing(), FILE, URL);
+
+        for (ProfileView view : ProfileView.DIFFERENTIAL) {
+            assertTrue("no tile for " + view.label(), html.contains("href='" + view.path() + "'"));
+        }
+        assertFalse(html.contains("href='flamegraphs/primary'"));
+    }
+
+    /** A comparison is about the pair; the findings are about one recording. */
+    @Test
+    public void comparingReplacesTheFindingsWithTheVerdict() {
+        String html = PanelHtml.details(comparing(), FILE, URL);
+
+        assertFalse(html.contains("Auto-analysis"));
+    }
+
+    private static PanelState comparing() {
+        RecordingState.ProfileSummary summary = new RecordingState.ProfileSummary(
+                RecordingState.Kind.RECORDING, "before",
+                new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
+                null, true, true, List.of(), List.of());
+        RecordingState baseline = new RecordingState(
+                RecordingState.Status.READY, "rec-2", "profile-2", "before.jfr", 8_450_244L, summary);
+        return PanelState.of(ready(List.of())).withBaseline(baseline);
     }
 }

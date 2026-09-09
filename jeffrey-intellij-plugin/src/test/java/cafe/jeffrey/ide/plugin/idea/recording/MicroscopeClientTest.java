@@ -147,6 +147,17 @@ public class MicroscopeClientTest {
         assertEquals(
                 baseUrl + "/profiles/profile-1/flamegraphs/primary",
                 client.viewUrl("profile-1", ProfileView.RECORDING.getFirst().path()));
+
+        // The one addition the comparison needed: Microscope's differential pages read their
+        // baseline from session storage, so without this a link could open the primary and nothing
+        // else, and the pair set up in the panel would have to be set up again on the other side.
+        assertEquals(
+                baseUrl + "/profiles/profile-1/flamegraphs/differential?baseline=profile-2",
+                client.viewUrl("profile-1", "flamegraphs/differential", "profile-2"));
+        assertEquals(
+                "a blank baseline must not leave an empty parameter behind",
+                baseUrl + "/profiles/profile-1/flamegraphs/differential",
+                client.viewUrl("profile-1", "flamegraphs/differential", null));
     }
 
     @Test

@@ -47,7 +47,7 @@ public interface PanelRenderer {
     JComponent component();
 
     /** Draws whatever Microscope last said about the file. */
-    void render(RecordingState state);
+    void render(PanelState state);
 
     /** Drawn while the first request is in flight. */
     void showLoading();

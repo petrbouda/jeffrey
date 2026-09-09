@@ -20,6 +20,7 @@ package cafe.jeffrey.ide.plugin.idea.recording;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentLaunchers;
+import cafe.jeffrey.ide.plugin.idea.agent.AgentTask;
 import cafe.jeffrey.ide.plugin.idea.recording.web.CefPanelRenderer;
 import cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings;
 import com.intellij.ide.BrowserUtil;
@@ -28,8 +29,11 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.util.concurrency.AppExecutorUtil;
 
@@ -37,9 +41,12 @@ import javax.swing.JComponent;
 import java.awt.BorderLayout;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The recording panel: what Microscope knows about this file, and what it can open.
@@ -88,8 +95,39 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     /** One watch at a time: a second "Build index" while one is running must not start a second loop. */
     private final AtomicBoolean watchingBuild = new AtomicBoolean();
 
+    /** One candidate scan at a time: the menu is rebuilt on every render and must not refetch each time. */
+    private final AtomicBoolean scanningCandidates = new AtomicBoolean();
+
+    /**
+     * Whether the candidate menu needs rebuilding. Set by every {@link #refresh()} — reselecting the
+     * tab or pressing Retry is the gesture that means "ask again" — so a recording analysed since
+     * the last scan stops being offered as one that would import first, and a scan that ran while
+     * Microscope was down is not cached as an empty menu for the life of the tab.
+     */
+    private volatile boolean candidatesStale = true;
+
     private volatile MicroscopeClient client;
     private volatile boolean disposed;
+
+    /**
+     * The file this recording is measured against, and what Microscope holds for it.
+     *
+     * <p>Both live with the tab rather than in any store: closing the panel ends the comparison, the
+     * same lifetime Microscope gives the baseline picked in its own UI. A comparison is a question
+     * being asked right now, not a property of the file.
+     */
+    private volatile Path baselineFile;
+    private volatile RecordingState baseline;
+
+    /**
+     * The baseline whose import is running, so a second pick of the same file does not start a
+     * second import of it. Reachable without patience: the menu is hidden while a baseline is
+     * attached, so re-picking one means clearing first, and a clear during a long import leaves that
+     * import running.
+     */
+    private final AtomicReference<Path> importingBaseline = new AtomicReference<>();
+
+    private volatile List<CompareCandidate> candidates = List.of();
 
     public RecordingPanel(Project project, Path file) {
         super(new BorderLayout());
@@ -144,19 +182,40 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         return renderer.component();
     }
 
-    /** Re-reads the Microscope address, so a corrected URL takes effect without reopening the tab. */
+    /**
+     * Re-reads the Microscope address, so a corrected URL takes effect without reopening the tab.
+     *
+     * <p>The baseline survives: a comparison lives with the tab, and reselecting the tab is not a
+     * reason to end one. A candidate scan that found nothing is allowed to run again, because the
+     * commonest reason for an empty menu is that Microscope was not answering when it ran; one that
+     * found recordings is kept, so switching tabs does not re-ask about every file each time.
+     */
     public void refresh() {
         MicroscopeClient previous = client;
         client = new MicroscopeClient(JeffreySettings.getInstance().microscopeUrl());
-        previous.close();
+        closeLater(previous);
+        candidatesStale = true;
         renderer.showLoading();
         query();
+    }
+
+    /**
+     * Releases a replaced client off the EDT.
+     *
+     * <p>{@code HttpClient.close()} waits for every request still in flight, and this runs on the
+     * EDT: {@code selectNotify} calls {@link #refresh()} whenever the tab is brought forward. With a
+     * baseline importing — an hour's timeout, minutes in practice — reselecting the tab would freeze
+     * the IDE until the import returned. Nothing waits on the old client, so the wait belongs on a
+     * pooled thread.
+     */
+    private static void closeLater(MicroscopeClient previous) {
+        AppExecutorUtil.getAppExecutorService().execute(previous::close);
     }
 
     @Override
     public void dispose() {
         disposed = true;
-        client.close();
+        closeLater(client);
     }
 
     /**
@@ -205,8 +264,11 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     @Override
     public void analyze() {
         MicroscopeClient current = client;
-        renderer.render(new RecordingState(
-                RecordingState.Status.ANALYZING, null, null, file.getFileName().toString(), 0L, null));
+        renderer.render(new PanelState(
+                new RecordingState(
+                        RecordingState.Status.ANALYZING, null, null, file.getFileName().toString(), 0L, null),
+                baseline,
+                candidates));
 
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             try {
@@ -362,11 +424,69 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         }
     }
 
+    /**
+     * Draws a recording, together with whatever comparison the tab currently holds.
+     *
+     * <p>The baseline is read here rather than passed in, so every path that redraws the panel — a
+     * poll, a retry, an import that just finished — keeps the comparison without having to know it
+     * exists.
+     */
     private void show(RecordingState state) {
         if (disposed) {
             return;
         }
-        ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
+        PanelState panel = new PanelState(state, baseline, candidates);
+        ApplicationManager.getApplication().invokeLater(() -> renderer.render(panel));
+        if (state.status() == RecordingState.Status.READY && !state.isHeapDumpFile()) {
+            scanCandidates();
+        }
+    }
+
+    /**
+     * Looks up every other recording in the project, once per panel, and redraws when they arrive.
+     *
+     * <p>Each is asked of Microscope by the same by-path call the panel makes about its own file, so
+     * the menu can say which of them can be compared today and how long each one ran. That is one
+     * request per recording against a server on this machine, done once and kept — the alternative,
+     * a menu of bare file names, is what lets a reader pick a four-minute baseline for a twenty-minute
+     * primary and believe the result.
+     */
+    private void scanCandidates() {
+        if (!candidatesStale || !scanningCandidates.compareAndSet(false, true)) {
+            return;
+        }
+        // Cleared before the work rather than after it, so a refresh arriving mid-scan marks the
+        // result stale and the next render asks again — the two scans are still serialised by the
+        // flag above, so the later answer is always the one that stands.
+        candidatesStale = false;
+
+        MicroscopeClient current = client;
+        AppExecutorUtil.getAppExecutorService().execute(() -> {
+            try {
+                List<Path> files = RecordingsInProject.find(project, file);
+                List<CompareCandidate> found = new ArrayList<>(files.size());
+                for (Path candidate : files) {
+                    found.add(new CompareCandidate(candidate, current.state(candidate)));
+                }
+                candidates = List.copyOf(found);
+            } catch (ProcessCanceledException e) {
+                // The platform cancelling us is not a failure to report; it is an instruction.
+                candidatesStale = true;
+                throw e;
+            } catch (Exception e) {
+                // A menu that cannot be filled is not worth failing a panel over: the comparison can
+                // still be started from the Project view, which needs no scan at all. Left stale, so
+                // the next refresh tries again rather than keeping an empty menu for the tab's life.
+                candidatesStale = true;
+                LOG.info("Could not list the recordings in this project: file=" + file, e);
+                return;
+            } finally {
+                scanningCandidates.set(false);
+            }
+            if (!candidates.isEmpty()) {
+                query();
+            }
+        });
     }
 
     /**
@@ -378,10 +498,18 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     public void openProfile() {
         withProfile(state -> {
             RecordingState.ProfileSummary summary = state.summary();
-            String url = summary == null
-                    ? client.profileUrl(state.profileId())
-                    : client.viewUrl(state.profileId(), summary.landingPath());
-            BrowserUtil.browse(url);
+            if (summary == null) {
+                BrowserUtil.browse(client.profileUrl(state.profileId()));
+                return;
+            }
+            // While comparing, the button lands on the comparison rather than on the primary's own
+            // dashboard: the pair is what this tab is about, and the dashboard says nothing about it.
+            // A pair the verdict calls incomparable keeps the primary's landing page, because the
+            // differential one cannot draw it and the panel has already said so.
+            String landing = opensComparison(state)
+                    ? ProfileView.DIFFERENTIAL.getFirst().path()
+                    : summary.landingPath();
+            BrowserUtil.browse(viewUrl(state, landing));
         });
     }
 
@@ -390,7 +518,42 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         if (viewPath == null || viewPath.isBlank()) {
             return;
         }
-        withProfile(state -> BrowserUtil.browse(client.viewUrl(state.profileId(), viewPath)));
+        withProfile(state -> BrowserUtil.browse(viewUrl(state, viewPath)));
+    }
+
+    /**
+     * A link into Microscope, carrying the baseline when there is one.
+     *
+     * <p>Microscope's differential pages read their baseline from session storage, which its own
+     * picker writes; without the parameter a link could open the primary and nothing else, and the
+     * comparison set up here would have to be set up again on the other side.
+     */
+    private String viewUrl(RecordingState recording, String viewPath) {
+        String baselineProfileId = opensComparison(recording) ? comparedProfileId() : null;
+        return client.viewUrl(recording.profileId(), viewPath, baselineProfileId);
+    }
+
+    /**
+     * Whether a link may point at the differential pages: a pair exists and can be drawn.
+     *
+     * <p>Takes the recording the caller already resolved rather than asking Microscope again — every
+     * link would otherwise cost an extra round trip to answer a question about a state in hand.
+     */
+    private boolean opensComparison(RecordingState recording) {
+        return new PanelState(recording, baseline, candidates).opensComparison();
+    }
+
+    /**
+     * The baseline's profile id while a comparison can actually be opened, or null otherwise — a
+     * baseline still importing has no profile to name, and naming it would produce a link that
+     * lands on an error.
+     */
+    private String comparedProfileId() {
+        RecordingState current = baseline;
+        if (current == null || current.status() != RecordingState.Status.READY) {
+            return null;
+        }
+        return current.profileId();
     }
 
     /**
@@ -412,8 +575,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 LOG.info("Ignoring an agent launch for a recording with no profile: file=" + file);
                 return;
             }
-            boolean heapDump = state.summary() != null && state.summary().isHeapDump();
-            String command = agent.command(state.profileId(), heapDump);
+            String command = agent.command(taskFor(state));
             ApplicationManager.getApplication().invokeLater(() -> {
                 try {
                     AgentLaunchers.current().launch(project, workingDirectory(), command);
@@ -422,6 +584,112 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 }
             });
         });
+    }
+
+    /**
+     * Attaches a baseline, importing it into Microscope first when it has never seen it.
+     *
+     * <p>The file this tab was opened on stays the primary. That is the whole of the direction, and
+     * it is decided here rather than anywhere downstream: read the other way round, every regression
+     * in the comparison would report as an improvement.
+     *
+     * <p>An import runs for as long as an import runs — minutes for a large recording — and the strip
+     * says so meanwhile rather than the panel appearing to have ignored the click.
+     */
+    @Override
+    public void compareWith(Path picked) {
+        if (picked == null || picked.equals(file)) {
+            LOG.info("Ignoring a comparison of a recording with itself: file=" + file);
+            return;
+        }
+        MicroscopeClient current = client;
+        baselineFile = picked;
+
+        AppExecutorUtil.getAppExecutorService().execute(() -> {
+            RecordingState state = current.state(picked);
+            if (!adoptBaseline(picked, state)) {
+                return;
+            }
+            if (state.status() != RecordingState.Status.NOT_IMPORTED
+                    && state.status() != RecordingState.Status.IMPORTED) {
+                return;
+            }
+            // An import of this exact file is already running — the developer cleared the comparison
+            // and picked the same baseline again while waiting. Let the one in flight finish and
+            // adopt: a second import would build a second profile of identical bytes, and whichever
+            // failed would leave the strip claiming Microscope cannot describe a file it just read.
+            if (picked.equals(importingBaseline.getAndSet(picked))) {
+                return;
+            }
+            try {
+                current.analyze(picked);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                LOG.warn("Could not analyse a baseline recording: file=" + picked, e);
+                adoptBaseline(picked, RecordingState.unavailable(
+                        picked.getFileName().toString(), state.sizeInBytes()));
+                return;
+            } finally {
+                importingBaseline.compareAndSet(picked, null);
+            }
+            adoptBaseline(picked, current.state(picked));
+        });
+    }
+
+    /**
+     * Records what Microscope says about the baseline and redraws, unless the developer has since
+     * picked another one or cleared the comparison — an import takes minutes, and the answer to a
+     * question nobody is asking any more must not overwrite the one they are.
+     */
+    private boolean adoptBaseline(Path picked, RecordingState state) {
+        if (!picked.equals(baselineFile)) {
+            return false;
+        }
+        baseline = state;
+        query();
+        return true;
+    }
+
+    /**
+     * Exchanges the two files by opening the baseline's own tab with this recording attached to it.
+     *
+     * <p>Reopening rather than flipping a field, because the primary is the file whose tab this is —
+     * its name in the title, its figures in the header, its profile behind every link. A swap that
+     * left those alone would only relabel the strip and quietly change what "more" means.
+     */
+    @Override
+    public void swapComparison() {
+        Path newPrimary = baselineFile;
+        if (newPrimary == null) {
+            return;
+        }
+        VirtualFile target = LocalFileSystem.getInstance().findFileByNioFile(newPrimary);
+        if (target == null) {
+            LOG.info("Cannot swap to a baseline that is no longer on disk: file=" + newPrimary);
+            return;
+        }
+        Path newBaseline = file;
+        ApplicationManager.getApplication().invokeLater(() -> {
+            RecordingPanel opened = RecordingPanels.open(project, target);
+            if (opened == null) {
+                // The platform gave the file to another editor — .hprof is shared with IntelliJ's own
+                // viewer. Keep this tab's comparison: dropping it first would lose the pair from both
+                // sides on one click.
+                LOG.info("The swapped-to recording did not open in a Microscope panel: file=" + newPrimary);
+                return;
+            }
+            opened.compareWith(newBaseline);
+            clearComparison();
+        });
+    }
+
+    @Override
+    public void clearComparison() {
+        baselineFile = null;
+        baseline = null;
+        query();
     }
 
     /**
@@ -437,6 +705,23 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
             }
             onProfile.accept(state);
         });
+    }
+
+    /**
+     * What to ask the agent, which is decided by what the panel is showing.
+     *
+     * <p>A comparison asks {@code compare-jfr}, a dump asks {@code analyze-heap} and a recording asks
+     * {@code analyze-jfr}: three skills, and the wording is the only thing that picks between them.
+     */
+    private AgentTask taskFor(RecordingState state) {
+        String baselineProfileId = comparedProfileId();
+        if (baselineProfileId != null) {
+            return new AgentTask.Compare(state.profileId(), baselineProfileId);
+        }
+        if (state.summary() != null && state.summary().isHeapDump()) {
+            return new AgentTask.AnalyseHeapDump(state.profileId());
+        }
+        return new AgentTask.AnalyseRecording(state.profileId());
     }
 
     /** The project root, so the agent starts where the developer's code is, not beside the recording. */

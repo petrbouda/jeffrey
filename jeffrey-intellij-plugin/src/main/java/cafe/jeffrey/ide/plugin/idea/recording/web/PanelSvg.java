@@ -102,6 +102,20 @@ final class PanelSvg {
             + " stroke-linecap='round'/>"
             + "<circle cx='12.2' cy='12.4' r='1.5' fill='none' stroke='currentColor' stroke-width='1.3'/>";
 
+    /** Two bars against a shared floor, one taller: a movement, which is what a comparison reports. */
+    private static final String DIFF =
+            "<path d='M2.2 13.6h11.6' stroke='currentColor' stroke-width='1.3' stroke-linecap='round'/>"
+            + "<path d='M3.6 13.6V8.2h2.4v5.4 M10 13.6V4.4h2.4v9.2'"
+            + " fill='none' stroke='currentColor' stroke-width='1.3' stroke-linejoin='round'/>"
+            + "<path d='M8 6.3l2-2 M6.6 9.9l1.4-1.4' stroke='currentColor' stroke-width='1.2'"
+            + " stroke-linecap='round'/>";
+
+    /** The two-way arrow on Swap, which exchanges the primary and the baseline. */
+    private static final String SWAP =
+            "<path d='M2.6 5.4h9.2M9.4 2.9l2.6 2.5-2.6 2.5 M13.4 10.6H4.2M6.6 8.1 4 10.6l2.6 2.5'"
+            + " fill='none' stroke='currentColor' stroke-width='1.3' stroke-linecap='round'"
+            + " stroke-linejoin='round'/>";
+
     private static final String CHEVRON =
             "<path d='M3.5 6.5 8 11l4.5-4.5' fill='none' stroke='currentColor' stroke-width='1.5'"
             + " stroke-linecap='round' stroke-linejoin='round'/>";
@@ -121,7 +135,9 @@ final class PanelSvg {
             Map.entry("offline", OFFLINE),
             Map.entry("heap", HEAP),
             Map.entry("index", INDEX),
-            Map.entry("chevron", CHEVRON));
+            Map.entry("chevron", CHEVRON),
+            Map.entry("diff", DIFF),
+            Map.entry("swap", SWAP));
 
     private PanelSvg() {
     }
