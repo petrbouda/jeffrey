@@ -205,6 +205,19 @@ public final class MicroscopeClient implements AutoCloseable {
         return MicroscopeJson.parseBuild(response.body(), PipelineBuild.Pipeline.PROFILE_INIT);
     }
 
+    /**
+     * Whether this client is already pointed at an address, compared the way the constructor stores
+     * one so a trailing slash is not a different server.
+     *
+     * <p>What it is for: a panel re-reads the configured address every time its tab comes forward,
+     * and replacing the client is not free. A new one is a new connection pool and a new selector
+     * thread, and closing the old one drops a warm keep-alive connection for a fresh connect a
+     * moment later — churn a server on this machine sees as a connection opened and abandoned.
+     */
+    public boolean isPointedAt(String url) {
+        return baseUrl.equals(trimTrailingSlash(url));
+    }
+
     /** The Microscope page for a profile. */
     public String profileUrl(String profileId) {
         return baseUrl + PROFILES + profileId;

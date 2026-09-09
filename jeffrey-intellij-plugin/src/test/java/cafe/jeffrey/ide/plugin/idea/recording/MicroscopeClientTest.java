@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -158,6 +159,19 @@ public class MicroscopeClientTest {
                 "a blank baseline must not leave an empty parameter behind",
                 baseUrl + "/profiles/profile-1/flamegraphs/differential",
                 client.viewUrl("profile-1", "flamegraphs/differential", null));
+    }
+
+    @Test
+    public void recognisesTheAddressItIsAlreadyPointedAt() {
+        MicroscopeClient client = new MicroscopeClient(baseUrl);
+
+        assertTrue(client.isPointedAt(baseUrl));
+        // The panel re-reads the configured address on every tab switch, and a trailing slash typed
+        // into the settings field is the same server: answering "no" here would throw away a warm
+        // connection pool and open a new one for nothing.
+        assertTrue(client.isPointedAt(baseUrl + "/"));
+        assertFalse(client.isPointedAt(baseUrl + "1"));
+        assertFalse(client.isPointedAt("http://localhost:9999"));
     }
 
     @Test

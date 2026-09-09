@@ -191,12 +191,29 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * found recordings is kept, so switching tabs does not re-ask about every file each time.
      */
     public void refresh() {
-        MicroscopeClient previous = client;
-        client = new MicroscopeClient(JeffreySettings.getInstance().microscopeUrl());
-        closeLater(previous);
+        adoptConfiguredAddress();
         candidatesStale = true;
         renderer.showLoading();
         query();
+    }
+
+    /**
+     * Replaces the client when, and only when, the configured address has changed.
+     *
+     * <p>A refresh is the tab coming forward, which happens on every switch between editors, and an
+     * address almost never changes between two of them. Rebuilding regardless meant a new connection
+     * pool and a new selector thread each time, and closing the old client dropped its warm
+     * connection for a fresh connect immediately after: from Microscope's side, a stream of
+     * connections opened and abandoned.
+     */
+    private void adoptConfiguredAddress() {
+        String configured = JeffreySettings.getInstance().microscopeUrl();
+        MicroscopeClient previous = client;
+        if (previous.isPointedAt(configured)) {
+            return;
+        }
+        client = new MicroscopeClient(configured);
+        closeLater(previous);
     }
 
     /**
