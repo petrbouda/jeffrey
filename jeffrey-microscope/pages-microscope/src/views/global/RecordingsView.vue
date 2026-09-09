@@ -30,60 +30,78 @@
         </MainCardHeader>
       </template>
 
-      <!-- 1. Upload zone (drop area + auto-uploading files in the same panel) -->
+      <!-- 1. Upload zone (format lanes + auto-uploading files in the same panel) -->
       <div class="upload-section">
         <div
           class="drop-zone"
-          :class="{ 'drag-over': dragActive, 'has-files': uploadFiles.length > 0 }"
-          @dragover.prevent="dragActive = true"
-          @dragleave.prevent="dragActive = false"
+          :class="{ 'drag-over': dragActive }"
+          @dragenter.prevent="onDragEnter"
+          @dragover.prevent
+          @dragleave.prevent="onDragLeave"
           @drop.prevent="handleDrop"
         >
           <input
             ref="fileInputRef"
             type="file"
-            accept=".jfr,.lz4,.hprof,.gz,.pprof,.pb.gz,.otlp"
+            :accept="FILE_INPUT_ACCEPT"
             multiple
             class="file-input-hidden"
             @change="handleFileInput"
           />
-          <div class="drop-row">
-            <div class="drop-stack">
-              <div class="drop-ic drop-ic-jfr" title="JFR recording">
-                <i class="bi bi-activity"></i>
-              </div>
-              <div class="drop-ic drop-ic-heap" title="Heap dump">
-                <i class="bi bi-pie-chart-fill"></i>
-              </div>
-            </div>
+
+          <div class="drop-head">
             <div class="drop-body">
-              <div class="drop-title">Drop Recordings</div>
+              <div class="drop-title">{{ dropTitle }}</div>
               <div class="drop-hint">
-                <Badge value=".jfr" variant="indigo" size="s" :uppercase="false" borderless />
-                <Badge value=".jfr.lz4" variant="indigo" size="s" :uppercase="false" borderless />
-                JFR recordings ·
-                <Badge value=".pprof" variant="teal" size="s" :uppercase="false" borderless />
-                <Badge value=".pb.gz" variant="teal" size="s" :uppercase="false" borderless />
-                pprof profiles ·
-                <Badge value=".otlp" variant="orange" size="s" :uppercase="false" borderless />
-                OpenTelemetry profiles ·
-                <Badge value=".hprof" variant="purple" size="s" :uppercase="false" borderless />
-                <Badge value=".hprof.gz" variant="purple" size="s" :uppercase="false" borderless />
-                heap dumps
-                <span class="upload-target-hint">
-                  · uploads to <strong>{{ uploadTargetLabel }}</strong>
-                </span>
+                {{ dropHintPrefix }} <strong>{{ uploadTargetLabel }}</strong>
+                <template v-if="uploadStatusLine"> · {{ uploadStatusLine }}</template>
               </div>
             </div>
-            <button class="browse-btn" type="button" @click="triggerFileInput">
-              <i class="bi bi-folder2-open"></i>
-              Browse files…
+            <button v-if="!dragActive" class="browse-btn" type="button" @click="triggerFileInput">
+              <i :class="browseButtonIcon"></i>
+              {{ browseButtonLabel }}
             </button>
+          </div>
+
+          <!-- One lane per parser, in the colour that format wears everywhere else -->
+          <div v-if="uploadFiles.length === 0" class="drop-lanes">
+            <div
+              v-for="format in RECORDING_FORMATS"
+              :key="format.id"
+              class="lane"
+              :class="'lane-' + format.id"
+            >
+              <div class="lane-top">
+                <span class="lane-ic">
+                  <i :class="format.icon"></i>
+                </span>
+                <span class="lane-name">{{ format.label }}</span>
+              </div>
+              <div class="lane-ext">
+                <Badge
+                  v-for="extension in format.extensions"
+                  :key="extension"
+                  :value="extension"
+                  :variant="format.variant"
+                  size="s"
+                  :uppercase="false"
+                  borderless
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- While files are moving the lanes collapse to a legend that decodes the dots -->
+          <div v-else class="drop-legend">
+            <span v-for="format in RECORDING_FORMATS" :key="format.id" class="legend-item">
+              <span class="legend-dot" :class="'dot-' + format.id"></span>
+              {{ format.label }}
+            </span>
           </div>
 
           <div v-if="uploadFiles.length > 0" class="drop-files">
             <div v-for="(file, index) in uploadFiles" :key="file.name + index" class="drop-file">
-              <i :class="fileIconClass(file.name)" class="drop-file-icon"></i>
+              <span class="drop-file-dot" :class="'dot-' + formatIdForFile(file.name)"></span>
               <span class="drop-file-name">{{ file.name }}</span>
               <span class="drop-file-size">{{ FormattingService.formatBytes(file.size) }}</span>
               <template v-if="uploadProgress[file.name]">
@@ -344,6 +362,7 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
+import type { Variant } from '@shared/types/ui';
 import { isInitializing } from '@hubs/components/profileInitChips';
 import {
   HEAP_DUMP_SOURCE,
@@ -353,15 +372,62 @@ import {
 } from '@/services/ProfileLandingRoute';
 
 const UNGROUPED_KEY = '__ungrouped__';
-const ALLOWED_FILE_SUFFIXES = [
-  '.jfr',
-  '.jfr.lz4',
-  '.hprof',
-  '.hprof.gz',
-  '.pprof',
-  '.pb.gz',
-  '.otlp'
+
+/** One recording format Jeffrey can parse: a lane in the drop zone and a colour on every file row. */
+interface RecordingFormat {
+  id: string;
+  label: string;
+  icon: string;
+  variant: Variant;
+  extensions: string[];
+}
+
+const RECORDING_FORMATS: RecordingFormat[] = [
+  {
+    id: 'jfr',
+    label: 'JFR',
+    icon: 'bi bi-activity',
+    variant: 'indigo',
+    extensions: ['.jfr', '.jfr.lz4']
+  },
+  {
+    id: 'pprof',
+    label: 'pprof',
+    icon: 'bi bi-bar-chart-fill',
+    variant: 'teal',
+    extensions: ['.pprof', '.pb.gz']
+  },
+  {
+    id: 'otlp',
+    label: 'OpenTelemetry',
+    icon: 'bi bi-broadcast',
+    variant: 'orange',
+    extensions: ['.otlp']
+  },
+  {
+    id: 'heap',
+    label: 'Heap dump',
+    icon: 'bi bi-pie-chart-fill',
+    variant: 'purple',
+    extensions: ['.hprof', '.hprof.gz']
+  }
 ];
+
+const ALLOWED_FILE_SUFFIXES = RECORDING_FORMATS.flatMap(format => format.extensions);
+
+/**
+ * The file picker matches on the last dot segment only, so `.jfr.lz4` has to be offered
+ * as `.lz4`. Derived from the same list the drop zone validates against.
+ */
+const FILE_INPUT_ACCEPT = [
+  ...new Set(ALLOWED_FILE_SUFFIXES.map(suffix => suffix.slice(suffix.lastIndexOf('.'))))
+].join(',');
+
+/** Dot colour for a file that survived validation but matches no lane — defensive only. */
+const UNKNOWN_FORMAT_ID = 'unknown';
+
+/** `DataTransfer.types` entry that marks a drag carrying files rather than a recording card. */
+const DRAG_TYPE_FILES = 'Files';
 
 type ViewFilter = 'all' | typeof UNGROUPED_KEY | string;
 
@@ -424,8 +490,11 @@ const searchText = ref('');
 const analyzingRecordings = ref<Set<string>>(new Set());
 const expandedRecordings = ref<Set<string>>(new Set());
 
-// Drop zone
+// Drop zone. dragDepth counts enter/leave pairs, because the lanes inside the zone
+// each fire dragleave as the cursor crosses them and a plain flag would flicker.
 const dragActive = ref(false);
+const dragDepth = ref(0);
+const dragFileCount = ref(0);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 // Drag and drop (recording → chip)
@@ -501,6 +570,86 @@ const uploadTargetLabel = computed(() => {
     return 'No group';
   }
   return groupNameById.value.get(selectedGroupId.value) ?? 'No group';
+});
+
+interface UploadCounts {
+  complete: number;
+  failed: number;
+  active: number;
+  total: number;
+}
+
+const uploadCounts = computed<UploadCounts>(() => {
+  const counts: UploadCounts = {
+    complete: 0,
+    failed: 0,
+    active: 0,
+    total: uploadFiles.value.length
+  };
+  for (const file of uploadFiles.value) {
+    const entry = uploadProgress.value[file.name];
+    if (entry === undefined) {
+      continue;
+    }
+    if (entry.status === 'complete') {
+      counts.complete++;
+    } else if (entry.status === 'error') {
+      counts.failed++;
+    } else {
+      counts.active++;
+    }
+  }
+  return counts;
+});
+
+const dropTitle = computed<string>(() => {
+  if (dragActive.value) {
+    if (dragFileCount.value === 1) {
+      return 'Release to upload 1 file';
+    }
+    if (dragFileCount.value > 1) {
+      return `Release to upload ${dragFileCount.value} files`;
+    }
+    return 'Release to upload';
+  }
+  const counts = uploadCounts.value;
+  if (counts.active > 0) {
+    return counts.total === 1 ? 'Uploading 1 file' : `Uploading ${counts.total} files`;
+  }
+  if (counts.failed > 0) {
+    return 'Some uploads failed';
+  }
+  if (counts.total > 0) {
+    return counts.total === 1 ? 'Upload complete' : 'Uploads complete';
+  }
+  return 'Drop recordings to analyze';
+});
+
+const dropHintPrefix = computed<string>(() => {
+  if (dragActive.value || uploadFiles.value.length > 0) {
+    return 'Into';
+  }
+  return 'Uploads into';
+});
+
+const uploadStatusLine = computed<string>(() => {
+  const { complete, failed } = uploadCounts.value;
+  const parts: string[] = [];
+  if (complete > 0) {
+    parts.push(`${complete} done`);
+  }
+  if (failed > 0) {
+    parts.push(`${failed} failed`);
+  }
+  return parts.join(' · ');
+});
+
+const browseButtonLabel = computed<string>(() => {
+  return uploadFiles.value.length > 0 ? 'Add more' : 'Browse files…';
+});
+
+const browseButtonIcon = computed<string>(() => {
+  return uploadFiles.value.length > 0 ? 'bi bi-plus-lg' : 'bi bi-folder2-open';
 });
 
 const filteredRecordings = computed<Recording[]>(() => {
@@ -652,12 +801,27 @@ const getGroupCount = (groupId: string, kind: 'total' | 'jfr' | 'heap'): number 
   return groupCountsMap.value.get(groupId)?.[kind] ?? 0;
 };
 
-const fileIconClass = (filename: string): string => {
+/**
+ * Longest matching extension wins, so `.pb.gz` resolves to pprof rather than to whatever
+ * else happens to end in `.gz`. Returns null for a file no parser claims.
+ */
+const formatForFile = (filename: string): RecordingFormat | null => {
   const lower = filename.toLowerCase();
-  if (lower.endsWith('.hprof') || lower.endsWith('.hprof.gz')) {
-    return 'bi bi-pie-chart-fill';
+  let matched: RecordingFormat | null = null;
+  let matchedLength = 0;
+  for (const format of RECORDING_FORMATS) {
+    for (const extension of format.extensions) {
+      if (lower.endsWith(extension) && extension.length > matchedLength) {
+        matched = format;
+        matchedLength = extension.length;
+      }
+    }
   }
-  return 'bi bi-activity';
+  return matched;
+};
+
+const formatIdForFile = (filename: string): string => {
+  return formatForFile(filename)?.id ?? UNKNOWN_FORMAT_ID;
 };
 
 const selectFilter = (filter: ViewFilter, uploadTarget: string | null) => {
@@ -691,8 +855,7 @@ const triggerFileInput = () => {
 };
 
 const isAcceptedFile = (filename: string): boolean => {
-  const lower = filename.toLowerCase();
-  return ALLOWED_FILE_SUFFIXES.some(suffix => lower.endsWith(suffix));
+  return formatForFile(filename) !== null;
 };
 
 const filterAcceptedFiles = (files: File[]): File[] => {
@@ -726,8 +889,44 @@ const handleFileInput = (event: Event) => {
   input.value = '';
 };
 
-const handleDrop = (event: DragEvent) => {
+const isFileDrag = (event: DragEvent): boolean => {
+  const types = event.dataTransfer?.types;
+  if (types === undefined) {
+    return false;
+  }
+  return Array.from(types).includes(DRAG_TYPE_FILES);
+};
+
+const resetDragState = () => {
+  dragDepth.value = 0;
   dragActive.value = false;
+  dragFileCount.value = 0;
+};
+
+const onDragEnter = (event: DragEvent) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
+  dragDepth.value++;
+  dragActive.value = true;
+  const items = event.dataTransfer?.items;
+  if (items !== undefined) {
+    dragFileCount.value = Array.from(items).filter(item => item.kind === 'file').length;
+  }
+};
+
+const onDragLeave = (event: DragEvent) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
+  dragDepth.value = Math.max(0, dragDepth.value - 1);
+  if (dragDepth.value === 0) {
+    resetDragState();
+  }
+};
+
+const handleDrop = (event: DragEvent) => {
+  resetDragState();
   const files = event.dataTransfer?.files;
   if (files && files.length > 0) {
     const accepted = filterAcceptedFiles(Array.from(files));
@@ -1031,7 +1230,7 @@ const onDragEnd = () => {
 }
 
 .drop-zone {
-  padding: 24px 28px;
+  padding: 18px 20px;
   background: var(--color-light);
   border: 1.5px dashed var(--color-border-input);
   border-radius: var(--radius-lg);
@@ -1041,51 +1240,26 @@ const onDragEnd = () => {
     box-shadow var(--transition-base);
 }
 
-.drop-zone.has-files {
-  padding-bottom: 14px;
-}
-
-.drop-zone:hover:not(.has-files),
+.drop-zone:hover,
 .drop-zone.drag-over {
   border-color: var(--color-primary);
   background: var(--color-primary-lighter);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-.drop-row {
-  display: flex;
-  align-items: center;
-  gap: 18px;
+.drop-zone.drag-over {
+  background: var(--color-primary-light);
+  box-shadow: 0 0 0 4px var(--color-primary-light);
 }
 
 .file-input-hidden {
   display: none;
 }
 
-.drop-stack {
-  display: flex;
-  flex-shrink: 0;
-}
-
-.drop-ic {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
+.drop-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  color: var(--color-white);
-  border: 2px solid var(--color-white);
-}
-
-.drop-ic-jfr {
-  background: var(--color-primary);
-}
-
-.drop-ic-heap {
-  background: var(--color-purple);
-  margin-left: -16px;
+  gap: 16px;
+  margin-bottom: 14px;
 }
 
 .drop-body {
@@ -1094,7 +1268,7 @@ const onDragEnd = () => {
 }
 
 .drop-title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   color: var(--color-dark);
 }
@@ -1102,18 +1276,10 @@ const onDragEnd = () => {
 .drop-hint {
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
+  margin-top: 2px;
 }
 
-.upload-target-hint {
-  color: var(--color-text-muted);
-}
-
-.upload-target-hint strong {
+.drop-hint strong {
   color: var(--color-dark);
   font-weight: var(--font-weight-semibold);
 }
@@ -1128,7 +1294,7 @@ const onDragEnd = () => {
   color: var(--color-primary);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: var(--radius-base);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -1139,10 +1305,128 @@ const onDragEnd = () => {
   background: var(--color-primary-light);
 }
 
+/* ============ Format lanes (one per parser) ============ */
+.drop-lanes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lane {
+  background: var(--color-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.drop-zone.drag-over .lane {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+  transform: translateY(-2px);
+}
+
+.lane-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lane-ic {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  font-size: var(--font-size-base);
+  flex-shrink: 0;
+}
+
+.lane-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane-ext {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.lane-jfr .lane-ic {
+  background: var(--color-primary);
+}
+
+.lane-pprof .lane-ic {
+  background: var(--color-teal);
+}
+
+.lane-otlp .lane-ic {
+  background: var(--color-orange);
+}
+
+.lane-heap .lane-ic {
+  background: var(--color-purple);
+}
+
+/* ============ Legend (replaces the lanes while files are moving) ============ */
+.drop-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot,
+.drop-file-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  background: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.dot-jfr {
+  background: var(--color-primary);
+}
+
+.dot-pprof {
+  background: var(--color-teal);
+}
+
+.dot-otlp {
+  background: var(--color-orange);
+}
+
+.dot-heap {
+  background: var(--color-purple);
+}
+
 /* ============ Files (auto-uploading, inside the drop zone) ============ */
 .drop-files {
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px dashed var(--color-border-input);
   display: flex;
   flex-direction: column;
@@ -1160,12 +1444,6 @@ const onDragEnd = () => {
 
 .drop-file:hover {
   background: var(--color-bg-hover-alt);
-}
-
-.drop-file-icon {
-  font-size: 1.05rem;
-  color: var(--color-primary);
-  flex-shrink: 0;
 }
 
 .drop-file-name {
@@ -1574,6 +1852,10 @@ const onDragEnd = () => {
   .recordings-split {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+  }
+
+  .drop-lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>
