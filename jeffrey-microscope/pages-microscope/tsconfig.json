@@ -19,7 +19,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["../../shared/ui/common/src/*"],
-      "@workspaces/*": ["../../shared/ui/workspaces/ui/*"],
+      "@hubs/*": ["../../shared/ui/hubs/ui/*"],
       "@instances/*": ["../../shared/ui/instances/src/*"],
       // bootstrap ships untyped; before the catch-all below, its specifier must land on the
       // @types package rather than on the untyped dist bundle.

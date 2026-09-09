@@ -276,7 +276,7 @@ import DirectProfileClient from '@/services/api/DirectProfileClient.ts';
 
 const directProfileClient = new DirectProfileClient();
 import ProfileInfo from '@/services/api/model/ProfileInfo.ts';
-import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
+import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource.ts';
 import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
 import { BASELINE_QUERY_PARAM, baselineIdFromQuery } from '@/services/BaselineQuery.ts';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';

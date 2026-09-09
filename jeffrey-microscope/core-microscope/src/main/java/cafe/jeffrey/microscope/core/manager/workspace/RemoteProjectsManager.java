@@ -42,24 +42,24 @@ public class RemoteProjectsManager implements ProjectsManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final HubInfo serverInfo;
+    private final HubInfo hubInfo;
     private final WorkspaceInfo workspaceInfo;
-    private final HubClients remoteClients;
+    private final HubClients hubClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
 
     public RemoteProjectsManager(
             MicroscopeJeffreyDirs jeffreyDirs,
-            HubInfo serverInfo,
+            HubInfo hubInfo,
             WorkspaceInfo workspaceInfo,
-            HubClients remoteClients,
+            HubClients hubClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.serverInfo = serverInfo;
+        this.hubInfo = hubInfo;
         this.workspaceInfo = workspaceInfo;
-        this.remoteClients = remoteClients;
+        this.hubClients = hubClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
     }
@@ -68,7 +68,7 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAll() {
         List<RemoteProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id(), false);
+            remoteProjects = hubClients.discovery().allProjects(workspaceInfo.id(), false);
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
@@ -84,7 +84,7 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAllIncludingDeleted() {
         List<RemoteProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id(), true);
+            remoteProjects = hubClients.discovery().allProjects(workspaceInfo.id(), true);
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
@@ -99,10 +99,10 @@ public class RemoteProjectsManager implements ProjectsManager {
     @Override
     public Optional<ProjectManager> project(String projectId) {
         // In remote-only mode, we look up the single project from the hub.
-        // The server returns deleted projects as well so restore/management lookups work.
+        // The hub returns deleted projects as well so restore/management lookups work.
         Optional<RemoteProjectResponse> remoteProject;
         try {
-            remoteProject = remoteClients.discovery().project(workspaceInfo.id(), projectId);
+            remoteProject = hubClients.discovery().project(workspaceInfo.id(), projectId);
         } catch (Exception e) {
             LOG.error("Failed to fetch project from remote workspace: workspace={} project_id={}",
                     workspaceInfo, projectId, e);
@@ -115,8 +115,8 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
         OriginContext originContext = new OriginContext(
-                serverInfo.hubId(),
-                serverInfo.name(),
+                hubInfo.hubId(),
+                hubInfo.name(),
                 workspaceInfo.id(),
                 workspaceInfo.referenceId(),
                 projectInfo.projectInfo().id(),
@@ -125,7 +125,7 @@ public class RemoteProjectsManager implements ProjectsManager {
         return new RemoteProjectManager(
                 jeffreyDirs,
                 projectInfo,
-                remoteClients,
+                hubClients,
                 profilesManagerFactory,
                 recordingsManager,
                 originContext);

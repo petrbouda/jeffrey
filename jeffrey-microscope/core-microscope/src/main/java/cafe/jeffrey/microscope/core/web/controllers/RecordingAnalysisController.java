@@ -40,7 +40,7 @@ import java.nio.file.Path;
 /**
  * Microscope-only profile-lifecycle endpoints layered on the shared recordings store. The store
  * operations (groups / upload / list / download / delete) live in the shared
- * {@code cafe.jeffrey.shared.ui.workspace.controller.RecordingsController}; the profile-mutating
+ * {@code cafe.jeffrey.shared.ui.hub.controller.RecordingsController}; the profile-mutating
  * operations below depend on the microscope-specific {@link RecordingsManager} and therefore stay
  * in microscope. Shares the {@code /api/internal/recordings} base path with different methods.
  */

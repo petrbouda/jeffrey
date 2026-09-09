@@ -48,7 +48,7 @@ import static org.mockito.Mockito.*;
  * directory is removed afterwards (best-effort) — removing the on-disk declaration is what
  * stops the workspace reconciler from re-creating the project.
  */
-@DuckDBTest(migration = "classpath:db/migration/server")
+@DuckDBTest(migration = "classpath:db/migration/hub")
 @ExtendWith(MockitoExtension.class)
 class HubProjectManagerDeleteIntegrationTest {
 

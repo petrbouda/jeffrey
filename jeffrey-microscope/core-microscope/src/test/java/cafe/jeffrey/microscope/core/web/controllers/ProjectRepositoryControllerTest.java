@@ -28,8 +28,8 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.workspace.controller.ProjectRepositoryController;
+import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.hub.controller.ProjectRepositoryController;
 
 import java.time.Clock;
 import java.time.Duration;

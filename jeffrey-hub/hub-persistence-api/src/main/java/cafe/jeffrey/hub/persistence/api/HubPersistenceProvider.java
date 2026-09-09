@@ -23,8 +23,8 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import java.time.Clock;
 
 /**
- * Provider for server-level persistence operations.
- * Manages the server database (workspaces, projects, schedulers, etc.)
+ * Provider for hub-level persistence operations.
+ * Manages the hub database (workspaces, projects, schedulers, etc.)
  */
 public interface HubPersistenceProvider {
 
@@ -38,12 +38,12 @@ public interface HubPersistenceProvider {
     void initialize(String databaseUrl, Clock clock);
 
     /**
-     * Get the server platform repositories factory.
+     * Get the hub platform repositories factory.
      * Must be called after {@link #initialize(String, Clock)}.
      *
-     * @return server platform repositories factory
+     * @return hub platform repositories factory
      */
-    HubPlatformRepositories serverPlatformRepositories();
+    HubPlatformRepositories hubPlatformRepositories();
 
     /**
      * Get the database client provider for direct database access.

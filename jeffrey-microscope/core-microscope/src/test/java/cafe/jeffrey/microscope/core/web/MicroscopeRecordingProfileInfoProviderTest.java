@@ -24,8 +24,8 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
 import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.ui.workspace.bridge.ProfileInitProgress;
-import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider.ProfileInfo;
+import cafe.jeffrey.shared.ui.hub.bridge.ProfileInitProgress;
+import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider.ProfileInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

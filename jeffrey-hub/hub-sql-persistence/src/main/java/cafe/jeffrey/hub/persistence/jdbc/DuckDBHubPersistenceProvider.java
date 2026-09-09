@@ -49,7 +49,7 @@ public class DuckDBHubPersistenceProvider implements HubPersistenceProvider {
     }
 
     @Override
-    public HubPlatformRepositories serverPlatformRepositories() {
+    public HubPlatformRepositories hubPlatformRepositories() {
         return new JdbcHubPlatformRepositories(new DatabaseClientProvider(dataSource), clock);
     }
 

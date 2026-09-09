@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.server.HubManager;
-import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
@@ -31,19 +31,19 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
  */
 public class ProjectManagerResolver {
 
-    private final HubsManager remoteServersManager;
+    private final HubsManager hubsManager;
 
-    public ProjectManagerResolver(HubsManager remoteServersManager) {
-        this.remoteServersManager = remoteServersManager;
+    public ProjectManagerResolver(HubsManager hubsManager) {
+        this.hubsManager = hubsManager;
     }
 
-    public HubManager resolveServer(String hubId) {
-        return remoteServersManager.findById(hubId)
+    public HubManager resolveHub(String hubId) {
+        return hubsManager.findById(hubId)
                 .orElseThrow(() -> Exceptions.invalidRequest("Hub not found: " + hubId));
     }
 
     public WorkspaceManager resolveWorkspace(String hubId, String workspaceId) {
-        return resolveServer(hubId).workspace(workspaceId)
+        return resolveHub(hubId).workspace(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
     }
 

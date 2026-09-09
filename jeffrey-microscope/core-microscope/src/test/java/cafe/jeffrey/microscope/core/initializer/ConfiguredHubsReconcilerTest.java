@@ -229,16 +229,16 @@ class ConfiguredHubsReconcilerTest {
         }
 
         @Override
-        public HubInfo create(HubInfo serverInfo) {
+        public HubInfo create(HubInfo hubInfo) {
             writes++;
-            rows.add(serverInfo);
-            return serverInfo;
+            rows.add(hubInfo);
+            return hubInfo;
         }
 
         @Override
-        public void update(HubInfo serverInfo) {
+        public void update(HubInfo hubInfo) {
             writes++;
-            rows.replaceAll(row -> row.hubId().equals(serverInfo.hubId()) ? serverInfo : row);
+            rows.replaceAll(row -> row.hubId().equals(hubInfo.hubId()) ? hubInfo : row);
         }
 
         @Override

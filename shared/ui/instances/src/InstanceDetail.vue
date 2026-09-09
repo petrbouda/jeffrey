@@ -48,11 +48,11 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
-import RecordingSessionList from '@workspaces/components/RecordingSessionList.vue';
-import ProjectInstanceClient from '@workspaces/services/api/ProjectInstanceClient';
-import ProjectRepositoryClient from '@workspaces/services/api/ProjectRepositoryClient';
-import ProjectInstance from '@workspaces/services/api/model/ProjectInstance';
-import RecordingSession from '@workspaces/services/api/model/RecordingSession';
+import RecordingSessionList from '@hubs/components/RecordingSessionList.vue';
+import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
+import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
+import RecordingSession from '@hubs/services/api/model/RecordingSession';
 import { useNavigation } from '@/composables/useNavigation';
 import '@shared/styles/shared-components.css';
 

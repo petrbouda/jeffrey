@@ -56,7 +56,7 @@ public abstract class GrpcClientErrors {
             case INVALID_ARGUMENT, FAILED_PRECONDITION, OUT_OF_RANGE ->
                     new JeffreyClientException(ErrorCode.INVALID_REQUEST, message, exception);
             case UNAVAILABLE, DEADLINE_EXCEEDED ->
-                    new JeffreyInternalException(ErrorCode.REMOTE_JEFFREY_UNAVAILABLE, message, exception);
+                    new JeffreyInternalException(ErrorCode.HUB_UNAVAILABLE, message, exception);
             default ->
                     new JeffreyInternalException(ErrorCode.REMOTE_OPERATION_FAILED, message, exception);
         };

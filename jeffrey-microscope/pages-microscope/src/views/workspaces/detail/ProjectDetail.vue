@@ -4,11 +4,11 @@
       <div class="container-fluid">
         <!-- Slim breadcrumb row above the tabs -->
         <div class="project-breadcrumb" aria-label="breadcrumb">
-          <router-link to="/workspaces" class="crumb">Workspaces</router-link>
+          <router-link to="/hubs" class="crumb">Hubs</router-link>
           <i class="bi bi-chevron-right crumb-sep"></i>
           <router-link
             v-if="workspaceInfo"
-            :to="{ path: '/workspaces', query: { hubId: hubId, workspaceId: workspaceInfo.id } }"
+            :to="{ path: '/hubs', query: { hubId: hubId, workspaceId: workspaceInfo.id } }"
             class="crumb"
           >
             {{ workspaceInfo.name ?? workspaceInfo.id }}
@@ -78,10 +78,10 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ToastService from '@shared/services/ToastService';
-import ProjectClient from '@workspaces/services/api/ProjectClient.ts';
-import Project from '@workspaces/services/api/model/Project.ts';
-import WorkspaceClient from '@workspaces/services/api/WorkspaceClient.ts';
-import Workspace from '@workspaces/services/api/model/Workspace.ts';
+import ProjectClient from '@hubs/services/api/ProjectClient.ts';
+import Project from '@hubs/services/api/model/Project.ts';
+import WorkspaceClient from '@hubs/services/api/WorkspaceClient.ts';
+import Workspace from '@hubs/services/api/model/Workspace.ts';
 import { useNavigation } from '@/composables/useNavigation';
 
 const route = useRoute();
@@ -120,7 +120,7 @@ async function initializeProject() {
   } catch (error) {
     console.error('Failed to load project:', error);
     ToastService.error('Failed to load project', 'Cannot load project from the server.');
-    await router.push('/workspaces');
+    await router.push('/hubs');
   }
 }
 

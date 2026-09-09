@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * gRPC client for live streaming and replaying JFR events from a remote Jeffrey server.
+ * gRPC client for live streaming and replaying JFR events from a Jeffrey Hub.
  * Uses an async stub for long-lived server-streaming subscriptions.
  */
 public class EventStreamingClient implements Closeable {

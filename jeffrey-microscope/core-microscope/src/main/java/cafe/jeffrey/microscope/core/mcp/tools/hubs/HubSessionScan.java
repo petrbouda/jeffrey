@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.server.HubManager;
-import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
@@ -247,7 +247,7 @@ public final class HubSessionScan {
     private static String reasonOf(Exception exception) {
         if (exception instanceof StatusRuntimeException grpc) {
             JeffreyException mapped = GrpcClientErrors.toJeffreyException(grpc);
-            return mapped.getCode() == ErrorCode.REMOTE_JEFFREY_UNAVAILABLE
+            return mapped.getCode() == ErrorCode.HUB_UNAVAILABLE
                     ? UNREACHABLE
                     : mapped.getMessage();
         }

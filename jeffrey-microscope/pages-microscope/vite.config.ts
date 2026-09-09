@@ -16,8 +16,8 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('../../shared/ui/instances/src', import.meta.url))
       },
       {
-        find: '@workspaces',
-        replacement: fileURLToPath(new URL('../../shared/ui/workspaces/ui', import.meta.url))
+        find: '@hubs',
+        replacement: fileURLToPath(new URL('../../shared/ui/hubs/ui', import.meta.url))
       },
       {
         find: '@shared',

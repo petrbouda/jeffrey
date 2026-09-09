@@ -18,7 +18,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["../../shared/ui/common/src/*"],
-      "@workspaces/*": ["../../shared/ui/workspaces/ui/*"],
+      "@hubs/*": ["../../shared/ui/hubs/ui/*"],
       "@instances/*": ["../../shared/ui/instances/src/*"]
     }
   },

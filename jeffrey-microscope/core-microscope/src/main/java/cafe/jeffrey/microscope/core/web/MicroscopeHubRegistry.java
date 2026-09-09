@@ -18,11 +18,11 @@
 
 package cafe.jeffrey.microscope.core.web;
 
-import cafe.jeffrey.microscope.core.manager.server.HubManager;
-import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
+import cafe.jeffrey.shared.ui.hub.bridge.HubRegistry;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +47,7 @@ public class MicroscopeHubRegistry implements HubRegistry {
 
     @Override
     public HubInfo create(String name, HubAddress address) {
-        return hubsManager.create(new HubsManager.CreateServerRequest(name, address)).info();
+        return hubsManager.create(new HubsManager.CreateHubRequest(name, address)).info();
     }
 
     @Override

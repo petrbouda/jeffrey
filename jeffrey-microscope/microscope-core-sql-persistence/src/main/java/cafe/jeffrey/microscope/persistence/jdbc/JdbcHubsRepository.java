@@ -63,16 +63,16 @@ public class JdbcHubsRepository implements HubsRepository {
     private final DatabaseClient databaseClient;
 
     public JdbcHubsRepository(DatabaseClientProvider databaseClientProvider) {
-        this.databaseClient = databaseClientProvider.provide(GroupLabel.REMOTE_SERVERS);
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.HUBS);
     }
 
     @Override
     public List<HubInfo> findAll() {
         return databaseClient.query(
-                StatementLabel.FIND_ALL_REMOTE_SERVERS,
+                StatementLabel.FIND_ALL_HUBS,
                 SELECT_ALL,
                 new MapSqlParameterSource(),
-                serverMapper());
+                hubMapper());
     }
 
     @Override
@@ -81,35 +81,35 @@ public class JdbcHubsRepository implements HubsRepository {
                 .addValue("hub_id", hubId);
 
         return databaseClient.querySingle(
-                StatementLabel.FIND_REMOTE_SERVER_BY_ID, SELECT_BY_ID, params, serverMapper());
+                StatementLabel.FIND_HUB_BY_ID, SELECT_BY_ID, params, hubMapper());
     }
 
     @Override
-    public HubInfo create(HubInfo serverInfo) {
+    public HubInfo create(HubInfo hubInfo) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("hub_id", serverInfo.hubId())
-                .addValue("name", serverInfo.name())
-                .addValue("hostname", serverInfo.address().hostname())
-                .addValue("port", serverInfo.address().port())
-                .addValue("plaintext", serverInfo.address().plaintext())
-                .addValue("created_at", Timestamp.from(serverInfo.createdAt()))
-                .addValue("source", serverInfo.source().name());
+                .addValue("hub_id", hubInfo.hubId())
+                .addValue("name", hubInfo.name())
+                .addValue("hostname", hubInfo.address().hostname())
+                .addValue("port", hubInfo.address().port())
+                .addValue("plaintext", hubInfo.address().plaintext())
+                .addValue("created_at", Timestamp.from(hubInfo.createdAt()))
+                .addValue("source", hubInfo.source().name());
 
-        databaseClient.update(StatementLabel.INSERT_REMOTE_SERVER, INSERT, params);
-        return serverInfo;
+        databaseClient.update(StatementLabel.INSERT_HUB, INSERT, params);
+        return hubInfo;
     }
 
     @Override
-    public void update(HubInfo serverInfo) {
+    public void update(HubInfo hubInfo) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("hub_id", serverInfo.hubId())
-                .addValue("name", serverInfo.name())
-                .addValue("hostname", serverInfo.address().hostname())
-                .addValue("port", serverInfo.address().port())
-                .addValue("plaintext", serverInfo.address().plaintext())
-                .addValue("source", serverInfo.source().name());
+                .addValue("hub_id", hubInfo.hubId())
+                .addValue("name", hubInfo.name())
+                .addValue("hostname", hubInfo.address().hostname())
+                .addValue("port", hubInfo.address().port())
+                .addValue("plaintext", hubInfo.address().plaintext())
+                .addValue("source", hubInfo.source().name());
 
-        databaseClient.update(StatementLabel.UPDATE_REMOTE_SERVER, UPDATE, params);
+        databaseClient.update(StatementLabel.UPDATE_HUB, UPDATE, params);
     }
 
     @Override
@@ -117,10 +117,10 @@ public class JdbcHubsRepository implements HubsRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("hub_id", hubId);
 
-        databaseClient.update(StatementLabel.DELETE_REMOTE_SERVER, DELETE, params);
+        databaseClient.update(StatementLabel.DELETE_HUB, DELETE, params);
     }
 
-    private static RowMapper<HubInfo> serverMapper() {
+    private static RowMapper<HubInfo> hubMapper() {
         return (rs, _) -> new HubInfo(
                 rs.getString("hub_id"),
                 rs.getString("name"),

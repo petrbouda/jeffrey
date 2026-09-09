@@ -45,27 +45,27 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceManager.class);
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final HubInfo serverInfo;
+    private final HubInfo hubInfo;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
-    private final HubClients remoteClients;
+    private final HubClients hubClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
 
     public RemoteWorkspaceManager(
             MicroscopeJeffreyDirs jeffreyDirs,
-            HubInfo serverInfo,
+            HubInfo hubInfo,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
-            HubClients remoteClients,
+            HubClients hubClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.serverInfo = serverInfo;
+        this.hubInfo = hubInfo;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
-        this.remoteClients = remoteClients;
+        this.hubClients = hubClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
     }
@@ -78,7 +78,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public WorkspaceInfo resolveInfo() {
         try {
-            DiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.id());
+            DiscoveryClient.WorkspaceResult result = hubClients.discovery().workspace(workspaceInfo.id());
             return switch (result.status()) {
                 case AVAILABLE -> result.info();
                 case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
@@ -95,32 +95,32 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     public ProjectsManager projectsManager() {
         return new RemoteProjectsManager(
                 jeffreyDirs,
-                serverInfo,
+                hubInfo,
                 workspaceInfo,
-                remoteClients,
+                hubClients,
                 profilesManagerFactory,
                 recordingsManager);
     }
 
     @Override
     public Optional<ProfilerClient> profilerClient() {
-        return Optional.of(remoteClients.profiler());
+        return Optional.of(hubClients.profiler());
     }
 
     @Override
     public void upsertProfilerSettings(String agentSettings) {
-        remoteClients.profiler().upsertSettingsAtLevel(workspaceInfo.id(), "", agentSettings);
+        hubClients.profiler().upsertSettingsAtLevel(workspaceInfo.id(), "", agentSettings);
         LOG.debug("Upserted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
     }
 
     @Override
     public ProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings() {
-        return remoteClients.profiler().getWorkspaceEffectiveSettings(workspaceInfo.id());
+        return hubClients.profiler().getWorkspaceEffectiveSettings(workspaceInfo.id());
     }
 
     @Override
     public void deleteProfilerSettings() {
-        remoteClients.profiler().deleteSettingsAtLevel(workspaceInfo.id(), "");
+        hubClients.profiler().deleteSettingsAtLevel(workspaceInfo.id(), "");
         LOG.debug("Deleted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
     }
 
@@ -128,7 +128,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     public void delete() {
         // Best-effort: drop the workspace on the hub via gRPC.
         try {
-            remoteClients.discovery().deleteWorkspace(workspaceInfo.id());
+            hubClients.discovery().deleteWorkspace(workspaceInfo.id());
         } catch (Exception e) {
             LOG.warn("Remote DeleteWorkspace failed; continuing with local cleanup: workspaceId={}",
                     workspaceInfo.id(), e);

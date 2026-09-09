@@ -40,9 +40,15 @@ const router = createRouter({
           component: () => import('@/views/global/RecordingsView.vue')
         },
         {
+          path: 'hubs',
+          name: 'hubs',
+          component: () => import('@/views/hubs/HubsView.vue')
+        },
+        // The tab was called "Workspaces" until it was renamed to what it actually browses.
+        // Kept so old bookmarks do not fall through the catch-all onto the recordings list.
+        {
           path: 'workspaces',
-          name: 'workspaces',
-          component: () => import('@/views/workspaces/WorkspacesView.vue')
+          redirect: '/hubs'
         }
       ]
     },
@@ -71,7 +77,7 @@ const router = createRouter({
         {
           path: 'projects',
           name: 'workspace-projects',
-          component: () => import('@/views/workspaces/WorkspacesView.vue')
+          component: () => import('@/views/hubs/HubsView.vue')
         },
         {
           path: 'projects/:projectId',

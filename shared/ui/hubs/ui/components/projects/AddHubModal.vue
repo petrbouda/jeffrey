@@ -1,0 +1,163 @@
+<template>
+  <LeftDrawer
+    v-model:show="showDrawer"
+    title="Add Jeffrey Hub"
+    icon="bi-hdd-network"
+    @update:show="reset"
+    @submit="submit"
+  >
+    <DrawerSection label="Identity" icon="bi-bookmark-fill">
+      <DrawerField
+        label="Hub Name"
+        required
+        hint="Display name shown in the hub rail."
+        :disabled="loading"
+      >
+        <input
+          v-model="form.name"
+          type="text"
+          class="field-input"
+          placeholder="e.g. production"
+          :disabled="loading"
+        />
+      </DrawerField>
+    </DrawerSection>
+
+    <DrawerSection label="Connection" icon="bi-router">
+      <div class="field-row">
+        <DrawerField label="Hostname" required :disabled="loading">
+          <input
+            v-model="form.hostname"
+            type="text"
+            class="field-input is-mono"
+            placeholder="grpc.example.com"
+            :disabled="loading"
+          />
+        </DrawerField>
+
+        <DrawerField label="Port" required :disabled="loading">
+          <input
+            v-model.number="form.port"
+            type="number"
+            class="field-input is-mono"
+            placeholder="9090"
+            min="1"
+            max="65535"
+            :disabled="loading"
+          />
+        </DrawerField>
+      </div>
+
+      <label class="setting-row">
+        <div class="setting-row-text">
+          <div class="setting-row-title">Plaintext (h2c, no TLS)</div>
+          <div class="setting-row-sub">
+            Enable for in-cluster Service DNS or trusted-LAN setups. Default is TLS.
+          </div>
+        </div>
+        <span class="toggle-switch">
+          <input
+            v-model="form.plaintext"
+            type="checkbox"
+            class="toggle-input"
+            :disabled="loading"
+          />
+          <span class="toggle-slider"></span>
+        </span>
+      </label>
+    </DrawerSection>
+
+    <div v-if="error" class="field-alert" role="alert">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>{{ error }}</span>
+    </div>
+
+    <template #footer>
+      <button class="btn btn-secondary" :disabled="loading" @click="close">Cancel</button>
+      <button class="btn btn-primary" :disabled="!isValid || loading" @click="submit">
+        <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+        Add Hub
+      </button>
+    </template>
+  </LeftDrawer>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import LeftDrawer from '@shared/components/LeftDrawer.vue';
+import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
+import DrawerField from '@shared/components/drawer/DrawerField.vue';
+import HubClient from '@hubs/services/api/HubClient';
+import ToastService from '@shared/services/ToastService';
+import '@shared/styles/shared-components.css';
+
+const props = defineProps<{ show: boolean }>();
+const emit = defineEmits<{
+  (e: 'update:show', value: boolean): void;
+  (e: 'hub-added'): void;
+}>();
+
+const showDrawer = computed({
+  get: () => props.show,
+  set: v => emit('update:show', v)
+});
+
+const defaultForm = () => ({
+  name: '',
+  hostname: '',
+  port: 9090,
+  plaintext: false
+});
+
+const form = ref(defaultForm());
+const loading = ref(false);
+const error = ref<string | null>(null);
+
+const isValid = computed(
+  () =>
+    form.value.name.trim().length > 0 &&
+    form.value.hostname.trim().length > 0 &&
+    form.value.port >= 1 &&
+    form.value.port <= 65535
+);
+
+const client = new HubClient();
+
+watch(
+  () => props.show,
+  open => {
+    if (open) {reset();}
+  }
+);
+
+const reset = () => {
+  form.value = defaultForm();
+  error.value = null;
+  loading.value = false;
+};
+
+const close = () => {
+  emit('update:show', false);
+};
+
+const submit = async () => {
+  if (!isValid.value) {return;}
+  loading.value = true;
+  error.value = null;
+  try {
+    await client.add({
+      name: form.value.name.trim(),
+      hostname: form.value.hostname.trim(),
+      port: form.value.port,
+      plaintext: form.value.plaintext
+    });
+    ToastService.success('Hub Added', 'Connected to the Jeffrey Hub.');
+    emit('hub-added');
+    emit('update:show', false);
+  } catch (e: any) {
+    error.value = e?.response?.data?.message ?? e?.message ?? 'Failed to add hub';
+  } finally {
+    loading.value = false;
+  }
+};
+</script>

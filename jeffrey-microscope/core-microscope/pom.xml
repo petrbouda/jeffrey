@@ -103,10 +103,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>recordings-core</artifactId>
         </dependency>
-        <!-- Shared remote-workspace controllers (instances/repository/download/recordings) -->
+        <!-- Shared hub-browser controllers (hubs/workspaces/projects/instances/repository/download/recordings) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>workspaces</artifactId>
+            <artifactId>hubs</artifactId>
         </dependency>
         <!-- Shared version controller (GET /api/internal/version) -->
         <dependency>

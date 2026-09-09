@@ -25,8 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.workspace.controller.ProjectInstancesController;
+import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.hub.controller.ProjectInstancesController;
 
 import java.time.Clock;
 import java.time.Instant;

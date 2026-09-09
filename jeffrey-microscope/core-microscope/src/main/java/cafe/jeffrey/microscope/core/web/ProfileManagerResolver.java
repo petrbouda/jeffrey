@@ -19,8 +19,8 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.server.HubManager;
-import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -35,20 +35,20 @@ import java.util.Optional;
  * lookup against the microscope-core profile repository.
  *
  * <p>For workspace-scoped profiles, walks the connected hubs in order
- * and returns the first hit — workspace IDs are server-generated UUIDs so a
- * given profile belongs to exactly one server.
+ * and returns the first hit — workspace IDs are hub-generated UUIDs so a
+ * given profile belongs to exactly one hub.
  */
 public class ProfileManagerResolver {
 
-    private final HubsManager remoteServersManager;
+    private final HubsManager hubsManager;
     private final RecordingsManager recordingsManager;
     private final MicroscopeCoreRepositories localCoreRepositories;
 
     public ProfileManagerResolver(
-            HubsManager remoteServersManager,
+            HubsManager hubsManager,
             RecordingsManager recordingsManager,
             MicroscopeCoreRepositories localCoreRepositories) {
-        this.remoteServersManager = remoteServersManager;
+        this.hubsManager = hubsManager;
         this.recordingsManager = recordingsManager;
         this.localCoreRepositories = localCoreRepositories;
     }
@@ -72,8 +72,8 @@ public class ProfileManagerResolver {
         }
 
         ProfileInfo profileInfo = profileInfoOpt.get();
-        for (HubManager server : remoteServersManager.findAll()) {
-            Optional<WorkspaceManager> ws = server.workspace(profileInfo.workspaceId());
+        for (HubManager hub : hubsManager.findAll()) {
+            Optional<WorkspaceManager> ws = hub.workspace(profileInfo.workspaceId());
             if (ws.isEmpty()) {
                 continue;
             }

@@ -183,8 +183,8 @@ export const microscopeNavigation: DocSection[] = [
     children: [{ title: 'IntelliJ Plugin docs', to: '/docs/intellij-plugin' }]
   },
   {
-    title: 'Server Integration',
-    path: '_microscope-server-integration',
+    title: 'Hub Integration',
+    path: '_microscope-hub-integration',
     icon: 'bi-cloud',
     children: [
       { title: 'Workspaces', to: '/docs/microscope/workspaces' },

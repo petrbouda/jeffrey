@@ -915,7 +915,7 @@ defineExpose({
   width: 100%;
 }
 
-/* Step Header Styling - Matching WorkspacesView */
+/* Step Header Styling - Matching HubsView */
 .step-header {
   background: var(--color-white);
   border-radius: 12px;

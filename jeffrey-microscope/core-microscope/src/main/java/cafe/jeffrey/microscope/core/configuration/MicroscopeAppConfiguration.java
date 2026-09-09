@@ -30,23 +30,23 @@ import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
 import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
 import cafe.jeffrey.microscope.core.web.MicroscopeRecordingProfileInfoProvider;
 import cafe.jeffrey.microscope.core.web.MicroscopeRemoteProjectAccess;
-import cafe.jeffrey.microscope.core.web.MicroscopeWorkspaceBrowserAccess;
+import cafe.jeffrey.microscope.core.web.MicroscopeHubBrowserAccess;
 import cafe.jeffrey.microscope.core.web.MicroscopeHubRegistry;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
-import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
-import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
-import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
-import cafe.jeffrey.shared.ui.workspace.config.WorkspacesFeatureConfiguration;
+import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.hub.bridge.HubRegistry;
+import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
+import cafe.jeffrey.shared.ui.hub.config.HubsFeatureConfiguration;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
@@ -79,7 +79,7 @@ import java.time.Clock;
  * Configuration beans specific to LOCAL mode: Recordings, web controllers, resolvers.
  */
 @Configuration
-@Import({WebInfrastructureConfig.class, WorkspacesFeatureConfiguration.class, VersionFeatureConfiguration.class})
+@Import({WebInfrastructureConfig.class, HubsFeatureConfiguration.class, VersionFeatureConfiguration.class})
 public class MicroscopeAppConfiguration {
 
     @Bean
@@ -162,8 +162,8 @@ public class MicroscopeAppConfiguration {
     // --- Resolvers (centralise profileId / projectId lookups for controllers) ---
 
     @Bean
-    public ProjectManagerResolver projectManagerResolver(HubsManager remoteServersManager) {
-        return new ProjectManagerResolver(remoteServersManager);
+    public ProjectManagerResolver projectManagerResolver(HubsManager hubsManager) {
+        return new ProjectManagerResolver(hubsManager);
     }
 
     // --- Bridges for the shared workspaces controllers ---
@@ -174,13 +174,13 @@ public class MicroscopeAppConfiguration {
     }
 
     @Bean
-    public WorkspaceBrowserAccess workspaceBrowserAccess(ProjectManagerResolver projectManagerResolver) {
-        return new MicroscopeWorkspaceBrowserAccess(projectManagerResolver);
+    public HubBrowserAccess hubBrowserAccess(ProjectManagerResolver projectManagerResolver) {
+        return new MicroscopeHubBrowserAccess(projectManagerResolver);
     }
 
     @Bean
-    public HubRegistry hubRegistry(HubsManager remoteServersManager) {
-        return new MicroscopeHubRegistry(remoteServersManager);
+    public HubRegistry hubRegistry(HubsManager hubsManager) {
+        return new MicroscopeHubRegistry(hubsManager);
     }
 
     @Bean
@@ -192,11 +192,11 @@ public class MicroscopeAppConfiguration {
 
     @Bean
     public ProfileManagerResolver profileManagerResolver(
-            HubsManager remoteServersManager,
+            HubsManager hubsManager,
             Optional<RecordingsManager> recordingsManager,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
         return new ProfileManagerResolver(
-                remoteServersManager,
+                hubsManager,
                 recordingsManager.orElse(null),
                 localCorePersistenceProvider.localCoreRepositories());
     }

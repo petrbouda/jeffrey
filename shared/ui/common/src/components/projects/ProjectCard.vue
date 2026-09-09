@@ -37,8 +37,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import Project from '@workspaces/services/api/model/Project.ts';
-import RecordingStatus from '@workspaces/services/api/model/RecordingStatus.ts';
+import Project from '@hubs/services/api/model/Project.ts';
+import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import Badge from '@shared/components/Badge.vue';
 import type { Variant } from '@shared/types/ui';
 

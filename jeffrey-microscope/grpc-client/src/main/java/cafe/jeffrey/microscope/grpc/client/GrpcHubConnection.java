@@ -33,7 +33,7 @@ import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Manages a gRPC {@link ManagedChannel} to a remote Jeffrey server.
+ * Manages a gRPC {@link ManagedChannel} to a Jeffrey Hub.
  */
 public class GrpcHubConnection implements Closeable {
 

@@ -140,7 +140,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
-import ProjectClient from '@workspaces/services/api/ProjectClient';
+import ProjectClient from '@hubs/services/api/ProjectClient';
 import ToastService from '@shared/services/ToastService';
 import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';

@@ -41,7 +41,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
-import RecordingsClient from '@workspaces/services/api/RecordingsClient';
+import RecordingsClient from '@hubs/services/api/RecordingsClient';
 import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 import FlamegraphBuilderWaiter from '@/components/FlamegraphBuilderWaiter.vue';
 import ErrorState from '@shared/components/ErrorState.vue';

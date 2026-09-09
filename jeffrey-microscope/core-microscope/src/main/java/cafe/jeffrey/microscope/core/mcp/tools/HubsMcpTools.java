@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.server.HubManager;
-import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadedSessionIndex;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubScanFilter;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
@@ -379,7 +379,7 @@ public class HubsMcpTools {
 
     private HubInfo hubInfo(HubSessionRef ref) {
         try {
-            return resolver.resolveServer(ref.hubId()).info();
+            return resolver.resolveHub(ref.hubId()).info();
         } catch (JeffreyException e) {
             // The model is told the ref went stale, which is what it can act on. The failure that
             // actually happened is kept here: without it a hub that is merely unreachable is

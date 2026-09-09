@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.core.project.pipeline;
 
 /**
  * Extension point for deployment-specific customization of the project creation pipeline.
- * Server mode adds stages for job scheduling; local mode uses the default pipeline.
+ * Hub mode adds stages for job scheduling; local mode uses the default pipeline.
  */
 @FunctionalInterface
 public interface ProjectPipelineCustomizer {

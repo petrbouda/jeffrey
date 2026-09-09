@@ -44,7 +44,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-@DuckDBTest(migration = "classpath:db/migration/server")
+@DuckDBTest(migration = "classpath:db/migration/hub")
 @ExtendWith(MockitoExtension.class)
 class SessionFinisherIntegrationTest {
 

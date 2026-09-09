@@ -22,12 +22,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Captures the (server, workspace, project) that a recording was downloaded from.
+ * Captures the (hub, workspace, project) that a recording was downloaded from.
  * Used to materialise {@code origin.*} system tags on the freshly imported QA recording.
  */
 public record OriginContext(
         String hubId,
-        String serverName,
+        String hubName,
         String workspaceId,
         String workspaceRef,
         String projectId,
@@ -43,8 +43,8 @@ public record OriginContext(
         if (hubId != null) {
             tags.put("origin.hubId", hubId);
         }
-        if (serverName != null) {
-            tags.put("origin.server", serverName);
+        if (hubName != null) {
+            tags.put("origin.hub", hubName);
         }
         if (workspaceId != null) {
             tags.put("origin.workspaceId", workspaceId);

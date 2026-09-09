@@ -182,7 +182,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
-import type Recording from '@workspaces/services/api/model/Recording';
+import type Recording from '@hubs/services/api/model/Recording';
 import AssistantPanel from '@shared/components/assistants/AssistantPanel.vue';
 import AssistantMinimizedButton from '@shared/components/assistants/AssistantMinimizedButton.vue';
 import type {

@@ -23,8 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.workspace.controller.ProjectDownloadTaskController;
+import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.hub.controller.ProjectDownloadTaskController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;

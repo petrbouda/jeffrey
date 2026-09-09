@@ -27,5 +27,5 @@ module cafe.jeffrey.hub.persistence.sql {
     exports cafe.jeffrey.hub.persistence.jdbc;
 
     // Flyway loads SQL migrations via ClassLoader.getResourceAsStream; Loading of SQL Schemas
-    opens db.migration.server;
+    opens db.migration.hub;
 }

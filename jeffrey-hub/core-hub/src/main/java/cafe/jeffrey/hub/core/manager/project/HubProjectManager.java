@@ -39,8 +39,8 @@ import java.time.Clock;
 import java.util.List;
 
 /**
- * Server-specific project manager — no profile analysis, recording management,
- * or download capabilities. The server is a pure collector.
+ * Hub-specific project manager — no profile analysis, recording management,
+ * or download capabilities. The hub is a pure collector.
  */
 public class HubProjectManager implements ProjectManager {
 

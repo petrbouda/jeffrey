@@ -150,7 +150,7 @@ watch(
     // Auto-expand page items that have children and are active.
     // Handle nested paths like projects/profiles -> expand projects.
     // The rendered key uses `section.path`, which may be synthetic (e.g.
-    // `_microscope-server-integration`) and unrelated to the URL's first segment.
+    // `_microscope-hub-integration`) and unrelated to the URL's first segment.
     // Walk all sections to find the one that hosts the matching parent page.
     if (newPage) {
       const parentPage = newPage.split('/')[0];

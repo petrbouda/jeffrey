@@ -32,7 +32,7 @@
 
     <!-- Aggregator for shared UI feature modules (backend + co-located Vue under each module's ui/). -->
     <modules>
-        <module>workspaces</module>
+        <module>hubs</module>
         <module>version</module>
     </modules>
 </project>

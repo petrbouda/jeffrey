@@ -58,12 +58,12 @@ public class InstanceEnvironmentParser {
             EventTypeName.CONTAINER_CONFIGURATION,
             EventTypeName.VIRTUALIZATION_INFORMATION);
 
-    private final HubJeffreyDirs serverJeffreyDirs;
+    private final HubJeffreyDirs hubJeffreyDirs;
     private final Lz4Compressor lz4Compressor;
 
-    public InstanceEnvironmentParser(HubJeffreyDirs serverJeffreyDirs) {
-        this.serverJeffreyDirs = serverJeffreyDirs;
-        this.lz4Compressor = new Lz4Compressor(serverJeffreyDirs);
+    public InstanceEnvironmentParser(HubJeffreyDirs hubJeffreyDirs) {
+        this.hubJeffreyDirs = hubJeffreyDirs;
+        this.lz4Compressor = new Lz4Compressor(hubJeffreyDirs);
     }
 
     /**
@@ -88,7 +88,7 @@ public class InstanceEnvironmentParser {
                 : ONE_SHOT_TYPES;
 
         if (Lz4Compressor.isLz4Compressed(jfrPath)) {
-            try (TempDirectory td = serverJeffreyDirs.newTempDir()) {
+            try (TempDirectory td = hubJeffreyDirs.newTempDir()) {
                 Path decompressed = lz4Compressor.decompressToDir(jfrPath, td.path());
                 return readOneShotEvents(decompressed, needed);
             } catch (RuntimeException e) {

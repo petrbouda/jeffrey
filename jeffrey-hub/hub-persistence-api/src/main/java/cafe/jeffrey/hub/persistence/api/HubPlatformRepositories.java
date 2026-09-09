@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Factory interface for server-level platform repositories.
- * Provides access to server-specific repositories (workspaces, projects, instances,
+ * Factory interface for hub-level platform repositories.
+ * Provides access to hub-specific repositories (workspaces, projects, instances,
  * sessions, scheduler, profiler settings).
  */
 public interface HubPlatformRepositories {
