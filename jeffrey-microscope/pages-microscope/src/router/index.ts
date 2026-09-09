@@ -43,12 +43,6 @@ const router = createRouter({
           path: 'hubs',
           name: 'hubs',
           component: () => import('@/views/hubs/HubsView.vue')
-        },
-        // The tab was called "Workspaces" until it was renamed to what it actually browses.
-        // Kept so old bookmarks do not fall through the catch-all onto the recordings list.
-        {
-          path: 'workspaces',
-          redirect: '/hubs'
         }
       ]
     },
@@ -86,7 +80,7 @@ const router = createRouter({
             {
               path: '',
               name: 'project',
-              component: () => import('@/views/workspaces/detail/ProjectDetail.vue'),
+              component: () => import('@/views/projects/ProjectDetail.vue'),
               meta: { layout: 'project' },
               children: [
                 {
@@ -98,26 +92,26 @@ const router = createRouter({
                 {
                   path: 'settings',
                   name: 'project-settings',
-                  component: () => import('@/views/workspaces/detail/SettingsView.vue'),
+                  component: () => import('@/views/projects/ProjectSettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'profiler-settings',
                   name: 'project-profiler-settings',
                   component: () =>
-                    import('@/views/workspaces/detail/ProjectProfilerSettingsView.vue'),
+                    import('@/views/projects/ProjectProfilerSettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'events/live-stream',
                   name: 'project-live-stream',
-                  component: () => import('@/views/workspaces/detail/ProjectLiveStreamView.vue'),
+                  component: () => import('@/views/projects/ProjectLiveStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'events/replay-stream',
                   name: 'project-replay-stream',
-                  component: () => import('@/views/workspaces/detail/ProjectReplayStreamView.vue'),
+                  component: () => import('@/views/projects/ProjectReplayStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
