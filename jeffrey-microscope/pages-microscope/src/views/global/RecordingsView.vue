@@ -1347,7 +1347,7 @@ const onDragEnd = () => {
   align-items: center;
   justify-content: center;
   color: var(--color-white);
-  font-size: 0.8rem;
+  font-size: var(--font-size-base);
   flex-shrink: 0;
 }
 
