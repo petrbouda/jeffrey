@@ -39,6 +39,14 @@ import tools.jackson.databind.JsonNode;
  * so a reader registers this endpoint once and can then move between profiles, and between the JFR,
  * flamegraph, trace and heap-dump families, inside one session.
  * <p>
+ * It sits at {@code /api/mcp} rather than under {@code /api/internal/**} with the rest of the HTTP
+ * API, because that prefix means "the frontend's own API" — the SPA calling the server that served
+ * it — and this is the one endpoint whose caller is a different program on the other side of the
+ * network. The prefix was never a network boundary and moving it grants nobody access they did not
+ * have, but a path that says "internal" while documentation asks the reader to point an external
+ * agent at it is a name that has to be read past. {@link #LEGACY_PATH} keeps answering so a client
+ * configured against the old address keeps working.
+ * <p>
  * Serving is on by default and switched off only through the {@code jeffrey.microscope.mcp.enabled}
  * application property, fixed at wiring time. While it is off the endpoint answers 404: a disabled server should
  * look like no server at all, not like one refusing to talk.
@@ -47,13 +55,24 @@ import tools.jackson.databind.JsonNode;
  * index, pulling a recording off a hub, and acting on the developer's editor — and none of them changes
  * an analysed profile; each says what it does through its {@code readOnlyHint}, and the two that reach
  * outside this server have switches of their own. There is no authentication yet, so the endpoint
- * carries the same trust assumption as the rest of {@code /api/internal/**}: reachable means trusted.
+ * carries the same trust assumption as the rest of Jeffrey's HTTP API: reachable means trusted.
  * That is why the documentation asks for a loopback bind, an SSH tunnel or a reverse proxy in front of
  * anything wider.
  */
 @RestController
-@RequestMapping("/api/internal/mcp")
+@RequestMapping({ExternalMcpController.PATH, ExternalMcpController.LEGACY_PATH})
 public class ExternalMcpController extends AbstractMcpStreamableHttpController {
+
+    /** Where the endpoint lives, and the address every manifest and documentation page spells. */
+    public static final String PATH = "/api/mcp";
+
+    /**
+     * Where it lived while it was named after the prefix the frontend's API uses. Kept mapped because
+     * the address is written down outside this repository — in each client's own configuration — so a
+     * plugin nobody has updated, or a hand-registered server, would otherwise stop finding the one it
+     * was pointed at.
+     */
+    public static final String LEGACY_PATH = "/api/internal/mcp";
 
     /** Where a refused request is told why, outside the JSON-RPC envelope it never entered. */
     private static final String REFUSAL_FIELD = "error";

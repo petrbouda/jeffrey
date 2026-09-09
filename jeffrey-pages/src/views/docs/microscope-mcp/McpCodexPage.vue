@@ -27,7 +27,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const timeoutConfig = `[mcp_servers.jeffrey]
-url = "http://localhost:8585/api/internal/mcp"
+url = "http://localhost:8585/api/mcp"
 # Codex gives a tool call 60 seconds by default
 tool_timeout_sec = 120`;
 
@@ -60,7 +60,7 @@ codex plugin marketplace add ./jeffrey`;
 const pinnedInstall = `codex plugin marketplace add petrbouda/jeffrey --ref v1.2.0`;
 
 const customUrl = `[mcp_servers.jeffrey]
-url = "http://localhost:9000/api/internal/mcp"`;
+url = "http://localhost:9000/api/mcp"`;
 
 const disablePluginServer = `[plugins."microscope@jeffrey"]
 mcp_servers.jeffrey.enabled = false`;
@@ -79,7 +79,7 @@ disabled_tools = [
   "hubs_list", "hubs_sessions", "hubs_download",
 ]`;
 
-const manualAdd = `codex mcp add jeffrey --url http://localhost:8585/api/internal/mcp`;
+const manualAdd = `codex mcp add jeffrey --url http://localhost:8585/api/mcp`;
 
 const update = `codex plugin marketplace upgrade`;
 
@@ -117,7 +117,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       </DocsCallout>
 
       <h2 id="pointing-it-elsewhere">Pointing It Elsewhere</h2>
-      <p>The plugin ships pointed at <code>http://localhost:8585/api/internal/mcp</code>, and in Codex <strong>that address is fixed</strong>. The Agent Plugins specification forbids placeholder expansion in a server URL, deliberately &mdash; a URL that can be rewritten per install is a URL an installed plugin can be redirected through &mdash; so there is no per-machine endpoint setting of the kind Claude Code offers.</p>
+      <p>The plugin ships pointed at <code>http://localhost:8585/api/mcp</code>, and in Codex <strong>that address is fixed</strong>. The Agent Plugins specification forbids placeholder expansion in a server URL, deliberately &mdash; a URL that can be rewritten per install is a URL an installed plugin can be redirected through &mdash; so there is no per-machine endpoint setting of the kind Claude Code offers.</p>
 
       <p>For any other address &mdash; a different port, a container, an SSH tunnel &mdash; register the server yourself in <code>~/.codex/config.toml</code>:</p>
       <DocsCodeBlock :code="customUrl" language="toml" />

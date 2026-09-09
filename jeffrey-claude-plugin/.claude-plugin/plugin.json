@@ -21,8 +21,8 @@
     "endpoint_url": {
       "type": "string",
       "title": "Jeffrey MCP endpoint",
-      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel — it is the address Microscope serves on, with /api/internal/mcp appended.",
-      "default": "http://localhost:8585/api/internal/mcp"
+      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel — it is the address Microscope serves on, with /api/mcp appended.",
+      "default": "http://localhost:8585/api/mcp"
     }
   },
   "mcpServers": {

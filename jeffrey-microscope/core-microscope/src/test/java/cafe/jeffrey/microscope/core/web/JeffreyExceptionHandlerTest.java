@@ -42,8 +42,8 @@ class JeffreyExceptionHandlerTest {
     private static final String BROKEN_PIPE_MESSAGE =
             "ServletOutputStream failed to write: java.io.IOException: Broken pipe";
     private static final String SERIALIZATION_FAILURE_MESSAGE = "Could not write JSON: no serializer found";
-    private static final String MISSING_RESOURCE_URI = "/api/internal/mcp/.well-known/openid-configuration";
-    private static final String MISSING_RESOURCE_PATH = "api/internal/mcp/.well-known/openid-configuration";
+    private static final String MISSING_RESOURCE_URI = "/api/mcp/.well-known/openid-configuration";
+    private static final String MISSING_RESOURCE_PATH = "api/mcp/.well-known/openid-configuration";
 
     /**
      * Stands in for a controller whose response the container has already given up on — the SSE

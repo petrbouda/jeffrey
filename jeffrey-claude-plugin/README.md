@@ -28,8 +28,12 @@ Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/micro
 ## Install
 
 Jeffrey's MCP server is **on by default** — a running Jeffrey is already serving it, at
-`/api/internal/mcp` on whatever address and port you reach Jeffrey on (`http://localhost:8585` unless
+`/api/mcp` on whatever address and port you reach Jeffrey on (`http://localhost:8585` unless
 you changed `server.port`).
+
+That endpoint used to be `/api/internal/mcp`, and still answers there, so a client configured before
+the move keeps working. A Microscope older than the move serves *only* the old path — point the
+plugin at it, or upgrade Jeffrey.
 
 **Claude Code:**
 
@@ -51,14 +55,14 @@ Either client can also skip the plugin and register the endpoint by hand — the
 
 ## Pointing it at your Jeffrey
 
-The plugin ships with the endpoint set to `http://localhost:8585/api/internal/mcp`.
+The plugin ships with the endpoint set to `http://localhost:8585/api/mcp`.
 
 In **Claude Code** anywhere else — a different port, a container, an SSH tunnel — is a setting:
 Claude Code offers the field when you enable the plugin, `/plugin` reopens it afterwards, and the
 value lives per machine in `~/.claude/settings.json`.
 
 ```
-Jeffrey MCP endpoint: http://localhost:9000/api/internal/mcp
+Jeffrey MCP endpoint: http://localhost:9000/api/mcp
 ```
 
 **Codex has no equivalent.** The Agent Plugins format forbids placeholder expansion in a server URL,
@@ -67,7 +71,7 @@ plugin's server and register your own in `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.jeffrey]
-url = "http://localhost:9000/api/internal/mcp"
+url = "http://localhost:9000/api/mcp"
 ```
 
 The skills keep working; only the server registration moves.

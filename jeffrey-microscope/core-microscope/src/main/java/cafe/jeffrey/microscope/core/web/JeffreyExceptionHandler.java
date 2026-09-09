@@ -114,7 +114,7 @@ public class JeffreyExceptionHandler {
      * browser asking for a source map or a client probing a path that was never meant to exist.
      *
      * <p>The MCP endpoint is the routine source of the probes. A client opening a session looks for
-     * OAuth metadata first — {@code /api/internal/mcp/.well-known/openid-configuration} and its
+     * OAuth metadata first — {@code /api/mcp/.well-known/openid-configuration} and its
      * siblings — and reads a 404 as "this server does not authenticate", which is exactly what Jeffrey
      * wants to say. A 500 instead says the server broke while being asked.
      *

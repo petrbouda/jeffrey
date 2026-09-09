@@ -352,11 +352,11 @@ than passing as a clean result. Follow it for anything the user reads.
   `jeffrey.microscope.mcp.families`. Upload and analyse in the Jeffrey UI, then work from
   `profiles_list`.
 - Every call fails to connect → Jeffrey is not running at the configured address. Point the client
-  at the real `…/api/internal/mcp` endpoint: in Claude Code, `/plugin` → `microscope` → **Jeffrey MCP
+  at the real `…/api/mcp` endpoint: in Claude Code, `/plugin` → `microscope` → **Jeffrey MCP
   endpoint**; in Codex, the `[mcp_servers.jeffrey]` block in `~/.codex/config.toml`. The URL is
-  `/api/internal/mcp` on the address you open Jeffrey's UI on.
-- The server answers 404 → it was started with `jeffrey.microscope.mcp.enabled=false`; it is on
-  by default.
+  `/api/mcp` on the address you open Jeffrey's UI on.
+- The server answers 404 → it was started with `jeffrey.microscope.mcp.enabled=false` (it is on
+  by default), or it predates the move to `/api/mcp` and serves only the older `/api/internal/mcp`.
 
 Related skills: `analyze-heap` for a heap dump, `compare-jfr` when there is a before and an after
 to weigh against each other, `jfr-sql` for raw SQL against the profile, `advise-jfr` to go from a

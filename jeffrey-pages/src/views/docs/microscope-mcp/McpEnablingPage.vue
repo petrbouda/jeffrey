@@ -51,20 +51,20 @@ const ideToggle = `jeffrey.microscope.mcp.ide.enabled=false`;
 const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
 
-const defaultEndpoint = `http://localhost:8585/api/internal/mcp`;
+const defaultEndpoint = `http://localhost:8585/api/mcp`;
 
 const loopback = `# application.properties -- reachable from this machine and nowhere else
 server.address=127.0.0.1`;
 
 const tunnel = `ssh -N -L 8585:localhost:8585 you@the-host-running-jeffrey`;
 
-const serverProbe = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
+const serverProbe = `curl -s -X POST http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 # a tool list means it is serving; 404 means it was turned off`;
 
 const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
-  -X POST http://localhost:8585/api/internal/mcp \\
+  -X POST http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 # 404 while disabled, 200 once enabled`;
@@ -91,7 +91,11 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The profile is a tool argument rather than part of the URL, so a client registers this address once and can then move between profiles &mdash; and between the JFR, flamegraph, trace and heap-dump families &mdash; inside a single session.</p>
 
       <DocsCallout type="tip" title="Do not type the URL from memory">
-        Build it from the address bar of the Jeffrey UI you already have open, plus <code>/api/internal/mcp</code>. Behind a container, a reverse proxy or a non-default port, <code>localhost:8585</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command.
+        Build it from the address bar of the Jeffrey UI you already have open, plus <code>/api/mcp</code>. Behind a container, a reverse proxy or a non-default port, <code>localhost:8585</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command.
+      </DocsCallout>
+
+      <DocsCallout type="info" title="It used to be /api/internal/mcp">
+        The endpoint moved out of the <code>/api/internal/**</code> prefix, which names the API the Jeffrey UI calls &mdash; this is the one endpoint a <em>different</em> program calls. The old path still answers, so a client configured before the move keeps working and nothing has to be re-registered. The reverse is what to watch for: <code>/api/mcp</code> on a Microscope older than this answers <code>404</code>, so an upgraded plugin pointed at an older Jeffrey needs the old address until that Jeffrey is upgraded too.
       </DocsCallout>
 
       <h2 id="turning-it-off">Turning It Off</h2>
