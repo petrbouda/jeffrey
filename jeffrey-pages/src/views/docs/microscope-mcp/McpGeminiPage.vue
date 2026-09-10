@@ -159,23 +159,12 @@ const update = `gemini extensions update microscope`;
       <p>Keep the name <code>jeffrey</code>: the skills name tools by the part after the prefix, and the prefix is built from the server's name. Then remove the extension, or accept that the same tools are registered twice.</p>
 
       <h2 id="what-the-extension-adds">What the Extension Adds</h2>
-      <p>Registering the server by hand gives you every tool. The extension adds the endpoint already configured, a check that Jeffrey is serving when a session starts, and <strong>ten skills</strong>, which Gemini loads on its own when a question calls for one:</p>
-      <ul>
-        <li><code>analyze-jfr</code> &mdash; where to start and which family answers which question</li>
-        <li><code>analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the heap tools have to be run in</li>
-        <li><code>analyze-hub</code> &mdash; the recordings that never reached this machine: finds the session across the connected Jeffrey Hubs, pulls it in, and hands off</li>
-        <li><code>compare-jfr</code> &mdash; before against after: which methods moved, and whether the two recordings were comparable in the first place</li>
-        <li><code>profile-run</code> &mdash; a workload that has not been recorded yet: what to run it under, for how long, and where the file has to land</li>
-        <li><code>regression-check</code> &mdash; the same before-and-after question starting from two revisions rather than two profiles</li>
-        <li><code>advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit</li>
-        <li><code>jfr-sql</code> and <code>heap-sql</code> &mdash; the two database schemas and the DuckDB idioms that go with them</li>
-        <li><code>report</code> &mdash; the evidence discipline the other nine write to</li>
-      </ul>
+      <p>Registering the server by hand gives you every tool. The extension adds the endpoint already configured, a check that Jeffrey is serving when a session starts, and <strong>ten skills</strong>, which Gemini loads on its own when a question calls for one: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page; <code>/skills</code> lists what a session actually loaded, and <code>gemini extensions list</code> prints them with the server and the endpoint setting from outside one.</p>
 
-      <p><code>/skills</code> lists what a session actually loaded, and <code>gemini extensions list</code> prints them with the server and the endpoint setting from outside one. They are the same files Claude Code and Codex load &mdash; all three read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the directory is shared rather than duplicated. The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists.</p>
+      <p>They are the same files Claude Code and Codex load &mdash; all three read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the directory is shared rather than duplicated.</p>
 
       <h2 id="the-agents">The Agents</h2>
-      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and answering a question properly often takes several. The <router-link to="/docs/microscope-mcp/agent">agents</router-link> run a sequence and return only the findings, leaving everything they read in their own context.</p>
+      <p>The <router-link to="/docs/microscope-mcp/agent">agents</router-link> read an export end to end and return only the findings. What each one is for is on that page; what follows is how Gemini gets them, and which of them it can run at all.</p>
 
       <p>Gemini gets <strong>two of the three</strong>, and they are files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />
