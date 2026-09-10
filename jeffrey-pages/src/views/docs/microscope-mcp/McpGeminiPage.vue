@@ -293,3 +293,7 @@ const update = `gemini extensions update microscope`;
     <DocsNavFooter />
   </article>
 </template>
+
+<style scoped>
+@import '@/views/docs/docs-page.css';
+</style>
