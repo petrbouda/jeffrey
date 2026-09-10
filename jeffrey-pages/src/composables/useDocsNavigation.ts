@@ -98,7 +98,7 @@ const JIB_SEGMENTS = new Set(['jib']);
 const INTELLIJ_PLUGIN_SEGMENTS = new Set(['intellij-plugin']);
 // Jeffrey Tracing is its own product (previously spread across Microscope's
 // events/profiles pages).
-const TRACING_SEGMENTS = new Set(['tracing']);
+const TRACING_SEGMENTS = new Set(['tracing', 'agent']);
 
 export const microscopeNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Microscope" group
@@ -501,6 +501,7 @@ export const tracingNavigation: DocSection[] = [
         ]
       },
       { title: '@Traced & the Agent', to: '/docs/tracing/traced-annotation' },
+      { title: 'Jeffrey Agent', to: '/docs/agent/overview' },
       { title: 'JFR Method Tracing', to: '/docs/tracing/method-tracing' },
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },
       { title: 'gRPC Events', to: '/docs/tracing/grpc-events' },
