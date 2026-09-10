@@ -243,47 +243,53 @@ const update = `gemini extensions update microscope`;
       <h2 id="what-differs">What Differs from Claude Code</h2>
       <p>The tools and the skills are identical. Everything below is a property of the clients, not of Jeffrey.</p>
 
-      <table>
-        <thead>
+      <div class="docs-compare-wrap">
+        <table class="docs-compare">
+          <thead>
+            <tr>
+              <th scope="col">Difference</th>
+              <th scope="col" class="is-primary-client">
+                <span class="docs-compare-client is-primary-client">Claude Code</span>
+              </th>
+              <th scope="col" class="is-secondary-client">
+                <span class="docs-compare-client is-secondary-client">Gemini CLI</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
           <tr>
-            <th></th>
-            <th>Claude Code</th>
-            <th>Gemini CLI</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Manifest</td>
-            <td><code>.claude-plugin/plugin.json</code></td>
-            <td><code>gemini-extension.json</code></td>
-          </tr>
-          <tr>
-            <td>Install</td>
-            <td><code>/plugin install microscope@jeffrey</code></td>
-            <td><code>gemini extensions install &lt;path&gt;</code></td>
-          </tr>
-          <tr>
-            <td>Endpoint</td>
-            <td>A per-machine setting</td>
-            <td>A setting too, asked at install or read from the environment</td>
+            <th scope="row">Manifest</th>
+            <td class="is-primary-client" data-client="Claude Code"><span class="docs-compare-value">.claude-plugin/plugin.json</span></td>
+            <td class="is-secondary-client" data-client="Gemini CLI"><span class="docs-compare-value">gemini-extension.json</span></td>
           </tr>
           <tr>
-            <td>Tool prefix</td>
-            <td><code>mcp__plugin_microscope_jeffrey__</code></td>
-            <td><code>mcp_jeffrey_</code></td>
+            <th scope="row">Install</th>
+            <td class="is-primary-client" data-client="Claude Code"><span class="docs-compare-value">/plugin install microscope@jeffrey</span></td>
+            <td class="is-secondary-client" data-client="Gemini CLI"><span class="docs-compare-value">gemini extensions install &lt;path&gt;</span></td>
           </tr>
           <tr>
-            <td>Agents</td>
-            <td>All three, from the plugin</td>
-            <td>Two, copied by hand: no subagent may dispatch another</td>
+            <th scope="row">Endpoint</th>
+            <td class="is-primary-client" data-client="Claude Code">A per-machine setting</td>
+            <td class="is-secondary-client" data-client="Gemini CLI">A setting too, asked at install or read from the environment</td>
           </tr>
           <tr>
-            <td>Read-only agents</td>
-            <td>Enforced by a deny-list</td>
-            <td>Instructed, or enforced with <code>excludeTools</code></td>
+            <th scope="row">Tool prefix</th>
+            <td class="is-primary-client" data-client="Claude Code"><span class="docs-compare-value">mcp__plugin_microscope_jeffrey__</span></td>
+            <td class="is-secondary-client" data-client="Gemini CLI"><span class="docs-compare-value">mcp_jeffrey_</span></td>
           </tr>
-        </tbody>
-      </table>
+          <tr>
+            <th scope="row">Agents</th>
+            <td class="is-primary-client" data-client="Claude Code">All three, from the plugin</td>
+            <td class="is-secondary-client" data-client="Gemini CLI">Two, copied by hand &mdash; no subagent may dispatch another</td>
+          </tr>
+          <tr>
+            <th scope="row">Read-only agents</th>
+            <td class="is-primary-client" data-client="Claude Code">Enforced by a deny-list</td>
+            <td class="is-secondary-client" data-client="Gemini CLI">Instructed, or enforced with <span class="docs-compare-value">excludeTools</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
 
       <DocsCallout type="tip" title="From the IDE">
         The <router-link to="/docs/intellij-plugin">IntelliJ plugin</router-link>'s recording panel hands a profile straight to Gemini, alongside Claude Code and Codex &mdash; one button opens a terminal with the profile already identified and the matching skill triggered.
