@@ -110,9 +110,11 @@ checkout's `.gemini/settings.json` for one:
 }
 ```
 
-`httpUrl` is Gemini's key for streamable HTTP; `url` there means SSE, which this server does not
-speak. Keep the name `jeffrey`: the skills name tools by the part after the prefix, and the prefix is
-built from the server's name.
+`httpUrl` is one of three spellings Gemini accepts for the same server: `url` with `"type": "http"`
+is identical, and is what `gemini mcp add jeffrey <url> --transport http` writes; a bare `url` works
+too, because Gemini tries HTTP first and falls back to SSE only when that fails. Only `"type": "sse"`
+is wrong here. Keep the name `jeffrey`: the skills name tools by the part after the prefix, and the
+prefix is built from the server's name.
 
 ## What you get
 
@@ -320,9 +322,11 @@ probe bounds itself at three seconds anyway.
 
 **Three agent directories, one set of agents.** `agents/` is Claude Code's, and the only one a plugin
 carries; `codex/` and `gemini/` hold the same analyst and heap specialist in the dialect each of those
-clients validates, to be copied by hand. Gemini does read an installed extension's `agents/`, and logs
-a load error for each of the three Claude files, whose frontmatter its strict schema rejects — the
-errors are debug-level, and nothing else follows from them.
+clients validates, to be copied by hand. Gemini does read an installed extension's `agents/`, and
+prints a validation error for each of the three Claude files, whose frontmatter its strict schema
+rejects — on ordinary commands, not only in debug mode. Nothing else follows from it: the extension
+loads, the server connects and the skills work. It is the cost of one directory that has to satisfy
+Claude Code, whose plugins read `agents/` and nothing else.
 
 In both hand-copied sets the read-only promise rests on the *No writing* rule in the agent's own
 instructions rather than on a deny-list the client does not have.

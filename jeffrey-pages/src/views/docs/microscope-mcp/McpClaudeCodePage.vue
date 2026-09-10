@@ -106,28 +106,9 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p><strong>A startup check</strong>, which says so when Jeffrey is not answering rather than letting the first tool call find out. <a href="#the-startup-check">Below.</a></p>
 
-      <p><strong>Nine skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
-      <ul>
-        <li><code>/microscope:analyze-jfr</code> &mdash; where to start and which family answers which question</li>
-        <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-four heap tools have to be run in</li>
-        <li><code>/microscope:analyze-hub</code> &mdash; the recordings that never reached this machine: finds the session across the connected Jeffrey Hubs, pulls it in, and hands off to <code>analyze-jfr</code> or <code>analyze-heap</code></li>
-        <li><code>/microscope:compare-jfr</code> &mdash; before against after: whether a change made it slower, which methods moved, and whether the two recordings were comparable in the first place</li>
-        <li><code>/microscope:profile-run</code> &mdash; a workload with no recording yet: what to run it under, for how long, and where the file has to land for Jeffrey to open it</li>
-        <li><code>/microscope:regression-check</code> &mdash; the same before-and-after question starting from two revisions rather than two profiles: build and record each, then weigh them</li>
-        <li><code>/microscope:advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
-        <li><code>/microscope:jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
-        <li><code>/microscope:heap-sql</code> &mdash; the heap-dump index schema</li>
-      </ul>
+      <p><strong>Ten skills</strong>, which Claude picks up on its own when a question calls for them and which you can also invoke directly, as <code>/microscope:analyze-jfr</code>: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page.</p>
 
-      <p>The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists.</p>
-
-      <p><strong>Three subagents.</strong> <code>microscope:profile-analyst</code> is the general one. A single <code>flamegraph_export</code> can run to 120,000 characters &mdash; the cap a tool result is truncated at &mdash; and answering a question properly often takes several of them. The analyst runs a sequence and returns only the findings: the hot frames with their <code>total</code> and <code>self</code> shares, or the retaining classes with their retained bytes and GC-root paths. Everything it read stays in its own context window rather than crowding out the conversation you are having.</p>
-
-      <p>The skills hand it the reading and keep what actually needs your session: mapping frames onto the checkout, the recommendation, and every question put to you. <code>advise-jfr</code> uses it hardest, sending CPU, wall-clock, allocation and blocking out as four parallel delegations instead of pulling four documents into one context. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code>, no <code>hubs_</code> &mdash; so it can neither touch your repository nor create a profile. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> covers what it returns and when to read an export yourself instead.</p>
-
-      <p><code>microscope:heap-triage</code> is the heap specialist. It carries <code>analyze-heap</code> and <code>heap-sql</code>, runs the whole leak route &mdash; histogram, dominator tree, GC-root path &mdash; and returns class names with retained bytes and the paths that make each claim checkable. The difference that matters: it will run <code>heap_prepare</code> when a report or a retained size has not been built, where the analyst would report the gap and stop.</p>
-
-      <p><code>microscope:profile-lead</code> is for the question that names no dimension &mdash; &ldquo;why is this service slow&rdquo;, &ldquo;review this recording&rdquo;. It triages from <code>profiles_summary</code> itself, reads the capability gaps first, dispatches the other two only for what the summary justifies, and merges what they return into one ranked report. It holds the orientation tools and the two specialists, and no export tool of its own; its model is inherited from the session. The <router-link to="/docs/microscope-mcp/agent#the-lead">agent reference</router-link> has the sequence.</p>
+      <p><strong>Three subagents</strong> &mdash; <code>microscope:profile-analyst</code>, <code>microscope:heap-triage</code> and <code>microscope:profile-lead</code> &mdash; which arrive with the plugin and need no install step. Claude Code is the only client that can carry them: its subagent definitions take a tool deny-list, so all three are held to reading a profile rather than told to. What each one does, and when to delegate to it, is on the <router-link to="/docs/microscope-mcp/agent">Agents</router-link> page.</p>
 
       <h2 id="permissions">Permissions</h2>
       <p>Claude Code asks before each tool the first time. Every tool here reads except the <code>recordings_</code> and <code>hubs_</code> families, which build a profile from a recording file on this machine or from a session on a connected hub, so approving the read-only families once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>

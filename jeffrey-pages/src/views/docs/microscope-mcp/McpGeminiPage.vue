@@ -107,6 +107,11 @@ cp jeffrey/jeffrey-claude-plugin/gemini/agents/heap-triage.md ~/.gemini/agents/`
 
 const endpointEnv = `export JEFFREY_MCP_ENDPOINT=http://localhost:9000/api/mcp`;
 
+const manualAdd = `gemini mcp add jeffrey http://localhost:8585/api/mcp \\
+  --transport http --scope user --timeout 900000`;
+
+const reconfigure = `gemini extensions config microscope`;
+
 const removal = `gemini extensions uninstall microscope`;
 
 const update = `gemini extensions update microscope`;
@@ -132,49 +137,45 @@ const update = `gemini extensions update microscope`;
       <p>Gemini installs an extension from a directory holding a <code>gemini-extension.json</code>, which is <code>jeffrey-claude-plugin/</code> in a clone:</p>
       <DocsCodeBlock :code="installLocal" language="bash" />
 
-      <p>Start a new session afterwards &mdash; an extension's servers, skills and agents are loaded when the session begins, not mid-conversation. <code>/extensions</code> lists what loaded.</p>
+      <p>Start a new session afterwards &mdash; an extension's servers and skills are loaded when the session begins, not mid-conversation. <code>/extensions</code> lists what loaded.</p>
 
       <p>The GitHub-URL form of that command does not work here: Gemini looks for the manifest at the root of whatever it clones, and in this repository it lives one directory down.</p>
 
       <p>Gemini asks for the endpoint while installing &mdash; keep the default unless your Jeffrey is elsewhere. <code>--skip-settings</code> skips the question. The manifest behind it:</p>
       <DocsCodeBlock :code="manifest" language="json" />
 
-      <p><code>httpUrl</code> is Gemini's key for <strong>Streamable HTTP</strong>. Its neighbour <code>url</code> means an SSE endpoint, which this server does not offer &mdash; using it is the one configuration mistake that produces a server which looks registered and never connects.</p>
+      <p><code>httpUrl</code> is one of <strong>three spellings Gemini accepts</strong> for the same Streamable HTTP server, and the shorthand for &ldquo;this is HTTP, do not guess&rdquo;. <code>url</code> with <code>&quot;type&quot;: &quot;http&quot;</code> is the same thing &mdash; it is what <code>gemini mcp add --transport http</code> writes &mdash; and a bare <code>url</code> with no <code>type</code> also works, because Gemini tries HTTP first and only falls back to SSE when that fails. Only <code>&quot;type&quot;: &quot;sse&quot;</code> is wrong here, since this server offers no SSE stream. <code>/mcp</code> prints the transport it settled on.</p>
 
       <h2 id="pointing-it-elsewhere">Pointing It Elsewhere</h2>
       <p><strong>Gemini has a setting, as Claude Code does</strong> &mdash; unlike Codex, where the endpoint really is fixed. The extension declares one, and the manifest reads it with a default, so <code>localhost:8585</code> stands until you give it something else. Answer the question at install time, or export the variable the setting is named after:</p>
       <DocsCodeBlock :code="endpointEnv" language="bash" />
 
-      <p>That is the same variable the session-start check reads, so the probe and the tools cannot end up pointed at different machines. To skip the extension's server altogether, register your own in <code>~/.gemini/settings.json</code> for every project, or a checkout's <code>.gemini/settings.json</code> for one:</p>
+      <p>That is the same variable the session-start check reads, so the probe and the tools cannot end up pointed at different machines. To change the answer you gave at install time:</p>
+      <DocsCodeBlock :code="reconfigure" language="bash" />
+
+      <p>To skip the extension's server altogether, register your own in <code>~/.gemini/settings.json</code> for every project, or a checkout's <code>.gemini/settings.json</code> for one:</p>
       <DocsCodeBlock :code="customUrl" language="json" />
 
       <p>Keep the name <code>jeffrey</code>: the skills name tools by the part after the prefix, and the prefix is built from the server's name. Then remove the extension, or accept that the same tools are registered twice.</p>
 
       <h2 id="what-the-extension-adds">What the Extension Adds</h2>
-      <p>Registering the server by hand gives you every tool. The extension adds the endpoint already configured, a check that Jeffrey is serving when a session starts, and <strong>ten skills</strong>, which Gemini loads on its own when a question calls for one:</p>
-      <ul>
-        <li><code>analyze-jfr</code> &mdash; where to start and which family answers which question</li>
-        <li><code>analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the heap tools have to be run in</li>
-        <li><code>analyze-hub</code> &mdash; the recordings that never reached this machine: finds the session across the connected Jeffrey Hubs, pulls it in, and hands off</li>
-        <li><code>compare-jfr</code> &mdash; before against after: which methods moved, and whether the two recordings were comparable in the first place</li>
-        <li><code>profile-run</code> &mdash; a workload that has not been recorded yet: what to run it under, for how long, and where the file has to land</li>
-        <li><code>regression-check</code> &mdash; the same before-and-after question starting from two revisions rather than two profiles</li>
-        <li><code>advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit</li>
-        <li><code>jfr-sql</code> and <code>heap-sql</code> &mdash; the two database schemas and the DuckDB idioms that go with them</li>
-        <li><code>report</code> &mdash; the evidence discipline the other nine write to</li>
-      </ul>
+      <p>Registering the server by hand gives you every tool. The extension adds the endpoint already configured, a check that Jeffrey is serving when a session starts, and <strong>ten skills</strong>, which Gemini loads on its own when a question calls for one: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page; <code>/skills</code> lists what a session actually loaded, and <code>gemini extensions list</code> prints them with the server and the endpoint setting from outside one.</p>
 
-      <p>They are the same files Claude Code and Codex load &mdash; all three read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the directory is shared rather than duplicated. The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists.</p>
+      <p>They are the same files Claude Code and Codex load &mdash; all three read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the directory is shared rather than duplicated.</p>
 
       <h2 id="the-agents">The Agents</h2>
-      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and answering a question properly often takes several. The <router-link to="/docs/microscope-mcp/agent">agents</router-link> run a sequence and return only the findings, leaving everything they read in their own context.</p>
+      <p>The <router-link to="/docs/microscope-mcp/agent">agents</router-link> read an export end to end and return only the findings. What each one is for is on that page; what follows is how Gemini gets them, and which of them it can run at all.</p>
 
       <p>Gemini gets <strong>two of the three</strong>, and they are files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />
 
       <p><code>~/.gemini/agents/</code> makes them available in every repository; <code>.gemini/agents/</code> inside a checkout scopes them to that one, and <code>/agents</code> lists what loaded. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
 
-      <p><strong>The extension cannot carry them</strong>, even though Gemini does read an installed extension's <code>agents/</code> directory. It validates that frontmatter against a strict schema and rejects any key it does not define, and the plugin's own agents carry Claude Code's <code>disallowedTools</code>, <code>skills</code> and <code>color</code>. Gemini logs a debug-level load error for each and carries on; the copies above are the same agents written in the dialect it accepts.</p>
+      <p><strong>The extension cannot carry them</strong>, even though Gemini does read an installed extension's <code>agents/</code> directory. It validates that frontmatter against a strict schema and rejects any key it does not define, and the plugin's own agents carry Claude Code's <code>disallowedTools</code>, <code>skills</code> and <code>color</code>; their tool patterns are not names Gemini accepts either. The copies above are the same agents written in the dialect it does accept.</p>
+
+      <DocsCallout type="warning" title="Those three files are noisy">
+        Gemini prints a validation error for each of them &mdash; <em>Unrecognized key(s)</em>, then a line per tool pattern &mdash; and it prints them on ordinary commands, not only in debug mode. Nothing else follows from it: the extension loads, the server connects, the skills work. It is the cost of one directory that has to satisfy Claude Code, whose plugins read <code>agents/</code> and nothing else.
+      </DocsCallout>
 
       <p>There is <strong>no <code>profile-lead</code> for Gemini at all</strong>, and that is a property of the client rather than an omission: <strong>a Gemini subagent may not dispatch another subagent</strong>, and dispatching the other two is the whole of what the lead does. Ask an open-ended question in the main conversation instead; <code>analyze-jfr</code> carries the same triage order, and the two specialists work beneath it.</p>
 
@@ -207,7 +208,7 @@ const update = `gemini extensions update microscope`;
       <p>On the Gemini side, <code>includeTools</code> or <code>excludeTools</code> on the server entry narrows what this client sees without touching what Jeffrey serves to anything else. Leave both alone unless you have a reason &mdash; the skills route between families freely, and one that is not advertised is one their advice sends the model to in vain.</p>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools. If it is not, in order of likelihood: the session predates the install and needs restarting, the entry says <code>url</code> where it should say <code>httpUrl</code>, this installation set <code>jeffrey.microscope.mcp.enabled=false</code>, Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
+      <p>Run <code>/mcp</code> inside a session, or <code>gemini mcp list</code> outside one. The <code>jeffrey</code> server should be listed with its tools. If it is listed but <strong>Disabled</strong>, the directory is untrusted &mdash; Gemini disables every MCP server in an untrusted folder, user-level ones included, and says so above the list; trust the folder and start again. If it is not listed at all, in order of likelihood: the session predates the install and needs restarting, this installation set <code>jeffrey.microscope.mcp.enabled=false</code>, Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
 
       <p><code>curl</code> against the endpoint settles which side is at fault; <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> has the exact request.</p>
 
@@ -221,54 +222,63 @@ const update = `gemini extensions update microscope`;
       <p>Uninstalling takes the skills and the session-start check with it. It does not change anything inside Jeffrey &mdash; the MCP server keeps serving &mdash; and it touches neither a server you registered yourself in <code>settings.json</code> nor an agent you copied into <code>~/.gemini/agents/</code>.</p>
 
       <h2 id="without-the-extension">Without the Extension</h2>
-      <p>The endpoint is an ordinary MCP server, so the <code>mcpServers</code> block from <a href="#pointing-it-elsewhere">above</a> in <code>~/.gemini/settings.json</code> is the whole of it. Use the address you actually reach Jeffrey on &mdash; behind a container, a proxy or a non-default port, <code>localhost:8585</code> is not it.</p>
+      <p>The endpoint is an ordinary MCP server, and one command registers it with no extension involved:</p>
+      <DocsCodeBlock :code="manualAdd" language="bash" />
+
+      <p><code>--scope user</code> writes <code>~/.gemini/settings.json</code> and serves every project; the default, <code>project</code>, writes the checkout's <code>.gemini/settings.json</code> instead. Or write the <code>mcpServers</code> block from <a href="#pointing-it-elsewhere">above</a> by hand. Either way, use the address you actually reach Jeffrey on &mdash; behind a container, a proxy or a non-default port, <code>localhost:8585</code> is not it.</p>
 
       <p>What you give up is the skills and the session-start check: the entry sequence, the two database schemas, and being told when Jeffrey is not answering. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first. The server also offers the skills as MCP <strong>prompts</strong>, so they are not lost &mdash; somebody has to ask for one rather than the client loading it. The agents were never part of the extension anyway.</p>
 
       <h2 id="what-differs">What Differs from Claude Code</h2>
       <p>The tools and the skills are identical. Everything below is a property of the clients, not of Jeffrey.</p>
 
-      <table>
-        <thead>
+      <div class="docs-compare-wrap">
+        <table class="docs-compare">
+          <thead>
+            <tr>
+              <th scope="col">Difference</th>
+              <th scope="col" class="is-baseline">
+                <span class="docs-compare-client is-baseline">Claude Code</span>
+              </th>
+              <th scope="col" class="is-primary">
+                <span class="docs-compare-client is-primary">Gemini CLI</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
           <tr>
-            <th></th>
-            <th>Claude Code</th>
-            <th>Gemini CLI</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Manifest</td>
-            <td><code>.claude-plugin/plugin.json</code></td>
-            <td><code>gemini-extension.json</code></td>
-          </tr>
-          <tr>
-            <td>Install</td>
-            <td><code>/plugin install microscope@jeffrey</code></td>
-            <td><code>gemini extensions install &lt;path&gt;</code></td>
-          </tr>
-          <tr>
-            <td>Endpoint</td>
-            <td>A per-machine setting</td>
-            <td>A setting too, asked at install or read from the environment</td>
+            <th scope="row">Manifest</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">.claude-plugin/plugin.json</span></td>
+            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">gemini-extension.json</span></td>
           </tr>
           <tr>
-            <td>Tool prefix</td>
-            <td><code>mcp__plugin_microscope_jeffrey__</code></td>
-            <td><code>mcp_jeffrey_</code></td>
+            <th scope="row">Install</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">/plugin install microscope@jeffrey</span></td>
+            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">gemini extensions install &lt;path&gt;</span></td>
           </tr>
           <tr>
-            <td>Agents</td>
-            <td>All three, from the plugin</td>
-            <td>Two, copied by hand: no subagent may dispatch another</td>
+            <th scope="row">Endpoint</th>
+            <td class="is-baseline" data-client="Claude Code">A per-machine setting</td>
+            <td class="is-primary" data-client="Gemini CLI">A setting too, asked at install or read from the environment</td>
           </tr>
           <tr>
-            <td>Read-only agents</td>
-            <td>Enforced by a deny-list</td>
-            <td>Instructed, or enforced with <code>excludeTools</code></td>
+            <th scope="row">Tool prefix</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">mcp__plugin_microscope_jeffrey__</span></td>
+            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">mcp_jeffrey_</span></td>
           </tr>
-        </tbody>
-      </table>
+          <tr>
+            <th scope="row">Agents</th>
+            <td class="is-baseline" data-client="Claude Code">All three, from the plugin</td>
+            <td class="is-primary" data-client="Gemini CLI">Two, copied by hand &mdash; no subagent may dispatch another</td>
+          </tr>
+          <tr>
+            <th scope="row">Read-only agents</th>
+            <td class="is-baseline" data-client="Claude Code">Enforced by a deny-list</td>
+            <td class="is-primary" data-client="Gemini CLI">Instructed, or enforced with <span class="docs-compare-value">excludeTools</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
 
       <DocsCallout type="tip" title="From the IDE">
         The <router-link to="/docs/intellij-plugin">IntelliJ plugin</router-link>'s recording panel hands a profile straight to Gemini, alongside Claude Code and Codex &mdash; one button opens a terminal with the profile already identified and the matching skill triggered.
@@ -278,3 +288,7 @@ const update = `gemini extensions update microscope`;
     <DocsNavFooter />
   </article>
 </template>
+
+<style scoped>
+@import '@/views/docs/docs-page.css';
+</style>

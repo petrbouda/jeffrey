@@ -601,3 +601,190 @@
 .text-muted {
   color: #6c757d;
 }
+
+/* Client Comparison Table
+ *
+ * For a table whose columns are *things being compared* rather than more fields of one thing —
+ * one client per column, one difference per row. It stays a real <table>: the row label is a
+ * <th scope="row">, so a screen reader still pairs "Tool prefix" with the column it was read
+ * under, which a grid of divs would lose.
+ *
+ * The two columns are named for their roles rather than their vendors — is-primary is the client
+ * whose page this is, is-baseline is Claude Code, which the others are described against — so one
+ * scheme serves the Codex page, the Gemini page and whatever comes next. A vendor's own colour
+ * would have to be picked again per page, and would say something about branding that a docs table
+ * has no business saying. The accent under each heading and the tint down the primary column are
+ * what let the eye follow one client without counting cells.
+ *
+ * Below 720px the columns would be three words wide, so the whole thing stacks into labelled pairs
+ * instead of scrolling sideways — which is why every cell needs a data-client attribute: it is the
+ * column heading, once there is no heading row to read.
+ */
+.docs-compare-wrap {
+  margin: 1.5rem 0;
+  border: 1px solid #eaedf1;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  background: #fff;
+}
+
+.docs-content .docs-compare {
+  width: 100%;
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.docs-content .docs-compare th,
+.docs-content .docs-compare td {
+  border: 0;
+  border-bottom: 1px solid #eaedf1;
+  padding: 0.85rem 1.1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-content .docs-compare thead th {
+  background: #f9fafd;
+  font-weight: 600;
+  color: #0b1727;
+  white-space: nowrap;
+}
+
+/* The corner cell names the column of row labels rather than sitting empty. */
+.docs-content .docs-compare thead th:first-child {
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a94a6;
+}
+
+.docs-compare-client {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.docs-compare-client::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+/* Inset rather than border-bottom: a border would move the text and double the row's own line. */
+.docs-content .docs-compare thead th.is-baseline {
+  box-shadow: inset 0 -3px 0 #a9b2c3;
+}
+
+.docs-content .docs-compare thead th.is-primary {
+  box-shadow: inset 0 -3px 0 #5e64ff;
+}
+
+.docs-compare-client.is-baseline {
+  color: #6c7689;
+}
+
+.docs-compare-client.is-primary {
+  color: #4c52db;
+}
+
+.docs-content .docs-compare tbody th {
+  background: #fcfcfd;
+  font-weight: 600;
+  color: #343a40;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.docs-content .docs-compare tbody td {
+  border-left: 1px solid #f4f6f9;
+  color: #495057;
+}
+
+.docs-content .docs-compare tbody td.is-primary {
+  background: rgba(94, 100, 255, 0.03);
+}
+
+.docs-content .docs-compare tbody tr:last-child th,
+.docs-content .docs-compare tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* A value, not prose: quieter than the pink inline <code> so six of them in a column do not shout. */
+.docs-compare-value {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: #edf2f9;
+  border: 1px solid #eaedf1;
+  color: #3d4756;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .docs-content .docs-compare thead {
+    display: none;
+  }
+
+  .docs-content .docs-compare,
+  .docs-content .docs-compare tbody,
+  .docs-content .docs-compare tr,
+  .docs-content .docs-compare th,
+  .docs-content .docs-compare td {
+    display: block;
+    width: auto;
+  }
+
+  .docs-content .docs-compare tbody th {
+    /* width and nowrap are the desktop rule's, and outrank the block above on specificity;
+       left alone the label shrink-wraps to one word per line. */
+    width: auto;
+    border-bottom: 0;
+    padding-bottom: 0.35rem;
+    white-space: normal;
+  }
+
+  .docs-content .docs-compare tbody td {
+    border-left: 0;
+    border-bottom: 0;
+    padding-top: 0.2rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .docs-content .docs-compare tbody td::before {
+    content: attr(data-client);
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8a94a6;
+  }
+
+  .docs-content .docs-compare tbody td.is-baseline::before {
+    color: #6c7689;
+  }
+
+  .docs-content .docs-compare tbody td.is-primary::before {
+    color: #4c52db;
+  }
+
+  .docs-content .docs-compare tbody tr {
+    border-bottom: 1px solid #eaedf1;
+    padding-bottom: 0.35rem;
+  }
+
+  .docs-content .docs-compare tbody tr:last-child {
+    border-bottom: 0;
+  }
+}

@@ -128,23 +128,12 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The skills keep working either way &mdash; they name tools by the part after the prefix, and the server is still called <code>jeffrey</code>. Only the registration moves.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you every tool. The plugin adds the endpoint already configured, and <strong>ten skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
-      <ul>
-        <li><code>$analyze-jfr</code> &mdash; where to start and which family answers which question</li>
-        <li><code>$analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-four heap tools have to be run in</li>
-        <li><code>$analyze-hub</code> &mdash; the recordings that never reached this machine: finds the session across the connected Jeffrey Hubs, pulls it in, and hands off to <code>analyze-jfr</code> or <code>analyze-heap</code></li>
-        <li><code>$compare-jfr</code> &mdash; before against after: whether a change made it slower, which methods moved, and whether the two recordings were comparable in the first place</li>
-        <li><code>$profile-run</code> &mdash; a workload that has not been recorded yet: what to run it under, for how long, and where the file has to land for Jeffrey to open it</li>
-        <li><code>$regression-check</code> &mdash; the same before-and-after question starting from two revisions rather than two profiles: build and record both, then weigh them</li>
-        <li><code>$advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
-        <li><code>$jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
-        <li><code>$heap-sql</code> &mdash; the heap-dump index schema</li>
-      </ul>
+      <p>Registering the server by hand gives you every tool. The plugin adds the endpoint already configured and <strong>ten skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>, as <code>$analyze-jfr</code>: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page; <code>/skills</code> lists what the session actually loaded.</p>
 
-      <p>They are the same files Claude Code loads &mdash; both clients read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the skill directory is shared rather than duplicated. The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists. <code>/skills</code> lists what the session actually loaded.</p>
+      <p>They are the same files Claude Code loads &mdash; both clients read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the skill directory is shared rather than duplicated.</p>
 
       <h2 id="the-analyst-agent">The Agents</h2>
-      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and answering a question properly often takes several. The <router-link to="/docs/microscope-mcp/agent">three agents</router-link> &mdash; <code>profile-analyst</code> for a profile, <code>heap-triage</code> for a heap dump, <code>profile-lead</code> to triage an open-ended question and dispatch those two &mdash; run a sequence and return only the findings &mdash; the hot frames with their <code>total</code> and <code>self</code> shares, or the retaining classes with their retained bytes and GC-root paths &mdash; leaving everything they read in their own context.</p>
+      <p>The <router-link to="/docs/microscope-mcp/agent">three agents</router-link> &mdash; <code>profile-analyst</code>, <code>heap-triage</code> and <code>profile-lead</code> &mdash; read an export end to end and return only the findings. What each one is for is on that page; what follows is how Codex gets them.</p>
 
       <p><strong>A Codex plugin cannot carry them.</strong> Agent Plugins defines exactly two component types, skills and MCP servers; agents are not among them. So the plugin ships both as files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />
@@ -203,47 +192,53 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <h2 id="what-differs-from-claude-code">What Differs from Claude Code</h2>
       <p>The tools and the skills are identical. Everything below is a property of the plugin formats, not of Jeffrey.</p>
 
-      <table>
-        <thead>
+      <div class="docs-compare-wrap">
+        <table class="docs-compare">
+          <thead>
+            <tr>
+              <th scope="col">Difference</th>
+              <th scope="col" class="is-baseline">
+                <span class="docs-compare-client is-baseline">Claude Code</span>
+              </th>
+              <th scope="col" class="is-primary">
+                <span class="docs-compare-client is-primary">Codex</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
           <tr>
-            <th></th>
-            <th>Claude Code</th>
-            <th>Codex</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Manifest</td>
-            <td><code>.claude-plugin/plugin.json</code></td>
-            <td>Agent Plugins <code>plugin.json</code> + <code>mcp.json</code></td>
-          </tr>
-          <tr>
-            <td>Install</td>
-            <td><code>/plugin install microscope@jeffrey</code></td>
-            <td><code>codex plugin marketplace add</code>, then <code>/plugins</code></td>
-          </tr>
-          <tr>
-            <td>Skills</td>
-            <td>Seven, invoked <code>/microscope:analyze-jfr</code></td>
-            <td>The same seven, invoked <code>$analyze-jfr</code></td>
+            <th scope="row">Manifest</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">.claude-plugin/plugin.json</span></td>
+            <td class="is-primary" data-client="Codex">Agent Plugins <span class="docs-compare-value">plugin.json</span> + <span class="docs-compare-value">mcp.json</span></td>
           </tr>
           <tr>
-            <td>Endpoint</td>
-            <td>A per-machine setting</td>
-            <td>Fixed at <code>localhost:8585</code>; anything else is a <code>config.toml</code> block</td>
+            <th scope="row">Install</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">/plugin install microscope@jeffrey</span></td>
+            <td class="is-primary" data-client="Codex"><span class="docs-compare-value">codex plugin marketplace add</span>, then <span class="docs-compare-value">/plugins</span></td>
           </tr>
           <tr>
-            <td>Analyst agent</td>
-            <td>Shipped, tool-restricted</td>
-            <td>Copied by hand, restricted by instruction</td>
+            <th scope="row">Skills</th>
+            <td class="is-baseline" data-client="Claude Code">Ten, invoked <span class="docs-compare-value">/microscope:analyze-jfr</span></td>
+            <td class="is-primary" data-client="Codex">The same ten, invoked <span class="docs-compare-value">$analyze-jfr</span></td>
           </tr>
           <tr>
-            <td>Tool prefix</td>
-            <td><code>mcp__plugin_microscope_jeffrey__</code></td>
-            <td><code>mcp__jeffrey__</code></td>
+            <th scope="row">Endpoint</th>
+            <td class="is-baseline" data-client="Claude Code">A per-machine setting</td>
+            <td class="is-primary" data-client="Codex">Fixed at <span class="docs-compare-value">localhost:8585</span>; anything else is a <span class="docs-compare-value">config.toml</span> block</td>
           </tr>
-        </tbody>
-      </table>
+          <tr>
+            <th scope="row">Agents</th>
+            <td class="is-baseline" data-client="Claude Code">All three, shipped and tool-restricted</td>
+            <td class="is-primary" data-client="Codex">The same three, copied by hand and restricted by instruction</td>
+          </tr>
+          <tr>
+            <th scope="row">Tool prefix</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">mcp__plugin_microscope_jeffrey__</span></td>
+            <td class="is-primary" data-client="Codex"><span class="docs-compare-value">mcp__jeffrey__</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
 
       <p>The two that bite are the endpoint and the agent. Neither has a workaround inside the plugin: they are the price of a format that six vendors agreed on, and both are one file away from being solved by hand.</p>
     </div>
