@@ -106,7 +106,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p><strong>A startup check</strong>, which says so when Jeffrey is not answering rather than letting the first tool call find out. <a href="#the-startup-check">Below.</a></p>
 
-      <p><strong>Nine skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
+      <p><strong>Ten skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
       <ul>
         <li><code>/microscope:analyze-jfr</code> &mdash; where to start and which family answers which question</li>
         <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-four heap tools have to be run in</li>
@@ -117,6 +117,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
         <li><code>/microscope:advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
         <li><code>/microscope:jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
         <li><code>/microscope:heap-sql</code> &mdash; the heap-dump index schema</li>
+        <li><code>/microscope:report</code> &mdash; the evidence discipline the other nine write to: what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, and how the questions a recording cannot answer are reported apart from the findings</li>
       </ul>
 
       <p>The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists.</p>

@@ -139,6 +139,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
         <li><code>$advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
         <li><code>$jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
         <li><code>$heap-sql</code> &mdash; the heap-dump index schema</li>
+        <li><code>$report</code> &mdash; the evidence discipline the other nine write to: what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, and how the questions a recording cannot answer are reported apart from the findings</li>
       </ul>
 
       <p>They are the same files Claude Code loads &mdash; both clients read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the skill directory is shared rather than duplicated. The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists. <code>/skills</code> lists what the session actually loaded.</p>
