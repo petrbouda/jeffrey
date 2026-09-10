@@ -248,44 +248,44 @@ const update = `gemini extensions update microscope`;
           <thead>
             <tr>
               <th scope="col">Difference</th>
-              <th scope="col" class="is-primary-client">
-                <span class="docs-compare-client is-primary-client">Claude Code</span>
+              <th scope="col" class="is-baseline">
+                <span class="docs-compare-client is-baseline">Claude Code</span>
               </th>
-              <th scope="col" class="is-secondary-client">
-                <span class="docs-compare-client is-secondary-client">Gemini CLI</span>
+              <th scope="col" class="is-primary">
+                <span class="docs-compare-client is-primary">Gemini CLI</span>
               </th>
             </tr>
           </thead>
           <tbody>
           <tr>
             <th scope="row">Manifest</th>
-            <td class="is-primary-client" data-client="Claude Code"><span class="docs-compare-value">.claude-plugin/plugin.json</span></td>
-            <td class="is-secondary-client" data-client="Gemini CLI"><span class="docs-compare-value">gemini-extension.json</span></td>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">.claude-plugin/plugin.json</span></td>
+            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">gemini-extension.json</span></td>
           </tr>
           <tr>
             <th scope="row">Install</th>
-            <td class="is-primary-client" data-client="Claude Code"><span class="docs-compare-value">/plugin install microscope@jeffrey</span></td>
-            <td class="is-secondary-client" data-client="Gemini CLI"><span class="docs-compare-value">gemini extensions install &lt;path&gt;</span></td>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">/plugin install microscope@jeffrey</span></td>
+            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">gemini extensions install &lt;path&gt;</span></td>
           </tr>
           <tr>
             <th scope="row">Endpoint</th>
-            <td class="is-primary-client" data-client="Claude Code">A per-machine setting</td>
-            <td class="is-secondary-client" data-client="Gemini CLI">A setting too, asked at install or read from the environment</td>
+            <td class="is-baseline" data-client="Claude Code">A per-machine setting</td>
+            <td class="is-primary" data-client="Gemini CLI">A setting too, asked at install or read from the environment</td>
           </tr>
           <tr>
             <th scope="row">Tool prefix</th>
-            <td class="is-primary-client" data-client="Claude Code"><span class="docs-compare-value">mcp__plugin_microscope_jeffrey__</span></td>
-            <td class="is-secondary-client" data-client="Gemini CLI"><span class="docs-compare-value">mcp_jeffrey_</span></td>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">mcp__plugin_microscope_jeffrey__</span></td>
+            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">mcp_jeffrey_</span></td>
           </tr>
           <tr>
             <th scope="row">Agents</th>
-            <td class="is-primary-client" data-client="Claude Code">All three, from the plugin</td>
-            <td class="is-secondary-client" data-client="Gemini CLI">Two, copied by hand &mdash; no subagent may dispatch another</td>
+            <td class="is-baseline" data-client="Claude Code">All three, from the plugin</td>
+            <td class="is-primary" data-client="Gemini CLI">Two, copied by hand &mdash; no subagent may dispatch another</td>
           </tr>
           <tr>
             <th scope="row">Read-only agents</th>
-            <td class="is-primary-client" data-client="Claude Code">Enforced by a deny-list</td>
-            <td class="is-secondary-client" data-client="Gemini CLI">Instructed, or enforced with <span class="docs-compare-value">excludeTools</span></td>
+            <td class="is-baseline" data-client="Claude Code">Enforced by a deny-list</td>
+            <td class="is-primary" data-client="Gemini CLI">Instructed, or enforced with <span class="docs-compare-value">excludeTools</span></td>
           </tr>
           </tbody>
         </table>

@@ -203,47 +203,53 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <h2 id="what-differs-from-claude-code">What Differs from Claude Code</h2>
       <p>The tools and the skills are identical. Everything below is a property of the plugin formats, not of Jeffrey.</p>
 
-      <table>
-        <thead>
+      <div class="docs-compare-wrap">
+        <table class="docs-compare">
+          <thead>
+            <tr>
+              <th scope="col">Difference</th>
+              <th scope="col" class="is-baseline">
+                <span class="docs-compare-client is-baseline">Claude Code</span>
+              </th>
+              <th scope="col" class="is-primary">
+                <span class="docs-compare-client is-primary">Codex</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
           <tr>
-            <th></th>
-            <th>Claude Code</th>
-            <th>Codex</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Manifest</td>
-            <td><code>.claude-plugin/plugin.json</code></td>
-            <td>Agent Plugins <code>plugin.json</code> + <code>mcp.json</code></td>
-          </tr>
-          <tr>
-            <td>Install</td>
-            <td><code>/plugin install microscope@jeffrey</code></td>
-            <td><code>codex plugin marketplace add</code>, then <code>/plugins</code></td>
-          </tr>
-          <tr>
-            <td>Skills</td>
-            <td>Seven, invoked <code>/microscope:analyze-jfr</code></td>
-            <td>The same seven, invoked <code>$analyze-jfr</code></td>
+            <th scope="row">Manifest</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">.claude-plugin/plugin.json</span></td>
+            <td class="is-primary" data-client="Codex">Agent Plugins <span class="docs-compare-value">plugin.json</span> + <span class="docs-compare-value">mcp.json</span></td>
           </tr>
           <tr>
-            <td>Endpoint</td>
-            <td>A per-machine setting</td>
-            <td>Fixed at <code>localhost:8585</code>; anything else is a <code>config.toml</code> block</td>
+            <th scope="row">Install</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">/plugin install microscope@jeffrey</span></td>
+            <td class="is-primary" data-client="Codex"><span class="docs-compare-value">codex plugin marketplace add</span>, then <span class="docs-compare-value">/plugins</span></td>
           </tr>
           <tr>
-            <td>Analyst agent</td>
-            <td>Shipped, tool-restricted</td>
-            <td>Copied by hand, restricted by instruction</td>
+            <th scope="row">Skills</th>
+            <td class="is-baseline" data-client="Claude Code">Ten, invoked <span class="docs-compare-value">/microscope:analyze-jfr</span></td>
+            <td class="is-primary" data-client="Codex">The same ten, invoked <span class="docs-compare-value">$analyze-jfr</span></td>
           </tr>
           <tr>
-            <td>Tool prefix</td>
-            <td><code>mcp__plugin_microscope_jeffrey__</code></td>
-            <td><code>mcp__jeffrey__</code></td>
+            <th scope="row">Endpoint</th>
+            <td class="is-baseline" data-client="Claude Code">A per-machine setting</td>
+            <td class="is-primary" data-client="Codex">Fixed at <span class="docs-compare-value">localhost:8585</span>; anything else is a <span class="docs-compare-value">config.toml</span> block</td>
           </tr>
-        </tbody>
-      </table>
+          <tr>
+            <th scope="row">Agents</th>
+            <td class="is-baseline" data-client="Claude Code">All three, shipped and tool-restricted</td>
+            <td class="is-primary" data-client="Codex">The same three, copied by hand and restricted by instruction</td>
+          </tr>
+          <tr>
+            <th scope="row">Tool prefix</th>
+            <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">mcp__plugin_microscope_jeffrey__</span></td>
+            <td class="is-primary" data-client="Codex"><span class="docs-compare-value">mcp__jeffrey__</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
 
       <p>The two that bite are the endpoint and the agent. Neither has a workaround inside the plugin: they are the price of a format that six vendors agreed on, and both are one file away from being solved by hand.</p>
     </div>

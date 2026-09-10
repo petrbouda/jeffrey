@@ -609,11 +609,16 @@
  * <th scope="row">, so a screen reader still pairs "Tool prefix" with the column it was read
  * under, which a grid of divs would lose.
  *
- * Each column carries an accent under its heading and the second one a faint tint, so the eye can
- * follow one client down the page without counting cells. Below 720px the columns would be three
- * words wide, so the whole thing stacks into labelled pairs instead of scrolling sideways — which
- * is why every cell needs a data-client attribute: it is the column heading, once there is no
- * heading row to read.
+ * The two columns are named for their roles rather than their vendors — is-primary is the client
+ * whose page this is, is-baseline is Claude Code, which the others are described against — so one
+ * scheme serves the Codex page, the Gemini page and whatever comes next. A vendor's own colour
+ * would have to be picked again per page, and would say something about branding that a docs table
+ * has no business saying. The accent under each heading and the tint down the primary column are
+ * what let the eye follow one client without counting cells.
+ *
+ * Below 720px the columns would be three words wide, so the whole thing stacks into labelled pairs
+ * instead of scrolling sideways — which is why every cell needs a data-client attribute: it is the
+ * column heading, once there is no heading row to read.
  */
 .docs-compare-wrap {
   margin: 1.5rem 0;
@@ -673,20 +678,20 @@
 }
 
 /* Inset rather than border-bottom: a border would move the text and double the row's own line. */
-.docs-content .docs-compare thead th.is-primary-client {
-  box-shadow: inset 0 -3px 0 #d97757;
+.docs-content .docs-compare thead th.is-baseline {
+  box-shadow: inset 0 -3px 0 #a9b2c3;
 }
 
-.docs-content .docs-compare thead th.is-secondary-client {
-  box-shadow: inset 0 -3px 0 #1a73e8;
+.docs-content .docs-compare thead th.is-primary {
+  box-shadow: inset 0 -3px 0 #5e64ff;
 }
 
-.docs-compare-client.is-primary-client {
-  color: #b45309;
+.docs-compare-client.is-baseline {
+  color: #6c7689;
 }
 
-.docs-compare-client.is-secondary-client {
-  color: #1a73e8;
+.docs-compare-client.is-primary {
+  color: #4c52db;
 }
 
 .docs-content .docs-compare tbody th {
@@ -702,8 +707,8 @@
   color: #495057;
 }
 
-.docs-content .docs-compare tbody td.is-secondary-client {
-  background: rgba(26, 115, 232, 0.03);
+.docs-content .docs-compare tbody td.is-primary {
+  background: rgba(94, 100, 255, 0.03);
 }
 
 .docs-content .docs-compare tbody tr:last-child th,
@@ -766,12 +771,12 @@
     color: #8a94a6;
   }
 
-  .docs-content .docs-compare tbody td.is-primary-client::before {
-    color: #b45309;
+  .docs-content .docs-compare tbody td.is-baseline::before {
+    color: #6c7689;
   }
 
-  .docs-content .docs-compare tbody td.is-secondary-client::before {
-    color: #1a73e8;
+  .docs-content .docs-compare tbody td.is-primary::before {
+    color: #4c52db;
   }
 
   .docs-content .docs-compare tbody tr {
