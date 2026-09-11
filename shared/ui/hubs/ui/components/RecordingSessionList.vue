@@ -18,6 +18,7 @@ import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
 import {
   buildDisplayEntries,
+  hasUnreportedSizes,
   isFailedSession,
   type FailedSessionGroup
 } from '@hubs/services/sessionGrouping.ts';
@@ -44,6 +45,18 @@ const emit = defineEmits<{
 }>();
 
 const toast = ToastService;
+
+/**
+ * What the "sizes unavailable" badge means, and — as importantly — what it does not: the
+ * recording is intact, only the figures are missing. Carried as a tooltip rather than a
+ * banner because the session is otherwise perfectly usable.
+ */
+const UNREPORTED_SIZES_HINT =
+  'Every file in this session reports zero bytes, after it recorded for long enough to have ' +
+  'produced data. Sizes are read from the hub\'s repository directory, so this usually means ' +
+  'that mount is serving stale file metadata (an object-storage FUSE or an NFS attribute ' +
+  'cache) rather than that the session is empty. The files can still be downloaded.';
+
 const { generateInstanceUrl } = useNavigation();
 
 const repositoryService = computed(
@@ -351,24 +364,21 @@ const toggleGroupSelection = (sessionId: string, panel: TypeGroupPanel) => {
   });
 };
 
+// Downloadability is decided by status and type only, never by a reported size. The size
+// comes from a stat of the hub's repository directory and can be stale — a mount that caches
+// file attributes reports every growing file as zero bytes — while the download reads the
+// file's actual content. Refusing on a zero would block exactly the files this goes wrong on,
+// and an empty download is the honest answer for a file that really is empty.
 const isCheckboxDisabled = (source: RepositoryFile): boolean => {
-  return (
-    source.status === RecordingStatus.ACTIVE ||
-    source.fileType === RecordingFileType.ASPROF ||
-    source.size === 0
-  );
+  return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
 };
 
 const isDownloadAllowed = (file: RepositoryFile): boolean => {
-  return (
-    file.status !== RecordingStatus.ACTIVE &&
-    file.fileType !== RecordingFileType.ASPROF &&
-    file.size > 0
-  );
+  return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
 };
 
 const hasDownloadableRecordings = (session: RecordingSession): boolean => {
-  return session.files.some(f => f.isRecording && f.size > 0);
+  return session.files.some(f => f.isRecording);
 };
 
 const downloadFile = async (sessionId: string, fileId: string) => {
@@ -430,12 +440,6 @@ const downloadSelectedSources = async (sessionId: string) => {
 
     if (selectedSources.length === 0) {
       toast.info('Download', 'No recordings selected');
-      return;
-    }
-
-    const downloadableSources = selectedSources.filter(f => f.size > 0);
-    if (downloadableSources.length === 0) {
-      toast.warn('Download', 'No recording data available — the selected files contain no data.');
       return;
     }
 
@@ -888,6 +892,16 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   <span
                     ><i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources</span
                   >
+                  <Badge
+                    v-if="hasUnreportedSizes(session)"
+                    value="sizes unavailable"
+                    variant="warning"
+                    size="xxs"
+                    icon="bi bi-exclamation-triangle"
+                    :uppercase="false"
+                    :title="UNREPORTED_SIZES_HINT"
+                    class="ms-2"
+                  />
                 </div>
               </div>
             </div>

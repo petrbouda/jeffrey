@@ -156,6 +156,15 @@ class ProjectInstanceSessionCleanerJobTest {
         return session(id, createdAt, createdAt.plusSeconds(5), false);
     }
 
+    /**
+     * A session that recorded for an hour and whose files all report zero bytes — what a
+     * repository mount serving stale file metadata looks like, not a crash.
+     */
+    private static RecordingSession unreportedSizesSession(String id, Instant createdAt) {
+        return session(id, createdAt, createdAt.plus(Duration.ofHours(1)), false,
+                recording(id + "-file", createdAt, 0L));
+    }
+
     /** A still-running session — zero bytes so far, no finish timestamp. */
     private static RecordingSession activeSession(String id, Instant createdAt) {
         return session(id, createdAt, null, false);
@@ -224,6 +233,20 @@ class ProjectInstanceSessionCleanerJobTest {
             execute();
 
             assertEquals(List.of("empty-1", "empty-2", "empty-3"), deletedSessionIds());
+        }
+
+        @Test
+        void aLongSessionWhoseFilesAllReportZeroStillClaimsTheSlot() {
+            // Zero bytes after an hour of recording is far better explained by a repository
+            // mount that never refreshed the sizes than by a crash, and treating it as a
+            // failure would cost this session the protection slot and delete real data.
+            when(storage.listSessions(true)).thenReturn(List.of(
+                    unreportedSizesSession("unreported", NOW.minus(PAST_RETENTION)),
+                    realSession("older-real", NOW.minus(PAST_RETENTION.plusDays(1)))));
+
+            execute();
+
+            assertEquals(List.of("older-real"), deletedSessionIds());
         }
 
         @Test
