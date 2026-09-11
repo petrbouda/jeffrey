@@ -22,13 +22,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.StringJoiner;
 
 /**
  * The built-in answer to {@link HttpExchangeAttributesCustomizer}: records an allow-list of headers.
@@ -42,17 +39,15 @@ import java.util.StringJoiner;
  * handed. An inbound header is the case nothing else covers: it arrives from outside, and the
  * application may never touch it.
  * <p>
+ * A header sent more than once records its <em>first</em> value and nothing else. An attribute is
+ * one scalar — the index drops arrays, and a joined string is a value nobody can search for by
+ * either half — so of the three ways to answer "which one", the first is the one the servlet API
+ * already calls the header's value.
+ * <p>
  * A class rather than a lambda, unlike {@link HttpRequestNaming#servletMapping()}, because it
  * carries the normalized allow-list; it is reachable only through the interface's factory.
  */
 final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomizer {
-
-    /**
-     * Not the array form OpenTelemetry uses for a repeated header: the attribute index drops any
-     * value that is an array, so a list would be recorded and then never found. One joined scalar,
-     * the same way {@link HttpExchangeFilter} joins repeated query parameters.
-     */
-    private static final String HEADER_VALUE_SEPARATOR = ",";
 
     private final List<String> names;
 
@@ -65,28 +60,10 @@ final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomiz
             HttpExchangeAttributes attributes, HttpServletRequest request, HttpServletResponse response) {
 
         for (String name : names) {
-            put(attributes, name, valuesOf(request, name));
+            // getHeader is the servlet API's own "first value"; an absent header answers null,
+            // which the sink skips.
+            attributes.put(name, request.getHeader(name));
         }
-    }
-
-    private static void put(HttpExchangeAttributes attributes, String key, Collection<String> values) {
-        if (values.isEmpty()) {
-            return;
-        }
-
-        StringJoiner joined = new StringJoiner(HEADER_VALUE_SEPARATOR);
-        for (String value : values) {
-            joined.add(value);
-        }
-        attributes.put(key, joined.toString());
-    }
-
-    private static Collection<String> valuesOf(HttpServletRequest request, String name) {
-        Enumeration<String> values = request.getHeaders(name);
-        if (values == null) {
-            return List.of();
-        }
-        return Collections.list(values);
     }
 
     /**

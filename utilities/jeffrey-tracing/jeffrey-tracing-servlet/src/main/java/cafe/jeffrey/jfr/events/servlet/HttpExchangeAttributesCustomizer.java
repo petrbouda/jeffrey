@@ -57,8 +57,9 @@ public interface HttpExchangeAttributesCustomizer {
     /**
      * Records the named request headers, each under the header's own name, lower-cased.
      * <p>
-     * Names are matched case-insensitively and a header carrying several values is recorded as one
-     * comma-joined value, since the attribute index stores scalars and would drop a list.
+     * Names are matched case-insensitively, and a header sent more than once records its first
+     * value and nothing else — an attribute is one scalar, and the attribute index would drop a
+     * list.
      * <p>
      * An allow-list rather than a deny-list, and empty by default, because a recording is a file
      * that gets uploaded, shared and kept: a header is recorded because somebody named it, never

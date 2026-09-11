@@ -25,8 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,13 +62,13 @@ class HeaderAttributesCustomizerTest {
     }
 
     @Test
-    @DisplayName("a header sent twice is one comma-joined value, never a list")
-    void repeatedHeaderIsJoined() {
+    @DisplayName("a header sent twice records its first value and nothing else")
+    void repeatedHeaderKeepsTheFirstValue() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-forwarded-for")),
                 Map.of("x-forwarded-for", List.of("10.0.0.1", "10.0.0.2")));
 
-        assertEquals("{\"x-forwarded-for\":\"10.0.0.1,10.0.0.2\"}", attributes.json());
+        assertEquals("{\"x-forwarded-for\":\"10.0.0.1\"}", attributes.json());
     }
 
     @Test
@@ -134,17 +132,22 @@ class HeaderAttributesCustomizerTest {
      */
     private static HttpServletRequest request(Map<String, List<String>> headers) {
         HttpServletRequest request = mock(HttpServletRequest.class);
-        Answer<Object> lookup = invocation ->
-                Collections.enumeration(valuesOf(headers, invocation.getArgument(0)));
-        when(request.getHeaders(anyString())).thenAnswer(lookup);
+        Answer<Object> lookup = invocation -> firstValueOf(headers, invocation.getArgument(0));
+        when(request.getHeader(anyString())).thenAnswer(lookup);
         return request;
     }
 
-    private static Collection<String> valuesOf(Map<String, List<String>> headers, String name) {
+    /**
+     * What a container answers from {@code getHeader}: the first value of the first header with
+     * that name, matched case-insensitively, or {@code null} when it was not sent.
+     */
+    private static String firstValueOf(Map<String, List<String>> headers, String name) {
         return headers.entrySet().stream()
                 .filter(header -> header.getKey().equalsIgnoreCase(name))
                 .map(Map.Entry::getValue)
+                .filter(values -> !values.isEmpty())
+                .map(List::getFirst)
                 .findFirst()
-                .orElse(List.of());
+                .orElse(null);
     }
 }
