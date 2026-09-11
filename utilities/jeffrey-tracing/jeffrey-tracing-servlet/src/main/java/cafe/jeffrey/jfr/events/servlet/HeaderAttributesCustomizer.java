@@ -78,8 +78,6 @@ final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomiz
         for (String value : values) {
             joined.add(value);
         }
-        // Truncation happens inside put(), i.e. after joining, so the limit bounds what is recorded
-        // rather than each part of it.
         attributes.put(key, joined.toString());
     }
 

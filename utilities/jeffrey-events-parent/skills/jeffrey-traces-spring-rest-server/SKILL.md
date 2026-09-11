@@ -96,7 +96,6 @@ requests for this tenant". A captured header is recorded under its own name, low
 | Values must be flat scalars | the attribute flattener drops objects and arrays, so a repeated header is comma-joined rather than recorded as a list |
 | Values must be low-cardinality | past a couple of hundred distinct values a key stops being a browsable facet and becomes search-only, and every distinct value enters the recording's constant pool — capture what you *group by*, never an id unique per request |
 | Never capture a credential | `Authorization` and `Cookie` do not belong in a file that gets uploaded, shared and kept; nothing refuses them for you, so the allow-list is the whole of the decision |
-| Values longer than 256 characters are truncated with a `…` | one oversized header must not bloat every event in a recording |
 | Only request headers have a property | a response header is one your own server set, so a two-line customizer reads it off the response; an inbound header may be touched by no application code at all |
 
 ## 2. Plain Spring, or Boot without auto-configuration: `@Import`

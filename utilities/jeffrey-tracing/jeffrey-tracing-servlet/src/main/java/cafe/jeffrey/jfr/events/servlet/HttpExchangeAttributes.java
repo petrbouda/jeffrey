@@ -40,11 +40,11 @@ import java.util.Set;
 public final class HttpExchangeAttributes {
 
     /**
-     * Longest value recorded before it is truncated and marked, the same limit {@code @Traced}
-     * argument capture and MyBatis parameter capture apply. One oversized header must not bloat
-     * every event in a recording.
+     * A value is recorded as it was given. {@link AttributeValues} takes a length because its other
+     * callers cap theirs; an attribute exists to be matched, and a silently shortened value is one
+     * an equality search could never find again.
      */
-    private static final int MAX_VALUE_LENGTH = 256;
+    private static final int NO_TRUNCATION = Integer.MAX_VALUE;
 
     private static final char KEY_QUOTE = '"';
 
@@ -67,7 +67,8 @@ public final class HttpExchangeAttributes {
      * would become two rows in the index and two entries in a facet count.
      *
      * @param key   the attribute's name; dots are welcome and read well, quotes are not allowed
-     * @param value a scalar — text, a number or a boolean; anything else is recorded as its text
+     * @param value a scalar — text, a number or a boolean; anything else is recorded as its text,
+     *              whole and untruncated
      * @return this, so contributions chain
      * @throws IllegalArgumentException when the key is missing, blank, or contains a quote
      */
@@ -80,14 +81,14 @@ public final class HttpExchangeAttributes {
                     "an attribute key must not contain a quote, because Jeffrey's attribute index "
                             + "cannot address such a key and would drop it silently: key=" + key);
         }
-        if (value == null || AttributeValues.text(value, MAX_VALUE_LENGTH).isBlank()) {
+        if (value == null || AttributeValues.text(value, NO_TRUNCATION).isBlank()) {
             return this;
         }
         if (!keys.add(key)) {
             return this;
         }
 
-        AttributeValues.put(attributes, key, value, MAX_VALUE_LENGTH);
+        AttributeValues.put(attributes, key, value, NO_TRUNCATION);
         return this;
     }
 

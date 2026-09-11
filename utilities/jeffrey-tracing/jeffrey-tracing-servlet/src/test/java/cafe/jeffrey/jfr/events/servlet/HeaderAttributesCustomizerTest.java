@@ -43,8 +43,6 @@ import static org.mockito.Mockito.when;
  */
 class HeaderAttributesCustomizerTest {
 
-    private static final int MAX_VALUE_LENGTH = 256;
-
     @Test
     @DisplayName("a configured header is recorded under its lower-cased name")
     void configuredHeaderIsRecorded() {
@@ -93,17 +91,6 @@ class HeaderAttributesCustomizerTest {
                 Map.of("x-tenant-id", List.of("")));
 
         assertTrue(attributes.isEmpty());
-    }
-
-    @Test
-    @DisplayName("the limit bounds the joined value, not each part of it")
-    void oversizedHeaderIsTruncated() {
-        HttpExchangeAttributes attributes = capture(
-                HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-blob")),
-                Map.of("x-blob", List.of("x".repeat(200), "y".repeat(200))));
-
-        assertTrue(attributes.json().contains("…"), attributes.json());
-        assertEquals(MAX_VALUE_LENGTH + 1, valueOf(attributes.json()).length());
     }
 
     @Test
@@ -159,10 +146,5 @@ class HeaderAttributesCustomizerTest {
                 .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse(List.of());
-    }
-
-    private static String valueOf(String json) {
-        int start = json.indexOf(':') + 2;
-        return json.substring(start, json.length() - 2);
     }
 }

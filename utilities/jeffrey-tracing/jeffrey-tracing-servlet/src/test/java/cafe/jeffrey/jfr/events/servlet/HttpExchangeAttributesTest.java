@@ -34,8 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class HttpExchangeAttributesTest {
 
-    private static final int MAX_VALUE_LENGTH = 256;
-
     @Nested
     @DisplayName("What is recorded")
     class Recording {
@@ -62,13 +60,13 @@ class HttpExchangeAttributesTest {
         }
 
         @Test
-        @DisplayName("an oversized value is truncated and marked")
-        void longValuesAreTruncated() {
-            String value = "x".repeat(MAX_VALUE_LENGTH + 100);
+        @DisplayName("a long value is recorded whole, because a shortened one could never be matched")
+        void longValuesAreRecordedWhole() {
+            String value = "x".repeat(1000);
 
             HttpExchangeAttributes attributes = new HttpExchangeAttributes().put("blob", value);
 
-            assertEquals("{\"blob\":\"" + "x".repeat(MAX_VALUE_LENGTH) + "…\"}", attributes.json());
+            assertEquals("{\"blob\":\"" + value + "\"}", attributes.json());
         }
     }
 
