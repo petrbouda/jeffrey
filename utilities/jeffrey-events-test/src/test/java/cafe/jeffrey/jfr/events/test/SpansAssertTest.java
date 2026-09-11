@@ -245,11 +245,11 @@ class SpansAssertTest {
         void attributesAreAssertable() throws IOException {
             List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> emit(
                     1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null,
-                    "{\"http.request.header.x-tenant-id\":\"acme\",\"retries\":2,\"cached\":true}"));
+                    "{\"x-tenant-id\":\"acme\",\"retries\":2,\"cached\":true}"));
 
             SpansAssert.assertThat(events)
                     .hasSpan("checkout")
-                    .hasAttribute("http.request.header.x-tenant-id", "acme")
+                    .hasAttribute("x-tenant-id", "acme")
                     .hasAttribute("retries", "2")
                     .hasAttribute("cached", "true");
         }

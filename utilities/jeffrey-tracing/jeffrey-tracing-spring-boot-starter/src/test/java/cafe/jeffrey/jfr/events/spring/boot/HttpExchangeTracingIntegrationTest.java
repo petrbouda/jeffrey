@@ -96,7 +96,6 @@ class HttpExchangeTracingIntegrationTest {
     private static final String ASYNC_SUFFIX = "/async";
     private static final String TENANT_ASYNC_ENDPOINT = TENANT_ENDPOINT + ASYNC_SUFFIX;
     private static final String TENANT_HEADER = "x-tenant-id";
-    private static final String TENANT_HEADER_KEY = "http.request.header." + TENANT_HEADER;
     private static final String PLAN_ATTRIBUTE = "tenant.plan";
     private static final String TENANT = "acme";
     private static final String PLAN = "enterprise";
@@ -458,7 +457,7 @@ class HttpExchangeTracingIntegrationTest {
                 .hasSpan("GET " + TENANT_ENDPOINT)
                 .isRoot()
                 // From jeffrey.tracing.http.capture-request-headers, through the built-in customizer.
-                .hasAttribute(TENANT_HEADER_KEY, TENANT)
+                .hasAttribute(TENANT_HEADER, TENANT)
                 // From the application's own customizer - and the broken one in between changed
                 // nothing, which is the whole contract.
                 .hasAttribute(PLAN_ATTRIBUTE, PLAN)
@@ -474,7 +473,7 @@ class HttpExchangeTracingIntegrationTest {
         SpansAssert.assertThat(events)
                 .hasSpan("GET " + TENANT_ASYNC_ENDPOINT)
                 .isRoot()
-                .hasAttribute(TENANT_HEADER_KEY, TENANT)
+                .hasAttribute(TENANT_HEADER, TENANT)
                 .hasAttribute(PLAN_ATTRIBUTE, PLAN);
     }
 

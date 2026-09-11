@@ -35,21 +35,20 @@ import java.util.StringJoiner;
 /**
  * The built-in answer to {@link HttpExchangeAttributesCustomizer}: records an allow-list of headers.
  * <p>
+ * The attribute key <em>is</em> the header name, as the allow-list normalized it — trimmed and
+ * lower-cased — so {@code x-tenant-id} is what is configured, what the client sends and what a
+ * search asks for, with nothing in between to remember.
+ * <p>
+ * Request and response headers therefore share one namespace. A name configured on both sides is
+ * one key rather than two, and since the request half is written first and
+ * {@link HttpExchangeAttributes} keeps the first write, the request's value is the one recorded.
+ * <p>
  * A class rather than a lambda, unlike {@link HttpRequestNaming#servletMapping()}, because it
  * carries the normalized allow-lists; it is reachable only through the interface's factories.
  */
 final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomizer {
 
     private static final Logger LOG = System.getLogger(HeaderAttributesCustomizer.class.getName());
-
-    /**
-     * The key namespace, which is OpenTelemetry's, so a reader meeting
-     * {@code http.request.header.x-tenant-id} in a key list needs no legend. Dotted keys are safe:
-     * Jeffrey's attribute index addresses a key by a quoted JSON path precisely so that keys with
-     * dots survive.
-     */
-    private static final String REQUEST_HEADER_PREFIX = "http.request.header.";
-    private static final String RESPONSE_HEADER_PREFIX = "http.response.header.";
 
     /**
      * Not the array form OpenTelemetry uses for a repeated header: the attribute index drops any
@@ -79,11 +78,11 @@ final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomiz
             HttpExchangeAttributes attributes, HttpServletRequest request, HttpServletResponse response) {
 
         for (String name : requestNames) {
-            put(attributes, REQUEST_HEADER_PREFIX + name, requestValues(request, name));
+            put(attributes, name, requestValues(request, name));
         }
         for (String name : responseNames) {
             Collection<String> values = response.getHeaders(name);
-            put(attributes, RESPONSE_HEADER_PREFIX + name, values == null ? List.of() : values);
+            put(attributes, name, values == null ? List.of() : values);
         }
     }
 

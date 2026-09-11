@@ -56,7 +56,7 @@ public interface HttpExchangeAttributesCustomizer {
     void customize(HttpExchangeAttributes attributes, HttpServletRequest request, HttpServletResponse response);
 
     /**
-     * Records the named request headers, as {@code http.request.header.<lower-cased name>}.
+     * Records the named request headers, each under the header's own name, lower-cased.
      * <p>
      * Names are matched case-insensitively and a header carrying several values is recorded as one
      * comma-joined value, since the attribute index stores scalars and would drop a list.
@@ -72,7 +72,10 @@ public interface HttpExchangeAttributesCustomizer {
     }
 
     /**
-     * Records the named response headers, as {@code http.response.header.<lower-cased name>}.
+     * Records the named response headers, each under the header's own name, lower-cased.
+     * <p>
+     * The same namespace the request half uses: a name recorded from both sides of the exchange is
+     * one key, and the request's value is the one kept.
      *
      * @see #requestHeaders(Collection)
      */

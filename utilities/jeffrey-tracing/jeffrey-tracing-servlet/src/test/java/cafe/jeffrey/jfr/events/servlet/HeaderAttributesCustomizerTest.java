@@ -53,7 +53,7 @@ class HeaderAttributesCustomizerTest {
                 Map.of("x-tenant-id", List.of("acme")),
                 Map.of());
 
-        assertEquals("{\"http.request.header.x-tenant-id\":\"acme\"}", attributes.json());
+        assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
     }
 
     @Test
@@ -64,7 +64,7 @@ class HeaderAttributesCustomizerTest {
                 Map.of("X-TENANT-ID", List.of("acme")),
                 Map.of());
 
-        assertEquals("{\"http.request.header.x-tenant-id\":\"acme\"}", attributes.json());
+        assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
     }
 
     @Test
@@ -75,7 +75,7 @@ class HeaderAttributesCustomizerTest {
                 Map.of("x-forwarded-for", List.of("10.0.0.1", "10.0.0.2")),
                 Map.of());
 
-        assertEquals("{\"http.request.header.x-forwarded-for\":\"10.0.0.1,10.0.0.2\"}", attributes.json());
+        assertEquals("{\"x-forwarded-for\":\"10.0.0.1,10.0.0.2\"}", attributes.json());
     }
 
     @Test
@@ -120,7 +120,7 @@ class HeaderAttributesCustomizerTest {
                 Map.of(),
                 Map.of("x-api-version", List.of("2")));
 
-        assertEquals("{\"http.response.header.x-api-version\":\"2\"}", attributes.json());
+        assertEquals("{\"x-api-version\":\"2\"}", attributes.json());
     }
 
     @Test
@@ -132,8 +132,19 @@ class HeaderAttributesCustomizerTest {
                 Map.of("x-api-version", List.of("2")));
 
         assertEquals(
-                "{\"http.request.header.x-tenant-id\":\"acme\",\"http.response.header.x-api-version\":\"2\"}",
+                "{\"x-tenant-id\":\"acme\",\"x-api-version\":\"2\"}",
                 attributes.json());
+    }
+
+    @Test
+    @DisplayName("a name given on both sides is one key, and the request's value is kept")
+    void requestAndResponseShareOneNamespace() {
+        HttpExchangeAttributes attributes = capture(
+                HttpExchangeAttributesCustomizer.headers(List.of("x-request-id"), List.of("x-request-id")),
+                Map.of("x-request-id", List.of("from-client")),
+                Map.of("x-request-id", List.of("echoed-back")));
+
+        assertEquals("{\"x-request-id\":\"from-client\"}", attributes.json());
     }
 
     @Test
@@ -144,7 +155,7 @@ class HeaderAttributesCustomizerTest {
                 Map.of("x-tenant-id", List.of("acme")),
                 Map.of());
 
-        assertEquals("{\"http.request.header.x-tenant-id\":\"acme\"}", attributes.json());
+        assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
     }
 
     @Test
@@ -158,7 +169,7 @@ class HeaderAttributesCustomizerTest {
                     Map.of("x-tenant-id", List.of("acme")),
                     Map.of());
 
-            assertEquals("{\"http.request.header.x-tenant-id\":\"acme\"}", attributes.json());
+            assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
         } finally {
             Locale.setDefault(original);
         }

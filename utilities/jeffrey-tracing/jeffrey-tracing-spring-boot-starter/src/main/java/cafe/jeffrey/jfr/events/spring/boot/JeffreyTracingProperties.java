@@ -106,10 +106,11 @@ public record JeffreyTracingProperties(
      * browsable facet, while an identifier unique to each request does not, and every distinct
      * value enters the recording's constant pool.
      *
-     * @param captureRequestHeaders  request headers to record, as
-     *                               {@code http.request.header.<lower-cased name>}
-     * @param captureResponseHeaders response headers to record, as
-     *                               {@code http.response.header.<lower-cased name>}
+     * @param captureRequestHeaders  request headers to record, each under the header's own name,
+     *                               lower-cased
+     * @param captureResponseHeaders response headers to record, likewise — the same namespace, so a
+     *                               name given on both sides is one key and the request's value is
+     *                               the one kept
      */
     public record Http(
             List<String> captureRequestHeaders,

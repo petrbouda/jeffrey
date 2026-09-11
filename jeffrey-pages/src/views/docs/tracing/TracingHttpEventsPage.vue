@@ -74,12 +74,12 @@ new HttpExchangeFilter(
 const attributesOutput = `jeffrey.HttpServerExchange {
   name = "GET /api/orders/{id}"
   ...
-  attributes = {"http.request.header.x-tenant-id":"acme","tenant.plan":"enterprise"}
+  attributes = {"x-tenant-id":"acme","tenant.plan":"enterprise"}
 }
 
 // In Jeffrey: Traces -> Attributes, one row per key, filterable and rankable.
-//   http.request.header.x-tenant-id   ATTRIBUTE   3 values
-//   tenant.plan                       ATTRIBUTE   2 values`;
+//   x-tenant-id   ATTRIBUTE   3 values
+//   tenant.plan   ATTRIBUTE   2 values`;
 const manualFilter = `public class JeffreyJfrHttpEventFilter implements Filter {
 
     // The one thing the container cannot answer — see "Naming" above.
@@ -245,6 +245,8 @@ const clientSpans = [
       <p>The fields above are what HTTP itself can say. <em>Which tenant was this</em>, <em>which API version</em>, <em>which client</em> is domain knowledge the servlet layer has no way to name — so it is asked for in the same way naming is, from a <code>HttpExchangeAttributesCustomizer</code>. The built-in answer records an allow-list of headers:</p>
 
       <DocsCodeBlock :code="headerCapture" language="properties" />
+
+      <p>A header is recorded under its own name, lower-cased — <code>x-tenant-id</code> is what you configure, what the client sends and what you search for. Request and response share that one namespace, so a name given on both sides is a single key and the request's value is the one kept.</p>
 
       <p>Anything else is a lambda:</p>
 

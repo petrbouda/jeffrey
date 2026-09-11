@@ -89,8 +89,8 @@ rather than an implementation detail: Jeffrey indexes that map **one key at a ti
 filterable, facetable and rankable in Traces → Attributes and reachable through
 `traces_attributeSearch`. A declared event field would be one opaque value instead — which is what
 `queryParams` is, and why it answers "what did this request carry" but never "show me the slow
-requests for this tenant". Recorded under `http.request.header.<lower-cased name>` /
-`http.response.header.<lower-cased name>`.
+requests for this tenant". A captured header is recorded under its own name, lower-cased —
+`x-tenant-id`, not a prefixed variant of it.
 
 | Rule | Why |
 |---|---|
@@ -98,6 +98,7 @@ requests for this tenant". Recorded under `http.request.header.<lower-cased name
 | Values must be low-cardinality | past a couple of hundred distinct values a key stops being a browsable facet and becomes search-only, and every distinct value enters the recording's constant pool — capture what you *group by*, never an id unique per request |
 | Never capture a credential | `Authorization` and `Cookie` do not belong in a file that gets shared; the allow-list is named by you, and naming one of those is warned about at startup |
 | Values longer than 256 characters are truncated with a `…` | one oversized header must not bloat every event in a recording |
+| Request and response headers share one namespace | the key is the header's own name, so a name configured on both sides is one key — the request half is written first and wins |
 
 ## 2. Plain Spring, or Boot without auto-configuration: `@Import`
 
