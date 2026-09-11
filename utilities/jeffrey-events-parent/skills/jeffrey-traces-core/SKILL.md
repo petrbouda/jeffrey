@@ -171,6 +171,14 @@ Field notes:
   The recording and the profile database contain the values verbatim — scrub
   anything sensitive.
 
+  These keys are the ones Jeffrey indexes **one at a time**, so each becomes
+  filterable and facetable in Traces → Attributes and reachable through
+  `traces_attributeSearch`, where a declared event field is one opaque value.
+  Values must therefore be flat scalars: the flattener drops objects and
+  arrays. An inbound HTTP exchange fills this field from
+  `HttpExchangeAttributesCustomizer` beans rather than by hand — see the
+  `jeffrey-traces-spring-rest-server` skill.
+
 There are also connection-pool events (`jeffrey.JdbcPoolStatistics`,
 `jeffrey.PooledJdbcConnectionAcquired/Borrowed/Created`,
 `jeffrey.AcquiringPooledJdbcConnectionTimeout`) that feed the pool dashboard.

@@ -73,6 +73,9 @@ class SpansAssertTest {
 
         @Label("Error Type")
         public String errorType;
+
+        @Label("Attributes")
+        public String attributes;
     }
 
     /** Declares no {@code spanId}, so it must never be mistaken for a span. */
@@ -233,6 +236,73 @@ class SpansAssertTest {
         }
     }
 
+    @Nested
+    @DisplayName("Asserting what an operation attached to itself")
+    class Attributes {
+
+        @Test
+        @DisplayName("a recorded key is assertable by name")
+        void attributesAreAssertable() throws IOException {
+            List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> emit(
+                    1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null,
+                    "{\"http.request.header.x-tenant-id\":\"acme\",\"retries\":2,\"cached\":true}"));
+
+            SpansAssert.assertThat(events)
+                    .hasSpan("checkout")
+                    .hasAttribute("http.request.header.x-tenant-id", "acme")
+                    .hasAttribute("retries", "2")
+                    .hasAttribute("cached", "true");
+        }
+
+        @Test
+        @DisplayName("a key that was never recorded fails, naming the keys that were")
+        void missingKeyListsWhatIsThere() throws IOException {
+            List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> emit(
+                    1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null, "{\"tenant\":\"acme\"}"));
+
+            AssertionError error = assertThrows(AssertionError.class, () ->
+                    SpansAssert.assertThat(events).hasSpan("checkout").hasAttribute("customer", "acme"));
+
+            assertTrue(error.getMessage().contains("customer"), error.getMessage());
+            assertTrue(error.getMessage().contains("tenant"), error.getMessage());
+        }
+
+        @Test
+        @DisplayName("a key recorded with a different value fails")
+        void wrongValueFails() throws IOException {
+            List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> emit(
+                    1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null, "{\"tenant\":\"acme\"}"));
+
+            AssertionError error = assertThrows(AssertionError.class, () ->
+                    SpansAssert.assertThat(events).hasSpan("checkout").hasAttribute("tenant", "globex"));
+
+            assertTrue(error.getMessage().contains("globex"), error.getMessage());
+        }
+
+        @Test
+        @DisplayName("escapes survive the round trip")
+        void escapesRoundTrip() throws IOException {
+            List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> emit(
+                    1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null,
+                    "{\"sql\":\"SELECT \\\"name\\\"\\n\"}"));
+
+            SpansAssert.assertThat(events).hasSpan("checkout").hasAttribute("sql", "SELECT \"name\"\n");
+        }
+
+        @Test
+        @DisplayName("an absent field is no attributes; an empty object is not")
+        void absentIsNotEmpty() throws IOException {
+            List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> {
+                emit(1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null, null);
+                emit(2, 20, 0, "browse", SERVER_KIND, UNSET_STATUS, null, "{}");
+            });
+
+            SpansAssert.assertThat(events).hasSpan("checkout").hasNoAttributes();
+            assertThrows(AssertionError.class, () ->
+                    SpansAssert.assertThat(events).hasSpan("browse").hasNoAttributes());
+        }
+    }
+
     private static List<RecordedEvent> recordRequestWithStatement() throws IOException {
         return JfrRecordings.all(SpanEvent.NAME, () -> {
             emit(1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null);
@@ -244,6 +314,13 @@ class SpansAssertTest {
             long traceId, long spanId, long parentSpanId,
             String name, String kind, String status, String errorType) {
 
+        emit(traceId, spanId, parentSpanId, name, kind, status, errorType, null);
+    }
+
+    private static void emit(
+            long traceId, long spanId, long parentSpanId,
+            String name, String kind, String status, String errorType, String attributes) {
+
         SpanEvent event = new SpanEvent();
         event.begin();
         event.end();
@@ -254,6 +331,7 @@ class SpansAssertTest {
         event.kind = kind;
         event.status = status;
         event.errorType = errorType;
+        event.attributes = attributes;
         event.commit();
     }
 }

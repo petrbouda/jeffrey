@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jfr.events.spring;
 
+import cafe.jeffrey.jfr.events.servlet.HttpExchangeAttributesCustomizer;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeFilter;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeSettings;
 import cafe.jeffrey.jfr.events.servlet.HttpRequestNaming;
@@ -74,11 +75,24 @@ public class JeffreyTracingConfiguration {
      * bean defined here would already be registered by the time the starter's
      * {@code @ConditionalOnMissingBean} was evaluated - and the bean bound from
      * {@code jeffrey.tracing.*} would silently lose to it.
+     * <p>
+     * Every {@link HttpExchangeAttributesCustomizer} bean is collected, not just one: they compose,
+     * which is the point of the extension point. {@code orderedStream()} applies them in
+     * {@code @Order} order, an unannotated bean being {@code LOWEST_PRECEDENCE} and keeping
+     * registration order among its peers. Order matters only where two customizers write the same
+     * key - the first one to write it wins - so give each customizer keys of its own and the order
+     * stops mattering at all.
      */
     @Bean
     public HttpExchangeFilter jeffreyHttpExchangeFilter(
-            HttpRequestNaming naming, ObjectProvider<HttpExchangeSettings> settings) {
-        return new HttpExchangeFilter(naming, settings.getIfAvailable(HttpExchangeSettings::defaults));
+            HttpRequestNaming naming,
+            ObjectProvider<HttpExchangeSettings> settings,
+            ObjectProvider<HttpExchangeAttributesCustomizer> customizers) {
+
+        return new HttpExchangeFilter(
+                naming,
+                settings.getIfAvailable(HttpExchangeSettings::defaults),
+                customizers.orderedStream().toList());
     }
 
     /**

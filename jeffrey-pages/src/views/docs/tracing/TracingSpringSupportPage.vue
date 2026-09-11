@@ -20,6 +20,7 @@
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -32,6 +33,7 @@ const headings = [
   { id: 'properties', text: 'The jeffrey.tracing.* Properties', level: 2 },
   { id: 'plain-spring', text: 'Plain Spring: @Import', level: 2 },
   { id: 'http', text: 'HTTP: Naming and Settings', level: 2 },
+  { id: 'attributes', text: 'HTTP: Attribute Customizers', level: 2 },
   { id: 'client', text: 'Outbound Calls: RestTemplate', level: 2 },
   { id: 'jdbc', text: 'DataSource, HikariCP and MyBatis', level: 2 },
   { id: 'grpc', text: 'gRPC: No Starter', level: 2 },
@@ -73,6 +75,18 @@ class ObservabilityConfiguration {
 // Import the MyBatis one OR the JDBC one, never both — they record the same
 // statement twice, once by mapper method and once by parsed SQL.`;
 
+const attributesCustomizer = `// Every bean of this type is collected with ObjectProvider.orderedStream(),
+// so yours ADDS to the starter's header capture rather than replacing it.
+@Bean
+@Order(100)
+HttpExchangeAttributesCustomizer planAttributes() {
+    return (attributes, request, response) ->
+            attributes.put("tenant.plan", request.getAttribute("tenant.plan"));
+}
+
+// To REPLACE the starter's header customizer, take its name:
+@Bean
+HttpExchangeAttributesCustomizer jeffreyHttpHeaderAttributesCustomizer() { ... }`;
 const springMvcNaming = `public class SpringMvcRequestNaming implements HttpRequestNaming {
 
     @Override
@@ -288,6 +302,16 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
             <td><code>false</code></td>
             <td>Record the route's template variables on the event</td>
           </tr>
+          <tr>
+            <td><code>jeffrey.tracing.http.capture-request-headers</code></td>
+            <td><em>none</em></td>
+            <td>Request headers to record as searchable attributes, e.g. <code>x-tenant-id</code></td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.tracing.http.capture-response-headers</code></td>
+            <td><em>none</em></td>
+            <td>The same for the response half of the exchange</td>
+          </tr>
         </tbody>
       </table>
 
@@ -317,6 +341,27 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
 
       <DocsCallout type="info">
         <strong><code>HttpExchangeSettings</code> is deliberately not a bean in <code>JeffreyTracingConfiguration</code>.</strong> That configuration is imported <em>by</em> the starter's auto-configuration, so a default settings bean declared there would already be registered by the time the starter's <code>@ConditionalOnMissingBean</code> was evaluated — and the bean bound from <code>jeffrey.tracing.*</code> would silently lose to it. Declare your own and it wins over both.
+      </DocsCallout>
+
+      <h2 id="attributes">HTTP: Attribute Customizers</h2>
+
+      <p>The same bargain, for what a request should be <em>searchable by</em>. <code>jeffrey.tracing.http.capture-request-headers</code> covers the common case; anything a header cannot express is a lambda, and the starter collects every <code>HttpExchangeAttributesCustomizer</code> bean:</p>
+
+      <DocsCodeBlock :code="attributesCustomizer" language="java" />
+
+      <p>They are applied in <code>@Order</code> order — an unannotated bean is <code>LOWEST_PRECEDENCE</code> and keeps registration order among its peers. Order only matters where two customizers write the same key, in which case the first one to write it wins; give each customizer keys of its own and it stops mattering. One that throws is logged once and skipped, so it can neither fail a request nor lose a span.</p>
+
+      <p>What they contribute lands in the span's open attribute map, which is what Jeffrey indexes one key at a time. The three rules the index imposes on values — flat scalars, low cardinality, and never a credential — are spelled out on the HTTP Events page:</p>
+
+      <DocsLinkCard
+        to="/docs/tracing/http-events"
+        icon="bi bi-globe2"
+        title="HTTP Events"
+        description="The two exchange events, their fields, and what makes an attribute searchable rather than merely recorded."
+      />
+
+      <DocsCallout type="info">
+        <strong>The starter's header customizer backs off by <em>name</em>, not by type</strong>, and is registered even when both header lists are empty. Backing off by type would let any application customizer suppress it, which is backwards for an extension point whose purpose is that customizers compose; and guarding it with <code>@ConditionalOnProperty</code> would silently fail for the YAML list form, where the bound key is <code>capture-request-headers[0]</code> rather than <code>capture-request-headers</code>.
       </DocsCallout>
 
       <h2 id="client">Outbound Calls: RestTemplate</h2>

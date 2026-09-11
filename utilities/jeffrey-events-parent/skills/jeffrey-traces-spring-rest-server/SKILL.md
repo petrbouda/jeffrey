@@ -52,6 +52,8 @@ Tune it with `jeffrey.tracing.*`:
 | `jeffrey.tracing.mybatis-max-parameter-length` | `256` | Truncate longer parameter values |
 | `jeffrey.tracing.capture-query-params` | `false` | Record query-string parameters on the event |
 | `jeffrey.tracing.capture-path-params` | `false` | Record the route's template variables on the event |
+| `jeffrey.tracing.http.capture-request-headers` | *none* | Request headers to record as searchable attributes, e.g. `x-tenant-id` |
+| `jeffrey.tracing.http.capture-response-headers` | *none* | The same for the response half of the exchange |
 
 `mybatis-capture-parameters` is the one capture flag that is *on*: a statement's parameters are what
 make a slow statement readable, where a query string is free-form user input. The MyBatis skill
@@ -61,6 +63,41 @@ explains the difference and how to turn it off.
 shared and kept, and query strings routinely carry access tokens, e-mail addresses and search
 terms. Turn them on for an application whose parameters you know are safe to keep — as Jeffrey does
 for itself.
+
+### Making a request searchable by more than its URI
+
+The fields above are what HTTP itself can say. *Which tenant was this*, *which API version*, *which
+client* is domain knowledge the servlet layer cannot name, so it is asked for from a
+`HttpExchangeAttributesCustomizer` — the same bargain `HttpRequestNaming` strikes for the span name.
+Headers are covered by the two properties above; anything else is a lambda, and every bean of the
+type is collected in `@Order` order:
+
+```java
+@Bean
+HttpExchangeAttributesCustomizer planAttributes() {
+    return (attributes, request, response) ->
+            attributes.put("tenant.plan", request.getAttribute("tenant.plan"));
+}
+```
+
+The starter's own header customizer is called `jeffreyHttpHeaderAttributesCustomizer`: declare a bean
+of that **name** to replace it, any other name to add to it. One that throws is logged once and
+skipped — it can neither fail the request nor lose the span.
+
+What a customizer contributes goes into the span's open `attributes` map, and that is the point
+rather than an implementation detail: Jeffrey indexes that map **one key at a time**, so each key is
+filterable, facetable and rankable in Traces → Attributes and reachable through
+`traces_attributeSearch`. A declared event field would be one opaque value instead — which is what
+`queryParams` is, and why it answers "what did this request carry" but never "show me the slow
+requests for this tenant". Recorded under `http.request.header.<lower-cased name>` /
+`http.response.header.<lower-cased name>`.
+
+| Rule | Why |
+|---|---|
+| Values must be flat scalars | the attribute flattener drops objects and arrays, so a repeated header is comma-joined rather than recorded as a list |
+| Values must be low-cardinality | past a couple of hundred distinct values a key stops being a browsable facet and becomes search-only, and every distinct value enters the recording's constant pool — capture what you *group by*, never an id unique per request |
+| Never capture a credential | `Authorization` and `Cookie` do not belong in a file that gets shared; the allow-list is named by you, and naming one of those is warned about at startup |
+| Values longer than 256 characters are truncated with a `…` | one oversized header must not bloat every event in a recording |
 
 ## 2. Plain Spring, or Boot without auto-configuration: `@Import`
 

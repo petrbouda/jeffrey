@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jfr.events.spring.boot;
 
+import cafe.jeffrey.jfr.events.servlet.HttpExchangeAttributesCustomizer;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeFilter;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeSettings;
 import cafe.jeffrey.jfr.events.spring.JeffreyTracingConfiguration;
@@ -31,6 +32,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 /**
  * Wires Jeffrey's instrumentation into a Spring Boot application with no code on the application's
@@ -60,6 +63,34 @@ public class JeffreyTracingAutoConfiguration {
     @ConditionalOnMissingBean
     public HttpExchangeSettings jeffreyHttpExchangeSettings(JeffreyTracingProperties properties) {
         return properties.toSettings();
+    }
+
+    /**
+     * Records the headers {@code jeffrey.tracing.http.*} names, and nothing when it names none.
+     * <p>
+     * Two choices here read like oversights and are not.
+     * <p>
+     * It backs off by <em>name</em> rather than by type, because backing off by type would let any
+     * application customizer suppress this one — backwards for an extension point whose whole
+     * purpose is that customizers compose. Replace this one by declaring a bean called
+     * {@code jeffreyHttpHeaderAttributesCustomizer}; add to it by declaring one called anything
+     * else.
+     * <p>
+     * And it is registered unconditionally rather than behind {@code @ConditionalOnProperty}, which
+     * is the obvious guard and a trap for a <em>list</em> property: that condition asks
+     * {@code Environment.containsProperty}, which is true for the comma form
+     * {@code capture-request-headers=x-tenant-id} and false for the YAML list form, where the bound
+     * key is {@code capture-request-headers[0]}. A condition that silently fails to fire for half
+     * of all users is worse than a bean that records nothing when it was given nothing — and that
+     * costs one virtual call per <em>committed</em> exchange.
+     */
+    @Bean
+    @ConditionalOnMissingBean(name = "jeffreyHttpHeaderAttributesCustomizer")
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public HttpExchangeAttributesCustomizer jeffreyHttpHeaderAttributesCustomizer(
+            JeffreyTracingProperties properties) {
+
+        return properties.http().toCustomizer();
     }
 
     /**

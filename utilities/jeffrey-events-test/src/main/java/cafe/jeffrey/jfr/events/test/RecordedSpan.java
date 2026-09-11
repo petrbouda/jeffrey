@@ -39,6 +39,8 @@ import java.util.List;
  * @param kind      {@code INTERNAL} | {@code SERVER} | {@code CLIENT}, as recorded
  * @param status    {@code UNSET} | {@code OK} | {@code ERROR}, as recorded
  * @param errorType the class name of the exception that ended the span, when it failed
+ * @param attributes what the operation attached to itself, as the JSON object it was recorded as;
+ *                   {@code null} when the span attached nothing
  * @param threadName the thread JFR attributed the event to, i.e. the one that committed it
  */
 public record RecordedSpan(
@@ -50,6 +52,7 @@ public record RecordedSpan(
         String kind,
         String status,
         String errorType,
+        String attributes,
         String threadName) {
 
     /** The field whose presence makes an event a span. */
@@ -61,6 +64,7 @@ public record RecordedSpan(
     private static final String KIND = "kind";
     private static final String STATUS = "status";
     private static final String ERROR_TYPE = "errorType";
+    private static final String ATTRIBUTES = "attributes";
 
     /**
      * @return whether this event declares the span shape, i.e. takes part in traces at all
@@ -90,6 +94,7 @@ public record RecordedSpan(
                 stringField(event, KIND),
                 stringField(event, STATUS),
                 stringField(event, ERROR_TYPE),
+                stringField(event, ATTRIBUTES),
                 thread == null ? null : thread.getJavaName());
     }
 

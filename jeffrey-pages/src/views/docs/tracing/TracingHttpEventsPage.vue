@@ -33,6 +33,7 @@ const headings = [
   { id: 'fields', text: 'Fields and Derived Span Shape', level: 2 },
   { id: 'servlet', text: 'Any Servlet Container', level: 2 },
   { id: 'naming', text: 'Naming: What a Container Cannot Answer', level: 2 },
+  { id: 'attributes', text: 'Attributes: What Makes a Request Searchable', level: 2 },
   { id: 'manual-server', text: 'Writing the Filter Yourself', level: 2 },
   { id: 'client', text: 'Outbound Calls: the Client Event', level: 2 },
   { id: 'async-clients', text: 'Async Clients', level: 2 },
@@ -50,6 +51,35 @@ HttpExchangeFilter filter = new HttpExchangeFilter(
         HttpExchangeSettings.defaults());
 // register it FIRST in the chain, for /*`;
 
+const headerCapture = `# Empty by default. An allow-list, never a deny-list: a header is recorded
+# because somebody named it.
+jeffrey.tracing.http.capture-request-headers=x-tenant-id,x-api-version
+jeffrey.tracing.http.capture-response-headers=x-served-by`;
+const customizerExample = `// Anything a header cannot express. Every bean of this type is collected and
+// applied in @Order order, so this one ADDS to the built-in header capture
+// rather than replacing it.
+@Bean
+HttpExchangeAttributesCustomizer planAttributes() {
+    return (attributes, request, response) -> {
+        attributes.put("tenant.plan", request.getAttribute("tenant.plan"));
+        attributes.put("cache.hit", request.getAttribute("cache.hit"));
+    };
+}
+
+// Wiring it by hand, outside Spring:
+new HttpExchangeFilter(
+        naming,
+        HttpExchangeSettings.defaults(),
+        List.of(HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-tenant-id"))));`;
+const attributesOutput = `jeffrey.HttpServerExchange {
+  name = "GET /api/orders/{id}"
+  ...
+  attributes = {"http.request.header.x-tenant-id":"acme","tenant.plan":"enterprise"}
+}
+
+// In Jeffrey: Traces -> Attributes, one row per key, filterable and rankable.
+//   http.request.header.x-tenant-id   ATTRIBUTE   3 values
+//   tenant.plan                       ATTRIBUTE   2 values`;
 const manualFilter = `public class JeffreyJfrHttpEventFilter implements Filter {
 
     // The one thing the container cannot answer — see "Naming" above.
@@ -186,7 +216,7 @@ const clientSpans = [
 
       <h2 id="fields">Fields and Derived Span Shape</h2>
 
-      <p>Both extend <code>AbstractHttpExchangeEvent</code> (which extends <code>AbstractTracedEvent</code>) and carry: <code>method</code>, <code>uri</code>, <code>statusCode</code>, <code>remoteHost</code>, <code>remotePort</code>, <code>mediaType</code>, <code>queryParams</code> (JSON), <code>pathParams</code> (JSON), <code>requestLength</code> and <code>responseLength</code>.</p>
+      <p>Both extend <code>AbstractHttpExchangeEvent</code> (which extends <code>AbstractTracedEvent</code>) and carry: <code>method</code>, <code>uri</code>, <code>statusCode</code>, <code>remoteHost</code>, <code>remotePort</code>, <code>mediaType</code>, <code>queryParams</code> (JSON), <code>pathParams</code> (JSON), <code>requestLength</code> and <code>responseLength</code> — plus <code>attributes</code>, inherited from every traced event and filled by the customizers below.</p>
 
       <p>The span shape is derived for you in <code>describeSpan()</code>, invoked by <code>commitSpan()</code>: the name is <code>"{method} {uri}"</code> (that template is also declared on the class with <code>@Span</code>, so it travels in the recording's metadata), and the status turns <code>ERROR</code> from <code>statusCode&nbsp;≥&nbsp;400</code>. <strong>Never set <code>name</code> or <code>status</code> yourself</strong> — a transport failure that produced no status code is recorded with <code>event.failed(throwable)</code>, and the derived verdict never paints over it.</p>
 
@@ -209,6 +239,26 @@ const clientSpans = [
       <p>The one thing a container cannot answer is what a request should be <em>called</em>, so the filter asks a <code>HttpRequestNaming</code>. The span name is derived from the recorded <code>uri</code> and every distinct name enters the JFR constant pool, so the answer has to be the routing framework's matched <strong>template</strong> — knowledge only that framework has. That is why this is an interface rather than a lookup: the filter asks for a name, and whoever knows the routing supplies one.</p>
 
       <p>The built-in strategy, <code>HttpRequestNaming.servletMapping()</code>, names requests by the pattern their servlet was mapped with (<code>/api/*</code>) — the best a container can do alone, and already low-cardinality because a mapping is declared rather than derived from the request. Supply your own to use a router's matched template. A request that matched nothing is named <code>&lt;unmatched&gt;</code>: still recorded, simply named together, because one operation per mistyped URL is worth nothing to anyone.</p>
+
+      <h2 id="attributes">Attributes: What Makes a Request Searchable</h2>
+
+      <p>The fields above are what HTTP itself can say. <em>Which tenant was this</em>, <em>which API version</em>, <em>which client</em> is domain knowledge the servlet layer has no way to name — so it is asked for in the same way naming is, from a <code>HttpExchangeAttributesCustomizer</code>. The built-in answer records an allow-list of headers:</p>
+
+      <DocsCodeBlock :code="headerCapture" language="properties" />
+
+      <p>Anything else is a lambda:</p>
+
+      <DocsCodeBlock :code="customizerExample" language="java" />
+
+      <p>What a customizer contributes goes into the span's open <code>attributes</code> map, and that is the whole point of the feature rather than an implementation detail. Jeffrey indexes that map <strong>one key at a time</strong>, so every key becomes something the Traces attribute search can filter by, facet and rank, and something <code>traces_attributeSearch</code> can hand an agent. A declared event field would instead be one opaque value — which is exactly what <code>queryParams</code> is, and why it answers "what did this request carry" but never "show me the slow requests for this tenant".</p>
+
+      <DocsCodeBlock :code="attributesOutput" language="text" />
+
+      <p>A customizer that throws is logged once and skipped: it can neither fail the request nor lose the span, and the customizers after it still run. A request nothing contributed to leaves the field absent rather than recording an empty object.</p>
+
+      <DocsCallout type="warning">
+        <strong>Three rules, all of them about what the index will accept.</strong> Values must be <strong>flat scalars</strong> — text, a number or a boolean; a nested object or an array is dropped by the attribute flattener, so a repeated header is recorded comma-joined rather than as a list. Values must be <strong>low-cardinality</strong> for the same reason span names are: past a couple of hundred distinct values a key stops being a browsable facet and becomes search-only, and every distinct value enters the recording's constant pool — so capture what you <em>group by</em>, never an identifier unique to each request. And <strong>never capture a credential</strong>: <code>Authorization</code> and <code>Cookie</code> do not belong in a file that gets uploaded, shared and kept.
+      </DocsCallout>
 
       <h2 id="manual-server">Writing the Filter Yourself</h2>
 

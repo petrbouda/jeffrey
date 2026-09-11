@@ -32,10 +32,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -50,7 +54,9 @@ import java.util.stream.Collectors;
  * <p>
  * Depends on {@code jakarta.servlet} and nothing else. What the request is <em>called</em> is the
  * one thing a container cannot answer, so it is asked of a {@link HttpRequestNaming} — see that
- * interface for why the name must be a route template rather than the raw path.
+ * interface for why the name must be a route template rather than the raw path. What the request
+ * should be <em>searchable by</em> beyond its HTTP shape is asked of the
+ * {@link HttpExchangeAttributesCustomizer}s in the same way.
  *
  * <h2>Registration</h2>
  * Register it first in the chain, so security, routing and data access all happen inside the span.
@@ -72,12 +78,38 @@ public class HttpExchangeFilter implements Filter {
     private static final String CONTENT_LENGTH_HEADER = "Content-Length";
     private static final long UNKNOWN_LENGTH = -1;
 
+    private static final Logger LOG = System.getLogger(HttpExchangeFilter.class.getName());
+
     private final HttpRequestNaming naming;
     private final HttpExchangeSettings settings;
+    private final List<HttpExchangeAttributesCustomizer> customizers;
 
-    public HttpExchangeFilter(HttpRequestNaming naming, HttpExchangeSettings settings) {
+    /**
+     * Customizer classes already reported as broken. A customizer that throws usually throws on
+     * every request, and a log line per request is a log storm rather than a diagnosis; bounded by
+     * the number of customizers.
+     */
+    private final Set<String> reportedFailures = ConcurrentHashMap.newKeySet();
+
+    /**
+     * @param customizers applied in the order given, each contributing what the application wants
+     *                    this request searchable by
+     */
+    public HttpExchangeFilter(
+            HttpRequestNaming naming,
+            HttpExchangeSettings settings,
+            List<HttpExchangeAttributesCustomizer> customizers) {
+
         this.naming = Objects.requireNonNull(naming, "naming must not be null");
         this.settings = Objects.requireNonNull(settings, "settings must not be null");
+        this.customizers = List.copyOf(Objects.requireNonNull(customizers, "customizers must not be null"));
+    }
+
+    /**
+     * The form that attaches nothing of the application's own to the span.
+     */
+    public HttpExchangeFilter(HttpRequestNaming naming, HttpExchangeSettings settings) {
+        this(naming, settings, List.of());
     }
 
     /**
@@ -162,9 +194,67 @@ public class HttpExchangeFilter implements Filter {
         if (settings.capturePathParams()) {
             event.pathParams = asJson(naming.pathParams(request));
         }
+        event.attributes = customizedAttributes(request, response);
         // commitSpan(), which here commits under the identity inSpanOf already stamped: it never
         // re-stamps, so the children recorded under the original span id keep their parent.
         event.commitSpan();
+    }
+
+    /**
+     * What the application attached to this exchange, as the JSON object to record.
+     * <p>
+     * {@code null} rather than an empty object when nothing was attached, so that a span carrying
+     * no attributes is distinguishable from one carrying an empty map — the recording side of the
+     * same rule {@link #asJson(Map)} follows for the parameter fields.
+     */
+    private String customizedAttributes(HttpServletRequest request, HttpServletResponse response) {
+        if (customizers.isEmpty()) {
+            return null;
+        }
+
+        HttpExchangeAttributes attributes = new HttpExchangeAttributes();
+        for (HttpExchangeAttributesCustomizer customizer : customizers) {
+            apply(customizer, attributes, request, response);
+        }
+        return attributes.isEmpty() ? null : attributes.json();
+    }
+
+    /**
+     * Runs one customizer, absorbing whatever it throws.
+     * <p>
+     * Both call sites make this mandatory rather than defensive. The synchronous one is inside
+     * {@code doFilter}'s {@code finally}, where a throw would <em>discard the exception the chain
+     * was already propagating</em> — instrumentation erasing the application's own failure. The
+     * asynchronous one is {@link AsyncListener#onComplete}, where a throw would skip
+     * {@code commitSpan()} and the span would simply vanish from the recording with nothing to say
+     * why.
+     * <p>
+     * Caught per customizer rather than around the loop, so one broken contribution does not
+     * suppress the others; what a customizer wrote before throwing is kept, the builder being
+     * append-only. The span is deliberately <em>not</em> marked failed: the operation succeeded and
+     * only the instrumentation did not, and conflating the two would paint red spans across a
+     * healthy dashboard. {@code Error} propagates — a JVM-level problem is not instrumentation's to
+     * hide.
+     */
+    private void apply(
+            HttpExchangeAttributesCustomizer customizer,
+            HttpExchangeAttributes attributes,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        try {
+            customizer.customize(attributes, request, response);
+        } catch (Exception failure) {
+            String customizerName = customizer.getClass().getName();
+            if (reportedFailures.add(customizerName)) {
+                // Concatenated rather than parameterised: System.Logger has no overload taking both
+                // message parameters and a throwable, and the stack trace is the whole diagnosis.
+                LOG.log(Level.WARNING,
+                        "Skipping an HTTP exchange attributes customizer that threw; further failures"
+                                + " of this customizer are not reported: customizer=" + customizerName,
+                        failure);
+            }
+        }
     }
 
     private static Map<String, String> queryParams(HttpServletRequest request) {

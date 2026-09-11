@@ -19,6 +19,7 @@
 package cafe.jeffrey.jfr.events.test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -159,6 +160,46 @@ public final class SpanAssert {
     }
 
     /**
+     * Asserts the operation attached this key to itself, with this value.
+     * <p>
+     * These are the free-form attributes — what an application contributed, rather than a field the
+     * event type declares — and they are the ones Jeffrey indexes one key at a time, so a key
+     * asserted here is a key the Traces attribute search will find. Values are compared as text,
+     * numbers and booleans included, which is how the index stores them too.
+     */
+    public SpanAssert hasAttribute(String key, String value) {
+        Objects.requireNonNull(key, "key must not be null");
+
+        Map<String, String> attributes = FlatJson.parse(span.attributes());
+        if (!attributes.containsKey(key)) {
+            throw new AssertionError("expected '" + span.name() + "' to carry the attribute '" + key
+                    + "', but it carries " + describeAttributes(attributes));
+        }
+
+        String recorded = attributes.get(key);
+        if (!Objects.equals(value, recorded)) {
+            throw new AssertionError("expected '" + span.name() + "' to carry '" + key + "' = " + value
+                    + " but it was " + recorded);
+        }
+        return this;
+    }
+
+    /**
+     * Asserts the operation attached nothing to itself.
+     * <p>
+     * An empty JSON object counts as a failure rather than as nothing: a span that attached no
+     * attributes should leave the field absent, so that {@code attributes IS NOT NULL} stays a
+     * meaningful filter on the way in.
+     */
+    public SpanAssert hasNoAttributes() {
+        if (span.attributes() != null) {
+            throw new AssertionError("expected '" + span.name() + "' to carry no attributes, but its attributes "
+                    + "field was recorded as " + span.attributes());
+        }
+        return this;
+    }
+
+    /**
      * Asserts which event type carried the span, e.g. {@code jeffrey.JdbcQuery}.
      */
     public SpanAssert hasEventType(String eventType) {
@@ -181,6 +222,13 @@ public final class SpanAssert {
      */
     public SpansAssert and() {
         return recording;
+    }
+
+    private static String describeAttributes(Map<String, String> attributes) {
+        if (attributes.isEmpty()) {
+            return "none";
+        }
+        return attributes.keySet().toString();
     }
 
     private String describeParent() {

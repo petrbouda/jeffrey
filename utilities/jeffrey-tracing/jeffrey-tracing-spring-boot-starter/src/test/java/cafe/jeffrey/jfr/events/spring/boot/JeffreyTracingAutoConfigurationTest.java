@@ -19,6 +19,7 @@
 package cafe.jeffrey.jfr.events.spring.boot;
 
 import cafe.jeffrey.jfr.events.jdbc.datasource.TracingDataSource;
+import cafe.jeffrey.jfr.events.servlet.HttpExchangeAttributesCustomizer;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeFilter;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeSettings;
 import cafe.jeffrey.jfr.events.servlet.HttpRequestNaming;
@@ -122,6 +123,76 @@ class JeffreyTracingAutoConfigurationTest {
         void canBeDisabled() {
             runner.withPropertyValues("jeffrey.tracing.enabled=false")
                     .run(context -> assertThat(context).doesNotHaveBean(HttpExchangeFilter.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("What an exchange is searchable by")
+    class Attributes {
+
+        @Test
+        @DisplayName("the header customizer is wired, and records nothing until it is told what to")
+        void headerCustomizerIsWiredRecordingNothing() {
+            runner.run(context -> {
+                assertThat(context).hasBean("jeffreyHttpHeaderAttributesCustomizer");
+
+                JeffreyTracingProperties properties = context.getBean(JeffreyTracingProperties.class);
+                assertThat(properties.http().captureRequestHeaders()).isEmpty();
+                assertThat(properties.http().captureResponseHeaders()).isEmpty();
+            });
+        }
+
+        @Test
+        @DisplayName("the header lists bind, in the comma form and the list form alike")
+        void headerListsBind() {
+            runner.withPropertyValues(
+                            "jeffrey.tracing.http.capture-request-headers=x-tenant-id,x-api-version",
+                            "jeffrey.tracing.http.capture-response-headers[0]=x-served-by")
+                    .run(context -> {
+                        JeffreyTracingProperties properties = context.getBean(JeffreyTracingProperties.class);
+                        assertThat(properties.http().captureRequestHeaders())
+                                .containsExactly("x-tenant-id", "x-api-version");
+                        assertThat(properties.http().captureResponseHeaders()).containsExactly("x-served-by");
+                    });
+        }
+
+        @Test
+        @DisplayName("an application's own customizer adds to the built-in one rather than replacing it")
+        void applicationCustomizersCompose() {
+            runner.withUserConfiguration(ApplicationCustomizerConfiguration.class)
+                    .run(context -> {
+                        assertThat(context).hasBean("jeffreyHttpHeaderAttributesCustomizer");
+                        assertThat(context.getBeansOfType(HttpExchangeAttributesCustomizer.class)).hasSize(2);
+                    });
+        }
+
+        @Test
+        @DisplayName("the built-in one is replaced by declaring a bean of the same name")
+        void theBuiltInOneBacksOffByName() {
+            runner.withUserConfiguration(ReplacementCustomizerConfiguration.class)
+                    .run(context -> assertThat(context.getBeansOfType(HttpExchangeAttributesCustomizer.class))
+                            .hasSize(1)
+                            .containsKey("jeffreyHttpHeaderAttributesCustomizer"));
+        }
+
+        /** Nested for the same reason as {@link DataSources.PlainDataSource}. */
+        @Configuration(proxyBeanMethods = false)
+        static class ApplicationCustomizerConfiguration {
+
+            @Bean
+            HttpExchangeAttributesCustomizer tenantAttributesCustomizer() {
+                return (attributes, request, response) -> attributes.put("tenant", "acme");
+            }
+        }
+
+        /** Named as the starter's own bean, which is how an application replaces it. */
+        @Configuration(proxyBeanMethods = false)
+        static class ReplacementCustomizerConfiguration {
+
+            @Bean
+            HttpExchangeAttributesCustomizer jeffreyHttpHeaderAttributesCustomizer() {
+                return (attributes, request, response) -> attributes.put("tenant", "acme");
+            }
         }
     }
 
