@@ -21,8 +21,6 @@ package cafe.jeffrey.jfr.events.servlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -49,22 +47,12 @@ import java.util.StringJoiner;
  */
 final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomizer {
 
-    private static final Logger LOG = System.getLogger(HeaderAttributesCustomizer.class.getName());
-
     /**
      * Not the array form OpenTelemetry uses for a repeated header: the attribute index drops any
      * value that is an array, so a list would be recorded and then never found. One joined scalar,
      * the same way {@link HttpExchangeFilter} joins repeated query parameters.
      */
     private static final String HEADER_VALUE_SEPARATOR = ",";
-
-    /**
-     * Headers whose value is a credential. Naming one is not refused — silently ignoring something
-     * a developer configured on purpose is its own kind of surprise — but it is said out loud once,
-     * at startup, because a recording is a file that leaves the building.
-     */
-    private static final Set<String> SENSITIVE_HEADERS =
-            Set.of("authorization", "proxy-authorization", "cookie", "set-cookie");
 
     private final List<String> names;
 
@@ -121,14 +109,6 @@ final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomiz
                 continue;
             }
             normalized.add(name.trim().toLowerCase(Locale.ROOT));
-        }
-
-        for (String name : normalized) {
-            if (SENSITIVE_HEADERS.contains(name)) {
-                LOG.log(Level.WARNING,
-                        "Recording a credential-bearing HTTP header into JFR, which is a file that gets"
-                                + " shared and kept: header={0}", name);
-            }
         }
         return List.copyOf(normalized);
     }
