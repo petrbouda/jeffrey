@@ -18,8 +18,12 @@
 
 package cafe.jeffrey.jfr.events.test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -30,6 +34,8 @@ import java.util.Objects;
 public final class SpanAssert {
 
     private static final String ROOT_STATUS_UNSET = "UNSET";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final RecordedSpan span;
     private final SpansAssert recording;
@@ -170,16 +176,20 @@ public final class SpanAssert {
     public SpanAssert hasAttribute(String key, String value) {
         Objects.requireNonNull(key, "key must not be null");
 
-        Map<String, String> attributes = FlatJson.parse(span.attributes());
-        if (!attributes.containsKey(key)) {
+        JsonNode attributes = readAttributes();
+        JsonNode recorded = attributes.get(key);
+        if (recorded == null) {
             throw new AssertionError("expected '" + span.name() + "' to carry the attribute '" + key
                     + "', but it carries " + describeAttributes(attributes));
         }
-
-        String recorded = attributes.get(key);
-        if (!Objects.equals(value, recorded)) {
+        if (recorded.isContainerNode()) {
+            throw new AssertionError("'" + key + "' on '" + span.name() + "' was recorded as " + recorded
+                    + ", which is not a value: Jeffrey indexes a flat map of scalars and would have "
+                    + "dropped it, so nothing could ever match it");
+        }
+        if (!Objects.equals(value, recorded.asText())) {
             throw new AssertionError("expected '" + span.name() + "' to carry '" + key + "' = " + value
-                    + " but it was " + recorded);
+                    + " but it was " + recorded.asText());
         }
         return this;
     }
@@ -224,11 +234,30 @@ public final class SpanAssert {
         return recording;
     }
 
-    private static String describeAttributes(Map<String, String> attributes) {
+    /**
+     * The recorded attributes as a tree, or an empty one when the span attached nothing.
+     */
+    private JsonNode readAttributes() {
+        String attributes = span.attributes();
+        if (attributes == null || attributes.isBlank()) {
+            return MAPPER.createObjectNode();
+        }
+        try {
+            return MAPPER.readTree(attributes);
+        } catch (JsonProcessingException failure) {
+            throw new AssertionError("the attributes recorded on '" + span.name()
+                    + "' are not a JSON object: " + attributes, failure);
+        }
+    }
+
+    private static String describeAttributes(JsonNode attributes) {
         if (attributes.isEmpty()) {
             return "none";
         }
-        return attributes.keySet().toString();
+
+        List<String> keys = new ArrayList<>();
+        attributes.fieldNames().forEachRemaining(keys::add);
+        return keys.toString();
     }
 
     private String describeParent() {

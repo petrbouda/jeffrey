@@ -290,6 +290,19 @@ class SpansAssertTest {
         }
 
         @Test
+        @DisplayName("a nested value is refused, because the index would have dropped it")
+        void nestedValuesAreRefused() throws IOException {
+            List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> emit(
+                    1, 10, 0, "checkout", SERVER_KIND, UNSET_STATUS, null,
+                    "{\"plan\":{\"nested\":true}}"));
+
+            AssertionError error = assertThrows(AssertionError.class, () ->
+                    SpansAssert.assertThat(events).hasSpan("checkout").hasAttribute("plan", "nested"));
+
+            assertTrue(error.getMessage().contains("flat map of scalars"), error.getMessage());
+        }
+
+        @Test
         @DisplayName("an absent field is no attributes; an empty object is not")
         void absentIsNotEmpty() throws IOException {
             List<RecordedEvent> events = JfrRecordings.all(SpanEvent.NAME, () -> {
