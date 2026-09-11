@@ -39,12 +39,13 @@ import java.util.StringJoiner;
  * lower-cased — so {@code x-tenant-id} is what is configured, what the client sends and what a
  * search asks for, with nothing in between to remember.
  * <p>
- * Request and response headers therefore share one namespace. A name configured on both sides is
- * one key rather than two, and since the request half is written first and
- * {@link HttpExchangeAttributes} keeps the first write, the request's value is the one recorded.
+ * Request headers only. A response header is something the application's own server already set, so
+ * it needs no allow-list to be reachable — a customizer of two lines reads it off the response it is
+ * handed. An inbound header is the case nothing else covers: it arrives from outside, and the
+ * application may never touch it.
  * <p>
  * A class rather than a lambda, unlike {@link HttpRequestNaming#servletMapping()}, because it
- * carries the normalized allow-lists; it is reachable only through the interface's factories.
+ * carries the normalized allow-list; it is reachable only through the interface's factory.
  */
 final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomizer {
 
@@ -65,24 +66,18 @@ final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomiz
     private static final Set<String> SENSITIVE_HEADERS =
             Set.of("authorization", "proxy-authorization", "cookie", "set-cookie");
 
-    private final List<String> requestNames;
-    private final List<String> responseNames;
+    private final List<String> names;
 
-    HeaderAttributesCustomizer(Collection<String> requestNames, Collection<String> responseNames) {
-        this.requestNames = normalize(requestNames);
-        this.responseNames = normalize(responseNames);
+    HeaderAttributesCustomizer(Collection<String> names) {
+        this.names = normalize(names);
     }
 
     @Override
     public void customize(
             HttpExchangeAttributes attributes, HttpServletRequest request, HttpServletResponse response) {
 
-        for (String name : requestNames) {
-            put(attributes, name, requestValues(request, name));
-        }
-        for (String name : responseNames) {
-            Collection<String> values = response.getHeaders(name);
-            put(attributes, name, values == null ? List.of() : values);
+        for (String name : names) {
+            put(attributes, name, valuesOf(request, name));
         }
     }
 
@@ -100,11 +95,7 @@ final class HeaderAttributesCustomizer implements HttpExchangeAttributesCustomiz
         attributes.put(key, joined.toString());
     }
 
-    /**
-     * The request half answers with an {@link Enumeration} where the response half answers with a
-     * {@link Collection}, so one of the two has to be adapted.
-     */
-    private static Collection<String> requestValues(HttpServletRequest request, String name) {
+    private static Collection<String> valuesOf(HttpServletRequest request, String name) {
         Enumeration<String> values = request.getHeaders(name);
         if (values == null) {
             return List.of();

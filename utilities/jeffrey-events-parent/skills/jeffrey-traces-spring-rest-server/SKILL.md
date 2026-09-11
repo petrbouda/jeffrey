@@ -53,7 +53,6 @@ Tune it with `jeffrey.tracing.*`:
 | `jeffrey.tracing.capture-query-params` | `false` | Record query-string parameters on the event |
 | `jeffrey.tracing.capture-path-params` | `false` | Record the route's template variables on the event |
 | `jeffrey.tracing.http.capture-request-headers` | *none* | Request headers to record as searchable attributes, e.g. `x-tenant-id` |
-| `jeffrey.tracing.http.capture-response-headers` | *none* | The same for the response half of the exchange |
 
 `mybatis-capture-parameters` is the one capture flag that is *on*: a statement's parameters are what
 make a slow statement readable, where a query string is free-form user input. The MyBatis skill
@@ -98,7 +97,7 @@ requests for this tenant". A captured header is recorded under its own name, low
 | Values must be low-cardinality | past a couple of hundred distinct values a key stops being a browsable facet and becomes search-only, and every distinct value enters the recording's constant pool — capture what you *group by*, never an id unique per request |
 | Never capture a credential | `Authorization` and `Cookie` do not belong in a file that gets shared; the allow-list is named by you, and naming one of those is warned about at startup |
 | Values longer than 256 characters are truncated with a `…` | one oversized header must not bloat every event in a recording |
-| Request and response headers share one namespace | the key is the header's own name, so a name configured on both sides is one key — the request half is written first and wins |
+| Only request headers have a property | a response header is one your own server set, so a two-line customizer reads it off the response; an inbound header may be touched by no application code at all |
 
 ## 2. Plain Spring, or Boot without auto-configuration: `@Import`
 

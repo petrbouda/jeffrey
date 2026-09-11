@@ -22,7 +22,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Attaches the application's own detail to an inbound request's span — <em>which tenant was this</em>,
@@ -64,33 +63,14 @@ public interface HttpExchangeAttributesCustomizer {
      * An allow-list rather than a deny-list, and empty by default, because a recording is a file
      * that gets uploaded, shared and kept: a header is recorded because somebody named it, never
      * because nobody thought to exclude it.
+     * <p>
+     * There is deliberately no counterpart for response headers: a response header is one the
+     * application's own server set, so reading it off the response this interface is handed is a
+     * two-line customizer, where an inbound header may be touched by no application code at all.
      *
      * @param names the headers to record, e.g. {@code x-tenant-id}; never a credential-bearing one
      */
     static HttpExchangeAttributesCustomizer requestHeaders(Collection<String> names) {
-        return headers(names, List.of());
-    }
-
-    /**
-     * Records the named response headers, each under the header's own name, lower-cased.
-     * <p>
-     * The same namespace the request half uses: a name recorded from both sides of the exchange is
-     * one key, and the request's value is the one kept.
-     *
-     * @see #requestHeaders(Collection)
-     */
-    static HttpExchangeAttributesCustomizer responseHeaders(Collection<String> names) {
-        return headers(List.of(), names);
-    }
-
-    /**
-     * Records headers from both halves of the exchange in one customizer.
-     *
-     * @see #requestHeaders(Collection)
-     */
-    static HttpExchangeAttributesCustomizer headers(
-            Collection<String> requestNames, Collection<String> responseNames) {
-
-        return new HeaderAttributesCustomizer(requestNames, responseNames);
+        return new HeaderAttributesCustomizer(names);
     }
 }

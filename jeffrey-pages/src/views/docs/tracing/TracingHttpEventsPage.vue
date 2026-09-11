@@ -53,8 +53,7 @@ HttpExchangeFilter filter = new HttpExchangeFilter(
 
 const headerCapture = `# Empty by default. An allow-list, never a deny-list: a header is recorded
 # because somebody named it.
-jeffrey.tracing.http.capture-request-headers=x-tenant-id,x-api-version
-jeffrey.tracing.http.capture-response-headers=x-served-by`;
+jeffrey.tracing.http.capture-request-headers=x-tenant-id,x-api-version`;
 const customizerExample = `// Anything a header cannot express. Every bean of this type is collected and
 // applied in @Order order, so this one ADDS to the built-in header capture
 // rather than replacing it.
@@ -63,6 +62,8 @@ HttpExchangeAttributesCustomizer planAttributes() {
     return (attributes, request, response) -> {
         attributes.put("tenant.plan", request.getAttribute("tenant.plan"));
         attributes.put("cache.hit", request.getAttribute("cache.hit"));
+        // A response header, if you want one - no property needed.
+        attributes.put("x-served-by", response.getHeader("x-served-by"));
     };
 }
 
@@ -246,7 +247,9 @@ const clientSpans = [
 
       <DocsCodeBlock :code="headerCapture" language="properties" />
 
-      <p>A header is recorded under its own name, lower-cased — <code>x-tenant-id</code> is what you configure, what the client sends and what you search for. Request and response share that one namespace, so a name given on both sides is a single key and the request's value is the one kept.</p>
+      <p>A header is recorded under its own name, lower-cased — <code>x-tenant-id</code> is what you configure, what the client sends and what you search for.</p>
+
+      <p>Only request headers have a property, and deliberately so: a response header is one your own server set, so the lambda below reads it off the response it is handed in two lines. An inbound header is the case nothing else covers — it arrives from outside, and your code may never touch it.</p>
 
       <p>Anything else is a lambda:</p>
 

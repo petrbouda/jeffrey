@@ -50,8 +50,7 @@ class HeaderAttributesCustomizerTest {
     void configuredHeaderIsRecorded() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(List.of("X-Tenant-Id")),
-                Map.of("x-tenant-id", List.of("acme")),
-                Map.of());
+                Map.of("x-tenant-id", List.of("acme")));
 
         assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
     }
@@ -61,8 +60,7 @@ class HeaderAttributesCustomizerTest {
     void lookupIsCaseInsensitive() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-tenant-id")),
-                Map.of("X-TENANT-ID", List.of("acme")),
-                Map.of());
+                Map.of("X-TENANT-ID", List.of("acme")));
 
         assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
     }
@@ -72,8 +70,7 @@ class HeaderAttributesCustomizerTest {
     void repeatedHeaderIsJoined() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-forwarded-for")),
-                Map.of("x-forwarded-for", List.of("10.0.0.1", "10.0.0.2")),
-                Map.of());
+                Map.of("x-forwarded-for", List.of("10.0.0.1", "10.0.0.2")));
 
         assertEquals("{\"x-forwarded-for\":\"10.0.0.1,10.0.0.2\"}", attributes.json());
     }
@@ -83,7 +80,6 @@ class HeaderAttributesCustomizerTest {
     void absentHeaderRecordsNothing() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-tenant-id")),
-                Map.of(),
                 Map.of());
 
         assertTrue(attributes.isEmpty());
@@ -94,8 +90,7 @@ class HeaderAttributesCustomizerTest {
     void emptyHeaderRecordsNothing() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-tenant-id")),
-                Map.of("x-tenant-id", List.of("")),
-                Map.of());
+                Map.of("x-tenant-id", List.of("")));
 
         assertTrue(attributes.isEmpty());
     }
@@ -105,46 +100,10 @@ class HeaderAttributesCustomizerTest {
     void oversizedHeaderIsTruncated() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(List.of("x-blob")),
-                Map.of("x-blob", List.of("x".repeat(200), "y".repeat(200))),
-                Map.of());
+                Map.of("x-blob", List.of("x".repeat(200), "y".repeat(200))));
 
         assertTrue(attributes.json().contains("…"), attributes.json());
         assertEquals(MAX_VALUE_LENGTH + 1, valueOf(attributes.json()).length());
-    }
-
-    @Test
-    @DisplayName("response headers are recorded under their own namespace")
-    void responseHeadersAreRecorded() {
-        HttpExchangeAttributes attributes = capture(
-                HttpExchangeAttributesCustomizer.responseHeaders(List.of("x-api-version")),
-                Map.of(),
-                Map.of("x-api-version", List.of("2")));
-
-        assertEquals("{\"x-api-version\":\"2\"}", attributes.json());
-    }
-
-    @Test
-    @DisplayName("both halves can be recorded by one customizer")
-    void bothHalvesAtOnce() {
-        HttpExchangeAttributes attributes = capture(
-                HttpExchangeAttributesCustomizer.headers(List.of("x-tenant-id"), List.of("x-api-version")),
-                Map.of("x-tenant-id", List.of("acme")),
-                Map.of("x-api-version", List.of("2")));
-
-        assertEquals(
-                "{\"x-tenant-id\":\"acme\",\"x-api-version\":\"2\"}",
-                attributes.json());
-    }
-
-    @Test
-    @DisplayName("a name given on both sides is one key, and the request's value is kept")
-    void requestAndResponseShareOneNamespace() {
-        HttpExchangeAttributes attributes = capture(
-                HttpExchangeAttributesCustomizer.headers(List.of("x-request-id"), List.of("x-request-id")),
-                Map.of("x-request-id", List.of("from-client")),
-                Map.of("x-request-id", List.of("echoed-back")));
-
-        assertEquals("{\"x-request-id\":\"from-client\"}", attributes.json());
     }
 
     @Test
@@ -152,8 +111,7 @@ class HeaderAttributesCustomizerTest {
     void namesAreDeduplicated() {
         HttpExchangeAttributes attributes = capture(
                 HttpExchangeAttributesCustomizer.requestHeaders(Arrays.asList("X-Tenant-Id", " x-tenant-id ", "", null)),
-                Map.of("x-tenant-id", List.of("acme")),
-                Map.of());
+                Map.of("x-tenant-id", List.of("acme")));
 
         assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
     }
@@ -166,8 +124,7 @@ class HeaderAttributesCustomizerTest {
             Locale.setDefault(Locale.of("tr", "TR"));
             HttpExchangeAttributes attributes = capture(
                     HttpExchangeAttributesCustomizer.requestHeaders(List.of("X-TENANT-ID")),
-                    Map.of("x-tenant-id", List.of("acme")),
-                    Map.of());
+                    Map.of("x-tenant-id", List.of("acme")));
 
             assertEquals("{\"x-tenant-id\":\"acme\"}", attributes.json());
         } finally {
@@ -176,12 +133,10 @@ class HeaderAttributesCustomizerTest {
     }
 
     private static HttpExchangeAttributes capture(
-            HttpExchangeAttributesCustomizer customizer,
-            Map<String, List<String>> requestHeaders,
-            Map<String, List<String>> responseHeaders) {
+            HttpExchangeAttributesCustomizer customizer, Map<String, List<String>> requestHeaders) {
 
         HttpExchangeAttributes attributes = new HttpExchangeAttributes();
-        customizer.customize(attributes, request(requestHeaders), response(responseHeaders));
+        customizer.customize(attributes, request(requestHeaders), mock(HttpServletResponse.class));
         return attributes;
     }
 
@@ -196,13 +151,6 @@ class HeaderAttributesCustomizerTest {
                 Collections.enumeration(valuesOf(headers, invocation.getArgument(0)));
         when(request.getHeaders(anyString())).thenAnswer(lookup);
         return request;
-    }
-
-    private static HttpServletResponse response(Map<String, List<String>> headers) {
-        HttpServletResponse response = mock(HttpServletResponse.class);
-        Answer<Object> lookup = invocation -> valuesOf(headers, invocation.getArgument(0));
-        when(response.getHeaders(anyString())).thenAnswer(lookup);
-        return response;
     }
 
     private static Collection<String> valuesOf(Map<String, List<String>> headers, String name) {

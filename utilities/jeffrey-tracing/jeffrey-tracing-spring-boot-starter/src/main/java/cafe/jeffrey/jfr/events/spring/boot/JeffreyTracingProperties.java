@@ -99,26 +99,20 @@ public record JeffreyTracingProperties(
      * The {@code jeffrey.tracing.http.*} configuration: what an inbound exchange carries beyond
      * what HTTP itself says about it.
      * <p>
-     * Both lists are allow-lists and both are empty by default. A header is recorded because
-     * somebody named it, never because nobody thought to exclude it — a recording is a file that
-     * gets uploaded, shared and kept, so {@code Authorization} and {@code Cookie} must never appear
-     * here. Prefer headers you would <em>group by</em>: a tenant or an API version makes a
-     * browsable facet, while an identifier unique to each request does not, and every distinct
-     * value enters the recording's constant pool.
+     * An allow-list, empty by default. A header is recorded because somebody named it, never
+     * because nobody thought to exclude it — a recording is a file that gets uploaded, shared and
+     * kept, so {@code Authorization} and {@code Cookie} must never appear here. Prefer headers you
+     * would <em>group by</em>: a tenant or an API version makes a browsable facet, while an
+     * identifier unique to each request does not, and every distinct value enters the recording's
+     * constant pool.
      *
-     * @param captureRequestHeaders  request headers to record, each under the header's own name,
-     *                               lower-cased
-     * @param captureResponseHeaders response headers to record, likewise — the same namespace, so a
-     *                               name given on both sides is one key and the request's value is
-     *                               the one kept
+     * @param captureRequestHeaders request headers to record, each under the header's own name,
+     *                              lower-cased
      */
-    public record Http(
-            List<String> captureRequestHeaders,
-            List<String> captureResponseHeaders) {
+    public record Http(List<String> captureRequestHeaders) {
 
         public Http {
             captureRequestHeaders = captureRequestHeaders == null ? List.of() : List.copyOf(captureRequestHeaders);
-            captureResponseHeaders = captureResponseHeaders == null ? List.of() : List.copyOf(captureResponseHeaders);
         }
 
         /**
@@ -126,14 +120,14 @@ public record JeffreyTracingProperties(
          * field absent.
          */
         public static Http defaults() {
-            return new Http(List.of(), List.of());
+            return new Http(List.of());
         }
 
         /**
          * @return the framework-free customizer the filter actually consumes
          */
         public HttpExchangeAttributesCustomizer toCustomizer() {
-            return HttpExchangeAttributesCustomizer.headers(captureRequestHeaders, captureResponseHeaders);
+            return HttpExchangeAttributesCustomizer.requestHeaders(captureRequestHeaders);
         }
     }
 

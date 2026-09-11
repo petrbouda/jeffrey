@@ -307,11 +307,6 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
             <td><em>none</em></td>
             <td>Request headers to record as searchable attributes, e.g. <code>x-tenant-id</code></td>
           </tr>
-          <tr>
-            <td><code>jeffrey.tracing.http.capture-response-headers</code></td>
-            <td><em>none</em></td>
-            <td>The same for the response half of the exchange</td>
-          </tr>
         </tbody>
       </table>
 

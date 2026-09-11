@@ -138,22 +138,31 @@ class JeffreyTracingAutoConfigurationTest {
 
                 JeffreyTracingProperties properties = context.getBean(JeffreyTracingProperties.class);
                 assertThat(properties.http().captureRequestHeaders()).isEmpty();
-                assertThat(properties.http().captureResponseHeaders()).isEmpty();
             });
         }
 
         @Test
-        @DisplayName("the header lists bind, in the comma form and the list form alike")
-        void headerListsBind() {
+        @DisplayName("the header list binds from the comma form")
+        void headerListBindsFromCommaForm() {
+            runner.withPropertyValues("jeffrey.tracing.http.capture-request-headers=x-tenant-id,x-api-version")
+                    .run(context -> assertThat(context.getBean(JeffreyTracingProperties.class)
+                            .http()
+                            .captureRequestHeaders())
+                            .containsExactly("x-tenant-id", "x-api-version"));
+        }
+
+        @Test
+        @DisplayName("and from the indexed form, which is what YAML binds to")
+        void headerListBindsFromIndexedForm() {
+            // The form that would defeat a @ConditionalOnProperty guard on this property, which is
+            // why the customizer bean is registered unconditionally instead.
             runner.withPropertyValues(
-                            "jeffrey.tracing.http.capture-request-headers=x-tenant-id,x-api-version",
-                            "jeffrey.tracing.http.capture-response-headers[0]=x-served-by")
-                    .run(context -> {
-                        JeffreyTracingProperties properties = context.getBean(JeffreyTracingProperties.class);
-                        assertThat(properties.http().captureRequestHeaders())
-                                .containsExactly("x-tenant-id", "x-api-version");
-                        assertThat(properties.http().captureResponseHeaders()).containsExactly("x-served-by");
-                    });
+                            "jeffrey.tracing.http.capture-request-headers[0]=x-tenant-id",
+                            "jeffrey.tracing.http.capture-request-headers[1]=x-api-version")
+                    .run(context -> assertThat(context.getBean(JeffreyTracingProperties.class)
+                            .http()
+                            .captureRequestHeaders())
+                            .containsExactly("x-tenant-id", "x-api-version"));
         }
 
         @Test
