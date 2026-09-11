@@ -77,12 +77,7 @@ heap-dump {
     type = "crash"
 }
 
-jvm-logging {
-    enabled = true
-    command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
-}
-
-additional-jvm-options = "-Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch"`;
+additional-jvm-options = "-Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const projectBlock = `project {
     name  = \${JEFFREY_TESTAPP_MODE}"-jeffrey-testapp-server"
@@ -129,7 +124,7 @@ volumes:
         <li>It reads <code>JEFFREY_BASE_CONFIG</code> (the path to the HOCON config inside the container).</li>
         <li>It locates the per-arch provisioner binary at <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> (where <code>&lt;arch&gt;</code> is resolved from <code>uname -m</code>).</li>
         <li>It calls <code>provisioner init</code>, which reads the HOCON config, derives the agent / profiler paths from <code>JEFFREY_HOME</code>, and emits a JVM-arg response file.</li>
-        <li>It launches the JVM with <code>java @&lt;response-file&gt; @/app/jib-classpath-file &lt;MainClass&gt;</code>. The response file injects the <code>-javaagent</code>, the <code>-agentpath</code> for async-profiler, the <code>additional-jvm-options</code>, and the per-feature flags (heap-dump, jvm-logging, perf-counters).</li>
+        <li>It launches the JVM with <code>java @&lt;response-file&gt; @/app/jib-classpath-file &lt;MainClass&gt;</code>. The response file injects the <code>-javaagent</code>, the <code>-agentpath</code> for async-profiler, the <code>additional-jvm-options</code>, and the per-feature flags (heap-dump, perf-counters).</li>
       </ol>
 
       <h2 id="env-vars">Required Environment Variables</h2>
@@ -238,21 +233,16 @@ volumes:
         false</code> to disable entirely.
       </p>
 
-      <h3>jvm-logging</h3>
-      <p>
-        Wires up <code>-Xlog:</code> with the supplied command. The
-        <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholder is expanded by the
-        provisioner to the per-cycle session directory, so each recording lands in its own folder
-        with its own rolling log file.
-      </p>
-
       <h2 id="jvm-options">Additional JVM Options</h2>
       <p>
         <code>additional-jvm-options</code> is appended verbatim to the JVM launch line —
-        it's where the testapp pins heap size, GC choice, and any other JVM flags. The
+        it's where the testapp pins heap size, GC choice, JVM unified logging
+        (<code>-Xlog:…</code>), and any other JVM flags. The
         same placeholder system applies (<code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code>,
         <code>&lt;&lt;ENV:NAME&gt;&gt;</code>, etc. — see the
-        <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>).
+        <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>),
+        so each <code>-Xlog</code> file lands in the per-cycle session directory. End the file name
+        with <code>-jvm.log</code> and Jeffrey picks it up as a JVM log artifact.
       </p>
 
       <DocsCallout type="tip">

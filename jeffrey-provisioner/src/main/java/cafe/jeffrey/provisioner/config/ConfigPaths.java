@@ -50,6 +50,4 @@ public abstract class ConfigPaths {
     public static final String DEBUG_NON_SAFEPOINTS_ENABLED = "debug-non-safepoints.enabled";
     public static final String HEAP_DUMP_ENABLED = "heap-dump.enabled";
     public static final String HEAP_DUMP_TYPE = "heap-dump.type";
-    public static final String JVM_LOGGING_ENABLED = "jvm-logging.enabled";
-    public static final String JVM_LOGGING_COMMAND = "jvm-logging.command";
 }

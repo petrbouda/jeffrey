@@ -28,9 +28,9 @@ import java.util.Set;
 /**
  * How one {@code JEFFREY_*} environment variable becomes HOCON entries.
  *
- * <p>Most variables map straight onto a configuration path. The three that do not — attributes,
- * heap dumps and JVM logging — carry a small syntax of their own and set more than one path, so
- * each gets a binding rather than a branch in a shared parser.
+ * <p>Most variables map straight onto a configuration path. The two that do not — attributes and
+ * heap dumps — carry a small syntax of their own and set more than one path, so each gets a
+ * binding rather than a branch in a shared parser.
  *
  * <p>Every binding follows the same rule for a value it cannot read: <b>contribute nothing and
  * warn</b>. The variable then simply does not appear in the environment layer, the layer below
@@ -140,16 +140,6 @@ public sealed interface EnvBinding {
             }
             entries.put(enabledPath, Boolean.TRUE);
             entries.put(typePath, normalized);
-        }
-    }
-
-    /** An {@code -Xlog} command. Naming one is what turns JVM logging on, so the flag follows. */
-    record JvmLogging(String envName, String enabledPath, String commandPath) implements EnvBinding {
-
-        @Override
-        public void bind(String rawValue, Map<String, Object> entries) {
-            entries.put(enabledPath, Boolean.TRUE);
-            entries.put(commandPath, rawValue);
         }
     }
 }

@@ -45,7 +45,6 @@ class InitConfigTest {
             project { workspace-ref-id = "", name = "", label = "", instance-name = "" }
             perf-counters { enabled = false }
             heap-dump { enabled = false }
-            jvm-logging { enabled = false }
             jdk-java-options { enabled = false }
             """;
 
@@ -87,13 +86,6 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertEquals(HeapDumpType.CRASH, config.resolveHeapDumpType());
-        }
-
-        @Test
-        void parsesJvmLoggingConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
-
-            assertTrue(config.getJvmLoggingCommand().contains("jfr*=trace"));
         }
 
         @Test
@@ -153,7 +145,6 @@ class InitConfigTest {
 
             assertFalse(config.isPerfCountersEnabled());
             assertNull(config.resolveHeapDumpType());
-            assertNull(config.getJvmLoggingCommand());
             assertFalse(config.isJdkJavaOptionsEnabled());
 
             // Debug Non-Safepoints is enabled by default
@@ -217,12 +208,6 @@ class InitConfigTest {
         void getAdditionalJvmOptionsReturnsNullWhenNotSet() {
             InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertNull(config.getAdditionalJvmOptions());
-        }
-
-        @Test
-        void getJvmLoggingCommandReturnsNullWhenDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
-            assertNull(config.getJvmLoggingCommand());
         }
 
         @Test
@@ -718,7 +703,6 @@ class InitConfigTest {
                     "JEFFREY_ATTRIBUTES", "cluster=blue, namespace=test-namespace",
                     "JEFFREY_HEAP_DUMP", "crash",
                     "JEFFREY_PERF_COUNTERS", "true",
-                    "JEFFREY_JVM_LOGGING", "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log",
                     "JEFFREY_ADDITIONAL_JVM_OPTIONS", "-Xmx2g")));
 
             assertEquals("My Service", config.getProjectLabel());
@@ -727,7 +711,6 @@ class InitConfigTest {
             assertEquals(Map.of("cluster", "blue", "namespace", "test-namespace"), config.getAttributes());
             assertEquals(HeapDumpType.CRASH, config.resolveHeapDumpType());
             assertTrue(config.isPerfCountersEnabled());
-            assertEquals("jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log", config.getJvmLoggingCommand());
             assertEquals("-Xmx2g", config.getAdditionalJvmOptions());
         }
 

@@ -102,22 +102,6 @@ class JvmFeatureTest {
     }
 
     @Nested
-    class JvmLogging {
-
-        @Test
-        void resolvesPlaceholdersInTheCommand() {
-            assertEquals("-Xlog:jfr*=trace:file=" + SESSION + "/jfr.log",
-                    render(new JvmFeature.JvmLogging("jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr.log")));
-        }
-
-        @Test
-        void rendersNothingWithoutACommand() {
-            assertEquals(Optional.empty(), new JvmFeature.JvmLogging(null).render(SESSION, PLACEHOLDERS));
-            assertEquals(Optional.empty(), new JvmFeature.JvmLogging("  ").render(SESSION, PLACEHOLDERS));
-        }
-    }
-
-    @Nested
     class Agent {
 
         private static final AppIdentity IDENTITY = new AppIdentity(

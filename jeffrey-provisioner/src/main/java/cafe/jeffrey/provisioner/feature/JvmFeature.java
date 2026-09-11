@@ -98,20 +98,6 @@ public sealed interface JvmFeature {
         }
     }
 
-    /** A user-supplied {@code -Xlog} command. */
-    record JvmLogging(String command) implements JvmFeature {
-
-        private static final String PREFIX = "-Xlog:";
-
-        @Override
-        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
-            if (command == null || command.isBlank()) {
-                return Optional.empty();
-            }
-            return Optional.of(PREFIX + placeholders.resolve(command));
-        }
-    }
-
     /**
      * The Jeffrey agent, plus the JFR repository it streams from. The two travel together: the
      * agent is what reads the repository, so pointing the JVM at one without loading the other

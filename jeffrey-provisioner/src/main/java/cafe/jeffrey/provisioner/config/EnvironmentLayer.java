@@ -70,8 +70,7 @@ public abstract class EnvironmentLayer {
             new EnvBinding.Flag("JEFFREY_JDK_JAVA_OPTIONS", ConfigPaths.JDK_JAVA_OPTIONS_ENABLED),
             new EnvBinding.Flag("JEFFREY_DEBUG_NON_SAFEPOINTS", ConfigPaths.DEBUG_NON_SAFEPOINTS_ENABLED),
             new EnvBinding.Attributes("JEFFREY_ATTRIBUTES", ConfigPaths.ATTRIBUTES),
-            new EnvBinding.HeapDump("JEFFREY_HEAP_DUMP", ConfigPaths.HEAP_DUMP_ENABLED, ConfigPaths.HEAP_DUMP_TYPE),
-            new EnvBinding.JvmLogging("JEFFREY_JVM_LOGGING", ConfigPaths.JVM_LOGGING_ENABLED, ConfigPaths.JVM_LOGGING_COMMAND));
+            new EnvBinding.HeapDump("JEFFREY_HEAP_DUMP", ConfigPaths.HEAP_DUMP_ENABLED, ConfigPaths.HEAP_DUMP_TYPE));
     /**
      * Reads every bound variable that is set. A variable that is absent, blank, or carries a value
      * its binding cannot read contributes nothing, leaving the setting to the layer below.
