@@ -20,6 +20,7 @@
 import { onMounted } from 'vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 
@@ -43,6 +44,21 @@ const headings = [
 onMounted(() => {
   setHeadings(headings);
 });
+
+const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
+# TRACE into a rolling file in the session directory, INFO on the console
+- name: JEFFREY_ADDITIONAL_JVM_OPTIONS
+  value: >-
+    -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
+    -Djeffrey.hub.copy-libs.enabled=true
+    -Djeffrey.hub.home.dir=<<ENV:JEFFREY_HOME>>
+    -Dlogging.level.cafe.jeffrey=TRACE
+    -Dlogging.threshold.console=INFO
+    -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
+    -Dlogging.logback.rollingpolicy.max-file-size=10MB
+    -Dlogging.logback.rollingpolicy.total-size-cap=100MB
+    -Dlogging.logback.rollingpolicy.max-history=2
+    -Djeffrey.hub.workspaces.auto-create=true`;
 </script>
 
 <template>
@@ -130,7 +146,14 @@ onMounted(() => {
       </table>
 
       <h2 id="logging">Logging</h2>
-      <p>Application logging and JFR event monitoring settings.</p>
+      <p>
+        Application logging and JFR event monitoring settings. The <code>logging.*</code> properties
+        below are <strong>Spring Boot's own, not Jeffrey's</strong> — Jeffrey ships no
+        <code>logback-spring.xml</code>, so Boot configures Logback itself and each one behaves
+        exactly as the Spring Boot reference documents it. They are listed here because they are the
+        supported way to configure Hub logging, and their defaults are Boot's. The console is the only
+        appender until <code>logging.file.name</code> is set.
+      </p>
 
       <table>
         <thead>
@@ -147,6 +170,36 @@ onMounted(() => {
             <td>Log level for Jeffrey classes</td>
           </tr>
           <tr>
+            <td><code>logging.file.name</code></td>
+            <td><em>none</em></td>
+            <td>Write a rolling log file as well as the console. Because Boot owns the Logback setup, this one property is enough to add the file appender</td>
+          </tr>
+          <tr>
+            <td><code>logging.threshold.console</code></td>
+            <td><code>TRACE</code></td>
+            <td>Floor for the console appender. Set it to <code>INFO</code> to keep the console readable while the file takes everything</td>
+          </tr>
+          <tr>
+            <td><code>logging.threshold.file</code></td>
+            <td><code>TRACE</code></td>
+            <td>The same floor, for the file appender</td>
+          </tr>
+          <tr>
+            <td><code>logging.logback.rollingpolicy.max-file-size</code></td>
+            <td><code>10MB</code></td>
+            <td>Roll the log file over once it reaches this size</td>
+          </tr>
+          <tr>
+            <td><code>logging.logback.rollingpolicy.total-size-cap</code></td>
+            <td><code>0B</code> (unlimited)</td>
+            <td>Total size the archived files may take before the oldest are deleted</td>
+          </tr>
+          <tr>
+            <td><code>logging.logback.rollingpolicy.max-history</code></td>
+            <td><code>7</code></td>
+            <td>How many archived log files to keep</td>
+          </tr>
+          <tr>
             <td><code>jeffrey.hub.logging.jfr-events.application.enabled</code></td>
             <td><code>false</code></td>
             <td>Enable internal JFR event logging for HTTP and JDBC latency</td>
@@ -158,6 +211,30 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+
+      <h3>Tracing into a file without flooding the console</h3>
+      <p>
+        The three levers combine into one recipe: raise the <em>level</em> to <code>TRACE</code>, give
+        the file a name, and hold the <em>console</em> threshold at <code>INFO</code>. Boot reads every
+        one of them as a <code>-D</code> system property too, so a containerised Hub can carry the
+        whole recipe on its Deployment — below, through the provisioner's
+        <router-link to="/docs/hub/deployment/jeffrey-provisioner#jvm-options"><code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code></router-link>,
+        which forwards them untouched and resolves the placeholder so the log file lands in the same
+        session directory as that run's recordings:
+      </p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="traceToFileExample"
+      />
+
+      <DocsCallout type="info">
+        <code>&lt;&lt;ENV:…&gt;&gt;</code> and <code>&lt;&lt;JEFFREY:…&gt;&gt;</code> are resolved by
+        the provisioner, not by Kubernetes — see the
+        <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>.
+        Outside a provisioned deployment the same properties go in
+        <code>application.properties</code> with ordinary paths.
+      </DocsCallout>
 
       <h2 id="job-scheduler">Job Scheduler</h2>
       <p>

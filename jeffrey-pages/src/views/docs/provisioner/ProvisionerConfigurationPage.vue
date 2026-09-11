@@ -52,6 +52,22 @@ JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
+const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
+# Everything after -XX:+AlwaysPreTouch is application configuration the provisioner just forwards:
+# jeffrey.hub.* are Jeffrey Hub's own properties, logging.* are Spring Boot's.
+- name: JEFFREY_ADDITIONAL_JVM_OPTIONS
+  value: >-
+    -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
+    -Djeffrey.hub.copy-libs.enabled=true
+    -Djeffrey.hub.home.dir=<<ENV:JEFFREY_HOME>>
+    -Dlogging.level.cafe.jeffrey=TRACE
+    -Dlogging.threshold.console=INFO
+    -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
+    -Dlogging.logback.rollingpolicy.max-file-size=10MB
+    -Dlogging.logback.rollingpolicy.total-size-cap=100MB
+    -Dlogging.logback.rollingpolicy.max-history=2
+    -Djeffrey.hub.workspaces.auto-create=true`;
+
 const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
   jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
   jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
@@ -80,7 +96,7 @@ perf-counters { enabled = true }
 tracing { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jdk-java-options { enabled = true }
-additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m -Djeffrey.logging.trace-file.path=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log"`;
+additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 </script>
 
 <template>
@@ -99,6 +115,40 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           language="bash"
           :code="envOnlySetup"
         />
+
+        <p>
+          The provisioner appends <code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code> verbatim, so it
+          carries more than heap sizing and the JVM's own <code>-Xlog:</code> above: it is equally how
+          an application's <em>own</em> configuration reaches it, and — because placeholders are
+          resolved there too — how that configuration can name the session directory this run writes
+          into. The example below is Jeffrey Hub provisioned like any other application, putting its
+          log file beside that run's recordings:
+        </p>
+        <DocsCodeBlock
+          language="yaml"
+          :code="loggingExample"
+        />
+
+        <DocsCallout type="warning">
+          <strong>Those <code>logging.*</code> flags are Spring Boot's, not Jeffrey's.</strong> The
+          provisioner has no logging options of its own to offer an application and does not interpret
+          this string at all — it forwards it. They work here only because Jeffrey Hub is a Spring Boot
+          application: <code>logging.file.name</code> adds Boot's rolling file appender, and
+          <code>logging.threshold.console</code> holds the console at <code>INFO</code> while the level
+          is <code>TRACE</code>, so the file gets everything and <code>kubectl logs</code> stays
+          readable. An application on another framework reaches its own logging the same way, with that
+          framework's properties. See
+          <router-link to="/docs/hub/configuration#logging">Hub &rarr; Configuration &rarr; Logging</router-link>
+          for what each one does.
+        </DocsCallout>
+
+        <DocsCallout type="info">
+          <code>&lt;&lt;ENV:JEFFREY_HOME&gt;&gt;</code> is resolved by the provisioner rather than by
+          Kubernetes, which is the whole point — see <a href="#placeholders">Placeholders</a> for why
+          <code>$(VAR)</code> would not do here. The YAML folded scalar (<code>value: &gt;-</code>)
+          joins the indented lines back into one space-separated string, so the flag list stays
+          readable in the chart.
+        </DocsCallout>
 
         <DocsCallout type="tip">
           <strong>Fail-open:</strong> any misconfiguration (missing binaries, missing project name, broken config) starts the application <em>without profiling</em> instead of preventing it from starting — look for the single <code>Jeffrey profiling ENABLED: …</code> / <code>profiling DISABLED: &lt;reason&gt;</code> line in the container log to see the outcome.
