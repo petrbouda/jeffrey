@@ -147,10 +147,12 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
 
       <h2 id="logging">Logging</h2>
       <p>
-        Application logging and JFR event monitoring settings. Logging is stock Spring Boot — there is
-        no <code>logback-spring.xml</code>, so Boot configures Logback itself and every
-        <code>logging.*</code> property below behaves exactly as the Spring Boot reference documents
-        it. The console is the only appender by default.
+        Application logging and JFR event monitoring settings. The <code>logging.*</code> properties
+        below are <strong>Spring Boot's own, not Jeffrey's</strong> — Jeffrey ships no
+        <code>logback-spring.xml</code>, so Boot configures Logback itself and each one behaves
+        exactly as the Spring Boot reference documents it. They are listed here because they are the
+        supported way to configure Hub logging, and their defaults are Boot's. The console is the only
+        appender until <code>logging.file.name</code> is set.
       </p>
 
       <table>
@@ -213,11 +215,12 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
       <h3>Tracing into a file without flooding the console</h3>
       <p>
         The three levers combine into one recipe: raise the <em>level</em> to <code>TRACE</code>, give
-        the file a name, and hold the <em>console</em> threshold at <code>INFO</code>. Every property
-        is settable as a <code>-D</code> system property, so a containerised hub can carry it on the
-        Deployment — here through the provisioner's
+        the file a name, and hold the <em>console</em> threshold at <code>INFO</code>. Boot reads every
+        one of them as a <code>-D</code> system property too, so a containerised Hub can carry the
+        whole recipe on its Deployment — below, through the provisioner's
         <router-link to="/docs/hub/deployment/jeffrey-provisioner#jvm-options"><code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code></router-link>,
-        which puts the log file in the same session directory as that run's recordings:
+        which forwards them untouched and resolves the placeholder so the log file lands in the same
+        session directory as that run's recordings:
       </p>
 
       <DocsCodeBlock

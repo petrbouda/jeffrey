@@ -54,7 +54,8 @@ env:
     value: {{ .Values.mode | quote }}                       # "direct" or "dom"`;
 
 const loggingEnv = `# helm/jeffrey-hub/templates/deployment.yaml
-# Jeffrey Hub itself, running under the provisioner — the jeffrey.hub.* flags are its own
+# Jeffrey Hub itself, running under the provisioner. Everything after -XX:+AlwaysPreTouch is
+# application configuration forwarded as-is: jeffrey.hub.* are the Hub's, logging.* are Spring Boot's.
 env:
   - name: JEFFREY_ADDITIONAL_JVM_OPTIONS
     value: >-
@@ -273,10 +274,11 @@ volumes:
 
       <p>
         The same value can be set straight on the Deployment as
-        <code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code>, which is the usual place to route the
-        application's log file into the session directory so it lands beside that run's recordings.
-        Jeffrey Hub can be provisioned this way like any other Java application — here it is, carrying
-        its own <code>jeffrey.hub.*</code> settings alongside the logging ones:
+        <code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code>. Because the provisioner appends the string
+        verbatim and resolves placeholders in it, this is also how an application's own configuration
+        reaches it and how that configuration can name the session directory — which is the usual way
+        to put a log file beside that run's recordings. Jeffrey Hub is provisioned like any other Java
+        application, so it serves as the example:
       </p>
 
       <DocsCodeBlock
@@ -285,9 +287,13 @@ volumes:
       />
 
       <p>
-        Those <code>logging.*</code> flags are stock Spring Boot — <code>logging.file.name</code>
-        alone adds the rolling file appender, and <code>logging.threshold.console</code> holds the
-        console at <code>INFO</code> while the file takes <code>TRACE</code>. See
+        The <code>logging.*</code> flags are <strong>Spring Boot's, not the provisioner's</strong> —
+        it has no logging options of its own to offer an application and does not interpret the string
+        at all. They apply because Jeffrey Hub is a Spring Boot application:
+        <code>logging.file.name</code> adds Boot's rolling file appender, and
+        <code>logging.threshold.console</code> holds the console at <code>INFO</code> while the level
+        is <code>TRACE</code>. An application on another framework uses that framework's properties in
+        exactly the same slot. See
         <router-link to="/docs/hub/configuration#logging">Hub &rarr; Configuration &rarr; Logging</router-link>
         for what each one does.
       </p>

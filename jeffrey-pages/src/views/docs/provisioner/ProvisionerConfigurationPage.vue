@@ -53,8 +53,9 @@ JEFFREY_PERF_COUNTERS=true
 JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log"
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
 
-const loggingExample = `# A Deployment env: entry — here Jeffrey Hub itself, provisioned like any other app.
-# The jeffrey.hub.* flags are the Hub's own; the logging.* ones apply to any Spring Boot application.
+const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
+# Everything after -XX:+AlwaysPreTouch is application configuration the provisioner just forwards:
+# jeffrey.hub.* are Jeffrey Hub's own properties, logging.* are Spring Boot's.
 - name: JEFFREY_ADDITIONAL_JVM_OPTIONS
   value: >-
     -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
@@ -100,7 +101,7 @@ jvm-logging {
   command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
 jdk-java-options { enabled = true }
-additional-jvm-options = "-Xmx2g -Xms2g -Dlogging.level.cafe.jeffrey=TRACE -Dlogging.threshold.console=INFO -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log"`;
+additional-jvm-options = "-Xmx2g -Xms2g"`;
 </script>
 
 <template>
@@ -121,25 +122,36 @@ additional-jvm-options = "-Xmx2g -Xms2g -Dlogging.level.cafe.jeffrey=TRACE -Dlog
         />
 
         <p>
-          <code>additional-jvm-options</code> is also how an application's <em>own</em> logging is
-          pointed at the session directory, so its log file lands beside the recordings the
-          provisioner writes for that run. A Spring Boot application needs no extra configuration for
-          this — <code>logging.file.name</code> alone adds the rolling file appender:
+          <code>additional-jvm-options</code> carries more than JVM tuning: the provisioner appends
+          it verbatim, so it is also how an application's <em>own</em> configuration reaches it — and
+          because placeholders are resolved there, how that configuration can refer to the session
+          directory this run writes into. The example below is Jeffrey Hub provisioned like any other
+          application, putting its log file beside that run's recordings:
         </p>
         <DocsCodeBlock
           language="yaml"
           :code="loggingExample"
         />
 
+        <DocsCallout type="warning">
+          <strong>Those <code>logging.*</code> flags are Spring Boot's, not Jeffrey's.</strong> The
+          provisioner has no logging options of its own to offer an application and does not interpret
+          this string at all — it forwards it. They work here only because Jeffrey Hub is a Spring Boot
+          application: <code>logging.file.name</code> adds Boot's rolling file appender, and
+          <code>logging.threshold.console</code> holds the console at <code>INFO</code> while the level
+          is <code>TRACE</code>, so the file gets everything and <code>kubectl logs</code> stays
+          readable. An application on another framework reaches its own logging the same way, with that
+          framework's properties. See
+          <router-link to="/docs/hub/configuration#logging">Hub &rarr; Configuration &rarr; Logging</router-link>
+          for what each one does.
+        </DocsCallout>
+
         <DocsCallout type="info">
-          <strong>Two things worth spelling out.</strong> <code>logging.threshold.console</code> is
-          what makes the pair work: the level is <code>TRACE</code>, so the file gets everything,
-          while the console stays at <code>INFO</code> and remains readable through
-          <code>kubectl logs</code>. And <code>&lt;&lt;ENV:JEFFREY_HOME&gt;&gt;</code> is resolved by
-          the provisioner rather than by Kubernetes, which is the whole point — see
-          <a href="#placeholders">Placeholders</a> for why <code>$(VAR)</code> would not do here. The
-          YAML folded scalar (<code>value: &gt;-</code>) joins the indented lines back into one
-          space-separated string, so the flag list stays readable in the chart.
+          <code>&lt;&lt;ENV:JEFFREY_HOME&gt;&gt;</code> is resolved by the provisioner rather than by
+          Kubernetes, which is the whole point — see <a href="#placeholders">Placeholders</a> for why
+          <code>$(VAR)</code> would not do here. The YAML folded scalar (<code>value: &gt;-</code>)
+          joins the indented lines back into one space-separated string, so the flag list stays
+          readable in the chart.
         </DocsCallout>
 
         <DocsCallout type="tip">
