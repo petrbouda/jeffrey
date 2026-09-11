@@ -37,31 +37,21 @@ package cafe.jeffrey.jfr.events.mybatis;
  * }</pre>
  *
  * @param captureParameters record the bound parameter values as a JSON object on the event
- * @param maxValueLength    longest value recorded before truncation; applies whatever the source,
- *                          so one CLOB parameter cannot bloat every recording
  */
-public record MyBatisStatementSettings(boolean captureParameters, int maxValueLength) {
-
-    /** Long enough for an identifier, a name or a short description; short enough to stay cheap. */
-    private static final int DEFAULT_MAX_VALUE_LENGTH = 256;
-
-    public MyBatisStatementSettings {
-        if (maxValueLength < 0) {
-            throw new IllegalArgumentException("maxValueLength must not be negative: " + maxValueLength);
-        }
-    }
+public record MyBatisStatementSettings(boolean captureParameters) {
 
     /**
-     * Records parameters, truncating any value longer than 256 characters.
+     * Records parameters, each value as it was bound. Content that would have to be read to be
+     * rendered — a {@code Clob}, a stream — is still named rather than read.
      */
     public static MyBatisStatementSettings defaults() {
-        return new MyBatisStatementSettings(true, DEFAULT_MAX_VALUE_LENGTH);
+        return new MyBatisStatementSettings(true);
     }
 
     /**
      * Records the statement and its name, and nothing about what it ran with.
      */
     public static MyBatisStatementSettings noParameters() {
-        return new MyBatisStatementSettings(false, DEFAULT_MAX_VALUE_LENGTH);
+        return new MyBatisStatementSettings(false);
     }
 }

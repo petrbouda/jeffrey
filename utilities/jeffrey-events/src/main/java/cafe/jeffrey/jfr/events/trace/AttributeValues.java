@@ -39,8 +39,6 @@ public final class AttributeValues {
     /** Recorded when a value's own {@code toString()} throws — instrumentation never does. */
     public static final String UNRENDERABLE_VALUE = "<unavailable>";
 
-    private static final String TRUNCATION_MARKER = "…";
-
     /** Written as JSON numbers; every other Number is rendered as text rather than losing digits. */
     private static final Set<Class<?>> INTEGRAL_TYPES = Set.of(Byte.class, Short.class, Integer.class, Long.class);
     private static final Set<Class<?>> DECIMAL_TYPES = Set.of(Float.class, Double.class);
@@ -50,10 +48,13 @@ public final class AttributeValues {
 
     /**
      * Records {@code value} under {@code key}, as JSON {@code null}, a number, a boolean, or text.
-     *
-     * @param maxValueLength longest text recorded before it is truncated and marked
+     * <p>
+     * The value is recorded whole. Nothing here shortens it: a recorded value exists to be read and
+     * matched against, and a silently cut one is a value no search could find again. A payload that
+     * should not reach a recording at all is refused at its source — the way MyBatis names a
+     * {@code Clob} rather than reading it — not trimmed on the way past.
      */
-    public static void put(EventAttributes attributes, String key, Object value, int maxValueLength) {
+    public static void put(EventAttributes attributes, String key, Object value) {
         switch (value) {
             case null -> attributes.put(key, (String) null);
             case Boolean flag -> attributes.put(key, (boolean) flag);
@@ -61,26 +62,19 @@ public final class AttributeValues {
                     attributes.put(key, number.longValue());
             case Number number when DECIMAL_TYPES.contains(number.getClass()) ->
                     attributes.put(key, number.doubleValue());
-            default -> attributes.put(key, text(value, maxValueLength));
+            default -> attributes.put(key, text(value));
         }
     }
 
     /**
-     * The value as text, truncated to {@code maxValueLength} and marked when it was cut.
+     * The value as text.
      */
-    public static String text(Object value, int maxValueLength) {
-        String rendered;
+    public static String text(Object value) {
         try {
-            rendered = String.valueOf(value);
+            return String.valueOf(value);
         } catch (Throwable failure) {
             // The value's own toString() threw. That is its problem, not the caller's.
             return UNRENDERABLE_VALUE;
         }
-
-        if (rendered.length() <= maxValueLength) {
-            return rendered;
-        }
-
-        return rendered.substring(0, maxValueLength) + TRUNCATION_MARKER;
     }
 }

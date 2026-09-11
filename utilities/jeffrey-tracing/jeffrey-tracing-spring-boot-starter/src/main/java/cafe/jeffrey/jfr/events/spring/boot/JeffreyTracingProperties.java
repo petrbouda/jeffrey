@@ -55,7 +55,6 @@ import java.util.List;
  *                         thousands sharing its SQL — turn it off for an application whose mappers
  *                         take values it would not paste into a bug report, since a recording is a
  *                         file that gets shared
- * @param mybatisMaxParameterLength longest parameter value recorded before truncation
  * @param captureQueryParams record query-string parameters on the event; off by default, because
  *                         query strings routinely carry tokens and personal data, and a recording
  *                         is a file that gets shared
@@ -72,7 +71,6 @@ public record JeffreyTracingProperties(
         Boolean hikariEnabled,
         Boolean mybatisEnabled,
         Boolean mybatisCaptureParameters,
-        Integer mybatisMaxParameterLength,
         Boolean captureQueryParams,
         Boolean capturePathParams,
         Http http) {
@@ -87,9 +85,6 @@ public record JeffreyTracingProperties(
         hikariEnabled = hikariEnabled == null || hikariEnabled;
         mybatisEnabled = mybatisEnabled == null || mybatisEnabled;
         mybatisCaptureParameters = mybatisCaptureParameters == null || mybatisCaptureParameters;
-        mybatisMaxParameterLength = mybatisMaxParameterLength == null
-                ? MyBatisStatementSettings.defaults().maxValueLength()
-                : mybatisMaxParameterLength;
         captureQueryParams = captureQueryParams != null && captureQueryParams;
         capturePathParams = capturePathParams != null && capturePathParams;
         http = http == null ? Http.defaults() : http;
@@ -142,6 +137,6 @@ public record JeffreyTracingProperties(
      * @return the framework-free settings the MyBatis interceptor actually consumes
      */
     public MyBatisStatementSettings toMyBatisSettings() {
-        return new MyBatisStatementSettings(mybatisCaptureParameters, mybatisMaxParameterLength);
+        return new MyBatisStatementSettings(mybatisCaptureParameters);
     }
 }

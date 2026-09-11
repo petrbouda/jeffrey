@@ -150,7 +150,7 @@ What the rules are, and why:
 | A property used twice is written once | `#{id} … #{id}` resolves to the same value both times |
 | Numbers and booleans are JSON numbers and booleans; everything else is a string | `{"id":42}`, not `{"id":"42"}` |
 | `byte[]`, `Blob`, `Clob`, `InputStream`, `Reader`, `SQLXML` record `<lob-value>` | rendering a stream would consume it and break the statement |
-| Values longer than 256 characters are truncated with a `…` | always on, capture flag or not: one CLOB parameter must not bloat every recording. `jeffrey.tracing.mybatis-max-parameter-length` moves the limit |
+| A value is recorded whole | a parameter is there to be matched against, and a shortened one is a value no search could find again; the LOB rule above is what keeps a large payload out |
 | Nothing is computed unless the event commits | a statement under the recording threshold pays for none of this |
 
 ## 5. Older releases: the hand-written interceptor

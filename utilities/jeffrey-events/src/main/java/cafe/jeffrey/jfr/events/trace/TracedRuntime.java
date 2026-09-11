@@ -44,12 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class TracedRuntime {
 
-    /**
-     * Longer values are truncated: an argument is a fact about a call, not a payload, and one
-     * oversized {@code toString()} must not bloat an entire recording.
-     */
-    private static final int MAX_CAPTURED_VALUE_LENGTH = 256;
-
     /** Names every parameter at once. Not a legal Java identifier, so it can never be one. */
     private static final String CAPTURE_ALL = "*";
 
@@ -276,7 +270,7 @@ public final class TracedRuntime {
                 return;
             }
 
-            AttributeValues.put(rendered, key, value, MAX_CAPTURED_VALUE_LENGTH);
+            AttributeValues.put(rendered, key, value);
         }
     }
 

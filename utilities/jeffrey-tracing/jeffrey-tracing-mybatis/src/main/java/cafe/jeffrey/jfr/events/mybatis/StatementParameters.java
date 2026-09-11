@@ -59,7 +59,7 @@ final class StatementParameters {
      * @return the bound values as a JSON object, or {@code null} for a statement that takes none —
      * an absent field reads better than an empty object in the dashboard
      */
-    static String json(MappedStatement statement, BoundSql boundSql, int maxValueLength) {
+    static String json(MappedStatement statement, BoundSql boundSql) {
         List<ParameterMapping> mappings = boundSql.getParameterMappings();
         if (mappings.isEmpty()) {
             return null;
@@ -81,7 +81,7 @@ final class StatementParameters {
             if (!written.add(property)) {
                 continue;
             }
-            put(attributes, property, resolve(configuration, boundSql, parameterObject, property), maxValueLength);
+            put(attributes, property, resolve(configuration, boundSql, parameterObject, property));
         }
 
         return written.isEmpty() ? null : attributes.json();
@@ -107,12 +107,12 @@ final class StatementParameters {
      * Content that would have to be read to be rendered is named rather than read; everything else
      * is written the way every other emitter writes a captured value.
      */
-    private static void put(EventAttributes attributes, String key, Object value, int maxValueLength) {
+    private static void put(EventAttributes attributes, String key, Object value) {
         if (LOB_TYPES.stream().anyMatch(type -> type.isInstance(value))) {
             attributes.put(key, LOB_PLACEHOLDER);
             return;
         }
 
-        AttributeValues.put(attributes, key, value, maxValueLength);
+        AttributeValues.put(attributes, key, value);
     }
 }

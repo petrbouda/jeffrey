@@ -288,11 +288,6 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
             <td>Record the values a MyBatis statement was bound with</td>
           </tr>
           <tr>
-            <td><code>jeffrey.tracing.mybatis-max-parameter-length</code></td>
-            <td><code>256</code></td>
-            <td>Truncate longer parameter values</td>
-          </tr>
-          <tr>
             <td><code>jeffrey.tracing.capture-query-params</code></td>
             <td><code>false</code></td>
             <td>Record query-string parameters on the event</td>
@@ -379,7 +374,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
 
       <p>Registering the MyBatis interceptor stands the <code>DataSource</code> wrapper down automatically, so the two cannot record the same statement twice — once under <code>UserMapper.selectById</code> and once under a name parsed out of its SQL. On the plain <code>@Import</code> path there is no <code>jeffrey.tracing.*</code> binding at all — those properties exist only where an auto-configuration reads them — so the remedy there is simply not to import <code>JeffreyJdbcTracingConfiguration</code>. The trade-off is what <code>jeffrey.tracing.mybatis-enabled=false</code> exists for: an application using MyBatis <em>and</em> a plain <code>JdbcTemplate</code> sees only the mapper calls, and gets everything back — under SQL-parsed names — by leaving the wrapper in charge.</p>
 
-      <p>Statement naming and MyBatis settings are both taken from a bean when one exists: declare a <code>StatementNaming</code> to name statements by something better than verb and primary table, or a <code>MyBatisStatementSettings</code> to change parameter capture (<code>jeffrey.tracing.mybatis-capture-parameters</code>, <code>jeffrey.tracing.mybatis-max-parameter-length</code> do the same through properties).</p>
+      <p>Statement naming and MyBatis settings are both taken from a bean when one exists: declare a <code>StatementNaming</code> to name statements by something better than verb and primary table, or a <code>MyBatisStatementSettings</code> to change parameter capture (<code>jeffrey.tracing.mybatis-capture-parameters</code> does the same through properties).</p>
 
       <h2 id="grpc">gRPC: No Starter</h2>
 

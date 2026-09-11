@@ -49,7 +49,6 @@ Tune it with `jeffrey.tracing.*`:
 | `jeffrey.tracing.hikari-enabled` | `true` | Give HikariCP pools a Jeffrey metrics tracker |
 | `jeffrey.tracing.mybatis-enabled` | `true` | Name statements by their mapper method instead, for an application with a `SqlSessionFactory`. It stands the `DataSource` wrapper down, so nothing is recorded twice; set it to `false` to keep the wrapper, which also sees JdbcTemplate — see `jeffrey-traces-mybatis` |
 | `jeffrey.tracing.mybatis-capture-parameters` | `true` | Record the values a MyBatis statement was bound with |
-| `jeffrey.tracing.mybatis-max-parameter-length` | `256` | Truncate longer parameter values |
 | `jeffrey.tracing.capture-query-params` | `false` | Record query-string parameters on the event |
 | `jeffrey.tracing.capture-path-params` | `false` | Record the route's template variables on the event |
 | `jeffrey.tracing.http.capture-request-headers` | *none* | Request headers to record as searchable attributes, e.g. `x-tenant-id` |

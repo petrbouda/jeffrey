@@ -201,14 +201,14 @@ class TracedRuntimeTest {
         }
 
         @Test
-        @DisplayName("truncate an oversized value instead of bloating the recording")
-        void truncateLongValues() throws IOException {
+        @DisplayName("record a long value whole, because a shortened one could never be matched")
+        void recordLongValuesWhole() throws IOException {
             String oversized = "x".repeat(300);
 
             RecordedEvent event = JfrRecordings.single(TraceSpanEvent.NAME, () ->
                     call("captureSelected", oversized, "secret"));
 
-            assertEquals("{\"arg0\":\"" + "x".repeat(256) + "…\"}", event.getString("attributes"));
+            assertEquals("{\"arg0\":\"" + oversized + "\"}", event.getString("attributes"));
         }
 
         @Test

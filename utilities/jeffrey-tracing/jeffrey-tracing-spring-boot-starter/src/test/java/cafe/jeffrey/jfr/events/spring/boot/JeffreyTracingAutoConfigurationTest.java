@@ -283,11 +283,9 @@ class JeffreyTracingAutoConfigurationTest {
         @Test
         @DisplayName("properties reach the interceptor the application actually gets")
         void propertiesBind() {
-            mybatisRunner.withPropertyValues(
-                            "jeffrey.tracing.mybatis-capture-parameters=false",
-                            "jeffrey.tracing.mybatis-max-parameter-length=16")
+            mybatisRunner.withPropertyValues("jeffrey.tracing.mybatis-capture-parameters=false")
                     .run(context -> assertThat(context.getBean(JeffreyMyBatisInterceptor.class).settings())
-                            .isEqualTo(new MyBatisStatementSettings(false, 16)));
+                            .isEqualTo(new MyBatisStatementSettings(false)));
         }
 
         @Test
