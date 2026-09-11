@@ -27,7 +27,7 @@
           :isCollectorOnly="isCollectorOnly"
           :showInstanceLink="false"
           headerText="Sessions"
-          @refresh="fetchSessions"
+          @refresh="() => fetchSessions()"
         />
 
         <!-- No Sessions Message -->
@@ -51,6 +51,8 @@ import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import RecordingSessionList from '@hubs/components/RecordingSessionList.vue';
 import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
+import RecordingStatus from '@hubs/services/api/model/RecordingStatus';
+import { usePolling } from '@shared/composables/usePolling';
 import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
 import RecordingSession from '@hubs/services/api/model/RecordingSession';
 import { useNavigation } from '@/composables/useNavigation';
@@ -73,8 +75,30 @@ const isRemoteWorkspace = computed(() => {
   return true;
 });
 
-const fetchSessions = async () => {
-  sessionsLoading.value = true;
+/**
+ * How often a session that is still recording is re-read. A session's figures — file sizes
+ * above all — come from a listing of the hub's repository directory taken at request time,
+ * so without this the page shows whatever the files measured at the moment it was opened,
+ * for as long as it stays open.
+ */
+const ACTIVE_SESSION_REFRESH_MS = 10_000;
+
+const hasActiveSession = (): boolean => {
+  return sessions.value.some(session => session.status === RecordingStatus.ACTIVE);
+};
+
+// Declared ahead of fetchSessions because that is what arms and disarms it; the callback
+// reaches the function below only when a tick fires, long after setup has run.
+const sessionPolling = usePolling(() => fetchSessions(true), ACTIVE_SESSION_REFRESH_MS);
+
+/**
+ * Loads this instance's sessions. Background reloads (the poll above) leave the loading
+ * flag alone so a refresh never flickers the view that is already on screen.
+ */
+const fetchSessions = async (background: boolean = false) => {
+  if (!background) {
+    sessionsLoading.value = true;
+  }
   try {
     const repositoryService = new ProjectRepositoryClient(
       hubId.value,
@@ -88,7 +112,16 @@ const fetchSessions = async () => {
       sessions.value = [];
     }
   } finally {
-    sessionsLoading.value = false;
+    if (!background) {
+      sessionsLoading.value = false;
+    }
+    // Decided after every load rather than once: a session that finishes while the page is
+    // open ends the polling, and one that starts begins it.
+    if (hasActiveSession()) {
+      sessionPolling.start();
+    } else {
+      sessionPolling.stop();
+    }
   }
 };
 
