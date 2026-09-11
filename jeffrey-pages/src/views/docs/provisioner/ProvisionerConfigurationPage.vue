@@ -53,6 +53,21 @@ JEFFREY_PERF_COUNTERS=true
 JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log"
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
 
+const loggingExample = `# A Deployment env: entry — here Jeffrey Hub itself, provisioned like any other app.
+# The jeffrey.hub.* flags are the Hub's own; the logging.* ones apply to any Spring Boot application.
+- name: JEFFREY_ADDITIONAL_JVM_OPTIONS
+  value: >-
+    -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
+    -Djeffrey.hub.copy-libs.enabled=true
+    -Djeffrey.hub.home.dir=<<ENV:JEFFREY_HOME>>
+    -Dlogging.level.cafe.jeffrey=TRACE
+    -Dlogging.threshold.console=INFO
+    -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
+    -Dlogging.logback.rollingpolicy.max-file-size=10MB
+    -Dlogging.logback.rollingpolicy.total-size-cap=100MB
+    -Dlogging.logback.rollingpolicy.max-history=2
+    -Djeffrey.hub.workspaces.auto-create=true`;
+
 const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
   jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
   jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
@@ -85,7 +100,7 @@ jvm-logging {
   command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
 jdk-java-options { enabled = true }
-additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log"`;
+additional-jvm-options = "-Xmx2g -Xms2g -Dlogging.level.cafe.jeffrey=TRACE -Dlogging.threshold.console=INFO -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log"`;
 </script>
 
 <template>
@@ -104,6 +119,28 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
           language="bash"
           :code="envOnlySetup"
         />
+
+        <p>
+          <code>additional-jvm-options</code> is also how an application's <em>own</em> logging is
+          pointed at the session directory, so its log file lands beside the recordings the
+          provisioner writes for that run. A Spring Boot application needs no extra configuration for
+          this — <code>logging.file.name</code> alone adds the rolling file appender:
+        </p>
+        <DocsCodeBlock
+          language="yaml"
+          :code="loggingExample"
+        />
+
+        <DocsCallout type="info">
+          <strong>Two things worth spelling out.</strong> <code>logging.threshold.console</code> is
+          what makes the pair work: the level is <code>TRACE</code>, so the file gets everything,
+          while the console stays at <code>INFO</code> and remains readable through
+          <code>kubectl logs</code>. And <code>&lt;&lt;ENV:JEFFREY_HOME&gt;&gt;</code> is resolved by
+          the provisioner rather than by Kubernetes, which is the whole point — see
+          <a href="#placeholders">Placeholders</a> for why <code>$(VAR)</code> would not do here. The
+          YAML folded scalar (<code>value: &gt;-</code>) joins the indented lines back into one
+          space-separated string, so the flag list stays readable in the chart.
+        </DocsCallout>
 
         <DocsCallout type="tip">
           <strong>Fail-open:</strong> any misconfiguration (missing binaries, missing project name, broken config) starts the application <em>without profiling</em> instead of preventing it from starting — look for the single <code>Jeffrey profiling ENABLED: …</code> / <code>profiling DISABLED: &lt;reason&gt;</code> line in the container log to see the outcome.
