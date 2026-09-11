@@ -40,8 +40,7 @@ volumes:
 Optional pod-level env overrides: `JEFFREY_PROJECT_NAME`, `JEFFREY_WORKSPACE_REF_ID`,
 `JEFFREY_PROJECT_LABEL`, `JEFFREY_ATTRIBUTES` (`key=value,key=value`),
 `JEFFREY_HEAP_DUMP` (`exit`|`crash`|`off`), `JEFFREY_PERF_COUNTERS`,
-`JEFFREY_JVM_LOGGING`, `JEFFREY_ADDITIONAL_JVM_OPTIONS`. A mounted HOCON file still wins
-over environment variables wherever it sets a value.
+`JEFFREY_ADDITIONAL_JVM_OPTIONS` (JVM unified logging goes here — pass `-Xlog:…` commands).
 
 Any of these values may contain `<<ENV:NAME>>` or `<<JEFFREY:NAME>>` placeholders,
 with an optional `:-default` fallback. Reach for `<<ENV:…>>` where Kubernetes' own `$(VAR)` cannot

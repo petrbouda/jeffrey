@@ -124,7 +124,6 @@ public class InitConfig {
             # (TracingJfrEvents.DEFAULT_SETTINGS); "none" opts out while leaving tracing on.
             tracing { enabled = true, jfr-event-settings = "" }
             heap-dump { enabled = false, type = "exit" }
-            jvm-logging { enabled = false, command = "" }
             agent-path = ""
             jdk-java-options { enabled = false }
             additional-jvm-options = ""
@@ -233,7 +232,6 @@ public class InitConfig {
     private final boolean debugNonSafepointsEnabled;
     private final boolean jdkJavaOptionsEnabled;
     private final HeapDumpType heapDumpType;
-    private final String jvmLoggingCommand;
 
     private final Path envFilePath;
     private final Path argFilePath;
@@ -285,9 +283,6 @@ public class InitConfig {
         this.jdkJavaOptionsEnabled = resolved.getBoolean(ConfigPaths.JDK_JAVA_OPTIONS_ENABLED);
         this.heapDumpType = resolved.getBoolean(ConfigPaths.HEAP_DUMP_ENABLED)
                 ? HeapDumpType.resolve(resolved.getString(ConfigPaths.HEAP_DUMP_TYPE))
-                : null;
-        this.jvmLoggingCommand = resolved.getBoolean(ConfigPaths.JVM_LOGGING_ENABLED)
-                ? nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.JVM_LOGGING_COMMAND)))
                 : null;
 
         this.envFilePath = toPath(resolved.getString(ConfigPaths.ENV_FILE));
@@ -468,11 +463,6 @@ public class InitConfig {
     /** The kind of heap dump to arm, or null when heap dumps are off. */
     public HeapDumpType resolveHeapDumpType() {
         return heapDumpType;
-    }
-
-    /** The {@code -Xlog} command, or null when JVM logging is off. */
-    public String getJvmLoggingCommand() {
-        return jvmLoggingCommand;
     }
 
     public RepositoryType resolveRepositoryType() {

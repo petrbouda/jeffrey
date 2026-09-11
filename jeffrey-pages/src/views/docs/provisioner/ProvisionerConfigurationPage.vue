@@ -50,8 +50,7 @@ JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUI
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
-JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log"
-JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
+JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
 # Everything after -XX:+AlwaysPreTouch is application configuration the provisioner just forwards:
@@ -96,12 +95,8 @@ debug-non-safepoints { enabled = true }
 perf-counters { enabled = true }
 tracing { enabled = true }
 heap-dump { enabled = true, type = "crash" }
-jvm-logging {
-  enabled = true
-  command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
-}
 jdk-java-options { enabled = true }
-additional-jvm-options = "-Xmx2g -Xms2g"`;
+additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 </script>
 
 <template>
@@ -122,11 +117,12 @@ additional-jvm-options = "-Xmx2g -Xms2g"`;
         />
 
         <p>
-          <code>additional-jvm-options</code> carries more than JVM tuning: the provisioner appends
-          it verbatim, so it is also how an application's <em>own</em> configuration reaches it — and
-          because placeholders are resolved there, how that configuration can refer to the session
-          directory this run writes into. The example below is Jeffrey Hub provisioned like any other
-          application, putting its log file beside that run's recordings:
+          The provisioner appends <code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code> verbatim, so it
+          carries more than heap sizing and the JVM's own <code>-Xlog:</code> above: it is equally how
+          an application's <em>own</em> configuration reaches it, and — because placeholders are
+          resolved there too — how that configuration can name the session directory this run writes
+          into. The example below is Jeffrey Hub provisioned like any other application, putting its
+          log file beside that run's recordings:
         </p>
         <DocsCodeBlock
           language="yaml"
@@ -297,7 +293,7 @@ additional-jvm-options = "-Xmx2g -Xms2g"`;
               <td><code>additional-jvm-options</code></td>
               <td>No</td>
               <td><code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code></td>
-              <td>Extra JVM flags appended to the generated arguments. Supports <a href="#placeholders">placeholders</a>.</td>
+              <td>Extra JVM flags appended to the generated arguments, including JVM unified logging (<code>-Xlog:…</code>). Supports <a href="#placeholders">placeholders</a>.</td>
             </tr>
             <tr>
               <td><code>provisioner-verbose</code></td>
@@ -335,12 +331,6 @@ additional-jvm-options = "-Xmx2g -Xms2g"`;
               <td><code>JEFFREY_HEAP_DUMP</code></td>
               <td>Heap dump on OutOfMemoryError. Env form: <code>exit</code> | <code>crash</code> | <code>off</code></td>
             </tr>
-            <tr>
-              <td><code>jvm-logging.command</code></td>
-              <td>No</td>
-              <td><code>JEFFREY_JVM_LOGGING</code></td>
-              <td>JVM unified logging command (<code>-Xlog:&lt;command&gt;</code>); a non-blank env value enables the feature</td>
-            </tr>
           </tbody>
         </table>
 
@@ -377,12 +367,6 @@ additional-jvm-options = "-Xmx2g -Xms2g"`;
             <p>Automatic heap dumps on OutOfMemoryError or JVM crash. Compressed with gzip for efficient storage.</p>
             <code>heap-dump { enabled = true; type = "crash" }</code>
           </div>
-          <div class="feature-card logging">
-            <div class="feature-icon"><i class="bi bi-file-text"></i></div>
-            <h4>JVM Logging</h4>
-            <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity. Files with <code>-jvm.log</code> suffix are automatically recognized as JVM log artifacts. Use <a href="#placeholders">placeholders</a> such as <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> in the command to reference the session directory.</p>
-            <code>jvm-logging { enabled = true }</code>
-          </div>
           <div class="feature-card heartbeat">
             <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
             <h4>Heartbeat &amp; Clean-Exit Marker</h4>
@@ -405,8 +389,8 @@ additional-jvm-options = "-Xmx2g -Xms2g"`;
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-plus-circle"></i></div>
             <h4>Additional JVM Options</h4>
-            <p>Extra JVM flags added to the argfile and profiler settings, independent of <code>JDK_JAVA_OPTIONS</code> export.</p>
-            <code>additional-jvm-options = "-Xmx2g -Xms2g"</code>
+            <p>Extra JVM flags added to the argfile and profiler settings, independent of <code>JDK_JAVA_OPTIONS</code> export. This is also where JVM unified logging goes: pass any number of <code>-Xlog:…</code> commands, use <a href="#placeholders">placeholders</a> such as <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> to write into the session directory, and end the file name with <code>-jvm.log</code> so Jeffrey recognizes it as a JVM log artifact.</p>
+            <code>additional-jvm-options = "-Xmx2g -Xlog:gc*=debug:file=…/gc-jvm.log"</code>
           </div>
         </div>
 
@@ -601,10 +585,6 @@ additional-jvm-options = "-Xmx2g -Xms2g"`;
 
 .feature-card.heap .feature-icon {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-.feature-card.logging .feature-icon {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 .feature-card.debug-safepoints .feature-icon {

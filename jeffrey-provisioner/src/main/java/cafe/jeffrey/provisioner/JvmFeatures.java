@@ -41,7 +41,6 @@ public record JvmFeatures(List<JvmFeature> features) {
                 new JvmFeature.DebugNonSafepoints(config.isDebugNonSafepointsEnabled()),
                 new JvmFeature.PerfCounters(config.isPerfCountersEnabled()),
                 new JvmFeature.HeapDump(config.resolveHeapDumpType()),
-                new JvmFeature.JvmLogging(config.getJvmLoggingCommand()),
                 new JvmFeature.Agent(config.getAgentPath(), config.isMethodTracingEnabled(), identity),
                 new JvmFeature.TracingEventThresholds(
                         config.isMethodTracingEnabled(), config.getTracingJfrEventSettings()),
