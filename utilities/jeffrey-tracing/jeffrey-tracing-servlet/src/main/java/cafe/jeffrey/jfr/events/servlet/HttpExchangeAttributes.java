@@ -27,12 +27,15 @@ import java.util.Set;
 /**
  * What a {@link HttpExchangeAttributesCustomizer} writes the request's own detail into.
  * <p>
- * A wrapper around {@link EventAttributes} rather than the builder itself, because everything
- * Jeffrey's attribute index requires of an attribute has to be guaranteed <em>here</em>, on the way
- * in. That index flattens the recorded map one row per key, and it silently drops any key whose
- * value is an object or an array, any key containing a quote, and any empty value. An attribute
- * that reaches the recording but can never be searched is the worst outcome of the three, so this
- * class refuses those shapes at the point they are written instead.
+ * A wrapper around {@link EventAttributes} rather than the builder itself, because what Jeffrey's
+ * attribute index requires of an attribute is best guaranteed <em>here</em>, on the way in. That
+ * index flattens the recorded map one row per key and silently drops any key containing a quote and
+ * any empty value, so those are refused or skipped at the point they are written — an attribute
+ * that reaches the recording and can never be searched is the worst of the outcomes.
+ * <p>
+ * A collection or a map is <em>not</em> refused: it is recorded as its own text
+ * ({@code {a=1, b=2}}), which is searchable only as that exact string and is almost never what the
+ * caller meant. Attributes are a flat map of scalars; put each value under its own key.
  * <p>
  * Not thread-safe, and not meant to be: one is created per exchange and every customizer runs on
  * the thread completing it.

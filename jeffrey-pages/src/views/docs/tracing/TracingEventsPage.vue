@@ -71,7 +71,7 @@ const families: EventFamily[] = [
       {
         name: 'jeffrey.HttpServerExchange',
         recordedAs: 'SERVER',
-        description: 'An inbound request: method, matched URI template, response status, remote host and port, media type, query and path parameters, request and response body lengths.'
+        description: 'An inbound request: method, matched URI template, response status, remote host and port, media type, query and path parameters, request and response body lengths — plus whatever a HttpExchangeAttributesCustomizer attached.'
       },
       {
         name: 'jeffrey.HttpClientExchange',

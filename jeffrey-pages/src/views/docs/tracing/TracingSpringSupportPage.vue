@@ -335,7 +335,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
 
       <h2 id="attributes">HTTP: Attribute Customizers</h2>
 
-      <p>The same bargain, for what a request should be <em>searchable by</em>. <code>jeffrey.tracing.http.capture-request-headers</code> covers the common case; anything a header cannot express is a lambda, and the starter collects every <code>HttpExchangeAttributesCustomizer</code> bean:</p>
+      <p>The same bargain, for what a request should be <em>searchable by</em>. <code>jeffrey.tracing.http.capture-request-headers</code> covers the common case; anything a header cannot express is a lambda. <code>JeffreyTracingConfiguration</code> collects every <code>HttpExchangeAttributesCustomizer</code> bean, so customizers work on the plain <code>@Import</code> path too — only the property and the built-in header customizer it feeds are the starter's:</p>
 
       <DocsCodeBlock :code="attributesCustomizer" language="java" />
 
@@ -415,6 +415,10 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
           <tr>
             <td>A <code>FilterRegistrationBean</code> named <code>jeffreyHttpExchangeFilterRegistration</code></td>
             <td>The registration — order and URL patterns. Matched <strong>by name</strong>, not by type, so any other <code>FilterRegistrationBean</code> leaves it alone</td>
+          </tr>
+          <tr>
+            <td>A bean named <code>jeffreyHttpHeaderAttributesCustomizer</code></td>
+            <td>The built-in header capture bound from <code>jeffrey.tracing.http.capture-request-headers</code>. Matched <strong>by name</strong>, so a customizer under any other name <em>adds to</em> it rather than replacing it</td>
           </tr>
           <tr>
             <td><code>StatementNaming</code></td>
