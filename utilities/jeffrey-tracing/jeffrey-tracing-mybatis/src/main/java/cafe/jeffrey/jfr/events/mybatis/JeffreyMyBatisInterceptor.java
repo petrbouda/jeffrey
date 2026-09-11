@@ -90,7 +90,6 @@ public class JeffreyMyBatisInterceptor implements Interceptor {
     private static final int PARAMETER_ARGUMENT = 1;
 
     private static final String CAPTURE_PARAMETERS_PROPERTY = "capture-parameters";
-    private static final String MAX_VALUE_LENGTH_PROPERTY = "max-value-length";
 
     // Volatile because registration and execution are different threads: MyBatis applies
     // setProperties while wiring the SqlSessionFactory, and statements run wherever they run.
@@ -126,7 +125,7 @@ public class JeffreyMyBatisInterceptor implements Interceptor {
                     event.sql = boundSql.getSql();
                     event.rows = countRows(result);
                     if (settings.captureParameters()) {
-                        event.params = StatementParameters.json(statement, boundSql, settings.maxValueLength());
+                        event.params = StatementParameters.json(statement, boundSql);
                     }
                 });
     }
@@ -138,22 +137,13 @@ public class JeffreyMyBatisInterceptor implements Interceptor {
      */
     @Override
     public void setProperties(Properties properties) {
-        boolean captureParameters = booleanProperty(
-                properties, CAPTURE_PARAMETERS_PROPERTY, settings.captureParameters());
-        int maxValueLength = intProperty(
-                properties, MAX_VALUE_LENGTH_PROPERTY, settings.maxValueLength());
-
-        this.settings = new MyBatisStatementSettings(captureParameters, maxValueLength);
+        this.settings = new MyBatisStatementSettings(
+                booleanProperty(properties, CAPTURE_PARAMETERS_PROPERTY, settings.captureParameters()));
     }
 
     private static boolean booleanProperty(Properties properties, String name, boolean fallback) {
         String value = properties.getProperty(name);
         return value == null ? fallback : Boolean.parseBoolean(value);
-    }
-
-    private static int intProperty(Properties properties, String name, int fallback) {
-        String value = properties.getProperty(name);
-        return value == null ? fallback : Integer.parseInt(value);
     }
 
     /**

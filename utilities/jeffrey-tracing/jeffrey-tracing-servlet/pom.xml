@@ -57,6 +57,13 @@
             <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Only to stand in for the servlet API's interfaces, which are too wide to hand-stub. -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -108,8 +108,8 @@ public @interface Traced {
      * is recorded as {@link CapturableTypes#UNSUPPORTED_VALUE}. Under {@code "*"} an uncapturable
      * parameter is passed over silently: a sweep is not a request for any particular one.
      * <p>
-     * Values are truncated to a maximum length, because an argument is a fact about a call rather
-     * than a payload.
+     * A captured value is recorded whole. Nothing shortens it, so what a dashboard groups by is the
+     * value itself; the way to keep something out of a recording is not to capture it.
      */
     String[] includeMethodArgs() default {};
 }

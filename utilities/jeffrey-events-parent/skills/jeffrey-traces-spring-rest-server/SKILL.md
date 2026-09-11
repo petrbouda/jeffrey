@@ -49,9 +49,9 @@ Tune it with `jeffrey.tracing.*`:
 | `jeffrey.tracing.hikari-enabled` | `true` | Give HikariCP pools a Jeffrey metrics tracker |
 | `jeffrey.tracing.mybatis-enabled` | `true` | Name statements by their mapper method instead, for an application with a `SqlSessionFactory`. It stands the `DataSource` wrapper down, so nothing is recorded twice; set it to `false` to keep the wrapper, which also sees JdbcTemplate — see `jeffrey-traces-mybatis` |
 | `jeffrey.tracing.mybatis-capture-parameters` | `true` | Record the values a MyBatis statement was bound with |
-| `jeffrey.tracing.mybatis-max-parameter-length` | `256` | Truncate longer parameter values |
 | `jeffrey.tracing.capture-query-params` | `false` | Record query-string parameters on the event |
 | `jeffrey.tracing.capture-path-params` | `false` | Record the route's template variables on the event |
+| `jeffrey.tracing.http.capture-request-headers` | *none* | Request headers to record as searchable attributes, e.g. `x-tenant-id` |
 
 `mybatis-capture-parameters` is the one capture flag that is *on*: a statement's parameters are what
 make a slow statement readable, where a query string is free-form user input. The MyBatis skill
@@ -61,6 +61,41 @@ explains the difference and how to turn it off.
 shared and kept, and query strings routinely carry access tokens, e-mail addresses and search
 terms. Turn them on for an application whose parameters you know are safe to keep — as Jeffrey does
 for itself.
+
+### Making a request searchable by more than its URI
+
+The fields above are what HTTP itself can say. *Which tenant was this*, *which API version*, *which
+client* is domain knowledge the servlet layer cannot name, so it is asked for from a
+`HttpExchangeAttributesCustomizer` — the same bargain `HttpRequestNaming` strikes for the span name.
+Headers are covered by the two properties above; anything else is a lambda, and every bean of the
+type is collected in `@Order` order:
+
+```java
+@Bean
+HttpExchangeAttributesCustomizer planAttributes() {
+    return (attributes, request, response) ->
+            attributes.put("tenant.plan", request.getAttribute("tenant.plan"));
+}
+```
+
+The starter's own header customizer is called `jeffreyHttpHeaderAttributesCustomizer`: declare a bean
+of that **name** to replace it, any other name to add to it. One that throws is logged once and
+skipped — it can neither fail the request nor lose the span.
+
+What a customizer contributes goes into the span's open `attributes` map, and that is the point
+rather than an implementation detail: Jeffrey indexes that map **one key at a time**, so each key is
+filterable, facetable and rankable in Traces → Attributes and reachable through
+`traces_attributeSearch`. A declared event field would be one opaque value instead — which is what
+`queryParams` is, and why it answers "what did this request carry" but never "show me the slow
+requests for this tenant". A captured header is recorded under its own name, lower-cased —
+`x-tenant-id`, not a prefixed variant of it.
+
+| Rule | Why |
+|---|---|
+| Values must be flat scalars | the attribute flattener drops objects and arrays, so a header sent more than once records its first value rather than a list |
+| Values must be low-cardinality | past a couple of hundred distinct values a key stops being a browsable facet and becomes search-only, and every distinct value enters the recording's constant pool — capture what you *group by*, never an id unique per request |
+| Never capture a credential | `Authorization` and `Cookie` do not belong in a file that gets uploaded, shared and kept; nothing refuses them for you, so the allow-list is the whole of the decision |
+| Only request headers have a property | a response header is one your own server set, so a two-line customizer reads it off the response; an inbound header may be touched by no application code at all |
 
 ## 2. Plain Spring, or Boot without auto-configuration: `@Import`
 

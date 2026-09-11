@@ -54,18 +54,14 @@ factoryBean.setPlugins(new JeffreyMyBatisInterceptor());
 const mybatisXmlRegistration = `<plugins>
     <plugin interceptor="cafe.jeffrey.jfr.events.mybatis.JeffreyMyBatisInterceptor">
         <property name="capture-parameters" value="false"/>
-        <property name="max-value-length" value="256"/>
     </plugin>
 </plugins>`;
 
-const settingsExample = `// The default: record parameters, truncate any value longer than 256 characters
+const settingsExample = `// The default: record each parameter as it was bound
 new JeffreyMyBatisInterceptor(MyBatisStatementSettings.defaults());
 
 // Record the statement and its name, and nothing about what it ran with
-new JeffreyMyBatisInterceptor(MyBatisStatementSettings.noParameters());
-
-// Or set the truncation point yourself
-new JeffreyMyBatisInterceptor(new MyBatisStatementSettings(true, 64));`;
+new JeffreyMyBatisInterceptor(MyBatisStatementSettings.noParameters());`;
 
 const mybatisOutput = `jeffrey.JdbcQuery {
   duration = 3.9 ms
@@ -114,7 +110,7 @@ const mybatisOutput = `jeffrey.JdbcQuery {
 
       <DocsCodeBlock :code="settingsExample" language="java" />
 
-      <p>Values are truncated at 256 characters by default, whatever the source, so one CLOB parameter cannot bloat every recording; LOBs and streams record <code>&lt;lob-value&gt;</code> rather than being consumed.</p>
+      <p>A value is recorded as it was bound, whole: a parameter is there to be matched against, and a shortened one is a value no search could find again. Content that would have to be <em>read</em> to be rendered is the exception — LOBs and streams record <code>&lt;lob-value&gt;</code> rather than being consumed, which is what keeps a large payload out of the recording.</p>
 
       <DocsCallout type="warning">
         <strong>The values are recorded verbatim, and a recording is a file that gets uploaded, shared and kept.</strong> An application whose mappers take e-mail addresses, tokens or anything else you would not paste into a bug report should use <code>MyBatisStatementSettings.noParameters()</code> — and treat recordings already made as containing them.
@@ -130,7 +126,7 @@ const mybatisOutput = `jeffrey.JdbcQuery {
 
       <h2 id="spring-support">Using Spring Boot?</h2>
 
-      <p>The starter registers the interceptor for any application with a <code>SqlSessionFactory</code> bean and stands the <code>DataSource</code> wrapper down for you, so the double-recording above cannot happen. Parameter capture and truncation are bound from <code>jeffrey.tracing.*</code> instead of the settings record.</p>
+      <p>The starter registers the interceptor for any application with a <code>SqlSessionFactory</code> bean and stands the <code>DataSource</code> wrapper down for you, so the double-recording above cannot happen. Parameter capture is bound from <code>jeffrey.tracing.*</code> instead of the settings record.</p>
 
       <DocsLinkCard
         to="/docs/tracing/spring-support"

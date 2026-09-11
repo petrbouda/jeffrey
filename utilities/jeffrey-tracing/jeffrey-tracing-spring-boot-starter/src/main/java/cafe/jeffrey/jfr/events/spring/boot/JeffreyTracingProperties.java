@@ -19,6 +19,7 @@
 package cafe.jeffrey.jfr.events.spring.boot;
 
 import cafe.jeffrey.jfr.events.mybatis.MyBatisStatementSettings;
+import cafe.jeffrey.jfr.events.servlet.HttpExchangeAttributesCustomizer;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeSettings;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.Ordered;
@@ -54,12 +55,12 @@ import java.util.List;
  *                         thousands sharing its SQL — turn it off for an application whose mappers
  *                         take values it would not paste into a bug report, since a recording is a
  *                         file that gets shared
- * @param mybatisMaxParameterLength longest parameter value recorded before truncation
  * @param captureQueryParams record query-string parameters on the event; off by default, because
  *                         query strings routinely carry tokens and personal data, and a recording
  *                         is a file that gets shared
  * @param capturePathParams  record the route's template variables on the event; off by default for
  *                         the same reason
+ * @param http             what an inbound exchange should be searchable by beyond its HTTP shape
  */
 @ConfigurationProperties(prefix = "jeffrey.tracing")
 public record JeffreyTracingProperties(
@@ -70,9 +71,9 @@ public record JeffreyTracingProperties(
         Boolean hikariEnabled,
         Boolean mybatisEnabled,
         Boolean mybatisCaptureParameters,
-        Integer mybatisMaxParameterLength,
         Boolean captureQueryParams,
-        Boolean capturePathParams) {
+        Boolean capturePathParams,
+        Http http) {
 
     private static final List<String> ALL_REQUESTS = List.of("/*");
 
@@ -84,11 +85,45 @@ public record JeffreyTracingProperties(
         hikariEnabled = hikariEnabled == null || hikariEnabled;
         mybatisEnabled = mybatisEnabled == null || mybatisEnabled;
         mybatisCaptureParameters = mybatisCaptureParameters == null || mybatisCaptureParameters;
-        mybatisMaxParameterLength = mybatisMaxParameterLength == null
-                ? MyBatisStatementSettings.defaults().maxValueLength()
-                : mybatisMaxParameterLength;
         captureQueryParams = captureQueryParams != null && captureQueryParams;
         capturePathParams = capturePathParams != null && capturePathParams;
+        http = http == null ? Http.defaults() : http;
+    }
+
+    /**
+     * The {@code jeffrey.tracing.http.*} configuration: what an inbound exchange carries beyond
+     * what HTTP itself says about it.
+     * <p>
+     * An allow-list, empty by default. A header is recorded because somebody named it, never
+     * because nobody thought to exclude it — a recording is a file that gets uploaded, shared and
+     * kept, so {@code Authorization} and {@code Cookie} must never appear here. Prefer headers you
+     * would <em>group by</em>: a tenant or an API version makes a browsable facet, while an
+     * identifier unique to each request does not, and every distinct value enters the recording's
+     * constant pool.
+     *
+     * @param captureRequestHeaders request headers to record, each under the header's own name,
+     *                              lower-cased
+     */
+    public record Http(List<String> captureRequestHeaders) {
+
+        public Http {
+            captureRequestHeaders = captureRequestHeaders == null ? List.of() : List.copyOf(captureRequestHeaders);
+        }
+
+        /**
+         * Records nothing — the safe default, and the one that leaves every HTTP span's attributes
+         * field absent.
+         */
+        public static Http defaults() {
+            return new Http(List.of());
+        }
+
+        /**
+         * @return the framework-free customizer the filter actually consumes
+         */
+        public HttpExchangeAttributesCustomizer toCustomizer() {
+            return HttpExchangeAttributesCustomizer.requestHeaders(captureRequestHeaders);
+        }
     }
 
     /**
@@ -102,6 +137,6 @@ public record JeffreyTracingProperties(
      * @return the framework-free settings the MyBatis interceptor actually consumes
      */
     public MyBatisStatementSettings toMyBatisSettings() {
-        return new MyBatisStatementSettings(mybatisCaptureParameters, mybatisMaxParameterLength);
+        return new MyBatisStatementSettings(mybatisCaptureParameters);
     }
 }

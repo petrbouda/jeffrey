@@ -18,6 +18,11 @@
 
 package cafe.jeffrey.jfr.events.test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,6 +34,8 @@ import java.util.Objects;
 public final class SpanAssert {
 
     private static final String ROOT_STATUS_UNSET = "UNSET";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final RecordedSpan span;
     private final SpansAssert recording;
@@ -159,6 +166,50 @@ public final class SpanAssert {
     }
 
     /**
+     * Asserts the operation attached this key to itself, with this value.
+     * <p>
+     * These are the free-form attributes — what an application contributed, rather than a field the
+     * event type declares — and they are the ones Jeffrey indexes one key at a time, so a key
+     * asserted here is a key the Traces attribute search will find. Values are compared as text,
+     * numbers and booleans included, which is how the index stores them too.
+     */
+    public SpanAssert hasAttribute(String key, String value) {
+        Objects.requireNonNull(key, "key must not be null");
+
+        JsonNode attributes = readAttributes();
+        JsonNode recorded = attributes.get(key);
+        if (recorded == null) {
+            throw new AssertionError("expected '" + span.name() + "' to carry the attribute '" + key
+                    + "', but it carries " + describeAttributes(attributes));
+        }
+        if (recorded.isContainerNode()) {
+            throw new AssertionError("'" + key + "' on '" + span.name() + "' was recorded as " + recorded
+                    + ", which is not a value: Jeffrey indexes a flat map of scalars and would have "
+                    + "dropped it, so nothing could ever match it");
+        }
+        if (!Objects.equals(value, recorded.asText())) {
+            throw new AssertionError("expected '" + span.name() + "' to carry '" + key + "' = " + value
+                    + " but it was " + recorded.asText());
+        }
+        return this;
+    }
+
+    /**
+     * Asserts the operation attached nothing to itself.
+     * <p>
+     * An empty JSON object counts as a failure rather than as nothing: a span that attached no
+     * attributes should leave the field absent, so that {@code attributes IS NOT NULL} stays a
+     * meaningful filter on the way in.
+     */
+    public SpanAssert hasNoAttributes() {
+        if (span.attributes() != null) {
+            throw new AssertionError("expected '" + span.name() + "' to carry no attributes, but its attributes "
+                    + "field was recorded as " + span.attributes());
+        }
+        return this;
+    }
+
+    /**
      * Asserts which event type carried the span, e.g. {@code jeffrey.JdbcQuery}.
      */
     public SpanAssert hasEventType(String eventType) {
@@ -181,6 +232,32 @@ public final class SpanAssert {
      */
     public SpansAssert and() {
         return recording;
+    }
+
+    /**
+     * The recorded attributes as a tree, or an empty one when the span attached nothing.
+     */
+    private JsonNode readAttributes() {
+        String attributes = span.attributes();
+        if (attributes == null || attributes.isBlank()) {
+            return MAPPER.createObjectNode();
+        }
+        try {
+            return MAPPER.readTree(attributes);
+        } catch (JsonProcessingException failure) {
+            throw new AssertionError("the attributes recorded on '" + span.name()
+                    + "' are not a JSON object: " + attributes, failure);
+        }
+    }
+
+    private static String describeAttributes(JsonNode attributes) {
+        if (attributes.isEmpty()) {
+            return "none";
+        }
+
+        List<String> keys = new ArrayList<>();
+        attributes.fieldNames().forEachRemaining(keys::add);
+        return keys.toString();
     }
 
     private String describeParent() {

@@ -30,11 +30,14 @@
     </parent>
 
     <!--
-      Deliberately depends on nothing - not even jeffrey-events. It reads spans
-      out of a recording by their declared field names, which are the frozen wire
-      format, exactly as Jeffrey's own derivation discovers spans structurally.
-      That keeps the toolkit dependency-free for consumers AND lets the
-      jeffrey-events module use it in its own tests without a reactor cycle.
+      Deliberately does not depend on jeffrey-events. It reads spans out of a
+      recording by their declared field names, which are the frozen wire format,
+      exactly as Jeffrey's own derivation discovers spans structurally - which is
+      what lets the jeffrey-events module use this toolkit in its own tests
+      without a reactor cycle.
+
+      Jackson is the one dependency, for reading a span's attributes back out of
+      the JSON object they are recorded as.
     -->
     <artifactId>jeffrey-events-test</artifactId>
 
@@ -42,6 +45,13 @@
     <description>Test toolkit for asserting Jeffrey JFR events and traces in a real flight recording</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>

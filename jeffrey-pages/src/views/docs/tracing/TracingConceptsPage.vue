@@ -247,6 +247,8 @@ const namingExamples = `// Good: one name per operation — stable, low-cardinal
 
       <DocsCodeBlock :code="attributesExample" language="java" />
 
+      <p>Not every attribute is written by hand: an inbound HTTP request's span gets its own from a <router-link to="/docs/tracing/http-events">HttpExchangeAttributesCustomizer</router-link>, so an application can make requests searchable by tenant or API version without touching <code>EventAttributes</code> at all.</p>
+
       <p>Attributes are what Jeffrey's <router-link to="/docs/tracing/analysis">attribute search</router-link> indexes: they are flattened into the profile database one row per distinct value, so an id put in an attribute is queryable — the same id spliced into a span name or a message is not.</p>
 
       <DocsCallout type="warning">

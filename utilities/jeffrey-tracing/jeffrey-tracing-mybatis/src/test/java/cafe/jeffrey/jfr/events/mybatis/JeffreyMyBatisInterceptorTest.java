@@ -211,15 +211,14 @@ class JeffreyMyBatisInterceptorTest {
         }
 
         @Test
-        @DisplayName("are truncated, so one oversized argument cannot bloat every recording")
-        void longValuesAreTruncated() throws IOException {
-            SqlSessionFactory factory = sessionFactoryWith(
-                    new JeffreyMyBatisInterceptor(new MyBatisStatementSettings(true, 4)));
+        @DisplayName("are recorded whole, because a shortened value could never be matched")
+        void longValuesAreRecordedWhole() throws IOException {
+            String name = "abcdefgh".repeat(100);
 
             RecordedEvent event = JfrRecordings.single(JdbcInsertEvent.NAME, () ->
-                    inSession(factory, mapper -> mapper.insert(4, "abcdefgh")));
+                    inSession(mapper -> mapper.insert(4, name)));
 
-            assertEquals("{\"id\":4,\"name\":\"abcd…\"}", event.getString("params"));
+            assertEquals("{\"id\":4,\"name\":\"" + name + "\"}", event.getString("params"));
         }
 
         @Test
@@ -261,12 +260,11 @@ class JeffreyMyBatisInterceptorTest {
         void pluginPropertiesConfigureTheSettings() {
             Properties properties = new Properties();
             properties.setProperty("capture-parameters", "false");
-            properties.setProperty("max-value-length", "16");
 
             JeffreyMyBatisInterceptor interceptor = new JeffreyMyBatisInterceptor();
             interceptor.setProperties(properties);
 
-            assertEquals(new MyBatisStatementSettings(false, 16), interceptor.settings());
+            assertEquals(new MyBatisStatementSettings(false), interceptor.settings());
         }
 
         @Test

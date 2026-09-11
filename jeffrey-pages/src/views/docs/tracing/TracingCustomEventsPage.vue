@@ -185,10 +185,9 @@ event.attributes = EventAttributes.create()
         .put("fallback", true)
         .json();
 
-// AttributeValues: shared value-rendering rules (used by @Traced arg capture
-// and MyBatis parameter capture) — numbers stay numbers, everything else is
-// text truncated at the given limit, toString() failures record "<unavailable>".
-AttributeValues.put(builder, "orderId", orderId, 256);`;
+// AttributeValues: shared value-rendering rules — numbers stay numbers,
+// everything else is text, toString() failures record "<unavailable>".
+AttributeValues.put(builder, "orderId", orderId);`;
 </script>
 
 <template>

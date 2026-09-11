@@ -19,6 +19,7 @@
 package cafe.jeffrey.jfr.events.spring.boot;
 
 import cafe.jeffrey.jfr.events.jdbc.datasource.TracingDataSource;
+import cafe.jeffrey.jfr.events.servlet.HttpExchangeAttributesCustomizer;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeFilter;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeSettings;
 import cafe.jeffrey.jfr.events.servlet.HttpRequestNaming;
@@ -126,6 +127,85 @@ class JeffreyTracingAutoConfigurationTest {
     }
 
     @Nested
+    @DisplayName("What an exchange is searchable by")
+    class Attributes {
+
+        @Test
+        @DisplayName("the header customizer is wired, and records nothing until it is told what to")
+        void headerCustomizerIsWiredRecordingNothing() {
+            runner.run(context -> {
+                assertThat(context).hasBean("jeffreyHttpHeaderAttributesCustomizer");
+
+                JeffreyTracingProperties properties = context.getBean(JeffreyTracingProperties.class);
+                assertThat(properties.http().captureRequestHeaders()).isEmpty();
+            });
+        }
+
+        @Test
+        @DisplayName("the header list binds from the comma form")
+        void headerListBindsFromCommaForm() {
+            runner.withPropertyValues("jeffrey.tracing.http.capture-request-headers=x-tenant-id,x-api-version")
+                    .run(context -> assertThat(context.getBean(JeffreyTracingProperties.class)
+                            .http()
+                            .captureRequestHeaders())
+                            .containsExactly("x-tenant-id", "x-api-version"));
+        }
+
+        @Test
+        @DisplayName("and from the indexed form, which is what YAML binds to")
+        void headerListBindsFromIndexedForm() {
+            // The form that would defeat a @ConditionalOnProperty guard on this property, which is
+            // why the customizer bean is registered unconditionally instead.
+            runner.withPropertyValues(
+                            "jeffrey.tracing.http.capture-request-headers[0]=x-tenant-id",
+                            "jeffrey.tracing.http.capture-request-headers[1]=x-api-version")
+                    .run(context -> assertThat(context.getBean(JeffreyTracingProperties.class)
+                            .http()
+                            .captureRequestHeaders())
+                            .containsExactly("x-tenant-id", "x-api-version"));
+        }
+
+        @Test
+        @DisplayName("an application's own customizer adds to the built-in one rather than replacing it")
+        void applicationCustomizersCompose() {
+            runner.withUserConfiguration(ApplicationCustomizerConfiguration.class)
+                    .run(context -> {
+                        assertThat(context).hasBean("jeffreyHttpHeaderAttributesCustomizer");
+                        assertThat(context.getBeansOfType(HttpExchangeAttributesCustomizer.class)).hasSize(2);
+                    });
+        }
+
+        @Test
+        @DisplayName("the built-in one is replaced by declaring a bean of the same name")
+        void theBuiltInOneBacksOffByName() {
+            runner.withUserConfiguration(ReplacementCustomizerConfiguration.class)
+                    .run(context -> assertThat(context.getBeansOfType(HttpExchangeAttributesCustomizer.class))
+                            .hasSize(1)
+                            .containsKey("jeffreyHttpHeaderAttributesCustomizer"));
+        }
+
+        /** Nested for the same reason as {@link DataSources.PlainDataSource}. */
+        @Configuration(proxyBeanMethods = false)
+        static class ApplicationCustomizerConfiguration {
+
+            @Bean
+            HttpExchangeAttributesCustomizer tenantAttributesCustomizer() {
+                return (attributes, request, response) -> attributes.put("tenant", "acme");
+            }
+        }
+
+        /** Named as the starter's own bean, which is how an application replaces it. */
+        @Configuration(proxyBeanMethods = false)
+        static class ReplacementCustomizerConfiguration {
+
+            @Bean
+            HttpExchangeAttributesCustomizer jeffreyHttpHeaderAttributesCustomizer() {
+                return (attributes, request, response) -> attributes.put("tenant", "acme");
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("JDBC and connection pools")
     class DataSources {
 
@@ -203,11 +283,9 @@ class JeffreyTracingAutoConfigurationTest {
         @Test
         @DisplayName("properties reach the interceptor the application actually gets")
         void propertiesBind() {
-            mybatisRunner.withPropertyValues(
-                            "jeffrey.tracing.mybatis-capture-parameters=false",
-                            "jeffrey.tracing.mybatis-max-parameter-length=16")
+            mybatisRunner.withPropertyValues("jeffrey.tracing.mybatis-capture-parameters=false")
                     .run(context -> assertThat(context.getBean(JeffreyMyBatisInterceptor.class).settings())
-                            .isEqualTo(new MyBatisStatementSettings(false, 16)));
+                            .isEqualTo(new MyBatisStatementSettings(false)));
         }
 
         @Test
