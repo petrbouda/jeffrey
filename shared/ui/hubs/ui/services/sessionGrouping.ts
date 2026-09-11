@@ -20,10 +20,11 @@ import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 
 /**
- * How long a session may have lived and still read as a crash, in millis. Mirrors
- * RecordingSession.CRASHED_SESSION_LIFETIME on the backend — keep the two in step.
+ * How long a session must have been going before all-zero sizes are worth remarking on.
+ * Below this a session is simply new — its files exist and nothing has been flushed into
+ * them yet, which is the normal first seconds of every recording.
  */
-const CRASHED_SESSION_LIFETIME_MS = 60_000;
+const UNREPORTED_SIZES_GRACE_MS = 60_000;
 
 /** Total bytes across a session's files, counting an unknown size as zero. */
 export function totalSizeBytes(session: RecordingSession): number {
@@ -33,35 +34,36 @@ export function totalSizeBytes(session: RecordingSession): number {
 /**
  * A finished session that produced no data at all — typically a prematurely killed
  * process (OOM kill, container healthcheck restart loop). Mirrors the backend
- * predicate RecordingSession.isFailedEmpty(), including its guard: zero bytes counts as
- * a crash only when the session produced no files at all, or when it died too early to
- * have written anything. Past that window the sizes are the more likely thing to be
- * wrong — see hasUnreportedSizes.
+ * predicate RecordingSession.isFailedEmpty().
  */
 export function isFailedSession(session: RecordingSession): boolean {
   if (session.status !== RecordingStatus.FINISHED) {
     return false;
   }
-  if (totalSizeBytes(session) > 0) {
-    return false;
-  }
-  return session.files.length === 0 || session.duration < CRASHED_SESSION_LIFETIME_MS;
+  return totalSizeBytes(session) === 0;
 }
 
 /**
- * A session holding files that all measure zero, after running long enough that the
- * process cannot be the explanation. Jeffrey reads these sizes straight off the hub's
- * repository directory, so this is what a filesystem that never refreshed them looks
- * like — an object-storage FUSE mount or an NFS mount with attribute caching serves each
- * file's size as of its creation. The files still hold their bytes and still download;
- * it is only the figures that are missing, and the UI says so rather than reporting the
- * session as a crash.
+ * A session shown as itself — not collapsed as a crash — whose files nonetheless all
+ * measure zero, after it has been going long enough to have produced something. Jeffrey
+ * reads these sizes straight off the hub's repository directory, so this is what a
+ * filesystem that never refreshed them looks like: an object-storage FUSE mount, or an NFS
+ * mount with attribute caching, serves each file's size as of when the file was created.
+ * The files still hold their bytes and still download; only the figures are missing, and
+ * the UI says so rather than printing a confident zero.
+ *
+ * <p>Deliberately narrower than "zero bytes". A finished session with nothing in it is a
+ * failed session and reads as one; what this catches is the case a crash cannot explain —
+ * above all a session that is still recording.
  */
 export function hasUnreportedSizes(session: RecordingSession): boolean {
+  if (isFailedSession(session)) {
+    return false;
+  }
   return (
     session.files.length > 0 &&
     totalSizeBytes(session) === 0 &&
-    session.duration >= CRASHED_SESSION_LIFETIME_MS
+    session.duration >= UNREPORTED_SIZES_GRACE_MS
   );
 }
 

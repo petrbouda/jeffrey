@@ -32,10 +32,6 @@ class RecordingSessionTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-02-20T12:00:00Z");
     private static final Instant FINISHED_AT = CREATED_AT.plusSeconds(60);
-    /** Inside the crash window: too early to have written anything. */
-    private static final Instant CRASHED_AT = CREATED_AT.plusSeconds(5);
-    /** Well past the crash window: a run this long produces data unless the sizes are wrong. */
-    private static final Instant LONG_RUN_FINISHED_AT = CREATED_AT.plusSeconds(600);
 
     private static RepositoryFile file(Long size) {
         return new RepositoryFile(
@@ -70,23 +66,8 @@ class RecordingSessionTest {
         }
 
         @Test
-        void longSessionWithoutFilesIsStillFailed() {
-            assertTrue(session(LONG_RUN_FINISHED_AT).isFailedEmpty());
-        }
-
-        @Test
-        void crashedSessionWithOnlyZeroSizeFilesIsFailed() {
-            assertTrue(session(CRASHED_AT, file(0L), file(null)).isFailedEmpty());
-        }
-
-        @Test
-        void longSessionWithOnlyZeroSizeFilesIsNotFailed() {
-            assertFalse(session(LONG_RUN_FINISHED_AT, file(0L), file(null)).isFailedEmpty());
-        }
-
-        @Test
-        void sessionAtTheCrashWindowBoundaryIsNotFailed() {
-            assertFalse(session(FINISHED_AT, file(0L)).isFailedEmpty());
+        void finishedSessionWithOnlyZeroSizeFilesIsFailed() {
+            assertTrue(session(FINISHED_AT, file(0L), file(null)).isFailedEmpty());
         }
 
         @Test
