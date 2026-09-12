@@ -54,8 +54,9 @@ const toast = ToastService;
 const UNREPORTED_SIZES_HINT =
   'Every file in this session reports zero bytes, after it recorded for long enough to have ' +
   'produced data. Sizes are read from the hub\'s repository directory, so this usually means ' +
-  'that mount is serving stale file metadata (an object-storage FUSE or an NFS attribute ' +
-  'cache) rather than that the session is empty. The files can still be downloaded.';
+  'that mount is serving stale file metadata (an object-storage FUSE, an NFS attribute cache, ' +
+  'or an SMB share listing a file another client still has open) rather than that the session ' +
+  'is empty. The files can still be downloaded.';
 
 const { generateInstanceUrl } = useNavigation();
 
