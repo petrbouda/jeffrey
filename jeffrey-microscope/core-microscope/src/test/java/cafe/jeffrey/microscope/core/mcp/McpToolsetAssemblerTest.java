@@ -35,12 +35,16 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import tools.jackson.databind.JsonNode;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -449,6 +453,69 @@ class McpToolsetAssemblerTest {
 
             assertEquals(assembler(true).toolset().specs().size(),
                     filtered.toolset().specs().size());
+        }
+    }
+
+    @Nested
+    class Presets {
+
+        @Test
+        void defaultAllRetainsEveryFamilyAndEachPresetKeepsDiscovery() {
+            Set<String> all = families(assembler(true));
+            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
+                    "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
+                    "memory", "heap", "hubs", "ide"), all);
+            assertEquals(all, families(preset("all")));
+            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare"),
+                    families(preset("jfr")));
+            assertEquals(Set.of("profiles", "recordings", "heap"), families(preset("heap")));
+            assertEquals(Set.of("profiles", "recordings", "hubs"), families(preset("hub")));
+        }
+
+        @Test
+        void explicitFamiliesOverridePresetAndSwitchesStillConstrainThem() {
+            McpToolsetAssembler filtered = assembler(new ExternalMcpProperties(
+                    true, false, false, Set.of("jfr", "ide", "hubs"), "heap"));
+            assertEquals(Set.of("jfr"), families(filtered));
+            assertThrows(IllegalArgumentException.class,
+                    () -> filtered.toolset().call("heap_status", Json.createObject()));
+        }
+
+        @Test
+        void reportsActualToolListWireBytesAndCountsForEveryPreset() {
+            int defaultBytes = toolListBytes("all");
+            for (String preset : List.of("jfr", "heap", "hub")) {
+                assertTrue(toolListBytes(preset) < defaultBytes, preset + " should reduce tools/list bytes");
+            }
+        }
+
+        private int toolListBytes(String preset) {
+            ExternalMcpProperties properties = new ExternalMcpProperties(
+                    true, true, true, Set.of(), preset);
+            McpToolsetAssembler assembler = assembler(properties);
+            ExternalMcpController controller = new ExternalMcpController(
+                    assembler, properties, new McpRequestGuard(), new McpPromptRegistry());
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.addHeader("MCP-Protocol-Version", "2025-11-25");
+            JsonNode response = controller.handle(Json.readTree(
+                    "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}"),
+                    request).getBody();
+            assertTrue(response.path("result").path("tools").isArray());
+            int count = response.path("result").path("tools").size();
+            assertEquals(assembler.toolset().specs().size(), count);
+            int bytes = response.toString().getBytes(StandardCharsets.UTF_8).length;
+            System.out.printf("MCP preset=%s tools=%d tools/list UTF-8 bytes=%d%n", preset, count, bytes);
+            return bytes;
+        }
+
+        private McpToolsetAssembler preset(String name) {
+            return assembler(new ExternalMcpProperties(true, true, true, Set.of(), name));
+        }
+
+        private Set<String> families(McpToolsetAssembler assembler) {
+            return assembler.toolset().specs().stream()
+                    .map(spec -> spec.name().substring(0, spec.name().indexOf('_')))
+                    .collect(Collectors.toSet());
         }
     }
 

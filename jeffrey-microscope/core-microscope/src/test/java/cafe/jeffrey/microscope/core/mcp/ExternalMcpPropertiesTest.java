@@ -28,9 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The four switches an installation sets, and the one of them with a rule of its own: an empty family
- * list means every family rather than none, because that is what almost every installation wants and
- * the property exists for the few that do not.
+ * Preset selection, explicit family overrides and startup validation of the tool surface.
  */
 class ExternalMcpPropertiesTest {
 
@@ -83,4 +81,32 @@ class ExternalMcpPropertiesTest {
         assertFalse(properties.advertises(HEAP));
         assertThrows(UnsupportedOperationException.class, () -> properties.families().add(HEAP));
     }
+    @Test
+    void rejectsUnknownOrIncorrectlyCasedFamiliesAtStartup() {
+        assertThrows(IllegalArgumentException.class, () -> withFamilies(Set.of("heep")));
+        assertThrows(IllegalArgumentException.class, () -> withFamilies(Set.of("JFR")));
+    }
+
+    @Test
+    void rejectsUnknownOrIncorrectlyCasedPresetsEvenWhenFamiliesOverride() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ExternalMcpProperties(true, true, true, Set.of("heap"), "heep"));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ExternalMcpProperties(true, true, true, Set.of(), "JFR"));
+    }
+
+    @Test
+    void emptyFamiliesSelectThePresetAndExplicitFamiliesOverrideIt() {
+        ExternalMcpProperties heap = new ExternalMcpProperties(true, true, true, Set.of(), "heap");
+        assertTrue(heap.advertises("profiles"));
+        assertTrue(heap.advertises("recordings"));
+        assertTrue(heap.advertises("heap"));
+        assertFalse(heap.advertises("jfr"));
+
+        ExternalMcpProperties override = new ExternalMcpProperties(
+                true, true, true, Set.of("jfr"), "heap");
+        assertTrue(override.advertises("jfr"));
+        assertFalse(override.advertises("heap"));
+    }
+
 }

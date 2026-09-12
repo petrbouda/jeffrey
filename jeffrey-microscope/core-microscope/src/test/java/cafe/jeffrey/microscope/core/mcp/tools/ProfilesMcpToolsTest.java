@@ -19,6 +19,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.McpToolResult;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,12 +29,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -134,7 +142,7 @@ class ProfilesMcpToolsTest {
             assertTrue(result.contains("p-1"));
             assertFalse(result.contains("p-2"));
             assertTrue(result.contains("Returned 1 of 2 matching profiles."), result);
-            assertTrue(result.contains("Increase `limit` (maximum 1000) or narrow `search`"), result);
+            assertTrue(result.contains("nextCursor"), result);
         }
 
         @Test
@@ -171,25 +179,7 @@ class ProfilesMcpToolsTest {
             String result = tools.list(null, null);
 
             assertTrue(result.contains("Returned 100 of 101 matching profiles."), result);
-            assertTrue(result.contains("Increase `limit` (maximum 1000)"), result);
-        }
-
-        @Test
-        void reportsOnlyCompleteRowsWhenTheMaximumLimitAlsoHitsTheOutputCap() {
-            List<ProfileInfo> profiles = IntStream.rangeClosed(1, 1001)
-                    .mapToObj(index -> profile(
-                            "p-" + index,
-                            index == 1 ? "x".repeat(120_001) : "Profile " + index,
-                            "proj-1"))
-                    .toList();
-            when(coreRepositories.findAllProfiles()).thenReturn(profiles);
-
-            String result = tools.list(null, 1000);
-
-            assertTrue(result.startsWith("Returned 0 of 1001 matching profiles."), result);
-            assertFalse(result.contains("p-1"), result);
-            assertTrue(result.contains("output size limit omitted 1000 selected profiles"), result);
-            assertTrue(result.contains("The maximum `limit` is 1000; narrow `search`"), result);
+            assertTrue(result.contains("nextCursor"), result);
         }
 
         /**
@@ -231,6 +221,121 @@ class ProfilesMcpToolsTest {
             assertFalse(row.contains("before|after"));
             assertTrue(row.contains("before/after"));
         }
+    }
+
+    @Nested
+    class Pagination {
+
+        @Test
+        void traversesBeyondMaximumWithoutDuplicates() {
+            List<ProfileInfo> profiles = IntStream.range(0, 1103)
+                    .mapToObj(index -> profile("p-%04d".formatted(index), "Profile " + index, null))
+                    .toList().reversed();
+            when(coreRepositories.findAllProfiles()).thenReturn(profiles);
+            List<String> ids = new ArrayList<>();
+            String cursor = null;
+            do {
+                Page page = page(null, 1000, cursor);
+                assertEquals(1103, page.data().path("total").asInt());
+                assertTrue(page.data().path("complete").asBoolean());
+                assertEquals(page.data().path("profiles").size(), page.data().path("returned").asInt());
+                assertTrue(page.text().length() <= McpToolOutput.MAX_CHARS);
+                assertTrue(page.data().toString().length() <= McpToolOutput.MAX_CHARS);
+                for (JsonNode row : page.data().path("profiles")) {
+                    ids.add(row.path("profileId").asString());
+                    assertEquals("rec-" + row.path("profileId").asString(), row.path("recordingId").asString());
+                }
+                cursor = nextCursor(page);
+                assertEquals(cursor != null, page.data().path("hasMore").asBoolean());
+            } while (cursor != null);
+            assertEquals(1103, ids.size());
+            assertEquals(ids.size(), new HashSet<>(ids).size());
+            assertEquals(profiles.reversed().stream().map(ProfileInfo::id).toList(), ids);
+        }
+
+        @Test
+        void resumesAfterEarlierInsertion() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-2", true), profile("p-3", true)));
+            String cursor = nextCursor(page(null, 1, null));
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-1", true), profile("p-2", true), profile("p-3", true)));
+            Page next = page(null, 1, cursor);
+            assertEquals("p-3", next.data().path("profiles").get(0).path("profileId").asString());
+            assertFalse(next.data().path("hasMore").asBoolean());
+        }
+
+        @Test
+        void bindsTheCursorToNormalizedSearch() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-1", "Checkout before", null), profile("p-2", "Checkout after", null)));
+            String cursor = nextCursor(page(" CHECKOUT ", 1, null));
+            assertEquals("p-2", page("checkout", 1, cursor).data()
+                    .path("profiles").get(0).path("profileId").asString());
+            assertThrows(IllegalArgumentException.class, () -> page("different", 1, cursor));
+        }
+
+        @Test
+        void rejectsMalformedCursors() {
+            for (String cursor : List.of("", "not-a-cursor", "e30", "bnVsbA", "W10")) {
+                assertThrows(IllegalArgumentException.class, () -> page(null, 1, cursor), cursor);
+            }
+        }
+
+        @Test
+        void boundsLongNamesWithoutLosingIdentifiers() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-1", "\"\n".repeat(120_001), null), profile("p-2", true)));
+            Page first = page(null, 1, null);
+            JsonNode row = first.data().path("profiles").get(0);
+            assertEquals("p-1", row.path("profileId").asString());
+            assertEquals("rec-p-1", row.path("recordingId").asString());
+            assertTrue(row.path("nameTruncated").asBoolean());
+            assertTrue(row.path("name").asString().length() <= 256);
+            assertTrue(first.text().length() <= McpToolOutput.MAX_CHARS);
+            assertTrue(first.data().toString().length() <= McpToolOutput.MAX_CHARS);
+            assertEquals("p-2", page(null, 1, nextCursor(first)).data()
+                    .path("profiles").get(0).path("profileId").asString());
+        }
+
+        @Test
+        void boundsEscapedJsonAndReportsOnlyRowsPresentInBothRepresentations() {
+            when(coreRepositories.findAllProfiles()).thenReturn(IntStream.range(0, 1000)
+                    .mapToObj(index -> profile("p-%04d".formatted(index), "\u0001".repeat(256), null)).toList());
+            Page first = page(null, 1000, null);
+            int returned = first.data().path("returned").asInt();
+            assertTrue(returned > 0 && returned < 1000);
+            assertEquals(returned, first.data().path("profiles").size());
+            assertEquals(returned, first.text().lines().filter(line -> line.startsWith("| p-")).count());
+            assertTrue(first.text().startsWith("Returned " + returned + " of 1000 matching profiles."));
+            assertTrue(first.data().toString().length() <= McpToolOutput.MAX_CHARS);
+            assertEquals("p-%04d".formatted(returned), page(null, 1, nextCursor(first)).data()
+                    .path("profiles").get(0).path("profileId").asString());
+        }
+
+        @Test
+        void emptyCatalogueIsACompleteTerminalPage() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of());
+            Page empty = page(null, null, null);
+            assertEquals(0, empty.data().path("returned").asInt());
+            assertEquals(0, empty.data().path("total").asInt());
+            assertTrue(empty.data().path("complete").asBoolean());
+            assertFalse(empty.data().path("hasMore").asBoolean());
+            assertTrue(empty.data().path("nextCursor").isNull());
+        }
+    }
+
+    private static String nextCursor(Page page) {
+        JsonNode cursor = page.data().path("nextCursor");
+        return cursor.isNull() ? null : cursor.asString();
+    }
+
+    private Page page(String search, Integer limit, String cursor) {
+        McpToolResult result = tools.list(search, limit, cursor);
+        return new Page(result.text(), result.structuredContent());
+    }
+
+    private record Page(String text, ObjectNode data) {
     }
 
 }

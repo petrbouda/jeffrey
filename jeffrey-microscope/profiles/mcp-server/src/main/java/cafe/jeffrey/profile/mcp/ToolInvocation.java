@@ -44,18 +44,25 @@ final class ToolInvocation {
     private ToolInvocation() {
     }
 
-    static String invoke(String toolName, Method method, Object target, Object[] args) {
+    static McpToolResult invoke(String toolName, Method method, Object target, Object[] args) {
         TraceSpanEvent span = new TraceSpanEvent();
         span.name = toolName;
         span.kind = SpanKind.INTERNAL.name();
         span.begin();
 
-        String result = null;
+        McpToolResult result = null;
         try {
             result = Tracer.inSpanOf(span, () -> {
                 try {
                     Object value = method.invoke(target, args);
-                    return value == null ? "" : value.toString();
+                    McpToolResult output = value instanceof McpToolResult structured
+                            ? structured
+                            : McpToolResult.text(value == null ? "" : value.toString());
+                    if (method.isAnnotationPresent(McpOutputSchema.class) && output.structuredContent() == null) {
+                        throw new IllegalStateException("Tool declared an output schema but returned no structured data: "
+                                + toolName);
+                    }
+                    return output;
                 } catch (IllegalAccessException e) {
                     throw new IllegalStateException("Failed to invoke tool: " + toolName, e);
                 } catch (InvocationTargetException e) {
@@ -77,7 +84,7 @@ final class ToolInvocation {
                 // context and paid for on the next round trip, so the size of the answer is as
                 // interesting as the time it took to produce -- and invisible from the duration.
                 span.attributes = Json.toString(
-                        Map.of(RESULT_CHARS_ATTRIBUTE, result == null ? 0 : result.length()));
+                        Map.of(RESULT_CHARS_ATTRIBUTE, result == null ? 0 : result.text().length()));
                 span.commit();
             }
         }

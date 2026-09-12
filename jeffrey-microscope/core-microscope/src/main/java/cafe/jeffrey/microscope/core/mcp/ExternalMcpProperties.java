@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -42,27 +43,54 @@ import java.util.Set;
  *                    closer to home: everything else reads a recording Jeffrey already holds, while
  *                    this reaches into another process on this machine and can put a file on
  *                    somebody's screen
- * @param families    the tool families to advertise, empty meaning all of them. A client that pays
+ * @param families    the tool families to advertise, empty meaning the selected preset. A client that pays
  *                    for every schema on every turn can be given only the families it uses
+ * @param preset      a lowercase preset name: all (default), jfr, heap or hub. Explicit families
+ *                    override the preset; the hub and IDE switches remain independent gates
  */
 public record ExternalMcpProperties(
         boolean enabled,
         boolean hubsEnabled,
         boolean ideEnabled,
-        Set<String> families) {
+        Set<String> families,
+        String preset) {
+
+    private static final String DEFAULT_PRESET = "all";
+
+    private static final Map<String, Set<String>> PRESETS = Map.of(
+            DEFAULT_PRESET, Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
+                    "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
+                    "memory", "heap", "hubs", "ide"),
+            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare"),
+            "heap", Set.of("profiles", "recordings", "heap"),
+            "hub", Set.of("profiles", "recordings", "hubs"));
 
     public ExternalMcpProperties {
         families = families == null ? Set.of() : Set.copyOf(families);
+        preset = preset == null ? DEFAULT_PRESET : preset;
+        if (!PRESETS.containsKey(preset)) {
+            throw new IllegalArgumentException("Unknown MCP preset '" + preset
+                    + "'. Use a lowercase preset: all, jfr, heap or hub.");
+        }
+        Set<String> knownFamilies = PRESETS.get(DEFAULT_PRESET);
+        if (!knownFamilies.containsAll(families)) {
+            throw new IllegalArgumentException("Unknown MCP families: "
+                    + families.stream().filter(family -> !knownFamilies.contains(family)).sorted().toList()
+                    + ". Family names are lowercase; supported families: "
+                    + knownFamilies.stream().sorted().toList());
+        }
+    }
+
+    /** Existing callers keep the full tool surface unless they explicitly select families. */
+    public ExternalMcpProperties(boolean enabled, boolean hubsEnabled, boolean ideEnabled, Set<String> families) {
+        this(enabled, hubsEnabled, ideEnabled, families, DEFAULT_PRESET);
     }
 
     /**
-     * Whether a family is served at all.
-     * <p>
-     * An empty list means every family, which is what almost every installation wants. It is there for
-     * the client that pays for the whole tool list on every turn — Codex loads every schema each time —
-     * and for the reader who only ever asks one kind of question.
+     * Whether a family is selected by the explicit allowlist, or by the preset when no allowlist is
+     * set. The assembler applies the independent hub and IDE switches before retaining families.
      */
     public boolean advertises(String family) {
-        return families.isEmpty() || families.contains(family);
+        return (families.isEmpty() ? PRESETS.get(preset) : families).contains(family);
     }
 }

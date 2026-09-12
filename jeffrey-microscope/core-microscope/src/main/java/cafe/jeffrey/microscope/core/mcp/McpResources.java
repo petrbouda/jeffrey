@@ -50,6 +50,11 @@ public class McpResources implements McpResourceProvider {
 
     private static final String SCHEME = "jeffrey://";
     private static final String PROFILES_URI = SCHEME + "profiles";
+    private static final String PROFILES_QUERY_PREFIX = PROFILES_URI + "?";
+    private static final String PROFILES_TEMPLATE = PROFILES_URI + "{?cursor,limit}";
+    private static final String CURSOR_ARGUMENT = "cursor";
+    private static final String LIMIT_ARGUMENT = "limit";
+    private static final Set<String> CATALOGUE_ARGUMENTS = Set.of(CURSOR_ARGUMENT, LIMIT_ARGUMENT);
     private static final String PROFILE_PREFIX = SCHEME + "profile/";
 
     private static final String SUMMARY_TEMPLATE = PROFILE_PREFIX + "{profileId}/summary";
@@ -67,39 +72,54 @@ public class McpResources implements McpResourceProvider {
 
     private final McpToolProvider toolset;
     private final Set<String> availableTools;
+    private final McpServerInfo serverInfo;
 
     public McpResources(McpToolProvider toolset) {
+        this(toolset, new ExternalMcpProperties(true, true, true, Set.of()));
+    }
+
+    public McpResources(McpToolProvider toolset, ExternalMcpProperties properties) {
         this.toolset = toolset;
+        this.serverInfo = new McpServerInfo(properties, toolset);
         this.availableTools = toolset.specs().stream()
                 .map(McpToolSpec::name)
                 .collect(Collectors.toUnmodifiableSet());
     }
 
     /**
-     * Only the resources whose tool this installation actually advertises.
+     * Tool-backed resources require an advertised tool; server diagnostics are always available.
      * <p>
      * Reading a resource runs a tool, so a resource whose tool the family filter left out could be
      * listed and then fail on every read — the client is told the profile catalogue exists and then
      * that {@code profiles_list} does not. Narrowing the advertisement is the honest half of that: a
-     * server configured down to one family offers the resources that family can serve, and no others.
+     * server configured down to one family offers only the tool-backed resources that family can serve.
      */
     @Override
     public List<McpResource> resources() {
-        if (!availableTools.contains(PROFILES_LIST_TOOL)) {
-            return List.of();
+        List<McpResource> resources = new ArrayList<>();
+        if (availableTools.contains(PROFILES_LIST_TOOL)) {
+            resources.add(new McpResource(
+                    PROFILES_URI,
+                    "Analysed profiles — first page",
+                    "The first 100 matching profiles at most, further bounded by response size. "
+                            + "Returned/total counts and a continuation URI describe this page; follow "
+                            + "the continuation until hasMore=false to traverse the live catalogue.",
+                    McpResource.TEXT_MARKDOWN));
         }
-        return List.of(new McpResource(
-                PROFILES_URI,
-                "Analysed profiles",
-                "The first 100 matching profiles in this Jeffrey installation by default, with what "
-                        + "each one is and when it was recorded. The catalogue reports when more match. "
-                        + "The starting point: every other resource takes a profile id from here.",
-                McpResource.TEXT_MARKDOWN));
+        resources.add(new McpResource(McpServerInfo.URI, "Jeffrey server",
+                "Build version, selected preset, effective tool families and supported MCP capabilities.",
+                McpResource.APPLICATION_JSON));
+        return List.copyOf(resources);
     }
 
     @Override
     public List<McpResource> templates() {
         List<McpResource> templates = new ArrayList<>();
+        if (availableTools.contains(PROFILES_LIST_TOOL)) {
+            templates.add(new McpResource(PROFILES_TEMPLATE, "Analysed profiles — continuation",
+                    "The next complete page of the unfiltered profile catalogue. Pass the cursor from the preceding page; limit is optional.",
+                    McpResource.TEXT_MARKDOWN));
+        }
         if (availableTools.contains(PROFILE_SUMMARY_TOOL)) {
             templates.add(new McpResource(
                     SUMMARY_TEMPLATE,
@@ -122,6 +142,13 @@ public class McpResources implements McpResourceProvider {
 
     @Override
     public Contents read(String uri) {
+        if (McpServerInfo.URI.equals(uri)) {
+            return new Contents(uri, McpResource.APPLICATION_JSON, serverInfo.json());
+        }
+        if (uri != null && uri.startsWith(PROFILES_QUERY_PREFIX)) {
+            return new Contents(uri, McpResource.TEXT_MARKDOWN,
+                    call(PROFILES_LIST_TOOL, catalogueArguments(uri)));
+        }
         if (PROFILES_URI.equals(uri)) {
             return new Contents(uri, McpResource.TEXT_MARKDOWN, call(PROFILES_LIST_TOOL, Json.createObject()));
         }
@@ -145,6 +172,31 @@ public class McpResources implements McpResourceProvider {
         throw new IllegalArgumentException(unknown(uri));
     }
 
+    private static ObjectNode catalogueArguments(String uri) {
+        ObjectNode arguments = Json.createObject();
+        for (String parameter : uri.substring(PROFILES_QUERY_PREFIX.length()).split("&", -1)) {
+            String[] pair = parameter.split("=", 2);
+            if (pair.length != 2) {
+                throw new IllegalArgumentException(unknown(uri));
+            }
+            String key = decode(pair[0]);
+            if (!CATALOGUE_ARGUMENTS.contains(key) || arguments.has(key)) {
+                throw new IllegalArgumentException(unknown(uri));
+            }
+            String value = decode(pair[1]);
+            if (key.equals(LIMIT_ARGUMENT)) {
+                try {
+                    arguments.put(key, Integer.parseInt(value));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Resource limit must be an integer", e);
+                }
+            } else {
+                arguments.put(key, value);
+            }
+        }
+        return arguments;
+    }
+
     private String call(String toolName, ObjectNode arguments) {
         return toolset.call(toolName, arguments);
     }
@@ -159,6 +211,6 @@ public class McpResources implements McpResourceProvider {
 
     private static String unknown(String uri) {
         return "No resource at '" + uri + "'. This server serves " + PROFILES_URI + ", "
-                + SUMMARY_TEMPLATE + " and " + FLAMEGRAPH_TEMPLATE + ".";
+                + PROFILES_TEMPLATE + ", " + McpServerInfo.URI + ", " + SUMMARY_TEMPLATE + " and " + FLAMEGRAPH_TEMPLATE + ".";
     }
 }

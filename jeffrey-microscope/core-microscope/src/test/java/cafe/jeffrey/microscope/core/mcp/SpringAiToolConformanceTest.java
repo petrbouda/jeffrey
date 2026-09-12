@@ -42,6 +42,8 @@ import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TraceAttributesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
+import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.profile.mcp.McpOutputSchema;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
@@ -69,6 +71,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -213,13 +216,18 @@ class SpringAiToolConformanceTest {
         }
 
         /**
-         * Jeffrey renders a result straight into the MCP content block, so a tool that returned
-         * something else would reach the model as whatever {@code toString} happened to produce.
+         * Tools return readable text or an explicitly declared structured result, rather than
+         * relying on an arbitrary object's {@code toString} representation.
          */
         @ParameterizedTest(name = "{0}")
         @MethodSource("cafe.jeffrey.microscope.core.mcp.SpringAiToolConformanceTest#toolMethods")
-        void theToolReturnsAString(ToolMethod tool) {
-            assertEquals(String.class, tool.method().getReturnType());
+        void theToolReturnsTextOrADeclaredStructuredResult(ToolMethod tool) {
+            if (tool.method().isAnnotationPresent(McpOutputSchema.class)) {
+                assertEquals(McpToolResult.class, tool.method().getReturnType());
+                assertNotNull(tool.jeffrey().outputSchema());
+            } else {
+                assertEquals(String.class, tool.method().getReturnType());
+            }
         }
     }
 

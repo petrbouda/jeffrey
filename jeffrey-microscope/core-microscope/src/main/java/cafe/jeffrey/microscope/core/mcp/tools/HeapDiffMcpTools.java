@@ -59,8 +59,8 @@ public class HeapDiffMcpTools {
      * and the difference is actionable - the same distinction the heap_ family already makes.
      */
     private static final String NOT_INDEXED =
-            "The heap dump of %s is still being indexed. Open it once in the Jeffrey UI to build the "
-                    + "index, then try again - a comparison needs both dumps indexed.";
+            "The heap dump of %s is still being indexed. Call heap_prepare for that profile to build "
+                    + "the index and heap_status to follow it; a comparison needs both dumps indexed.";
 
     private static final String STEP_WHY_RETAINED =
             "A class that grew is an observation. Why the new instances are still reachable is "

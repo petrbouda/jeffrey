@@ -111,7 +111,7 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
         this.features = new McpServerFeatures(
                 assembler::toolset,
                 () -> prompts,
-                () -> new McpResources(assembler.toolset()));
+                () -> new McpResources(assembler.toolset(), properties));
     }
 
     @PostMapping

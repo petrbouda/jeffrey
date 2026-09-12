@@ -53,7 +53,10 @@ jeffrey.microscope.mcp.hubs.download-timeout=PT1H`;
 
 const ideToggle = `jeffrey.microscope.mcp.ide.enabled=false`;
 
-const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
+const presetProperty = `# all (default), jfr, heap, or hub
+jeffrey.microscope.mcp.preset=heap`;
+
+const familiesProperty = `# Explicit families override the preset; empty uses the preset
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
 
 const defaultEndpoint = `http://localhost:8585/api/mcp`;
@@ -142,10 +145,21 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>With the family on, it still answers nothing until a window is linked to the profile: a lookup links the single unambiguous candidate and otherwise reports the candidates rather than guessing between two checkouts.</p>
 
       <h2 id="trimming-the-tool-list">Trimming the Tool List</h2>
-      <p>Jeffrey advertises a hundred-odd tools across eighteen families. Claude Code fetches their schemas on demand; Codex loads every one of them into the model&rsquo;s context on every turn. For a reader who only ever asks one kind of question, that is a lot to carry, and the endpoint can be told to advertise less:</p>
+      <p>The default <code>all</code> preset advertises every enabled family. Select a smaller preset when a client only needs one workflow:</p>
+      <DocsCodeBlock :code="presetProperty" language="properties" />
+      <table>
+        <thead><tr><th>Preset</th><th>Families</th></tr></thead>
+        <tbody>
+          <tr><td><code>all</code></td><td>All families</td></tr>
+          <tr><td><code>jfr</code></td><td>profiles, recordings, jfr, flamegraph, jvm, compare</td></tr>
+          <tr><td><code>heap</code></td><td>profiles, recordings, heap</td></tr>
+          <tr><td><code>hub</code></td><td>profiles, recordings, hubs</td></tr>
+        </tbody>
+      </table>
+      <p>For a custom selection, set <code>families</code>. A nonempty list overrides the preset; the Hub and IDE switches still apply. Names use lowercase, and unknown preset or family names fail startup with an explanation.</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />
 
-      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>hubs</code>. Leave it empty unless you have a reason: the skills route between families freely, and one that is not advertised is one their advice will send the model to in vain.</p>
+      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>. Skills may route to families beyond a narrow preset; use <code>all</code> for unrestricted analysis workflows. Read <code>jeffrey://server</code> through <code>resources/read</code> to see the effective families, tool count, build version and supported protocol revisions.</p>
 
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>

@@ -35,7 +35,7 @@ import java.util.List;
  * per profile, say — use {@link ProfileScopedToolset} instead.
  * <p>
  * Tool names are {@code <prefix>_<methodName>}. All {@code @Tool} methods are expected to return a
- * {@link String}. Argument names rely on {@code -parameters} being enabled at compile time (it is, in
+ * {@link String} or {@link McpToolResult}. Argument names rely on {@code -parameters} being enabled at compile time (it is, in
  * the project's compiler configuration).
  */
 public final class ReflectiveToolset implements McpToolProvider {
@@ -69,7 +69,7 @@ public final class ReflectiveToolset implements McpToolProvider {
      * @throws IllegalArgumentException if the tool name is unknown
      */
     @Override
-    public String call(String toolName, JsonNode arguments) {
+    public McpToolResult callResult(String toolName, JsonNode arguments) {
         Method method = index.method(toolName);
         return ToolInvocation.invoke(toolName, method, target, index.bindArguments(method, arguments));
     }

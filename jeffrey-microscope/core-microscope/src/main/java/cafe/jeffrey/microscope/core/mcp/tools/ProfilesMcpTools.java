@@ -19,30 +19,70 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.mcp.McpOutputSchema;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import tools.jackson.databind.node.ObjectNode;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * The catalogue of what has been analysed — the entry point of an MCP session.
- * <p>
- * The only family that is not profile-scoped: this is what a client calls before it has a profile id
- * at all. Everything you can ask <em>about</em> one profile lives in {@link ProfileMcpTools}, which
- * shares this prefix so the two read as one family to the model.
- */
+/** The installation catalogue, traversed by immutable profile id instead of a shifting row offset. */
 public class ProfilesMcpTools {
 
     private static final int DEFAULT_LIST_LIMIT = 100;
     private static final int MAX_LIST_LIMIT = 1000;
-
+    private static final int MAX_NAME_CHARS = 256;
+    private static final int CURSOR_VERSION = 1;
+    private static final String HASH_ALGORITHM = "SHA-256";
     private static final String QUICK_ANALYSIS_PROJECT = "(quick analysis)";
+    private static final String INVALID_CURSOR =
+            "Invalid cursor or cursor belongs to a different search. Restart profiles_list without cursor.";
     private static final String NO_PROFILES =
-            "No profiles have been analysed yet. Upload a JFR recording or heap dump in Jeffrey and "
-                    + "run Analyze first.";
+            "No profiles have been analysed yet. Upload a JFR recording or heap dump in Jeffrey and run Analyze first.";
+    private static final String OUTPUT_SCHEMA = """
+            {
+              "type":"object",
+              "properties":{
+                "profiles":{"type":"array","items":{
+                  "type":"object",
+                  "properties":{
+                    "profileId":{"type":"string"},
+                    "recordingId":{"type":["string","null"],"description":"Use with recordings_status while building"},
+                    "name":{"type":["string","null"],"maxLength":256,"description":"Bounded display name; see nameTruncated"},
+                    "nameTruncated":{"type":"boolean"},
+                    "projectId":{"type":["string","null"]},
+                    "workspaceId":{"type":["string","null"]},
+                    "eventSource":{"type":["string","null"]},
+                    "recorded":{"type":["string","null"]},
+                    "duration":{"type":["string","null"]},
+                    "ready":{"type":"string","enum":["yes","building"]},
+                    "modified":{"type":"boolean"}
+                  },
+                  "required":["profileId","recordingId","name","nameTruncated","projectId","workspaceId",
+                              "eventSource","recorded","duration","ready","modified"],
+                  "additionalProperties":false
+                }},
+                "returned":{"type":"integer","minimum":0},
+                "total":{"type":"integer","minimum":0,"description":"Current matching catalogue size, including earlier pages"},
+                "hasMore":{"type":"boolean"},
+                "nextCursor":{"type":["string","null"],"description":"Pass unchanged with the same search; null at the end"},
+                "complete":{"type":"boolean","const":true,"description":"Every returned row is fully represented; hasMore describes catalogue continuation"}
+              },
+              "required":["profiles","returned","total","hasMore","nextCursor","complete"],
+              "additionalProperties":false
+            }
+            """;
 
     private final MicroscopeCoreRepositories coreRepositories;
 
@@ -50,137 +90,167 @@ public class ProfilesMcpTools {
         this.coreRepositories = coreRepositories;
     }
 
-    @Tool(description = "List analysed profiles in this Jeffrey installation, returning the first 100 "
-            + "matches by default and at most 1000. Start here: every other tool takes one of the "
-            + "profile ids this returns. A profile is one analysed recording (JFR) or heap dump. A "
-            + "row whose `ready` column reads 'building' is still being parsed and cannot be analysed "
-            + "yet - recordings_status reports how far it has got.")
-    public String list(
-            @ToolParam(required = false, description = "Optional case-insensitive substring matched against the profile name")
-            String search,
-            @ToolParam(required = false, description = "Maximum number of profiles to return (default 100)")
-            Integer limit) {
+    /** Source compatibility for Java callers; MCP advertises only the cursor-aware overload. */
+    public String list(String search, Integer limit) {
+        return list(search, limit, null).text();
+    }
 
-        List<ProfileInfo> matchingProfiles = coreRepositories.findAllProfiles().stream()
-                .filter(profile -> matches(profile, search))
+    @Tool(description = "List analysed profiles, ordered by profileId, with structured cursor pagination. "
+            + "Returns up to 100 rows by default, at most 1000, further bounded by response size. "
+            + "Follow nextCursor with the same search until hasMore=false to traverse the catalogue. "
+            + "This is a live catalogue: additions before the cursor require a fresh traversal. "
+            + "Names are bounded display values with nameTruncated; identifiers remain unchanged. "
+            + "Start here: analysis tools use profileId. Building profiles have a recordingId for recordings_status.")
+    @McpOutputSchema(OUTPUT_SCHEMA)
+    public McpToolResult list(
+            @ToolParam(required = false, description = "Case-insensitive substring of the full profile name") String search,
+            @ToolParam(required = false, description = "Maximum rows in this page (default 100, maximum 1000)") Integer limit,
+            @ToolParam(required = false, description = "Opaque nextCursor from the preceding page with the same search") String cursor) {
+        String normalizedSearch = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        String fingerprint = fingerprint(normalizedSearch);
+        String afterId = cursor == null ? null : Cursor.decode(cursor, fingerprint).lastProfileId();
+        List<ProfileInfo> matching = coreRepositories.findAllProfiles().stream()
+                .filter(profile -> matches(profile, normalizedSearch))
+                .sorted(Comparator.comparing(ProfileInfo::id))
                 .toList();
-        int effectiveLimit = ToolArguments.boundedLimit(limit, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT);
-        List<ProfileInfo> selectedProfiles = matchingProfiles.stream()
-                .limit(effectiveLimit)
+        List<ProfileInfo> remaining = matching.stream()
+                .filter(profile -> afterId == null || profile.id().compareTo(afterId) > 0)
                 .toList();
-
-        if (selectedProfiles.isEmpty()) {
-            String empty = search == null || search.isBlank()
-                    ? NO_PROFILES
-                    : "No profile matches: " + search;
-            return empty + "\n\n" + returnedCount(0, 0);
+        int selected = Math.min(remaining.size(), ToolArguments.boundedLimit(limit, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT));
+        Page page = renderPage(remaining.subList(0, selected), matching.size(), remaining.size(), normalizedSearch, fingerprint);
+        if (page.fits()) {
+            return page.result();
         }
 
-        String selectedOutput = renderCatalogue(
-                selectedProfiles, selectedProfiles.size(), matchingProfiles.size(), effectiveLimit);
-        if (selectedOutput.length() <= McpToolOutput.MAX_CHARS) {
-            return selectedOutput;
-        }
-
-        // A limit controls rows, while the shared output cap controls characters. Long names can make
-        // the latter the tighter bound, so find the largest complete prefix that fits rather than let
-        // the cap cut a row and still claim that every selected row was returned.
-        int low = 0;
-        int high = selectedProfiles.size() - 1;
-        String fittingOutput = renderCatalogue(
-                List.of(), selectedProfiles.size(), matchingProfiles.size(), effectiveLimit);
+        // Both representations are measured before publication. Never cap a rendered table or trim
+        // its JSON independently: the cursor must advance exactly past the rows the client received.
+        int low = 1;
+        int high = selected - 1;
+        Page fitting = null;
         while (low <= high) {
-            int candidateSize = low + (high - low) / 2;
-            String candidate = renderCatalogue(
-                    selectedProfiles.subList(0, candidateSize),
-                    selectedProfiles.size(),
-                    matchingProfiles.size(),
-                    effectiveLimit);
-            if (candidate.length() <= McpToolOutput.MAX_CHARS) {
-                fittingOutput = candidate;
-                low = candidateSize + 1;
+            int count = low + (high - low) / 2;
+            Page candidate = renderPage(remaining.subList(0, count), matching.size(), remaining.size(), normalizedSearch, fingerprint);
+            if (candidate.fits()) {
+                fitting = candidate;
+                low = count + 1;
             } else {
-                high = candidateSize - 1;
+                high = count - 1;
             }
         }
-        return fittingOutput;
+        if (fitting == null) {
+            throw new IllegalArgumentException("A profile's identifiers exceed the response size limit; its row cannot be returned intact.");
+        }
+        return fitting.result();
     }
 
-    private static String renderCatalogue(
-            List<ProfileInfo> profiles,
-            int selectedCount,
-            int matchingCount,
-            int effectiveLimit) {
-
-        MarkdownTable table = MarkdownTable.withColumns(
-                "profile_id", "name", "project", "event source", "recorded", "duration", "ready",
-                "modified");
+    private static Page renderPage(List<ProfileInfo> profiles, int total, int remaining, String search, String fingerprint) {
+        boolean hasMore = profiles.size() < remaining;
+        String nextCursor = hasMore ? new Cursor(fingerprint, profiles.getLast().id()).encode() : null;
+        ObjectNode structured = Json.createObject();
+        var rows = structured.putArray("profiles");
+        MarkdownTable table = MarkdownTable.withColumns("profile_id", "recording_id", "name", "project",
+                "event source", "recorded", "duration", "ready", "modified");
         for (ProfileInfo profile : profiles) {
-            table.row(
-                    profile.id(),
-                    profile.name(),
-                    projectOf(profile),
-                    profile.eventSource(),
-                    profile.profilingStartedAt(),
-                    profile.duration(),
-                    readiness(profile),
-                    profile.modified() ? "yes" : "no");
+            String name = displayName(profile.name());
+            boolean nameTruncated = profile.name() != null && profile.name().length() > MAX_NAME_CHARS;
+            String recorded = profile.profilingStartedAt() == null ? null : profile.profilingStartedAt().toString();
+            String duration = profile.profilingStartedAt() == null || profile.profilingFinishedAt() == null
+                    ? null : profile.duration().toString();
+            String source = profile.eventSource() == null ? null : profile.eventSource().toString();
+            String ready = profile.enabled() ? "yes" : "building";
+            rows.addObject()
+                    .put("profileId", profile.id()).put("recordingId", profile.recordingId())
+                    .put("name", name).put("nameTruncated", nameTruncated)
+                    .put("projectId", profile.projectId()).put("workspaceId", profile.workspaceId())
+                    .put("eventSource", source).put("recorded", recorded).put("duration", duration)
+                    .put("ready", ready).put("modified", profile.modified());
+            table.row(profile.id(), profile.recordingId(), name,
+                    profile.projectId() == null ? QUICK_ANALYSIS_PROJECT : profile.projectId(),
+                    source, recorded, duration, ready, profile.modified() ? "yes" : "no");
         }
-        String preamble = returnedCount(profiles.size(), matchingCount);
-        if (profiles.size() < selectedCount) {
-            preamble += "\n\nThe output size limit omitted " + (selectedCount - profiles.size())
-                    + " selected profiles; narrow `search` to retrieve the profiles you need.";
+        structured.put("returned", profiles.size()).put("total", total).put("hasMore", hasMore)
+                .put("nextCursor", nextCursor).put("complete", true);
+        String text = "Returned " + profiles.size() + " of " + total + " matching profiles.\n\n";
+        if (profiles.isEmpty()) {
+            text += total > 0 ? "No profiles remain after this cursor."
+                    : search.isEmpty() ? NO_PROFILES : "No profile matches the search.";
+        } else {
+            text += table.note("Names longer than 256 characters are shortened with an ellipsis; nameTruncated marks them in structuredContent.")
+                    .note("A `modified` profile has had frames renamed or collapsed, so its frame names may differ from the source code.")
+                    .note("A profile listed as `building` is still being parsed. Pass its recording_id to recordings_status to check progress.")
+                    .renderUncapped();
         }
-        if (selectedCount < matchingCount) {
-            preamble += "\n\n" + limitRecovery(effectiveLimit);
+        if (hasMore) {
+            text += "\n\nMore profiles are available. Call profiles_list with the same search and nextCursor: `" + nextCursor + "`.";
+            if (search.isEmpty()) {
+                text += "\nContinuation resource: jeffrey://profiles?cursor=" + nextCursor;
+            }
+        } else {
+            text += "\n\nEnd of the matching catalogue (hasMore=false).";
         }
-        String renderedTable = table
-                .note("A `modified` profile has had frames renamed or collapsed, so its frame names may "
-                        + "differ from the source code.")
-                .note("A profile listed as `building` has a row but not yet its events: its recording is "
-                        + "still being parsed. Its id is real, and every analysis tool will answer "
-                        + "emptily until it is `yes` - recordings_status says when.")
-                .render();
-        return McpToolOutput.capped(preamble + "\n\n" + renderedTable);
+        return new Page(text, structured);
     }
 
-    private static String returnedCount(int returned, int matching) {
-        return "Returned " + returned + " of " + matching + " matching profiles.";
-    }
-
-    private static String limitRecovery(int effectiveLimit) {
-        if (effectiveLimit < MAX_LIST_LIMIT) {
-            return "Increase `limit` (maximum " + MAX_LIST_LIMIT + ") or narrow `search` to retrieve "
-                    + "the profiles you need.";
+    private static String displayName(String name) {
+        if (name == null || name.length() <= MAX_NAME_CHARS) {
+            return name;
         }
-        return "The maximum `limit` is " + MAX_LIST_LIMIT + "; narrow `search` to retrieve the "
-                + "profiles you need.";
-    }
-
-    /**
-     * Whether a profile can actually be analysed.
-     * <p>
-     * A profile row is inserted before its recording is parsed, so a profile can exist for minutes
-     * without holding a single event. Listing it is right — it is real, and hiding it would make an
-     * import look lost — but listing it as though it were finished is not: every tool would answer
-     * about an empty database and nothing would say why.
-     */
-    private static String readiness(ProfileInfo profile) {
-        return profile.enabled() ? "yes" : "building";
+        int end = MAX_NAME_CHARS - 1;
+        if (Character.isHighSurrogate(name.charAt(end - 1))) {
+            end--;
+        }
+        return name.substring(0, end) + "…";
     }
 
     private static boolean matches(ProfileInfo profile, String search) {
-        if (search == null || search.isBlank()) {
-            return true;
-        }
-        String name = profile.name() == null ? "" : profile.name();
-        return name.toLowerCase(Locale.ROOT).contains(search.trim().toLowerCase(Locale.ROOT));
+        return search.isEmpty() || (profile.name() != null && profile.name().toLowerCase(Locale.ROOT).contains(search));
     }
 
-    /**
-     * A Quick Analysis profile belongs to no project — it was opened straight from a local file.
-     */
-    private static String projectOf(ProfileInfo profile) {
-        return profile.projectId() == null ? QUICK_ANALYSIS_PROJECT : profile.projectId();
+    private static String fingerprint(String search) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance(HASH_ALGORITHM).digest(search.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Required SHA-256 algorithm unavailable", e);
+        }
+    }
+
+    private record Page(String text, ObjectNode structured) {
+        boolean fits() {
+            return text.length() <= McpToolOutput.MAX_CHARS && Json.toString(structured).length() <= McpToolOutput.MAX_CHARS;
+        }
+
+        McpToolResult result() {
+            return new McpToolResult(text, structured);
+        }
+    }
+
+    private record Cursor(String searchFingerprint, String lastProfileId) {
+        String encode() {
+            ObjectNode value = Json.createObject().put("version", CURSOR_VERSION)
+                    .put("search", searchFingerprint).put("after", lastProfileId);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(Json.toByteArray(value));
+        }
+
+        static Cursor decode(String token, String fingerprint) {
+            try {
+                if (token.isEmpty() || token.length() > McpToolOutput.MAX_CHARS) {
+                    throw new IllegalArgumentException(INVALID_CURSOR);
+                }
+                ObjectNode value = Json.readObjectNode(new String(Base64.getUrlDecoder().decode(token), StandardCharsets.UTF_8));
+                if (value == null || value.size() != 3 || !value.path("version").isInt()
+                        || value.path("version").asInt() != CURSOR_VERSION || !value.path("search").isString()
+                        || !value.path("after").isString() || value.path("after").asString().isEmpty()
+                        || !fingerprint.equals(value.path("search").asString())) {
+                    throw new IllegalArgumentException(INVALID_CURSOR);
+                }
+                Cursor cursor = new Cursor(fingerprint, value.path("after").asString());
+                if (!cursor.encode().equals(token)) {
+                    throw new IllegalArgumentException(INVALID_CURSOR);
+                }
+                return cursor;
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException(INVALID_CURSOR, e);
+            }
+        }
     }
 }

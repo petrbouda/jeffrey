@@ -106,6 +106,11 @@ final class MarkdownTable {
         return McpToolOutput.capped(out.toString());
     }
 
+    /** Full table for callers that size complete pages before publishing them. */
+    public String renderUncapped() {
+        return out.toString();
+    }
+
     private void appendRow(List<String> cells) {
         out.append(ROW_PREFIX)
                 .append(String.join(CELL_SEPARATOR, cells))

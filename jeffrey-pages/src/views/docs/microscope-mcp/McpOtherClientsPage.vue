@@ -99,7 +99,7 @@ const initializeResult = `{
       "prompts": { "listChanged": false },
       "resources": { "subscribe": false, "listChanged": false }
     },
-    "serverInfo": { "name": "jeffrey", "version": "1.0.0" }
+    "serverInfo": { "name": "jeffrey", "version": "<application-build-version>" }
   }
 }`;
 
@@ -197,6 +197,8 @@ const protocolError = `{
       <p><strong>Resources</strong> are the parts of a profile a client can attach rather than call for. <code>jeffrey://profiles</code> is the catalogue; <code>resources/templates/list</code> offers <code>jeffrey://profile/&#123;profileId&#125;/summary</code> and <code>jeffrey://profile/&#123;profileId&#125;/flamegraph/&#123;eventType&#125;</code>. The distinction is worth the two extra methods: a tool result scrolls away, where a resource a client has attached stays in view and can be referred back to. Reading one runs the tool that would have answered the same question, so the two never disagree.</p>
 
       <DocsCodeBlock :code="resourcesCall" language="bash" />
+      <p><code>jeffrey://profiles</code> returns the first catalogue page and provides a continuation URI when more profiles match. The <code>jeffrey://profiles{?cursor,limit}</code> template continues it. <code>jeffrey://server</code> reports the build version, effective tool families and count, and supported protocol capabilities. It contains no raw configuration, local paths or Hub addresses.</p>
+      <p>For <code>profiles_list</code> and <code>hubs_sessions</code>, clients using protocol <code>2025-06-18</code> or newer can consume <code>structuredContent</code> and the advertised <code>outputSchema</code>. Readable text remains present. Send the negotiated <code>MCP-Protocol-Version</code> header on each request. Requests without that header receive the older text-only format. Other tools keep their existing text contract.</p>
 
       <h2 id="the-wire-protocol">The Wire Protocol</h2>
       <p>Whatever the client, the endpoint is plain <strong>JSON-RPC 2.0 over HTTP POST</strong>. No SSE stream, no session header, no handshake beyond what the protocol requires. A <code>GET</code> on the endpoint answers <code>405</code>, which is what the MCP specification prescribes for a server that does not offer the optional server-to-client stream &mdash; a client that treats that as fatal rather than as the documented refusal is at fault. A client that sends its negotiated <code>MCP-Protocol-Version</code> header on later requests is held to it: a revision this server does not implement is refused with <code>400</code> rather than half-served.</p>

@@ -26,10 +26,16 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadedSessionIndex;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubScanFilter;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionCursor;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.profile.mcp.McpOutputSchema;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ArrayNode;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
@@ -88,6 +94,14 @@ public class HubsMcpTools {
 
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 500;
+    private static final int DISPLAY_CHARS = 256;
+    private static final int FAILURE_CHARS = 512;
+    private static final int MAX_DISPLAYED_FAILURES = 24;
+    private static final String LIVE_PAGING_NOTE =
+            "Live view: a cursor continues after the last returned row among observed sessions. "
+                    + "Newer insertions require a fresh scan. Missing remote scopes remain incomplete "
+                    + "even when hasMore=false. Long display names and failure details are shortened; "
+                    + "session_ref identities are preserved.";
 
     /**
      * How long a listing may spend waiting on hubs. Needed because no deadline is set on the hub
@@ -200,8 +214,26 @@ public class HubsMcpTools {
             + "environment rather than from a file, such as \"the JFR recordings from the last hour "
             + "on production\". Every row carries a session_ref to pass to hubs_download. The `local` "
             + "column says a session has already been pulled into this Jeffrey, so it can be analysed "
-            + "without downloading it again.")
-    public String sessions(
+            + "without downloading it again. Follow nextCursor with the same filters for more rows. "
+            + "This is a live view: complete describes whether all remote scopes answered, independently "
+            + "of hasMore. A relative time window keeps its original cutoff across pages.")
+    @McpOutputSchema("""
+            {"type":"object","properties":{
+              "sessions":{"type":"array","items":{"type":"object","properties":{
+                "hub":{"type":"string"},"workspace":{"type":"string"},"project":{"type":"string"},
+                "started":{"type":["string","null"]},"duration":{"type":"string"},
+                "status":{"type":["string","null"]},"files":{"type":"integer"},
+                "size":{"type":"string"},"local":{"type":"string"},"session_ref":{"type":"string"}
+              },"required":["hub","workspace","project","started","duration","status","files","size","local","session_ref"]}},
+              "returned":{"type":"integer"},"total":{"type":["integer","null"]},
+              "observedTotal":{"type":"integer"},"hasMore":{"type":"boolean"},
+              "nextCursor":{"type":["string","null"]},"complete":{"type":"boolean"},
+              "failures":{"type":"array","items":{"type":"object","properties":{
+                "hubName":{"type":"string"},"scope":{"type":"string"},"reason":{"type":"string"}
+              },"required":["hubName","scope","reason"]}}
+            },"required":["sessions","returned","total","observedTotal","hasMore","nextCursor","complete","failures"]}
+            """)
+    public McpToolResult sessions(
             @ToolParam(required = false, description = "Optional hub filter: a hub id, or part of a hub name as "
                     + "hubs_list prints it, e.g. production. Omit to search every hub")
             String hub,
@@ -218,37 +250,139 @@ public class HubsMcpTools {
                     + "FINISHED for one that has stopped. Omit for both")
             RecordingStatus status,
             @ToolParam(required = false, description = "Most rows to return across all hubs. Default 50, maximum 500")
-            Integer limit) {
+            Integer limit,
+            @ToolParam(required = false, description = "Opaque nextCursor from the previous page. Keep all "
+                    + "filters unchanged; limit may change. Omit to start a fresh live scan")
+            String cursor) {
 
         int rowLimit = ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT);
-        HubScanFilter filter = new HubScanFilter(
-                hub, workspace, project, sessionFilter(withinLastMinutes, status, rowLimit));
+        HubScanFilter requested = new HubScanFilter(
+                hub, workspace, project, sessionFilter(withinLastMinutes, status));
+        String fingerprint = HubSessionCursor.fingerprint(requested, withinLastMinutes);
+        HubSessionCursor continuation = cursor == null ? null
+                : HubSessionCursor.decode(cursor, fingerprint, withinLastMinutes != null);
+        HubScanFilter filter = continuation == null ? requested : requested.withSessions(
+                new RecordingSessionFilter(continuation.activeFrom(), null, status, RecordingSessionFilter.NO_LIMIT));
 
-        HubSessionScan.Result result = scan.scan(filter, rowLimit);
-        if (result.rows().isEmpty() && result.complete()) {
-            return emptyResult(withinLastMinutes);
-        }
-
+        HubSessionScan.Result scanned = scan.scan(filter);
+        List<HubSessionScan.Row> remaining = scanned.rows().stream()
+                .filter(row -> continuation == null || row.key().compareTo(continuation.after()) > 0)
+                .toList();
+        SessionPage page = new SessionPage(filter, fingerprint, withinLastMinutes, scanned.rows().size(),
+                remaining.size(), boundedFailures(scanned.failures()));
         DownloadedSessionIndex local = DownloadedSessionIndex.build(recordingsManager);
+        List<HubSessionScan.Row> selected = new ArrayList<>(remaining.subList(0, Math.min(rowLimit, remaining.size())));
+        while (true) {
+            PageCandidate result = renderPage(page, selected, local);
+            if (result.text().length() <= McpToolOutput.MAX_CHARS
+                    && Json.toString(result.structuredContent()).length() <= McpToolOutput.MAX_CHARS) {
+                return new McpToolResult(result.text(), result.structuredContent());
+            }
+            if (selected.size() <= 1) {
+                throw new IllegalArgumentException(
+                        "A session identity exceeds the catalogue response limit and cannot be returned intact.");
+            }
+            selected.removeLast();
+        }
+    }
 
+    /** Java callers retain the original text-only contract; MCP reflects the cursor overload. */
+    public String sessions(String hub, String workspace, String project, Integer withinLastMinutes,
+                           RecordingStatus status, Integer limit) {
+        return sessions(hub, workspace, project, withinLastMinutes, status, limit, null).text();
+    }
+
+    private record SessionPage(HubScanFilter filter, String fingerprint, Integer withinLastMinutes,
+                               int observedTotal, int remaining, List<HubSessionScan.Failure> failures) {
+
+        boolean complete() {
+            return failures.isEmpty();
+        }
+    }
+
+    private record PageCandidate(String text, ObjectNode structuredContent) {
+    }
+
+    private static PageCandidate renderPage(
+            SessionPage page, List<HubSessionScan.Row> rows, DownloadedSessionIndex local) {
+        boolean hasMore = rows.size() < page.remaining();
+        String nextCursor = hasMore && !rows.isEmpty() ? new HubSessionCursor(
+                page.fingerprint(), page.filter().sessions().activeFrom(), rows.getLast().key()).encode() : null;
+        ObjectNode structured = Json.createObject();
+        ArrayNode sessions = structured.putArray("sessions");
+        structured.put("returned", rows.size());
+        if (page.complete()) {
+            structured.put("total", page.observedTotal());
+        } else {
+            structured.putNull("total");
+        }
+        structured.put("observedTotal", page.observedTotal());
+        structured.put("hasMore", hasMore);
+        structured.put("nextCursor", nextCursor);
+        structured.put("complete", page.complete());
+        structured.set("failures", Json.toTree(page.failures()));
         MarkdownTable table = MarkdownTable.withColumns(
                 "hub", "workspace", "project", "started", "duration", "status", "files", "size",
                 "local", "session_ref");
-        for (HubSessionScan.Row row : result.rows()) {
+        for (HubSessionScan.Row row : rows) {
             RecordingSession session = row.session();
-            table.row(
-                    row.hubName(),
-                    row.workspaceName(),
-                    row.projectName(),
-                    session.createdAt(),
-                    duration(session),
-                    session.status(),
-                    session.files() == null ? 0 : session.files().size(),
-                    size(session.totalSizeBytes()),
-                    localColumn(local, row.ref()),
-                    row.ref().encode());
+            String hub = bounded(row.hubName(), DISPLAY_CHARS);
+            String workspace = bounded(row.workspaceName(), DISPLAY_CHARS);
+            String project = bounded(row.projectName(), DISPLAY_CHARS);
+            String duration = duration(session);
+            String size = size(session.totalSizeBytes());
+            String localCopy = localColumn(local, row.ref());
+            String ref = row.ref().encode();
+            int files = session.files() == null ? 0 : session.files().size();
+            table.row(hub, workspace, project, session.createdAt(), duration, session.status(), files, size,
+                    localCopy, ref);
+            ObjectNode entry = sessions.addObject();
+            entry.put("hub", hub);
+            entry.put("workspace", workspace);
+            entry.put("project", project);
+            entry.put("started", session.createdAt() == null ? null : session.createdAt().toString());
+            entry.put("duration", duration);
+            entry.put("status", session.status() == null ? null : session.status().name());
+            entry.put("files", files);
+            entry.put("size", size);
+            entry.put("local", localCopy);
+            entry.put("session_ref", ref);
         }
-        return table.note(footer(result)).render();
+        String metadata = "Returned " + rows.size() + " of " + page.observedTotal() + " observed sessions. "
+                + "complete=" + page.complete() + "; hasMore=" + hasMore + ". "
+                + (nextCursor == null ? "" : "nextCursor: `" + nextCursor + "`\n") + LIVE_PAGING_NOTE;
+        String text;
+        if (page.observedTotal() == 0 && page.complete()) {
+            text = emptyResult(page.withinLastMinutes()) + "\n\n" + metadata;
+        } else {
+            text = table.note(footer(new HubSessionScan.Result(rows, page.failures())))
+                    .note(metadata).renderUncapped();
+        }
+        return new PageCandidate(text, structured);
+    }
+
+    private static List<HubSessionScan.Failure> boundedFailures(List<HubSessionScan.Failure> failures) {
+        List<HubSessionScan.Failure> displayed = new ArrayList<>();
+        for (HubSessionScan.Failure failure : failures.subList(0, Math.min(failures.size(), MAX_DISPLAYED_FAILURES))) {
+            displayed.add(new HubSessionScan.Failure(bounded(failure.hubName(), DISPLAY_CHARS),
+                    bounded(failure.scope(), FAILURE_CHARS), bounded(failure.reason(), FAILURE_CHARS)));
+        }
+        if (failures.size() > displayed.size()) {
+            displayed.add(new HubSessionScan.Failure("", "additional remote scopes",
+                    (failures.size() - displayed.size()) + " additional failed scopes omitted; narrow filters for details."));
+        }
+        return List.copyOf(displayed);
+    }
+
+    private static String bounded(String value, int limit) {
+        if (value == null) {
+            return "";
+        }
+        if (value.length() <= limit) {
+            return value;
+        }
+        int end = Character.isHighSurrogate(value.charAt(limit - 1)) ? limit - 1 : limit;
+        return value.substring(0, end) + "…";
     }
 
     /*
@@ -313,6 +447,7 @@ public class HubsMcpTools {
                     ref,
                     remaining(responseDeadline),
                     retryFailed,
+                    recordingId -> recordingsManager.findRecording(recordingId).isPresent(),
                     () -> transferWithinDeadline(project, ref));
         } catch (RuntimeException e) {
             throw mapRemoteFailure(e);
@@ -354,7 +489,7 @@ public class HubsMcpTools {
     }
 
     private RecordingSessionFilter sessionFilter(
-            Integer withinLastMinutes, RecordingStatus status, int limit) {
+            Integer withinLastMinutes, RecordingStatus status) {
         RecordingSessionFilter filter = RecordingSessionFilter.ALL;
         if (withinLastMinutes != null) {
             if (withinLastMinutes < 1) {
@@ -364,7 +499,7 @@ public class HubsMcpTools {
             filter = RecordingSessionFilter.activeWithinLast(
                     Duration.ofMinutes(withinLastMinutes), clock.instant());
         }
-        return filter.withStatus(status).withLimit(limit);
+        return filter.withStatus(status);
     }
 
 

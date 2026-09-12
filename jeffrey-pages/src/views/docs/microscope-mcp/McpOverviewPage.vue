@@ -184,7 +184,7 @@ onMounted(() => {
 
       <p><strong>Prompts</strong> are the plugin&rsquo;s <router-link to="/docs/microscope-mcp/skills">skills</router-link>, served over the protocol. A Claude Code, Codex or Gemini CLI user gets them from the plugin; every other MCP client &mdash; Cursor, VS Code, Kiro, anything registered by hand &mdash; cannot install a plugin, and would otherwise have the tools with no account of how to use them. <code>prompts/list</code> names them and <code>prompts/get</code> returns one. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so the two cannot drift apart.</p>
 
-      <p><strong>Resources</strong> are the parts of a profile a client can attach rather than call for: the catalogue at <code>jeffrey://profiles</code>, and templates for a profile&rsquo;s summary and a flamegraph export. A tool result scrolls away; a resource a client has attached stays in view. Reading one runs the tool that would have answered the same question, so the two never disagree.</p>
+      <p><strong>Resources</strong> are the parts of a profile a client can attach rather than call for: the paginated catalogue at <code>jeffrey://profiles</code>, server build and capability information at <code>jeffrey://server</code>, and templates for a profile&rsquo;s summary and a flamegraph export. A tool result scrolls away; a resource a client has attached stays in view. Reading one runs the tool that would have answered the same question, so the two never disagree.</p>
 
       <p><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> has the calls.</p>
 

@@ -162,6 +162,22 @@ class HubSessionScanTest {
         }
 
         @Test
+        void breaksTimestampTiesByTheFullSessionCoordinate() {
+            HubManager second = reachableHub("h-2", "second", "checkout",
+                    repositoryWith(session("a", NOW)));
+            HubManager first = reachableHub("h-1", "first", "search",
+                    repositoryWith(session("c", NOW), session("b", NOW)));
+            when(hubsManager.findAll()).thenReturn(List.of(second, first));
+
+            HubSessionScan.Result result = scan.scan(HubScanFilter.ALL, 0);
+
+            assertEquals(List.of(new HubSessionRef("h-1", "ws-1", "proj-1", "b"),
+                            new HubSessionRef("h-1", "ws-1", "proj-1", "c"),
+                            new HubSessionRef("h-2", "ws-1", "proj-1", "a")),
+                    result.rows().stream().map(HubSessionScan.Row::ref).toList());
+        }
+
+        @Test
         void appliesTheGlobalLimitAfterTheMerge() {
             // The hub caps per project, so a merge across hubs can still exceed what was asked for.
             HubManager production = reachableHub("h-1", "production", "checkout",

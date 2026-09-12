@@ -26,6 +26,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -52,6 +55,38 @@ class BoundedJobsTest {
      * stops outliving anything: the key is a recording id or a session reference, and one entry per
      * import for the life of the process is a map that only grows.
      */
+    @Nested
+    class CompletedSuccess {
+
+        private final BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+
+        private Object runWithReuse(Predicate<String> reuse, Supplier<String> work) {
+            var method = assertDoesNotThrow(() -> BoundedJobs.class.getMethod("runWithin",
+                    Object.class, Duration.class, boolean.class, Predicate.class, Supplier.class));
+            return assertDoesNotThrow(() -> method.invoke(jobs, "download", GENEROUS, false, reuse, work));
+        }
+
+        @Test
+        void atomicallyReusesAPersistedSuccessWhenPreflightFinishesAfterTheTransfer() {
+            jobs.runWithin("download", () -> "stored-recording");
+            assertEquals(Optional.of("stored-recording"), runWithReuse("stored-recording"::equals, () -> {
+                throw new AssertionError("A persisted completed transfer must not start again");
+            }));
+        }
+
+        @Test
+        void restartsWhenThePreviouslyDownloadedRecordingWasDeleted() {
+            jobs.runWithin("download", () -> "deleted-recording");
+            assertEquals(Optional.of("replacement"), runWithReuse(_ -> false, () -> "replacement"));
+        }
+
+        @Test
+        void existingCallersStillStartFreshWorkAfterSuccess() {
+            jobs.runWithin("download", () -> "first");
+            assertEquals(Optional.of("second"), jobs.runWithin("download", () -> "second"));
+        }
+    }
+
     @Nested
     class Retention {
 

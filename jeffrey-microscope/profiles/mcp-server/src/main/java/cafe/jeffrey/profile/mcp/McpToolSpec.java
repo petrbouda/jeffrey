@@ -32,6 +32,10 @@ public record McpToolSpec(
         String name,
         String description,
         ObjectNode inputSchema,
-        McpToolAnnotations annotations
+        McpToolAnnotations annotations,
+        ObjectNode outputSchema
 ) {
+    public McpToolSpec(String name, String description, ObjectNode inputSchema, McpToolAnnotations annotations) {
+        this(name, description, inputSchema, annotations, null);
+    }
 }
