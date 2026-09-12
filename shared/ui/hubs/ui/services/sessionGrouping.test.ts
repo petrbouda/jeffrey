@@ -41,9 +41,9 @@ function file(size: number): RepositoryFile {
   );
 }
 
-/** Inside the crash window: too early to have written anything. */
-const CRASH_DURATION = 5_000;
-/** Well past the crash window: a run this long produces data unless the sizes are wrong. */
+/** A session only seconds old — nothing has been flushed into its files yet. */
+const SHORT_DURATION = 5_000;
+/** A session going long enough that all-zero sizes are worth remarking on. */
 const LONG_DURATION = 600_000;
 
 function session(
@@ -51,7 +51,7 @@ function session(
   status: RecordingStatus,
   files: RepositoryFile[],
   createdAt: number = BASE_CREATED_AT,
-  duration: number = CRASH_DURATION
+  duration: number = SHORT_DURATION
 ): RecordingSession {
   const finishedAt = status === RecordingStatus.FINISHED ? createdAt + duration : null;
   return new RecordingSession(id, id, 'inst-1', createdAt, finishedAt, status, duration, files, false);
@@ -80,40 +80,35 @@ describe('isFailedSession', () => {
     expect(isFailedSession(session('s1', RecordingStatus.FINISHED, [unsized]))).toBe(true);
   });
 
-  it('does not mark a long session whose files all measure zero as failed', () => {
+  it('marks a long finished session with no data as failed, however long it ran', () => {
     const long = session('s1', RecordingStatus.FINISHED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
-    expect(isFailedSession(long)).toBe(false);
-  });
-
-  it('still marks a long session that produced no files at all as failed', () => {
-    const long = session('s1', RecordingStatus.FINISHED, [], BASE_CREATED_AT, LONG_DURATION);
     expect(isFailedSession(long)).toBe(true);
   });
 });
 
 describe('hasUnreportedSizes', () => {
-  it('flags a long session whose files all measure zero', () => {
-    const long = session('s1', RecordingStatus.FINISHED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
-    expect(hasUnreportedSizes(long)).toBe(true);
-  });
-
   it('flags a running session whose files all measure zero', () => {
     const running = session('s1', RecordingStatus.ACTIVE, [file(0)], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(running)).toBe(true);
   });
 
   it('does not flag a session that just started', () => {
-    const fresh = session('s1', RecordingStatus.ACTIVE, [file(0)], BASE_CREATED_AT, CRASH_DURATION);
+    const fresh = session('s1', RecordingStatus.ACTIVE, [file(0)], BASE_CREATED_AT, SHORT_DURATION);
     expect(hasUnreportedSizes(fresh)).toBe(false);
   });
 
+  it('does not flag a failed session — a crash is the explanation there', () => {
+    const failed = session('s1', RecordingStatus.FINISHED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
+    expect(hasUnreportedSizes(failed)).toBe(false);
+  });
+
   it('does not flag a session that reported data', () => {
-    const real = session('s1', RecordingStatus.FINISHED, [file(100)], BASE_CREATED_AT, LONG_DURATION);
+    const real = session('s1', RecordingStatus.ACTIVE, [file(100)], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(real)).toBe(false);
   });
 
-  it('does not flag a session with no files — there is nothing to report on', () => {
-    const empty = session('s1', RecordingStatus.FINISHED, [], BASE_CREATED_AT, LONG_DURATION);
+  it('does not flag a running session with no files — there is nothing to report on', () => {
+    const empty = session('s1', RecordingStatus.ACTIVE, [], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(empty)).toBe(false);
   });
 });
