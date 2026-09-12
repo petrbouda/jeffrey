@@ -121,7 +121,7 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
     }
 
     @Override
-    public String call(String toolName, JsonNode arguments) {
+    public McpToolResult callResult(String toolName, JsonNode arguments) {
         Method method = index.method(toolName);
         String profileId = readProfileId(arguments);
         // Bound before the profile is resolved, so that an argument the schema does not accept is

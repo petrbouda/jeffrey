@@ -31,6 +31,8 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
+import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.profile.mcp.ToolDispatchException;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.Json;
@@ -57,6 +59,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.stream.IntStream;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -71,8 +75,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -176,6 +182,155 @@ class HubsMcpToolsTest {
             ProfileManager profileManager = mock(ProfileManager.class);
             when(profileManager.info()).thenReturn(profileInfo);
             when(recordingsManager.profile(profileId)).thenReturn(Optional.of(profileManager));
+        }
+    }
+
+    @Nested
+    class CataloguePages {
+
+        private JsonNode page(HubsMcpTools target, String hub, Integer minutes, int limit, String cursor) {
+            var method = assertDoesNotThrow(() -> HubsMcpTools.class.getMethod("sessions",
+                    String.class, String.class, String.class, Integer.class, RecordingStatus.class,
+                    Integer.class, String.class), "sessions must expose cursor pagination");
+            return Json.toTree(assertDoesNotThrow(() -> method.invoke(target, hub, null, null,
+                    minutes, null, limit, cursor)));
+        }
+
+        @Test
+        void returnsCompleteEmptyCatalogueMetadata() {
+            when(hubsManager.findAll()).thenReturn(List.of());
+            JsonNode result = page(tools, null, null, 1, null).path("structuredContent");
+            assertEquals(0, result.path("returned").asInt(-1));
+            assertEquals(0, result.path("total").asInt(-1));
+            assertEquals(0, result.path("observedTotal").asInt(-1));
+            assertTrue(result.path("complete").asBoolean());
+            assertFalse(result.path("hasMore").asBoolean());
+            assertTrue(result.path("nextCursor").isNull());
+            assertTrue(result.path("sessions").isArray());
+        }
+
+        @Test
+        void pagesTiedTimestampsByFullReferenceAndReadsAllProjectRows() {
+            RepositoryManager repo = mock(RepositoryManager.class);
+            when(repo.listRecordingSessions(anyBoolean(), any())).thenAnswer(call -> {
+                RecordingSessionFilter filter = call.getArgument(1);
+                return filter.apply(List.of(jfrSession("c", NOW), jfrSession("b", NOW), jfrSession("a", NOW)));
+            });
+            HubManager hub = reachableHub(HUB_ID, "production", "checkout", repo);
+            when(hubsManager.findAll()).thenReturn(List.of(hub));
+            noLocalRecordings();
+            JsonNode first = page(tools, " PROD ", null, 1, null).path("structuredContent");
+            assertEquals(3, first.path("total").asInt());
+            assertEquals(3, first.path("observedTotal").asInt());
+            assertEquals("a", HubSessionRef.decode(first.path("sessions").get(0).path("session_ref").asText()).sessionId());
+            assertTrue(first.path("hasMore").asBoolean());
+            JsonNode second = page(tools, "prod", null, 2, first.path("nextCursor").asText()).path("structuredContent");
+            assertEquals(2, second.path("returned").asInt());
+            assertEquals("b", HubSessionRef.decode(second.path("sessions").get(0).path("session_ref").asText()).sessionId());
+            assertFalse(second.path("hasMore").asBoolean());
+            assertTrue(second.path("nextCursor").isNull());
+        }
+
+        @Test
+        void partialEmptyCatalogueNeverClaimsThereAreZeroSessions() {
+            HubManager down = mock(HubManager.class);
+            when(down.info()).thenReturn(hubInfo(HUB_ID, "production"));
+            when(down.infoOrThrow()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
+            when(hubsManager.findAll()).thenReturn(List.of(down));
+            noLocalRecordings();
+            JsonNode result = page(tools, null, null, 1, null);
+            JsonNode data = result.path("structuredContent");
+            assertTrue(data.path("total").isNull());
+            assertEquals(0, data.path("observedTotal").asInt(-1));
+            assertFalse(data.path("complete").asBoolean(true));
+            assertFalse(data.path("hasMore").asBoolean());
+            assertEquals("production", data.path("failures").get(0).path("hubName").asText());
+            assertTrue(result.path("text").asText().contains("Not listed"));
+        }
+
+        @Test
+        void boundsLargeFailureDetailsWhileKeepingTheScanIncomplete() {
+            HubManager down = mock(HubManager.class);
+            when(down.info()).thenReturn(hubInfo(HUB_ID, "production".repeat(20000)));
+            when(down.infoOrThrow()).thenThrow(new IllegalStateException("failure".repeat(20000)));
+            when(hubsManager.findAll()).thenReturn(List.of(down));
+            noLocalRecordings();
+            JsonNode result = page(tools, null, null, 1, null);
+            assertTrue(result.path("text").asText().length() <= McpToolOutput.MAX_CHARS);
+            assertTrue(Json.toString(result.path("structuredContent")).length() <= McpToolOutput.MAX_CHARS);
+            assertFalse(result.path("structuredContent").path("complete").asBoolean(true));
+            assertTrue(result.path("structuredContent").path("total").isNull());
+        }
+
+        @Test
+        void liveCursorSurvivesDeletionAndSkipsNewerInsertions() {
+            RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW.minusSeconds(1)));
+            HubManager hub = reachableHub(HUB_ID, "production", "checkout", repo);
+            when(hubsManager.findAll()).thenReturn(List.of(hub));
+            noLocalRecordings();
+            String cursor = page(tools, null, null, 1, null).path("structuredContent").path("nextCursor").asText();
+            when(repo.listRecordingSessions(anyBoolean(), any())).thenReturn(List.of(
+                    jfrSession("new", NOW.plusSeconds(1)), jfrSession("b", NOW.minusSeconds(1))));
+            JsonNode next = page(tools, null, null, 1, cursor).path("structuredContent");
+            assertEquals("b", HubSessionRef.decode(next.path("sessions").get(0).path("session_ref").asText()).sessionId());
+            assertFalse(next.path("hasMore").asBoolean());
+        }
+
+        @Test
+        void cursorKeepsTheOriginalActiveWindowCutoff() {
+            RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW.minusSeconds(1)));
+            HubManager hub = reachableHub(HUB_ID, "production", "checkout", repo);
+            when(hubsManager.findAll()).thenReturn(List.of(hub));
+            noLocalRecordings();
+            String cursor = page(tools, null, 60, 1, null).path("structuredContent").path("nextCursor").asText();
+            HubsMcpTools later = new HubsMcpTools(hubsManager, resolver, recordingsManager,
+                    Clock.fixed(NOW.plusSeconds(120), ZoneOffset.UTC));
+            page(later, null, 60, 1, cursor);
+            ArgumentCaptor<RecordingSessionFilter> filters = ArgumentCaptor.forClass(RecordingSessionFilter.class);
+            verify(repo, times(2)).listRecordingSessions(eq(true), filters.capture());
+            assertEquals(filters.getAllValues().get(0).activeFrom(), filters.getAllValues().get(1).activeFrom());
+        }
+
+        @Test
+        void rejectsMalformedAndFilterMismatchedCursorsBeforeRemoteReads() {
+            var method = assertDoesNotThrow(() -> HubsMcpTools.class.getMethod("sessions",
+                    String.class, String.class, String.class, Integer.class, RecordingStatus.class,
+                    Integer.class, String.class));
+            var malformed = assertThrows(InvocationTargetException.class,
+                    () -> method.invoke(tools, null, null, null, null, null, 1, "garbage"));
+            assertTrue(malformed.getCause() instanceof IllegalArgumentException);
+            verifyNoInteractions(hubsManager);
+            RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW));
+            HubManager hub = reachableHub(HUB_ID, "production", "checkout", repo);
+            when(hubsManager.findAll()).thenReturn(List.of(hub));
+            noLocalRecordings();
+            String cursor = page(tools, "prod", null, 1, null).path("structuredContent").path("nextCursor").asText();
+            var mismatch = assertThrows(InvocationTargetException.class,
+                    () -> method.invoke(tools, "stage", null, null, null, null, 1, cursor));
+            assertTrue(mismatch.getCause() instanceof IllegalArgumentException);
+        }
+
+        @Test
+        void characterLimitedPagesKeepIdentitiesAndContinueAfterTheLastReturnedRow() {
+            RecordingSession[] sessions = IntStream.range(0, 500)
+                    .mapToObj(i -> jfrSession("session-%04d".formatted(i), NOW.minusSeconds(i)))
+                    .toArray(RecordingSession[]::new);
+            HubManager hub = reachableHub(HUB_ID, "production".repeat(200),
+                    "checkout".repeat(200), repositoryWith(sessions));
+            when(hubsManager.findAll()).thenReturn(List.of(hub));
+            noLocalRecordings();
+            JsonNode first = page(tools, null, null, 500, null);
+            JsonNode data = first.path("structuredContent");
+            int returned = data.path("returned").asInt();
+            assertTrue(returned > 0 && returned < 500);
+            assertEquals(returned, data.path("sessions").size());
+            assertTrue(first.path("text").asText().length() <= McpToolOutput.MAX_CHARS);
+            assertTrue(Json.toString(data).length() <= McpToolOutput.MAX_CHARS);
+            assertEquals(500, data.path("total").asInt());
+            assertTrue(data.path("hasMore").asBoolean());
+            JsonNode next = page(tools, null, null, 500, data.path("nextCursor").asText()).path("structuredContent");
+            assertEquals("session-%04d".formatted(returned),
+                    HubSessionRef.decode(next.path("sessions").get(0).path("session_ref").asText()).sessionId());
         }
     }
 
@@ -351,7 +506,7 @@ class HubsMcpToolsTest {
         }
 
         @Test
-        void boundsTheLimitItPushesDown() {
+        void readsEveryProjectRowBeforeApplyingThePageLimit() {
             RepositoryManager repo = repositoryWith(jfrSession(SESSION_ID, NOW));
             HubManager production = reachableHub(HUB_ID, "production", "checkout", repo);
             when(hubsManager.findAll()).thenReturn(List.of(production));
@@ -362,7 +517,7 @@ class HubsMcpToolsTest {
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
             verify(repo).listRecordingSessions(eq(true), captor.capture());
-            assertEquals(500, captor.getValue().limit());
+            assertEquals(RecordingSessionFilter.NO_LIMIT, captor.getValue().limit());
         }
 
         @Test
@@ -581,6 +736,10 @@ class HubsMcpToolsTest {
             CountDownLatch transferStarted = new CountDownLatch(1);
             CountDownLatch release = new CountDownLatch(1);
             AtomicInteger transfers = new AtomicInteger();
+            AtomicBoolean persisted = new AtomicBoolean();
+            Recording recording = mock(Recording.class);
+            when(recordingsManager.findRecording("rec-new"))
+                    .thenAnswer(_ -> persisted.get() ? Optional.of(recording) : Optional.empty());
 
             RepositoryManager repository = mock(RepositoryManager.class);
             when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
@@ -592,6 +751,7 @@ class HubsMcpToolsTest {
                 transfers.incrementAndGet();
                 transferStarted.countDown();
                 release.await(2, TimeUnit.SECONDS);
+                persisted.set(true);
                 return "rec-new";
             });
             ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
@@ -613,6 +773,50 @@ class HubsMcpToolsTest {
                 assertEquals(1, transfers.get());
             } finally {
                 release.countDown();
+            }
+        }
+
+        @Test
+        void reusesTransferCompletedWhileAnotherCallWasStillInPreflight() throws Exception {
+            CountDownLatch secondPreflight = new CountDownLatch(1);
+            CountDownLatch releasePreflight = new CountDownLatch(1);
+            CountDownLatch transferStarted = new CountDownLatch(1);
+            AtomicInteger preflightCalls = new AtomicInteger();
+            AtomicInteger transfers = new AtomicInteger();
+            AtomicBoolean persisted = new AtomicBoolean();
+            Recording recording = mock(Recording.class);
+            when(recordingsManager.findRecording("rec-new"))
+                    .thenAnswer(_ -> persisted.get() ? Optional.of(recording) : Optional.empty());
+            RepositoryManager repository = mock(RepositoryManager.class);
+            when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
+                if (preflightCalls.incrementAndGet() == 2) {
+                    secondPreflight.countDown();
+                    assertTrue(releasePreflight.await(5, TimeUnit.SECONDS));
+                }
+                return jfrSession(SESSION_ID, NOW);
+            });
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+                transfers.incrementAndGet();
+                transferStarted.countDown();
+                assertTrue(secondPreflight.await(5, TimeUnit.SECONDS));
+                persisted.set(true);
+                return "rec-new";
+            });
+            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
+            when(project.repositoryManager()).thenReturn(repository);
+            resolvesTo(project);
+            noLocalRecordings();
+            try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
+                Future<String> first = callers.submit(() -> tools.download(REF.encode()));
+                assertTrue(transferStarted.await(2, TimeUnit.SECONDS));
+                Future<String> second = callers.submit(() -> tools.download(REF.encode()));
+                assertTrue(first.get(3, TimeUnit.SECONDS).contains("rec-new"));
+                releasePreflight.countDown();
+                assertTrue(second.get(3, TimeUnit.SECONDS).contains("rec-new"));
+                assertEquals(1, transfers.get());
+            } finally {
+                releasePreflight.countDown();
             }
         }
 

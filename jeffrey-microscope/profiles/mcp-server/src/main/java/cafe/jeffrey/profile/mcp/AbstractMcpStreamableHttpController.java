@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.JeffreyVersion;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -63,7 +64,10 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS = Collections.unmodifiableSet(
             new LinkedHashSet<>(List.of("2024-11-05", "2025-03-26", "2025-06-18", DEFAULT_PROTOCOL_VERSION)));
     private static final String SERVER_NAME = "jeffrey";
-    private static final String SERVER_VERSION = "1.0.0";
+    private static final String SERVER_VERSION = JeffreyVersion.resolveJeffreyVersion();
+    public static final String STRUCTURED_RESULTS_VERSION = "2025-06-18";
+    private static final String FIELD_OUTPUT_SCHEMA = "outputSchema";
+    private static final String FIELD_STRUCTURED_CONTENT = "structuredContent";
 
     private static final String METHOD_INITIALIZE = "initialize";
     private static final String METHOD_TOOLS_LIST = "tools/list";
@@ -142,6 +146,14 @@ public abstract class AbstractMcpStreamableHttpController {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    public static String serverVersion() {
+        return SERVER_VERSION;
+    }
+
+    public static List<String> supportedProtocolVersions() {
+        return List.copyOf(SUPPORTED_PROTOCOL_VERSIONS);
+    }
+
     /**
      * Routes a JSON-RPC body — one request, or a batch of them — against everything the endpoint
      * offers. Each provider is resolved only for the methods that need it, so a failure building the
@@ -181,9 +193,9 @@ public abstract class AbstractMcpStreamableHttpController {
                     .body(error(null, ERROR_INVALID_REQUEST, "A JSON-RPC request must be an object or a batch"));
         }
         if (request.isArray()) {
-            return dispatchBatch(request, features);
+            return dispatchBatch(request, features, supportsStructured(protocolVersionHeader));
         }
-        JsonNode response = dispatchOne(request, features);
+        JsonNode response = dispatchOne(request, features, supportsStructured(protocolVersionHeader));
         if (response == null) {
             return ResponseEntity.accepted().build();
         }
@@ -194,7 +206,7 @@ public abstract class AbstractMcpStreamableHttpController {
      * Answers every request in a batch. An empty array is not a batch of nothing but a malformed body,
      * which is what the specification calls it too.
      */
-    private ResponseEntity<JsonNode> dispatchBatch(JsonNode batch, McpServerFeatures features) {
+    private ResponseEntity<JsonNode> dispatchBatch(JsonNode batch, McpServerFeatures features, boolean structured) {
         if (batch.isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(error(null, ERROR_INVALID_REQUEST, "A JSON-RPC batch must not be empty"));
@@ -205,7 +217,7 @@ public abstract class AbstractMcpStreamableHttpController {
                 responses.add(error(null, ERROR_INVALID_REQUEST, "A JSON-RPC request must be an object"));
                 continue;
             }
-            JsonNode response = dispatchOne(element, features);
+            JsonNode response = dispatchOne(element, features, structured);
             if (response != null) {
                 responses.add(response);
             }
@@ -223,7 +235,7 @@ public abstract class AbstractMcpStreamableHttpController {
      *
      * @return the response to send, or null when the request was a notification and needs none
      */
-    private JsonNode dispatchOne(JsonNode request, McpServerFeatures features) {
+    private JsonNode dispatchOne(JsonNode request, McpServerFeatures features, boolean structured) {
         JsonNode id = request.get(FIELD_ID);
         if (id != null && !id.isString() && !id.isIntegralNumber()) {
             return error(null, ERROR_INVALID_REQUEST, "A JSON-RPC id must be a string or integer");
@@ -248,8 +260,8 @@ public abstract class AbstractMcpStreamableHttpController {
             return switch (method) {
                 case METHOD_INITIALIZE -> initializeResult(id, request);
                 case METHOD_PING -> success(id, Json.createObject());
-                case METHOD_TOOLS_LIST -> toolsList(id, features.tools().get());
-                case METHOD_TOOLS_CALL -> toolsCall(id, features.tools().get(), request.path(FIELD_PARAMS));
+                case METHOD_TOOLS_LIST -> toolsList(id, features.tools().get(), structured);
+                case METHOD_TOOLS_CALL -> toolsCall(id, features.tools().get(), request.path(FIELD_PARAMS), structured);
                 case METHOD_PROMPTS_LIST -> promptsList(id, features.prompts().get());
                 case METHOD_PROMPTS_GET -> promptsGet(id, features.prompts().get(), request.path(FIELD_PARAMS));
                 case METHOD_RESOURCES_LIST -> resourcesList(id, features.resources().get());
@@ -265,6 +277,13 @@ public abstract class AbstractMcpStreamableHttpController {
             log.error("MCP request failed: method={} message={}", method, e.getMessage(), e);
             return error(id, ERROR_INTERNAL, e.getMessage());
         }
+    }
+
+    private static boolean supportsStructured(String protocolVersionHeader) {
+        // No session state is kept here. Without a header, the HTTP compatibility default is
+        // 2025-03-26, which predates structured results.
+        return protocolVersionHeader != null && !protocolVersionHeader.isBlank()
+                && protocolVersionHeader.compareTo(STRUCTURED_RESULTS_VERSION) >= 0;
     }
 
     private JsonNode initializeResult(JsonNode id, JsonNode request) {
@@ -286,7 +305,7 @@ public abstract class AbstractMcpStreamableHttpController {
         return success(id, result);
     }
 
-    private JsonNode toolsList(JsonNode id, McpToolProvider toolset) {
+    private JsonNode toolsList(JsonNode id, McpToolProvider toolset, boolean structured) {
         ObjectNode result = Json.createObject();
         ArrayNode tools = result.putArray(FIELD_TOOLS);
         for (McpToolSpec spec : toolset.specs()) {
@@ -294,6 +313,9 @@ public abstract class AbstractMcpStreamableHttpController {
             tool.put(FIELD_NAME, spec.name());
             tool.put(FIELD_DESCRIPTION, spec.description());
             tool.set(FIELD_INPUT_SCHEMA, spec.inputSchema());
+            if (structured && spec.outputSchema() != null) {
+                tool.set(FIELD_OUTPUT_SCHEMA, spec.outputSchema());
+            }
             ObjectNode annotations = tool.putObject(FIELD_ANNOTATIONS);
             annotations.put(FIELD_READ_ONLY_HINT, spec.annotations().readOnly());
             annotations.put(FIELD_DESTRUCTIVE_HINT, spec.annotations().destructive());
@@ -312,15 +334,18 @@ public abstract class AbstractMcpStreamableHttpController {
      * JSON-RPC error channel instead, so a client can tell "your analysis found nothing" apart from
      * "that tool does not exist".
      */
-    private JsonNode toolsCall(JsonNode id, McpToolProvider toolset, JsonNode params) {
+    private JsonNode toolsCall(JsonNode id, McpToolProvider toolset, JsonNode params, boolean structured) {
         String toolName = params.path(FIELD_NAME).asString();
         JsonNode arguments = params.get(FIELD_ARGUMENTS);
 
         ObjectNode result = Json.createObject();
         ArrayNode content = result.putArray(FIELD_CONTENT);
         try {
-            String text = toolset.call(toolName, arguments);
-            content.addObject().put(FIELD_TYPE, CONTENT_TYPE_TEXT).put(FIELD_TEXT, text);
+            McpToolResult output = toolset.callResult(toolName, arguments);
+            content.addObject().put(FIELD_TYPE, CONTENT_TYPE_TEXT).put(FIELD_TEXT, output.text());
+            if (structured && output.hasStructuredContent()) {
+                result.set(FIELD_STRUCTURED_CONTENT, output.structuredContent());
+            }
             result.put(FIELD_IS_ERROR, false);
         } catch (ToolDispatchException e) {
             // Rethrown so the envelope answers -32602: the call never reached a tool.

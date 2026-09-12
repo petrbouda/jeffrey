@@ -232,8 +232,8 @@ public class McpToolsetAssembler {
      * <p>
      * Filtering happens here, on assembled families, rather than at each registration: the list above
      * reads as the whole surface, and what a particular installation withholds is one decision applied
-     * once. A family named in the property but not built is simply absent — the alternative, refusing at
-     * startup, would turn a stale property into a Jeffrey that will not boot.
+     * once. Unknown family and preset names are rejected by the properties at startup; the independent
+     * hub and IDE switches may still withhold a known family selected by a preset or explicit list.
      */
     private static List<McpToolProvider> retained(
             List<McpToolProvider> families, ExternalMcpProperties properties) {

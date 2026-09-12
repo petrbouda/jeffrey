@@ -28,6 +28,7 @@ import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import io.grpc.Context;
 import io.grpc.Deadline;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -103,12 +105,32 @@ public final class HubSessionScan {
         this.budget = budget;
     }
 
+    /** Stable live-catalogue order, including sessions with equal creation times. */
+    public record Key(Instant createdAt, HubSessionRef ref) implements Comparable<Key> {
+
+        private static final Comparator<Key> ORDER = Comparator.comparing(
+                        Key::createdAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(key -> key.ref().hubId())
+                .thenComparing(key -> key.ref().workspaceId())
+                .thenComparing(key -> key.ref().projectId())
+                .thenComparing(key -> key.ref().sessionId());
+
+        @Override
+        public int compareTo(Key other) {
+            return ORDER.compare(this, other);
+        }
+    }
+
     public record Row(
             HubSessionRef ref,
             String hubName,
             String workspaceName,
             String projectName,
             RecordingSession session) {
+
+        public Key key() {
+            return new Key(session.createdAt(), ref);
+        }
     }
 
     public record Failure(String hubName, String scope, String reason) {
@@ -148,6 +170,11 @@ public final class HubSessionScan {
         private static ScanExpansion rows(List<Row> rows) {
             return new ScanExpansion(List.of(), rows);
         }
+    }
+
+    /** Reads every matching project row so catalogue pagination can report an honest total. */
+    public Result scan(HubScanFilter filter) {
+        return scan(filter.withSessions(filter.sessions().withLimit(RecordingSessionFilter.NO_LIMIT)), 0);
     }
 
     public Result scan(HubScanFilter filter, int limit) {
@@ -260,9 +287,7 @@ public final class HubSessionScan {
         }
 
         List<Row> ordered = rows.stream()
-                .sorted(Comparator.comparing(
-                        (Row row) -> row.session().createdAt(),
-                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .sorted(Comparator.comparing(Row::key))
                 .toList();
         List<Row> capped = limit > 0 && ordered.size() > limit ? ordered.subList(0, limit) : ordered;
         return new Result(capped, List.copyOf(failures));

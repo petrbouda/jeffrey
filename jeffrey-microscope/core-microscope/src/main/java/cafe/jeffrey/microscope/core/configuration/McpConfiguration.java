@@ -67,15 +67,17 @@ public class McpConfiguration {
      *                    one family that reaches into another process on this machine and can move the
      *                    developer's editor
      * @param families    the families to advertise, from {@code jeffrey.microscope.mcp.families};
-     *                    empty means all of them
+     *                    empty means the selected preset
+     * @param preset      all (default), jfr, heap or hub, from {@code jeffrey.microscope.mcp.preset}
      */
     @Bean
     public ExternalMcpProperties externalMcpProperties(
             @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
             @Value("${jeffrey.microscope.mcp.hubs.enabled:true}") boolean hubsEnabled,
             @Value("${jeffrey.microscope.mcp.ide.enabled:true}") boolean ideEnabled,
-            @Value("${jeffrey.microscope.mcp.families:}") Set<String> families) {
-        return new ExternalMcpProperties(enabled, hubsEnabled, ideEnabled, families);
+            @Value("${jeffrey.microscope.mcp.families:}") Set<String> families,
+            @Value("${jeffrey.microscope.mcp.preset:all}") String preset) {
+        return new ExternalMcpProperties(enabled, hubsEnabled, ideEnabled, families, preset);
     }
 
     /**

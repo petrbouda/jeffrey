@@ -403,9 +403,8 @@ class ExternalMcpControllerTest {
         }
 
         /**
-         * Reading a resource runs a tool, so an installation narrowed to one family must not advertise
-         * a resource whose tool it left out — the client would be told the catalogue exists and then
-         * that the tool behind it does not.
+         * An installation narrowed to one family must omit resources backed by missing tools.
+         * Server diagnostics remain available independently of the selected tools.
          */
         @Test
         void advertisesNoResourceWhoseToolThisInstallationLeftOut() {
@@ -416,7 +415,8 @@ class ExternalMcpControllerTest {
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(list))
                     .hasStatusOk()
                     .bodyJson()
-                    .extractingPath("$.result.resources").asArray().isEmpty();
+                    .extractingPath("$.result.resources[*].uri").asArray()
+                    .containsExactly("jeffrey://server");
         }
 
         @Test

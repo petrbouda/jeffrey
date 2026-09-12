@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletionException;
@@ -34,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import java.util.function.Predicate;
 
 /**
  * Runs work that outlasts a tool call, and waits only as long as a client will.
@@ -132,7 +134,24 @@ public class BoundedJobs<K, V> {
      */
     public Optional<V> runWithin(
             K key, Duration waitBudget, boolean retryFailure, Supplier<V> work) {
+        return runWithin(key, waitBudget, retryFailure, _ -> false, work);
+    }
+
+    /**
+     * Selects a still-valid completed success atomically with joining or starting work. Downloads use
+     * this when a transfer may finish while another caller is still validating the remote session;
+     * their predicate checks that the local recording still exists. Other callers keep the original
+     * restart-after-success policy through the overloads above.
+     * <p>
+     * {@code reuseSuccess} runs inside the map's own update, holding the bin lock -- which is the point,
+     * since deciding outside it is the race this overload exists to close. It must therefore be short
+     * and must not reach back into this instance: a local lookup is what it is for, and a remote call
+     * or anything that blocks belongs before the call, not in the predicate.
+     */
+    public Optional<V> runWithin(
+            K key, Duration waitBudget, boolean retryFailure, Predicate<V> reuseSuccess, Supplier<V> work) {
         validateBudget(waitBudget);
+        Objects.requireNonNull(reuseSuccess, "reuseSuccess");
         // Swept here because this is the only method that adds a key. The map is then bounded by the
         // work actually asked for within the retention window rather than by everything ever asked for.
         evictExpired();
@@ -142,10 +161,14 @@ public class BoundedJobs<K, V> {
             if (existing instanceof Active<?>) {
                 return existing;
             }
-            if (existing instanceof Finished<V> finished
-                    && finished.outcome().failure() != null
-                    && !retryFailure) {
-                return existing;
+            if (existing instanceof Finished<V> finished) {
+                Outcome<V> outcome = finished.outcome();
+                if (outcome.failure() != null && !retryFailure) {
+                    return existing;
+                }
+                if (outcome.failure() == null && reuseSuccess.test(outcome.value())) {
+                    return existing;
+                }
             }
             started.set(true);
             LOG.debug("Starting a bounded MCP job: key={}", id);
@@ -153,14 +176,10 @@ public class BoundedJobs<K, V> {
         });
         if (selected instanceof Finished<V> finished) {
             RuntimeException failure = finished.outcome().failure();
-            if (failure == null) {
-                // Only the retained-failure branch above returns a finished state, so a retained
-                // success here means that branch changed underneath this one. Said plainly rather
-                // than thrown as the NullPointerException it would otherwise become.
-                throw new IllegalStateException(
-                        "A retained successful outcome was selected instead of a new attempt: key=" + key);
+            if (failure != null) {
+                throw failure;
             }
-            throw failure;
+            return Optional.of(finished.outcome().value());
         }
         Active<V> active = asActive(selected);
 

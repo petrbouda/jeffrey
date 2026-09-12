@@ -56,7 +56,7 @@ class McpResourcesTest {
         void offersTheProfileListAsAConcreteResource() {
             List<McpResource> offered = resources.resources();
 
-            assertEquals(1, offered.size());
+            assertEquals(2, offered.size());
             assertEquals("jeffrey://profiles", offered.getFirst().uri());
             assertTrue(offered.getFirst().description().contains("first 100 matching profiles"));
         }
@@ -70,7 +70,8 @@ class McpResourcesTest {
             List<String> uris = resources.templates().stream().map(McpResource::uri).toList();
 
             assertEquals(
-                    List.of("jeffrey://profile/{profileId}/summary",
+                    List.of("jeffrey://profiles{?cursor,limit}",
+                            "jeffrey://profile/{profileId}/summary",
                             "jeffrey://profile/{profileId}/flamegraph/{eventType}"),
                     uris);
         }
@@ -81,6 +82,30 @@ class McpResourcesTest {
 
             assertEquals("listed", contents.text());
             assertEquals(McpResource.TEXT_MARKDOWN, contents.mimeType());
+        }
+    }
+
+    @Test
+    void offersServerDiagnosticsEvenWithoutProfileTools() {
+        McpResources limited = new McpResources(new ReflectiveToolset(flamegraphTools, "flamegraph"));
+        assertEquals(List.of("jeffrey://server"), limited.resources().stream().map(McpResource::uri).toList());
+        McpResourceProvider.Contents info = limited.read("jeffrey://server");
+        assertEquals(McpResource.APPLICATION_JSON, info.mimeType());
+        assertTrue(info.text().contains("effectiveFamilies"));
+    }
+
+    @Test
+    void routesCatalogueContinuationToTheSameListTool() {
+        resources.read("jeffrey://profiles?cursor=next%2Dpage&limit=17");
+        assertEquals("next-page", profileTools.cursor);
+        assertEquals(17, profileTools.limit);
+    }
+
+    @Test
+    void refusesUnknownDuplicateAndMalformedCatalogueParameters() {
+        for (String uri : List.of("jeffrey://profiles?offset=1", "jeffrey://profiles?cursor=a&cursor=b",
+                "jeffrey://profiles?limit=no", "jeffrey://profiles?cursor", "jeffrey://profiles?cursor=%ZZ")) {
+            assertThrows(IllegalArgumentException.class, () -> resources.read(uri), uri);
         }
     }
 
@@ -161,9 +186,15 @@ class McpResourcesTest {
     public static class RecordingProfileTools {
 
         private String summarisedProfileId;
+        private String cursor;
+        private Integer limit;
 
         @Tool(description = "Every analysed profile")
-        public String list() {
+        public String list(
+                @ToolParam(required = false, description = "cursor") String cursor,
+                @ToolParam(required = false, description = "limit") Integer limit) {
+            this.cursor = cursor;
+            this.limit = limit;
             return "listed";
         }
 

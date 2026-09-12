@@ -137,13 +137,12 @@ A dump shows a state, not a trend. One dump cannot distinguish a leak from a lar
 ## When something fails
 
 - `Profile … has no heap dump` → it is a JFR recording; the `analyze-jfr` skill applies.
-- `… is still being indexed` → open the profile once in the Jeffrey UI to build the index, then retry.
+- `… is still being indexed` → check `heap_status` for the named profile. If indexing has not
+  started, call `heap_prepare`; retry once ready. For `heap_diff`, both profiles must be ready.
 - Retained sizes come back empty → the dominator tree has not been built; `heap_prepare` with report
   `dominator`, or step 4.
 - `… has not been run for this heap dump yet` → a cached report; `heap_prepare` with the report name
   from the table in step 4.
-- `… is still being indexed` → `heap_prepare` is already running or the UI is; `heap_status` says
-  how far it has got.
 - No `recordings_` tool advertised → the installation trimmed the tool list with
   `jeffrey.microscope.mcp.families`; upload the dump in the UI and work from `profiles_list`.
 - Every call fails to connect → Jeffrey is not running at the configured address. Point the client

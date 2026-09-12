@@ -42,5 +42,10 @@ public sealed interface McpToolProvider
      *
      * @throws ToolDispatchException if the tool name is unknown or an argument does not fit the schema
      */
-    String call(String toolName, JsonNode arguments);
+    default String call(String toolName, JsonNode arguments) {
+        return callResult(toolName, arguments).text();
+    }
+
+    /** Invokes once and retains the explicit structured result, if the tool supplies one. */
+    McpToolResult callResult(String toolName, JsonNode arguments);
 }

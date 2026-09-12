@@ -27,6 +27,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -103,7 +104,93 @@ final class ToolMethodIndex {
                     toolName,
                     ToolUtils.getToolDescription(method),
                     inputSchema,
-                    annotationsOf(method, defaultAnnotations)));
+                    annotationsOf(method, defaultAnnotations),
+                    outputSchemaOf(method)));
+        }
+    }
+
+    private static ObjectNode outputSchemaOf(Method method) {
+        McpOutputSchema annotation = method.getAnnotation(McpOutputSchema.class);
+        if (annotation == null) {
+            return null;
+        }
+        if (method.getReturnType() != McpToolResult.class) {
+            throw new IllegalStateException("A tool declaring an output schema must return McpToolResult: " + method);
+        }
+        try {
+            JsonNode schema = Json.readTree(annotation.value());
+            if (!schema.isObject() || !"object".equals(schema.path(SCHEMA_TYPE).asString())) {
+                throw new IllegalArgumentException("The output schema must describe an object");
+            }
+            validateOutputSchema(schema);
+            return (ObjectNode) schema;
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Invalid MCP output schema for " + method, e);
+        }
+    }
+
+    /** Checks the schema vocabulary used by our explicit object/array catalogue contracts. */
+    private static void validateOutputSchema(JsonNode schema) {
+        if (schema.isBoolean()) {
+            return;
+        }
+        if (!schema.isObject()) {
+            throw new IllegalArgumentException("A subschema must be an object or boolean");
+        }
+        JsonNode type = schema.get(SCHEMA_TYPE);
+        if (type != null) {
+            Set<String> types = Set.of("object", "array", "string", "number", "integer", "boolean", "null");
+            if (type.isString()) {
+                if (!types.contains(type.asString())) {
+                    throw new IllegalArgumentException("Unknown output schema type");
+                }
+            } else if (type.isArray() && !type.isEmpty()) {
+                Set<String> seen = new HashSet<>();
+                for (JsonNode item : type) {
+                    if (!item.isString() || !types.contains(item.asString()) || !seen.add(item.asString())) {
+                        throw new IllegalArgumentException("Invalid output schema type array");
+                    }
+                }
+            } else {
+                throw new IllegalArgumentException("Output schema type must be a string or nonempty array");
+            }
+        }
+        JsonNode properties = schema.get(SCHEMA_PROPERTIES);
+        if (properties != null) {
+            if (!properties.isObject()) {
+                throw new IllegalArgumentException("Output schema properties must be an object");
+            }
+            for (JsonNode property : properties) {
+                validateOutputSchema(property);
+            }
+        }
+        JsonNode required = schema.get(SCHEMA_REQUIRED);
+        if (required != null) {
+            if (!required.isArray()) {
+                throw new IllegalArgumentException("Output schema required must be an array");
+            }
+            Set<String> seen = new HashSet<>();
+            for (JsonNode field : required) {
+                if (!field.isString() || !seen.add(field.asString())) {
+                    throw new IllegalArgumentException("Output schema required must contain unique strings");
+                }
+            }
+        }
+        for (String keyword : List.of("items", "additionalProperties")) {
+            JsonNode child = schema.get(keyword);
+            if (child != null) {
+                validateOutputSchema(child);
+            }
+        }
+        for (String keyword : List.of("minLength", "maxLength", "minItems", "maxItems", "minProperties", "maxProperties")) {
+            JsonNode count = schema.get(keyword);
+            if (count != null && (!count.isIntegralNumber() || count.asLong() < 0)) {
+                throw new IllegalArgumentException("Output schema " + keyword + " must be a nonnegative integer");
+            }
+        }
+        JsonNode enumeration = schema.get(SCHEMA_ENUM);
+        if (enumeration != null && (!enumeration.isArray() || enumeration.isEmpty())) {
+            throw new IllegalArgumentException("Output schema enum must be a nonempty array");
         }
     }
 

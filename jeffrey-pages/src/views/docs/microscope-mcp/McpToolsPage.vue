@@ -289,8 +289,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         </tbody>
       </table>
 
+      <p><strong>Structured discovery results.</strong> <code>profiles_list</code> and <code>hubs_sessions</code> keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
+
       <h2 id="profiles">profiles_ &mdash; the catalogue</h2>
-      <p>Start here. <code>profiles_list</code> is the only tool that does not need a <code>profileId</code>, because it is where ids come from.</p>
+      <p>Start here. <code>profiles_list</code> discovers the profile IDs used by analysis tools.</p>
+      <p>Pass <code>nextCursor</code> back as <code>cursor</code> while <code>hasMore</code> is true. Keep the same search; the page size may change. Profiles are ordered by their stable IDs. These are live pages: profiles added before your cursor appear on a fresh traversal. <code>recordingId</code> links a profile to <code>recordings_status</code>. Long display names are shortened explicitly; profile IDs remain intact.</p>
       <table>
         <thead>
           <tr>
@@ -302,8 +305,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         <tbody>
           <tr>
             <td><code>profiles_list</code></td>
-            <td><code>search?</code>, <code>limit?</code> (100)</td>
-            <td>Every profile in the installation, with its id</td>
+            <td><code>search?</code>, <code>limit?</code> (100), <code>cursor?</code></td>
+            <td>A page of profiles, including profile and recording IDs, readiness, total matches and continuation metadata</td>
           </tr>
           <tr>
             <td><code>profiles_summary</code></td>
@@ -1078,7 +1081,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>hubs_sessions</code></td>
-            <td><code>hub?</code>, <code>workspace?</code>, <code>project?</code>, <code>withinLastMinutes?</code>, <code>status?</code>, <code>limit?</code></td>
+            <td><code>hub?</code>, <code>workspace?</code>, <code>project?</code>, <code>withinLastMinutes?</code>, <code>status?</code>, <code>limit?</code>, <code>cursor?</code></td>
             <td>Recording sessions across <strong>every</strong> hub at once, newest first, each row carrying a <code>session_ref</code> and a <code>local</code> column saying whether it is already here</td>
           </tr>
           <tr>
@@ -1090,6 +1093,9 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       </table>
 
       <p><strong>Flat, not a tree.</strong> A hub holds workspaces holding projects holding sessions, and the web UI lets you walk that. There is deliberately no tool for the walk. One <code>hubs_sessions</code> call fans out across every hub and returns flat rows, because four calls before anything is downloaded is four chances for a model to pair a workspace with the wrong project. The hierarchy survives as the <code>hub</code>, <code>workspace</code> and <code>project</code> filters, all matched loosely against names, and as columns you can read.</p>
+
+      <p><strong>Read both page and scan completeness.</strong> <code>returned</code> counts rows on this page; <code>hasMore</code> and <code>nextCursor</code> continue the observed catalogue. <code>complete=false</code> means remote scopes failed and <code>failures</code> explains which ones. In that case <code>total</code> is unknown (<code>null</code>), while <code>observedTotal</code> counts rows actually found. An exhausted partial scan can have <code>hasMore=false</code> without proving there are no other sessions.</p>
+      <p>Hub pages use recording time and the full session reference as a stable ordering. Keep the same filters when reusing a cursor; a relative-time filter retains its original cutoff. Each page reads the live Hubs again, so retention or newly recorded sessions can change the observed catalogue. Start a fresh traversal after an unavailable scope recovers. Output limits can reduce the page below the requested limit; continuation follows the last row actually returned.</p>
 
       <p><strong><code>withinLastMinutes</code> is an overlap, not a start time.</strong> A JVM that began recording three hours ago and is still running matches a sixty-minute window, because it <em>was</em> recording during it. That is what someone asking for "the last hour" means, and the opposite of what filtering on start time would return.</p>
 

@@ -44,7 +44,7 @@ class ToolInvocationTest {
     }
 
     private static String invoke(String name, Object... args) {
-        return ToolInvocation.invoke("test_" + name, method(name, types(args)), new Sample(), args);
+        return ToolInvocation.invoke("test_" + name, method(name, types(args)), new Sample(), args).text();
     }
 
     private static Class<?>[] types(Object[] args) {
