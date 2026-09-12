@@ -79,7 +79,7 @@
                 <span
                     v-for="usage in row.groups"
                     :key="usage.group.key"
-                    :style="{ width: miniBarWidth(row, usage), background: usage.group.color }"
+                    :style="{ width: miniBarWidth(row, usage), background: usage.group.fill }"
                 ></span>
               </span>
               <span class="workspace-size">{{ formatBytes(row.totalSizeBytes) }}</span>
@@ -89,7 +89,7 @@
 
         <div class="rail-legend">
           <span v-for="group in STORAGE_GROUPS" :key="group.key" class="legend-item">
-            <span class="legend-swatch" :style="{ background: group.color }"></span>{{ group.label }}
+            <span class="legend-swatch" :style="{ background: group.fill }"></span>{{ group.label }}
           </span>
         </div>
       </aside>
@@ -161,7 +161,7 @@
                   <span
                       v-for="usage in row.groups"
                       :key="usage.group.key"
-                      :style="{ width: categoryWidth(row, usage), background: usage.group.color }"
+                      :style="{ width: categoryWidth(row, usage), background: usage.group.fill }"
                   ></span>
                 </span>
               </td>
