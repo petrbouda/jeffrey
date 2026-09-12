@@ -95,7 +95,7 @@ public class ProfilesMcpTools {
         return list(search, limit, null).text();
     }
 
-    @Tool(description = "List analysed profiles, ordered by profileId, with structured cursor pagination. "
+    @Tool(description = "List analysed profiles, newest first, with structured cursor pagination. "
             + "Returns up to 100 rows by default, at most 1000, further bounded by response size. "
             + "Follow nextCursor with the same search until hasMore=false to traverse the catalogue. "
             + "This is a live catalogue: additions before the cursor require a fresh traversal. "
@@ -109,12 +109,16 @@ public class ProfilesMcpTools {
         String normalizedSearch = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
         String fingerprint = fingerprint(normalizedSearch);
         String afterId = cursor == null ? null : Cursor.decode(cursor, fingerprint).lastProfileId();
+        // Newest first, which is the order the catalogue is read in: the recording somebody just
+        // imported is the one they are asking about. A profile id is a UUIDv7, so it sorts by creation
+        // time and descending id is both that order and a single-column keyset the cursor can carry --
+        // paging by a timestamp would need a composite cursor to break ties that ids do not have.
         List<ProfileInfo> matching = coreRepositories.findAllProfiles().stream()
                 .filter(profile -> matches(profile, normalizedSearch))
-                .sorted(Comparator.comparing(ProfileInfo::id))
+                .sorted(Comparator.comparing(ProfileInfo::id).reversed())
                 .toList();
         List<ProfileInfo> remaining = matching.stream()
-                .filter(profile -> afterId == null || profile.id().compareTo(afterId) > 0)
+                .filter(profile -> afterId == null || profile.id().compareTo(afterId) < 0)
                 .toList();
         int selected = Math.min(remaining.size(), ToolArguments.boundedLimit(limit, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT));
         Page page = renderPage(remaining.subList(0, selected), matching.size(), remaining.size(), normalizedSearch, fingerprint);

@@ -91,15 +91,18 @@ class McpCatalogueIntegrationTest {
                         time, time.plusSeconds(60), time, true, false, "r2"),
                 new ProfileInfo("p1", null, null, "First", RecordingEventSource.JDK,
                         time, time.plusSeconds(60), time, false, false, "r1")));
+        // Newest first, so p2 leads and the still-building p1 is what the cursor has to carry across.
         JsonNode first = call("profiles_list", Json.createObject().put("limit", 1));
         assertEquals(2, first.path("total").asInt());
-        assertEquals("p1", first.path("profiles").get(0).path("profileId").asString());
-        assertEquals("r1", first.path("profiles").get(0).path("recordingId").asString());
-        assertEquals("building", first.path("profiles").get(0).path("ready").asString());
+        assertEquals("p2", first.path("profiles").get(0).path("profileId").asString());
+        assertEquals("r2", first.path("profiles").get(0).path("recordingId").asString());
+        assertEquals("yes", first.path("profiles").get(0).path("ready").asString());
         assertTrue(first.path("hasMore").asBoolean());
         JsonNode second = call("profiles_list", Json.createObject().put("limit", 1)
                 .put("cursor", first.path("nextCursor").asString()));
-        assertEquals("p2", second.path("profiles").get(0).path("profileId").asString());
+        assertEquals("p1", second.path("profiles").get(0).path("profileId").asString());
+        assertEquals("r1", second.path("profiles").get(0).path("recordingId").asString());
+        assertEquals("building", second.path("profiles").get(0).path("ready").asString());
         assertFalse(second.path("hasMore").asBoolean());
         assertTrue(second.path("nextCursor").isNull());
     }

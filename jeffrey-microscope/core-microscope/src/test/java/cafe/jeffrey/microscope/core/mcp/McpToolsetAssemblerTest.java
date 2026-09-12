@@ -472,6 +472,18 @@ class McpToolsetAssemblerTest {
             assertEquals(Set.of("profiles", "recordings", "hubs"), families(preset("hub")));
         }
 
+        /**
+         * The default serves whatever the assembler builds, so a family missing from the registry is
+         * still advertised -- it just cannot be named or reached through a preset. Nothing about the
+         * served tool list would look wrong, which is why the two sets are compared here instead.
+         */
+        @Test
+        void everyBuiltFamilyIsANameAReaderCanSelect() {
+            assertEquals(ExternalMcpProperties.knownFamilies(), families(assembler(true)),
+                    "a family the assembler builds must also be registered in ExternalMcpProperties, "
+                            + "or no preset can include it and naming it is rejected as unknown");
+        }
+
         @Test
         void explicitFamiliesOverridePresetAndSwitchesStillConstrainThem() {
             McpToolsetAssembler filtered = assembler(new ExternalMcpProperties(

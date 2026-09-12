@@ -139,8 +139,9 @@ class ProfilesMcpToolsTest {
 
             String result = tools.list(null, 1);
 
-            assertTrue(result.contains("p-1"));
-            assertFalse(result.contains("p-2"));
+            // Newest first, so the single row is p-2.
+            assertTrue(result.contains("p-2"));
+            assertFalse(result.contains("p-1"));
             assertTrue(result.contains("Returned 1 of 2 matching profiles."), result);
             assertTrue(result.contains("nextCursor"), result);
         }
@@ -250,18 +251,23 @@ class ProfilesMcpToolsTest {
             } while (cursor != null);
             assertEquals(1103, ids.size());
             assertEquals(ids.size(), new HashSet<>(ids).size());
-            assertEquals(profiles.reversed().stream().map(ProfileInfo::id).toList(), ids);
+            // The stub already answers newest-first, like the query it stands for, and that is the
+            // order the traversal must preserve across every page.
+            assertEquals(profiles.stream().map(ProfileInfo::id).toList(), ids);
         }
 
         @Test
         void resumesAfterEarlierInsertion() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-2", true), profile("p-3", true)));
+                    profile("p-3", true), profile("p-2", true)));
             String cursor = nextCursor(page(null, 1, null));
+            // Newest first, so a profile that lands before the cursor is a newer one: p-4 sorts ahead
+            // of the page already returned and is not picked up by resuming, which is why the tool
+            // says a live catalogue needs a fresh traversal to see additions.
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", true), profile("p-2", true), profile("p-3", true)));
+                    profile("p-4", true), profile("p-3", true), profile("p-2", true)));
             Page next = page(null, 1, cursor);
-            assertEquals("p-3", next.data().path("profiles").get(0).path("profileId").asString());
+            assertEquals("p-2", next.data().path("profiles").get(0).path("profileId").asString());
             assertFalse(next.data().path("hasMore").asBoolean());
         }
 
@@ -270,7 +276,7 @@ class ProfilesMcpToolsTest {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
                     profile("p-1", "Checkout before", null), profile("p-2", "Checkout after", null)));
             String cursor = nextCursor(page(" CHECKOUT ", 1, null));
-            assertEquals("p-2", page("checkout", 1, cursor).data()
+            assertEquals("p-1", page("checkout", 1, cursor).data()
                     .path("profiles").get(0).path("profileId").asString());
             assertThrows(IllegalArgumentException.class, () -> page("different", 1, cursor));
         }
@@ -285,16 +291,16 @@ class ProfilesMcpToolsTest {
         @Test
         void boundsLongNamesWithoutLosingIdentifiers() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "\"\n".repeat(120_001), null), profile("p-2", true)));
+                    profile("p-2", "\"\n".repeat(120_001), null), profile("p-1", true)));
             Page first = page(null, 1, null);
             JsonNode row = first.data().path("profiles").get(0);
-            assertEquals("p-1", row.path("profileId").asString());
-            assertEquals("rec-p-1", row.path("recordingId").asString());
+            assertEquals("p-2", row.path("profileId").asString());
+            assertEquals("rec-p-2", row.path("recordingId").asString());
             assertTrue(row.path("nameTruncated").asBoolean());
             assertTrue(row.path("name").asString().length() <= 256);
             assertTrue(first.text().length() <= McpToolOutput.MAX_CHARS);
             assertTrue(first.data().toString().length() <= McpToolOutput.MAX_CHARS);
-            assertEquals("p-2", page(null, 1, nextCursor(first)).data()
+            assertEquals("p-1", page(null, 1, nextCursor(first)).data()
                     .path("profiles").get(0).path("profileId").asString());
         }
 
@@ -309,7 +315,9 @@ class ProfilesMcpToolsTest {
             assertEquals(returned, first.text().lines().filter(line -> line.startsWith("| p-")).count());
             assertTrue(first.text().startsWith("Returned " + returned + " of 1000 matching profiles."));
             assertTrue(first.data().toString().length() <= McpToolOutput.MAX_CHARS);
-            assertEquals("p-%04d".formatted(returned), page(null, 1, nextCursor(first)).data()
+            // Newest first: the page ran p-0999 down to p-(1000-returned), so the next row below it
+            // is p-(999-returned).
+            assertEquals("p-%04d".formatted(999 - returned), page(null, 1, nextCursor(first)).data()
                     .path("profiles").get(0).path("profileId").asString());
         }
 

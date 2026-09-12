@@ -72,13 +72,24 @@ public record ExternalMcpProperties(
             throw new IllegalArgumentException("Unknown MCP preset '" + preset
                     + "'. Use a lowercase preset: all, jfr, heap or hub.");
         }
-        Set<String> knownFamilies = PRESETS.get(DEFAULT_PRESET);
+        Set<String> knownFamilies = knownFamilies();
         if (!knownFamilies.containsAll(families)) {
             throw new IllegalArgumentException("Unknown MCP families: "
                     + families.stream().filter(family -> !knownFamilies.contains(family)).sorted().toList()
                     + ". Family names are lowercase; supported families: "
                     + knownFamilies.stream().sorted().toList());
         }
+    }
+
+    /**
+     * Every family name a reader may select, by an explicit list or through a preset.
+     * <p>
+     * The registry, not the gate: a family the assembler builds is served by default whether or not it
+     * is named here. What being absent costs is selectability -- no preset can include it and naming it
+     * is an error -- which is what {@code McpToolsetAssemblerTest} fails the build over.
+     */
+    public static Set<String> knownFamilies() {
+        return PRESETS.get(DEFAULT_PRESET);
     }
 
     /** Existing callers keep the full tool surface unless they explicitly select families. */
@@ -91,6 +102,13 @@ public record ExternalMcpProperties(
      * set. The assembler applies the independent hub and IDE switches before retaining families.
      */
     public boolean advertises(String family) {
+        if (families.isEmpty() && DEFAULT_PRESET.equals(preset)) {
+            // Everything built, rather than everything listed. The list below is the registry of names
+            // a reader may select, so consulting it here too would make a family added to the assembler
+            // and forgotten in it disappear from the server with nothing saying so -- the one failure
+            // this default is meant not to have.
+            return true;
+        }
         return (families.isEmpty() ? PRESETS.get(preset) : families).contains(family);
     }
 }
