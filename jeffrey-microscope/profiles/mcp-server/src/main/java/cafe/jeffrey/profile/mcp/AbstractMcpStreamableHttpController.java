@@ -74,7 +74,6 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final String METHOD_RESOURCES_LIST = "resources/list";
     private static final String METHOD_RESOURCES_TEMPLATES_LIST = "resources/templates/list";
     private static final String METHOD_RESOURCES_READ = "resources/read";
-    private static final String NOTIFICATION_PREFIX = "notifications/";
 
     private static final String FIELD_JSONRPC = "jsonrpc";
     private static final String FIELD_ID = "id";
@@ -225,15 +224,24 @@ public abstract class AbstractMcpStreamableHttpController {
      * @return the response to send, or null when the request was a notification and needs none
      */
     private JsonNode dispatchOne(JsonNode request, McpServerFeatures features) {
-        String method = request.path(FIELD_METHOD).asString();
         JsonNode id = request.get(FIELD_ID);
-
-        // JSON-RPC notifications (no id) require no response body.
-        if (method.startsWith(NOTIFICATION_PREFIX) || id == null) {
+        if (id != null && !id.isString() && !id.isIntegralNumber()) {
+            return error(null, ERROR_INVALID_REQUEST, "A JSON-RPC id must be a string or integer");
+        }
+        JsonNode version = request.get(FIELD_JSONRPC);
+        JsonNode methodNode = request.get(FIELD_METHOD);
+        if (version == null || !version.isString() || !JSONRPC_VERSION.equals(version.asString())
+                || methodNode == null || !methodNode.isString() || methodNode.asString().isBlank()) {
+            return error(id, ERROR_INVALID_REQUEST, "A JSON-RPC request must declare jsonrpc 2.0 and a string method");
+        }
+        String method = methodNode.asString();
+        // Only an absent id makes a notification; its method name does not.
+        if (id == null) {
             return null;
         }
-        if (method.isBlank()) {
-            return error(id, ERROR_INVALID_REQUEST, "A JSON-RPC request must name a method");
+        JsonNode params = request.get(FIELD_PARAMS);
+        if (params != null && !params.isObject()) {
+            return error(id, ERROR_INVALID_PARAMS, "MCP params must be an object");
         }
 
         try {
@@ -351,7 +359,7 @@ public abstract class AbstractMcpStreamableHttpController {
         result.put(FIELD_DESCRIPTION, prompt.description());
         ObjectNode message = result.putArray(FIELD_MESSAGES).addObject();
         message.put(FIELD_ROLE, ROLE_USER);
-        message.putObject(FIELD_CONTENT).put(FIELD_TYPE, CONTENT_TYPE_TEXT).put(FIELD_TEXT, prompt.text());
+        message.putObject(FIELD_CONTENT).put(FIELD_TYPE, CONTENT_TYPE_TEXT).put(FIELD_TEXT, prompt.render(params.get(FIELD_ARGUMENTS)));
         return success(id, result);
     }
 
@@ -395,6 +403,10 @@ public abstract class AbstractMcpStreamableHttpController {
                     .put(FIELD_MIME_TYPE, resource.mimeType());
         }
         return result;
+    }
+
+    protected final ResponseEntity<JsonNode> parseErrorResponse() {
+        return ResponseEntity.badRequest().body(error(null, -32700, "Parse error: invalid JSON"));
     }
 
     private JsonNode success(JsonNode id, JsonNode result) {

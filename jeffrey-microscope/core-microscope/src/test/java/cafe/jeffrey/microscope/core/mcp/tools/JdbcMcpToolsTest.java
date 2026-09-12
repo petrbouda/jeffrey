@@ -32,6 +32,7 @@ import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcHeader;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOperationStats;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -262,12 +263,15 @@ class JdbcMcpToolsTest {
         }
 
         @Test
-        void reportsAnUnknownGroupInsteadOfFailing() {
+        void reportsAnUnknownGroupAsAToolError() {
             when(statementManager.overviewData(UNKNOWN_GROUP)).thenReturn(empty());
 
-            String out = tools().statementGroup(UNKNOWN_GROUP);
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools().statementGroup(UNKNOWN_GROUP));
 
-            assertTrue(out.contains("No statements were recorded for group '" + UNKNOWN_GROUP + "'"), out);
+            assertTrue(error.getMessage().contains("No statements were recorded for group '" + UNKNOWN_GROUP + "'"),
+                    error.getMessage());
         }
     }
 

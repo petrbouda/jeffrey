@@ -58,6 +58,7 @@ class McpResourcesTest {
 
             assertEquals(1, offered.size());
             assertEquals("jeffrey://profiles", offered.getFirst().uri());
+            assertTrue(offered.getFirst().description().contains("first 100 matching profiles"));
         }
 
         /**

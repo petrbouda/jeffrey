@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -75,7 +76,7 @@ public class DuckDbMcpTools {
             }
         } catch (SQLException e) {
             LOG.error("Failed to list tables: message={}", e.getMessage(), e);
-            return "Error: Failed to list tables: " + e.getMessage();
+            throw new ToolExecutionException("Failed to list tables: " + e.getMessage(), e);
         }
     }
 
@@ -85,7 +86,7 @@ public class DuckDbMcpTools {
             @ToolParam(required = true, description = "Name of the table to describe (e.g., 'events', 'threads', 'frames')")
             String tableName) {
         if (tableName == null || tableName.isBlank()) {
-            return "Error: Table name is required";
+            throw new ToolExecutionException("Table name is required");
         }
 
         try (Connection conn = dataSource.getConnection()) {
@@ -105,7 +106,7 @@ public class DuckDbMcpTools {
                 }
 
                 if (!hasColumns) {
-                    return "Error: Table '" + tableName + "' not found";
+                    throw new ToolExecutionException("Table '" + tableName + "' not found");
                 }
 
                 // Add helpful notes for specific tables
@@ -119,7 +120,7 @@ public class DuckDbMcpTools {
             }
         } catch (SQLException e) {
             LOG.error("Failed to describe table: table={} message={}", tableName, e.getMessage(), e);
-            return "Error: Failed to describe table: " + e.getMessage();
+            throw new ToolExecutionException("Failed to describe table: " + e.getMessage(), e);
         }
     }
 
@@ -132,7 +133,7 @@ public class DuckDbMcpTools {
             @ToolParam(required = true, description = "SQL SELECT query to execute. Must be a read-only query.")
             String query) {
         if (query == null || query.isBlank()) {
-            return "Error: Query is required";
+            throw new ToolExecutionException("Query is required");
         }
 
         // Defence in depth, and deliberately not the boundary. What confines this query is the
@@ -143,7 +144,7 @@ public class DuckDbMcpTools {
         // a clear message instead of an engine error.
         String normalizedQuery = query.trim().toLowerCase();
         if (!normalizedQuery.startsWith("select") && !normalizedQuery.startsWith("with")) {
-            return "Error: Only SELECT and WITH queries are allowed";
+            throw new ToolExecutionException("Only SELECT and WITH queries are allowed");
         }
 
         // prepareStatement, not createStatement, for three reasons. DuckDB refuses a prepared
@@ -156,7 +157,7 @@ public class DuckDbMcpTools {
         // engine's real message: the missing column, or the permission error from the sandbox above.
         // That message is the only thing the caller can act on.
         if (carriesMultipleStatements(query)) {
-            return "Error: " + MULTIPLE_STATEMENTS_MESSAGE;
+            throw new ToolExecutionException(MULTIPLE_STATEMENTS_MESSAGE);
         }
 
         // prepareStatement, not createStatement, for the error messages: Statement.executeQuery
@@ -177,7 +178,7 @@ public class DuckDbMcpTools {
             }
         } catch (SQLException e) {
             LOG.error("Failed to execute query: query={} message={}", query, e.getMessage(), e);
-            return "Error: Query execution failed: " + e.getMessage();
+            throw new ToolExecutionException("Query execution failed: " + e.getMessage(), e);
         }
     }
 
@@ -231,7 +232,7 @@ public class DuckDbMcpTools {
             return result.toString();
         } catch (SQLException e) {
             LOG.error("Failed to list event types: message={}", e.getMessage(), e);
-            return "Error: Failed to list event types: " + e.getMessage();
+            throw new ToolExecutionException("Failed to list event types: " + e.getMessage(), e);
         }
     }
 
@@ -248,7 +249,7 @@ public class DuckDbMcpTools {
             String whereClause) {
 
         if (eventType == null || eventType.isBlank()) {
-            return "Error: Event type is required";
+            throw new ToolExecutionException("Event type is required");
         }
 
         int effectiveLimit = limit != null ? limit : 100;
@@ -270,7 +271,7 @@ public class DuckDbMcpTools {
                 """);
 
         if (whereClause != null && !whereClause.isBlank() && carriesMultipleStatements(whereClause)) {
-            return "Error: " + MULTIPLE_STATEMENTS_MESSAGE;
+            throw new ToolExecutionException(MULTIPLE_STATEMENTS_MESSAGE);
         }
 
         if (whereClause != null && !whereClause.isBlank()) {
@@ -298,7 +299,7 @@ public class DuckDbMcpTools {
             }
         } catch (SQLException e) {
             LOG.error("Failed to query events: eventType={} message={}", eventType, e.getMessage(), e);
-            return "Error: Failed to query events: " + e.getMessage();
+            throw new ToolExecutionException("Failed to query events: " + e.getMessage(), e);
         }
     }
 
@@ -330,11 +331,11 @@ public class DuckDbMcpTools {
                         projectId != null ? "regular" : "Recordings"
                 );
             } else {
-                return "Error: No profile information found";
+                throw new ToolExecutionException("No profile information found");
             }
         } catch (SQLException e) {
             LOG.error("Failed to get profile info: message={}", e.getMessage(), e);
-            return "Error: Failed to get profile info: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get profile info: " + e.getMessage(), e);
         }
     }
 

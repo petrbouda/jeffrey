@@ -32,6 +32,7 @@ import cafe.jeffrey.profile.manager.custom.model.http.HttpStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpUriInfo;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.mcp.ToolDispatchException;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -183,12 +184,14 @@ class HttpMcpToolsTest {
          * error - and the controller's equivalent would throw on getFirst().
          */
         @Test
-        void reportsAnUnknownUriInsteadOfFailing() {
+        void reportsAnUnknownUriAsAToolError() {
             when(httpManager.overviewData("/nope")).thenReturn(data(List.of()));
 
-            String out = tools().endpoint("/nope", null);
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools().endpoint("/nope", null));
 
-            assertTrue(out.contains("No requests were recorded for '/nope'"), out);
+            assertTrue(error.getMessage().contains("No requests were recorded for '/nope'"), error.getMessage());
         }
 
         /**

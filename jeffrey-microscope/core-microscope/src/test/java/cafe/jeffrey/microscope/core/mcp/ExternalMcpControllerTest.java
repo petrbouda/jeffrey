@@ -100,6 +100,26 @@ class ExternalMcpControllerTest {
     }
 
     @Nested
+    class MalformedJson {
+
+        @Test
+        void reportsAJsonRpcParseErrorWithoutInvokingTools() {
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content("{invalid"))
+                    .hasStatus(400)
+                    .bodyJson()
+                    .extractingPath("$.error.code").asNumber().isEqualTo(-32700);
+            verifyNoInteractions(assembler);
+        }
+
+        @Test
+        void keepsADisabledEndpointHiddenForMalformedJson() {
+            assertThat(mvcWith(false).post().uri(URI).contentType(APPLICATION_JSON).content("{invalid"))
+                    .hasStatus(404);
+            verifyNoInteractions(assembler);
+        }
+    }
+
+    @Nested
     class Enabled {
 
         @Test

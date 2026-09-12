@@ -78,11 +78,12 @@ public class McpConfiguration {
     }
 
     /**
-     * The origin check the external endpoint applies before it serves anything.
+     * The trusted-host and origin checks the external endpoint applies before it serves anything.
      */
     @Bean
-    public McpRequestGuard mcpRequestGuard() {
-        return new McpRequestGuard();
+    public McpRequestGuard mcpRequestGuard(
+            @Value("${jeffrey.microscope.mcp.allowed-hosts:localhost,127.0.0.1,::1}") Set<String> allowedHosts) {
+        return new McpRequestGuard(allowedHosts);
     }
 
     /**

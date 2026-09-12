@@ -19,7 +19,11 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -37,9 +41,14 @@ class McpRequestGuardTest {
     private final McpRequestGuard guard = new McpRequestGuard();
 
     private static MockHttpServletRequest request(String origin) {
+        return request("http", SERVER_NAME, SERVER_PORT, origin);
+    }
+
+    private static MockHttpServletRequest request(String scheme, String serverName, int serverPort, String origin) {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServerName(SERVER_NAME);
-        request.setServerPort(SERVER_PORT);
+        request.setScheme(scheme);
+        request.setServerName(serverName);
+        request.setServerPort(serverPort);
         if (origin != null) {
             request.addHeader("Origin", origin);
         }
@@ -59,11 +68,6 @@ class McpRequestGuardTest {
         }
 
         @Test
-        void servesARequestWithABlankOrigin() {
-            assertNull(guard.refusalReason(request("  ")));
-        }
-
-        @Test
         void servesAPageJeffreyItselfServed() {
             assertNull(guard.refusalReason(request("http://localhost:8585")));
         }
@@ -71,6 +75,19 @@ class McpRequestGuardTest {
         @Test
         void comparesTheHostCaseInsensitively() {
             assertNull(guard.refusalReason(request("http://LOCALHOST:8585")));
+        }
+
+        @Test
+        void servesTheIpv6LoopbackAddress() {
+            assertNull(guard.refusalReason(request("http", "[::1]", SERVER_PORT, "http://[::1]:8585")));
+        }
+
+        @Test
+        void servesAConfiguredRemoteHost() {
+            McpRequestGuard remoteGuard = new McpRequestGuard(Set.of("jeffrey.example"));
+
+            assertNull(remoteGuard.refusalReason(
+                    request("https", "jeffrey.example", 443, "https://jeffrey.example")));
         }
     }
 
@@ -82,6 +99,27 @@ class McpRequestGuardTest {
             assertNotNull(guard.refusalReason(request("https://evil.example")));
         }
 
+        @Test
+        void refusesARequestWhoseUntrustedHostMatchesItsOrigin() {
+            assertNotNull(guard.refusalReason(
+                    request("http", "audit.invalid", SERVER_PORT, "http://audit.invalid:8585")));
+        }
+
+        @Test
+        void refusesARequestWithNoOriginWhenItsHostIsUntrusted() {
+            assertNotNull(guard.refusalReason(request("http", "audit.invalid", SERVER_PORT, null)));
+        }
+
+        @Test
+        void doesNotTrustForwardedHeadersDirectly() {
+            MockHttpServletRequest request = request(
+                    "http", "audit.invalid", SERVER_PORT, "http://localhost:8585");
+            request.addHeader("X-Forwarded-Host", "localhost:8585");
+            request.addHeader("X-Forwarded-Proto", "http");
+
+            assertNotNull(guard.refusalReason(request));
+        }
+
         /**
          * A different port on the same host is a different origin, and on a developer's machine it is
          * very often a different application.
@@ -89,6 +127,12 @@ class McpRequestGuardTest {
         @Test
         void refusesTheSameHostOnAnotherPort() {
             assertNotNull(guard.refusalReason(request("http://localhost:3000")));
+        }
+
+        @Test
+        void refusesTheSameHostAndPortWithAnotherScheme() {
+            assertNotNull(guard.refusalReason(
+                    request("https", SERVER_NAME, SERVER_PORT, "http://localhost:8585")));
         }
 
         /**
@@ -110,6 +154,18 @@ class McpRequestGuardTest {
             assertNotNull(guard.refusalReason(request("http://[not a uri")));
         }
 
+        @ParameterizedTest
+        @ValueSource(strings = {
+                " ",
+                "http://user@localhost:8585",
+                "http://localhost:8585/path",
+                "http://localhost:8585?query",
+                "http://localhost:8585#fragment"
+        })
+        void refusesAnOriginThatIsNotAPlainOrigin(String origin) {
+            assertNotNull(guard.refusalReason(request(origin)));
+        }
+
         /**
          * A default port is the port, so an origin that omits it still has to match.
          */
@@ -125,11 +181,10 @@ class McpRequestGuardTest {
      */
     @Test
     void servesAnOriginOnTheDefaultPortWhenJeffreyIsThere() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServerName("jeffrey.example");
-        request.setServerPort(443);
-        request.addHeader("Origin", "https://jeffrey.example");
+        McpRequestGuard remoteGuard = new McpRequestGuard(Set.of("jeffrey.example"));
+        MockHttpServletRequest request = request(
+                "https", "jeffrey.example", 443, "https://jeffrey.example");
 
-        assertNull(guard.refusalReason(request));
+        assertNull(remoteGuard.refusalReason(request));
     }
 }

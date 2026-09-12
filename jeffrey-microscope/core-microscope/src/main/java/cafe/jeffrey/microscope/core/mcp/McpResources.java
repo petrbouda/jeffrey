@@ -91,8 +91,9 @@ public class McpResources implements McpResourceProvider {
         return List.of(new McpResource(
                 PROFILES_URI,
                 "Analysed profiles",
-                "Every profile in this Jeffrey installation, with what each one is and when it was "
-                        + "recorded. The starting point: every other resource takes a profile id from here.",
+                "The first 100 matching profiles in this Jeffrey installation by default, with what "
+                        + "each one is and when it was recorded. The catalogue reports when more match. "
+                        + "The starting point: every other resource takes a profile id from here.",
                 McpResource.TEXT_MARKDOWN));
     }
 

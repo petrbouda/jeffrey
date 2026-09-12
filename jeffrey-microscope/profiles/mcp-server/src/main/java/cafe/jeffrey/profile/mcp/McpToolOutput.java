@@ -47,8 +47,6 @@ public final class McpToolOutput {
             "\n\n_TRUNCATED: the result exceeded %d characters and was cut here. "
                     + "Narrow the query — a smaller limit, a time range, or a more specific filter._";
 
-    private static final String ERROR_PREFIX = "Error: ";
-
     /** Where the record of what was trimmed is attached on a JSON answer that had to lose rows. */
     private static final String TRUNCATED_FIELD = "_truncated";
 
@@ -60,6 +58,10 @@ public final class McpToolOutput {
     private static final String WRAPPED_ARRAY_FIELD = "items";
     private static final String TRUNCATED_KEPT = "kept";
     private static final String TRUNCATED_ORIGINAL = "original";
+    private static final String TRUNCATED_LIMIT = "limit";
+    private static final String TRUNCATED_REASON = "reason";
+    private static final String UNTRIMMABLE_JSON_REASON =
+            "JSON result exceeded the character limit and could not be trimmed structurally";
     private static final String ARRAY_LABEL_PREFIX = "array";
 
     /** How much of an oversized array survives one pass. */
@@ -109,10 +111,9 @@ public final class McpToolOutput {
         }
         JsonNode tree = Json.toTree(value);
         if (!tree.isObject() && !tree.isArray()) {
-            // A bare scalar cannot be trimmed structurally; it can only be cut.
-            return capped(rendered);
+            return overflowJson(rendered.length());
         }
-        return trimToFit(tree);
+        return trimToFit(tree, rendered.length());
     }
 
     /**
@@ -126,7 +127,7 @@ public final class McpToolOutput {
      * A bare array is answered as an object wrapping it, for the same reason. The record can only hang
      * off an object, and a list silently returned short is exactly the failure this class is for.
      */
-    private static String trimToFit(JsonNode tree) {
+    private static String trimToFit(JsonNode tree, int originalChars) {
         ObjectNode truncated = Json.createObject();
         for (int pass = 0; pass < MAX_TRIM_PASSES; pass++) {
             String rendered = render(tree, truncated);
@@ -145,9 +146,19 @@ public final class McpToolOutput {
             }
             recordTrim(truncated, largest, before);
         }
-        // Out of passes, or a tree of scalars no array trimming could reclaim room from. Cutting is all
-        // that is left, and the cut form says so in the note it carries.
-        return capped(render(tree, truncated));
+        // A scalar-heavy tree, or an array whose last element is itself too large, cannot be shortened
+        // by dropping rows. Return a compact JSON record rather than cutting a JSON token and appending
+        // the Markdown truncation note used by capped(String).
+        return overflowJson(originalChars);
+    }
+
+    private static String overflowJson(int originalChars) {
+        ObjectNode root = Json.createObject();
+        ObjectNode truncated = root.putObject(TRUNCATED_FIELD);
+        truncated.put(TRUNCATED_REASON, UNTRIMMABLE_JSON_REASON);
+        truncated.put(TRUNCATED_ORIGINAL, originalChars);
+        truncated.put(TRUNCATED_LIMIT, MAX_CHARS);
+        return Json.toString(root);
     }
 
     /**
@@ -169,17 +180,16 @@ public final class McpToolOutput {
     }
 
     /**
-     * Notes one trimmed array under the name of the field holding it, falling back to a counter when the
-     * array is nested somewhere without a name of its own.
+     * Notes one trimmed array under its path from the root, falling back to a counter for the root array.
      * <p>
      * The name is what makes the record worth carrying. "slowRequests: kept 20 of 500" tells a reader
      * which of the answer's lists they are seeing part of; a bare counter tells them only that
      * something was cut, which they could already see from the field being there at all.
      */
     private static void recordTrim(ObjectNode truncated, NamedArray trimmed, int originalSize) {
-        String label = trimmed.name() == null
-                ? ARRAY_LABEL_PREFIX + (truncated.size() + 1)
-                : trimmed.name();
+        String label = trimmed.path() == null
+                ? ARRAY_LABEL_PREFIX + 1
+                : trimmed.path();
 
         // The same list can be the biggest one twice over. Its record is then updated rather than
         // written again: two entries for one field would read as two lists having been cut, and the
@@ -192,7 +202,7 @@ public final class McpToolOutput {
 
     /**
      * The array holding the most elements anywhere in the tree — the one whose loss buys the most room
-     * — together with the field name it sits under, where it has one.
+     * — together with its path from the root, where it has one.
      */
     private static NamedArray largestArray(JsonNode root) {
         NamedArray largest = null;
@@ -205,21 +215,51 @@ public final class McpToolOutput {
                 largest = current;
             }
             if (value.isObject()) {
-                // An object names its children; an array does not, so its elements inherit its own
-                // name and a trimmed one is still reported under the field a reader can find.
                 value.propertyStream()
                         .filter(property -> isContainer(property.getValue()))
                         .forEach(property ->
-                                pending.push(new NamedArray(property.getKey(), property.getValue())));
+                                pending.push(new NamedArray(
+                                        appendProperty(current.path(), property.getKey()),
+                                        property.getValue())));
             } else {
+                int index = 0;
                 for (JsonNode child : value) {
                     if (isContainer(child)) {
-                        pending.push(new NamedArray(current.name(), child));
+                        pending.push(new NamedArray(appendIndex(current.path(), index), child));
                     }
+                    index++;
                 }
             }
         }
         return largest;
+    }
+
+    private static String appendProperty(String path, String property) {
+        String segment = isPlainPathSegment(property)
+                ? property
+                : "[" + Json.toString(property) + "]";
+        if (path == null) {
+            return segment;
+        }
+        return segment.startsWith("[") ? path + segment : path + "." + segment;
+    }
+
+    private static String appendIndex(String path, int index) {
+        return (path == null ? "" : path) + "[" + index + "]";
+    }
+
+    private static boolean isPlainPathSegment(String property) {
+        if (property.isEmpty()
+                || !(Character.isLetter(property.charAt(0)) || property.charAt(0) == '_')) {
+            return false;
+        }
+        for (int i = 1; i < property.length(); i++) {
+            char c = property.charAt(i);
+            if (!(Character.isLetterOrDigit(c) || c == '_')) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean isContainer(JsonNode node) {
@@ -227,20 +267,17 @@ public final class McpToolOutput {
     }
 
     /**
-     * A node in the tree, with the object field it hangs off — {@code null} at the root and anywhere
-     * an array's own elements are being walked.
+     * A node in the tree, with its unambiguous path from the root ({@code null} for the root itself).
      */
-    private record NamedArray(String name, JsonNode value) {
+    private record NamedArray(String path, JsonNode value) {
 
         ArrayNode node() {
             return (ArrayNode) value;
         }
     }
 
-    /**
-     * A domain answer of "there is nothing here", as opposed to a bad argument — which throws.
-     */
+    /** A tool failure that the MCP envelope must mark with {@code isError=true}. */
     public static String error(String message) {
-        return ERROR_PREFIX + message;
+        throw new ToolExecutionException(message);
     }
 }

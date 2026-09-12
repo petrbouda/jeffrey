@@ -36,6 +36,7 @@ import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.mcp.ToolDispatchException;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -262,12 +263,15 @@ class GrpcMcpToolsTest {
         }
 
         @Test
-        void reportsAnUnknownServiceInsteadOfFailing() {
+        void reportsAnUnknownServiceAsAToolError() {
             when(grpcManager.serviceDetailData(UNKNOWN_SERVICE)).thenReturn(serviceDetail(List.of()));
 
-            String out = tools().service(UNKNOWN_SERVICE, null);
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools().service(UNKNOWN_SERVICE, null));
 
-            assertTrue(out.contains("No calls were recorded for service '" + UNKNOWN_SERVICE + "'"), out);
+            assertTrue(error.getMessage().contains("No calls were recorded for service '" + UNKNOWN_SERVICE + "'"),
+                    error.getMessage());
         }
     }
 

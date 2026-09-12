@@ -163,6 +163,7 @@ final class ToolMethodIndex {
      * @throws ToolDispatchException if a required argument is missing or a value does not fit its type
      */
     Object[] bindArguments(Method method, JsonNode arguments) {
+        validateArgumentsObject(arguments);
         Parameter[] parameters = method.getParameters();
         Set<String> required = requiredParamsByMethod.getOrDefault(method, Set.of());
         Object[] args = new Object[parameters.length];
@@ -173,9 +174,42 @@ final class ToolMethodIndex {
             if (required.contains(name) && (value == null || value.isNull())) {
                 throw new ToolDispatchException("Missing required argument: " + name);
             }
-            args[i] = ToolParamTypes.convert(value, parameter.getType());
+            try {
+                args[i] = ToolParamTypes.convert(value, parameter.getType());
+                List<String> allowed = allowedValues(parameter);
+                // A blank string is how a model spells "I am not setting this", and every tool taking
+                // an enumerated argument already reads it that way: jvm_gcDetail answers with the list
+                // of pages, heap_prepare runs the whole pipeline, heap_classHistogram sorts by size.
+                // Refusing it here would turn each of those defaults into a protocol error.
+                if (!allowed.isEmpty() && !isOmitted(value)) {
+                    String canonical = allowed.stream()
+                            .filter(candidate -> candidate.equalsIgnoreCase(value.asString()))
+                            .findFirst()
+                            .orElseThrow(() -> new ToolDispatchException("Expected one of: " + String.join(", ", allowed)));
+                    // Preserve case-insensitive calls, but pass the spelling downstream tools declare.
+                    if (parameter.getType() == String.class) {
+                        args[i] = canonical;
+                    }
+                }
+            } catch (ToolDispatchException e) {
+                throw new ToolDispatchException("Invalid argument '" + name + "': " + e.getMessage());
+            }
         }
         return args;
+    }
+
+    /**
+     * Whether the caller left this argument out — a blank string included, because that is what the
+     * tools themselves treat as absent, and the argument check is not the place to disagree with them.
+     */
+    private static boolean isOmitted(JsonNode value) {
+        return value == null || value.isNull() || (value.isString() && value.asString().isBlank());
+    }
+
+    static void validateArgumentsObject(JsonNode arguments) {
+        if (arguments != null && !arguments.isObject()) {
+            throw new ToolDispatchException("Tool arguments must be an object");
+        }
     }
 
     /**
