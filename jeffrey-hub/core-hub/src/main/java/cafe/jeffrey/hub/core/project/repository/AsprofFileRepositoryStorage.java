@@ -215,6 +215,23 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 sessionInfo.retained());
     }
 
+    /**
+     * How one file's size is read, which on an SMB mount is the difference between a figure and
+     * a round trip. Only a session that is still recording has files open on another client, and
+     * the share answers a directory listing about such a file with the size it last saw rather
+     * than the size the file has; opening it asks the share for the current one. Every other file
+     * is measured from the listing at no cost: a finished session's writer has closed its files,
+     * and a compressed recording was written and closed by this hub, so both are final however
+     * old the listing is. That matters because a listing covers every session of a project, and
+     * an open apiece would be hundreds of round trips on one page load.
+     */
+    static FileSizeReader sizeReader(RecordingStatus sessionStatus, SupportedRecordingFile fileType) {
+        if (sessionStatus == RecordingStatus.FINISHED || fileType == SupportedRecordingFile.JFR_LZ4) {
+            return FileSizeReader.FILE_ATTRIBUTES;
+        }
+        return FileSizeReader.OPEN_HANDLE;
+    }
+
     private RecordingStatus determineSessionStatus(ProjectInstanceSessionInfo sessionInfo, boolean isLatestSession) {
         if (isLatestSession) {
             return sessionInfo.finishedAt() != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
@@ -474,10 +491,12 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 return compressedPath;
             }
 
-            // Capture original file size before compression. Read through FileSystemUtils rather than
-            // a bare stat: on an SMB mount the cached size of a file the profiler still holds open
-            // can read as zero, and this guard would otherwise drop a real recording.
-            long originalSize = FileSystemUtils.size(sourcePath);
+            // Capture original file size before compression. Through an open handle rather than a
+            // stat: this runs on a recording the profiler may still hold open, whose listed size
+            // on an SMB mount can be anything from zero to the last flush, and the guard below
+            // would drop a real recording on the strength of it. The open costs nothing here —
+            // compressing the file opens it a moment later regardless.
+            long originalSize = FileSizeReader.OPEN_HANDLE.size(sourcePath);
 
             // Skip empty recording files — can happen when JFR streaming-repo
             // writes a file before any events are recorded
@@ -512,14 +531,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return List.of();
         }
 
-        // A session that is still recording has its files open on another client, and on an SMB
-        // mount the directory listing then reports the size the server last saw of them, not the
-        // size they have; opening each file asks the server for the current one. A finished
-        // session's writer has closed its files, so the listing is right and the open is spared.
-        FileSizeReader sizeReader = recordingStatus == RecordingStatus.FINISHED
-                ? FileSizeReader.FILE_ATTRIBUTES
-                : FileSizeReader.OPEN_HANDLE;
-
         List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
                         sessionPath, fileInfoProcessor.comparator()).stream()
                 .filter(Files::isRegularFile)
@@ -529,13 +540,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                             workspacePath.relativize(file), RECORDING_EXTENSIONS);
 
                     String sourceName = sessionPath.relativize(file).toString();
+                    SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
 
                     return new RepositoryFile(
                             sourceId,
                             sourceName,
                             fileInfoProcessor.createdAt(file),
-                            sizeReader.size(file),
-                            SupportedRecordingFile.of(sourceName),
+                            sizeReader(recordingStatus, fileType).size(file),
+                            fileType,
                             RecordingStatus.FINISHED,
                             file);
                 })
