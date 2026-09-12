@@ -133,7 +133,8 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         <code>hostPath</code> PV (see below). On an SMB share such as Azure Files, the hub
         measures the files of a session that is still recording through an open handle,
         because the share's directory listing reports an open file at the size it last saw,
-        so those sessions show real sizes; a low <code>actimeo</code> on the hub's mount is
+        so those sessions show real sizes while everything already closed is read from the
+        listing at no cost; a low <code>actimeo</code> on the hub's mount is
         not required, but keeps <code>stat</code> honest for other tooling.
       </DocsCallout>
 

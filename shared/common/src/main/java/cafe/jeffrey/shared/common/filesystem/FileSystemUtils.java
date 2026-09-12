@@ -140,12 +140,13 @@ public abstract class FileSystemUtils {
     }
 
     /**
-     * Size of a file for callers that do not know whether another process still writes it:
-     * the cached attributes, re-read through an open handle when they say the file is empty.
-     * Callers that do know pick a {@link FileSizeReader} themselves.
+     * Size of a file from its attributes, which is what a local filesystem always reports
+     * correctly and a network mount reports correctly for a file nobody else holds open.
+     * A caller measuring a file another process may still be writing wants
+     * {@link FileSizeReader#OPEN_HANDLE} instead.
      */
     public static long size(Path path) {
-        return FileSizeReader.CACHED_ATTRIBUTES.size(path);
+        return FileSizeReader.FILE_ATTRIBUTES.size(path);
     }
 
     /**

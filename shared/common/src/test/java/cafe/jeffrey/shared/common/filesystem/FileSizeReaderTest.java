@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -63,40 +61,26 @@ class FileSizeReaderTest {
     }
 
     @Nested
-    class CachedAttributes {
+    class FileAttributes {
 
         @Test
-        void trustsANonZeroAttributeWithoutReReading() throws IOException {
+        void reportsTheLengthOfAFileWithContent() throws IOException {
             Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
-            List<Path> reReads = new ArrayList<>();
-            FileSizeReader reader = new FileSizeReader.CachedAttributes(path -> {
-                reReads.add(path);
-                return -1L;
-            });
 
-            assertEquals(CONTENT.length, reader.size(file));
-            assertEquals(List.of(), reReads);
+            assertEquals(CONTENT.length, FileSizeReader.FILE_ATTRIBUTES.size(file));
         }
 
         @Test
-        void reReadsAZeroThroughTheGivenReader() throws IOException {
-            Path file = Files.createFile(dir.resolve("profile-20260912-055901.jfr"));
-            FileSizeReader reader = new FileSizeReader.CachedAttributes(_ -> 70_399L);
-
-            assertEquals(70_399L, reader.size(file));
-        }
-
-        @Test
-        void reportsZeroWhenBothAgreeTheFileIsEmpty() throws IOException {
+        void reportsZeroForAnEmptyFileWithoutOpeningIt() throws IOException {
             Path file = Files.createFile(dir.resolve("profile-20260912-055901.jfr"));
 
-            assertEquals(0L, FileSizeReader.CACHED_ATTRIBUTES.size(file));
+            assertEquals(0L, FileSizeReader.FILE_ATTRIBUTES.size(file));
         }
 
         @Test
         void failsForAMissingFile() {
             assertThrows(RuntimeException.class,
-                    () -> FileSizeReader.CACHED_ATTRIBUTES.size(dir.resolve("missing")));
+                    () -> FileSizeReader.FILE_ATTRIBUTES.size(dir.resolve("missing")));
         }
     }
 }

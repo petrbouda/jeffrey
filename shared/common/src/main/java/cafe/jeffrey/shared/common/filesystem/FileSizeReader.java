@@ -18,9 +18,6 @@
 
 package cafe.jeffrey.shared.common.filesystem;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -41,16 +38,22 @@ import java.nio.file.StandardOpenOption;
  * the open's response carries the file's current length, and the kernel refreshes the cached
  * attributes from it before the handle's own {@code fstat()} answers.
  *
- * <p>{@link #OPEN_HANDLE} is for files that another process may still be writing, where the
- * listing cannot be trusted at all; {@link #CACHED_ATTRIBUTES} is for files whose writer has
- * closed them, where the listing is right and the open would only cost a round trip. It still
- * distrusts a zero, since an empty file is rare and the re-read is cheap. Neither can see
- * further than the writer's last flush — that lag belongs to the writer's own mount.
+ * <p>{@link #OPEN_HANDLE} is for a file another process may still be writing, where the listing
+ * cannot be trusted; {@link #FILE_ATTRIBUTES} is for a file whose writer has closed it, where
+ * the listing is right and an open would only cost a round trip. Which one a caller wants is
+ * decided by what it knows about the file, never by the size that comes back: a zero is a
+ * perfectly ordinary answer for a closed file, and re-reading every one of them turns a listing
+ * of many sessions into as many round trips. Neither reader can see further than the writer's
+ * last flush — that lag belongs to the writer's own mount.
+ *
+ * <p>Both readers are stateless: the constants exist so a caller need not allocate one per
+ * session, and nothing — no size, no path, no handle — is kept between calls. The only cache
+ * in the picture is the kernel's, which the hub cannot switch off from Java.
  */
 public interface FileSizeReader {
 
     FileSizeReader OPEN_HANDLE = new OpenHandle();
-    FileSizeReader CACHED_ATTRIBUTES = new CachedAttributes(OPEN_HANDLE);
+    FileSizeReader FILE_ATTRIBUTES = new FileAttributes();
 
     /**
      * @throws RuntimeException when the file cannot be read, wrapping the {@link IOException}
@@ -74,29 +77,20 @@ public interface FileSizeReader {
     }
 
     /**
-     * Reads the cached attributes and trusts them unless they say the file is empty, in which
-     * case the given reader gets the last word.
+     * Reads the file's attributes as {@code stat()} reports them, which on a network mount is
+     * the kernel's cached copy and costs no round trip. Correct for any file whose writer has
+     * closed it, and wrong — sometimes zero, sometimes a size frozen at the last flush — for
+     * one still being written elsewhere.
      */
-    record CachedAttributes(FileSizeReader onZero) implements FileSizeReader {
-
-        private static final Logger LOG = LoggerFactory.getLogger(CachedAttributes.class);
+    record FileAttributes() implements FileSizeReader {
 
         @Override
         public long size(Path path) {
-            long attributeSize;
             try {
-                attributeSize = Files.size(path);
+                return Files.size(path);
             } catch (IOException e) {
                 throw new RuntimeException("Cannot get size of file: " + path, e);
             }
-            if (attributeSize != 0) {
-                return attributeSize;
-            }
-            long reReadSize = onZero.size(path);
-            if (reReadSize != 0) {
-                LOG.debug("File size re-read after the cached attribute said empty: path={} size={}", path, reReadSize);
-            }
-            return reReadSize;
         }
     }
 }
