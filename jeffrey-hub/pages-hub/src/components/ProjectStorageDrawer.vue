@@ -45,13 +45,13 @@
 
     <div class="drawer-section">
       <div class="section-label">
-        Composition · {{ project.fileTypes.length }} of {{ STORAGE_FILE_TYPE_COUNT }} file types
+        Composition · {{ recognizedTypeCount }} of {{ STORAGE_FILE_TYPE_COUNT }} file types
       </div>
       <div class="composition-bar">
         <span
             v-for="usage in groups"
             :key="usage.group.key"
-            :style="{ width: barWidth(usage.sizeBytes), background: usage.group.color }"
+            :style="{ width: barWidth(usage.sizeBytes), background: usage.group.fill }"
         ></span>
       </div>
       <div v-if="groups.length > 0" class="column-head">
@@ -62,7 +62,7 @@
       <template v-for="usage in groups" :key="usage.group.key">
         <div class="group-row">
           <span class="group-name">
-            <span class="group-swatch" :style="{ background: usage.group.color }"></span>
+            <span class="group-swatch" :style="{ background: usage.group.fill }"></span>
             <span class="group-label">{{ usage.group.label }}</span>
           </span>
           <span class="group-size">{{ formatBytes(usage.sizeBytes) }}</span>
@@ -105,7 +105,12 @@
 import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import type { ProjectStorage } from '@/services/api/model/StorageOverview';
-import { fileTypeMeta, groupUsages, STORAGE_FILE_TYPE_COUNT } from '@/services/storage/StorageFileTypes';
+import {
+  fileTypeMeta,
+  groupUsages,
+  recognizedFileTypeCount,
+  STORAGE_FILE_TYPE_COUNT
+} from '@/services/storage/StorageFileTypes';
 
 const props = defineProps<{
   project: ProjectStorage;
@@ -126,6 +131,7 @@ const displayName = computed(() => {
 });
 
 const groups = computed(() => groupUsages(props.project.fileTypes));
+const recognizedTypeCount = computed(() => recognizedFileTypeCount(props.project.fileTypes));
 
 const barWidth = (sizeBytes: number) => {
   if (props.project.totalSizeBytes === 0) {
