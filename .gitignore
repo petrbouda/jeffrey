@@ -68,6 +68,9 @@ jmh-tests/dependency-reduced-pom.xml
 **/secrets.properties
 .worktrees
 .superpowers
+# Plans and specs an agent writes while working. They describe how a change was made,
+# which is not what docs/ is for -- and they came back once after being removed.
+docs/superpowers/
 
 # Local IntelliJ HTTP Client test files
 jeffrey-hub/http-client/

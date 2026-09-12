@@ -37,6 +37,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -55,6 +56,7 @@ public class BoundedJobs<K, V> {
     private final Duration budget;
     private final Duration retention;
     private final Clock clock;
+    private final Executor scheduler;
 
     public BoundedJobs() {
         this(WAIT_BUDGET);
@@ -65,6 +67,15 @@ public class BoundedJobs<K, V> {
     }
 
     public BoundedJobs(Duration budget, Duration retention, Clock clock) {
+        this(budget, retention, clock, Schedulers.sharedVirtual());
+    }
+
+    /**
+     * @param scheduler what runs the work. Visible for the tests that need to decide what scheduling
+     *                  does -- refuse a job, or run it on the calling thread -- rather than wait on a
+     *                  shared executor to behave a particular way.
+     */
+    BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler) {
         validateBudget(budget);
         validateBudget(retention);
         if (clock == null) {
@@ -73,6 +84,7 @@ public class BoundedJobs<K, V> {
         this.clock = clock;
         this.budget = budget;
         this.retention = retention;
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
     }
 
     public Duration waitBudget() {
@@ -133,7 +145,16 @@ public class BoundedJobs<K, V> {
         });
         if (started.get()) {
             // The future is only a result carrier. Cancellation interrupts the tracked worker.
-            Schedulers.sharedVirtual().execute(() -> attempt.execute(work));
+            try {
+                scheduler.execute(() -> attempt.execute(work));
+            } catch (RuntimeException e) {
+                // Nothing is going to run this attempt, and an attempt that never runs never reaches
+                // a terminal state: finishedAt stays null, so the sweep never takes it, isRunning
+                // keeps answering yes, and every later call for this key joins work that does not
+                // exist. Failing it here is what lets the key be asked for again.
+                attempt.failToStart(e);
+                throw e;
+            }
         }
         return attempt;
     }
@@ -311,6 +332,26 @@ public class BoundedJobs<K, V> {
                     LOG.warn("A bounded MCP job failed: operation_id={} message={}", operationId, error.getMessage());
                 }
                 Thread.interrupted();
+            }
+        }
+
+        /**
+         * Terminates an attempt whose work was never scheduled, along the same path its own
+         * {@code finally} would have taken.
+         */
+        private void failToStart(RuntimeException error) {
+            synchronized (this) {
+                if (state.terminal()) {
+                    return;
+                }
+                worker = null;
+                cancellationHook = null;
+                value = null;
+                failure = error;
+                state = OperationState.FAILED;
+                phase = "not_started";
+                finishedAt = clock.instant();
+                result.completeExceptionally(error);
             }
         }
 

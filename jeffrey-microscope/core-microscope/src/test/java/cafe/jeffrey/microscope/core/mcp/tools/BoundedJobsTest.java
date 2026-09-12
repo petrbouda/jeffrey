@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -274,6 +275,37 @@ class BoundedJobsTest {
             // retryFailure=false would rethrow a retained failure; a swept one starts fresh instead.
             assertEquals(Optional.of("done"),
                     jobs.runWithin("import-1", GENEROUS, false, () -> "done"));
+        }
+    }
+
+    /**
+     * An attempt that is never scheduled never runs its own finally, so nothing sets finishedAt --
+     * and without it the sweep skips the entry, isRunning keeps saying yes, and every later call for
+     * that key joins work that does not exist. The key has to stay askable.
+     */
+    @Nested
+    class SchedulingFailure {
+
+        private final MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
+
+        @Test
+        void aJobThatCannotBeScheduledLeavesItsKeyRetryable() {
+            AtomicInteger scheduled = new AtomicInteger();
+            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS, Duration.ofMinutes(30), clock,
+                    command -> {
+                        if (scheduled.incrementAndGet() == 1) {
+                            throw new RejectedExecutionException("shutting down");
+                        }
+                        command.run();
+                    });
+
+            assertThrows(RejectedExecutionException.class,
+                    () -> jobs.runWithin("import-1", () -> "done"));
+
+            assertFalse(jobs.isRunning("import-1"), "an attempt nothing will run is not running");
+            assertTrue(jobs.outcome("import-1").isPresent(), "it must be readable as a failure");
+            assertEquals(Optional.of("done"), jobs.runWithin("import-1", () -> "done"),
+                    "the key must accept work again");
         }
     }
 

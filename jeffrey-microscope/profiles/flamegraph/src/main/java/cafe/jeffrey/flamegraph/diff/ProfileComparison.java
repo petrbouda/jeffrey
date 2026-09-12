@@ -111,7 +111,11 @@ public final class ProfileComparison {
         DiffMeasure measure = new DiffMeasure(weight);
         long primaryTotal = root == null ? 0L : measure.primary(root);
         long baselineTotal = root == null ? 0L : measure.baseline(root);
-        DiffMeasure samples = new DiffMeasure(WeightContext.of(Type.EXECUTION_SAMPLE, false));
+        // The sample count, which is what the thin-sample warnings are about: a weighted total can be
+        // large while the samples behind it are few, and that is exactly the comparison worth warning
+        // about. Named as the measurement rather than through an event type the unweighted context
+        // does not consult.
+        DiffMeasure samples = new DiffMeasure(WeightContext.UNWEIGHTED);
         return new ComparisonScale(primaryDuration, baselineDuration, primaryTotal, baselineTotal,
                 root == null ? 0L : samples.primary(root), root == null ? 0L : samples.baseline(root));
     }

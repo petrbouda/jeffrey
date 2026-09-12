@@ -61,7 +61,8 @@ public record WeightContext(
     private static final LongFunction<String> BYTES_VALUE_FORMATTER = BytesUtils::format;
     private static final LongFunction<String> NANOS_VALUE_FORMATTER = DurationUtils::formatNanos2Units;
 
-    private static final WeightContext UNWEIGHTED =
+    /** Counts samples rather than their weight, whatever the event type carries. */
+    public static final WeightContext UNWEIGHTED =
             new WeightContext(UNIT_SAMPLES, null, null, null);
 
     /** Explicit sample mode must also govern exports and their denominators. */
