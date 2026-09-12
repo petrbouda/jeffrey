@@ -10,13 +10,17 @@ export type StorageGroupKey =
     | 'heapDumps'
     | 'logs'
     | 'diagnostics'
-    | 'temporary';
+    | 'temporary'
+    | 'unrecognized';
 
 export interface StorageGroup {
     key: StorageGroupKey;
     label: string;
-    /** CSS custom property expression usable directly in style bindings */
-    color: string;
+    /**
+     * CSS `background` value usable directly in style bindings — a design-token
+     * colour for a real kind of file, a hatch for the group that is none.
+     */
+    fill: string;
 }
 
 export interface StorageFileTypeMeta {
@@ -26,13 +30,21 @@ export interface StorageFileTypeMeta {
     group: StorageGroupKey;
 }
 
+/**
+ * Files the hub could not classify are not a kind of file, so their group is
+ * drawn as a hatch over the bar's own background rather than as a seventh colour.
+ */
+const UNRECOGNIZED_FILL =
+    'repeating-linear-gradient(135deg, var(--color-slate-muted) 0 2px, transparent 2px 5px), var(--color-grey-bg)';
+
 export const STORAGE_GROUPS: StorageGroup[] = [
-    { key: 'recordings', label: 'Flight recordings', color: 'var(--color-primary)' },
-    { key: 'profiles', label: 'Profiles', color: 'var(--color-purple)' },
-    { key: 'heapDumps', label: 'Heap dumps', color: 'var(--color-orange)' },
-    { key: 'logs', label: 'Logs', color: 'var(--color-teal)' },
-    { key: 'diagnostics', label: 'Diagnostics', color: 'var(--color-amber)' },
-    { key: 'temporary', label: 'Temporary', color: 'var(--color-slate-light)' }
+    { key: 'recordings', label: 'Flight recordings', fill: 'var(--color-primary)' },
+    { key: 'profiles', label: 'Profiles', fill: 'var(--color-purple)' },
+    { key: 'heapDumps', label: 'Heap dumps', fill: 'var(--color-orange)' },
+    { key: 'logs', label: 'Logs', fill: 'var(--color-teal)' },
+    { key: 'diagnostics', label: 'Diagnostics', fill: 'var(--color-amber)' },
+    { key: 'temporary', label: 'Temporary', fill: 'var(--color-slate-light)' },
+    { key: 'unrecognized', label: 'Unrecognized', fill: UNRECOGNIZED_FILL }
 ];
 
 /** Keyed by the SupportedRecordingFile enum name sent by the backend. */
@@ -50,14 +62,28 @@ export const STORAGE_FILE_TYPES: Record<string, StorageFileTypeMeta> = {
     ASPROF_TEMP: { label: 'Async Profiler Cache', extension: '.jfr.*~', group: 'temporary' }
 };
 
+/**
+ * The backend's UNKNOWN bucket, and any type name this catalogue has not caught
+ * up with yet. It belongs to no real group: the hub already keeps it apart in
+ * its own FileCategory.UNRECOGNIZED, and the breakdown does the same.
+ */
 const UNKNOWN_FILE_TYPE: StorageFileTypeMeta = {
-    label: 'Unsupported Files',
+    label: 'Unrecognized files',
     extension: '',
-    group: 'diagnostics'
+    group: 'unrecognized'
 };
 
 export function fileTypeMeta(type: string): StorageFileTypeMeta {
     return STORAGE_FILE_TYPES[type] ?? UNKNOWN_FILE_TYPE;
+}
+
+export function isRecognizedFileType(type: string): boolean {
+    return type in STORAGE_FILE_TYPES;
+}
+
+/** How many of the catalogued file types a project actually holds; the unknown bucket is not one of them. */
+export function recognizedFileTypeCount(fileTypes: FileTypeUsage[]): number {
+    return fileTypes.filter(usage => isRecognizedFileType(usage.type)).length;
 }
 
 export interface GroupUsage {
