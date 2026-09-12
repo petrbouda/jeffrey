@@ -262,6 +262,23 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.mcp.allowed-hosts</code></td>
+            <td><code>localhost,127.0.0.1,::1</code></td>
+            <td>
+              The hostnames the endpoint will answer to, comma-separated, checked against the host the
+              request was actually addressed to. Anything else gets <code>403</code>, with or without an
+              <code>Origin</code> header. It is what stops a page in a browser from choosing both sides
+              of the origin comparison: rebind a name you control to <code>127.0.0.1</code> and the
+              <code>Host</code> and <code>Origin</code> it sends match each other perfectly. The list
+              replaces the default rather than adding to it, so keep the loopback names any client still
+              uses. Behind a reverse proxy, name the hostname clients dial and set Spring Boot's
+              <code>server.forward-headers-strategy</code> so the request carries the public scheme, host
+              and port &mdash; the check reads the servlet request, never <code>X-Forwarded-*</code>
+              directly. Read at startup. See
+              <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.mcp.hubs.enabled</code></td>
             <td><code>true</code></td>
             <td>

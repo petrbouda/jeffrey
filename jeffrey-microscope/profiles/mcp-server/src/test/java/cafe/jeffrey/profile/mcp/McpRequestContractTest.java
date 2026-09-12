@@ -110,6 +110,17 @@ class McpRequestContractTest {
     }
 
     @Test
+    void readsABlankEnumeratedArgumentAsOmitted() {
+        JsonNode response = dispatch("""
+                {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"test_check",
+                "arguments":{"direction":""}}}
+                """);
+
+        assertFalse(response.path("result").path("isError").asBoolean(), response.toString());
+        assertEquals(1, target.calls);
+    }
+
+    @Test
     void rejectsNonStringProfileIdsBeforeResolvingAProfile() {
         AtomicInteger resolutions = new AtomicInteger();
         var tools = new ProfileScopedToolset<>(ContractTools.class, "test", id -> {
