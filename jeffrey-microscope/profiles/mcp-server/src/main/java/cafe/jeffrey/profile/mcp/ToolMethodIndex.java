@@ -177,7 +177,11 @@ final class ToolMethodIndex {
             try {
                 args[i] = ToolParamTypes.convert(value, parameter.getType());
                 List<String> allowed = allowedValues(parameter);
-                if (value != null && !value.isNull() && !allowed.isEmpty()) {
+                // A blank string is how a model spells "I am not setting this", and every tool taking
+                // an enumerated argument already reads it that way: jvm_gcDetail answers with the list
+                // of pages, heap_prepare runs the whole pipeline, heap_classHistogram sorts by size.
+                // Refusing it here would turn each of those defaults into a protocol error.
+                if (!allowed.isEmpty() && !isOmitted(value)) {
                     String canonical = allowed.stream()
                             .filter(candidate -> candidate.equalsIgnoreCase(value.asString()))
                             .findFirst()
@@ -192,6 +196,14 @@ final class ToolMethodIndex {
             }
         }
         return args;
+    }
+
+    /**
+     * Whether the caller left this argument out — a blank string included, because that is what the
+     * tools themselves treat as absent, and the argument check is not the place to disagree with them.
+     */
+    private static boolean isOmitted(JsonNode value) {
+        return value == null || value.isNull() || (value.isString() && value.asString().isBlank());
     }
 
     static void validateArgumentsObject(JsonNode arguments) {
