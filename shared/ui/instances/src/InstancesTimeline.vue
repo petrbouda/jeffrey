@@ -96,10 +96,10 @@
                 :value="FormattingService.formatTimestampUTC(instanceEnd(instance))"
                 size="xs"
               />
-              <Badge v-else key-label="Status" value="Running" variant="warning" size="xs" />
               <Badge
                 key-label="Duration"
                 :value="FormattingService.formatDurationInMillis2Units(instance.duration)"
+                variant="violet"
                 size="xs"
               />
             </span>
