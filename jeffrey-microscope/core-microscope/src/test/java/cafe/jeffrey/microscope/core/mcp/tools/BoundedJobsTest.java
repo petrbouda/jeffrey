@@ -20,7 +20,11 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +46,99 @@ class BoundedJobsTest {
 
     private static final Duration GENEROUS = Duration.ofSeconds(10);
     private static final Duration IMMEDIATE = Duration.ofMillis(50);
+
+    /**
+     * A retained outcome outlives the call that produced it so a client can still read it, and then
+     * stops outliving anything: the key is a recording id or a session reference, and one entry per
+     * import for the life of the process is a map that only grows.
+     */
+    @Nested
+    class Retention {
+
+        private static final Duration RETENTION = Duration.ofMinutes(30);
+
+        private final MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
+        private final BoundedJobs<String, String> jobs =
+                new BoundedJobs<>(GENEROUS, RETENTION, clock);
+
+        @Test
+        void refusesARetentionOrClockThatCannotDateAnOutcome() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> new BoundedJobs<>(GENEROUS, Duration.ZERO, clock));
+            assertThrows(IllegalArgumentException.class,
+                    () -> new BoundedJobs<>(GENEROUS, null, clock));
+            assertThrows(IllegalArgumentException.class,
+                    () -> new BoundedJobs<>(GENEROUS, RETENTION, null));
+        }
+
+        @Test
+        void keepsAnOutcomeReadableWithinTheRetentionWindow() {
+            jobs.runWithin("import-1", () -> "done");
+
+            clock.advance(RETENTION.minusMinutes(1));
+
+            assertTrue(jobs.outcome("import-1").isPresent());
+        }
+
+        @Test
+        void sweepsOutcomesNothingIsGoingToRead() {
+            jobs.runWithin("import-1", () -> "done");
+            assertThrows(RuntimeException.class,
+                    () -> jobs.runWithin("import-2", () -> {
+                        throw new IllegalStateException("no such file");
+                    }));
+
+            clock.advance(RETENTION.plusMinutes(1));
+            // The sweep runs where keys are added, so asking for unrelated work is what collects them.
+            jobs.runWithin("import-3", () -> "done");
+
+            assertTrue(jobs.outcome("import-1").isEmpty(), "a stale success must not be retained");
+            assertTrue(jobs.outcome("import-2").isEmpty(), "a stale failure must not be retained");
+            assertTrue(jobs.outcome("import-3").isPresent(), "the fresh outcome stays");
+        }
+
+        @Test
+        void doesNotReportASweptFailureToTheCallerThatFollowsIt() {
+            assertThrows(RuntimeException.class,
+                    () -> jobs.runWithin("import-1", () -> {
+                        throw new IllegalStateException("no such file");
+                    }));
+
+            clock.advance(RETENTION.plusMinutes(1));
+
+            // retryFailure=false would rethrow a retained failure; a swept one starts fresh instead.
+            assertEquals(Optional.of("done"),
+                    jobs.runWithin("import-1", GENEROUS, false, () -> "done"));
+        }
+    }
+
+    private static final class MutableClock extends Clock {
+
+        private Instant now;
+
+        private MutableClock(Instant now) {
+            this.now = now;
+        }
+
+        private void advance(Duration amount) {
+            now = now.plus(amount);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return now;
+        }
+    }
 
     @Nested
     class Construction {

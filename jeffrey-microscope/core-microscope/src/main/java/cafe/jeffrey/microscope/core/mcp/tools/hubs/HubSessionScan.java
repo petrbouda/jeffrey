@@ -43,11 +43,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -67,14 +67,26 @@ public final class HubSessionScan {
     private static final String DEADLINE_EXCEEDED = "deadline exceeded";
     private static final String CAPACITY_EXHAUSTED = "scan capacity exhausted";
     private static final int MAX_CONCURRENT_RPCS = 16;
-    private static final int MAX_QUEUED_RPCS = 128;
 
+    /**
+     * At most {@link #MAX_CONCURRENT_RPCS} hub calls at once, and every call that does not fit waits
+     * its turn rather than being refused.
+     * <p>
+     * The queue is deliberately unbounded. What this pool exists to limit is how many hub RPCs are in
+     * flight together, and the core threads already do that; what limits the scan as a whole is its
+     * deadline. A bounded queue adds a third limit that is not about either, and it is the one a large
+     * installation hits first: the scan submits a whole level at once, so a workspace with more
+     * projects than the queue holds would lose the overflow to {@code scan capacity exhausted} while
+     * the deadline still had most of its budget left. Work refused for lack of room is indistinguishable
+     * to the reader from a hub that would not answer, which is the one thing this class exists to keep
+     * separate. The queued calls are small, and the deadline bounds how long they can accumulate.
+     */
     private static final ThreadPoolExecutor RPC_EXECUTOR = new ThreadPoolExecutor(
             MAX_CONCURRENT_RPCS,
             MAX_CONCURRENT_RPCS,
             0L,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(MAX_QUEUED_RPCS),
+            new LinkedBlockingQueue<>(),
             Thread.ofVirtual().name("hub-mcp-scan-", 0).factory(),
             new ThreadPoolExecutor.AbortPolicy());
 

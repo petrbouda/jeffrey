@@ -21,7 +21,9 @@ import cafe.jeffrey.shared.common.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -63,16 +65,46 @@ public class BoundedJobs<K, V> {
      */
     public static final Duration WAIT_BUDGET = Duration.ofSeconds(45);
 
+    /**
+     * How long a terminal outcome stays readable after the work ended.
+     * <p>
+     * A retained outcome is what lets a client that gave up on the call read the failure -- or the
+     * finished result -- on its next poll, so it has to outlive a client's polling rhythm by a wide
+     * margin. It must not outlive the process, though: the key is a recording id or a hub session
+     * reference, so a map that only ever grows is one entry per import and per download for as long
+     * as Jeffrey runs. An hour is the same bound {@code PipelineRunRegistry} puts on a finished run,
+     * and for the same reason.
+     */
+    public static final Duration COMPLETED_RETENTION = Duration.ofHours(1);
+
     private final Map<K, JobState<V>> jobs = new ConcurrentHashMap<>();
     private final Duration budget;
+    private final Duration retention;
+    private final Clock clock;
 
     public BoundedJobs() {
         this(WAIT_BUDGET);
     }
 
     public BoundedJobs(Duration budget) {
+        this(budget, COMPLETED_RETENTION, Clock.systemUTC());
+    }
+
+    /**
+     * @param retention how long a finished outcome stays readable before it is swept
+     * @param clock     what dates an outcome, so a test can age one without waiting
+     */
+    public BoundedJobs(Duration budget, Duration retention, Clock clock) {
         validateBudget(budget);
+        if (retention == null || retention.isNegative() || retention.isZero()) {
+            throw new IllegalArgumentException("retention must be positive: retention=" + retention);
+        }
+        if (clock == null) {
+            throw new IllegalArgumentException("clock is required");
+        }
         this.budget = budget;
+        this.retention = retention;
+        this.clock = clock;
     }
 
     /**
@@ -101,6 +133,9 @@ public class BoundedJobs<K, V> {
     public Optional<V> runWithin(
             K key, Duration waitBudget, boolean retryFailure, Supplier<V> work) {
         validateBudget(waitBudget);
+        // Swept here because this is the only method that adds a key. The map is then bounded by the
+        // work actually asked for within the retention window rather than by everything ever asked for.
+        evictExpired();
 
         AtomicBoolean started = new AtomicBoolean();
         JobState<V> selected = jobs.compute(key, (id, existing) -> {
@@ -117,7 +152,15 @@ public class BoundedJobs<K, V> {
             return new Active<>(CompletableFuture.supplyAsync(work, Schedulers.sharedVirtual()));
         });
         if (selected instanceof Finished<V> finished) {
-            throw finished.outcome().failure();
+            RuntimeException failure = finished.outcome().failure();
+            if (failure == null) {
+                // Only the retained-failure branch above returns a finished state, so a retained
+                // success here means that branch changed underneath this one. Said plainly rather
+                // than thrown as the NullPointerException it would otherwise become.
+                throw new IllegalStateException(
+                        "A retained successful outcome was selected instead of a new attempt: key=" + key);
+            }
+            throw failure;
         }
         Active<V> active = asActive(selected);
 
@@ -161,10 +204,15 @@ public class BoundedJobs<K, V> {
      * The last terminal outcome for this key. Reading it does not consume it, so status polling can
      * repeat the same late failure. A new explicit {@link #runWithin} call atomically replaces it with
      * an active attempt before starting new work.
+     * <p>
+     * It is not kept forever: an outcome older than {@link #COMPLETED_RETENTION} is swept, and this
+     * then answers empty as it does for work never asked for. Nothing polls for an hour.
      */
     public Optional<Outcome<V>> outcome(K key) {
         JobState<V> state = jobs.get(key);
-        if (state instanceof Finished<V> finished) {
+        // Judged by age rather than by whether the sweep has run yet, so how long an outcome is
+        // reported does not depend on whether unrelated work happened to be asked for meanwhile.
+        if (state instanceof Finished<V> finished && !expired(finished, clock.instant())) {
             return Optional.of(finished.outcome());
         }
         return Optional.empty();
@@ -194,11 +242,25 @@ public class BoundedJobs<K, V> {
 
     private void finish(K key, Active<V> active, V result, Throwable error) {
         Outcome<V> outcome = outcomeOf(key, result, error);
-        boolean published = jobs.replace(key, active, new Finished<>(outcome));
+        boolean published = jobs.replace(key, active, new Finished<>(outcome, clock.instant()));
         if (published && outcome.failure() != null) {
             LOG.warn("A bounded MCP job failed: key={} message={}",
                     key, outcome.failure().getMessage());
         }
+    }
+
+    /**
+     * Drops outcomes nothing is going to read. An active attempt is never swept, however long it runs:
+     * what bounds one of those is its own work, and dropping it here would start a rival.
+     */
+    private void evictExpired() {
+        Instant now = clock.instant();
+        jobs.values().removeIf(state ->
+                state instanceof Finished<V> finished && expired(finished, now));
+    }
+
+    private boolean expired(Finished<V> finished, Instant now) {
+        return finished.finishedAt().isBefore(now.minus(retention));
     }
 
     private static Throwable unwrap(Throwable error) {
@@ -231,7 +293,7 @@ public class BoundedJobs<K, V> {
     private record Active<V>(CompletableFuture<V> future) implements JobState<V> {
     }
 
-    private record Finished<V>(Outcome<V> outcome) implements JobState<V> {
+    private record Finished<V>(Outcome<V> outcome, Instant finishedAt) implements JobState<V> {
     }
 
     /** Exactly one of {@code value} and {@code failure} is present. */
