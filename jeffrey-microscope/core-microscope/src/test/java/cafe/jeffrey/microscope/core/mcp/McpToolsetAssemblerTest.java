@@ -23,6 +23,8 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -114,7 +116,7 @@ class McpToolsetAssemblerTest {
                 recordingCommitResolver,
                 new HeapDumpInitService(CLOCK),
                 ideBridge,
-                properties);
+                properties, new HubsReplayMcpTools(projectManagerResolver), new McpOperationRegistry(CLOCK));
     }
 
     private List<String> toolNames(boolean hubsEnabled) {
@@ -358,6 +360,7 @@ class McpToolsetAssemblerTest {
                 "recordings_analyzeRecording",
                 "heap_prepare",
                 "hubs_download",
+                "operations_cancel",
                 "ide_link",
                 "ide_open");
 
@@ -394,6 +397,7 @@ class McpToolsetAssemblerTest {
                     .filter(name -> REMOTE_PREFIXES.contains(name.substring(0, name.indexOf('_'))))
                     .collect(Collectors.toSet());
 
+            remote.add("operations_cancel");
             assertEquals(remote, declared);
         }
 
@@ -464,12 +468,12 @@ class McpToolsetAssemblerTest {
             Set<String> all = families(assembler(true));
             assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
-                    "memory", "heap", "hubs", "ide"), all);
+                    "memory", "heap", "hubs", "ide", "operations"), all);
             assertEquals(all, families(preset("all")));
-            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare"),
+            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "operations"),
                     families(preset("jfr")));
-            assertEquals(Set.of("profiles", "recordings", "heap"), families(preset("heap")));
-            assertEquals(Set.of("profiles", "recordings", "hubs"), families(preset("hub")));
+            assertEquals(Set.of("profiles", "recordings", "heap", "operations"), families(preset("heap")));
+            assertEquals(Set.of("profiles", "recordings", "hubs", "operations"), families(preset("hub")));
         }
 
         /**
@@ -506,7 +510,7 @@ class McpToolsetAssemblerTest {
                     true, true, true, Set.of(), preset);
             McpToolsetAssembler assembler = assembler(properties);
             ExternalMcpController controller = new ExternalMcpController(
-                    assembler, properties, new McpRequestGuard(), new McpPromptRegistry());
+                    assembler, properties, new McpRequestGuard(), new McpPromptRegistry(), mock(McpDiagnostics.class));
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("MCP-Protocol-Version", "2025-11-25");
             JsonNode response = controller.handle(Json.readTree(

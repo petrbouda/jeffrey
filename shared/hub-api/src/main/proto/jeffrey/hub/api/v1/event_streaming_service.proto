@@ -17,6 +17,10 @@ service EventStreamingService {
   // Reads events from .jfr/.jfr.lz4 files in chronological order and streams them back.
   // The stream ends when all matching events have been delivered.
   rpc ReplayStreaming(ReplayStreamingRequest) returns (stream EventBatch);
+
+  // Read-only scoped replay. Both workspace_id and project_id are required.
+  // A separate RPC prevents older Hubs from ignoring scope fields and running legacy replay.
+  rpc ScopedReplayStreaming(ReplayStreamingRequest) returns (stream EventBatch);
 }
 
 // Request to live-stream JFR events from a session's streaming repository.
@@ -43,12 +47,17 @@ message ReplayStreamingRequest {
   optional int64 end_time = 4;
   // Send empty batches as implicit heartbeats (default: false).
   optional bool send_empty_batches = 5;
+  // Supply both to resolve the session within its project. Omit both for legacy callers.
+  optional string workspace_id = 6;
+  optional string project_id = 7;
 }
 
 // A batch of JFR events delivered on each flush cycle.
 // May be empty when send_empty_batches is true (acts as heartbeat).
 message EventBatch {
   repeated StreamingEvent events = 1;
+  // Scoped replay begins with an acknowledgement and ends with a coverage summary.
+  optional ReplayStatus replay_status = 2;
 }
 
 // A single JFR event with typed fields.
@@ -74,4 +83,13 @@ message TypedValue {
     bool bool_value = 4;
     float float_value = 5;
   }
+}
+
+// Coverage is limited to finished recording files listed at replay start.
+message ReplayStatus {
+  string workspace_id = 1;
+  string project_id = 2;
+  bool terminal = 3;
+  // Number of skipped files, corrupt chunks, or events that failed mapping.
+  int64 source_errors = 4;
 }

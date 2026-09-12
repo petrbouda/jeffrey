@@ -22,12 +22,15 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.McpPromptRegistry;
+import cafe.jeffrey.microscope.core.mcp.McpDiagnostics;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -115,8 +118,8 @@ public class McpConfiguration {
     @Bean
     public RecordingsMcpTools recordingsMcpTools(
             RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> profileInitRunRegistry) {
-        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry);
+            PipelineRunRegistry<String> profileInitRunRegistry, McpOperationRegistry operations) {
+        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry, operations);
     }
 
     /**
@@ -131,10 +134,11 @@ public class McpConfiguration {
             Clock applicationClock,
             @Value("${jeffrey.microscope.mcp.hubs.scan-timeout:PT20S}") Duration scanTimeout,
             @Value("${jeffrey.microscope.mcp.hubs.download-response-timeout:PT45S}") Duration responseTimeout,
-            @Value("${jeffrey.microscope.mcp.hubs.download-timeout:PT1H}") Duration downloadTimeout) {
+            @Value("${jeffrey.microscope.mcp.hubs.download-timeout:PT1H}") Duration downloadTimeout,
+            McpOperationRegistry operations) {
         return new HubsMcpTools(
                 hubsManager, projectManagerResolver, recordingsManager, applicationClock,
-                scanTimeout, responseTimeout, downloadTimeout);
+                scanTimeout, responseTimeout, downloadTimeout, operations);
     }
 
     /**
@@ -159,11 +163,11 @@ public class McpConfiguration {
             RecordingCommitResolver recordingCommitResolver,
             HeapDumpInitService heapDumpInitService,
             IdeBridge ideBridge,
-            ExternalMcpProperties properties) {
+            ExternalMcpProperties properties, HubsReplayMcpTools replayMcpTools, McpOperationRegistry operations) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
-                properties);
+                properties, replayMcpTools, operations);
     }
 
     /**
@@ -171,6 +175,24 @@ public class McpConfiguration {
      * time. Declared here rather than built inside the controller so the controller keeps the single
      * constructor component scanning needs.
      */
+    @Bean
+    public McpOperationRegistry mcpOperationRegistry(Clock applicationClock) {
+        return new McpOperationRegistry(applicationClock);
+    }
+
+    @Bean
+    public HubsReplayMcpTools hubsReplayMcpTools(ProjectManagerResolver resolver) {
+        return new HubsReplayMcpTools(resolver);
+    }
+
+    @Bean
+    public McpDiagnostics mcpDiagnostics(
+            MicroscopeCorePersistenceProvider persistence, HubsManager hubs,
+            ExternalMcpProperties properties, Clock applicationClock) {
+        return new McpDiagnostics(persistence.localCoreRepositories(), hubs, properties,
+                applicationClock, Duration.ofSeconds(2));
+    }
+
     @Bean
     public McpPromptRegistry mcpPromptRegistry() {
         return new McpPromptRegistry();

@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.profile.common.operation.OperationHandle;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.mcp.McpToolHints;
@@ -39,6 +40,10 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The one family that writes: it takes a recording Jeffrey has never seen and turns it into a profile
@@ -102,6 +107,8 @@ public class RecordingsMcpTools {
     private final RecordingsManager recordingsManager;
     private final PipelineRunRegistry<String> runRegistry;
     private final BoundedJobs<String, String> jobs;
+    private final BoundedJobs<String, String> imports;
+    private final McpOperationRegistry operations;
 
     public RecordingsMcpTools(
             RecordingsManager recordingsManager, PipelineRunRegistry<String> runRegistry) {
@@ -116,6 +123,19 @@ public class RecordingsMcpTools {
             RecordingsManager recordingsManager,
             PipelineRunRegistry<String> runRegistry,
             BoundedJobs<String, String> jobs) {
+        this(recordingsManager, runRegistry, jobs, new McpOperationRegistry());
+    }
+
+    public RecordingsMcpTools(RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> runRegistry, McpOperationRegistry operations) {
+        this(recordingsManager, runRegistry, new BoundedJobs<>(), operations);
+    }
+
+    public RecordingsMcpTools(RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> runRegistry, BoundedJobs<String, String> jobs,
+            McpOperationRegistry operations) {
+        this.operations = operations;
+        this.imports = new BoundedJobs<>(jobs.waitBudget());
         this.recordingsManager = recordingsManager;
         this.runRegistry = runRegistry;
         this.jobs = jobs;
@@ -127,10 +147,10 @@ public class RecordingsMcpTools {
             + ".hprof, .hprof.gz, .pprof or .otlp file in their repository or filesystem. The path is "
             + "opened by the Jeffrey process, so the file must be on the machine Jeffrey runs on. A "
             + "small recording is analysed inside this call and its profileId comes straight back; a "
-            + "large one takes longer than a client waits, so the answer is a status of 'running' and "
-            + "recordings_status says when it is done. Each call imports the file again and builds "
+            + "large one returns a running operationId; operations_status follows the complete copy "
+            + "and analysis lifecycle, including before a recordingId is available. Each call imports the file again and builds "
             + "another profile - call recordings_list first if the same file may already be analysed, "
-            + "and poll recordings_status rather than calling this a second time.")
+            + "and poll operations_status rather than calling this a second time.")
     public String analyzeFile(
             @ToolParam(required = true, description = "Absolute path of the recording file to import, e.g. "
                     + "/home/dev/project/target/app.jfr. A leading ~ is expanded. Relative paths are "
@@ -143,8 +163,35 @@ public class RecordingsMcpTools {
         Path recordingPath = validatedPath(path);
 
         LOG.info("Importing a recording over MCP: path={}", recordingPath);
-        String recordingId = recordingsManager.importRecordingFromPath(recordingPath);
-        return analyzed(recordingId, name);
+        AtomicReference<String> importedRecording = new AtomicReference<>();
+        OperationHandle<String> operation = imports.startOrJoin(UUID.randomUUID().toString(), false,
+                value -> true, control -> {
+                    control.phase("importing");
+                    String recordingId = recordingsManager.importRecordingFromPath(recordingPath);
+                    importedRecording.set(recordingId);
+                    control.progress(Map.of("recordingId", recordingId));
+                    control.checkCancellation();
+                    control.phase("analyzing");
+                    OperationHandle<String> analysis = analysisOperation(recordingId, name, true);
+                    control.onCancellation(analysis::cancel);
+                    control.progress((Supplier<Object>) () -> Map.of(
+                            "recordingId", recordingId, "analysis", Optional.ofNullable(analysis.snapshot().progress()).orElse(Map.of())));
+                    return jobs.awaitCompletion(analysis);
+                });
+        String operationId = operations.register("recording_import", operation,
+                profileId -> Map.of("profileId", profileId), importedRecording::get);
+        Optional<String> finished;
+        try {
+            finished = imports.awaitWithin(operation);
+        } catch (RuntimeException failure) {
+            return McpToolOutput.json(operations.status(operationId));
+        }
+        if (finished.isEmpty()) {
+            return operations.decorate(McpToolOutput.json(Map.of("status", STILL_RUNNING)), operationId);
+        }
+        Object details = operation.snapshot().progress();
+        String recordingId = String.valueOf(((Map<?, ?>) details).get("recordingId"));
+        return operations.decorate(analyzedProfile(recordingId, finished.get()), operationId);
     }
 
     @Tool(description = "Analyze a recording that is already in Jeffrey's Quick Analysis store but has "
@@ -152,17 +199,25 @@ public class RecordingsMcpTools {
             + "one recordings_list shows with profile_id empty. Returns the profile id every other "
             + "tool takes, or a status of 'running' when the recording is large enough that parsing "
             + "outlasts the call - recordings_status then says when it is done. A recording that "
-            + "already has a profile is returned as it is rather than analysed twice.")
+            + "already has a profile is returned as it is rather than analysed twice. Results include an "
+            + "operationId for operations_status/cancel. Retained failures require retry=true; outcomes "
+            + "are held in memory for one hour and forgotten on restart.")
     public String analyzeRecording(
             @ToolParam(required = true, description = "Recording id, as returned by recordings_list")
-            String recordingId) {
+            String recordingId,
+            @ToolParam(required = false, description = "Set true to retry a retained failed or cancelled analysis. Omit to inspect the same attempt")
+            Boolean retry) {
 
         if (recordingId == null || recordingId.isBlank()) {
             throw new IllegalArgumentException("A recording id is required. Call recordings_list to see them.");
         }
 
         LOG.info("Analyzing a stored recording over MCP: recording_id={}", recordingId);
-        return analyzed(recordingId.trim(), null);
+        return analyzed(recordingId.trim(), null, Boolean.TRUE.equals(retry));
+    }
+
+    public String analyzeRecording(String recordingId) {
+        return analyzeRecording(recordingId, true);
     }
 
     /*
@@ -214,7 +269,12 @@ public class RecordingsMcpTools {
             @ToolParam(required = true, description = "Recording id, as returned by the analyze tool "
                     + "that reported the analysis was still running")
             String recordingId) {
+        String legacy = statusOf(recordingId);
+        return operations.latestForRecording(recordingId.trim())
+                .map(operationId -> operations.decorate(legacy, operationId)).orElse(legacy);
+    }
 
+    private String statusOf(String recordingId) {
         if (recordingId == null || recordingId.isBlank()) {
             throw new IllegalArgumentException(
                     "A recording id is required. Call recordings_list to see them.");
@@ -298,22 +358,55 @@ public class RecordingsMcpTools {
      * Builds the profile and renders what the model needs next: the id the other families take, and a
      * link for the reader who wants to look at the interactive version.
      */
-    private String analyzed(String recordingId, String name) {
+    private OperationHandle<String> analysisOperation(String recordingId, String name, boolean retry) {
         String requestedName = name == null || name.isBlank() ? null : name.trim();
-        Optional<String> finished =
-                jobs.runWithin(recordingId, () -> {
-                    String profileId = recordingsManager.analyzeRecording(recordingId);
-                    if (requestedName != null) {
-                        recordingsManager.updateProfileName(profileId, requestedName);
-                    }
-                    return profileId;
-                });
-        if (finished.isEmpty()) {
-            return McpToolOutput.json(new AnalysisProgress(
-                    recordingId, null, STILL_RUNNING, List.of(), null, null, null));
-        }
+        return jobs.startOrJoin(recordingId, retry, profileId -> profileStillAvailable(recordingId, profileId), control -> {
+            control.phase("analyzing");
+            control.progress((Supplier<Object>) () -> {
+                Optional<Recording> recording = recordingsManager.findRecording(recordingId);
+                Object stages = recording.filter(Recording::hasProfile)
+                        .map(value -> (Object) runRegistry.progress(value.profileId()).stages()).orElse(List.of());
+                return Map.of("recordingId", recordingId, "stages", stages);
+            });
+            control.checkCancellation();
+            String profileId = recordingsManager.analyzeRecording(recordingId);
+            // A durable profile is already produced. Finish the short, accepted naming step and
+            // preserve that result even if the analysis could not honour a cancellation request.
+            if (control.cancellationRequested()) {
+                Thread.interrupted();
+            }
+            control.phase("finalizing");
+            if (requestedName != null) {
+                recordingsManager.updateProfileName(profileId, requestedName);
+            }
+            return profileId;
+        });
+    }
 
-        String profileId = finished.get();
+    private boolean profileStillAvailable(String recordingId, String profileId) {
+        boolean linked = recordingsManager.findRecording(recordingId)
+                .filter(Recording::hasProfile).map(recording -> profileId.equals(recording.profileId())).orElse(false);
+        return linked && recordingsManager.profile(profileId).map(profile -> profile.info().enabled()).orElse(false);
+    }
+
+    private String analyzed(String recordingId, String name, boolean retry) {
+        OperationHandle<String> operation = analysisOperation(recordingId, name, retry);
+        String operationId = operations.register("recording_analysis", operation,
+                profileId -> Map.of("profileId", profileId, "recordingId", recordingId), () -> recordingId);
+        Optional<String> finished;
+        try {
+            finished = jobs.awaitWithin(operation);
+        } catch (RuntimeException failure) {
+            return McpToolOutput.json(operations.status(operationId));
+        }
+        if (finished.isEmpty()) {
+            return operations.decorate(McpToolOutput.json(new AnalysisProgress(
+                    recordingId, null, STILL_RUNNING, List.of(), null, null, null)), operationId);
+        }
+        return operations.decorate(analyzedProfile(recordingId, finished.get()), operationId);
+    }
+
+    private String analyzedProfile(String recordingId, String profileId) {
         Recording recording = recordingsManager.findRecording(recordingId)
                 .orElseThrow(() -> new IllegalStateException("Recording vanished while being analyzed: " + recordingId));
         String actualName = recordingsManager.profile(profileId)

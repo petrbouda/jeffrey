@@ -29,6 +29,7 @@ import cafe.jeffrey.jfr.events.notification.Severity;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CancellationException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,8 @@ public final class PipelineRun {
     private final Clock clock;
     private final Instant startedAt;
     private final Map<String, StageProgress> stages = new LinkedHashMap<>();
+
+    private volatile boolean cancellationRequested;
 
     private volatile PipelineState state = PipelineState.RUNNING;
     private volatile Instant completedAt;
@@ -91,6 +94,17 @@ public final class PipelineRun {
     /** When the run reached a terminal state, or {@code null} while it is still going. */
     public Instant completedAt() {
         return completedAt;
+    }
+
+    public void requestCancellation() {
+        cancellationRequested = true;
+    }
+
+    /** Cooperative boundary between stages; a running stage may need time to unwind. */
+    public void checkCancellation() {
+        if (cancellationRequested) {
+            throw new CancellationException("Cancelled");
+        }
     }
 
     public boolean isRunning() {
@@ -158,14 +172,12 @@ public final class PipelineRun {
     /**
      * Opens a stage and starts the live timer on it — unless the run has already ended.
      *
-     * <p>The guard is what stops a cancelled run from coming back to life. Cancellation marks the run
-     * failed and interrupts its worker, but whether the work notices the interrupt is up to the work:
-     * a callback-driven pipeline whose HTTP call was already in flight keeps going and announces its
-     * next phase on the way out. Without this, that announcement would open a fresh stage and restart
-     * the timer on a terminal run, leaving the timeline with a stage spinning forever underneath a
-     * "Run failed" heading — and the stages after it reading as work that succeeded after the cancel.</p>
+     * <p>A cancellation request is acknowledged at this boundary before another stage starts.
+     * Work already in progress can still finish successfully; requesting cancellation alone does
+     * not mark the run terminal or erase a completed result.</p>
      */
     public synchronized void beginStage(String id) {
+        checkCancellation();
         if (state != PipelineState.RUNNING) {
             return;
         }
@@ -233,10 +245,8 @@ public final class PipelineRun {
      * returns; public because a run is a complete object in its own right, and a caller that schedules
      * its own work should not have to go through the registry to say the work finished.
      *
-     * <p>The first terminal transition wins: a run cancelled while its work was still unwinding must
-     * stay failed when that work eventually returns, not flip to completed as if the cancel never
-     * happened. Synchronized because completion and cancellation genuinely race — the worker thread
-     * calls this, a request thread calls {@link #fail}.</p>
+     * <p>The first terminal transition wins. A prior failure cannot be overwritten, while a
+     * cancellation request that the work did not acknowledge does not erase successful completion.</p>
      *
      * @return true when this call ended the run, false when it was already terminal
      */

@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.streaming;
 
 import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordingFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.EventBatch;
@@ -27,9 +28,13 @@ import cafe.jeffrey.hub.api.v1.StreamingEvent;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -52,6 +57,8 @@ public class SingleReplyStreamingSubscriber {
     private final Path tempDir;
     private final Consumer<EventBatch> consumer;
     private final Supplier<Boolean> isClosed;
+    private final Runnable sourceError;
+    private final AtomicReference<EventStream> activeStream = new AtomicReference<>();
 
     public SingleReplyStreamingSubscriber(
             ReplayStreamSubscription subscription,
@@ -59,6 +66,12 @@ public class SingleReplyStreamingSubscriber {
             Consumer<EventBatch> consumer,
             Supplier<Boolean> isClosed) {
 
+        this(subscription, tempDir, consumer, isClosed, () -> {});
+    }
+
+    public SingleReplyStreamingSubscriber(ReplayStreamSubscription subscription, Path tempDir,
+                                         Consumer<EventBatch> consumer, Supplier<Boolean> isClosed, Runnable sourceError) {
+        this.sourceError = sourceError;
         this.subscription = subscription;
         this.tempDir = tempDir;
         this.consumer = consumer;
@@ -69,16 +82,54 @@ public class SingleReplyStreamingSubscriber {
      * Reads all matching events from the given file and delivers them in batches.
      */
     public void read(Path file) throws IOException {
+        if (isClosed.get()) {
+            return;
+        }
         Path readPath = file;
 
         if (Lz4Compressor.isLz4Compressed(file)) {
             readPath = tempDir.resolve(file.getFileName().toString().replace(".lz4", ""));
-            Lz4Compressor.decompress(file, readPath);
+            try (InputStream input = Lz4Compressor.decompressStream(file);
+                 OutputStream output = Files.newOutputStream(readPath)) {
+                byte[] bytes = new byte[65536];
+                int count;
+                while (!isClosed.get() && (count = input.read(bytes)) != -1) {
+                    output.write(bytes, 0, count);
+                }
+            }
+        }
+        if (isClosed.get()) {
+            return;
         }
 
         List<StreamingEvent> buffer = new ArrayList<>(BATCH_SIZE);
+        if (subscription.reportCoverage()) {
+            // EventStream may silently accept an invalid/truncated file without onError.
+            // Scoped queries need strict parsing before they can claim complete coverage.
+            try (RecordingFile recording = new RecordingFile(readPath)) {
+                while (!isClosed.get() && recording.hasMoreEvents()) {
+                    RecordedEvent event = recording.readEvent();
+                    if (subscription.eventTypes().contains(event.getEventType().getName())
+                            && subscription.window().contains(event.getStartTime())) {
+                        bufferEvent(event, buffer);
+                    }
+                }
+                if (!isClosed.get() && !buffer.isEmpty()) {
+                    flush(buffer);
+                }
+            } finally {
+                if (!readPath.equals(file)) {
+                    Files.deleteIfExists(readPath);
+                }
+            }
+            return;
+        }
 
         try (EventStream stream = EventStream.openFile(readPath)) {
+            activeStream.set(stream);
+            if (isClosed.get()) {
+                return;
+            }
             if (subscription.window().startTime() != null) {
                 stream.setStartTime(subscription.window().startTime());
             }
@@ -93,8 +144,10 @@ public class SingleReplyStreamingSubscriber {
             // Chunk-level errors are recoverable: EventStream skips the corrupted chunk and
             // continues with the next one. They must never reach the terminal gRPC onError —
             // that would close the call while more events are still being delivered.
-            stream.onError(t -> LOG.warn("Error in recording file, skipping chunk: file={} error={}",
-                    file.getFileName(), t.getMessage()));
+            stream.onError(t -> {
+                sourceError.run();
+                LOG.warn("Error in recording file, skipping chunk: file={} error={}", file.getFileName(), t.getMessage());
+            });
 
             stream.onClose(() -> {
                 if (!buffer.isEmpty() && !isClosed.get()) {
@@ -103,6 +156,19 @@ public class SingleReplyStreamingSubscriber {
             });
 
             stream.start();
+        } finally {
+            activeStream.set(null);
+            if (!readPath.equals(file)) {
+                Files.deleteIfExists(readPath);
+            }
+        }
+    }
+
+    /** Stops the current file; decompression checks cancellation between bounded buffer reads. */
+    public void close() {
+        EventStream stream = activeStream.get();
+        if (stream != null) {
+            stream.close();
         }
     }
 
@@ -118,6 +184,7 @@ public class SingleReplyStreamingSubscriber {
                 flush(buffer);
             }
         } catch (Exception e) {
+            sourceError.run();
             LOG.warn("Failed to map event: eventType={}", event.getEventType().getName(), e);
         }
     }

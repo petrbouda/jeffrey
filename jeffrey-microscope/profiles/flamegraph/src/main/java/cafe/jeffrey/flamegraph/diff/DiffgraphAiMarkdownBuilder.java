@@ -139,8 +139,13 @@ public final class DiffgraphAiMarkdownBuilder {
     private final Map<DiffFrame, Long> movementCache = new IdentityHashMap<>();
 
     public DiffgraphAiMarkdownBuilder(Type eventType, ComparisonScale scale, AiExportConfig config) {
+        this(eventType, scale, config, WeightContext.of(eventType));
+    }
+
+    public DiffgraphAiMarkdownBuilder(Type eventType, ComparisonScale scale, AiExportConfig config,
+                                     WeightContext weightContext) {
         this.eventType = eventType;
-        this.weightContext = WeightContext.of(eventType);
+        this.weightContext = weightContext;
         this.measure = new DiffMeasure(weightContext);
         this.scale = scale;
         this.config = config;

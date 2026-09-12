@@ -51,6 +51,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import cafe.jeffrey.shared.common.Json;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
@@ -63,6 +64,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -122,6 +124,118 @@ class RecordingsMcpToolsTest {
                 RECORDING_ID, "app.jfr", null, null, RecordingEventSource.JDK,
                 START, START, START.plusSeconds(60),
                 hasProfile, hasProfile ? PROFILE_ID : null, hasProfile ? "app.jfr" : null, List.of());
+    }
+
+    @Test
+    void importedProfileExposesItsOperationIdentityAndCanonicalStatus() throws IOException {
+        Path file = recordingFile("operation.jfr");
+        when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
+        when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
+        when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+        String result = tools.analyzeFile(file.toString(), null);
+        assertTrue(result.contains("\"operationId\""), result);
+        assertTrue(result.contains("\"operation\""), result);
+        assertTrue(result.contains("\"status\":\"completed\""), result);
+    }
+
+    @Test
+    void copyingIsBoundedAndCancellationPreventsAnalysisAfterTheCopyReturns() throws Exception {
+        Path file = recordingFile("large.jfr");
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        McpOperationRegistry operations = new McpOperationRegistry();
+        RecordingsMcpTools bounded = new RecordingsMcpTools(recordingsManager, runRegistry,
+                new BoundedJobs<>(Duration.ofMillis(50)), operations);
+        when(recordingsManager.importRecordingFromPath(file)).thenAnswer(invocation -> {
+            entered.countDown();
+            while (release.getCount() != 0) {
+                try {
+                    release.await();
+                } catch (InterruptedException ignored) {
+                    // Simulate a copy implementation that finishes its current write first.
+                }
+            }
+            return RECORDING_ID;
+        });
+        CompletableFuture<String> call = CompletableFuture.supplyAsync(
+                () -> withRequestContext(() -> bounded.analyzeFile(file.toString(), null)));
+        String operationId;
+        try {
+            assertTrue(entered.await(5, SECONDS));
+            String response = call.get(1, SECONDS);
+            operationId = Json.mapper().readTree(response).path("operationId").asString();
+            assertFalse(operationId.isBlank());
+            assertEquals("cancel_requested", operations.cancel(operationId, kind -> true).status());
+        } finally {
+            release.countDown();
+        }
+        await().atMost(5, SECONDS).until(() -> operations.status(operationId).status().equals("cancelled"));
+        verify(recordingsManager, never()).analyzeRecording(anyString());
+    }
+
+    @Test
+    void immediateImportFailureStillReturnsAnOperationThatCanBeInspected() throws IOException {
+        Path file = recordingFile("broken.jfr");
+        when(recordingsManager.importRecordingFromPath(file)).thenThrow(new IllegalStateException("copy failed"));
+        var result = Json.mapper().readTree(tools.analyzeFile(file.toString(), null));
+        assertFalse(result.path("operationId").asString().isBlank());
+        assertEquals("failed", result.path("status").asString());
+        assertEquals("copy failed", result.path("error").path("message").asString());
+        verify(recordingsManager, never()).analyzeRecording(anyString());
+    }
+
+    @Test
+    void cancellationAfterAnalysisSucceedsPreservesTheProfileAndAcceptedName() throws Exception {
+        Path file = recordingFile("finishing.jfr");
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        McpOperationRegistry operations = new McpOperationRegistry();
+        RecordingsMcpTools bounded = new RecordingsMcpTools(recordingsManager, runRegistry,
+                new BoundedJobs<>(Duration.ofMillis(50)), operations);
+        when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
+        when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+        when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
+            entered.countDown();
+            while (release.getCount() != 0) {
+                try {
+                    release.await();
+                } catch (InterruptedException ignored) {
+                    // Analysis cannot abort its final durable write and returns a usable profile.
+                }
+            }
+            return PROFILE_ID;
+        });
+        String operationId = Json.mapper().readTree(bounded.analyzeFile(file.toString(), "Accepted name"))
+                .path("operationId").asString();
+        try {
+            assertTrue(entered.await(5, SECONDS));
+            assertEquals("cancel_requested", operations.cancel(operationId, kind -> true).status());
+        } finally {
+            release.countDown();
+        }
+        await().atMost(5, SECONDS).until(() -> operations.status(operationId).finishedAt() != null);
+        assertEquals("completed", operations.status(operationId).status());
+        assertTrue(operations.status(operationId).cancellationRequested());
+        assertEquals(PROFILE_ID, Json.mapper().valueToTree(operations.status(operationId).result())
+                .path("profileId").asString());
+        verify(recordingsManager).updateProfileName(PROFILE_ID, "Accepted name");
+    }
+
+    @Test
+    void aDeletedProfileIsReanalyzedInsteadOfReturningItsRetainedId() {
+        when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID, "replacement-profile");
+        when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+        profileIs(true);
+        assertTrue(tools.analyzeRecording(RECORDING_ID).contains(PROFILE_ID));
+        when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
+        ProfileManager replacement = mock(ProfileManager.class);
+        when(replacement.info()).thenReturn(new ProfileInfo(
+                "replacement-profile", null, null, "app.jfr", RecordingEventSource.JDK,
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, RECORDING_ID));
+        when(recordingsManager.profile("replacement-profile")).thenReturn(Optional.of(replacement));
+        String response = tools.analyzeRecording(RECORDING_ID);
+        assertTrue(response.contains("replacement-profile"), response);
+        verify(recordingsManager, times(2)).analyzeRecording(RECORDING_ID);
     }
 
     @Nested

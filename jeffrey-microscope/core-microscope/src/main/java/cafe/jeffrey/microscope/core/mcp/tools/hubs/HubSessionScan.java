@@ -204,6 +204,14 @@ public final class HubSessionScan {
      * Missing entries are the hubs that failed or crossed the deadline.
      */
     public Map<String, Optional<String>> probeVersions(List<HubManager> hubs) {
+        return probeDetails(hubs).versions();
+    }
+
+    /** Completed probes and failure categories, under the same deadline and concurrency limit. */
+    public record ProbeResult(Map<String, Optional<String>> versions, List<Failure> failures) {
+    }
+
+    public ProbeResult probeDetails(List<HubManager> hubs) {
         Deadline deadline = Deadline.after(budget.toNanos(), TimeUnit.NANOSECONDS);
         Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINE_SCHEDULER);
         try {
@@ -222,7 +230,7 @@ public final class HubSessionScan {
                 for (Map.Entry<String, Optional<String>> entry : probes.values()) {
                     versions.put(entry.getKey(), entry.getValue());
                 }
-                return versions;
+                return new ProbeResult(Map.copyOf(versions), probes.failures());
             });
         } catch (Exception e) {
             if (e instanceof RuntimeException runtime) {

@@ -64,6 +64,11 @@ public record WeightContext(
     private static final WeightContext UNWEIGHTED =
             new WeightContext(UNIT_SAMPLES, null, null, null);
 
+    /** Explicit sample mode must also govern exports and their denominators. */
+    public static WeightContext of(Type eventType, boolean useWeight) {
+        return useWeight ? of(eventType) : UNWEIGHTED;
+    }
+
     public static WeightContext of(Type eventType) {
         if (eventType.isAllocationEvent()) {
             return new WeightContext(

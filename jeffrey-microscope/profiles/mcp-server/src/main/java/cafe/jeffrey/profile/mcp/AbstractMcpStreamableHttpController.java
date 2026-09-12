@@ -144,6 +144,12 @@ public abstract class AbstractMcpStreamableHttpController {
     /** The supported revisions as a client-readable list, built once. */
     private static final String SUPPORTED_VERSIONS_SENTENCE = String.join(", ", SUPPORTED_PROTOCOL_VERSIONS);
 
+    private final McpToolMetrics metrics = new McpToolMetrics();
+
+    protected McpToolMetrics toolMetrics() {
+        return metrics;
+    }
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static String serverVersion() {
@@ -338,6 +344,9 @@ public abstract class AbstractMcpStreamableHttpController {
         String toolName = params.path(FIELD_NAME).asString();
         JsonNode arguments = params.get(FIELD_ARGUMENTS);
 
+        boolean advertised = toolset.specs().stream().anyMatch(spec -> spec.name().equals(toolName));
+        boolean dispatched = true;
+        long started = System.nanoTime();
         ObjectNode result = Json.createObject();
         ArrayNode content = result.putArray(FIELD_CONTENT);
         try {
@@ -348,6 +357,7 @@ public abstract class AbstractMcpStreamableHttpController {
             }
             result.put(FIELD_IS_ERROR, false);
         } catch (ToolDispatchException e) {
+            dispatched = false;
             // Rethrown so the envelope answers -32602: the call never reached a tool.
             throw e;
         } catch (Exception e) {
@@ -355,6 +365,11 @@ public abstract class AbstractMcpStreamableHttpController {
             content.addObject().put(FIELD_TYPE, CONTENT_TYPE_TEXT)
                     .put(FIELD_TEXT, TOOL_ERROR_PREFIX + e.getMessage());
             result.put(FIELD_IS_ERROR, true);
+        } finally {
+            if (advertised && dispatched) {
+                metrics.record(toolName, System.nanoTime() - started, Json.toByteArray(result).length,
+                        result.path(FIELD_IS_ERROR).asBoolean());
+            }
         }
         return success(id, result);
     }

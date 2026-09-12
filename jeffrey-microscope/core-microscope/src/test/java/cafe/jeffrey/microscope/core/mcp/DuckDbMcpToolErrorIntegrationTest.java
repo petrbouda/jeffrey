@@ -38,6 +38,7 @@ import java.util.Set;
 
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +58,7 @@ class DuckDbMcpToolErrorIntegrationTest {
                 assembler,
                 new ExternalMcpProperties(true, true, true, Set.of()),
                 new McpRequestGuard(),
-                new McpPromptRegistry()));
+                new McpPromptRegistry(), mock(McpDiagnostics.class)));
 
         String request = """
                 {"jsonrpc":"2.0","id":1,"method":"tools/call",

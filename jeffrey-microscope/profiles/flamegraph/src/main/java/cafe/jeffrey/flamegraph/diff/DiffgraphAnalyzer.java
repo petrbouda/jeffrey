@@ -74,9 +74,9 @@ public final class DiffgraphAnalyzer {
     private final List<Subtree> vanished = new ArrayList<>();
     private final List<String> path = new ArrayList<>();
 
-    private DiffgraphAnalyzer(Type eventType, ComparisonScale scale) {
+    private DiffgraphAnalyzer(Type eventType, ComparisonScale scale, WeightContext weightContext) {
         this.eventType = eventType;
-        this.weightContext = WeightContext.of(eventType);
+        this.weightContext = weightContext;
         this.measure = new DiffMeasure(weightContext);
         this.scale = scale;
     }
@@ -88,10 +88,15 @@ public final class DiffgraphAnalyzer {
     public static ComparisonReport analyze(
             Type eventType, DiffFrame root, ComparisonScale scale, int limit) {
 
+        return analyze(eventType, root, scale, limit, WeightContext.of(eventType));
+    }
+
+    public static ComparisonReport analyze(Type eventType, DiffFrame root, ComparisonScale scale,
+                                           int limit, WeightContext weightContext) {
         if (limit < 1) {
             throw new IllegalArgumentException("limit must be positive: limit=" + limit);
         }
-        DiffgraphAnalyzer analyzer = new DiffgraphAnalyzer(eventType, scale);
+        DiffgraphAnalyzer analyzer = new DiffgraphAnalyzer(eventType, scale, weightContext);
         if (root != null) {
             analyzer.walk(root);
         }

@@ -821,6 +821,43 @@ class HubsMcpToolsTest {
         }
 
         @Test
+        void retryPreflightFailureIsNotReplacedByThePreviousAttemptFailure() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenThrow(new IllegalStateException("old failure"));
+            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
+            when(project.repositoryManager().recordingSession(SESSION_ID))
+                    .thenReturn(jfrSession(SESSION_ID, NOW))
+                    .thenThrow(Status.UNAVAILABLE.withDescription("new preflight failure").asRuntimeException());
+            resolvesTo(project);
+            noLocalRecordings();
+            assertThrows(IllegalStateException.class, () -> tools.download(REF.encode()));
+            JeffreyException failure = assertThrows(JeffreyException.class, () -> tools.download(REF.encode(), true));
+            assertEquals(ErrorCode.HUB_UNAVAILABLE, failure.getCode());
+            assertTrue(failure.getMessage().contains("UNAVAILABLE"), failure.getMessage());
+            verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+        }
+
+        @Test
+        void mcpFailuresReturnAnOperationIdAndRequireAnExplicitRetry() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID))
+                    .thenThrow(new IllegalStateException("connection lost"))
+                    .thenReturn("rec-retried");
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
+            noLocalRecordings();
+            var first = Json.mapper().readTree(tools.download(REF.encode(), false));
+            String operationId = first.path("operationId").asString();
+            assertFalse(operationId.isBlank());
+            assertEquals("failed", first.path("status").asString());
+            var retained = Json.mapper().readTree(tools.download(REF.encode(), false));
+            assertEquals(operationId, retained.path("operationId").asString());
+            verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+            var retry = Json.mapper().readTree(tools.download(REF.encode(), true));
+            assertFalse(operationId.equals(retry.path("operationId").asString()));
+            assertEquals("completed", retry.path("operation").path("status").asString());
+        }
+
+        @Test
         void failedTransferCanBeRetriedWithTheSameFullRef() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.mergeAndDownloadSession(SESSION_ID))

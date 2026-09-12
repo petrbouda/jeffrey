@@ -23,6 +23,9 @@ import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationSnapshot;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.notification.NotificationType;
@@ -30,11 +33,15 @@ import cafe.jeffrey.shared.notification.Notifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InterruptedIOException;
+import java.nio.channels.ClosedByInterruptException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -102,16 +109,23 @@ public final class PipelineRunRegistry<K> {
      * @return true when this call started a run, false when it found one already going
      */
     public boolean start(PipelineRunRequest<K> request) {
+        return startOrJoin(request, true).started();
+    }
+
+    /** Atomically selects one exact attempt; retained failures restart only on explicit retry. */
+    public StartResult startOrJoin(PipelineRunRequest<K> request, boolean retryFailure) {
         // The candidate is built up front so the outcome can be decided by identity: if compute() gave
         // back anything else, an in-flight run kept the key and this call started nothing.
         TrackedRun candidate = new TrackedRun(new PipelineRun(definition, request.scopeId(), clock));
         TrackedRun current = runsByKey.compute(request.key(), (_, existing) ->
-                existing != null && existing.run.isRunning() ? existing : candidate);
+                existing != null && (!existing.finished
+                        || (!retryFailure && existing.run.progress().state() == PipelineState.FAILED))
+                        ? existing : candidate);
 
         if (current != candidate) {
             LOG.debug("Pipeline run already in flight: pipeline_id={} key={}",
                     definition.pipelineId(), request.key());
-            return false;
+            return new StartResult(false, current);
         }
 
         LOG.info("Queued pipeline run: pipeline_id={} key={} scope_id={} available_slots={}",
@@ -124,7 +138,10 @@ public final class PipelineRunRegistry<K> {
                             definition.pipelineId(), request.key(), ex);
                     return null;
                 });
-        return true;
+        return new StartResult(true, candidate);
+    }
+
+    public record StartResult(boolean started, OperationHandle<PipelineProgress> operation) {
     }
 
     /** Live progress of the current (or last finished) run; idle when none exists. */
@@ -146,7 +163,7 @@ public final class PipelineRunRegistry<K> {
     public boolean runInline(PipelineRunRequest<K> request) {
         TrackedRun candidate = new TrackedRun(new PipelineRun(definition, request.scopeId(), clock));
         TrackedRun current = runsByKey.compute(request.key(), (_, existing) ->
-                existing != null && existing.run.isRunning() ? existing : candidate);
+                existing != null && !existing.finished ? existing : candidate);
 
         if (current != candidate) {
             LOG.debug("Pipeline run already in flight: pipeline_id={} key={}",
@@ -154,13 +171,16 @@ public final class PipelineRunRegistry<K> {
             return false;
         }
 
-        candidate.worker = Thread.currentThread();
         Throwable failure;
         try {
+            if (!candidate.beginWorker()) {
+                candidate.run.fail("CANCELLED", CANCELLED_MESSAGE);
+                throw new CancellationException(CANCELLED_MESSAGE);
+            }
+            candidate.markStarted();
             failure = driveWork(request, candidate.run);
         } finally {
-            candidate.worker = null;
-            notifyFinished(request, candidate.run);
+            finish(request, candidate);
         }
 
         // Unlike the queued path, this one has a caller waiting on the outcome: a profile whose
@@ -185,70 +205,55 @@ public final class PipelineRunRegistry<K> {
 
     public boolean isRunning(K key) {
         TrackedRun tracked = runsByKey.get(key);
-        return tracked != null && tracked.run.isRunning();
+        return tracked != null && !tracked.finished;
     }
 
-    /**
-     * Cancels an in-flight run: marks it failed and interrupts the thread executing it. Whether the
-     * underlying work notices the interrupt is up to that work, so the run is marked failed regardless
-     * rather than left hanging in a state the UI would render as still going.
-     *
-     * <p>The mark comes first, and the interrupt only fires when the mark won — {@link PipelineRun#fail}
-     * is first-transition-wins, so a run whose work completed a microsecond earlier stays completed and
-     * its thread is never interrupted while it stores results.</p>
-     */
+    /** Requests cancellation without releasing the key while work or cleanup still owns it. */
     public boolean cancel(K key) {
         TrackedRun tracked = runsByKey.get(key);
-        if (tracked == null || !tracked.run.fail(null, CANCELLED_MESSAGE)) {
-            return false;
-        }
-        Thread worker = tracked.worker;
-        if (worker != null) {
-            worker.interrupt();
-        }
-        LOG.info("Cancelled pipeline run: pipeline_id={} key={}", definition.pipelineId(), key);
+        return tracked != null && tracked.cancel();
+    }
 
-        // No span to pin to: the run's root span belongs to the worker thread, and this is whoever
-        // pressed cancel. It belongs to the trace of that request instead, which is where the reader
-        // asking "why did this stop" actually is.
-        Notifications.of(NotificationType.PIPELINE_CANCELLED)
-                .attribute("pipelineId", definition.pipelineId())
-                .attribute("profileId", String.valueOf(key))
-                .attribute("wasRunning", worker != null)
-                .emit();
-
-        return true;
+    public Optional<OperationHandle<PipelineProgress>> operation(K key) {
+        return Optional.ofNullable(runsByKey.get(key));
     }
 
     private void execute(PipelineRunRequest<K> request, TrackedRun tracked) {
-        PipelineRun run = tracked.run;
-        // Cancelled before this task ever ran (there was no thread to interrupt yet): the work must
-        // not start on a run the caller already ended.
-        if (!run.isRunning()) {
-            notifyFinished(request, run);
-            return;
-        }
-        tracked.worker = Thread.currentThread();
-
+        boolean acquired = false;
         try {
+            if (!tracked.beginWorker()) {
+                tracked.run.fail("CANCELLED", CANCELLED_MESSAGE);
+                return;
+            }
             slots.acquire();
-        } catch (InterruptedException e) {
-            tracked.worker = null;
-            Thread.interrupted();
-            run.fail(null, CANCELLED_WHILE_QUEUED_MESSAGE);
-            notifyFinished(request, run);
-            return;
-        }
-
-        try {
-            driveWork(request, run);
+            acquired = true;
+            tracked.markStarted();
+            tracked.run.checkCancellation();
+            driveWork(request, tracked.run);
+        } catch (InterruptedException | CancellationException e) {
+            tracked.run.fail("CANCELLED", CANCELLED_WHILE_QUEUED_MESSAGE);
         } finally {
-            tracked.worker = null;
-            // Absorb a cancellation interrupt that landed after the work returned, so storing the
-            // terminal result below is not sabotaged by a flag meant for the work.
+            // Cancellation no longer interrupts once work has ended. Cleanup still owns the key.
+            tracked.stopWorker();
             Thread.interrupted();
-            slots.release();
-            notifyFinished(request, run);
+            if (acquired) {
+                slots.release();
+            }
+            finish(request, tracked);
+        }
+    }
+
+    private void finish(PipelineRunRequest<K> request, TrackedRun tracked) {
+        tracked.stopWorker();
+        // Result persistence and lease release must not inherit an interrupt intended for the work.
+        Thread.interrupted();
+        try {
+            notifyFinished(request, tracked.run);
+        } finally {
+            synchronized (tracked) {
+                tracked.finishedAt = clock.instant();
+                tracked.finished = true;
+            }
         }
     }
 
@@ -354,14 +359,21 @@ public final class PipelineRunRegistry<K> {
      * repair prompt). Anything else has no code, which is honest — a message is all we have.
      */
     private static String errorCodeOf(Throwable e) {
+        Throwable cause = e;
+        for (int depth = 0; cause != null && depth < 20; depth++) {
+            if (cause instanceof CancellationException || cause instanceof InterruptedException
+                    || cause instanceof InterruptedIOException || cause instanceof ClosedByInterruptException) {
+                return "CANCELLED";
+            }
+            cause = cause.getCause();
+        }
         return e instanceof JeffreyException jeffreyException ? jeffreyException.getCode().name() : null;
     }
 
     private void evictFinishedRuns() {
         Instant cutoff = clock.instant().minus(options.completedRunTtl());
         runsByKey.values().removeIf(tracked -> {
-            Instant completedAt = tracked.run.completedAt();
-            return completedAt != null && completedAt.isBefore(cutoff);
+            return tracked.finished && tracked.finishedAt != null && tracked.finishedAt.isBefore(cutoff);
         });
     }
 
@@ -370,13 +382,84 @@ public final class PipelineRunRegistry<K> {
      * A {@code CompletableFuture} would not do here: its {@code cancel(true)} never interrupts the
      * running task — {@code mayInterruptIfRunning} is documented to have no effect.
      */
-    private static final class TrackedRun {
+    private static final class TrackedRun implements OperationHandle<PipelineProgress> {
 
         private final PipelineRun run;
-        private volatile Thread worker;
+        private final String operationId = UUID.randomUUID().toString();
+        private Thread worker;
+        private boolean cancellationRequested;
+        private boolean acceptingCancellation = true;
+        private boolean started;
+        private volatile boolean finished;
+        private volatile Instant finishedAt;
 
         private TrackedRun(PipelineRun run) {
             this.run = run;
+        }
+
+        private synchronized boolean beginWorker() {
+            if (cancellationRequested) {
+                return false;
+            }
+            worker = Thread.currentThread();
+            return true;
+        }
+
+        private synchronized void markStarted() {
+            started = true;
+        }
+
+        private synchronized void stopWorker() {
+            acceptingCancellation = false;
+            worker = null;
+        }
+
+        @Override
+        public synchronized boolean cancel() {
+            if (!acceptingCancellation || cancellationRequested || finished || !run.isRunning()) {
+                return false;
+            }
+            cancellationRequested = true;
+            run.requestCancellation();
+            if (worker != null) {
+                worker.interrupt();
+            }
+            return true;
+        }
+
+        @Override
+        public String operationId() {
+            return operationId;
+        }
+
+        @Override
+        public Instant startedAt() {
+            return run.startedAt();
+        }
+
+        @Override
+        public Instant finishedAt() {
+            return finishedAt;
+        }
+
+        @Override
+        public synchronized OperationSnapshot<PipelineProgress> snapshot() {
+            PipelineProgress progress = run.progress();
+            OperationState state;
+            if (!finished) {
+                state = cancellationRequested ? OperationState.CANCEL_REQUESTED
+                        : started ? OperationState.RUNNING : OperationState.QUEUED;
+            } else if (progress.state() == PipelineState.COMPLETED) {
+                state = OperationState.COMPLETED;
+            } else {
+                state = "CANCELLED".equals(progress.errorCode())
+                        ? OperationState.CANCELLED : OperationState.FAILED;
+            }
+            RuntimeException failure = state == OperationState.FAILED
+                    ? new IllegalStateException(progress.errorMessage()) : null;
+            return new OperationSnapshot<>(operationId, state, run.startedAt(), finishedAt,
+                    cancellationRequested, "pipeline", progress,
+                    state == OperationState.COMPLETED ? progress : null, failure);
         }
     }
 }

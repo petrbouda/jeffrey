@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -28,13 +29,24 @@ import cafe.jeffrey.hub.api.v1.LiveStreamingRequest;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.*;
+import cafe.jeffrey.hub.core.streaming.LiveStreamSubscription;
+import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
+import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
+import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
+import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
+import cafe.jeffrey.hub.core.streaming.SessionPaths;
+import cafe.jeffrey.hub.core.streaming.StreamingWindow;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;
 import java.time.Instant;
+import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -109,6 +121,15 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     }
 
     @Override
+    public void scopedReplayStreaming(ReplayStreamingRequest request, StreamObserver<EventBatch> observer) {
+        if (request.getWorkspaceId().isBlank() || request.getProjectId().isBlank()) {
+            observer.onError(GrpcExceptions.invalidArgument("Scoped replay requires workspace_id and project_id"));
+            return;
+        }
+        replayStreaming(request, observer);
+    }
+
+    @Override
     public void replayStreaming(ReplayStreamingRequest request, StreamObserver<EventBatch> observer) {
         String sessionId = request.getSessionId();
 
@@ -119,16 +140,37 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
         ReadyGate gate = ReadyGate.attach(serverObserver);
 
         try {
-            Optional<SessionWithRepository> sessionOpt =
-                    resolveValidatedSession(sessionId, request.getEventTypesList(), observer);
-            if (sessionOpt.isEmpty()) {
-                return;
+            boolean scoped = request.hasWorkspaceId() || request.hasProjectId();
+            if (request.getEventTypesCount() == 0) {
+                throw new IllegalArgumentException("At least one event type must be specified");
             }
-
             StreamingWindow window = resolveStreamingWindow(request);
-
-            RepositoryStorage storage = repositoryStorageFactory.apply(sessionOpt.get().projectInfo());
-            List<Path> recordingFiles = storage.recordings(sessionId, null);
+            List<Path> recordingFiles;
+            if (scoped) {
+                if (request.getWorkspaceId().isBlank() || request.getProjectId().isBlank()) {
+                    throw new IllegalArgumentException("Both workspace_id and project_id are required for scoped replay");
+                }
+                ProjectInfo project = platformRepositories.newProjectRepository(request.getProjectId()).find()
+                        .filter(info -> request.getWorkspaceId().equals(info.workspaceId()))
+                        .orElseThrow(() -> GrpcExceptions.notFound("Project not found in requested workspace"));
+                RepositoryStorage storage = repositoryStorageFactory.apply(project);
+                RecordingSession session = storage.singleSession(sessionId, true)
+                        .orElseThrow(() -> GrpcExceptions.notFound("Session not found in requested project: " + sessionId));
+                // recordings() compresses files persistently. A query reads existing paths only.
+                recordingFiles = session.files().stream()
+                        .filter(RepositoryFile::isRecordingFile)
+                        .filter(RepositoryFile::isFinished)
+                        .sorted(Comparator.comparing(RepositoryFile::createdAt))
+                        .map(RepositoryFile::filePath).distinct().toList();
+            } else {
+                Optional<SessionWithRepository> sessionOpt =
+                        resolveValidatedSession(sessionId, request.getEventTypesList(), observer);
+                if (sessionOpt.isEmpty()) {
+                    return;
+                }
+                RepositoryStorage storage = repositoryStorageFactory.apply(sessionOpt.get().projectInfo());
+                recordingFiles = storage.recordings(sessionId, null);
+            }
             if (recordingFiles.isEmpty()) {
                 observer.onError(GrpcExceptions.notFound("No recording files found for session: " + sessionId));
                 return;
@@ -138,7 +180,8 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                     sessionId,
                     recordingFiles,
                     new HashSet<>(request.getEventTypesList()),
-                    window, jeffreyDirs.temp());
+                    window, jeffreyDirs.temp(), scoped ? request.getWorkspaceId() : null,
+                    scoped ? request.getProjectId() : null);
 
             var callbacks = new StreamingCallbacks(
                     batch -> GrpcStreams.sendWithBackpressure(serverObserver, gate, batch),
@@ -149,6 +192,8 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
             GrpcStreams.unsubscribeOnDisconnect("replay", replaySubscription,
                     () -> replayStreamingManager.unsubscribe(replayId));
+        } catch (StatusRuntimeException e) {
+            observer.onError(e);
         } catch (IllegalArgumentException e) {
             observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
         } catch (Exception e) {

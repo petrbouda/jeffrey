@@ -26,10 +26,13 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.profile.mcp.McpOutputSchema;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -63,6 +66,9 @@ public class CompareMcpTools {
 
     /** Beyond this ratio the recordings are different enough that the reader should be told. */
     private static final double DURATION_NOTICE_RATIO = 1.25;
+
+    private static final String STEP_QUALITY =
+            "compare_quality with these profile ids reports stored sampling settings, sample-loss evidence and workload-volume limitations.";
 
     private static final String STEP_DRILL =
             "compare_flamegraph shows the call paths a movement travelled through - pass the same "
@@ -178,7 +184,7 @@ public class CompareMcpTools {
                 diffManager(baseline).rankedMovements(
                         params,
                         ToolArguments.boundedLimit(limit, DEFAULT_MOVEMENT_LIMIT, MAX_MOVEMENT_LIMIT)),
-                List.of(STEP_DRILL, STEP_RENAME),
+                List.of(STEP_QUALITY, STEP_DRILL, STEP_RENAME),
                 UiLinks.profile(primaryManager.info().id()));
     }
 
@@ -218,8 +224,19 @@ public class CompareMcpTools {
         return LinkedOutput.of(
                 diffManager(baseline).generateAiExport(
                         params, FlamegraphMcpTools.aiExportConfig(thresholdPct)),
-                List.of(STEP_WHOLE, STEP_RENAME),
+                List.of(STEP_QUALITY, STEP_WHOLE, STEP_RENAME),
                 UiLinks.profile(primaryManager.info().id()));
+    }
+
+    @Tool(description = "Assess recording evidence before interpreting a comparison: both identities and durations, "
+            + "event overlap, stored sampling-setting differences, reported CPU-time sample loss and observed server-event "
+            + "volumes. Whole-recording current-state snapshot, with bounded complete records and omission counts. "
+            + "Reports per-workload normalization unavailable when complete operation counts are not established.")
+    @McpOutputSchema(ComparisonQuality.OUTPUT_SCHEMA)
+    public McpToolResult quality(
+            @ToolParam(required = true, description = "Baseline profile id, as listed by profiles_list")
+            String baselineProfileId) {
+        return ComparisonQuality.result(primaryManager, baseline(baselineProfileId));
     }
 
     private ProfileManager baseline(String baselineProfileId) {
@@ -248,7 +265,7 @@ public class CompareMcpTools {
         Type type = FlamegraphMcpTools.requireEventType(eventType);
         return GraphParameters.builder()
                 .withEventType(type)
-                .withTimeRange(FlamegraphMcpTools.timeRange(primaryManager.info(), startMs, endMs))
+                .withTimeRange(comparisonWindow(startMs, endMs))
                 .withThreads(List.of())
                 // Per-thread mode splits the tree by thread name, and thread names differ between two
                 // runs (pool-1-thread-7 is not the same worker twice), so every branch would read as
@@ -262,6 +279,17 @@ public class CompareMcpTools {
                 .withGraphType(GraphType.DIFFERENTIAL)
                 .withGraphComponents(GraphComponents.FLAMEGRAPH_ONLY)
                 .build();
+    }
+
+    private static RelativeTimeRange comparisonWindow(Long startMs, Long endMs) {
+        if (startMs == null && endMs == null) {
+            return null;
+        }
+        long from = startMs == null ? 0L : startMs;
+        if (from < 0 || (endMs != null && endMs <= from)) {
+            throw new IllegalArgumentException("startMs must be non-negative and endMs greater than startMs");
+        }
+        return new RelativeTimeRange(Duration.ofMillis(from), endMs == null ? null : Duration.ofMillis(endMs));
     }
 
     /**

@@ -163,6 +163,24 @@ class CompareMcpToolsTest {
                 null);
     }
 
+    @Test
+    void omittedWindowDoesNotClipBaselineToPrimaryLength() {
+        when(diffManager.rankedMovements(any(), anyInt())).thenReturn(MOVEMENTS_MARKDOWN);
+        tools().movements(BASELINE_ID, CPU_EVENT, null, null, null, null, null, null);
+        verify(diffManager).rankedMovements(parametersCaptor.capture(), anyInt());
+        assertTrue(parametersCaptor.getValue().timeRange() == null,
+                "No explicit window must leave both recordings unfiltered");
+    }
+
+    @Test
+    void omittedEndKeepsEachRecordingsOwnEnd() {
+        when(diffManager.rankedMovements(any(), anyInt())).thenReturn(MOVEMENTS_MARKDOWN);
+        tools().movements(BASELINE_ID, CPU_EVENT, null, 10_000L, null, null, null, null);
+        verify(diffManager).rankedMovements(parametersCaptor.capture(), anyInt());
+        assertTrue(parametersCaptor.getValue().timeRange().end() == null,
+                "A start-only window must not clip the longer recording to the shorter recording's end");
+    }
+
     @Nested
     class ListComparability {
 

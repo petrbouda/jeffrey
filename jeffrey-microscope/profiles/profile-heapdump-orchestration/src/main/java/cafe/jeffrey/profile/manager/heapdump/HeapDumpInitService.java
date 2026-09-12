@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.profile.common.operation.OperationHandle;
 import cafe.jeffrey.profile.common.pipeline.PipelineRun;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
@@ -32,6 +33,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -74,13 +77,20 @@ public final class HeapDumpInitService {
     private static final int DUPLICATE_DATA_TOP_N = 50;
 
     private final PipelineRunRegistry<String> registry;
+    private final Clock clock;
+    private final Map<String, Preparation> preparations = new ConcurrentHashMap<>();
 
     public HeapDumpInitService(Clock clock) {
         if (clock == null) {
             throw new IllegalArgumentException("clock must not be null");
         }
+        this.clock = clock;
         this.registry = new PipelineRunRegistry<>(
                 HeapDumpStages.DEFINITION, PipelineRunOptions.unbounded(), clock);
+    }
+
+    public Clock clock() {
+        return clock;
     }
 
     /**
@@ -97,17 +107,7 @@ public final class HeapDumpInitService {
      */
     public boolean start(
             String profileId, HeapDumpManager manager, Boolean compressedOopsOverride, Runnable onFinished) {
-        return registry.start(new PipelineRunRequest<>(
-                profileId,
-                "",
-                run -> runPipeline(run, manager, compressedOopsOverride),
-                result -> {
-                    try {
-                        manager.storeInitPipelineResult(result);
-                    } finally {
-                        onFinished.run();
-                    }
-                }));
+        return startPreparation(profileId, manager, null, compressedOopsOverride, onFinished, true).started();
     }
 
     /** Live progress of the current (or last finished) run; idle when none exists. */
@@ -155,22 +155,45 @@ public final class HeapDumpInitService {
     public boolean startReport(
             String profileId, HeapDumpManager manager, String report, Boolean compressedOopsOverride,
             Runnable onFinished) {
-        if (!HeapDumpStages.REPORTS.contains(report)) {
-            throw new IllegalArgumentException(
-                    "Unknown report: " + report + ". Expected one of: "
-                            + String.join(", ", HeapDumpStages.REPORTS));
+        return startPreparation(profileId, manager, report, compressedOopsOverride, onFinished, true).started();
+    }
+
+    /** Returns the exact current attempt and the reports it really computes, including on joins. */
+    public synchronized Preparation startPreparation(
+            String profileId, HeapDumpManager manager, String report, Boolean compressedOopsOverride,
+            Runnable onFinished, boolean retryFailure) {
+        String selected = report == null || report.isBlank() ? null : report.trim();
+        if (selected != null && !HeapDumpStages.REPORTS.contains(selected)) {
+            throw new IllegalArgumentException("Unknown report: " + selected + ". Expected one of: "
+                    + String.join(", ", HeapDumpStages.REPORTS));
         }
-        return registry.start(new PipelineRunRequest<>(
-                profileId,
-                "",
-                run -> runSingleReport(run, manager, report, compressedOopsOverride),
-                result -> {
+        PipelineRunRegistry.StartResult result = registry.startOrJoin(new PipelineRunRequest<>(
+                profileId, "", run -> {
+                    if (selected == null) {
+                        runPipeline(run, manager, compressedOopsOverride);
+                    } else {
+                        runSingleReport(run, manager, selected, compressedOopsOverride);
+                    }
+                }, finished -> {
                     try {
-                        manager.storeInitPipelineResult(result);
+                        manager.storeInitPipelineResult(finished);
                     } finally {
                         onFinished.run();
                     }
-                }));
+                }), retryFailure);
+        if (result.started()) {
+            preparations.put(profileId, new Preparation(true, result.operation(),
+                    selected == null ? HeapDumpStages.REPORTS : List.of(selected)));
+        }
+        Preparation current = preparations.get(profileId);
+        return new Preparation(result.started(), result.operation(), current.reports());
+    }
+
+    public Optional<Preparation> operation(String profileId) {
+        return Optional.ofNullable(preparations.get(profileId));
+    }
+
+    public record Preparation(boolean started, OperationHandle<PipelineProgress> operation, List<String> reports) {
     }
 
     private static void runSingleReport(

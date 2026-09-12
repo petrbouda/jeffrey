@@ -51,8 +51,14 @@ public final class ProfileComparison {
             Duration baselineDuration,
             int limit) {
 
-        ComparisonScale scale = scaleOf(eventType, root, primaryDuration, baselineDuration);
-        return DiffgraphAnalyzer.analyze(eventType, root, scale, limit);
+        return report(eventType, root, primaryDuration, baselineDuration, limit, true);
+    }
+
+    public static ComparisonReport report(Type eventType, DiffFrame root, Duration primaryDuration,
+                                          Duration baselineDuration, int limit, boolean useWeight) {
+        WeightContext weight = WeightContext.of(eventType, useWeight);
+        ComparisonScale scale = scaleOf(weight, root, primaryDuration, baselineDuration);
+        return DiffgraphAnalyzer.analyze(eventType, root, scale, limit, weight);
     }
 
     /**
@@ -65,8 +71,13 @@ public final class ProfileComparison {
             Duration baselineDuration,
             int limit) {
 
+        return rankedMarkdown(eventType, root, primaryDuration, baselineDuration, limit, true);
+    }
+
+    public static String rankedMarkdown(Type eventType, DiffFrame root, Duration primaryDuration,
+                                        Duration baselineDuration, int limit, boolean useWeight) {
         return new ComparisonMarkdownBuilder(
-                report(eventType, root, primaryDuration, baselineDuration, limit)).build();
+                report(eventType, root, primaryDuration, baselineDuration, limit, useWeight)).build();
     }
 
     /**
@@ -79,8 +90,14 @@ public final class ProfileComparison {
             Duration baselineDuration,
             AiExportConfig config) {
 
-        ComparisonScale scale = scaleOf(eventType, root, primaryDuration, baselineDuration);
-        return new DiffgraphAiMarkdownBuilder(eventType, scale, config).build(root);
+        return treeMarkdown(eventType, root, primaryDuration, baselineDuration, config, true);
+    }
+
+    public static String treeMarkdown(Type eventType, DiffFrame root, Duration primaryDuration,
+                                      Duration baselineDuration, AiExportConfig config, boolean useWeight) {
+        WeightContext weight = WeightContext.of(eventType, useWeight);
+        ComparisonScale scale = scaleOf(weight, root, primaryDuration, baselineDuration);
+        return new DiffgraphAiMarkdownBuilder(eventType, scale, config, weight).build(root);
     }
 
     /**
@@ -89,11 +106,13 @@ public final class ProfileComparison {
      * applied, which a profile-wide event count would have ignored.
      */
     private static ComparisonScale scaleOf(
-            Type eventType, DiffFrame root, Duration primaryDuration, Duration baselineDuration) {
+            WeightContext weight, DiffFrame root, Duration primaryDuration, Duration baselineDuration) {
 
-        DiffMeasure measure = new DiffMeasure(WeightContext.of(eventType));
+        DiffMeasure measure = new DiffMeasure(weight);
         long primaryTotal = root == null ? 0L : measure.primary(root);
         long baselineTotal = root == null ? 0L : measure.baseline(root);
-        return new ComparisonScale(primaryDuration, baselineDuration, primaryTotal, baselineTotal);
+        DiffMeasure samples = new DiffMeasure(WeightContext.of(Type.EXECUTION_SAMPLE, false));
+        return new ComparisonScale(primaryDuration, baselineDuration, primaryTotal, baselineTotal,
+                root == null ? 0L : samples.primary(root), root == null ? 0L : samples.baseline(root));
     }
 }

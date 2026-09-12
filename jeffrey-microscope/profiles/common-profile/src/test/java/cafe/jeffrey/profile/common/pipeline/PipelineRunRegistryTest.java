@@ -180,8 +180,9 @@ class PipelineRunRegistryTest {
 
             assertTrue(registry.cancel("profile-1"));
 
+            // Cancellation becomes terminal only when the worker and its cleanup have ended.
+            await().atMost(5, SECONDS).until(() -> !registry.isRunning("profile-1"));
             assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
-            assertFalse(registry.isRunning("profile-1"));
             // The interrupt reaches the blocked work — no need to release the latch — and the
             // terminal result delivered to the caller is the cancellation, not a late completion.
             await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
@@ -190,8 +191,8 @@ class PipelineRunRegistryTest {
         }
 
         @Test
-        @DisplayName("stays cancelled even when the work ignores the interrupt and returns normally")
-        void zombieCompletionCannotOverturnCancellation() throws InterruptedException {
+        @DisplayName("preserves successful completion when the work ignores a cancellation request")
+        void successfulCompletionAfterACancellationRequestIsPreserved() throws InterruptedException {
             PipelineRunRegistry<String> registry = unbounded();
             CountDownLatch entered = new CountDownLatch(1);
             CountDownLatch cancelled = new CountDownLatch(1);
@@ -213,9 +214,9 @@ class PipelineRunRegistryTest {
             cancelled.countDown();
 
             await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
-            assertEquals(PipelineState.FAILED, stored.get().state(),
-                    "the first terminal transition (the cancel) must win");
-            assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
+            assertEquals(PipelineState.COMPLETED, stored.get().state(),
+                    "a request cannot erase a successful result produced by non-cooperative work");
+            assertEquals(PipelineState.COMPLETED, registry.progress("profile-1").state());
         }
 
         @Test

@@ -151,15 +151,15 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         <thead><tr><th>Preset</th><th>Families</th></tr></thead>
         <tbody>
           <tr><td><code>all</code></td><td>All families</td></tr>
-          <tr><td><code>jfr</code></td><td>profiles, recordings, jfr, flamegraph, jvm, compare</td></tr>
-          <tr><td><code>heap</code></td><td>profiles, recordings, heap</td></tr>
-          <tr><td><code>hub</code></td><td>profiles, recordings, hubs</td></tr>
+          <tr><td><code>jfr</code></td><td>profiles, recordings, jfr, flamegraph, jvm, compare, operations</td></tr>
+          <tr><td><code>heap</code></td><td>profiles, recordings, heap, operations</td></tr>
+          <tr><td><code>hub</code></td><td>profiles, recordings, hubs, operations</td></tr>
         </tbody>
       </table>
       <p>For a custom selection, set <code>families</code>. A nonempty list overrides the preset; the Hub and IDE switches still apply. Names use lowercase, and unknown preset or family names fail startup with an explanation.</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />
 
-      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>. Skills may route to families beyond a narrow preset; use <code>all</code> for unrestricted analysis workflows. Read <code>jeffrey://server</code> through <code>resources/read</code> to see the effective families, tool count, build version and supported protocol revisions.</p>
+      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>, <code>operations</code>. Skills may route to families beyond a narrow preset; use <code>all</code> for unrestricted analysis workflows. Read <code>jeffrey://server</code> through <code>resources/read</code> to see the effective families, tool count, build version and supported protocol revisions. The dynamic <code>jeffrey://diagnostics</code> resource adds readiness, bounded Hub probes and aggregate tool measurements. Include <code>operations</code> in a custom family selection to poll or cancel work started by its other enabled families.</p>
 
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>
