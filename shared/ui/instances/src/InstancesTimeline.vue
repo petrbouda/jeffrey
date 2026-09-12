@@ -99,6 +99,7 @@
               <Badge
                 key-label="Duration"
                 :value="FormattingService.formatDurationInMillis2Units(instance.duration)"
+                variant="violet"
                 size="xs"
               />
             </span>

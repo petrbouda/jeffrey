@@ -410,6 +410,17 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
   border: 1px solid var(--color-secondary-border);
 }
 
+/* Violet reads as a measured quantity rather than a timestamp — the key-value
+   base fill above wins over the plain .badge-violet rule, so it is restated here. */
+.badge.badge-key-value.badge-violet {
+  background: var(--color-violet-lightest-bg);
+  border: 1px solid var(--color-violet-border-medium);
+}
+
+.badge.badge-key-value.badge-violet .badge-value {
+  color: var(--color-violet-text);
+}
+
 /* Icon styling */
 .badge-icon {
   margin-right: 0.25rem;
