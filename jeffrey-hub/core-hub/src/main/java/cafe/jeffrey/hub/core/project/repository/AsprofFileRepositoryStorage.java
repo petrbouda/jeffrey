@@ -517,7 +517,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         // size they have; opening each file asks the server for the current one. A finished
         // session's writer has closed its files, so the listing is right and the open is spared.
         FileSizeReader sizeReader = recordingStatus == RecordingStatus.FINISHED
-                ? FileSizeReader.CACHED_ATTRIBUTES
+                ? FileSizeReader.FILE_ATTRIBUTES
                 : FileSizeReader.OPEN_HANDLE;
 
         List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(

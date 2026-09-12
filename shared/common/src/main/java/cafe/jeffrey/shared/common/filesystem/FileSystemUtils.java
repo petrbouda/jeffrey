@@ -141,11 +141,11 @@ public abstract class FileSystemUtils {
 
     /**
      * Size of a file for callers that do not know whether another process still writes it:
-     * the cached attributes, re-read through an open handle when they say the file is empty.
+     * the file's attributes, re-read through an open handle when they say the file is empty.
      * Callers that do know pick a {@link FileSizeReader} themselves.
      */
     public static long size(Path path) {
-        return FileSizeReader.CACHED_ATTRIBUTES.size(path);
+        return FileSizeReader.FILE_ATTRIBUTES.size(path);
     }
 
     /**

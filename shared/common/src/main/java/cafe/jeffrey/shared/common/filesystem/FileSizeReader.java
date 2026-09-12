@@ -42,15 +42,19 @@ import java.nio.file.StandardOpenOption;
  * attributes from it before the handle's own {@code fstat()} answers.
  *
  * <p>{@link #OPEN_HANDLE} is for files that another process may still be writing, where the
- * listing cannot be trusted at all; {@link #CACHED_ATTRIBUTES} is for files whose writer has
+ * listing cannot be trusted at all; {@link #FILE_ATTRIBUTES} is for files whose writer has
  * closed them, where the listing is right and the open would only cost a round trip. It still
  * distrusts a zero, since an empty file is rare and the re-read is cheap. Neither can see
  * further than the writer's last flush — that lag belongs to the writer's own mount.
+ *
+ * <p>Both readers are stateless: the constants exist so a caller need not allocate one per
+ * session, and nothing — no size, no path, no handle — is kept between calls. The only cache
+ * in the picture is the kernel's, which the hub cannot switch off from Java.
  */
 public interface FileSizeReader {
 
     FileSizeReader OPEN_HANDLE = new OpenHandle();
-    FileSizeReader CACHED_ATTRIBUTES = new CachedAttributes(OPEN_HANDLE);
+    FileSizeReader FILE_ATTRIBUTES = new FileAttributes(OPEN_HANDLE);
 
     /**
      * @throws RuntimeException when the file cannot be read, wrapping the {@link IOException}
@@ -74,12 +78,13 @@ public interface FileSizeReader {
     }
 
     /**
-     * Reads the cached attributes and trusts them unless they say the file is empty, in which
-     * case the given reader gets the last word.
+     * Reads the file's attributes as {@code stat()} reports them — on a network mount, the
+     * kernel's cached copy — and trusts them unless they say the file is empty, in which case
+     * the given reader gets the last word.
      */
-    record CachedAttributes(FileSizeReader onZero) implements FileSizeReader {
+    record FileAttributes(FileSizeReader onZero) implements FileSizeReader {
 
-        private static final Logger LOG = LoggerFactory.getLogger(CachedAttributes.class);
+        private static final Logger LOG = LoggerFactory.getLogger(FileAttributes.class);
 
         @Override
         public long size(Path path) {
@@ -94,7 +99,7 @@ public interface FileSizeReader {
             }
             long reReadSize = onZero.size(path);
             if (reReadSize != 0) {
-                LOG.debug("File size re-read after the cached attribute said empty: path={} size={}", path, reReadSize);
+                LOG.debug("File size re-read after the file attributes said empty: path={} size={}", path, reReadSize);
             }
             return reReadSize;
         }

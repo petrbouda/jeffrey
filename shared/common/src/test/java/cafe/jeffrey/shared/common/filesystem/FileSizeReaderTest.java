@@ -63,13 +63,13 @@ class FileSizeReaderTest {
     }
 
     @Nested
-    class CachedAttributes {
+    class FileAttributes {
 
         @Test
         void trustsANonZeroAttributeWithoutReReading() throws IOException {
             Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
             List<Path> reReads = new ArrayList<>();
-            FileSizeReader reader = new FileSizeReader.CachedAttributes(path -> {
+            FileSizeReader reader = new FileSizeReader.FileAttributes(path -> {
                 reReads.add(path);
                 return -1L;
             });
@@ -81,7 +81,7 @@ class FileSizeReaderTest {
         @Test
         void reReadsAZeroThroughTheGivenReader() throws IOException {
             Path file = Files.createFile(dir.resolve("profile-20260912-055901.jfr"));
-            FileSizeReader reader = new FileSizeReader.CachedAttributes(_ -> 70_399L);
+            FileSizeReader reader = new FileSizeReader.FileAttributes(_ -> 70_399L);
 
             assertEquals(70_399L, reader.size(file));
         }
@@ -90,13 +90,13 @@ class FileSizeReaderTest {
         void reportsZeroWhenBothAgreeTheFileIsEmpty() throws IOException {
             Path file = Files.createFile(dir.resolve("profile-20260912-055901.jfr"));
 
-            assertEquals(0L, FileSizeReader.CACHED_ATTRIBUTES.size(file));
+            assertEquals(0L, FileSizeReader.FILE_ATTRIBUTES.size(file));
         }
 
         @Test
         void failsForAMissingFile() {
             assertThrows(RuntimeException.class,
-                    () -> FileSizeReader.CACHED_ATTRIBUTES.size(dir.resolve("missing")));
+                    () -> FileSizeReader.FILE_ATTRIBUTES.size(dir.resolve("missing")));
         }
     }
 }
