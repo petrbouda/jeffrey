@@ -30,6 +30,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Builds what a heap dump has to have before it can be asked anything.
@@ -65,8 +66,16 @@ public class HeapComputeMcpTools {
 
     private final ProfileManager profileManager;
     private final HeapDumpInitService initService;
+    private final Supplier<? extends AutoCloseable> backgroundLease;
 
     public HeapComputeMcpTools(ProfileManager profileManager, HeapDumpInitService initService) {
+        this(profileManager, initService, () -> () -> {});
+    }
+
+    public HeapComputeMcpTools(
+            ProfileManager profileManager, HeapDumpInitService initService,
+            Supplier<? extends AutoCloseable> backgroundLease) {
+        this.backgroundLease = backgroundLease;
         this.profileManager = profileManager;
         this.initService = initService;
     }
@@ -89,9 +98,18 @@ public class HeapComputeMcpTools {
 
         HeapDumpManager heapDumpManager = requireHeapDump();
         String profileId = profileManager.info().id();
-        boolean started = report == null || report.isBlank()
-                ? initService.start(profileId, heapDumpManager, null)
-                : initService.startReport(profileId, heapDumpManager, report.trim(), null);
+        AutoCloseable lease = backgroundLease.get();
+        boolean started = false;
+        try {
+            started = report == null || report.isBlank()
+                    ? initService.start(profileId, heapDumpManager, null, () -> release(lease))
+                    : initService.startReport(profileId, heapDumpManager, report.trim(), null, () -> release(lease));
+        } finally {
+            // A joined or rejected request handed no work to the service, so it still owns its lease.
+            if (!started) {
+                release(lease);
+            }
+        }
 
         return LinkedOutput.json(new PrepareResult(
                 started,
@@ -99,6 +117,14 @@ public class HeapComputeMcpTools {
                 stages(initService.progress(profileId)),
                 nextSteps(started),
                 UiLinks.view(profileId, HEAP_VIEW)));
+    }
+
+    private static void release(AutoCloseable lease) {
+        try {
+            lease.close();
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot release the heap preparation lease", e);
+        }
     }
 
     /*

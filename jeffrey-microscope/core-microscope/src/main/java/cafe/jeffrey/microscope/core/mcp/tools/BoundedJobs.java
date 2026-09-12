@@ -26,9 +26,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -61,7 +63,7 @@ public class BoundedJobs<K, V> {
      */
     public static final Duration WAIT_BUDGET = Duration.ofSeconds(45);
 
-    private final Map<K, CompletableFuture<V>> inFlight = new ConcurrentHashMap<>();
+    private final Map<K, JobState<V>> jobs = new ConcurrentHashMap<>();
     private final Duration budget;
 
     public BoundedJobs() {
@@ -69,9 +71,7 @@ public class BoundedJobs<K, V> {
     }
 
     public BoundedJobs(Duration budget) {
-        if (budget == null || budget.isNegative() || budget.isZero()) {
-            throw new IllegalArgumentException("budget must be positive: budget=" + budget);
-        }
+        validateBudget(budget);
         this.budget = budget;
     }
 
@@ -81,27 +81,56 @@ public class BoundedJobs<K, V> {
      * @return the result when it finished in time, empty when it is still running
      */
     public Optional<V> runWithin(K key, Supplier<V> work) {
-        boolean[] started = {false};
-        CompletableFuture<V> job = inFlight.computeIfAbsent(key, id -> {
-            started[0] = true;
-            LOG.debug("Starting a bounded MCP job: key={}", id);
-            return CompletableFuture.supplyAsync(work, Schedulers.sharedVirtual());
-        });
+        return runWithin(key, budget, work);
+    }
 
-        // Registered outside computeIfAbsent, and only by whoever started the job. Work that finishes
-        // before this line runs the callback on this thread, and removing from the map inside the
-        // mapping function is a recursive update the map refuses.
-        if (started[0]) {
-            job.whenComplete((result, error) -> {
-                inFlight.remove(key, job);
-                if (error != null) {
-                    LOG.warn("A bounded MCP job failed: key={} message={}", key, error.getMessage());
-                }
-            });
+    /**
+     * The same keyed job with a budget chosen by this call. A caller that has already spent part of
+     * its response deadline uses this overload to wait only for what remains.
+     */
+    public Optional<V> runWithin(K key, Duration waitBudget, Supplier<V> work) {
+        return runWithin(key, waitBudget, true, work);
+    }
+
+    /**
+     * Runs or joins a keyed job while deciding atomically whether a retained failure is an explicit
+     * retry. This closes the gap between a caller inspecting {@link #outcome(Object)} and starting:
+     * the active attempt may fail in between, and {@code false} must still report that failure rather
+     * than silently starting its supplier again.
+     */
+    public Optional<V> runWithin(
+            K key, Duration waitBudget, boolean retryFailure, Supplier<V> work) {
+        validateBudget(waitBudget);
+
+        AtomicBoolean started = new AtomicBoolean();
+        JobState<V> selected = jobs.compute(key, (id, existing) -> {
+            if (existing instanceof Active<?>) {
+                return existing;
+            }
+            if (existing instanceof Finished<V> finished
+                    && finished.outcome().failure() != null
+                    && !retryFailure) {
+                return existing;
+            }
+            started.set(true);
+            LOG.debug("Starting a bounded MCP job: key={}", id);
+            return new Active<>(CompletableFuture.supplyAsync(work, Schedulers.sharedVirtual()));
+        });
+        if (selected instanceof Finished<V> finished) {
+            throw finished.outcome().failure();
+        }
+        Active<V> active = asActive(selected);
+
+        // Registered outside compute(), and only by whoever started this attempt. A future may have
+        // finished before this line; whenComplete then runs synchronously and still replaces this
+        // exact Active value. replace() prevents an older completion from overwriting a retry.
+        if (started.get()) {
+            active.future().whenComplete((result, error) -> finish(key, active, result, error));
         }
 
         try {
-            V result = job.get(budget.toMillis(), TimeUnit.MILLISECONDS);
+            V result = active.future().get(waitBudget.toMillis(), TimeUnit.MILLISECONDS);
+            finish(key, active, result, null);
             if (result == null) {
                 // Empty already means "still running", so a null result cannot be reported as one.
                 // Nothing here supplies null today; saying so is what keeps a future one from being
@@ -113,6 +142,7 @@ public class BoundedJobs<K, V> {
             // Not a failure: the work carries on and the caller is told how to follow it.
             return Optional.empty();
         } catch (ExecutionException e) {
+            finish(key, active, null, e.getCause());
             throw asRuntime(e.getCause());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -124,8 +154,58 @@ public class BoundedJobs<K, V> {
      * Whether work started here is still running for this key.
      */
     public boolean isRunning(K key) {
-        CompletableFuture<V> job = inFlight.get(key);
-        return job != null && !job.isDone();
+        return jobs.get(key) instanceof Active<?>;
+    }
+
+    /**
+     * The last terminal outcome for this key. Reading it does not consume it, so status polling can
+     * repeat the same late failure. A new explicit {@link #runWithin} call atomically replaces it with
+     * an active attempt before starting new work.
+     */
+    public Optional<Outcome<V>> outcome(K key) {
+        JobState<V> state = jobs.get(key);
+        if (state instanceof Finished<V> finished) {
+            return Optional.of(finished.outcome());
+        }
+        return Optional.empty();
+    }
+
+    private static void validateBudget(Duration budget) {
+        if (budget == null || budget.isNegative() || budget.isZero()) {
+            throw new IllegalArgumentException("budget must be positive: budget=" + budget);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <V> Active<V> asActive(JobState<V> state) {
+        return (Active<V>) state;
+    }
+
+    private static <K, V> Outcome<V> outcomeOf(K key, V result, Throwable error) {
+        if (error != null) {
+            return new Outcome<>(null, asRuntime(unwrap(error)));
+        }
+        if (result == null) {
+            return new Outcome<>(null,
+                    new IllegalStateException("A bounded MCP job returned no result: key=" + key));
+        }
+        return new Outcome<>(result, null);
+    }
+
+    private void finish(K key, Active<V> active, V result, Throwable error) {
+        Outcome<V> outcome = outcomeOf(key, result, error);
+        boolean published = jobs.replace(key, active, new Finished<>(outcome));
+        if (published && outcome.failure() != null) {
+            LOG.warn("A bounded MCP job failed: key={} message={}",
+                    key, outcome.failure().getMessage());
+        }
+    }
+
+    private static Throwable unwrap(Throwable error) {
+        if (error instanceof CompletionException completion && completion.getCause() != null) {
+            return completion.getCause();
+        }
+        return error;
     }
 
     /**
@@ -143,5 +223,24 @@ public class BoundedJobs<K, V> {
             return new IllegalStateException("A bounded MCP job failed without reporting a cause");
         }
         return new IllegalStateException(cause.getMessage(), cause);
+    }
+
+    private sealed interface JobState<V> permits Active, Finished {
+    }
+
+    private record Active<V>(CompletableFuture<V> future) implements JobState<V> {
+    }
+
+    private record Finished<V>(Outcome<V> outcome) implements JobState<V> {
+    }
+
+    /** Exactly one of {@code value} and {@code failure} is present. */
+    public record Outcome<V>(V value, RuntimeException failure) {
+
+        public Outcome {
+            if ((value == null) == (failure == null)) {
+                throw new IllegalArgumentException("An outcome must contain either a value or a failure");
+            }
+        }
     }
 }

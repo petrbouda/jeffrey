@@ -32,9 +32,13 @@ import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.mcp.ToolDispatchException;
+import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
@@ -47,6 +51,8 @@ import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import io.grpc.Context;
+import io.grpc.Status;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -58,6 +64,13 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -68,6 +81,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -121,8 +135,11 @@ class HubsMcpToolsTest {
         HubManager hub = mock(HubManager.class);
         when(hub.info()).thenReturn(hubInfo(hubId, hubName));
         when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("2.1.0", 1)));
-        when(hub.workspaces()).thenReturn(List.of(new WorkspaceInfo(
-                WORKSPACE_ID, "ref", "repo", "default", null, null, NOW, WorkspaceStatus.AVAILABLE, 1)));
+        when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("2.1.0", 1));
+        WorkspaceInfo workspace = new WorkspaceInfo(
+                WORKSPACE_ID, "ref", "repo", "default", null, null, NOW, WorkspaceStatus.AVAILABLE, 1);
+        when(hub.workspaces()).thenReturn(List.of(workspace));
+        when(hub.workspacesOrThrow()).thenReturn(List.of(workspace));
 
         ProjectManager project = mock(ProjectManager.class);
         when(project.info()).thenReturn(new ProjectInfo(
@@ -131,10 +148,12 @@ class HubsMcpToolsTest {
 
         ProjectsManager projects = mock(ProjectsManager.class);
         when(projects.findAll()).thenReturn(List.of(project));
+        when(projects.findAllOrThrow()).thenReturn(List.of(project));
 
         WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
         when(workspaceManager.projectsManager()).thenReturn(projects);
         when(hub.workspace(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+        when(hub.workspace(workspace)).thenReturn(workspaceManager);
         return hub;
     }
 
@@ -151,6 +170,13 @@ class HubsMcpToolsTest {
                 new RecordingTag("origin.workspaceId", ref.workspaceId()),
                 new RecordingTag("origin.projectId", ref.projectId()),
                 new RecordingTag("origin.recordingId", ref.sessionId()))));
+        if (profileId != null) {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.enabled()).thenReturn(true);
+            ProfileManager profileManager = mock(ProfileManager.class);
+            when(profileManager.info()).thenReturn(profileInfo);
+            when(recordingsManager.profile(profileId)).thenReturn(Optional.of(profileManager));
+        }
     }
 
     @Nested
@@ -243,6 +269,8 @@ class HubsMcpToolsTest {
             HubManager down = mock(HubManager.class);
             when(down.info()).thenReturn(hubInfo("cfg-down", "production"));
             when(down.tryInfo()).thenReturn(Optional.empty());
+            when(down.infoOrThrow())
+                    .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
             HubManager up = reachableHub(
                     "cfg-up", "staging", "search", repositoryWith(jfrSession(SESSION_ID, NOW)));
             when(hubsManager.findAll()).thenReturn(List.of(down, up));
@@ -260,6 +288,8 @@ class HubsMcpToolsTest {
             HubManager down = mock(HubManager.class);
             when(down.info()).thenReturn(hubInfo("cfg-down", "production"));
             when(down.tryInfo()).thenReturn(Optional.empty());
+            when(down.infoOrThrow())
+                    .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
             when(hubsManager.findAll()).thenReturn(List.of(down));
             noLocalRecordings();
 
@@ -383,12 +413,27 @@ class HubsMcpToolsTest {
         }
 
         private void resolvesTo(ProjectManager project) {
+            resolvesTo(REF, project);
+        }
+
+        private void resolvesTo(HubSessionRef ref, ProjectManager project) {
             HubManager hub = mock(HubManager.class);
-            when(hub.info()).thenReturn(hubInfo(HUB_ID, "production"));
-            when(resolver.resolveHub(HUB_ID)).thenReturn(hub);
-            when(resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID)).thenReturn(
+            when(hub.info()).thenReturn(hubInfo(ref.hubId(), "production"));
+            when(resolver.resolveHub(ref.hubId())).thenReturn(hub);
+            when(resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())).thenReturn(
                     new ProjectManagerResolver.ProjectContext(
                             mock(WorkspaceManager.class), mock(ProjectsManager.class), project));
+        }
+
+        private HubsMcpTools toolsWithBudget(Duration responseBudget) {
+            return new HubsMcpTools(
+                    hubsManager,
+                    resolver,
+                    recordingsManager,
+                    CLOCK,
+                    Duration.ofSeconds(1),
+                    responseBudget,
+                    Duration.ofSeconds(5));
         }
 
         @Test
@@ -498,6 +543,260 @@ class HubsMcpToolsTest {
 
             assertTrue(e.getMessage().contains("no finished recording file"), e.getMessage());
             verify(downloads, never()).mergeAndDownloadSession(any());
+        }
+
+        @Test
+        void sameSessionIdOnDifferentHubCoordinatesStartsIndependentTransfers() throws Exception {
+            HubSessionRef otherRef = new HubSessionRef("cfg-staging", "ws-2", "proj-2", SESSION_ID);
+            CountDownLatch started = new CountDownLatch(2);
+            CountDownLatch release = new CountDownLatch(1);
+
+            RecordingsDownloadManager first = blockingDownload("rec-first", started, release);
+            RecordingsDownloadManager second = blockingDownload("rec-second", started, release);
+            resolvesTo(REF, projectWith(jfrSession(SESSION_ID, NOW), first));
+            resolvesTo(otherRef, projectWith(jfrSession(SESSION_ID, NOW), second));
+            noLocalRecordings();
+
+            HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(200));
+            try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
+                Future<String> firstCall = callers.submit(() -> shortBudgetTools.download(REF.encode()));
+                Future<String> secondCall = callers.submit(() -> shortBudgetTools.download(otherRef.encode()));
+
+                boolean bothStarted;
+                try {
+                    bothStarted = started.await(1, TimeUnit.SECONDS);
+                } finally {
+                    release.countDown();
+                }
+
+                firstCall.get(2, TimeUnit.SECONDS);
+                secondCall.get(2, TimeUnit.SECONDS);
+                assertTrue(bothStarted, "transfers sharing only sessionId must not join");
+            }
+        }
+
+        @Test
+        void concurrentCallsWithTheSameFullRefJoinOneTransfer() throws Exception {
+            CountDownLatch preflights = new CountDownLatch(2);
+            CountDownLatch transferStarted = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            AtomicInteger transfers = new AtomicInteger();
+
+            RepositoryManager repository = mock(RepositoryManager.class);
+            when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
+                preflights.countDown();
+                return jfrSession(SESSION_ID, NOW);
+            });
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+                transfers.incrementAndGet();
+                transferStarted.countDown();
+                release.await(2, TimeUnit.SECONDS);
+                return "rec-new";
+            });
+            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
+            when(project.repositoryManager()).thenReturn(repository);
+            resolvesTo(project);
+            noLocalRecordings();
+
+            HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofSeconds(1));
+            try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
+                Future<String> firstCall = callers.submit(() -> shortBudgetTools.download(REF.encode()));
+                Future<String> secondCall = callers.submit(() -> shortBudgetTools.download(REF.encode()));
+
+                assertTrue(preflights.await(1, TimeUnit.SECONDS));
+                assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
+                release.countDown();
+
+                assertTrue(firstCall.get(2, TimeUnit.SECONDS).contains("rec-new"));
+                assertTrue(secondCall.get(2, TimeUnit.SECONDS).contains("rec-new"));
+                assertEquals(1, transfers.get());
+            } finally {
+                release.countDown();
+            }
+        }
+
+        @Test
+        void failedTransferCanBeRetriedWithTheSameFullRef() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID))
+                    .thenThrow(new IllegalStateException("connection lost"))
+                    .thenReturn("rec-retried");
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
+            noLocalRecordings();
+
+            assertThrows(IllegalStateException.class, () -> tools.download(REF.encode()));
+
+            assertThrows(IllegalStateException.class, () -> tools.download(REF.encode()));
+            assertTrue(tools.download(REF.encode(), true).contains("rec-retried"));
+        }
+
+        @Test
+        void lateFailureIsRetainedAcrossPollsUntilRetryIsExplicit() throws Exception {
+            CountDownLatch transferStarted = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            CountDownLatch failed = new CountDownLatch(1);
+            AtomicInteger attempts = new AtomicInteger();
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+                int attempt = attempts.incrementAndGet();
+                if (attempt == 1) {
+                    transferStarted.countDown();
+                    release.await(1, TimeUnit.SECONDS);
+                    failed.countDown();
+                    throw new IllegalStateException("late connection loss");
+                }
+                return "rec-retried";
+            });
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
+            noLocalRecordings();
+            HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
+
+            String first = shortBudgetTools.download(REF.encode());
+            assertTrue(first.contains("still running"), first);
+            assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
+            release.countDown();
+            assertTrue(failed.await(1, TimeUnit.SECONDS));
+
+            assertThrows(IllegalStateException.class, () -> shortBudgetTools.download(REF.encode()));
+            assertThrows(IllegalStateException.class, () -> shortBudgetTools.download(REF.encode()));
+            verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+
+            assertTrue(shortBudgetTools.download(REF.encode(), true).contains("rec-retried"));
+            verify(downloads, times(2)).mergeAndDownloadSession(SESSION_ID);
+        }
+
+        @Test
+        void refetchesACompletedSessionWhenItsRetainedRecordingWasDeleted() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID))
+                    .thenReturn("rec-deleted")
+                    .thenReturn("rec-refetched");
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
+            noLocalRecordings();
+            when(recordingsManager.findRecording("rec-deleted")).thenReturn(Optional.empty());
+
+            assertTrue(tools.download(REF.encode()).contains("rec-deleted"));
+            assertTrue(tools.download(REF.encode()).contains("rec-refetched"));
+
+            verify(downloads, times(2)).mergeAndDownloadSession(SESSION_ID);
+        }
+
+        @Test
+        void failureDuringAPollPreflightDoesNotSilentlyRestartTheTransfer() throws Exception {
+            CountDownLatch transferStarted = new CountDownLatch(1);
+            CountDownLatch releaseTransfer = new CountDownLatch(1);
+            CountDownLatch failurePublished = new CountDownLatch(1);
+            CountDownLatch secondPreflight = new CountDownLatch(1);
+            CountDownLatch releasePreflight = new CountDownLatch(1);
+            AtomicInteger preflightCalls = new AtomicInteger();
+
+            RepositoryManager repository = mock(RepositoryManager.class);
+            when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
+                if (preflightCalls.incrementAndGet() == 2) {
+                    secondPreflight.countDown();
+                    releasePreflight.await(2, TimeUnit.SECONDS);
+                }
+                return jfrSession(SESSION_ID, NOW);
+            });
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+                transferStarted.countDown();
+                releaseTransfer.await(2, TimeUnit.SECONDS);
+                throw new PublishedFailure(failurePublished);
+            });
+            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
+            when(project.repositoryManager()).thenReturn(repository);
+            resolvesTo(project);
+            noLocalRecordings();
+            HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
+
+            assertTrue(shortBudgetTools.download(REF.encode()).contains("still running"));
+            assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
+            try (ExecutorService callers = Executors.newSingleThreadExecutor()) {
+                Future<String> poll = callers.submit(() -> shortBudgetTools.download(REF.encode()));
+                assertTrue(secondPreflight.await(1, TimeUnit.SECONDS));
+                releaseTransfer.countDown();
+                assertTrue(failurePublished.await(1, TimeUnit.SECONDS));
+                releasePreflight.countDown();
+
+                assertThrows(ExecutionException.class,
+                        () -> poll.get(1, TimeUnit.SECONDS));
+                verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+            } finally {
+                releaseTransfer.countDown();
+                releasePreflight.countDown();
+            }
+        }
+
+        @Test
+        void preflightDeadlineCancelsTheRpcAndPreservesDeadlineStatus() throws Exception {
+            CountDownLatch cancelled = new CountDownLatch(1);
+            RepositoryManager repository = mock(RepositoryManager.class);
+            when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
+                Context.current().addListener(_ -> cancelled.countDown(), Runnable::run);
+                cancelled.await(1, TimeUnit.SECONDS);
+                throw Status.DEADLINE_EXCEEDED
+                        .withDescription("download preflight deadline elapsed")
+                        .asRuntimeException();
+            });
+            ProjectManager project = mock(ProjectManager.class);
+            when(project.repositoryManager()).thenReturn(repository);
+            resolvesTo(project);
+            noLocalRecordings();
+
+            JeffreyException exception = assertThrows(JeffreyException.class,
+                    () -> toolsWithBudget(Duration.ofMillis(50)).download(REF.encode()));
+
+            assertEquals(ErrorCode.HUB_UNAVAILABLE, exception.getCode());
+            assertTrue(exception.getMessage().contains("DEADLINE_EXCEEDED"), exception.getMessage());
+            assertTrue(cancelled.await(1, TimeUnit.SECONDS));
+        }
+
+        @Test
+        void unavailableProjectLookupIsNotReportedAsAStaleRef() {
+            noLocalRecordings();
+            HubManager hub = mock(HubManager.class);
+            when(hub.info()).thenReturn(hubInfo(HUB_ID, "production"));
+            when(resolver.resolveHub(HUB_ID)).thenReturn(hub);
+            when(resolver.resolveStrict(HUB_ID, WORKSPACE_ID, PROJECT_ID))
+                    .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
+
+            JeffreyException exception = assertThrows(
+                    JeffreyException.class, () -> tools.download(REF.encode()));
+
+            assertEquals(ErrorCode.HUB_UNAVAILABLE, exception.getCode());
+            assertTrue(exception.getMessage().contains("UNAVAILABLE"), exception.getMessage());
+        }
+
+        private RecordingsDownloadManager blockingDownload(
+                String recordingId,
+                CountDownLatch started,
+                CountDownLatch release) {
+
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+                started.countDown();
+                release.await(2, TimeUnit.SECONDS);
+                return recordingId;
+            });
+            return downloads;
+        }
+
+        private static final class PublishedFailure extends IllegalStateException {
+
+            private final CountDownLatch published;
+
+            private PublishedFailure(CountDownLatch published) {
+                super("late connection loss");
+                this.published = published;
+            }
+
+            @Override
+            public String getMessage() {
+                published.countDown();
+                return super.getMessage();
+            }
         }
     }
 }

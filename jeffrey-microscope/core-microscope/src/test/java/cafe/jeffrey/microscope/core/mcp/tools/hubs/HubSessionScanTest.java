@@ -35,6 +35,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import io.grpc.Status;
+import io.grpc.Context;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -44,6 +45,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,7 +91,10 @@ class HubSessionScanTest {
         HubManager hub = mock(HubManager.class);
         when(hub.info()).thenReturn(hubInfo(hubId, hubName));
         when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("1.0", 1)));
-        when(hub.workspaces()).thenReturn(List.of(workspace("ws-1", "default")));
+        when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+        WorkspaceInfo workspace = workspace("ws-1", "default");
+        when(hub.workspaces()).thenReturn(List.of(workspace));
+        when(hub.workspacesOrThrow()).thenReturn(List.of(workspace));
 
         ProjectManager project = mock(ProjectManager.class);
         when(project.info()).thenReturn(projectInfo("proj-1", projectName));
@@ -96,10 +102,12 @@ class HubSessionScanTest {
 
         ProjectsManager projects = mock(ProjectsManager.class);
         when(projects.findAll()).thenReturn(List.of(project));
+        when(projects.findAllOrThrow()).thenReturn(List.of(project));
 
         WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
         when(workspaceManager.projectsManager()).thenReturn(projects);
         when(hub.workspace("ws-1")).thenReturn(Optional.of(workspaceManager));
+        when(hub.workspace(workspace)).thenReturn(workspaceManager);
         return hub;
     }
 
@@ -186,6 +194,8 @@ class HubSessionScanTest {
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo(hubId, hubName));
             when(hub.tryInfo()).thenReturn(Optional.empty());
+            when(hub.infoOrThrow())
+                    .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
             return hub;
         }
 
@@ -224,7 +234,7 @@ class HubSessionScanTest {
             scan.scan(HubScanFilter.ALL, 0);
 
             // workspaces() would return an empty list rather than failing, so the saving is real.
-            verify(hub, never()).workspaces();
+            verify(hub, never()).workspacesOrThrow();
         }
 
         @Test
@@ -254,6 +264,138 @@ class HubSessionScanTest {
 
             String reason = result.failures().getFirst().reason();
             assertTrue(reason.contains("project is gone"), reason);
+        }
+
+        @Test
+        void reportsADeadlineAsADeadlineRatherThanAnUnreachableHub() {
+            RepositoryManager failing = mock(RepositoryManager.class);
+            when(failing.listRecordingSessions(anyBoolean(), any()))
+                    .thenThrow(Status.DEADLINE_EXCEEDED.withDescription("scan budget elapsed").asRuntimeException());
+            HubManager production = reachableHub("h-1", "production", "checkout", failing);
+            when(hubsManager.findAll()).thenReturn(List.of(production));
+
+            HubSessionScan.Result result = scan.scan(HubScanFilter.ALL, 0);
+
+            String reason = result.failures().getFirst().reason();
+            assertTrue(reason.contains("deadline"), reason);
+        }
+
+        @Test
+        void keepsCompletedProjectRowsAndCancelsAnOverdueProjectRpc() throws Exception {
+            CountDownLatch cancelled = new CountDownLatch(1);
+
+            RepositoryManager fastRepository = repositoryWith(session("fast-session", NOW));
+            RepositoryManager slowRepository = mock(RepositoryManager.class);
+            when(slowRepository.listRecordingSessions(anyBoolean(), any())).thenAnswer(_ -> {
+                Context.current().addListener(_ -> cancelled.countDown(), Runnable::run);
+                cancelled.await(5, TimeUnit.SECONDS);
+                throw Status.CANCELLED.withDescription("scan cancelled").asRuntimeException();
+            });
+
+            ProjectManager fastProject = project("fast-project", "fast", fastRepository);
+            ProjectManager slowProject = project("slow-project", "slow", slowRepository);
+            HubManager hub = hubWithProjects(fastProject, slowProject);
+            when(hubsManager.findAll()).thenReturn(List.of(hub));
+
+            HubSessionScan.Result result =
+                    new HubSessionScan(hubsManager, Duration.ofMillis(100)).scan(HubScanFilter.ALL, 0);
+
+            assertEquals(List.of("fast-session"),
+                    result.rows().stream().map(row -> row.session().id()).toList());
+            assertTrue(result.failures().stream()
+                    .anyMatch(failure -> failure.scope().contains("slow")), result.failures().toString());
+            assertTrue(cancelled.await(1, TimeUnit.SECONDS));
+        }
+
+        @Test
+        void fastHubReachesSessionsWhileAnotherHubProbeIsStillStalled() throws Exception {
+            CountDownLatch cancelled = new CountDownLatch(1);
+            HubManager fast = reachableHub(
+                    "h-fast", "staging", "search", repositoryWith(session("fast-session", NOW)));
+            HubManager stalled = mock(HubManager.class);
+            when(stalled.info()).thenReturn(hubInfo("h-stalled", "production"));
+            when(stalled.infoOrThrow()).thenAnswer(_ -> {
+                awaitCancellation(cancelled);
+                throw Status.CANCELLED.withDescription("probe cancelled").asRuntimeException();
+            });
+            when(hubsManager.findAll()).thenReturn(List.of(stalled, fast));
+
+            HubSessionScan.Result result =
+                    new HubSessionScan(hubsManager, Duration.ofMillis(150)).scan(HubScanFilter.ALL, 0);
+
+            assertEquals(List.of("fast-session"),
+                    result.rows().stream().map(row -> row.session().id()).toList());
+            assertTrue(result.failures().stream()
+                    .anyMatch(failure -> failure.scope().equals("production")), result.failures().toString());
+            assertTrue(cancelled.await(1, TimeUnit.SECONDS));
+        }
+
+        @Test
+        void fastWorkspaceReachesSessionsWhileAnotherWorkspaceProjectListIsStalled() throws Exception {
+            CountDownLatch cancelled = new CountDownLatch(1);
+            WorkspaceInfo fastWorkspace = workspace("ws-fast", "fast-workspace");
+            WorkspaceInfo stalledWorkspace = workspace("ws-stalled", "stalled-workspace");
+
+            ProjectsManager fastProjects = mock(ProjectsManager.class);
+            RepositoryManager fastRepository = repositoryWith(session("fast-session", NOW));
+            ProjectManager fastProject = project("fast-project", "fast-project", fastRepository);
+            when(fastProjects.findAllOrThrow()).thenReturn(List.of(fastProject));
+            WorkspaceManager fastManager = mock(WorkspaceManager.class);
+            when(fastManager.projectsManager()).thenReturn(fastProjects);
+
+            ProjectsManager stalledProjects = mock(ProjectsManager.class);
+            when(stalledProjects.findAllOrThrow()).thenAnswer(_ -> {
+                awaitCancellation(cancelled);
+                throw Status.CANCELLED.withDescription("project listing cancelled").asRuntimeException();
+            });
+            WorkspaceManager stalledManager = mock(WorkspaceManager.class);
+            when(stalledManager.projectsManager()).thenReturn(stalledProjects);
+
+            HubManager hub = mock(HubManager.class);
+            when(hub.info()).thenReturn(hubInfo("h-1", "production"));
+            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+            when(hub.workspacesOrThrow()).thenReturn(List.of(fastWorkspace, stalledWorkspace));
+            when(hub.workspace(fastWorkspace)).thenReturn(fastManager);
+            when(hub.workspace(stalledWorkspace)).thenReturn(stalledManager);
+            when(hubsManager.findAll()).thenReturn(List.of(hub));
+
+            HubSessionScan.Result result =
+                    new HubSessionScan(hubsManager, Duration.ofMillis(150)).scan(HubScanFilter.ALL, 0);
+
+            assertEquals(List.of("fast-session"),
+                    result.rows().stream().map(row -> row.session().id()).toList());
+            assertTrue(result.failures().stream()
+                    .anyMatch(failure -> failure.scope().contains("stalled-workspace")),
+                    result.failures().toString());
+            assertTrue(cancelled.await(1, TimeUnit.SECONDS));
+        }
+
+        private static void awaitCancellation(CountDownLatch cancelled) throws InterruptedException {
+            Context.current().addListener(_ -> cancelled.countDown(), Runnable::run);
+            cancelled.await(5, TimeUnit.SECONDS);
+        }
+
+        private HubManager hubWithProjects(ProjectManager... projects) {
+            WorkspaceInfo workspace = workspace("ws-1", "default");
+            ProjectsManager projectsManager = mock(ProjectsManager.class);
+            when(projectsManager.findAllOrThrow()).thenReturn(List.of(projects));
+
+            WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
+            when(workspaceManager.projectsManager()).thenReturn(projectsManager);
+
+            HubManager hub = mock(HubManager.class);
+            when(hub.info()).thenReturn(hubInfo("h-1", "production"));
+            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+            when(hub.workspacesOrThrow()).thenReturn(List.of(workspace));
+            when(hub.workspace(workspace)).thenReturn(workspaceManager);
+            return hub;
+        }
+
+        private ProjectManager project(String id, String name, RepositoryManager repository) {
+            ProjectManager project = mock(ProjectManager.class);
+            when(project.info()).thenReturn(projectInfo(id, name));
+            when(project.repositoryManager()).thenReturn(repository);
+            return project;
         }
 
         @Test
@@ -326,7 +468,7 @@ class HubSessionScanTest {
 
             scan.scan(new HubScanFilter("production", null, null, RecordingSessionFilter.ALL), 0);
 
-            verify(filteredOut, never()).tryInfo();
+            verify(filteredOut, never()).infoOrThrow();
         }
 
         @Test
@@ -342,17 +484,19 @@ class HubSessionScanTest {
         }
 
         @Test
-        void skipsAWorkspaceTheHubWillNotResolve() {
+        void reportsAWorkspaceWhoseManagerCannotBeCreated() {
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo("h-1", "production"));
-            when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("1.0", 1)));
-            when(hub.workspaces()).thenReturn(List.of(workspace("ws-gone", "default")));
-            when(hub.workspace("ws-gone")).thenReturn(Optional.empty());
+            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+            WorkspaceInfo gone = workspace("ws-gone", "default");
+            when(hub.workspacesOrThrow()).thenReturn(List.of(gone));
+            when(hub.workspace(gone)).thenThrow(new IllegalStateException("workspace disappeared"));
             when(hubsManager.findAll()).thenReturn(List.of(hub));
 
             HubSessionScan.Result result = scan.scan(HubScanFilter.ALL, 0);
 
             assertTrue(result.rows().isEmpty());
+            assertTrue(result.failures().getFirst().reason().contains("workspace disappeared"));
         }
     }
 }

@@ -88,11 +88,26 @@ public final class HeapDumpInitService {
      * progress (the caller should just poll), {@code true} when a new run was started.
      */
     public boolean start(String profileId, HeapDumpManager manager, Boolean compressedOopsOverride) {
+        return start(profileId, manager, compressedOopsOverride, () -> {});
+    }
+
+    /**
+     * Takes ownership of the completion callback only when a new run starts. It runs after result
+     * storage, including on failure, so a caller can release resources borrowed by the background run.
+     */
+    public boolean start(
+            String profileId, HeapDumpManager manager, Boolean compressedOopsOverride, Runnable onFinished) {
         return registry.start(new PipelineRunRequest<>(
                 profileId,
                 "",
                 run -> runPipeline(run, manager, compressedOopsOverride),
-                manager::storeInitPipelineResult));
+                result -> {
+                    try {
+                        manager.storeInitPipelineResult(result);
+                    } finally {
+                        onFinished.run();
+                    }
+                }));
     }
 
     /** Live progress of the current (or last finished) run; idle when none exists. */
@@ -133,7 +148,13 @@ public final class HeapDumpInitService {
      */
     public boolean startReport(
             String profileId, HeapDumpManager manager, String report, Boolean compressedOopsOverride) {
+        return startReport(profileId, manager, report, compressedOopsOverride, () -> {});
+    }
 
+    /** Same completion ownership as {@link #start(String, HeapDumpManager, Boolean, Runnable)}. */
+    public boolean startReport(
+            String profileId, HeapDumpManager manager, String report, Boolean compressedOopsOverride,
+            Runnable onFinished) {
         if (!HeapDumpStages.REPORTS.contains(report)) {
             throw new IllegalArgumentException(
                     "Unknown report: " + report + ". Expected one of: "
@@ -143,7 +164,13 @@ public final class HeapDumpInitService {
                 profileId,
                 "",
                 run -> runSingleReport(run, manager, report, compressedOopsOverride),
-                manager::storeInitPipelineResult));
+                result -> {
+                    try {
+                        manager.storeInitPipelineResult(result);
+                    } finally {
+                        onFinished.run();
+                    }
+                }));
     }
 
     private static void runSingleReport(

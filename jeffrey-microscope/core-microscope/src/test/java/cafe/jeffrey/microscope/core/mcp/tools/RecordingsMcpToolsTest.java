@@ -41,15 +41,19 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -101,9 +105,13 @@ class RecordingsMcpToolsTest {
      * Whether the profile behind the recording is finished and usable.
      */
     private void profileIs(boolean enabled) {
+        profileIs(enabled, "app.jfr");
+    }
+
+    private void profileIs(boolean enabled, String name) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, null, null, "app.jfr", RecordingEventSource.JDK,
+                PROFILE_ID, null, null, name, RecordingEventSource.JDK,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, enabled, false,
                 RECORDING_ID));
         when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.of(profileManager));
@@ -152,11 +160,42 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(true, "Checkout run");
 
             String result = tools.analyzeFile(file.toString(), "Checkout run");
 
             verify(recordingsManager).updateProfileName(PROFILE_ID, "Checkout run");
             assertTrue(result.contains("Checkout run"));
+        }
+
+        @Test
+        void joinedCallersSeeTheNameAppliedByTheAttemptTheyJoined() throws Exception {
+            Path file = recordingFile("app.jfr");
+            BoundedJobs<String, String> jobs = new BoundedJobs<>(Duration.ofSeconds(5));
+            RecordingsMcpTools concurrent = new RecordingsMcpTools(recordingsManager, runRegistry, jobs);
+            CountDownLatch analysisReached = new CountDownLatch(1);
+            CountDownLatch releaseAnalysis = new CountDownLatch(1);
+            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
+                analysisReached.countDown();
+                releaseAnalysis.await();
+                return PROFILE_ID;
+            });
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(true, "First name");
+
+            CompletableFuture<String> first = CompletableFuture.supplyAsync(
+                    () -> withRequestContext(() -> concurrent.analyzeFile(file.toString(), "First name")));
+            assertTrue(analysisReached.await(5, SECONDS));
+            CompletableFuture<String> second = CompletableFuture.supplyAsync(
+                    () -> withRequestContext(() -> concurrent.analyzeFile(file.toString(), "Second name")));
+            await().during(Duration.ofMillis(50)).atMost(5, SECONDS).until(() -> !second.isDone());
+            releaseAnalysis.countDown();
+
+            assertTrue(first.get(5, SECONDS).contains("\"name\":\"First name\""));
+            assertTrue(second.get(5, SECONDS).contains("\"name\":\"First name\""));
+            verify(recordingsManager).updateProfileName(PROFILE_ID, "First name");
+            verify(recordingsManager, never()).updateProfileName(PROFILE_ID, "Second name");
         }
 
         @Test
@@ -335,6 +374,48 @@ class RecordingsMcpToolsTest {
             }
         }
 
+        @Test
+        void appliesTheRequestedNameAfterAWaitTimeout() throws IOException {
+            Path file = recordingFile("app.jfr");
+            BoundedJobs<String, String> jobs = new BoundedJobs<>(Duration.ofMillis(50));
+            RecordingsMcpTools slow = new RecordingsMcpTools(recordingsManager, runRegistry, jobs);
+            CountDownLatch release = new CountDownLatch(1);
+            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
+                release.await();
+                return PROFILE_ID;
+            });
+
+            assertTrue(slow.analyzeFile(file.toString(), "Checkout run")
+                    .contains("\"status\":\"running\""));
+            release.countDown();
+
+            await().atMost(5, SECONDS).untilAsserted(() ->
+                    verify(recordingsManager).updateProfileName(PROFILE_ID, "Checkout run"));
+        }
+
+        @Test
+        void reportsALateFailureWithItsReasonOnEveryPoll() {
+            BoundedJobs<String, String> jobs = new BoundedJobs<>(Duration.ofMillis(50));
+            RecordingsMcpTools slow = new RecordingsMcpTools(recordingsManager, runRegistry, jobs);
+            CountDownLatch release = new CountDownLatch(1);
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
+                release.await();
+                throw new IllegalStateException("recording parser stopped");
+            });
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
+
+            assertTrue(slow.analyzeRecording(RECORDING_ID).contains("\"status\":\"running\""));
+            release.countDown();
+            await().atMost(5, SECONDS).until(() -> jobs.outcome(RECORDING_ID).isPresent());
+
+            String first = slow.status(RECORDING_ID);
+            String second = slow.status(RECORDING_ID);
+            assertTrue(first.contains("\"status\":\"failed\""), first);
+            assertTrue(first.contains("recording parser stopped"), first);
+            assertTrue(second.contains("recording parser stopped"), second);
+        }
+
         /**
          * The whole point of a status tool: a second analyze call would parse the file again.
          */
@@ -356,15 +437,24 @@ class RecordingsMcpToolsTest {
          * "not yet".
          */
         @Test
-        void doesNotReportAProfileThatIsNotEnabledYet() {
+        void reportsAnActiveProfileThatIsNotEnabledYetAsRunning() {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-            profileIs(false);
+            CountDownLatch release = new CountDownLatch(1);
+            runRegistry.start(PipelineRunRequest.of(PROFILE_ID, run -> {
+                run.beginStage(ProfileInitStages.PARSE);
+                awaitQuietly(release);
+            }));
+            await().atMost(5, SECONDS).until(() -> runRegistry.isRunning(PROFILE_ID));
 
-            String result = tools.status(RECORDING_ID);
+            try {
+                String result = tools.status(RECORDING_ID);
 
-            assertTrue(result.contains("\"status\":\"running\""),
-                    "a profile that is not enabled is still being built: " + result);
-            assertTrue(result.contains("still being written"));
+                assertTrue(result.contains("\"status\":\"running\""),
+                        "an active profile is still being built: " + result);
+                assertTrue(result.contains("still being written"));
+            } finally {
+                release.countDown();
+            }
         }
 
         /**
@@ -372,16 +462,50 @@ class RecordingsMcpToolsTest {
          */
         @Test
         void carriesTheStagesTheRegistryKnowsAbout() {
-            runRegistry.runInline(PipelineRunRequest.of(
-                    PROFILE_ID, run -> run.runStage(ProfileInitStages.PARSE, () -> {
-                    })));
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-            profileIs(false);
+            CountDownLatch release = new CountDownLatch(1);
+            runRegistry.start(PipelineRunRequest.of(PROFILE_ID, run -> {
+                run.beginStage(ProfileInitStages.PARSE);
+                awaitQuietly(release);
+            }));
+            await().atMost(5, SECONDS).until(() -> runRegistry.isRunning(PROFILE_ID));
 
-            String result = tools.status(RECORDING_ID);
+            try {
+                String result = tools.status(RECORDING_ID);
 
-            assertTrue(result.contains("\"stages\""));
-            assertTrue(result.contains(ProfileInitStages.PARSE), result);
+                assertTrue(result.contains("\"stages\""));
+                assertTrue(result.contains(ProfileInitStages.PARSE), result);
+            } finally {
+                release.countDown();
+            }
+        }
+
+        @Test
+        void keepsAProfileQueuedForAPipelineSlotInTheRunningLifecycle() {
+            PipelineRunRegistry<String> serialRegistry = new PipelineRunRegistry<>(
+                    ProfileInitStages.DEFINITION,
+                    PipelineRunOptions.bounded(1, null),
+                    CLOCK);
+            RecordingsMcpTools serial = new RecordingsMcpTools(recordingsManager, serialRegistry);
+            CountDownLatch firstStarted = new CountDownLatch(1);
+            CountDownLatch releaseFirst = new CountDownLatch(1);
+            AtomicBoolean queuedWorkStarted = new AtomicBoolean();
+            serialRegistry.start(PipelineRunRequest.of("first-profile", run -> {
+                firstStarted.countDown();
+                awaitQuietly(releaseFirst);
+            }));
+            await().atMost(5, SECONDS).until(() -> firstStarted.getCount() == 0);
+            serialRegistry.start(PipelineRunRequest.of(PROFILE_ID, run -> queuedWorkStarted.set(true)));
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+
+            try {
+                String result = serial.status(RECORDING_ID);
+
+                assertTrue(result.contains("\"status\":\"running\""), result);
+                assertFalse(queuedWorkStarted.get(), "the profile should still be waiting for the pipeline slot");
+            } finally {
+                releaseFirst.countDown();
+            }
         }
 
         /**
@@ -389,14 +513,32 @@ class RecordingsMcpToolsTest {
          * of the profile itself, which is honest rather than empty.
          */
         @Test
-        void reportsNoStagesWhenNoRunIsTracked() {
+        void reportsAnInterruptedAttemptWhenNoRunIsTrackedAfterRestart() {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
             profileIs(false);
 
             String result = tools.status(RECORDING_ID);
 
             assertTrue(result.contains("\"stages\":[]"), result);
-            assertTrue(result.contains("\"status\":\"running\""));
+            assertTrue(result.contains("\"status\":\"interrupted\""), result);
+        }
+
+        @Test
+        void reportsThePipelineFailureForARetainedAttempt() {
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> runRegistry.runInline(PipelineRunRequest.of(
+                            PROFILE_ID,
+                            run -> run.runStage(ProfileInitStages.PARSE, () -> {
+                                throw new IllegalStateException("malformed chunk");
+                            }))));
+            assertEquals("malformed chunk", failure.getMessage());
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains("\"status\":\"failed\""), result);
+            assertTrue(result.contains("malformed chunk"), result);
+            assertTrue(result.contains("\"id\":\"" + ProfileInitStages.PARSE + "\""), result);
         }
 
         @Test
@@ -416,6 +558,24 @@ class RecordingsMcpToolsTest {
                     IllegalArgumentException.class, () -> tools.status(RECORDING_ID));
 
             assertTrue(e.getMessage().contains("No such recording"));
+        }
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+        try {
+            latch.await(10, SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static String withRequestContext(Supplier<String> call) {
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(new MockHttpServletRequest()));
+        try {
+            return call.get();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
         }
     }
 

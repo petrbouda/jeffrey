@@ -46,6 +46,11 @@ const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
 const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
 
+const hubTimeouts = `# Positive ISO-8601 durations; defaults shown
+jeffrey.microscope.mcp.hubs.scan-timeout=PT20S
+jeffrey.microscope.mcp.hubs.download-response-timeout=PT45S
+jeffrey.microscope.mcp.hubs.download-timeout=PT1H`;
+
 const ideToggle = `jeffrey.microscope.mcp.ide.enabled=false`;
 
 const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
@@ -121,6 +126,9 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>hubs_</code> tool means it is off.</p>
 
+      <p>Hub discovery has a shared deadline across all remote calls. Downloads have a response deadline, including session lookup, and a separate transfer deadline for work continuing in the background. Increase the transfer deadline for large recordings on a slow connection:</p>
+      <DocsCodeBlock :code="hubTimeouts" language="properties" />
+
       <DocsCallout type="info" title="The expensive tools have no switch">
         <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.
       </DocsCallout>
@@ -142,7 +150,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>
 
-      <p>So the first tool call for a profile takes a <strong>lease</strong> on that profile's database and holds it. The lease is released after <strong>30 minutes</strong> without a call for that profile; the next call simply takes a new one. Nothing needs closing by hand, and no session breaks halfway through because you stopped to read the code.</p>
+      <p>The first tool call for a profile takes a <strong>lease</strong> on its database. Each active call keeps its profiles open until it finishes, including both profiles in a comparison. Background heap preparation holds its own lease until the work and result storage finish. Once the last use finishes, the cached lease stays available for <strong>30 minutes</strong> of inactivity; a later call opens it again. Eviction and cache shutdown defer closing resources that are still in use.</p>
 
       <h2 id="security">Security</h2>
       <DocsCallout type="warning" title="Unauthenticated, with nothing to turn on">

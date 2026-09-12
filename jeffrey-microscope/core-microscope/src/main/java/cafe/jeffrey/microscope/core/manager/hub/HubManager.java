@@ -81,6 +81,10 @@ public class HubManager {
         return hubClients.discovery().tryInfo();
     }
 
+    public DiscoveryClient.PublicApiInfo infoOrThrow() {
+        return hubClients.discovery().info();
+    }
+
     /**
      * Lists all workspaces on this hub (live gRPC ListWorkspaces call).
      */
@@ -94,6 +98,10 @@ public class HubManager {
         }
     }
 
+    public List<WorkspaceInfo> workspacesOrThrow() {
+        return hubClients.discovery().allWorkspaces();
+    }
+
     /**
      * Resolves a single workspace on this hub to a {@link WorkspaceManager}.
      */
@@ -103,6 +111,19 @@ public class HubManager {
             case AVAILABLE -> Optional.of(workspaceManagerFactory.create(hubInfo, result.info(), hubClients));
             case UNAVAILABLE, OFFLINE, UNKNOWN -> Optional.empty();
         };
+    }
+
+    public Optional<WorkspaceManager> workspaceOrThrow(String workspaceId) {
+        return hubClients.discovery().workspaceOrThrow(workspaceId)
+                .map(this::workspace);
+    }
+
+    /**
+     * Builds a manager for workspace information returned by the same scan. This avoids a redundant
+     * GetWorkspace RPC after ListWorkspaces has already established that the workspace exists.
+     */
+    public WorkspaceManager workspace(WorkspaceInfo workspaceInfo) {
+        return workspaceManagerFactory.create(hubInfo, workspaceInfo, hubClients);
     }
 
     /**

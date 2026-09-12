@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.configuration;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
+import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
@@ -93,6 +95,7 @@ public class MicroscopeAppConfiguration {
             // like any other as far as progress is concerned, and both are keyed by profile id.
             PipelineRunRegistry<String> profileInitRunRegistry,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
+            ObjectProvider<McpProfileContextCache> contextCacheProvider,
             @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         ProfilePersistenceProvider quickProvider =
@@ -119,7 +122,13 @@ public class MicroscopeAppConfiguration {
         MicroscopeCoreRepositories repos = localCorePersistenceProvider.localCoreRepositories();
         RecordingInformationParser recordingInformationParser =
                 new FileTypeDispatchingRecordingInformationParser(new JfrRecordingInformationParser(jeffreyDirs));
-        MicroscopeProfileCleanup profileCleanup = new MicroscopeProfileCleanup(jeffreyDirs, repos);
+        MicroscopeProfileCleanup profileCleanup = new MicroscopeProfileCleanup(
+                jeffreyDirs, repos, profileId -> {
+                    McpProfileContextCache contextCache = contextCacheProvider.getIfAvailable();
+                    if (contextCache != null) {
+                        contextCache.invalidate(profileId);
+                    }
+                });
 
         RecordingsCoreManager core = new RecordingsCoreManagerImpl(
                 clock,
@@ -138,7 +147,8 @@ public class MicroscopeAppConfiguration {
                 recordingsProfileInitializer,
                 profileManagerFactory,
                 repos,
-                profileCleanup);
+                profileCleanup,
+                profileInitRunRegistry);
     }
 
     @Bean

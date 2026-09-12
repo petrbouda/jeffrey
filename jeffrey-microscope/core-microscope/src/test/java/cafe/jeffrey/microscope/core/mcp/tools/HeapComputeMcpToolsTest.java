@@ -37,8 +37,15 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -114,6 +121,45 @@ class HeapComputeMcpToolsTest {
             assertTrue(result.contains("dominator"));
             assertTrue(result.contains("heap_status"));
         }
+    }
+
+    @Test
+    void holdsABackgroundLeaseUntilPreparationFinishesAndReleasesJoinedCalls() throws Exception {
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch finish = new CountDownLatch(1);
+        AtomicInteger active = new AtomicInteger();
+        when(heapDumpManager.initialize(eq(null), any())).thenAnswer(invocation -> {
+            entered.countDown();
+            assertTrue(finish.await(5, TimeUnit.SECONDS));
+            return null;
+        });
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, initService, () -> {
+            active.incrementAndGet();
+            return () -> active.decrementAndGet();
+        });
+        try {
+            tools.prepare(null);
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            assertEquals(1, active.get());
+            tools.prepare(null);
+            assertEquals(1, active.get(), "a joined call must release its unused background lease");
+        } finally {
+            finish.countDown();
+        }
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(0, active.get()));
+    }
+
+    @Test
+    void releasesABackgroundLeaseWhenTheReportIsRejected() {
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        AtomicInteger active = new AtomicInteger();
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, initService, () -> {
+            active.incrementAndGet();
+            return () -> active.decrementAndGet();
+        });
+        assertThrows(IllegalArgumentException.class, () -> tools.prepare("unknown"));
+        assertEquals(0, active.get());
     }
 
     @Nested

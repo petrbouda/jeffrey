@@ -19,7 +19,9 @@
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import org.junit.jupiter.api.Nested;
@@ -45,7 +47,7 @@ class DownloadedSessionIndexTest {
     private static final HubSessionRef REF =
             new HubSessionRef("cfg-production", "ws-1", "proj-1", "session-1");
 
-    private final RecordingsCoreManager recordings = mock(RecordingsCoreManager.class);
+    private final RecordingsManager recordings = mock(RecordingsManager.class);
 
     private static Recording recording(String id, String profileId, Instant createdAt) {
         return new Recording(
@@ -69,6 +71,45 @@ class DownloadedSessionIndexTest {
         return DownloadedSessionIndex.build(recordings);
     }
 
+    private void profileReady(String id, boolean enabled) {
+        ProfileManager manager = mock(ProfileManager.class);
+        ProfileInfo info = mock(ProfileInfo.class);
+        when(recordings.profile(id)).thenReturn(Optional.of(manager));
+        when(manager.info()).thenReturn(info);
+        when(info.enabled()).thenReturn(enabled);
+    }
+
+    @Test
+    void disabledProfileIsOnlyADownloadedRecording() {
+        profileReady("profile-1", false);
+        DownloadedSessionIndex index = indexOf(
+                List.of(recording("rec-1", "profile-1", CREATED_AT)),
+                Map.of("rec-1", originTags(REF)));
+
+        assertFalse(index.find(REF).orElseThrow().analysed());
+    }
+
+    @Test
+    void missingProfileIsOnlyADownloadedRecording() {
+        DownloadedSessionIndex index = indexOf(
+                List.of(recording("rec-1", "profile-1", CREATED_AT)),
+                Map.of("rec-1", originTags(REF)));
+
+        assertFalse(index.find(REF).orElseThrow().analysed());
+    }
+
+    @Test
+    void readyCopyWinsOverNewerDisabledProfile() {
+        profileReady("profile-ready", true);
+        profileReady("profile-building", false);
+        DownloadedSessionIndex index = indexOf(
+                List.of(recording("rec-ready", "profile-ready", CREATED_AT),
+                        recording("rec-building", "profile-building", CREATED_AT.plusSeconds(60))),
+                Map.of("rec-ready", originTags(REF), "rec-building", originTags(REF)));
+
+        assertEquals("rec-ready", index.find(REF).orElseThrow().recordingId());
+    }
+
     @Nested
     class Matching {
 
@@ -87,6 +128,7 @@ class DownloadedSessionIndexTest {
 
         @Test
         void reportsTheProfileWhenTheDownloadHasBeenAnalysed() {
+            profileReady("profile-1", true);
             DownloadedSessionIndex index = indexOf(
                     List.of(recording("rec-1", "profile-1", CREATED_AT)),
                     Map.of("rec-1", originTags(REF)));
@@ -169,6 +211,7 @@ class DownloadedSessionIndexTest {
 
         @Test
         void prefersTheAnalysedCopyWhenASessionWasDownloadedTwice() {
+            profileReady("profile-1", true);
             DownloadedSessionIndex index = indexOf(
                     List.of(
                             recording("rec-new", null, CREATED_AT.plusSeconds(60)),

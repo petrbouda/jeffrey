@@ -55,6 +55,18 @@ public class ProjectManagerResolver {
         return new ProjectContext(workspace, projectsManager, projectManager);
     }
 
+    /**
+     * Resolves a remote project without hiding an unavailable hub behind a not-found result.
+     */
+    public ProjectContext resolveStrict(String hubId, String workspaceId, String projectId) {
+        WorkspaceManager workspace = resolveHub(hubId).workspaceOrThrow(workspaceId)
+                .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
+        ProjectsManager projectsManager = workspace.projectsManager();
+        ProjectManager projectManager = projectsManager.projectOrThrow(projectId)
+                .orElseThrow(() -> Exceptions.projectNotFound(projectId));
+        return new ProjectContext(workspace, projectsManager, projectManager);
+    }
+
     public record ProjectContext(
             WorkspaceManager workspace,
             ProjectsManager projectsManager,

@@ -32,6 +32,7 @@ import cafe.jeffrey.jfr.events.notification.Severity;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 
 /**
  * Microscope's profile-aware {@link RecordingProfileCleanup}: when a recording that has an analysis
@@ -48,13 +49,23 @@ public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
     private final MicroscopeCoreRepositories localCoreRepositories;
+    private final Consumer<String> contextInvalidator;
 
     public MicroscopeProfileCleanup(
             MicroscopeJeffreyDirs jeffreyDirs,
             MicroscopeCoreRepositories localCoreRepositories) {
+        this(jeffreyDirs, localCoreRepositories, profileId -> {
+        });
+    }
+
+    public MicroscopeProfileCleanup(
+            MicroscopeJeffreyDirs jeffreyDirs,
+            MicroscopeCoreRepositories localCoreRepositories,
+            Consumer<String> contextInvalidator) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.localCoreRepositories = localCoreRepositories;
+        this.contextInvalidator = contextInvalidator;
     }
 
     @Override
@@ -82,10 +93,17 @@ public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
     public void deleteProfile(String profileId, String recordingId) {
         Path profileDir = jeffreyDirs.profileDir(profileId);
 
-        localCoreRepositories.newProfileRepository(profileId).delete();
+        contextInvalidator.accept(profileId);
+        try {
+            localCoreRepositories.newProfileRepository(profileId).delete();
 
-        if (Files.exists(profileDir)) {
-            FileSystemUtils.removeDirectory(profileDir);
+            if (Files.exists(profileDir)) {
+                FileSystemUtils.removeDirectory(profileDir);
+            }
+        } finally {
+            // An MCP call can arrive after the first invalidation and resolve the row before deletion
+            // removes it. Retire that context too, including when storage deletion failed part-way.
+            contextInvalidator.accept(profileId);
         }
 
         LOG.info("Profile deleted: profileId={}", profileId);

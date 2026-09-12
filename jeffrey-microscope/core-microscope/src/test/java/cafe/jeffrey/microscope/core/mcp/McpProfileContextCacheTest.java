@@ -43,12 +43,15 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -92,7 +95,9 @@ class McpProfileContextCacheTest {
         void opensAProfileOnFirstUse() {
             ProfileManager profileManager = stubProfile(PROFILE);
 
-            assertSame(profileManager, newCache().profileManager(PROFILE));
+            try (McpProfileContextCache.Lease lease = newCache().acquire(PROFILE)) {
+                assertSame(profileManager, lease.profileManager());
+            }
         }
 
         /**
@@ -104,8 +109,12 @@ class McpProfileContextCacheTest {
             stubProfile(PROFILE);
             McpProfileContextCache cache = newCache();
 
-            cache.profileManager(PROFILE);
-            cache.profileManager(PROFILE);
+            try (McpProfileContextCache.Lease ignored = cache.acquire(PROFILE)) {
+                // The context remains cached after this call lease is released.
+            }
+            try (McpProfileContextCache.Lease ignored = cache.acquire(PROFILE)) {
+                // A later call renews the same cached context.
+            }
 
             assertEquals(1, cache.size());
             assertTrue(released.isEmpty());
@@ -117,8 +126,12 @@ class McpProfileContextCacheTest {
             stubProfile("p-2");
             McpProfileContextCache cache = newCache();
 
-            cache.profileManager("p-1");
-            cache.profileManager("p-2");
+            try (McpProfileContextCache.Lease ignored = cache.acquire("p-1")) {
+                // Open the first cached context.
+            }
+            try (McpProfileContextCache.Lease ignored = cache.acquire("p-2")) {
+                // Open the second cached context.
+            }
 
             assertEquals(2, cache.size());
         }
@@ -129,7 +142,7 @@ class McpProfileContextCacheTest {
          */
         @Test
         void acquiresOnceUnderConcurrentFirstUse() throws Exception {
-            stubProfile(PROFILE);
+            ProfileManager profileManager = stubProfile(PROFILE);
             McpProfileContextCache cache = newCache();
 
             int threads = 8;
@@ -141,7 +154,9 @@ class McpProfileContextCacheTest {
                     pool.submit(() -> {
                         ready.countDown();
                         go.await();
-                        return cache.profileManager(PROFILE);
+                        try (McpProfileContextCache.Lease lease = cache.acquire(PROFILE)) {
+                            return lease.profileManager();
+                        }
                     });
                 }
                 ready.await(5, TimeUnit.SECONDS);
@@ -153,6 +168,7 @@ class McpProfileContextCacheTest {
             }
 
             assertEquals(1, cache.size());
+            verify(databaseManagerResolver).acquire(profileManager.info());
         }
     }
 
@@ -163,7 +179,7 @@ class McpProfileContextCacheTest {
         void releasesTheLeaseOfAnIdleProfile() {
             stubProfile(PROFILE);
             McpProfileContextCache cache = newCache();
-            cache.profileManager(PROFILE);
+            cache.acquire(PROFILE).close();
 
             clock.advance(IDLE_TIMEOUT.plusMinutes(1));
             cache.evictIdle();
@@ -176,7 +192,7 @@ class McpProfileContextCacheTest {
         void keepsAProfileThatIsStillBeingAskedAbout() {
             stubProfile(PROFILE);
             McpProfileContextCache cache = newCache();
-            cache.profileManager(PROFILE);
+            cache.acquire(PROFILE).close();
 
             clock.advance(IDLE_TIMEOUT.minusMinutes(1));
             cache.evictIdle();
@@ -193,30 +209,34 @@ class McpProfileContextCacheTest {
         void aCallRefreshesTheIdleWindow() {
             stubProfile(PROFILE);
             McpProfileContextCache cache = newCache();
-            cache.profileManager(PROFILE);
+            cache.acquire(PROFILE).close();
 
             clock.advance(IDLE_TIMEOUT.minusMinutes(1));
-            cache.profileManager(PROFILE);
+            cache.acquire(PROFILE).close();
             clock.advance(IDLE_TIMEOUT.minusMinutes(1));
             cache.evictIdle();
 
             assertTrue(released.isEmpty());
+
+            clock.advance(Duration.ofMinutes(2));
+            cache.evictIdle();
+            assertEquals(List.of(PROFILE), released);
         }
 
         @Test
         void evictsOnDemand() {
             stubProfile(PROFILE);
             McpProfileContextCache cache = newCache();
-            cache.profileManager(PROFILE);
+            cache.acquire(PROFILE).close();
 
-            cache.evict(PROFILE);
+            cache.invalidate(PROFILE);
 
             assertEquals(List.of(PROFILE), released);
         }
 
         @Test
         void ignoresEvictingAProfileItNeverOpened() {
-            newCache().evict("never-opened");
+            newCache().invalidate("never-opened");
 
             assertTrue(released.isEmpty());
         }
@@ -226,13 +246,107 @@ class McpProfileContextCacheTest {
             stubProfile("p-1");
             stubProfile("p-2");
             McpProfileContextCache cache = newCache();
-            cache.profileManager("p-1");
-            cache.profileManager("p-2");
+            cache.acquire("p-1").close();
+            cache.acquire("p-2").close();
 
             cache.close();
 
             assertEquals(2, released.size());
             assertEquals(0, cache.size());
+        }
+
+        @Test
+        void idleSweepDoesNotCloseAnActiveCall() {
+            stubProfile(PROFILE);
+            McpProfileContextCache cache = newCache();
+            McpProfileContextCache.Lease active = cache.acquire(PROFILE);
+
+            clock.advance(IDLE_TIMEOUT.plusMinutes(1));
+            cache.evictIdle();
+
+            assertTrue(released.isEmpty());
+            assertEquals(1, cache.size());
+
+            active.close();
+            cache.evictIdle();
+            assertTrue(released.isEmpty(), "release renews the idle window from call completion");
+
+            clock.advance(IDLE_TIMEOUT.plusMinutes(1));
+            cache.evictIdle();
+            assertEquals(List.of(PROFILE), released);
+        }
+
+        @Test
+        void invalidationDefersOneCloseUntilTheActiveCallEnds() {
+            stubProfile(PROFILE);
+            McpProfileContextCache cache = newCache();
+            McpProfileContextCache.Lease active = cache.acquire(PROFILE);
+
+            cache.invalidate(PROFILE);
+            cache.invalidate(PROFILE);
+
+            assertTrue(released.isEmpty());
+            assertEquals(0, cache.size());
+
+            active.close();
+            active.close();
+            assertEquals(List.of(PROFILE), released);
+        }
+
+        @Test
+        void closingTheCachePreventsAConcurrentCallFromResurrectingAContext() {
+            stubProfile(PROFILE);
+            McpProfileContextCache cache = newCache();
+            McpProfileContextCache.Lease active = cache.acquire(PROFILE);
+
+            cache.close();
+
+            assertEquals(0, cache.size());
+            assertThrows(IllegalStateException.class, () -> cache.acquire(PROFILE));
+            assertTrue(released.isEmpty());
+
+            active.close();
+            assertEquals(List.of(PROFILE), released);
+        }
+
+        @Test
+        void closingWhileAProfileIsBeingResolvedClosesTheCandidateAndRefusesTheCall() throws Exception {
+            ProfileManager profileManager = mock(ProfileManager.class);
+            when(profileManager.info()).thenReturn(new ProfileInfo(
+                    PROFILE, "proj", "ws", "Profile", RecordingEventSource.JDK,
+                    start, start.plusSeconds(60), start, true, false, "rec-1"));
+            CountDownLatch resolving = new CountDownLatch(1);
+            CountDownLatch continueResolving = new CountDownLatch(1);
+            when(profileManagerResolver.resolve(PROFILE)).thenAnswer(invocation -> {
+                resolving.countDown();
+                assertTrue(continueResolving.await(5, TimeUnit.SECONDS));
+                return profileManager;
+            });
+            when(databaseManagerResolver.acquire(profileManager.info())).thenReturn(
+                    new DatabaseLease(mock(DataSource.class), () -> released.add(PROFILE)));
+            McpProfileContextCache cache = newCache();
+            ExecutorService caller = Executors.newSingleThreadExecutor();
+            try {
+                Future<Boolean> refused = caller.submit(() -> {
+                    try (McpProfileContextCache.Lease ignored = cache.acquire(PROFILE)) {
+                        return false;
+                    } catch (IllegalStateException expected) {
+                        return true;
+                    }
+                });
+
+                assertTrue(resolving.await(5, TimeUnit.SECONDS));
+                cache.close();
+                continueResolving.countDown();
+
+                assertTrue(refused.get(5, TimeUnit.SECONDS));
+            } finally {
+                continueResolving.countDown();
+                caller.shutdownNow();
+            }
+
+            assertEquals(0, cache.size());
+            assertEquals(List.of(PROFILE), released);
         }
     }
 

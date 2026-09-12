@@ -20,9 +20,12 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -75,9 +78,12 @@ public class RecordingsMcpTools {
      */
     private static final String STILL_RUNNING = "running";
 
+    private static final String FAILED = "failed";
+
+    private static final String INTERRUPTED = "interrupted";
+
     /**
-     * The recording has no profile and nothing is building one — the analysis failed, or this process
-     * restarted while it ran. Either way the honest next step is to ask for it again.
+     * The recording has no profile and no attempt is running or retained in this process.
      */
     private static final String NEVER_STARTED = "not_started";
 
@@ -88,6 +94,10 @@ public class RecordingsMcpTools {
     private static final String NOT_READY_YET =
             "The profile exists but its events are still being written, so it cannot be analysed yet. "
                     + "Wait for this tool to report it without a status before using the profileId.";
+
+    private static final String INTERRUPTED_NOTE =
+            "The profile was left disabled and this process has no active initialization for it. "
+                    + "Jeffrey likely restarted while the recording was being analyzed. Call the analyze tool again to retry.";
 
     private final RecordingsManager recordingsManager;
     private final PipelineRunRegistry<String> runRegistry;
@@ -214,8 +224,13 @@ public class RecordingsMcpTools {
                 .orElseThrow(() -> new IllegalArgumentException("No such recording: " + id));
 
         if (!recording.hasProfile()) {
+            Optional<BoundedJobs.Outcome<String>> outcome = jobs.outcome(id);
+            if (outcome.isPresent() && outcome.get().failure() != null) {
+                return failed(id, null, List.of(), null, outcome.get().failure().getMessage());
+            }
             return McpToolOutput.json(new AnalysisProgress(
-                    id, null, jobs.isRunning(id) ? STILL_RUNNING : NEVER_STARTED, List.of(), null));
+                    id, null, jobs.isRunning(id) ? STILL_RUNNING : NEVER_STARTED,
+                    List.of(), null, null, null));
         }
 
         // A profile row appears before the parse begins -- it is inserted first so the recordings list
@@ -223,34 +238,57 @@ public class RecordingsMcpTools {
         // the id at the sight of the row would hand back a profile whose events are still being
         // written, which reads as success and is the one answer worse than "not yet".
         String profileId = recording.profileId();
-        if (!isReady(profileId)) {
+        PipelineProgress progress = runRegistry.progress(profileId);
+        List<Stage> stages = stages(progress);
+        if (progress.state() == PipelineState.FAILED) {
+            return failed(id, profileId, stages, progress.errorCode(), progress.errorMessage());
+        }
+
+        Optional<BoundedJobs.Outcome<String>> outcome = jobs.outcome(id);
+        if (outcome.isPresent() && outcome.get().failure() != null) {
+            return failed(id, profileId, stages, null, outcome.get().failure().getMessage());
+        }
+
+        // The parser can have completed while post-parse work in this bounded job (notably an MCP
+        // requested rename) is still running. The profile is not the job's result until all of that
+        // finalization has finished.
+        if (jobs.isRunning(id) || progress.isRunning()) {
             return McpToolOutput.json(new AnalysisProgress(
-                    id, profileId, STILL_RUNNING, stages(profileId), NOT_READY_YET));
+                    id, profileId, STILL_RUNNING, stages, null, null, NOT_READY_YET));
+        }
+
+        Optional<ProfileInfo> profileInfo = recordingsManager.profile(profileId)
+                .map(profile -> profile.info());
+        if (profileInfo.isEmpty() || !profileInfo.get().enabled()) {
+            return McpToolOutput.json(new AnalysisProgress(
+                    id, profileId, INTERRUPTED, stages, null, null, INTERRUPTED_NOTE));
         }
 
         return McpToolOutput.json(new AnalyzedProfile(
                 profileId,
                 id,
-                recording.recordingName(),
+                profileInfo.get().name(),
                 eventSourceOf(recording),
                 UiLinks.profile(profileId)));
     }
 
-    /**
-     * Whether the profile is finished and usable, rather than merely present.
-     */
-    private boolean isReady(String profileId) {
-        return recordingsManager.profile(profileId)
-                .map(profile -> profile.info().enabled())
-                .orElse(false);
+    private static String failed(
+            String recordingId,
+            String profileId,
+            List<Stage> stages,
+            String errorCode,
+            String errorMessage) {
+
+        return McpToolOutput.json(new AnalysisProgress(
+                recordingId, profileId, FAILED, stages, errorCode, errorMessage,
+                "The analysis failed. Call the analyze tool again to retry."));
     }
 
     /**
-     * The stages of the run building this profile, empty when none is tracked here — the parse may
-     * have been started by a different process, or by one that has since restarted.
+     * The stages of the run building this profile, empty when none is tracked in this process.
      */
-    private List<Stage> stages(String profileId) {
-        return runRegistry.progress(profileId).stages().stream()
+    private static List<Stage> stages(PipelineProgress progress) {
+        return progress.stages().stream()
                 .map(stage -> new Stage(stage.id(), stage.status().name(), stage.durationMs()))
                 .toList();
     }
@@ -261,25 +299,31 @@ public class RecordingsMcpTools {
      * link for the reader who wants to look at the interactive version.
      */
     private String analyzed(String recordingId, String name) {
+        String requestedName = name == null || name.isBlank() ? null : name.trim();
         Optional<String> finished =
-                jobs.runWithin(recordingId, () -> recordingsManager.analyzeRecording(recordingId));
+                jobs.runWithin(recordingId, () -> {
+                    String profileId = recordingsManager.analyzeRecording(recordingId);
+                    if (requestedName != null) {
+                        recordingsManager.updateProfileName(profileId, requestedName);
+                    }
+                    return profileId;
+                });
         if (finished.isEmpty()) {
             return McpToolOutput.json(new AnalysisProgress(
-                    recordingId, null, STILL_RUNNING, List.of(), null));
+                    recordingId, null, STILL_RUNNING, List.of(), null, null, null));
         }
 
         String profileId = finished.get();
-        if (name != null && !name.isBlank()) {
-            recordingsManager.updateProfileName(profileId, name.trim());
-        }
-
         Recording recording = recordingsManager.findRecording(recordingId)
                 .orElseThrow(() -> new IllegalStateException("Recording vanished while being analyzed: " + recordingId));
+        String actualName = recordingsManager.profile(profileId)
+                .map(profile -> profile.info().name())
+                .orElse(recording.profileName() == null ? recording.recordingName() : recording.profileName());
 
         return McpToolOutput.json(new AnalyzedProfile(
                 profileId,
                 recordingId,
-                name == null || name.isBlank() ? recording.recordingName() : name.trim(),
+                actualName,
                 eventSourceOf(recording),
                 UiLinks.profile(profileId)));
     }
@@ -336,6 +380,8 @@ public class RecordingsMcpTools {
      * @param status    {@code running} while the parse continues, {@code not_started} when nothing is
      *                  building a profile for this recording
      * @param stages    the pipeline stages, so a caller can tell parsing from nearly finished
+     * @param errorCode machine-readable parsing failure code, when the pipeline supplied one
+     * @param errorMessage the failure reason, when analysis failed
      * @param note      what the status means, when it is not obvious from the status alone
      */
     private record AnalysisProgress(
@@ -343,6 +389,8 @@ public class RecordingsMcpTools {
             String profileId,
             String status,
             List<Stage> stages,
+            String errorCode,
+            String errorMessage,
             String note) {
     }
 
