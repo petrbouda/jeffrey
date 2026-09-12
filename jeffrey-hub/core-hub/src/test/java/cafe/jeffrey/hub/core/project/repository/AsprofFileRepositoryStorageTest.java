@@ -18,13 +18,27 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
+import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
+import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
+import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.mock;
 
 class AsprofFileRepositoryStorageTest {
 
@@ -38,15 +52,15 @@ class AsprofFileRepositoryStorageTest {
 
         @Test
         void opensTheRecordingOfASessionThatIsStillRecording() {
-            assertSame(FileSizeReader.OPEN_HANDLE,
+            assertSame(FileSizeReader.LIVE_FILE,
                     AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JFR));
         }
 
         @Test
         void opensTheLogsAndCachesOfASessionThatIsStillRecording() {
-            assertSame(FileSizeReader.OPEN_HANDLE,
+            assertSame(FileSizeReader.LIVE_FILE,
                     AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JVM_LOG));
-            assertSame(FileSizeReader.OPEN_HANDLE,
+            assertSame(FileSizeReader.LIVE_FILE,
                     AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.ASPROF_TEMP));
         }
 
@@ -66,6 +80,60 @@ class AsprofFileRepositoryStorageTest {
                         AsprofFileRepositoryStorage.sizeReader(RecordingStatus.FINISHED, fileType),
                         "file type: " + fileType);
             }
+        }
+    }
+
+    @Nested
+    class Describe {
+
+        private static final byte[] CONTENT = "gc log line\n".repeat(100).getBytes(StandardCharsets.UTF_8);
+
+        @TempDir
+        Path workspace;
+
+        private AsprofFileRepositoryStorage storage() {
+            return new AsprofFileRepositoryStorage(
+                    mock(ProjectInfo.class),
+                    workspace,
+                    workspace.resolve("temp"),
+                    mock(ProjectRepositoryRepository.class),
+                    new AsprofFileInfoProcessor());
+        }
+
+        private Path sessionDir() throws IOException {
+            return Files.createDirectories(workspace.resolve("project/instance/session"));
+        }
+
+        @Test
+        void reportsAFileThatIsThere() throws IOException {
+            Path session = sessionDir();
+            Path file = Files.write(session.resolve("gc-jvm.log"), CONTENT);
+
+            RepositoryFile described = storage().describe(file, RecordingStatus.ACTIVE, workspace, session);
+
+            assertNotNull(described);
+            assertEquals("gc-jvm.log", described.name());
+            assertEquals(CONTENT.length, described.size());
+            assertEquals(SupportedRecordingFile.JVM_LOG, described.fileType());
+        }
+
+        @Test
+        void leavesOutAFileThatWentAwayWhileTheSessionWasListed() throws IOException {
+            // async-profiler deletes its cache file as soon as it flushes a chunk, so a name the
+            // listing has just read can be gone before its size is asked for. The next listing
+            // will not mention it either; failing here would take the instance page down with it.
+            Path session = sessionDir();
+            Path vanished = session.resolve("profile-20260912-121559.jfr.1~");
+
+            assertNull(storage().describe(vanished, RecordingStatus.ACTIVE, workspace, session));
+        }
+
+        @Test
+        void leavesOutAVanishedFileOfAFinishedSessionToo() throws IOException {
+            Path session = sessionDir();
+            Path vanished = session.resolve("profile-20260912-121559.jfr");
+
+            assertNull(storage().describe(vanished, RecordingStatus.FINISHED, workspace, session));
         }
     }
 }

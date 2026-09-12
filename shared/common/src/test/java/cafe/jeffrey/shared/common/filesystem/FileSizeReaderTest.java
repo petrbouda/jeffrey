@@ -83,4 +83,32 @@ class FileSizeReaderTest {
                     () -> FileSizeReader.FILE_ATTRIBUTES.size(dir.resolve("missing")));
         }
     }
+
+    @Nested
+    class LiveFile {
+
+        @Test
+        void reportsTheLengthOfAFileWithContent() throws IOException {
+            Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
+
+            assertEquals(CONTENT.length, FileSizeReader.LIVE_FILE.size(file));
+        }
+
+        @Test
+        void takesTheListingsFigureWhenTheShareRefusesAHandle() throws IOException {
+            Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
+            FileSizeReader refused = _ -> {
+                throw new RuntimeException("no handle for you");
+            };
+
+            assertEquals(CONTENT.length, new FileSizeReader.OrElse(refused, FileSizeReader.FILE_ATTRIBUTES).size(file));
+        }
+
+        @Test
+        void failsWhenTheFileAnswersNeitherReader() {
+            // What a file deleted between the listing and the read looks like. The caller decides
+            // what to do about it; a listing leaves the file out.
+            assertThrows(RuntimeException.class, () -> FileSizeReader.LIVE_FILE.size(dir.resolve("missing")));
+        }
+    }
 }
