@@ -48,8 +48,8 @@ export default class EventStreamingClient {
   private readonly baseUrl: string;
   private eventSource: EventSource | null = null;
 
-  constructor(workspaceId: string, projectId: string) {
-    this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/live-stream`;
+  constructor(hubId: string, workspaceId: string, projectId: string) {
+    this.baseUrl = `${GlobalVars.internalUrl}/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/live-stream`;
   }
 
   /**

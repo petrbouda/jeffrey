@@ -26,8 +26,8 @@ export default class ReplayStreamClient {
   private readonly baseUrl: string;
   private eventSource: EventSource | null = null;
 
-  constructor(workspaceId: string, projectId: string) {
-    this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/replay-stream`;
+  constructor(hubId: string, workspaceId: string, projectId: string) {
+    this.baseUrl = `${GlobalVars.internalUrl}/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/replay-stream`;
   }
 
   /**
@@ -97,7 +97,7 @@ export default class ReplayStreamClient {
         return;
       }
       finished = true;
-      onComplete();
+      onError('Replay connection lost before completion');
     };
   }
 

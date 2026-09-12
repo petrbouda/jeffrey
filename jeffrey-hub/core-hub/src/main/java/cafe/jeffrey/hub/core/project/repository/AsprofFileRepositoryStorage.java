@@ -50,19 +50,21 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR;
+import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR_LZ4;
+
 public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
 
     // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
-    private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES =
-            List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR);
+    private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES = List.of(JFR_LZ4, JFR);
 
     private static final List<String> RECORDING_EXTENSIONS = RECORDING_FILE_TYPES.stream()
             .map(SupportedRecordingFile::fileExtension)
             .toList();
 
-    private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = SupportedRecordingFile.JFR_LZ4;
+    private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = JFR_LZ4;
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
@@ -424,7 +426,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         // Create intermediate merged file with .jfr extension.
         // We decompress LZ4 files, concatenate raw JFR content (JFR supports multiple chunks),
         // then compress the result back to .jfr.lz4 before returning.
-        Path tempFile = tempDir.resolve(SupportedRecordingFile.JFR.appendExtension(sessionId));
+        Path tempFile = tempDir.resolve(JFR.appendExtension(sessionId));
 
         // Decompress each LZ4 file and merge the raw JFR content
         try (OutputStream out = Files.newOutputStream(tempFile,
@@ -447,7 +449,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             throw Exceptions.emptyRecordingSession(sessionId);
         }
 
-        Path compressedFile = tempDir.resolve(SupportedRecordingFile.JFR_LZ4.appendExtension(sessionId));
+        Path compressedFile = tempDir.resolve(JFR_LZ4.appendExtension(sessionId));
         Lz4Compressor.compress(tempFile, compressedFile);
         FileSystemUtils.removeFile(tempFile);
 

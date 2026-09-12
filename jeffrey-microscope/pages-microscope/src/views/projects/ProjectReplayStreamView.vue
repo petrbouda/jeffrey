@@ -290,13 +290,15 @@
       <StreamingEventsTable :events="events" :event-types="eventTypes">
         <template #empty>
           <EmptyState
-            title="No events"
+            :title="replayError ? 'Replay failed' : 'No events'"
             :description="
               replaying
                 ? 'Reading events from recording files...'
-                : canStart
-                  ? 'Click Start Replay to read historical events.'
-                  : 'Configure a session and event types, then click Start Replay.'
+                : replayError
+                  ? replayError
+                  : canStart
+                    ? 'Click Start Replay to read historical events.'
+                    : 'Configure a session and event types, then click Start Replay.'
             "
             icon="bi-collection-play"
           />
@@ -355,6 +357,7 @@ const endMode = ref<ReplayEndMode>('latest');
 const endTimeInput = ref('');
 const replaying = ref(false);
 const completed = ref(false);
+const replayError = ref<string | null>(null);
 const events = ref<StreamingEvent[]>([]);
 const batchCount = ref(0);
 const lastBatchTime = ref<number | null>(null);
@@ -374,6 +377,9 @@ const hasAnything = computed(
 const statusText = computed(() => {
   if (replaying.value) {
     return 'Replaying...';
+  }
+  if (replayError.value) {
+    return 'Replay Failed';
   }
   if (completed.value) {
     return 'Replay Complete';
@@ -429,6 +435,7 @@ function toggleEditing(card: Exclude<EditingCard, null>) {
 function onSessionPick(value: SelectedSession) {
   session.value = value;
   completed.value = false;
+  replayError.value = null;
   editing.value = eventTypes.value.length === 0 ? 'events' : null;
 }
 
@@ -456,11 +463,11 @@ function enableCustomMaxEvents() {
 }
 
 function startReplay() {
-  if (!session.value || !workspaceId.value || !projectId.value) {
+  if (!session.value || !hubId.value || !workspaceId.value || !projectId.value) {
     return;
   }
 
-  client = new ReplayStreamClient(workspaceId.value, projectId.value);
+  client = new ReplayStreamClient(hubId.value, workspaceId.value, projectId.value);
 
   const options: { startTime?: number; endTime?: number } = {};
   if (startMode.value === 'custom' && startTimeInput.value) {
@@ -475,6 +482,7 @@ function startReplay() {
   totalEventsReceived.value = 0;
   lastBatchTime.value = null;
   completed.value = false;
+  replayError.value = null;
   editing.value = null;
 
   client.replay(
@@ -496,7 +504,8 @@ function startReplay() {
     },
     error => {
       replaying.value = false;
-      completed.value = true;
+      completed.value = false;
+      replayError.value = error;
       ToastService.error('Replay failed', error);
     },
     options
@@ -526,6 +535,7 @@ function clearAll() {
   maxEvents.value = 1000;
   customMaxEvents.value = false;
   completed.value = false;
+  replayError.value = null;
   editing.value = null;
 }
 

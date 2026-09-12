@@ -417,11 +417,11 @@ function enableCustomMaxEvents() {
 }
 
 function startStreaming() {
-  if (sessions.value.length === 0 || !workspaceId.value || !projectId.value) {
+  if (sessions.value.length === 0 || !hubId.value || !workspaceId.value || !projectId.value) {
     return;
   }
 
-  client = new EventStreamingClient(workspaceId.value, projectId.value);
+  client = new EventStreamingClient(hubId.value, workspaceId.value, projectId.value);
 
   events.value = [];
   batchCount.value = 0;
