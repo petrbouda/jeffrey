@@ -131,9 +131,10 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         beyond a single application replica on the same node. In production: NFS, EFS,
         Azure Files, or any other RWX-capable <code>StorageClass</code>. In dev: a
         <code>hostPath</code> PV (see below). On an SMB share such as Azure Files, the hub
-        reads a file's size through an open handle whenever the mount lists it as empty, so
-        a session that is still recording shows real sizes; a low <code>actimeo</code> on the
-        hub's mount is not required, but keeps <code>stat</code> honest for other tooling.
+        measures the files of a session that is still recording through an open handle,
+        because the share's directory listing reports an open file at the size it last saw,
+        so those sessions show real sizes; a low <code>actimeo</code> on the hub's mount is
+        not required, but keeps <code>stat</code> honest for other tooling.
       </DocsCallout>
 
       <h2 id="pvc-contract">PVC Contract</h2>

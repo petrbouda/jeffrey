@@ -25,6 +25,7 @@ import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -511,6 +512,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return List.of();
         }
 
+        // A session that is still recording has its files open on another client, and on an SMB
+        // mount the directory listing then reports the size the server last saw of them, not the
+        // size they have; opening each file asks the server for the current one. A finished
+        // session's writer has closed its files, so the listing is right and the open is spared.
+        FileSizeReader sizeReader = recordingStatus == RecordingStatus.FINISHED
+                ? FileSizeReader.CACHED_ATTRIBUTES
+                : FileSizeReader.OPEN_HANDLE;
+
         List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
                         sessionPath, fileInfoProcessor.comparator()).stream()
                 .filter(Files::isRegularFile)
@@ -525,7 +534,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                             sourceId,
                             sourceName,
                             fileInfoProcessor.createdAt(file),
-                            FileSystemUtils.size(file),
+                            sizeReader.size(file),
                             SupportedRecordingFile.of(sourceName),
                             RecordingStatus.FINISHED,
                             file);
