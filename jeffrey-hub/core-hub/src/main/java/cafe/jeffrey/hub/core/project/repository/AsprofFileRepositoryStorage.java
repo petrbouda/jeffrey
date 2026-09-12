@@ -216,6 +216,38 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     /**
+     * One file of a session as the repository reports it, or {@code null} when the file can no
+     * longer be described because it is no longer there.
+     *
+     * <p>A session directory changes while it is being listed. async-profiler deletes its
+     * {@code .jfr.N~} cache as soon as it flushes a chunk, and the compression job replaces a
+     * recording with its archive, so a name this listing has just read can be gone by the time
+     * its size or timestamp is asked for. Leaving such a file out is what the next listing will
+     * say anyway; raising the failure instead would take the whole instance page down over one
+     * file that no longer exists. The race is old, but it used to be hidden: a {@code stat()}
+     * answered from the client's attribute cache still reports a file the share has already
+     * removed, where asking the share for a handle does not.
+     */
+    RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path workspacePath, Path sessionPath) {
+        String sourceName = sessionPath.relativize(file).toString();
+        SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
+        try {
+            return new RepositoryFile(
+                    FileSystemUtils.removeExtension(workspacePath.relativize(file), RECORDING_EXTENSIONS),
+                    sourceName,
+                    fileInfoProcessor.createdAt(file),
+                    sizeReader(sessionStatus, fileType).size(file),
+                    fileType,
+                    RecordingStatus.FINISHED,
+                    file);
+        } catch (RuntimeException e) {
+            LOG.debug("Leaving out a repository file that can no longer be described: file={} reason={}",
+                    file, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * How one file's size is read, which on an SMB mount is the difference between a figure and
      * a round trip. Only a session that is still recording has files open on another client, and
      * the share answers a directory listing about such a file with the size it last saw rather
@@ -229,7 +261,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         if (sessionStatus == RecordingStatus.FINISHED || fileType == SupportedRecordingFile.JFR_LZ4) {
             return FileSizeReader.FILE_ATTRIBUTES;
         }
-        return FileSizeReader.OPEN_HANDLE;
+        return FileSizeReader.LIVE_FILE;
     }
 
     private RecordingStatus determineSessionStatus(ProjectInstanceSessionInfo sessionInfo, boolean isLatestSession) {
@@ -535,22 +567,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                         sessionPath, fileInfoProcessor.comparator()).stream()
                 .filter(Files::isRegularFile)
                 .filter(FileSystemUtils::isNotHidden)
-                .map(file -> {
-                    String sourceId = FileSystemUtils.removeExtension(
-                            workspacePath.relativize(file), RECORDING_EXTENSIONS);
-
-                    String sourceName = sessionPath.relativize(file).toString();
-                    SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
-
-                    return new RepositoryFile(
-                            sourceId,
-                            sourceName,
-                            fileInfoProcessor.createdAt(file),
-                            sizeReader(recordingStatus, fileType).size(file),
-                            fileType,
-                            RecordingStatus.FINISHED,
-                            file);
-                })
+                .map(file -> describe(file, recordingStatus, workspacePath, sessionPath))
+                .filter(Objects::nonNull)
                 .toList();
 
         Optional<RepositoryFile> latestRecordingFile = repositoryFiles.stream()

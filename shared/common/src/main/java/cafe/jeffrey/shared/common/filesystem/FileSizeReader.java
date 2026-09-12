@@ -56,6 +56,12 @@ public interface FileSizeReader {
     FileSizeReader FILE_ATTRIBUTES = new FileAttributes();
 
     /**
+     * For a file another process may still be writing: its handle, or the listing's figure when
+     * the share will not give one.
+     */
+    FileSizeReader LIVE_FILE = new OrElse(OPEN_HANDLE, FILE_ATTRIBUTES);
+
+    /**
      * @throws RuntimeException when the file cannot be read, wrapping the {@link IOException}
      */
     long size(Path path);
@@ -72,6 +78,27 @@ public interface FileSizeReader {
                 return channel.size();
             } catch (IOException e) {
                 throw new RuntimeException("Cannot get size of file through an open handle: " + path, e);
+            }
+        }
+    }
+
+    /**
+     * Asks one reader and, when the file will not answer it, the other.
+     *
+     * <p>An open can fail where a {@code stat()} succeeds, and not only because the file is
+     * gone: a share may refuse a second handle on a file whose writer holds it exclusively.
+     * That is no reason to deny the caller a figure it could have had, so the second reader
+     * gets to answer. If the file is genuinely unreachable both fail and the caller hears about
+     * it, which is the case worth hearing about.
+     */
+    record OrElse(FileSizeReader preferred, FileSizeReader fallback) implements FileSizeReader {
+
+        @Override
+        public long size(Path path) {
+            try {
+                return preferred.size(path);
+            } catch (RuntimeException e) {
+                return fallback.size(path);
             }
         }
     }
