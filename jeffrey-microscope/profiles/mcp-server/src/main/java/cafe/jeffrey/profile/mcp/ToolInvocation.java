@@ -58,7 +58,7 @@ final class ToolInvocation {
                     McpToolResult output = value instanceof McpToolResult structured
                             ? structured
                             : McpToolResult.text(value == null ? "" : value.toString());
-                    if (method.isAnnotationPresent(McpOutputSchema.class) && output.structuredContent() == null) {
+                    if (method.isAnnotationPresent(McpOutputSchema.class) && !output.hasStructuredContent()) {
                         throw new IllegalStateException("Tool declared an output schema but returned no structured data: "
                                 + toolName);
                     }

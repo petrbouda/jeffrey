@@ -343,7 +343,7 @@ public abstract class AbstractMcpStreamableHttpController {
         try {
             McpToolResult output = toolset.callResult(toolName, arguments);
             content.addObject().put(FIELD_TYPE, CONTENT_TYPE_TEXT).put(FIELD_TEXT, output.text());
-            if (structured && output.structuredContent() != null) {
+            if (structured && output.hasStructuredContent()) {
                 result.set(FIELD_STRUCTURED_CONTENT, output.structuredContent());
             }
             result.put(FIELD_IS_ERROR, false);

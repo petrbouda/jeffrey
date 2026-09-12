@@ -142,6 +142,11 @@ public class BoundedJobs<K, V> {
      * this when a transfer may finish while another caller is still validating the remote session;
      * their predicate checks that the local recording still exists. Other callers keep the original
      * restart-after-success policy through the overloads above.
+     * <p>
+     * {@code reuseSuccess} runs inside the map's own update, holding the bin lock -- which is the point,
+     * since deciding outside it is the race this overload exists to close. It must therefore be short
+     * and must not reach back into this instance: a local lookup is what it is for, and a remote call
+     * or anything that blocks belongs before the call, not in the predicate.
      */
     public Optional<V> runWithin(
             K key, Duration waitBudget, boolean retryFailure, Predicate<V> reuseSuccess, Supplier<V> work) {

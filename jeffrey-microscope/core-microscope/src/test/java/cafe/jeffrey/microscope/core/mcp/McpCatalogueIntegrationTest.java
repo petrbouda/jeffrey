@@ -42,6 +42,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -81,6 +82,136 @@ class McpCatalogueIntegrationTest {
         assertFalse(result.path("isError").asBoolean(), result.toString());
         assertTrue(result.path("content").get(0).path("text").asString().length() > 0);
         return result.path("structuredContent");
+    }
+
+    /**
+     * The declared schema is a string literal and the object is built field by field beside it, so the
+     * two agree only for as long as somebody keeps them agreeing. A client that validates
+     * structuredContent against the advertised outputSchema is entitled to reject the call when they
+     * drift, which is a failure this server would otherwise learn about from the client.
+     */
+    @Test
+    void theProfileCatalogueConformsToTheSchemaItAdvertises() {
+        Instant time = Instant.parse("2026-01-01T00:00:00Z");
+        when(repositories.findAllProfiles()).thenReturn(List.of(
+                // A row with every nullable field null and a name past the declared maxLength, which is
+                // where the ["string","null"] unions and the bound are the parts worth checking.
+                new ProfileInfo("p2", null, null, "N".repeat(4_000), RecordingEventSource.JDK,
+                        null, null, time, true, true, null),
+                new ProfileInfo("p1", "proj-1", "ws-1", "First", RecordingEventSource.JDK,
+                        time, time.plusSeconds(60), time, false, false, "r1")));
+
+        assertConforms(call("profiles_list", Json.createObject().put("limit", 1)),
+                outputSchema("profiles_list"), "profiles_list");
+        assertConforms(call("profiles_list", Json.createObject()),
+                outputSchema("profiles_list"), "profiles_list(all)");
+    }
+
+    @Test
+    void theHubCatalogueConformsToTheSchemaItAdvertises() {
+        when(hubs.findAll()).thenReturn(List.of());
+
+        assertConforms(call("hubs_sessions", Json.createObject()),
+                outputSchema("hubs_sessions"), "hubs_sessions");
+    }
+
+    private JsonNode outputSchema(String toolName) {
+        for (JsonNode tool : request("tools/list", Json.createObject()).path("tools")) {
+            if (toolName.equals(tool.path("name").asString())) {
+                JsonNode schema = tool.path("outputSchema");
+                assertTrue(schema.isObject(), toolName + " advertises no outputSchema");
+                return schema;
+            }
+        }
+        throw new AssertionError("No advertised tool named " + toolName);
+    }
+
+    /** Only the vocabulary these two schemas use; anything else fails rather than passing unchecked. */
+    private static final Set<String> SUPPORTED_KEYWORDS = Set.of(
+            "type", "properties", "required", "additionalProperties", "items",
+            "enum", "const", "maxLength", "minimum", "maximum", "description");
+
+    private static void assertConforms(JsonNode instance, JsonNode schema, String path) {
+        for (String keyword : schema.propertyNames()) {
+            if (!SUPPORTED_KEYWORDS.contains(keyword)) {
+                fail("This check does not understand '" + keyword + "' at " + path
+                        + "; teach it the keyword rather than trusting a pass it did not make");
+            }
+        }
+        JsonNode type = schema.get("type");
+        if (type != null && !matchesType(instance, type)) {
+            fail(path + " is " + instance.getNodeType() + ", which none of " + type + " allows");
+        }
+        JsonNode constant = schema.get("const");
+        if (constant != null && !constant.equals(instance)) {
+            fail(path + " must be " + constant + " but was " + instance);
+        }
+        JsonNode enumeration = schema.get("enum");
+        if (enumeration != null) {
+            boolean matched = false;
+            for (JsonNode candidate : enumeration) {
+                matched |= candidate.equals(instance);
+            }
+            if (!matched) {
+                fail(path + " is " + instance + ", which is not one of " + enumeration);
+            }
+        }
+        JsonNode maxLength = schema.get("maxLength");
+        if (maxLength != null && instance.isString() && instance.asString().length() > maxLength.asInt()) {
+            fail(path + " is " + instance.asString().length() + " characters, past the declared "
+                    + maxLength.asInt());
+        }
+        JsonNode minimum = schema.get("minimum");
+        if (minimum != null && instance.isNumber() && instance.asDouble() < minimum.asDouble()) {
+            fail(path + " is " + instance + ", below the declared minimum " + minimum);
+        }
+        if (instance.isObject()) {
+            JsonNode properties = schema.path("properties");
+            for (JsonNode required : schema.path("required")) {
+                if (!instance.has(required.asString())) {
+                    fail(path + " is missing the required property " + required.asString());
+                }
+            }
+            for (String property : instance.propertyNames()) {
+                JsonNode child = properties.get(property);
+                if (child == null) {
+                    if (schema.path("additionalProperties").isBoolean()
+                            && !schema.path("additionalProperties").asBoolean()) {
+                        fail(path + " carries " + property + ", which the schema does not declare");
+                    }
+                    continue;
+                }
+                assertConforms(instance.get(property), child, path + "." + property);
+            }
+        }
+        JsonNode items = schema.get("items");
+        if (items != null && instance.isArray()) {
+            int index = 0;
+            for (JsonNode element : instance) {
+                assertConforms(element, items, path + "[" + index++ + "]");
+            }
+        }
+    }
+
+    private static boolean matchesType(JsonNode instance, JsonNode type) {
+        if (type.isString()) {
+            return switch (type.asString()) {
+                case "object" -> instance.isObject();
+                case "array" -> instance.isArray();
+                case "string" -> instance.isString();
+                case "integer" -> instance.isIntegralNumber();
+                case "number" -> instance.isNumber();
+                case "boolean" -> instance.isBoolean();
+                case "null" -> instance.isNull();
+                default -> false;
+            };
+        }
+        for (JsonNode candidate : type) {
+            if (matchesType(instance, candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test

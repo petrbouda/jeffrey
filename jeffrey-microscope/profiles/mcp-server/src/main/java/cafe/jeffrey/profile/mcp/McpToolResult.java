@@ -28,16 +28,25 @@ public record McpToolResult(String text, ObjectNode structuredContent) {
     public McpToolResult {
         Objects.requireNonNull(text, "text");
         if (structuredContent != null) {
+            // Copied so the caller cannot change what was measured; the accessor copies again so a
+            // reader cannot either. Both are load-bearing, which is why hasStructuredContent() exists
+            // and why callers that need the node should take it once -- each read walks a tree that
+            // can be 120,000 characters.
             structuredContent = structuredContent.deepCopy();
-            if (text.length() > McpToolOutput.MAX_CHARS
-                    || Json.toString(structuredContent).length() > McpToolOutput.MAX_CHARS) {
-                throw new IllegalArgumentException("Structured tool result exceeds the output size limit");
+            if (Json.toString(structuredContent).length() > McpToolOutput.MAX_CHARS) {
+                throw new IllegalArgumentException("Structured tool result exceeds the output size limit. "
+                        + "Return fewer rows, or narrow the query that produced them.");
             }
         }
     }
 
     public static McpToolResult text(String text) {
         return new McpToolResult(text, null);
+    }
+
+    /** Whether a machine-readable object was supplied, without building a copy to find out. */
+    public boolean hasStructuredContent() {
+        return structuredContent != null;
     }
 
     @Override
