@@ -60,10 +60,10 @@ final class ToolParamTypes {
 
     private static final Map<Class<?>, Binding> BINDINGS = Map.ofEntries(
             Map.entry(String.class, new Binding(JSON_TYPE_STRING, JsonNode::asString, null)),
-            Map.entry(int.class, new Binding(JSON_TYPE_INTEGER, JsonNode::asInt, 0)),
-            Map.entry(Integer.class, new Binding(JSON_TYPE_INTEGER, JsonNode::asInt, null)),
-            Map.entry(long.class, new Binding(JSON_TYPE_INTEGER, JsonNode::asLong, 0L)),
-            Map.entry(Long.class, new Binding(JSON_TYPE_INTEGER, JsonNode::asLong, null)),
+            Map.entry(int.class, new Binding(JSON_TYPE_INTEGER, node -> node.decimalValue().intValueExact(), 0)),
+            Map.entry(Integer.class, new Binding(JSON_TYPE_INTEGER, node -> node.decimalValue().intValueExact(), null)),
+            Map.entry(long.class, new Binding(JSON_TYPE_INTEGER, node -> node.decimalValue().longValueExact(), 0L)),
+            Map.entry(Long.class, new Binding(JSON_TYPE_INTEGER, node -> node.decimalValue().longValueExact(), null)),
             Map.entry(boolean.class, new Binding(JSON_TYPE_BOOLEAN, JsonNode::asBoolean, Boolean.FALSE)),
             Map.entry(Boolean.class, new Binding(JSON_TYPE_BOOLEAN, JsonNode::asBoolean, null)),
             Map.entry(double.class, new Binding(JSON_TYPE_NUMBER, JsonNode::asDouble, 0d)),
@@ -103,6 +103,9 @@ final class ToolParamTypes {
     static Object convert(JsonNode value, Class<?> type) {
         boolean missing = value == null || value.isNull();
         if (type.isEnum()) {
+            if (!missing && !value.isString()) {
+                throw new ToolDispatchException("Expected a string");
+            }
             return missing ? null : enumConstant(type, value.asString());
         }
 
@@ -112,7 +115,28 @@ final class ToolParamTypes {
             // family. Stated rather than assumed, so a future caller that skips the index is told.
             throw new IllegalStateException("Unsupported tool parameter type: " + type.getName());
         }
-        return missing ? binding.absent() : binding.read().apply(value);
+        if (missing) {
+            return binding.absent();
+        }
+        boolean validType = switch (binding.jsonType()) {
+            case JSON_TYPE_STRING -> value.isString();
+            case JSON_TYPE_INTEGER, JSON_TYPE_NUMBER -> value.isNumber();
+            case JSON_TYPE_BOOLEAN -> value.isBoolean();
+            default -> false;
+        };
+        if (!validType) {
+            throw new ToolDispatchException("Expected " + binding.jsonType());
+        }
+        try {
+            Object converted = binding.read().apply(value);
+            if (converted instanceof Double number && !Double.isFinite(number)
+                    || converted instanceof Float floatNumber && !Float.isFinite(floatNumber)) {
+                throw new ArithmeticException("Non-finite number");
+            }
+            return converted;
+        } catch (ArithmeticException e) {
+            throw new ToolDispatchException("Expected " + binding.jsonType() + " in the range of " + type.getSimpleName());
+        }
     }
 
     /**

@@ -163,6 +163,7 @@ final class ToolMethodIndex {
      * @throws ToolDispatchException if a required argument is missing or a value does not fit its type
      */
     Object[] bindArguments(Method method, JsonNode arguments) {
+        validateArgumentsObject(arguments);
         Parameter[] parameters = method.getParameters();
         Set<String> required = requiredParamsByMethod.getOrDefault(method, Set.of());
         Object[] args = new Object[parameters.length];
@@ -173,9 +174,30 @@ final class ToolMethodIndex {
             if (required.contains(name) && (value == null || value.isNull())) {
                 throw new ToolDispatchException("Missing required argument: " + name);
             }
-            args[i] = ToolParamTypes.convert(value, parameter.getType());
+            try {
+                args[i] = ToolParamTypes.convert(value, parameter.getType());
+                List<String> allowed = allowedValues(parameter);
+                if (value != null && !value.isNull() && !allowed.isEmpty()) {
+                    String canonical = allowed.stream()
+                            .filter(candidate -> candidate.equalsIgnoreCase(value.asString()))
+                            .findFirst()
+                            .orElseThrow(() -> new ToolDispatchException("Expected one of: " + String.join(", ", allowed)));
+                    // Preserve case-insensitive calls, but pass the spelling downstream tools declare.
+                    if (parameter.getType() == String.class) {
+                        args[i] = canonical;
+                    }
+                }
+            } catch (ToolDispatchException e) {
+                throw new ToolDispatchException("Invalid argument '" + name + "': " + e.getMessage());
+            }
         }
         return args;
+    }
+
+    static void validateArgumentsObject(JsonNode arguments) {
+        if (arguments != null && !arguments.isObject()) {
+            throw new ToolDispatchException("Tool arguments must be an object");
+        }
     }
 
     /**

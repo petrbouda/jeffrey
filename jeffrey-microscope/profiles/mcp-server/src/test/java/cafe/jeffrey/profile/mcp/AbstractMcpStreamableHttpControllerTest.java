@@ -339,7 +339,7 @@ class AbstractMcpStreamableHttpControllerTest {
 
         @Tool(description = "A tool that ran and could not answer")
         public String fail() {
-            throw new IllegalStateException("nothing to report");
+            return McpToolOutput.error("nothing to report");
         }
 
         @Tool(description = "List what this fixture knows")

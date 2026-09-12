@@ -24,6 +24,8 @@ import cafe.jeffrey.shared.common.Json;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -116,6 +118,20 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
     public ResponseEntity<JsonNode> handle(
             @RequestBody JsonNode request,
             HttpServletRequest httpRequest) {
+        ResponseEntity<JsonNode> refusal = refuseRequest(httpRequest);
+        if (refusal != null) {
+            return refusal;
+        }
+        return dispatch(request, httpRequest.getHeader(PROTOCOL_VERSION_HEADER), features);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<JsonNode> malformedJson(HttpServletRequest httpRequest) {
+        ResponseEntity<JsonNode> refusal = refuseRequest(httpRequest);
+        return refusal == null ? parseErrorResponse() : refusal;
+    }
+
+    private ResponseEntity<JsonNode> refuseRequest(HttpServletRequest httpRequest) {
         if (!properties.enabled()) {
             return ResponseEntity.notFound().build();
         }
@@ -127,6 +143,6 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Json.createObject().put(REFUSAL_FIELD, refusal));
         }
-        return dispatch(request, httpRequest.getHeader(PROTOCOL_VERSION_HEADER), features);
+        return null;
     }
 }

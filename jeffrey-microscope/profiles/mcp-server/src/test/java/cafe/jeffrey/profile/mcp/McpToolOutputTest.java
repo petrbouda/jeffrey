@@ -22,16 +22,25 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.shared.common.Json;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import tools.jackson.databind.JsonNode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpToolOutputTest {
 
     private record Dashboard(String title, List<String> rows) {
+    }
+
+    private record NestedRows(List<String> rows) {
+    }
+
+    private record TwinLists(NestedRows left, NestedRows right) {
     }
 
 
@@ -123,6 +132,36 @@ class McpToolOutputTest {
     }
 
     @Test
+    void distinguishesTrimmedArraysWithTheSameFieldName() {
+        List<String> rows = new ArrayList<>();
+        for (int i = 0; i < 5_000; i++) {
+            rows.add("row-" + i + "-" + "x".repeat(60));
+        }
+
+        JsonNode truncated = Json.readTree(McpToolOutput.json(
+                new TwinLists(new NestedRows(rows), new NestedRows(rows)))).get("_truncated");
+
+        assertTrue(truncated.has("left.rows"), "the left array needs its own truncation record");
+        assertTrue(truncated.has("right.rows"), "the right array needs its own truncation record");
+    }
+
+    @Test
+    void escapesPropertyNamesThatWouldCollideWithAPath() {
+        List<String> rows = new ArrayList<>();
+        for (int i = 0; i < 5_000; i++) {
+            rows.add("row-" + i + "-" + "x".repeat(60));
+        }
+        Map<String, Object> value = new LinkedHashMap<>();
+        value.put("left", Map.of("rows", rows));
+        value.put("left.rows", rows);
+
+        JsonNode truncated = Json.readTree(McpToolOutput.json(value)).get("_truncated");
+
+        assertTrue(truncated.has("left.rows"), "the nested array keeps the readable dotted path");
+        assertTrue(truncated.has("[\"left.rows\"]"), "the dotted property name must be escaped");
+    }
+
+    @Test
     void aJsonResultThatFitsIsLeftExactlyAsItWas() {
         String rendered = McpToolOutput.json(new Dashboard("cpu", List.of("a", "b")));
         assertEquals("{\"title\":\"cpu\",\"rows\":[\"a\",\"b\"]}", rendered);
@@ -167,6 +206,9 @@ class McpToolOutputTest {
         assertTrue(parsed.isObject(), "a trimmed list is wrapped so the record has somewhere to hang");
         assertTrue(parsed.get("items").size() < rows.size());
         assertNotNull(parsed.get("_truncated"));
+        assertEquals(1, parsed.get("_truncated").size(),
+                "repeated passes over the root array must update one record");
+        assertTrue(parsed.get("_truncated").has("array1"));
         assertTrue(json.length() <= McpToolOutput.MAX_CHARS);
     }
 
@@ -178,10 +220,57 @@ class McpToolOutputTest {
     }
 
     @Test
-    void marksErrorsSoTheModelCanTellThemFromData() {
-        assertTrue(McpToolOutput.error("nothing here").startsWith("Error: "));
+    void keepsAScalarHeavyObjectBoundedAndParseable() {
+        Map<String, String> value = Map.of(
+                "largeField", "x".repeat(McpToolOutput.MAX_CHARS + 1));
+        String original = Json.toString(value);
+
+        String rendered = McpToolOutput.json(value);
+
+        JsonNode parsed = assertBoundedJson(rendered);
+        assertEquals(original.length(), parsed.get("_truncated").get("original").asInt());
+    }
+
+    @Test
+    void keepsAnOversizedBareScalarBoundedAndParseable() {
+        assertBoundedJson(McpToolOutput.json("x".repeat(McpToolOutput.MAX_CHARS + 1)));
+    }
+
+    @Test
+    void keepsAnArrayWithOneOversizedElementBoundedAndParseable() {
+        assertBoundedJson(McpToolOutput.json(List.of(
+                "x".repeat(McpToolOutput.MAX_CHARS + 1))));
+    }
+
+    @Test
+    void keepsJsonParseableWhenArrayTrimmingCannotReclaimEnoughSpace() {
+        assertBoundedJson(McpToolOutput.json(Map.of(
+                "rows", List.of("x".repeat(McpToolOutput.MAX_CHARS + 1)))));
+    }
+
+    @Test
+    void keepsOversizedUnicodeJsonBoundedAndParseable() {
+        assertBoundedJson(McpToolOutput.json(Map.of(
+                "largeField", "🧪".repeat(McpToolOutput.MAX_CHARS))));
+    }
+
+    @Test
+    void raisesErrorsSoTheProtocolCanTellThemFromData() {
+        ToolExecutionException error = assertThrows(
+                ToolExecutionException.class,
+                () -> McpToolOutput.error("nothing here"));
+
+        assertEquals("nothing here", error.getMessage());
     }
 
     private record Sample(int value) {
+    }
+
+    private static JsonNode assertBoundedJson(String json) {
+        assertTrue(json.length() <= McpToolOutput.MAX_CHARS, "length=" + json.length());
+        JsonNode parsed = Json.readTree(json);
+        assertNotNull(parsed);
+        assertTrue(parsed.has("_truncated"), "an overflow fallback must explain that data was omitted");
+        return parsed;
     }
 }

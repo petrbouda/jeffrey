@@ -29,6 +29,7 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeTargetsResult.IdeInstanceView
 import cafe.jeffrey.microscope.core.manager.ide.IdeTargetsResult.IdeProjectView;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -241,10 +242,12 @@ class IdeMcpToolsTest {
         void linkRefusesAProjectIdThatIsNotOpen() {
             windowsOpen(project("a", "service", true));
 
-            String answer = tools.link("gone");
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools.link("gone"));
 
             verify(ideBridge, never()).selectTarget(any(), any());
-            assertTrue(answer.contains("gone"));
+            assertTrue(error.getMessage().contains("gone"), error.getMessage());
         }
     }
 
@@ -306,7 +309,11 @@ class IdeMcpToolsTest {
             when(ideBridge.fetchSource(any()))
                     .thenReturn(IdeSourceResult.failed("Source is not available for this class"));
 
-            assertTrue(tools.source(FQN).contains("Source is not available"));
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools.source(FQN));
+
+            assertTrue(error.getMessage().contains("Source is not available"), error.getMessage());
         }
 
         @Test

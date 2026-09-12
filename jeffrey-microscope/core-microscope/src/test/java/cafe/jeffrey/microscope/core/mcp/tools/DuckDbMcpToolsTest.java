@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.test.DuckDBTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,6 +31,7 @@ import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -148,19 +150,22 @@ class DuckDbMcpToolsTest {
         void surfacesTheRealBinderError(DataSource dataSource) throws SQLException {
             seedRows(dataSource, 1);
 
-            String out = new DuckDbMcpTools(dataSource).executeQuery("SELECT nope FROM big");
+            ToolExecutionException error = assertThrows(ToolExecutionException.class,
+                    () -> new DuckDbMcpTools(dataSource).executeQuery("SELECT nope FROM big"));
 
-            assertTrue(out.contains("nope"), "the caller has to be told which column: " + out);
-            assertFalse(out.contains("pending query result"), out);
+            assertTrue(error.getMessage().contains("nope"),
+                    "the caller has to be told which column: " + error.getMessage());
+            assertFalse(error.getMessage().contains("pending query result"), error.getMessage());
         }
 
         @Test
         @DisplayName("an unknown table comes back named")
         void surfacesTheRealCatalogError(DataSource dataSource) {
-            String out = new DuckDbMcpTools(dataSource).executeQuery("SELECT * FROM no_such_table");
+            ToolExecutionException error = assertThrows(ToolExecutionException.class,
+                    () -> new DuckDbMcpTools(dataSource).executeQuery("SELECT * FROM no_such_table"));
 
-            assertTrue(out.contains("no_such_table"), out);
-            assertFalse(out.contains("pending query result"), out);
+            assertTrue(error.getMessage().contains("no_such_table"), error.getMessage());
+            assertFalse(error.getMessage().contains("pending query result"), error.getMessage());
         }
     }
 
@@ -179,9 +184,11 @@ class DuckDbMcpToolsTest {
         void refusesStackedStatements(DataSource dataSource) throws SQLException {
             seedRows(dataSource, 1);
 
-            String out = new DuckDbMcpTools(dataSource).executeQuery("SELECT i FROM big; DROP TABLE big");
+            ToolExecutionException error = assertThrows(ToolExecutionException.class,
+                    () -> new DuckDbMcpTools(dataSource)
+                            .executeQuery("SELECT i FROM big; DROP TABLE big"));
 
-            assertTrue(out.startsWith("Error:"), out);
+            assertTrue(error.getMessage().contains("Only one statement"), error.getMessage());
             assertTrue(tableExists(dataSource), "the DROP must not have run");
         }
 
@@ -233,10 +240,11 @@ class DuckDbMcpToolsTest {
         void guardsTheWhereClause(DataSource dataSource) throws SQLException {
             seedRows(dataSource, 1);
 
-            String out = new DuckDbMcpTools(dataSource)
-                    .queryEvents("jdk.ExecutionSample", 10, "1=1); DROP TABLE big; --");
+            ToolExecutionException error = assertThrows(ToolExecutionException.class,
+                    () -> new DuckDbMcpTools(dataSource)
+                            .queryEvents("jdk.ExecutionSample", 10, "1=1); DROP TABLE big; --"));
 
-            assertTrue(out.startsWith("Error:"), out);
+            assertTrue(error.getMessage().contains("Only one statement"), error.getMessage());
             assertTrue(tableExists(dataSource), "the DROP must not have run");
         }
 
@@ -260,9 +268,9 @@ class DuckDbMcpToolsTest {
         void refusesNonSelect(DataSource dataSource) {
             DuckDbMcpTools tools = new DuckDbMcpTools(dataSource);
 
-            assertTrue(tools.executeQuery("DELETE FROM big").startsWith("Error:"));
-            assertTrue(tools.executeQuery("ATTACH 'other.db' AS other").startsWith("Error:"));
-            assertTrue(tools.executeQuery("COPY big TO '/tmp/out.csv'").startsWith("Error:"));
+            assertThrows(ToolExecutionException.class, () -> tools.executeQuery("DELETE FROM big"));
+            assertThrows(ToolExecutionException.class, () -> tools.executeQuery("ATTACH 'other.db' AS other"));
+            assertThrows(ToolExecutionException.class, () -> tools.executeQuery("COPY big TO '/tmp/out.csv'"));
         }
 
         @Test

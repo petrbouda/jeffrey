@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -49,27 +50,67 @@ public class ProfilesMcpTools {
         this.coreRepositories = coreRepositories;
     }
 
-    @Tool(description = "List every profile analysed in this Jeffrey installation. Start here: every "
-            + "other tool takes one of the profile ids this returns. A profile is one analysed "
-            + "recording (JFR) or heap dump. A row whose `ready` column reads 'building' is still "
-            + "being parsed and cannot be analysed yet - recordings_status reports how far it has "
-            + "got.")
+    @Tool(description = "List analysed profiles in this Jeffrey installation, returning the first 100 "
+            + "matches by default and at most 1000. Start here: every other tool takes one of the "
+            + "profile ids this returns. A profile is one analysed recording (JFR) or heap dump. A "
+            + "row whose `ready` column reads 'building' is still being parsed and cannot be analysed "
+            + "yet - recordings_status reports how far it has got.")
     public String list(
             @ToolParam(required = false, description = "Optional case-insensitive substring matched against the profile name")
             String search,
             @ToolParam(required = false, description = "Maximum number of profiles to return (default 100)")
             Integer limit) {
 
-        List<ProfileInfo> profiles = coreRepositories.findAllProfiles().stream()
+        List<ProfileInfo> matchingProfiles = coreRepositories.findAllProfiles().stream()
                 .filter(profile -> matches(profile, search))
-                .limit(ToolArguments.boundedLimit(limit, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT))
+                .toList();
+        int effectiveLimit = ToolArguments.boundedLimit(limit, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT);
+        List<ProfileInfo> selectedProfiles = matchingProfiles.stream()
+                .limit(effectiveLimit)
                 .toList();
 
-        if (profiles.isEmpty()) {
-            return search == null || search.isBlank()
+        if (selectedProfiles.isEmpty()) {
+            String empty = search == null || search.isBlank()
                     ? NO_PROFILES
                     : "No profile matches: " + search;
+            return empty + "\n\n" + returnedCount(0, 0);
         }
+
+        String selectedOutput = renderCatalogue(
+                selectedProfiles, selectedProfiles.size(), matchingProfiles.size(), effectiveLimit);
+        if (selectedOutput.length() <= McpToolOutput.MAX_CHARS) {
+            return selectedOutput;
+        }
+
+        // A limit controls rows, while the shared output cap controls characters. Long names can make
+        // the latter the tighter bound, so find the largest complete prefix that fits rather than let
+        // the cap cut a row and still claim that every selected row was returned.
+        int low = 0;
+        int high = selectedProfiles.size() - 1;
+        String fittingOutput = renderCatalogue(
+                List.of(), selectedProfiles.size(), matchingProfiles.size(), effectiveLimit);
+        while (low <= high) {
+            int candidateSize = low + (high - low) / 2;
+            String candidate = renderCatalogue(
+                    selectedProfiles.subList(0, candidateSize),
+                    selectedProfiles.size(),
+                    matchingProfiles.size(),
+                    effectiveLimit);
+            if (candidate.length() <= McpToolOutput.MAX_CHARS) {
+                fittingOutput = candidate;
+                low = candidateSize + 1;
+            } else {
+                high = candidateSize - 1;
+            }
+        }
+        return fittingOutput;
+    }
+
+    private static String renderCatalogue(
+            List<ProfileInfo> profiles,
+            int selectedCount,
+            int matchingCount,
+            int effectiveLimit) {
 
         MarkdownTable table = MarkdownTable.withColumns(
                 "profile_id", "name", "project", "event source", "recorded", "duration", "ready",
@@ -85,13 +126,35 @@ public class ProfilesMcpTools {
                     readiness(profile),
                     profile.modified() ? "yes" : "no");
         }
-        return table
+        String preamble = returnedCount(profiles.size(), matchingCount);
+        if (profiles.size() < selectedCount) {
+            preamble += "\n\nThe output size limit omitted " + (selectedCount - profiles.size())
+                    + " selected profiles; narrow `search` to retrieve the profiles you need.";
+        }
+        if (selectedCount < matchingCount) {
+            preamble += "\n\n" + limitRecovery(effectiveLimit);
+        }
+        String renderedTable = table
                 .note("A `modified` profile has had frames renamed or collapsed, so its frame names may "
                         + "differ from the source code.")
                 .note("A profile listed as `building` has a row but not yet its events: its recording is "
                         + "still being parsed. Its id is real, and every analysis tool will answer "
                         + "emptily until it is `yes` - recordings_status says when.")
                 .render();
+        return McpToolOutput.capped(preamble + "\n\n" + renderedTable);
+    }
+
+    private static String returnedCount(int returned, int matching) {
+        return "Returned " + returned + " of " + matching + " matching profiles.";
+    }
+
+    private static String limitRecovery(int effectiveLimit) {
+        if (effectiveLimit < MAX_LIST_LIMIT) {
+            return "Increase `limit` (maximum " + MAX_LIST_LIMIT + ") or narrow `search` to retrieve "
+                    + "the profiles you need.";
+        }
+        return "The maximum `limit` is " + MAX_LIST_LIMIT + "; narrow `search` to retrieve the "
+                + "profiles you need.";
     }
 
     /**

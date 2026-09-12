@@ -17,7 +17,13 @@
  */
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
+
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A workflow the server offers by name, which a client can insert into a conversation.
@@ -44,6 +50,36 @@ public record McpPrompt(
 
     public McpPrompt {
         arguments = List.copyOf(arguments);
+    }
+
+    /** Adds caller-supplied context without interpreting it as a template or changing the workflow. */
+    public String render(JsonNode supplied) {
+        if (supplied != null && !supplied.isObject()) {
+            throw new IllegalArgumentException("Prompt arguments must be an object");
+        }
+        Set<String> declared = arguments.stream().map(Argument::name).collect(Collectors.toSet());
+        if (supplied != null) {
+            for (String name : supplied.propertyNames()) {
+                if (!declared.contains(name)) {
+                    throw new IllegalArgumentException("Unknown prompt argument: " + name);
+                }
+            }
+        }
+        ObjectNode context = Json.createObject();
+        for (Argument argument : arguments) {
+            JsonNode value = supplied == null ? null : supplied.get(argument.name());
+            if (value == null) {
+                if (argument.required()) {
+                    throw new IllegalArgumentException("Missing required prompt argument: " + argument.name());
+                }
+                continue;
+            }
+            if (!value.isString()) {
+                throw new IllegalArgumentException("Prompt argument '" + argument.name() + "' must be a string");
+            }
+            context.set(argument.name(), value);
+        }
+        return context.isEmpty() ? text : text + "\n\nCaller-provided workflow context (JSON):\n" + context;
     }
 
     public record Argument(String name, String description, boolean required) {

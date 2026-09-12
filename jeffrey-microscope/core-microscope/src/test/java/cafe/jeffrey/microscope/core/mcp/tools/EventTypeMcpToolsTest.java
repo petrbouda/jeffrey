@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.profile.manager.EventViewerManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.provider.profile.api.FieldDescription;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -149,10 +150,13 @@ class EventTypeMcpToolsTest {
         void refusesAnUnrecordedTypeWithoutAskingForItsColumns() {
             recorded(RECORDED_TYPE);
 
-            String out = tools().describeEventType(UNRECORDED_TYPE);
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools().describeEventType(UNRECORDED_TYPE));
 
-            assertTrue(out.contains("recorded no event type called '" + UNRECORDED_TYPE + "'"), out);
-            assertTrue(out.contains("jfr_listEventTypes"), out);
+            assertTrue(error.getMessage().contains("recorded no event type called '" + UNRECORDED_TYPE + "'"),
+                    error.getMessage());
+            assertTrue(error.getMessage().contains("jfr_listEventTypes"), error.getMessage());
             verify(eventViewerManager, never()).eventColumns(Type.fromCode(UNRECORDED_TYPE));
         }
 

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -89,7 +90,7 @@ public class HeapDumpMcpTools {
             );
         } catch (Exception e) {
             LOG.error("Failed to get heap summary: message={}", e.getMessage(), e);
-            return "Error: Failed to get heap summary: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get heap summary: " + e.getMessage(), e);
         }
     }
 
@@ -128,7 +129,7 @@ public class HeapDumpMcpTools {
             return withNextSteps(result.toString(), STEP_INSTANCES, STEP_GC_ROOT_PATH);
         } catch (Exception e) {
             LOG.error("Failed to get class histogram: message={}", e.getMessage(), e);
-            return "Error: Failed to get class histogram: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get class histogram: " + e.getMessage(), e);
         }
     }
 
@@ -168,7 +169,7 @@ public class HeapDumpMcpTools {
             return withNextSteps(result.toString(), STEP_GC_ROOT_PATH, STEP_DOMINATOR_FIRST);
         } catch (Exception e) {
             LOG.error("Failed to get biggest objects: message={}", e.getMessage(), e);
-            return "Error: Failed to get biggest objects: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get biggest objects: " + e.getMessage(), e);
         }
     }
 
@@ -238,7 +239,7 @@ public class HeapDumpMcpTools {
             return withNextSteps(result.toString(), STEP_GC_ROOT_PATH, STEP_DOMINATOR_FIRST);
         } catch (Exception e) {
             LOG.error("Failed to get leak suspects: message={}", e.getMessage(), e);
-            return "Error: Failed to get leak suspects: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get leak suspects: " + e.getMessage(), e);
         }
     }
 
@@ -286,7 +287,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get class-loader leak chains: message={}", e.getMessage(), e);
-            return "Error: Failed to get class-loader leak chains: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get class-loader leak chains: " + e.getMessage(), e);
         }
     }
 
@@ -325,7 +326,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get top consumers: message={}", e.getMessage(), e);
-            return "Error: Failed to get top consumers: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get top consumers: " + e.getMessage(), e);
         }
     }
 
@@ -369,7 +370,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get string analysis: message={}", e.getMessage(), e);
-            return "Error: Failed to get string analysis: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get string analysis: " + e.getMessage(), e);
         }
     }
 
@@ -402,7 +403,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get collection analysis: message={}", e.getMessage(), e);
-            return "Error: Failed to get collection analysis: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get collection analysis: " + e.getMessage(), e);
         }
     }
 
@@ -430,7 +431,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get threads: message={}", e.getMessage(), e);
-            return "Error: Failed to get threads: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get threads: " + e.getMessage(), e);
         }
     }
 
@@ -452,7 +453,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get GC root summary: message={}", e.getMessage(), e);
-            return "Error: Failed to get GC root summary: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get GC root summary: " + e.getMessage(), e);
         }
     }
 
@@ -467,7 +468,7 @@ public class HeapDumpMcpTools {
             Integer offset) {
         try {
             if (className == null || className.isBlank()) {
-                return "Error: Class name is required";
+                throw new ToolExecutionException("Class name is required");
             }
 
             int effectiveLimit = limit != null ? Math.min(Math.max(1, limit), 50) : 20;
@@ -498,7 +499,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to browse class instances: className={} message={}", className, e.getMessage(), e);
-            return "Error: Failed to browse class instances: " + e.getMessage();
+            throw toolFailure("Failed to browse class instances: ", e);
         }
     }
 
@@ -510,7 +511,7 @@ public class HeapDumpMcpTools {
         try {
             InstanceDetail detail = delegate.getInstanceDetail(requireObjectId(objectId), false);
             if (detail == null) {
-                return "Error: Instance not found for object ID: " + objectId;
+                throw new ToolExecutionException("Instance not found for object ID: " + objectId);
             }
 
             StringBuilder result = new StringBuilder();
@@ -538,7 +539,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get instance detail: objectId={} message={}", objectId, e.getMessage(), e);
-            return "Error: Failed to get instance detail: " + e.getMessage();
+            throw toolFailure("Failed to get instance detail: ", e);
         }
     }
 
@@ -572,7 +573,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get dominator tree roots: message={}", e.getMessage(), e);
-            return "Error: Failed to get dominator tree roots: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get dominator tree roots: " + e.getMessage(), e);
         }
     }
 
@@ -608,7 +609,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get dominator tree children: objectId={} message={}", objectId, e.getMessage(), e);
-            return "Error: Failed to get dominator tree children: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get dominator tree children: " + e.getMessage(), e);
         }
     }
 
@@ -658,7 +659,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get path to GC root: objectId={} message={}", objectId, e.getMessage(), e);
-            return "Error: Failed to get path to GC root: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get path to GC root: " + e.getMessage(), e);
         }
     }
 
@@ -698,7 +699,7 @@ public class HeapDumpMcpTools {
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get referrers: objectId={} message={}", objectId, e.getMessage(), e);
-            return "Error: Failed to get referrers: " + e.getMessage();
+            throw new ToolExecutionException("Failed to get referrers: " + e.getMessage(), e);
         }
     }
 
@@ -727,7 +728,7 @@ public class HeapDumpMcpTools {
             @ToolParam(required = true, description = "Name of the table to describe (e.g. 'instance', 'class', 'outbound_ref')")
             String tableName) {
         if (tableName == null || tableName.isBlank()) {
-            return "Error: A table name is required. Call heap_listTables to see them.";
+            throw new ToolExecutionException("A table name is required. Call heap_listTables to see them.");
         }
         // The name is compared as a string against information_schema rather than interpolated into a
         // FROM clause, so it can only ever match a table or match nothing.
@@ -741,10 +742,11 @@ public class HeapDumpMcpTools {
                             + "ORDER BY ordinal_position",
                     DESCRIBE_TABLE_ROW_CAP);
         } catch (RuntimeException e) {
-            return "Error: " + e.getMessage();
+            throw toolFailure("", e);
         }
         if (result.rows().isEmpty()) {
-            return "Error: Table '" + tableName + "' not found. Call heap_listTables to see them.";
+            throw new ToolExecutionException(
+                    "Table '" + tableName + "' not found. Call heap_listTables to see them.");
         }
         return render(result, "Schema for table '" + tableName + "'", null);
     }
@@ -761,7 +763,7 @@ public class HeapDumpMcpTools {
                     + "Add an explicit LIMIT to control how much you fetch; an implicit 100-row cap is applied otherwise.")
             String query) {
         if (query == null || query.isBlank()) {
-            return "Error: Query is required";
+            throw new ToolExecutionException("Query is required");
         }
         return sqlAnswer(query, EXECUTE_QUERY_ROW_CAP, "Query result", null);
     }
@@ -838,8 +840,15 @@ public class HeapDumpMcpTools {
         try {
             return render(delegate.executeSql(sql, rowCap), title, footer);
         } catch (RuntimeException e) {
-            return "Error: " + e.getMessage();
+            throw toolFailure("", e);
         }
+    }
+
+    private static ToolExecutionException toolFailure(String prefix, Exception cause) {
+        if (cause instanceof ToolExecutionException toolError) {
+            return toolError;
+        }
+        return new ToolExecutionException(prefix + cause.getMessage(), cause);
     }
 
     /**

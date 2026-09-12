@@ -56,6 +56,9 @@ const defaultEndpoint = `http://localhost:8585/api/mcp`;
 const loopback = `# application.properties -- reachable from this machine and nowhere else
 server.address=127.0.0.1`;
 
+const allowedHosts = `# Replace microscope.example.com with the hostname your clients use
+jeffrey.microscope.mcp.allowed-hosts=localhost,127.0.0.1,::1,microscope.example.com`;
+
 const tunnel = `ssh -N -L 8585:localhost:8585 you@the-host-running-jeffrey`;
 
 const serverProbe = `curl -s -X POST http://localhost:8585/api/mcp \\
@@ -146,7 +149,11 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         The MCP endpoint carries the same trust assumption as the rest of Jeffrey&rsquo;s API: anyone who can reach the address can read every profile in that installation &mdash; the recordings, their stack traces, their SQL statements, and the contents of any heap dump you have indexed. Jeffrey has no authentication to switch on, here or anywhere else, so what decides who can read all of that is the address Jeffrey binds to and whatever sits in front of it.
       </DocsCallout>
 
-      <p>One thing it does refuse on its own: a request carrying an <code>Origin</code> header naming somewhere other than the address it served. That is the check the MCP specification asks of every local HTTP server, and it closes a path that has nothing to do with your network &mdash; a page in a browser you merely visited can post to <code>localhost</code>, and without the check the server would answer it. A CLI client sends no <code>Origin</code> at all, so Claude Code and Codex never notice.</p>
+      <p>The MCP endpoint checks the request hostname against an independent allowlist. By default it accepts <code>localhost</code>, <code>127.0.0.1</code>, and IPv6 loopback <code>::1</code>. Other hostnames receive <code>403</code>, even when the request carries no <code>Origin</code> header. If an <code>Origin</code> is present, its scheme, hostname and port must also match the effective request address. This prevents a caller from bypassing the origin check by choosing matching, arbitrary <code>Host</code> and <code>Origin</code> headers.</p>
+
+      <p>For remote clients or a reverse proxy, configure the hostname they use and restart Microscope. The property replaces the default list, so retain any loopback names still in use:</p>
+      <DocsCodeBlock :code="allowedHosts" language="properties" />
+      <p>If a trusted proxy terminates TLS or rewrites the host, configure Spring Boot&rsquo;s <code>server.forward-headers-strategy</code> so the effective servlet request contains the public scheme, hostname and port. The MCP guard does not interpret raw <code>X-Forwarded-*</code> headers itself. The hostname allowlist does not authenticate clients; the network and proxy controls below still determine who can reach the installation.</p>
 
       <p>So decide what can reach the address:</p>
       <ul>

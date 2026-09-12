@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
@@ -153,11 +154,12 @@ class HeapOqlMcpToolsTest {
         void handsBackTheEnginesOwnParseFailure() {
             answers(OQLQueryResult.error("Unexpected token at position 14", 2));
 
-            String out = tools().oql("SELECT * FRM x", null, null);
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools().oql("SELECT * FRM x", null, null));
 
-            assertTrue(out.startsWith("Error: "), out);
-            assertTrue(out.contains("position 14"), out);
-            assertFalse(out.contains("\"rows\""), out);
+            assertTrue(error.getMessage().contains("position 14"), error.getMessage());
+            assertFalse(error.getMessage().contains("\"rows\""), error.getMessage());
         }
     }
 

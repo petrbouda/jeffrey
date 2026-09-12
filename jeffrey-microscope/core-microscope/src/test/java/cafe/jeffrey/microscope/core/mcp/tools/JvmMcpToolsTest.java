@@ -21,6 +21,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.profile.common.analysis.AnalysisResult;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
+import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
@@ -41,6 +43,7 @@ import cafe.jeffrey.profile.manager.model.gc.GCHeader;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCPauseDistribution;
 import cafe.jeffrey.profile.manager.model.gc.ManualGCCalls;
+import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.profile.manager.model.vmoperation.SafepointOffender;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
@@ -67,7 +70,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -529,9 +534,12 @@ class JvmMcpToolsTest {
             recorded(EventTypeName.JVM_INFORMATION);
             when(configurationManager.configuration()).thenReturn(configuration());
 
-            String result = tools().configuration("Nonexistent");
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools().configuration("Nonexistent"));
 
-            assertTrue(result.contains("no configuration section named 'Nonexistent'"));
+            assertTrue(error.getMessage().contains("no configuration section named 'Nonexistent'"),
+                    error.getMessage());
         }
 
         static JsonNode configuration() {
@@ -604,10 +612,24 @@ class JvmMcpToolsTest {
         void refusesAPageThatDoesNotExistNamingTheOnesThatDo() {
             recorded("jdk.GarbageCollection");
 
-            String result = tools().gcDetail("nonsense");
+            ToolExecutionException error = assertThrows(
+                    ToolExecutionException.class,
+                    () -> tools().gcDetail("nonsense"));
 
-            assertTrue(result.startsWith("Error: "));
-            assertTrue(result.contains("tenuring"));
+            assertTrue(error.getMessage().contains("tenuring"), error.getMessage());
+        }
+
+        @Test
+        void acceptsAnUppercaseEnumValueThroughTheReflectiveAdapter() {
+            recorded("jdk.GarbageCollection");
+            when(gcManager.tenuring()).thenReturn(new TenuringData(List.of()));
+            JvmMcpTools target = tools();
+            String lowercase = target.gcDetail("tenuring");
+
+            String uppercase = new ReflectiveToolset(target, "jvm").call(
+                    "jvm_gcDetail", Json.readTree("{\"page\":\"TENURING\"}"));
+
+            assertEquals(lowercase, uppercase);
         }
 
         @Test

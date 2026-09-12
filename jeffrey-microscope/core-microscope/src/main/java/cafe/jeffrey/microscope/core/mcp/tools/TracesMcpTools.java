@@ -316,7 +316,7 @@ public class TracesMcpTools {
         List<SpanInterval> intervals = traceManager().spanIntervals(
                 parseId(traceId, "traceId"), parseId(spanId, "spanId"), Boolean.TRUE.equals(selfOnly));
         if (intervals.isEmpty()) {
-            return McpToolOutput.error("Span has no samples to show: " + spanId);
+            return "Span has no samples to show: " + spanId;
         }
         return exportScoped(SpanScope.of(intervals), eventType, threadMode, useWeight, traceUrl(traceId));
     }

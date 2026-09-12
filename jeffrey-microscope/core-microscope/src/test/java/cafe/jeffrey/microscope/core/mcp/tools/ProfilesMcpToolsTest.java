@@ -30,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -123,7 +124,7 @@ class ProfilesMcpToolsTest {
         }
 
         @Test
-        void appliesTheLimit() {
+        void reportsWhenTheLimitOmitsMatchingProfiles() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
                     profile("p-1", "One", "proj-1"),
                     profile("p-2", "Two", "proj-1")));
@@ -132,6 +133,63 @@ class ProfilesMcpToolsTest {
 
             assertTrue(result.contains("p-1"));
             assertFalse(result.contains("p-2"));
+            assertTrue(result.contains("Returned 1 of 2 matching profiles."), result);
+            assertTrue(result.contains("Increase `limit` (maximum 1000) or narrow `search`"), result);
+        }
+
+        @Test
+        void reportsWhenTheLimitReturnsEveryMatchingProfile() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-1", "One", "proj-1"),
+                    profile("p-2", "Two", "proj-1")));
+
+            String result = tools.list(null, 2);
+
+            assertTrue(result.contains("Returned 2 of 2 matching profiles."), result);
+            assertFalse(result.contains("narrow `search`"), result);
+        }
+
+        @Test
+        void countsMatchesBeforeApplyingTheLimit() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-1", "Checkout before", "proj-1"),
+                    profile("p-2", "Unrelated", "proj-1"),
+                    profile("p-3", "Checkout after", "proj-1")));
+
+            String result = tools.list("checkout", 1);
+
+            assertTrue(result.contains("Returned 1 of 2 matching profiles."), result);
+        }
+
+        @Test
+        void reportsWhenTheDefaultLimitOmitsMatchingProfiles() {
+            List<ProfileInfo> profiles = IntStream.rangeClosed(1, 101)
+                    .mapToObj(index -> profile("p-" + index, "Profile " + index, "proj-1"))
+                    .toList();
+            when(coreRepositories.findAllProfiles()).thenReturn(profiles);
+
+            String result = tools.list(null, null);
+
+            assertTrue(result.contains("Returned 100 of 101 matching profiles."), result);
+            assertTrue(result.contains("Increase `limit` (maximum 1000)"), result);
+        }
+
+        @Test
+        void reportsOnlyCompleteRowsWhenTheMaximumLimitAlsoHitsTheOutputCap() {
+            List<ProfileInfo> profiles = IntStream.rangeClosed(1, 1001)
+                    .mapToObj(index -> profile(
+                            "p-" + index,
+                            index == 1 ? "x".repeat(120_001) : "Profile " + index,
+                            "proj-1"))
+                    .toList();
+            when(coreRepositories.findAllProfiles()).thenReturn(profiles);
+
+            String result = tools.list(null, 1000);
+
+            assertTrue(result.startsWith("Returned 0 of 1001 matching profiles."), result);
+            assertFalse(result.contains("p-1"), result);
+            assertTrue(result.contains("output size limit omitted 1000 selected profiles"), result);
+            assertTrue(result.contains("The maximum `limit` is 1000; narrow `search`"), result);
         }
 
         /**
@@ -142,7 +200,10 @@ class ProfilesMcpToolsTest {
         void explainsAnEmptyInstallation() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of());
 
-            assertTrue(tools.list(null, null).contains("No profiles"));
+            String result = tools.list(null, null);
+
+            assertTrue(result.contains("No profiles"), result);
+            assertTrue(result.contains("Returned 0 of 0 matching profiles."), result);
         }
 
         @Test
