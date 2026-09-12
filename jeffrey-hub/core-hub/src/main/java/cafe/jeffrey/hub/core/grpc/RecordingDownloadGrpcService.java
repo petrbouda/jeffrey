@@ -27,11 +27,11 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.function.Supplier;
 
 public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase {
@@ -115,7 +115,7 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
             ServerCallStreamObserver<DataChunk> observer,
             ReadyGate gate) throws IOException, InterruptedException {
 
-        long totalSize = Files.size(recordingFile.path());
+        long totalSize = FileSystemUtils.size(recordingFile.path());
         boolean firstChunk = true;
 
         try (InputStream stream = recordingFile.openStream()) {

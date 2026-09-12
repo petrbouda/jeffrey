@@ -130,7 +130,10 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         bundle concurrently while Jeffrey Hub writes new versions to it. RWO won't work
         beyond a single application replica on the same node. In production: NFS, EFS,
         Azure Files, or any other RWX-capable <code>StorageClass</code>. In dev: a
-        <code>hostPath</code> PV (see below).
+        <code>hostPath</code> PV (see below). On an SMB share such as Azure Files, the hub
+        reads a file's size through an open handle whenever the mount lists it as empty, so
+        a session that is still recording shows real sizes; a low <code>actimeo</code> on the
+        hub's mount is not required, but keeps <code>stat</code> honest for other tooling.
       </DocsCallout>
 
       <h2 id="pvc-contract">PVC Contract</h2>

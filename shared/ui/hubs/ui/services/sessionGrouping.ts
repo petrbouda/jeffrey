@@ -48,7 +48,8 @@ export function isFailedSession(session: RecordingSession): boolean {
  * measure zero, after it has been going long enough to have produced something. Jeffrey
  * reads these sizes straight off the hub's repository directory, so this is what a
  * filesystem that never refreshed them looks like: an object-storage FUSE mount, or an NFS
- * mount with attribute caching, serves each file's size as of when the file was created.
+ * mount with attribute caching, serves each file's size as of when the file was created, and
+ * an SMB share lists a file another client still holds open at the size of its last flush.
  * The files still hold their bytes and still download; only the figures are missing, and
  * the UI says so rather than printing a confident zero.
  *

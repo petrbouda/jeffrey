@@ -473,8 +473,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 return compressedPath;
             }
 
-            // Capture original file size before compression
-            long originalSize = Files.size(sourcePath);
+            // Capture original file size before compression. Read through FileSystemUtils rather than
+            // a bare stat: on an SMB mount the cached size of a file the profiler still holds open
+            // can read as zero, and this guard would otherwise drop a real recording.
+            long originalSize = FileSystemUtils.size(sourcePath);
 
             // Skip empty recording files — can happen when JFR streaming-repo
             // writes a file before any events are recorded

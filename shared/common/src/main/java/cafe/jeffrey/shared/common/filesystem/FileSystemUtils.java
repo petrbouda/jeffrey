@@ -29,8 +29,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
@@ -139,11 +141,44 @@ public abstract class FileSystemUtils {
         }
     }
 
+    /**
+     * Size of a file, read the way a network mount cannot misreport it.
+     *
+     * <p>{@link Files#size(Path)} is a {@code stat()} answered from the client's attribute cache,
+     * and on an SMB mount (Azure Files, a Windows share) that cache is primed from the directory
+     * listing the caller has usually just made. For a file another client holds open for writing
+     * — the profiled JVM's {@code -Xlog} file, async-profiler's {@code .jfr.N~} cache — the
+     * listing carries the directory entry's copy of the size, which the server refreshes only
+     * when the writer flushes or closes, so a session that is recording perfectly well lists as
+     * nothing but zeros for as long as it runs. Opening the file is a different question to the
+     * server: the open's response carries the file's real length, and the kernel refreshes the
+     * cached attributes from it before the handle's own {@code fstat()} answers. A zero is
+     * therefore the one value this method distrusts, and re-reads through an open handle; a
+     * genuinely empty file pays one extra open, which is rare and harmless.
+     */
     public static long size(Path path) {
+        long attributeSize;
         try {
-            return Files.size(path);
+            attributeSize = Files.size(path);
         } catch (IOException e) {
             throw new RuntimeException("Cannot get size of file: " + path, e);
+        }
+        if (attributeSize != 0) {
+            return attributeSize;
+        }
+        return sizeThroughOpenHandle(path);
+    }
+
+    private static long sizeThroughOpenHandle(Path path) {
+        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
+            long handleSize = channel.size();
+            if (handleSize != 0) {
+                LOG.debug("File size read through an open handle, the cached attribute was stale: path={} handle_size={}",
+                        path, handleSize);
+            }
+            return handleSize;
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot get size of file through an open handle: " + path, e);
         }
     }
 
