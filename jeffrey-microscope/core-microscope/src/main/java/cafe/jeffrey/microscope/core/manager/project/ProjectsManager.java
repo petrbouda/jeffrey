@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -32,9 +32,23 @@ public interface ProjectsManager {
 
     List<ProjectManager> findAll();
 
+    /**
+     * Lists projects without converting a remote failure into an empty UI result.
+     */
+    default List<ProjectManager> findAllOrThrow() {
+        return findAll();
+    }
+
     List<ProjectManager> findAllIncludingDeleted();
 
     Optional<ProjectManager> project(String projectId);
+
+    /**
+     * Finds a project without converting a remote failure into a missing project.
+     */
+    default Optional<ProjectManager> projectOrThrow(String projectId) {
+        return project(projectId);
+    }
 
     /**
      * Find all distinct namespaces across all projects.

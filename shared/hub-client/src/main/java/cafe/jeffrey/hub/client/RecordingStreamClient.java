@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.microscope.grpc.client.*;
 
+import io.grpc.Context;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,7 @@ public class RecordingStreamClient {
 
             Iterator<DataChunk> chunks = stub.downloadMergedRecordings(request);
             return collectChunksToResource(chunks);
-        }, Schedulers.sharedVirtual());
+        }, Context.current().fixedContextExecutor(Schedulers.sharedVirtual()));
     }
 
     public CompletableFuture<Resource> downloadArtifactFile(
@@ -86,7 +87,7 @@ public class RecordingStreamClient {
 
             Iterator<DataChunk> chunks = stub.downloadArtifactFile(request);
             return collectChunksToResource(chunks);
-        }, Schedulers.sharedVirtual());
+        }, Context.current().fixedContextExecutor(Schedulers.sharedVirtual()));
     }
 
     public void streamRecordings(
@@ -146,6 +147,9 @@ public class RecordingStreamClient {
         } catch (IOException e) {
             tempDir.close();
             throw new UncheckedIOException("Failed to collect gRPC data chunks to temp file", e);
+        } catch (RuntimeException e) {
+            tempDir.close();
+            throw e;
         }
     }
 

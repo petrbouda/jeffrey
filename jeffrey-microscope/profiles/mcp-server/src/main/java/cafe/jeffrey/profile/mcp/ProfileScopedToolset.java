@@ -44,7 +44,7 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
             "Id of the profile to work on, as listed by profiles_list.";
 
     private final ToolMethodIndex index;
-    private final Function<String, T> targetResolver;
+    private final ScopedTargetResolver<T> targetResolver;
 
     /**
      * @param targetType     the {@code @Tool} class; indexed once, not per call
@@ -65,12 +65,54 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
             String prefix,
             Function<String, T> targetResolver,
             McpToolAnnotations defaultAnnotations) {
+        this(targetType, prefix, unscoped(targetResolver), defaultAnnotations);
+    }
+
+    private static <T> ScopedTargetResolver<T> unscoped(Function<String, T> targetResolver) {
+        return profileId -> new ScopedTarget<>() {
+            @Override
+            public T target() {
+                return targetResolver.apply(profileId);
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+    }
+
+    private ProfileScopedToolset(
+            Class<T> targetType,
+            String prefix,
+            ScopedTargetResolver<T> targetResolver,
+            McpToolAnnotations defaultAnnotations) {
         this.index = new ToolMethodIndex(
                 targetType,
                 prefix,
                 List.of(new ToolMethodIndex.SyntheticParam(PROFILE_ID_ARGUMENT, PROFILE_ID_DESCRIPTION)),
                 defaultAnnotations);
         this.targetResolver = targetResolver;
+    }
+
+    /**
+     * A profile-scoped family whose resolved target owns resources for exactly one invocation.
+     */
+    public static <T> ProfileScopedToolset<T> leased(
+            Class<T> targetType,
+            String prefix,
+            ScopedTargetResolver<T> targetResolver) {
+        return leased(targetType, prefix, targetResolver, McpToolAnnotations.READ_ONLY);
+    }
+
+    /**
+     * A leased family with annotations other than the read-only default.
+     */
+    public static <T> ProfileScopedToolset<T> leased(
+            Class<T> targetType,
+            String prefix,
+            ScopedTargetResolver<T> targetResolver,
+            McpToolAnnotations defaultAnnotations) {
+        return new ProfileScopedToolset<>(targetType, prefix, targetResolver, defaultAnnotations);
     }
 
     @Override
@@ -87,8 +129,9 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
         // the answer depend on which mistake was noticed: a bad enum against a missing profile came
         // back as "profile not found", which sends the caller after the wrong one of its two errors.
         Object[] args = index.bindArguments(method, arguments);
-        T target = targetResolver.apply(profileId);
-        return ToolInvocation.invoke(toolName, method, target, args);
+        try (ScopedTarget<T> scoped = targetResolver.resolve(profileId)) {
+            return ToolInvocation.invoke(toolName, method, scoped.target(), args);
+        }
     }
 
     private static String readProfileId(JsonNode arguments) {
@@ -105,5 +148,19 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
             throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " is required");
         }
         return profileId;
+    }
+
+    @FunctionalInterface
+    public interface ScopedTargetResolver<T> {
+
+        ScopedTarget<T> resolve(String profileId);
+    }
+
+    public interface ScopedTarget<T> extends AutoCloseable {
+
+        T target();
+
+        @Override
+        void close();
     }
 }

@@ -23,7 +23,6 @@ import cafe.jeffrey.shared.persistence.DatabaseLease;
 
 import javax.sql.DataSource;
 import java.time.Instant;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * One profile, held open for an MCP client between tool calls.
@@ -37,12 +36,15 @@ final class McpProfileContext implements AutoCloseable {
 
     private final ProfileManager profileManager;
     private final DatabaseLease lease;
-    private final AtomicReference<Instant> lastAccess;
+    private Instant lastAccess;
+    private int activeCalls;
+    private boolean retired;
+    private boolean closed;
 
     McpProfileContext(ProfileManager profileManager, DatabaseLease lease, Instant createdAt) {
         this.profileManager = profileManager;
         this.lease = lease;
-        this.lastAccess = new AtomicReference<>(createdAt);
+        this.lastAccess = createdAt;
     }
 
     ProfileManager profileManager() {
@@ -53,16 +55,45 @@ final class McpProfileContext implements AutoCloseable {
         return lease.dataSource();
     }
 
-    void touch(Instant now) {
-        lastAccess.set(now);
+    synchronized void acquire(Instant now) {
+        if (retired) {
+            throw new IllegalStateException("Cannot acquire a retired MCP profile context");
+        }
+        activeCalls++;
+        lastAccess = now;
     }
 
-    boolean idleSince(Instant threshold) {
-        return lastAccess.get().isBefore(threshold);
+    synchronized void release(Instant now) {
+        if (activeCalls == 0) {
+            return;
+        }
+        activeCalls--;
+        lastAccess = now;
+        closeIfUnused();
+    }
+
+    synchronized boolean retireIfIdle(Instant threshold) {
+        if (activeCalls > 0 || !lastAccess.isBefore(threshold)) {
+            return false;
+        }
+        retire();
+        return true;
+    }
+
+    synchronized void retire() {
+        retired = true;
+        closeIfUnused();
+    }
+
+    private void closeIfUnused() {
+        if (retired && activeCalls == 0 && !closed) {
+            closed = true;
+            lease.close();
+        }
     }
 
     @Override
     public void close() {
-        lease.close();
+        retire();
     }
 }

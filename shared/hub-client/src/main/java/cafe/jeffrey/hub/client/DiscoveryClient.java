@@ -18,17 +18,30 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.microscope.grpc.client.*;
-
+import cafe.jeffrey.hub.api.v1.CreateWorkspaceRequest;
+import cafe.jeffrey.hub.api.v1.CreateWorkspaceResponse;
+import cafe.jeffrey.hub.api.v1.DeleteWorkspaceRequest;
+import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
+import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
+import cafe.jeffrey.hub.api.v1.GetProjectRequest;
+import cafe.jeffrey.hub.api.v1.GetProjectResponse;
+import cafe.jeffrey.hub.api.v1.GetWorkspaceRequest;
+import cafe.jeffrey.hub.api.v1.GetWorkspaceResponse;
+import cafe.jeffrey.hub.api.v1.ListProjectsRequest;
+import cafe.jeffrey.hub.api.v1.ListProjectsResponse;
+import cafe.jeffrey.hub.api.v1.ListWorkspacesRequest;
+import cafe.jeffrey.hub.api.v1.ListWorkspacesResponse;
+import cafe.jeffrey.hub.api.v1.ProjectInfo;
+import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
+import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
+import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
+import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
+import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
-
-import cafe.jeffrey.shared.common.InstantUtils;
 
 import java.time.Instant;
 import java.util.List;
@@ -73,22 +86,37 @@ public class DiscoveryClient {
 
     public WorkspaceResult workspace(String workspaceId) {
         try {
-            GetWorkspaceResponse response = workspaceStub.getWorkspace(
-                    GetWorkspaceRequest.newBuilder()
-                            .setWorkspaceId(workspaceId)
-                            .build());
-
-            return WorkspaceResult.of(toWorkspaceInfo(response.getWorkspace()));
+            return workspaceOrThrow(workspaceId)
+                    .map(WorkspaceResult::of)
+                    .orElseGet(() -> WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE));
         } catch (StatusRuntimeException e) {
-            if (GrpcClientErrors.isNotFound(e)) {
-                LOG.debug("Workspace not found via gRPC: workspaceId={}", workspaceId);
-                return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
-            }
             LOG.warn("Failed to get workspace via gRPC: workspaceId={} status={}", workspaceId, e.getStatus());
             return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
         } catch (Exception e) {
             LOG.warn("Cannot reach hub: workspaceId={}", workspaceId, e);
             return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
+        }
+    }
+
+    /**
+     * Gets one workspace without collapsing remote failures into an offline UI state. Callers that
+     * need to report whether the hub rejected, timed out, or could not be reached use this path;
+     * the ordinary {@link #workspace(String)} method keeps its best-effort UI behavior.
+     */
+    public Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId) {
+        try {
+            GetWorkspaceResponse response = workspaceStub.getWorkspace(
+                    GetWorkspaceRequest.newBuilder()
+                            .setWorkspaceId(workspaceId)
+                            .build());
+
+            return Optional.of(toWorkspaceInfo(response.getWorkspace()));
+        } catch (StatusRuntimeException e) {
+            if (GrpcClientErrors.isNotFound(e)) {
+                LOG.debug("Workspace not found via gRPC: workspaceId={}", workspaceId);
+                return Optional.empty();
+            }
+            throw e;
         }
     }
 

@@ -1083,7 +1083,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>hubs_download</code></td>
-            <td><code>sessionRef</code></td>
+            <td><code>sessionRef</code>, <code>retry?</code></td>
             <td>Pulls that session in &mdash; its recording files merged into one, its heap dumps and logs alongside &mdash; and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code>. A transfer that outlasts the call comes back with a status saying so; call the tool again with the same <code>sessionRef</code> to check</td>
           </tr>
         </tbody>
@@ -1095,13 +1095,17 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Downloading and analysing are two calls on purpose.</strong> <code>hubs_download</code> stops at a recording and hands back its id; <code>recordings_analyzeRecording</code> builds the profile. A single call covering a multi-gigabyte transfer <em>and</em> a full analysis is the shape that trips a client's tool timeout, and a timeout partway through says nothing about whether the work survived.</p>
 
-      <p><strong>The download itself is bounded too.</strong> It waits about forty-five seconds and then answers with a status saying the transfer continues, rather than holding the call open until the bytes land. It needs no separate status tool: it answers from the local store first, so calling <code>hubs_download</code> again with the same <code>sessionRef</code> <em>is</em> the poll, and a second call while the first is still running joins it rather than fetching the session twice.</p>
+      <p><strong>Response and transfer deadlines.</strong> A download call waits up to forty-five seconds, including remote session lookup. A longer transfer continues in the background under its own one-hour deadline. Call <code>hubs_download</code> again with the same <code>sessionRef</code> to check it; concurrent calls share a transfer only when hub, workspace, project and session all match. These deadlines are configurable on the <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> page.</p>
+
+      <p><strong>Failed transfers and retries.</strong> Failed transfer outcomes are retained in memory for one hour after completion. During that window, subsequent polls report the failure; set <code>retry=true</code> to start another attempt. After the outcome expires or Microscope restarts, calling <code>hubs_download</code> can start a new transfer even with <code>retry</code> omitted or set to <code>false</code>. An existing local copy is still returned without downloading it again.</p>
+
+      <p>A local download is a snapshot. If the remote session is still recording, its local copy does not include files recorded after that download. Repeating <code>hubs_download</code> returns the existing copy.</p>
 
       <DocsCallout type="tip" title="Read the local column before downloading">
-        A row whose <code>local</code> reads <code>profile:&lt;id&gt;</code> is already analysed and that id works immediately; <code>recording:&lt;id&gt;</code> is downloaded but not yet analysed. Jeffrey recognises a session it has seen before from the <code>origin.*</code> tags it wrote at download time, so a repeated <code>hubs_download</code> returns what is already there rather than moving the bytes again &mdash; but reading the column first saves the round trip.
+        A row whose <code>local</code> reads <code>profile:&lt;id&gt;</code> has an enabled profile ready for analysis; <code>recording:&lt;id&gt;</code> is downloaded but has no ready profile. Use <code>recordings_status</code> to check an import that is running or failed. Jeffrey recognises a session it has seen before from the <code>origin.*</code> tags it wrote at download time, so a repeated <code>hubs_download</code> returns what is already there rather than moving the bytes again &mdash; but reading the column first saves the round trip.
       </DocsCallout>
 
-      <p>A hub that does not answer is reported <em>under the table</em> rather than as a failure, and it is reported even when no rows came back at all. That case is the one worth getting right: "no sessions found" and "production is unreachable" lead to completely different next steps, and the managers underneath this family return an empty list for both, so the family probes each hub explicitly to tell them apart.</p>
+      <p>Discovery shares a twenty-second deadline across remote calls and cancels outstanding RPCs when it expires. Completed project results remain available even if another hub or workspace stalls. Incomplete scopes and their reasons appear under the table, including when no rows returned. Unavailable hubs, expired deadlines and missing sessions produce distinct explanations.</p>
 
       <p>The family is advertised only while both hub access and ingestion are enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the properties and why the two are linked.</p>
 
@@ -1207,6 +1211,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <DocsCallout type="warning" title="A large recording outlasts the call &mdash; poll, do not re-analyse">
         Both analyse tools wait about <strong>forty-five seconds</strong> for the parse. A small recording finishes inside that and its <code>profileId</code> comes straight back, exactly as before. A large one comes back with a status of <code>running</code> while the parse carries on in the background, and <code>recordings_status</code> reports the stage it is on and the <code>profileId</code> once it lands. Poll that rather than calling the analyse tool again: a second <code>recordings_analyzeFile</code> imports the file a second time and leaves you with two profiles of one recording and no way to tell them apart. A second <code>recordings_analyzeRecording</code> for the same recording is safe &mdash; it joins the run already in flight rather than racing it.
       </DocsCallout>
+
+      <p><code>recordings_status</code> reports retained failures and their error details for repeated polls. Completed import job outcomes are retained in memory for one hour and are lost on restart. Once failure details are no longer available, a disabled profile with no active initialization is reported as <code>interrupted</code>; an attempt that never created a profile is reported as <code>not_started</code>. Call <code>recordings_analyzeRecording</code> again to retry a failed or interrupted attempt. Work waiting for a pipeline slot is included in <code>running</code>. A requested profile name is applied before the background attempt completes, including when the original call has already returned.</p>
 
       <p>One more thing worth knowing: each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
 

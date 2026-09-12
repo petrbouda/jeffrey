@@ -27,6 +27,7 @@ import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.profile.ProfileInitializer;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
@@ -51,6 +52,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import cafe.jeffrey.shared.notification.NotificationCategory;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
@@ -75,6 +81,8 @@ public class ProfileRecordingsManager implements RecordingsManager {
     private final MicroscopeCoreRepositories localCoreRepositories;
     private final MicroscopeProfileCleanup profileCleanup;
     private final RecordingRepository recordingRepository;
+    private final PipelineRunRegistry<String> runRegistry;
+    private final ConcurrentMap<String, CompletableFuture<String>> analyses = new ConcurrentHashMap<>();
 
     public ProfileRecordingsManager(
             RecordingsCoreManager core,
@@ -85,7 +93,8 @@ public class ProfileRecordingsManager implements RecordingsManager {
             ProfileInitializer profileInitializer,
             ProfileManager.Factory profileManagerFactory,
             MicroscopeCoreRepositories localCoreRepositories,
-            MicroscopeProfileCleanup profileCleanup) {
+            MicroscopeProfileCleanup profileCleanup,
+            PipelineRunRegistry<String> runRegistry) {
 
         this.core = core;
         this.clock = clock;
@@ -97,6 +106,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
         this.localCoreRepositories = localCoreRepositories;
         this.profileCleanup = profileCleanup;
         this.recordingRepository = localCoreRepositories.newRecordingRepository(null);
+        this.runRegistry = runRegistry;
     }
 
     // --- Delegated store operations (deployment-agnostic) ---
@@ -169,11 +179,51 @@ public class ProfileRecordingsManager implements RecordingsManager {
 
     @Override
     public String analyzeRecording(String recordingId) {
+        AtomicBoolean started = new AtomicBoolean();
+        CompletableFuture<String> analysis = analyses.computeIfAbsent(recordingId, _ -> {
+            started.set(true);
+            return new CompletableFuture<>();
+        });
+
+        if (!started.get()) {
+            return join(analysis);
+        }
+
+        try {
+            String profileId = analyzeRecordingOnce(recordingId);
+            analysis.complete(profileId);
+            return profileId;
+        } catch (RuntimeException | Error e) {
+            analysis.completeExceptionally(e);
+            throw e;
+        } finally {
+            // Complete first and remove second. A concurrent caller that already found this attempt
+            // joins its exact result; a call beginning after this method returns starts a retry.
+            analyses.remove(recordingId, analysis);
+        }
+    }
+
+    private String analyzeRecordingOnce(String recordingId) {
         Recording recording = recordingRepository.findRecording(recordingId)
                 .orElseThrow(() -> Exceptions.recordingNotFound(recordingId));
 
         if (recording.hasProfile()) {
-            return recording.profileId();
+            String profileId = recording.profileId();
+            // A second request while initialization is active joins the attempt already represented
+            // by this row. Deleting it would pull the database out from under the parser.
+            if (runRegistry.isRunning(profileId)) {
+                return profileId;
+            }
+
+            ProfileRepository existing = localCoreRepositories.newProfileRepository(profileId);
+            if (existing.find().map(ProfileInfo::enabled).orElse(false)) {
+                return profileId;
+            }
+
+            // Disabled with no live run means either a terminal failed attempt retained for diagnosis,
+            // or work interrupted by a process restart. An explicit Analyze is the retry boundary:
+            // remove that attempt here, then build a fresh profile id below.
+            profileCleanup.deleteProfile(profileId);
         }
 
         RecordingFile file = recording.files().getFirst();
@@ -186,6 +236,21 @@ public class ProfileRecordingsManager implements RecordingsManager {
 
         LOG.info("Quick analysis recording analyzed: recordingId={} profileId={}", recordingId, profileId);
         return profileId;
+    }
+
+    private static String join(CompletableFuture<String> analysis) {
+        try {
+            return analysis.join();
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            throw e;
+        }
     }
 
     private String analyzeJfr(Recording recording, RecordingFile file) {
@@ -221,12 +286,10 @@ public class ProfileRecordingsManager implements RecordingsManager {
         try {
             profileInitializer.initialize(profileInfo, null, filePath);
         } catch (RuntimeException e) {
-            // Drop the row again so a failed initialization does not leave the recording looking
-            // analyzed, holding a profile that was never built.
-            profileRepository.delete();
-
-            // Said before the row goes: afterwards there is nothing left pointing at this attempt,
-            // and the recording is back to looking as though it was never analysed at all.
+            // Keep the disabled row. It is the durable recording-to-profile link through which the
+            // in-memory pipeline can report the failed attempt, and after a restart it is the evidence
+            // that an initialization was interrupted rather than never requested. A later explicit
+            // Analyze removes it before retrying.
             Notifications.of(NotificationType.PROFILE_ANALYSIS_FAILED)
                     .attribute("recordingId", recording.id())
                     .attribute("profileId", profileId)

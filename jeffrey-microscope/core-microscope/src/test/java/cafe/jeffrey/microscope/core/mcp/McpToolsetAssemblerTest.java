@@ -30,6 +30,7 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.ProfileInitStages;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
@@ -52,8 +53,14 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class McpToolsetAssemblerTest {
@@ -110,6 +117,52 @@ class McpToolsetAssemblerTest {
         return assembler(hubsEnabled).toolset().specs().stream()
                 .map(McpToolSpec::name)
                 .toList();
+    }
+
+    @Test
+    void callScopePinsThePrimaryAndBaselineUntilTheInvocationEnds() {
+        ProfileManager primaryManager = mock(ProfileManager.class);
+        ProfileManager baselineManager = mock(ProfileManager.class);
+        McpProfileContextCache.Lease primary = mock(McpProfileContextCache.Lease.class);
+        McpProfileContextCache.Lease baseline = mock(McpProfileContextCache.Lease.class);
+        when(primary.profileManager()).thenReturn(primaryManager);
+        when(baseline.profileManager()).thenReturn(baselineManager);
+        when(contextCache.acquire("primary")).thenReturn(primary);
+        when(contextCache.acquire("baseline")).thenReturn(baseline);
+
+        McpToolsetAssembler.ProfileCallScope scope =
+                new McpToolsetAssembler.ProfileCallScope(contextCache, "primary");
+
+        assertSame(primaryManager, scope.profileManager());
+        assertSame(baselineManager, scope.profileManager("baseline"));
+        verify(primary, never()).close();
+        verify(baseline, never()).close();
+
+        scope.close();
+
+        verify(primary).close();
+        verify(baseline).close();
+    }
+
+    @Test
+    void callScopeReleasesEveryLeaseWhenMoreThanOneReleaseFails() {
+        McpProfileContextCache.Lease primary = mock(McpProfileContextCache.Lease.class);
+        McpProfileContextCache.Lease baseline = mock(McpProfileContextCache.Lease.class);
+        when(contextCache.acquire("primary")).thenReturn(primary);
+        when(contextCache.acquire("baseline")).thenReturn(baseline);
+        doThrow(new IllegalStateException("primary release failed")).when(primary).close();
+        doThrow(new IllegalStateException("baseline release failed")).when(baseline).close();
+        McpToolsetAssembler.ProfileCallScope scope =
+                new McpToolsetAssembler.ProfileCallScope(contextCache, "primary");
+        scope.profileManager("baseline");
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, scope::close);
+
+        assertEquals("baseline release failed", failure.getMessage());
+        assertEquals(1, failure.getSuppressed().length);
+        assertEquals("primary release failed", failure.getSuppressed()[0].getMessage());
+        verify(primary).close();
+        verify(baseline).close();
     }
 
     /**

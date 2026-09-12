@@ -24,6 +24,7 @@ import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -33,25 +34,24 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Keeps one {@link McpProfileContext} per profile an MCP client is working on, and lets it go once the
  * client has stopped asking.
  * <p>
  * Concurrent by construction: a client issues several tool calls at once, and two of them landing on the
- * same new profile must acquire one lease between them rather than one each.
+ * same new profile must share one cached database lease while each holds its own call lease.
  * <p>
  * Eviction is driven by the injected {@link Clock}, so a test can advance time and call
  * {@link #evictIdle} directly; the background sweep that normally calls it is opt-out for exactly that
  * reason. Same shape as {@code HeapDumpSessionCache}, which solves the same problem for heap dumps.
  * <p>
- * A context is touched when a call resolves it, not when that call finishes, so what keeps the sweep
- * from closing a lease out from under work in progress is the gap between the two: the idle timeout is
- * half an hour, and a tool call that could still be running by then does not exist — the longest a tool
- * waits for anything is {@code BoundedJobs.WAIT_BUDGET}, three quarters of a minute, after which it
- * answers and leaves the work to carry on without the context. Shortening the timeout towards the scale
- * of a call, or giving a tool an unbounded wait, would need in-flight tracking here to replace the
- * invariant.
+ * Every tool call acquires a {@link Lease}. Idle eviction can remove an inactive context, but explicit
+ * invalidation or cache shutdown only retires one that is still in use; its database lease closes when
+ * the last call releases it. Release also renews the idle window, so a long call gets a full quiet period
+ * after it finishes.
  */
 public final class McpProfileContextCache implements AutoCloseable {
 
@@ -73,6 +73,7 @@ public final class McpProfileContextCache implements AutoCloseable {
 
     private final Map<String, McpProfileContext> contexts = new ConcurrentHashMap<>();
     private final ScheduledExecutorService evictor;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     public McpProfileContextCache(
             ProfileManagerResolver profileManagerResolver,
@@ -120,39 +121,50 @@ public final class McpProfileContextCache implements AutoCloseable {
      *
      * @throws cafe.jeffrey.shared.common.exception.JeffreyClientException when no such profile exists
      */
-    McpProfileContext context(String profileId) {
+    public Lease acquire(String profileId) {
         Instant now = clock.instant();
-        // Resolving the profile and acquiring its lease happen inside the mapping function, which is
-        // what makes two calls arriving together share one lease rather than take one each. It also
-        // holds the map's bin lock across that work, so nothing in this function may reach back into
-        // this cache: the map would refuse the recursive update.
-        McpProfileContext context = contexts.computeIfAbsent(profileId, id -> {
-            ProfileManager profileManager = profileManagerResolver.resolve(id);
-            LOG.debug("Opening MCP profile context: profile_id={}", id);
-            return new McpProfileContext(
-                    profileManager, databaseManagerResolver.acquire(profileManager.info()), now);
+        AtomicReference<McpProfileContext> acquired = new AtomicReference<>();
+        contexts.compute(profileId, (id, existing) -> {
+            if (closed.get()) {
+                throw new IllegalStateException("MCP profile context cache is closed");
+            }
+            McpProfileContext context = existing;
+            if (context == null) {
+                ProfileManager profileManager = profileManagerResolver.resolve(id);
+                LOG.debug("Opening MCP profile context: profile_id={}", id);
+                context = new McpProfileContext(
+                        profileManager, databaseManagerResolver.acquire(profileManager.info()), now);
+            }
+            context.acquire(now);
+            acquired.set(context);
+            return context;
         });
-        context.touch(now);
-        return context;
-    }
-
-    /**
-     * The {@link ProfileManager} of one profile, with its pool pinned for the session.
-     */
-    public ProfileManager profileManager(String profileId) {
-        return context(profileId).profileManager();
+        McpProfileContext context = acquired.get();
+        Lease lease = new Lease(context, clock);
+        if (closed.get()) {
+            contexts.computeIfPresent(profileId, (id, current) -> {
+                if (current != context) {
+                    return current;
+                }
+                current.retire();
+                return null;
+            });
+            lease.close();
+            throw new IllegalStateException("MCP profile context cache is closed");
+        }
+        return lease;
     }
 
     /**
      * Drops a profile whose context can no longer be trusted — it was deleted, or its pool was closed
      * under us. The next call re-resolves it, which is the honest answer either way.
      */
-    void evict(String profileId) {
-        McpProfileContext removed = contexts.remove(profileId);
-        if (removed != null) {
+    public void invalidate(String profileId) {
+        contexts.computeIfPresent(profileId, (id, context) -> {
             LOG.debug("Evicting MCP profile context: profile_id={}", profileId);
-            removed.close();
-        }
+            context.retire();
+            return null;
+        });
     }
 
     /**
@@ -160,12 +172,14 @@ public final class McpProfileContextCache implements AutoCloseable {
      */
     public void evictIdle() {
         Instant threshold = clock.instant().minus(idleTimeout);
-        List<String> stale = contexts.entrySet().stream()
-                .filter(entry -> entry.getValue().idleSince(threshold))
-                .map(Map.Entry::getKey)
-                .toList();
-        for (String profileId : stale) {
-            evict(profileId);
+        for (String profileId : List.copyOf(contexts.keySet())) {
+            contexts.computeIfPresent(profileId, (id, context) -> {
+                if (!context.retireIfIdle(threshold)) {
+                    return context;
+                }
+                LOG.debug("Evicting idle MCP profile context: profile_id={}", id);
+                return null;
+            });
         }
     }
 
@@ -178,12 +192,46 @@ public final class McpProfileContextCache implements AutoCloseable {
 
     @Override
     public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
         if (evictor != null) {
             evictor.shutdownNow();
         }
         List<String> all = List.copyOf(contexts.keySet());
         for (String profileId : all) {
-            evict(profileId);
+            invalidate(profileId);
+        }
+    }
+
+    /**
+     * One active use of a cached profile. Closing it is idempotent because failure paths and cleanup
+     * layers may both try to release the same call.
+     */
+    public static final class Lease implements AutoCloseable {
+
+        private final McpProfileContext context;
+        private final Clock clock;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        private Lease(McpProfileContext context, Clock clock) {
+            this.context = context;
+            this.clock = clock;
+        }
+
+        public ProfileManager profileManager() {
+            return context.profileManager();
+        }
+
+        public DataSource dataSource() {
+            return context.dataSource();
+        }
+
+        @Override
+        public void close() {
+            if (closed.compareAndSet(false, true)) {
+                context.release(clock.instant());
+            }
         }
     }
 }

@@ -21,14 +21,18 @@ import cafe.jeffrey.shared.common.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -61,18 +65,46 @@ public class BoundedJobs<K, V> {
      */
     public static final Duration WAIT_BUDGET = Duration.ofSeconds(45);
 
-    private final Map<K, CompletableFuture<V>> inFlight = new ConcurrentHashMap<>();
+    /**
+     * How long a terminal outcome stays readable after the work ended.
+     * <p>
+     * A retained outcome is what lets a client that gave up on the call read the failure -- or the
+     * finished result -- on its next poll, so it has to outlive a client's polling rhythm by a wide
+     * margin. It must not outlive the process, though: the key is a recording id or a hub session
+     * reference, so a map that only ever grows is one entry per import and per download for as long
+     * as Jeffrey runs. An hour is the same bound {@code PipelineRunRegistry} puts on a finished run,
+     * and for the same reason.
+     */
+    public static final Duration COMPLETED_RETENTION = Duration.ofHours(1);
+
+    private final Map<K, JobState<V>> jobs = new ConcurrentHashMap<>();
     private final Duration budget;
+    private final Duration retention;
+    private final Clock clock;
 
     public BoundedJobs() {
         this(WAIT_BUDGET);
     }
 
     public BoundedJobs(Duration budget) {
-        if (budget == null || budget.isNegative() || budget.isZero()) {
-            throw new IllegalArgumentException("budget must be positive: budget=" + budget);
+        this(budget, COMPLETED_RETENTION, Clock.systemUTC());
+    }
+
+    /**
+     * @param retention how long a finished outcome stays readable before it is swept
+     * @param clock     what dates an outcome, so a test can age one without waiting
+     */
+    public BoundedJobs(Duration budget, Duration retention, Clock clock) {
+        validateBudget(budget);
+        if (retention == null || retention.isNegative() || retention.isZero()) {
+            throw new IllegalArgumentException("retention must be positive: retention=" + retention);
+        }
+        if (clock == null) {
+            throw new IllegalArgumentException("clock is required");
         }
         this.budget = budget;
+        this.retention = retention;
+        this.clock = clock;
     }
 
     /**
@@ -81,27 +113,67 @@ public class BoundedJobs<K, V> {
      * @return the result when it finished in time, empty when it is still running
      */
     public Optional<V> runWithin(K key, Supplier<V> work) {
-        boolean[] started = {false};
-        CompletableFuture<V> job = inFlight.computeIfAbsent(key, id -> {
-            started[0] = true;
-            LOG.debug("Starting a bounded MCP job: key={}", id);
-            return CompletableFuture.supplyAsync(work, Schedulers.sharedVirtual());
-        });
+        return runWithin(key, budget, work);
+    }
 
-        // Registered outside computeIfAbsent, and only by whoever started the job. Work that finishes
-        // before this line runs the callback on this thread, and removing from the map inside the
-        // mapping function is a recursive update the map refuses.
-        if (started[0]) {
-            job.whenComplete((result, error) -> {
-                inFlight.remove(key, job);
-                if (error != null) {
-                    LOG.warn("A bounded MCP job failed: key={} message={}", key, error.getMessage());
-                }
-            });
+    /**
+     * The same keyed job with a budget chosen by this call. A caller that has already spent part of
+     * its response deadline uses this overload to wait only for what remains.
+     */
+    public Optional<V> runWithin(K key, Duration waitBudget, Supplier<V> work) {
+        return runWithin(key, waitBudget, true, work);
+    }
+
+    /**
+     * Runs or joins a keyed job while deciding atomically whether a retained failure is an explicit
+     * retry. This closes the gap between a caller inspecting {@link #outcome(Object)} and starting:
+     * the active attempt may fail in between, and {@code false} must still report that failure rather
+     * than silently starting its supplier again.
+     */
+    public Optional<V> runWithin(
+            K key, Duration waitBudget, boolean retryFailure, Supplier<V> work) {
+        validateBudget(waitBudget);
+        // Swept here because this is the only method that adds a key. The map is then bounded by the
+        // work actually asked for within the retention window rather than by everything ever asked for.
+        evictExpired();
+
+        AtomicBoolean started = new AtomicBoolean();
+        JobState<V> selected = jobs.compute(key, (id, existing) -> {
+            if (existing instanceof Active<?>) {
+                return existing;
+            }
+            if (existing instanceof Finished<V> finished
+                    && finished.outcome().failure() != null
+                    && !retryFailure) {
+                return existing;
+            }
+            started.set(true);
+            LOG.debug("Starting a bounded MCP job: key={}", id);
+            return new Active<>(CompletableFuture.supplyAsync(work, Schedulers.sharedVirtual()));
+        });
+        if (selected instanceof Finished<V> finished) {
+            RuntimeException failure = finished.outcome().failure();
+            if (failure == null) {
+                // Only the retained-failure branch above returns a finished state, so a retained
+                // success here means that branch changed underneath this one. Said plainly rather
+                // than thrown as the NullPointerException it would otherwise become.
+                throw new IllegalStateException(
+                        "A retained successful outcome was selected instead of a new attempt: key=" + key);
+            }
+            throw failure;
+        }
+        Active<V> active = asActive(selected);
+
+        // Registered outside compute(), and only by whoever started this attempt. A future may have
+        // finished before this line; whenComplete then runs synchronously and still replaces this
+        // exact Active value. replace() prevents an older completion from overwriting a retry.
+        if (started.get()) {
+            active.future().whenComplete((result, error) -> finish(key, active, result, error));
         }
 
         try {
-            V result = job.get(budget.toMillis(), TimeUnit.MILLISECONDS);
+            V result = active.future().get(waitBudget.toMillis(), TimeUnit.MILLISECONDS);
+            finish(key, active, result, null);
             if (result == null) {
                 // Empty already means "still running", so a null result cannot be reported as one.
                 // Nothing here supplies null today; saying so is what keeps a future one from being
@@ -113,6 +185,7 @@ public class BoundedJobs<K, V> {
             // Not a failure: the work carries on and the caller is told how to follow it.
             return Optional.empty();
         } catch (ExecutionException e) {
+            finish(key, active, null, e.getCause());
             throw asRuntime(e.getCause());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -124,8 +197,77 @@ public class BoundedJobs<K, V> {
      * Whether work started here is still running for this key.
      */
     public boolean isRunning(K key) {
-        CompletableFuture<V> job = inFlight.get(key);
-        return job != null && !job.isDone();
+        return jobs.get(key) instanceof Active<?>;
+    }
+
+    /**
+     * The last terminal outcome for this key. Reading it does not consume it, so status polling can
+     * repeat the same late failure. A new explicit {@link #runWithin} call atomically replaces it with
+     * an active attempt before starting new work.
+     * <p>
+     * It is not kept forever: an outcome older than {@link #COMPLETED_RETENTION} is swept, and this
+     * then answers empty as it does for work never asked for. Nothing polls for an hour.
+     */
+    public Optional<Outcome<V>> outcome(K key) {
+        JobState<V> state = jobs.get(key);
+        // Judged by age rather than by whether the sweep has run yet, so how long an outcome is
+        // reported does not depend on whether unrelated work happened to be asked for meanwhile.
+        if (state instanceof Finished<V> finished && !expired(finished, clock.instant())) {
+            return Optional.of(finished.outcome());
+        }
+        return Optional.empty();
+    }
+
+    private static void validateBudget(Duration budget) {
+        if (budget == null || budget.isNegative() || budget.isZero()) {
+            throw new IllegalArgumentException("budget must be positive: budget=" + budget);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <V> Active<V> asActive(JobState<V> state) {
+        return (Active<V>) state;
+    }
+
+    private static <K, V> Outcome<V> outcomeOf(K key, V result, Throwable error) {
+        if (error != null) {
+            return new Outcome<>(null, asRuntime(unwrap(error)));
+        }
+        if (result == null) {
+            return new Outcome<>(null,
+                    new IllegalStateException("A bounded MCP job returned no result: key=" + key));
+        }
+        return new Outcome<>(result, null);
+    }
+
+    private void finish(K key, Active<V> active, V result, Throwable error) {
+        Outcome<V> outcome = outcomeOf(key, result, error);
+        boolean published = jobs.replace(key, active, new Finished<>(outcome, clock.instant()));
+        if (published && outcome.failure() != null) {
+            LOG.warn("A bounded MCP job failed: key={} message={}",
+                    key, outcome.failure().getMessage());
+        }
+    }
+
+    /**
+     * Drops outcomes nothing is going to read. An active attempt is never swept, however long it runs:
+     * what bounds one of those is its own work, and dropping it here would start a rival.
+     */
+    private void evictExpired() {
+        Instant now = clock.instant();
+        jobs.values().removeIf(state ->
+                state instanceof Finished<V> finished && expired(finished, now));
+    }
+
+    private boolean expired(Finished<V> finished, Instant now) {
+        return finished.finishedAt().isBefore(now.minus(retention));
+    }
+
+    private static Throwable unwrap(Throwable error) {
+        if (error instanceof CompletionException completion && completion.getCause() != null) {
+            return completion.getCause();
+        }
+        return error;
     }
 
     /**
@@ -143,5 +285,24 @@ public class BoundedJobs<K, V> {
             return new IllegalStateException("A bounded MCP job failed without reporting a cause");
         }
         return new IllegalStateException(cause.getMessage(), cause);
+    }
+
+    private sealed interface JobState<V> permits Active, Finished {
+    }
+
+    private record Active<V>(CompletableFuture<V> future) implements JobState<V> {
+    }
+
+    private record Finished<V>(Outcome<V> outcome, Instant finishedAt) implements JobState<V> {
+    }
+
+    /** Exactly one of {@code value} and {@code failure} is present. */
+    public record Outcome<V>(V value, RuntimeException failure) {
+
+        public Outcome {
+            if ((value == null) == (failure == null)) {
+                throw new IllegalArgumentException("An outcome must contain either a value or a failure");
+            }
+        }
     }
 }

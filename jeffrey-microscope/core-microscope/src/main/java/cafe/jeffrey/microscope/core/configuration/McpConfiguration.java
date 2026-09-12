@@ -43,6 +43,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Set;
 
 /**
@@ -125,8 +126,13 @@ public class McpConfiguration {
             HubsManager hubsManager,
             ProjectManagerResolver projectManagerResolver,
             RecordingsManager recordingsManager,
-            Clock applicationClock) {
-        return new HubsMcpTools(hubsManager, projectManagerResolver, recordingsManager, applicationClock);
+            Clock applicationClock,
+            @Value("${jeffrey.microscope.mcp.hubs.scan-timeout:PT20S}") Duration scanTimeout,
+            @Value("${jeffrey.microscope.mcp.hubs.download-response-timeout:PT45S}") Duration responseTimeout,
+            @Value("${jeffrey.microscope.mcp.hubs.download-timeout:PT1H}") Duration downloadTimeout) {
+        return new HubsMcpTools(
+                hubsManager, projectManagerResolver, recordingsManager, applicationClock,
+                scanTimeout, responseTimeout, downloadTimeout);
     }
 
     /**

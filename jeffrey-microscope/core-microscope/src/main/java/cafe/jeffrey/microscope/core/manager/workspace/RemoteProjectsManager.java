@@ -81,6 +81,14 @@ public class RemoteProjectsManager implements ProjectsManager {
     }
 
     @Override
+    public List<ProjectManager> findAllOrThrow() {
+        return hubClients.discovery().allProjects(workspaceInfo.id(), false).stream()
+                .map(remoteProject -> toRemoteProjectManager(
+                        RemoteMappers.toDetailedProjectInfo(remoteProject)))
+                .toList();
+    }
+
+    @Override
     public List<ProjectManager> findAllIncludingDeleted() {
         List<RemoteProjectResponse> remoteProjects;
         try {
@@ -111,6 +119,13 @@ public class RemoteProjectsManager implements ProjectsManager {
 
         return remoteProject.map(project -> toRemoteProjectManager(
                 RemoteMappers.toDetailedProjectInfo(project)));
+    }
+
+    @Override
+    public Optional<ProjectManager> projectOrThrow(String projectId) {
+        return hubClients.discovery().project(workspaceInfo.id(), projectId)
+                .map(project -> toRemoteProjectManager(
+                        RemoteMappers.toDetailedProjectInfo(project)));
     }
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {

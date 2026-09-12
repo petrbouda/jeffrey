@@ -26,10 +26,13 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Builds what a heap dump has to have before it can be asked anything.
@@ -51,6 +54,8 @@ import java.util.List;
  */
 public class HeapComputeMcpTools {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HeapComputeMcpTools.class);
+
     private static final String HEAP_VIEW = "heap-dump/overview";
 
     private static final String STEP_STATUS =
@@ -65,8 +70,16 @@ public class HeapComputeMcpTools {
 
     private final ProfileManager profileManager;
     private final HeapDumpInitService initService;
+    private final Supplier<? extends AutoCloseable> backgroundLease;
 
     public HeapComputeMcpTools(ProfileManager profileManager, HeapDumpInitService initService) {
+        this(profileManager, initService, () -> () -> {});
+    }
+
+    public HeapComputeMcpTools(
+            ProfileManager profileManager, HeapDumpInitService initService,
+            Supplier<? extends AutoCloseable> backgroundLease) {
+        this.backgroundLease = backgroundLease;
         this.profileManager = profileManager;
         this.initService = initService;
     }
@@ -89,9 +102,18 @@ public class HeapComputeMcpTools {
 
         HeapDumpManager heapDumpManager = requireHeapDump();
         String profileId = profileManager.info().id();
-        boolean started = report == null || report.isBlank()
-                ? initService.start(profileId, heapDumpManager, null)
-                : initService.startReport(profileId, heapDumpManager, report.trim(), null);
+        AutoCloseable lease = backgroundLease.get();
+        boolean started = false;
+        try {
+            started = report == null || report.isBlank()
+                    ? initService.start(profileId, heapDumpManager, null, () -> release(lease))
+                    : initService.startReport(profileId, heapDumpManager, report.trim(), null, () -> release(lease));
+        } finally {
+            // A joined or rejected request handed no work to the service, so it still owns its lease.
+            if (!started) {
+                release(lease);
+            }
+        }
 
         return LinkedOutput.json(new PrepareResult(
                 started,
@@ -99,6 +121,21 @@ public class HeapComputeMcpTools {
                 stages(initService.progress(profileId)),
                 nextSteps(started),
                 UiLinks.view(profileId, HEAP_VIEW)));
+    }
+
+    /**
+     * Reported rather than thrown, because of where this runs: the background run calls it from the
+     * {@code finally} that follows storing its result, so an exception here would replace whatever
+     * that storage threw — losing the failure worth reading to report the cleanup that followed it.
+     * A lease that will not release is a leaked pool entry, which is a thing to find in the log, not
+     * a reason to lose the diagnosis.
+     */
+    private static void release(AutoCloseable lease) {
+        try {
+            lease.close();
+        } catch (Exception e) {
+            LOG.warn("Cannot release the heap preparation lease: message={}", e.getMessage(), e);
+        }
     }
 
     /*

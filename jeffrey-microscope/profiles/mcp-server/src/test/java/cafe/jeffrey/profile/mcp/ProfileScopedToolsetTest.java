@@ -29,6 +29,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -154,6 +155,31 @@ class ProfileScopedToolsetTest {
             assertThrows(IllegalArgumentException.class,
                     () -> toolset.call("sample_missing", arguments("profile-1")));
         }
+
+        @Test
+        void releasesTheScopedTargetWhenInvocationThrows() {
+            AtomicInteger releases = new AtomicInteger();
+            ProfileScopedToolset<SampleTools> leased = ProfileScopedToolset.leased(
+                    SampleTools.class,
+                    "sample",
+                    profileId -> new ProfileScopedToolset.ScopedTarget<>() {
+                        @Override
+                        public SampleTools target() {
+                            return new SampleTools(profileId);
+                        }
+
+                        @Override
+                        public void close() {
+                            releases.incrementAndGet();
+                        }
+                    });
+
+            assertThrows(IllegalStateException.class,
+                    () -> leased.call("sample_fail", Json.createObject()
+                            .put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, "profile-1")));
+
+            assertEquals(1, releases.get());
+        }
     }
 
     private static ObjectNode arguments(String profileId) {
@@ -198,6 +224,11 @@ class ProfileScopedToolsetTest {
         public String greet(
                 @ToolParam(required = false, description = "who to greet") String name) {
             return profileId + (name == null ? "" : name);
+        }
+
+        @Tool(description = "Fail after the profile has been resolved")
+        public String fail() {
+            throw new IllegalStateException("failed");
         }
     }
 }

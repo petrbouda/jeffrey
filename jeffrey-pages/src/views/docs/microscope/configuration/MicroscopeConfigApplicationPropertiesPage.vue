@@ -290,6 +290,40 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.mcp.hubs.scan-timeout</code></td>
+            <td><code>PT20S</code></td>
+            <td>
+              How long the <code>hubs_</code> tools spend discovering what a hub holds before they
+              answer with what did arrive. One deadline shared by every remote call a scan makes, and a
+              cancelling one: a hub that stops answering is abandoned rather than waited out, and the
+              sessions other hubs already returned are still reported, each unreachable scope named
+              beside them. A positive ISO-8601 duration. Read at startup.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.hubs.download-response-timeout</code></td>
+            <td><code>PT45S</code></td>
+            <td>
+              How long <code>hubs_download</code> waits before it answers that the transfer is still
+              running, session lookup included. It bounds the <em>answer</em>, not the work: a transfer
+              that outlasts it carries on, and calling the tool again with the same session reports the
+              finished copy. Sized under the shortest client timeout worth designing for, so raising it
+              mostly buys a client that has already given up. A positive ISO-8601 duration. Read at
+              startup.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.hubs.download-timeout</code></td>
+            <td><code>PT1H</code></td>
+            <td>
+              How long a transfer itself may take, once it is running in the background. Its own
+              setting because it measures something else entirely from the response deadline above:
+              gigabytes over whatever link the hub is on. This is the one to raise for large recordings
+              on a slow connection. A positive ISO-8601 duration. Read at startup. See
+              <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.mcp.ide.enabled</code></td>
             <td><code>true</code></td>
             <td>

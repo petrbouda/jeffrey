@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.shared.common.model.Recording;
 
 import java.util.Comparator;
@@ -68,7 +68,7 @@ public final class DownloadedSessionIndex {
         }
     }
 
-    public static DownloadedSessionIndex build(RecordingsCoreManager recordings) {
+    public static DownloadedSessionIndex build(RecordingsManager recordings) {
         List<Recording> local = recordings.listRecordings();
         if (local.isEmpty()) {
             return new DownloadedSessionIndex(Map.of());
@@ -78,15 +78,22 @@ public final class DownloadedSessionIndex {
                 recordings.tagsForRecordings(local.stream().map(Recording::id).toList());
 
         Map<HubSessionRef, Recording> newest = new HashMap<>();
+        Map<String, Boolean> readyProfiles = new HashMap<>();
         for (Recording recording : local) {
-            originRef(tags.get(recording.id()))
-                    .ifPresent(ref -> newest.merge(ref, recording, DownloadedSessionIndex::preferred));
+            originRef(tags.get(recording.id())).ifPresent(ref -> {
+                if (recording.hasProfile()) {
+                    readyProfiles.computeIfAbsent(recording.profileId(), profileId -> recordings.profile(profileId)
+                            .map(profile -> profile.info().enabled())
+                            .orElse(false));
+                }
+                newest.merge(ref, recording, (left, right) -> preferred(left, right, readyProfiles));
+            });
         }
 
         Map<HubSessionRef, LocalCopy> byRef = new HashMap<>();
         newest.forEach((ref, recording) -> byRef.put(ref, new LocalCopy(
                 recording.id(),
-                recording.hasProfile() ? recording.profileId() : null)));
+                Boolean.TRUE.equals(readyProfiles.get(recording.profileId())) ? recording.profileId() : null)));
         return new DownloadedSessionIndex(byRef);
     }
 
@@ -129,9 +136,11 @@ public final class DownloadedSessionIndex {
      * Which of two downloads of the same session to point the reader at: the analysed one, because
      * it is the one they can use immediately, and otherwise the newer.
      */
-    private static Recording preferred(Recording left, Recording right) {
-        if (left.hasProfile() != right.hasProfile()) {
-            return left.hasProfile() ? left : right;
+    private static Recording preferred(Recording left, Recording right, Map<String, Boolean> readyProfiles) {
+        boolean leftReady = Boolean.TRUE.equals(readyProfiles.get(left.profileId()));
+        boolean rightReady = Boolean.TRUE.equals(readyProfiles.get(right.profileId()));
+        if (leftReady != rightReady) {
+            return leftReady ? left : right;
         }
         return Comparator.comparing(
                         Recording::createdAt,

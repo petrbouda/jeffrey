@@ -18,10 +18,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
+import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadedSessionIndex;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubScanFilter;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
@@ -29,13 +30,16 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import io.grpc.Context;
+import io.grpc.Deadline;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,14 +50,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * The recordings that never reached this machine: everything sitting on a connected Jeffrey Hub.
@@ -92,6 +95,10 @@ public class HubsMcpTools {
      * refuses would otherwise hang the caller for good.
      */
     private static final Duration SCAN_BUDGET = Duration.ofSeconds(20);
+    private static final Duration DOWNLOAD_RESPONSE_BUDGET = BoundedJobs.WAIT_BUDGET;
+    private static final Duration DOWNLOAD_DEADLINE = Duration.ofHours(1);
+
+    private static final ScheduledExecutorService DEADLINE_SCHEDULER = deadlineScheduler();
 
     private static final String NO_HUBS =
             "No Jeffrey Hub is connected to this installation. Recordings can still be analysed from "
@@ -112,11 +119,13 @@ public class HubsMcpTools {
                     + "returns the recordingId rather than fetching the session a second time.";
 
     private final Clock clock;
+    private final Duration downloadResponseBudget;
+    private final Duration downloadDeadline;
 
     /**
      * One transfer per session at a time, and no call waits longer than a client will.
      */
-    private final BoundedJobs<String, String> downloads = new BoundedJobs<>();
+    private final BoundedJobs<HubSessionRef, String> downloads;
     private final HubSessionScan scan;
 
     public HubsMcpTools(
@@ -125,11 +134,33 @@ public class HubsMcpTools {
             RecordingsManager recordingsManager,
             Clock clock) {
 
+        this(
+                hubsManager,
+                resolver,
+                recordingsManager,
+                clock,
+                SCAN_BUDGET,
+                DOWNLOAD_RESPONSE_BUDGET,
+                DOWNLOAD_DEADLINE);
+    }
+
+    public HubsMcpTools(
+            HubsManager hubsManager,
+            ProjectManagerResolver resolver,
+            RecordingsManager recordingsManager,
+            Clock clock,
+            Duration scanBudget,
+            Duration downloadResponseBudget,
+            Duration downloadDeadline) {
+
         this.hubsManager = hubsManager;
         this.resolver = resolver;
         this.recordingsManager = recordingsManager;
         this.clock = clock;
-        this.scan = new HubSessionScan(hubsManager, SCAN_BUDGET);
+        this.downloadResponseBudget = requirePositive(downloadResponseBudget, "downloadResponseBudget");
+        this.downloadDeadline = requirePositive(downloadDeadline, "downloadDeadline");
+        this.downloads = new BoundedJobs<>(downloadResponseBudget);
+        this.scan = new HubSessionScan(hubsManager, scanBudget);
     }
 
     @Tool(description = "Every Jeffrey Hub this installation is connected to, and whether it answers "
@@ -141,7 +172,7 @@ public class HubsMcpTools {
             return NO_HUBS;
         }
 
-        Map<String, Optional<String>> versions = probeAll(hubs);
+        Map<String, Optional<String>> versions = scan.probeVersions(hubs);
 
         MarkdownTable table = MarkdownTable.withColumns(
                 "hub", "hub_id", "address", "source", "status", "hub_version");
@@ -234,12 +265,20 @@ public class HubsMcpTools {
             + "session transfers inside this call; a large one takes longer than a client waits, so "
             + "the answer is a status saying the transfer continues and calling this tool again with "
             + "the same session_ref reports it once it lands. A session already downloaded is returned "
-            + "as it is rather than fetched twice.")
+            + "as it is rather than fetched twice. Failed transfer outcomes are retained in memory for "
+            + "one hour after completion. During that window, later calls report the failure without "
+            + "restarting unless retry=true. After expiry or a server restart, calling this tool can "
+            + "start a new transfer even when retry is omitted or false.")
     public String download(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
-            String sessionRef) {
+            String sessionRef,
+            @ToolParam(required = false, description = "Retry a failed transfer while its outcome is retained "
+                    + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
+                    + "After expiry or a server restart, this call can start a new transfer regardless of retry")
+            Boolean retry) {
 
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
+        boolean retryFailed = Boolean.TRUE.equals(retry);
 
         Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
                 DownloadedSessionIndex.build(recordingsManager).find(ref);
@@ -249,15 +288,35 @@ public class HubsMcpTools {
             return McpToolOutput.json(existing(ref, alreadyHere.get()));
         }
 
-        HubInfo hubInfo = hubInfo(ref);
-        ProjectManager project = projectFor(ref);
-        RecordingSession session = preflight(project, ref, hubInfo);
+        Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(ref);
+        if (prior.isPresent()) {
+            BoundedJobs.Outcome<String> outcome = prior.get();
+            if (outcome.failure() != null && !retryFailed) {
+                throw mapRemoteFailure(outcome.failure());
+            }
+            if (outcome.value() != null && recordingsManager.findRecording(outcome.value()).isPresent()) {
+                return McpToolOutput.json(completedOutcome(ref, outcome.value()));
+            }
+        }
+
+        Deadline responseDeadline = Deadline.after(downloadResponseBudget.toNanos(), TimeUnit.NANOSECONDS);
+        DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
+        HubInfo hubInfo = preflight.hubInfo();
+        ProjectManager project = preflight.project();
+        RecordingSession session = preflight.session();
 
         LOG.info("Downloading a hub session over MCP: hub_id={} project_id={} session_id={}",
                 ref.hubId(), ref.projectId(), ref.sessionId());
-        Optional<String> transferred = downloads.runWithin(
-                ref.sessionId(),
-                () -> project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId()));
+        Optional<String> transferred;
+        try {
+            transferred = downloads.runWithin(
+                    ref,
+                    remaining(responseDeadline),
+                    retryFailed,
+                    () -> transferWithinDeadline(project, ref));
+        } catch (RuntimeException e) {
+            throw mapRemoteFailure(e);
+        }
         if (transferred.isEmpty()) {
             // Nothing to poll but this tool: it answers from the local store first, so calling it again
             // with the same ref reports the finished copy once the transfer lands.
@@ -287,39 +346,11 @@ public class HubsMcpTools {
     }
 
     /**
-     * Asks every hub whether it is there, all at once and under the same budget the scan uses. One
-     * hub that hangs must not decide how long the whole listing takes.
+     * Java callers written before failed-download retry became explicit keep their source contract.
+     * MCP reflection uses the annotated two-argument method above.
      */
-    private Map<String, Optional<String>> probeAll(List<HubManager> hubs) {
-        List<CompletableFuture<Map.Entry<String, Optional<String>>>> probes = hubs.stream()
-                .map(hub -> CompletableFuture.supplyAsync(
-                        () -> Map.entry(
-                                hub.info().hubId(),
-                                hub.tryInfo().map(info -> info.version() == null ? "" : info.version())),
-                        Schedulers.sharedVirtual()))
-                .toList();
-
-        try {
-            CompletableFuture.allOf(probes.toArray(new CompletableFuture[0]))
-                    .get(SCAN_BUDGET.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            LOG.warn("Not every hub answered a probe within the budget: budget_in_sec={}",
-                    SCAN_BUDGET.toSeconds());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while probing hubs", e);
-        } catch (Exception e) {
-            LOG.warn("Failed to probe hubs: reason={}", e.getMessage(), e);
-        }
-
-        Map<String, Optional<String>> versions = new HashMap<>();
-        for (CompletableFuture<Map.Entry<String, Optional<String>>> probe : probes) {
-            if (probe.isDone() && !probe.isCompletedExceptionally()) {
-                Map.Entry<String, Optional<String>> entry = probe.join();
-                versions.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return versions;
+    public String download(String sessionRef) {
+        return download(sessionRef, false);
     }
 
     private RecordingSessionFilter sessionFilter(
@@ -392,11 +423,21 @@ public class HubsMcpTools {
 
     private ProjectManager projectFor(HubSessionRef ref) {
         try {
-            return resolver.resolve(ref.hubId(), ref.workspaceId(), ref.projectId()).projectManager();
-        } catch (JeffreyException | StatusRuntimeException e) {
+            return resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId()).projectManager();
+        } catch (StatusRuntimeException e) {
             LOG.debug("Workspace or project lookup failed for a session_ref: hub_id={} reason={}",
                     ref.hubId(), e.getMessage(), e);
-            throw staleRef(ref, "its workspace or project is no longer there");
+            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
+                throw staleRef(ref, "its workspace or project is no longer there");
+            }
+            throw GrpcClientErrors.toJeffreyException(e);
+        } catch (JeffreyException e) {
+            LOG.debug("Workspace or project lookup failed for a session_ref: hub_id={} reason={}",
+                    ref.hubId(), e.getMessage(), e);
+            if (e.getCode().isNotFound()) {
+                throw staleRef(ref, "its workspace or project is no longer there");
+            }
+            throw e;
         }
     }
 
@@ -408,9 +449,21 @@ public class HubsMcpTools {
         RecordingSession session;
         try {
             session = project.repositoryManager().recordingSession(ref.sessionId());
-        } catch (JeffreyException | StatusRuntimeException e) {
+        } catch (StatusRuntimeException e) {
             LOG.debug("Session lookup failed on the hub: hub_id={} session_id={} reason={}",
                     ref.hubId(), ref.sessionId(), e.getMessage(), e);
+            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
+                throw staleRef(ref, "hub " + hubInfo.name() + " no longer has it, "
+                        + "which usually means retention removed it");
+            }
+            throw GrpcClientErrors.toJeffreyException(e);
+        } catch (JeffreyException e) {
+            LOG.debug("Session lookup failed on the hub: hub_id={} session_id={} reason={}",
+                    ref.hubId(), ref.sessionId(), e.getMessage(), e);
+            if (e.getCode() == ErrorCode.HUB_UNAVAILABLE
+                    || e.getCode() == ErrorCode.REMOTE_OPERATION_FAILED) {
+                throw e;
+            }
             throw staleRef(ref, "hub " + hubInfo.name() + " no longer has it, "
                     + "which usually means retention removed it");
         }
@@ -444,6 +497,80 @@ public class HubsMcpTools {
                         + ". Call hubs_sessions again for a current session_ref.");
     }
 
+    private DownloadPreflight preflightWithin(HubSessionRef ref, Deadline deadline) {
+        Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINE_SCHEDULER);
+        try {
+            return context.call(() -> {
+                HubInfo hubInfo = hubInfo(ref);
+                ProjectManager project = projectFor(ref);
+                return new DownloadPreflight(hubInfo, project, preflight(project, ref, hubInfo));
+            });
+        } catch (StatusRuntimeException e) {
+            throw GrpcClientErrors.toJeffreyException(e);
+        } catch (Exception e) {
+            if (e instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw new IllegalStateException("Hub download preflight failed", e);
+        } finally {
+            context.cancel(null);
+        }
+    }
+
+    private String transferWithinDeadline(ProjectManager project, HubSessionRef ref) {
+        Context.CancellableContext context = Context.ROOT.withDeadlineAfter(
+                downloadDeadline.toNanos(), TimeUnit.NANOSECONDS, DEADLINE_SCHEDULER);
+        try {
+            return context.call(() ->
+                    project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId()));
+        } catch (StatusRuntimeException e) {
+            throw GrpcClientErrors.toJeffreyException(e);
+        } catch (Exception e) {
+            if (e instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw new IllegalStateException("Hub download failed", e);
+        } finally {
+            context.cancel(null);
+        }
+    }
+
+    private static Duration remaining(Deadline deadline) {
+        long remainingNanos = deadline.timeRemaining(TimeUnit.NANOSECONDS);
+        if (remainingNanos <= 0) {
+            throw GrpcClientErrors.toJeffreyException(
+                    Status.DEADLINE_EXCEEDED.withDescription("Hub download response deadline elapsed")
+                            .asRuntimeException());
+        }
+        return Duration.ofNanos(remainingNanos);
+    }
+
+    private static Duration requirePositive(Duration value, String name) {
+        if (value == null || value.isZero() || value.isNegative()) {
+            throw new IllegalArgumentException(name + " must be positive: " + value);
+        }
+        return value;
+    }
+
+    private static ScheduledExecutorService deadlineScheduler() {
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(
+                1,
+                Thread.ofPlatform().daemon().name("hub-mcp-download-deadline-", 0).factory());
+        executor.setRemoveOnCancelPolicy(true);
+        return executor;
+    }
+
+    private static RuntimeException mapRemoteFailure(RuntimeException exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof StatusRuntimeException grpc) {
+                return GrpcClientErrors.toJeffreyException(grpc);
+            }
+            cause = cause.getCause();
+        }
+        return exception;
+    }
+
     private static DownloadedSession existing(
             HubSessionRef ref, DownloadedSessionIndex.LocalCopy copy) {
 
@@ -454,6 +581,20 @@ public class HubsMcpTools {
                         + " to build the profile every analysis tool takes.";
         return new DownloadedSession(
                 copy.recordingId(), null, null, null, ref.sessionId(), 0, 0, 0L, next);
+    }
+
+    private static DownloadedSession completedOutcome(HubSessionRef ref, String recordingId) {
+        return new DownloadedSession(
+                recordingId,
+                null,
+                null,
+                null,
+                ref.sessionId(),
+                0,
+                0,
+                0L,
+                "Call recordings_analyzeRecording with recordingId=" + recordingId
+                        + " to build the profile every analysis tool takes.");
     }
 
     private static String address(HubInfo info) {
@@ -504,6 +645,10 @@ public class HubsMcpTools {
      */
     private record DownloadInProgress(
             String sessionId, String sessionName, long totalSizeBytes, String status) {
+    }
+
+    private record DownloadPreflight(
+            HubInfo hubInfo, ProjectManager project, RecordingSession session) {
     }
 
     private record DownloadedSession(

@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.response.ProfileDetailResponse;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -38,9 +39,11 @@ public class ProfileController {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileController.class);
 
     private final ProfileManagerResolver resolver;
+    private final McpProfileContextCache contextCache;
 
-    public ProfileController(ProfileManagerResolver resolver) {
+    public ProfileController(ProfileManagerResolver resolver, McpProfileContextCache contextCache) {
         this.resolver = resolver;
+        this.contextCache = contextCache;
     }
 
     @GetMapping
@@ -63,7 +66,16 @@ public class ProfileController {
     public void deleteProfile(@PathVariable("profileId") String profileId) {
         ProfileManager pm = resolver.resolve(profileId);
         LOG.debug("Deleting profile: profileId={}", pm.info().id());
-        pm.delete();
+        contextCache.invalidate(profileId);
+        try {
+            pm.delete();
+        } finally {
+            // Narrows, rather than closes, the window in which an MCP call resolved the profile after
+            // the first invalidation but before deletion removed it from storage. A resolve slow
+            // enough to land after this one leaves a context pointing at deleted storage; it fails
+            // honestly when used and goes on the next idle sweep, which is why narrowing is enough.
+            contextCache.invalidate(profileId);
+        }
     }
 
     public record UpdateProfile(String name) {
