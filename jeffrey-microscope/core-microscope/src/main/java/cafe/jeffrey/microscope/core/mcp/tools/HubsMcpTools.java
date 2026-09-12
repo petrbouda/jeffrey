@@ -265,13 +265,16 @@ public class HubsMcpTools {
             + "session transfers inside this call; a large one takes longer than a client waits, so "
             + "the answer is a status saying the transfer continues and calling this tool again with "
             + "the same session_ref reports it once it lands. A session already downloaded is returned "
-            + "as it is rather than fetched twice. A failed background transfer is reported on later "
-            + "calls without restarting; pass retry=true only when it should be attempted again.")
+            + "as it is rather than fetched twice. Failed transfer outcomes are retained in memory for "
+            + "one hour after completion. During that window, later calls report the failure without "
+            + "restarting unless retry=true. After expiry or a server restart, calling this tool can "
+            + "start a new transfer even when retry is omitted or false.")
     public String download(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef,
-            @ToolParam(required = false, description = "Retry a previous failed transfer. Omit or false to inspect "
-                    + "the retained failure without starting more work")
+            @ToolParam(required = false, description = "Retry a failed transfer while its outcome is retained "
+                    + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
+                    + "After expiry or a server restart, this call can start a new transfer regardless of retry")
             Boolean retry) {
 
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
