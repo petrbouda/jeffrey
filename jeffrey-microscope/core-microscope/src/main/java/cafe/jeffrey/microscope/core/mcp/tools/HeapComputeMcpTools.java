@@ -26,6 +26,8 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -51,6 +53,8 @@ import java.util.function.Supplier;
  * cache — no dump is altered and nothing is deleted.
  */
 public class HeapComputeMcpTools {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HeapComputeMcpTools.class);
 
     private static final String HEAP_VIEW = "heap-dump/overview";
 
@@ -119,11 +123,18 @@ public class HeapComputeMcpTools {
                 UiLinks.view(profileId, HEAP_VIEW)));
     }
 
+    /**
+     * Reported rather than thrown, because of where this runs: the background run calls it from the
+     * {@code finally} that follows storing its result, so an exception here would replace whatever
+     * that storage threw — losing the failure worth reading to report the cleanup that followed it.
+     * A lease that will not release is a leaked pool entry, which is a thing to find in the log, not
+     * a reason to lose the diagnosis.
+     */
     private static void release(AutoCloseable lease) {
         try {
             lease.close();
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot release the heap preparation lease", e);
+            LOG.warn("Cannot release the heap preparation lease: message={}", e.getMessage(), e);
         }
     }
 

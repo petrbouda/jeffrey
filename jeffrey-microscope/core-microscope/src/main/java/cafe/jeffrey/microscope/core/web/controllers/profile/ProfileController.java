@@ -70,8 +70,10 @@ public class ProfileController {
         try {
             pm.delete();
         } finally {
-            // Close the window in which an MCP call resolved the profile after the first invalidation
-            // but before deletion removed it from storage.
+            // Narrows, rather than closes, the window in which an MCP call resolved the profile after
+            // the first invalidation but before deletion removed it from storage. A resolve slow
+            // enough to land after this one leaves a context pointing at deleted storage; it fails
+            // honestly when used and goes on the next idle sweep, which is why narrowing is enough.
             contextCache.invalidate(profileId);
         }
     }

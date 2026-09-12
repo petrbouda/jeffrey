@@ -162,6 +162,26 @@ class HeapComputeMcpToolsTest {
         assertEquals(0, active.get());
     }
 
+    /**
+     * A cleanup path must not become the failure it was cleaning up after. The background run calls
+     * the release from the {@code finally} that follows storing its result, so a release that threw
+     * would replace whatever that storage threw.
+     */
+    @Test
+    void reportsRatherThanThrowsWhenABackgroundLeaseWillNotRelease() {
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, initService, () -> () -> {
+            throw new IllegalStateException("pool already closed");
+        });
+
+        // The report is rejected, so prepare() releases the lease it never handed over.
+        IllegalArgumentException rejected =
+                assertThrows(IllegalArgumentException.class, () -> tools.prepare("unknown"));
+
+        assertTrue(rejected.getMessage().contains("unknown"),
+                "the caller must still be told what it got wrong: " + rejected.getMessage());
+    }
+
     @Nested
     class Status {
 

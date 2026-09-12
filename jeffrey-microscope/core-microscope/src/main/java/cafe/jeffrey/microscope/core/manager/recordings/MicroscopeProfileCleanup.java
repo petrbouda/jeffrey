@@ -103,6 +103,9 @@ public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
         } finally {
             // An MCP call can arrive after the first invalidation and resolve the row before deletion
             // removes it. Retire that context too, including when storage deletion failed part-way.
+            // This narrows that window rather than closing it: a resolve slow enough to land after
+            // this call leaves a context pointing at deleted storage, which fails honestly when used
+            // and goes on the next idle sweep.
             contextInvalidator.accept(profileId);
         }
 
