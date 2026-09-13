@@ -28,6 +28,7 @@ import cafe.jeffrey.microscope.grpc.client.ActivityScanSnapshot;
 import cafe.jeffrey.microscope.grpc.client.ActivityScanTarget;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.activity.ActivityLimits;
 import cafe.jeffrey.shared.common.activity.ActivityOrder;
@@ -288,7 +289,7 @@ public final class HubActivityMcpSupport {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            throw new IllegalStateException(explain(e), e);
+            throw new ToolExecutionException(explain(e), e);
         } finally {
             context.cancel(null);
         }

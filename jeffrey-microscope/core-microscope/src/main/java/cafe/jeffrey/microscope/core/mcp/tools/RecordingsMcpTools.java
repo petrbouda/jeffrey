@@ -26,6 +26,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -68,7 +69,19 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class RecordingsMcpTools {
 
+    private static final String RECORDING_VANISHED = "Recording vanished while being analyzed: ";
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsMcpTools.class);
+
+    /** The application property that caps how many {@code recordings_analyzeFile} imports run together. */
+    public static final String MAX_CONCURRENT_IMPORTS_PROPERTY =
+            "jeffrey.microscope.mcp.recordings.max-concurrent-imports";
+
+    /**
+     * How many imports run together unless the property says otherwise. An import is a file copy
+     * followed by a full parse, and N calls in one turn used to start N of both at once; the ones
+     * beyond this wait as {@code queued} and start on their own when a slot frees.
+     */
+    public static final int DEFAULT_MAX_CONCURRENT_IMPORTS = 2;
 
     private static final String HOME_PREFIX = "~";
     private static final String USER_HOME_PROPERTY = "user.home";
@@ -130,7 +143,23 @@ public class RecordingsMcpTools {
 
     public RecordingsMcpTools(RecordingsManager recordingsManager,
             PipelineRunRegistry<String> runRegistry, McpOperationRegistry operations, Clock clock) {
-        this(recordingsManager, runRegistry, defaultJobs(clock), operations, clock);
+        this(recordingsManager, runRegistry, operations, DEFAULT_MAX_CONCURRENT_IMPORTS, clock);
+    }
+
+    /**
+     * @param maxConcurrentImports how many {@code recordings_analyzeFile} imports may run together,
+     *                             from {@link #MAX_CONCURRENT_IMPORTS_PROPERTY}
+     */
+    public RecordingsMcpTools(RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> runRegistry, McpOperationRegistry operations,
+            int maxConcurrentImports, Clock clock) {
+        this(recordingsManager, runRegistry, defaultJobs(clock), operations, maxConcurrentImports, clock);
+    }
+
+    public RecordingsMcpTools(RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> runRegistry, BoundedJobs<String, String> jobs,
+            McpOperationRegistry operations, Clock clock) {
+        this(recordingsManager, runRegistry, jobs, operations, DEFAULT_MAX_CONCURRENT_IMPORTS, clock);
     }
 
     /**
@@ -138,9 +167,10 @@ public class RecordingsMcpTools {
      */
     public RecordingsMcpTools(RecordingsManager recordingsManager,
             PipelineRunRegistry<String> runRegistry, BoundedJobs<String, String> jobs,
-            McpOperationRegistry operations, Clock clock) {
+            McpOperationRegistry operations, int maxConcurrentImports, Clock clock) {
         this.operations = operations;
-        this.imports = new BoundedJobs<>(jobs.waitBudget(), BoundedJobs.COMPLETED_RETENTION, clock);
+        this.imports = new BoundedJobs<>(
+                jobs.waitBudget(), BoundedJobs.COMPLETED_RETENTION, clock, maxConcurrentImports);
         this.recordingsManager = recordingsManager;
         this.runRegistry = runRegistry;
         this.jobs = jobs;
@@ -439,7 +469,7 @@ public class RecordingsMcpTools {
 
     private String analyzedProfile(String recordingId, String profileId) {
         Recording recording = recordingsManager.findRecording(recordingId)
-                .orElseThrow(() -> new IllegalStateException("Recording vanished while being analyzed: " + recordingId));
+                .orElseThrow(() -> new ToolExecutionException(RECORDING_VANISHED + recordingId));
         String actualName = recordingsManager.profile(profileId)
                 .map(profile -> profile.info().name())
                 .orElse(recording.profileName() == null ? recording.recordingName() : recording.profileName());

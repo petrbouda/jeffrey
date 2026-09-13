@@ -32,6 +32,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
+import java.util.function.Supplier;
+
 /**
  * MCP Streamable-HTTP server for an <em>external</em> client — an interactive Claude Code, Codex or
  * Gemini CLI session in the developer's own repository. Jeffrey's only MCP endpoint, and its only AI integration:
@@ -107,13 +109,39 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
         this.assembler = assembler;
         this.properties = properties;
         this.guard = guard;
-        // Prompts and resources are fixed for the installation the way the toolset is, so they are
-        // built once here rather than per request.
+        // Prompts are a bean, fixed for the installation. The resources are built on the first
+        // request that asks for them and then kept: what they hold -- the toolset, the names it
+        // advertises, the server-info document -- is as fixed as the toolset is, while the
+        // diagnostics they serve go through a supplier and are read afresh on every read. Deferred
+        // rather than built here because the toolset is asked for lazily everywhere else, so that a
+        // failure assembling it cannot stop the endpoint answering initialize.
         this.features = new McpServerFeatures(
                 assembler::toolset,
                 () -> prompts,
-                () -> new McpResources(assembler.toolset(), properties,
-                        () -> diagnostics.json(assembler.toolset(), toolMetrics().snapshot(), toolMetrics().droppedCalls())));
+                once(() -> new McpResources(assembler.toolset(), properties,
+                        () -> diagnostics.json(assembler.toolset(), toolMetrics().snapshot(), toolMetrics().droppedCalls()))));
+    }
+
+    /** A supplier that builds its value on the first call and answers every later one with it. */
+    private static <T> Supplier<T> once(Supplier<? extends T> build) {
+        return new Supplier<>() {
+            private volatile T value;
+
+            @Override
+            public T get() {
+                T current = value;
+                if (current == null) {
+                    synchronized (this) {
+                        current = value;
+                        if (current == null) {
+                            current = build.get();
+                            value = current;
+                        }
+                    }
+                }
+                return current;
+            }
+        };
     }
 
     @PostMapping

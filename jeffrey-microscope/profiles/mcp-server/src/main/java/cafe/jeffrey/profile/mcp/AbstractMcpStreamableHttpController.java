@@ -120,9 +120,27 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final String FIELD_IDEMPOTENT_HINT = "idempotentHint";
     private static final String FIELD_OPEN_WORLD_HINT = "openWorldHint";
 
+    private static final String FIELD_CURSOR = "cursor";
+
+    /**
+     * The methods that take a pagination {@code cursor}. This server answers each of them in one page
+     * and never issues a {@code nextCursor}, so a cursor on any of them is one it did not hand out.
+     */
+    private static final Set<String> PAGINATED_LIST_METHODS = Set.of(
+            METHOD_TOOLS_LIST, METHOD_PROMPTS_LIST, METHOD_RESOURCES_LIST, METHOD_RESOURCES_TEMPLATES_LIST);
+
     private static final String CONTENT_TYPE_TEXT = "text";
     private static final String ROLE_USER = "user";
     private static final String TOOL_ERROR_PREFIX = "Error: ";
+
+    /**
+     * What a client is told when a tool or a request failed for a reason it can do nothing about. The
+     * exception's own words — a helpful-NPE sentence naming a field, a database driver's message — are
+     * for whoever reads the server log, where they are written in full; the client only needs to know
+     * that its request was not what went wrong.
+     */
+    public static final String INTERNAL_FAILURE_MESSAGE =
+            "The tool failed inside Jeffrey; the server log has the detail";
 
     /**
      * Plain JSON-RPC codes, and a refused protocol version deliberately leaves through
@@ -267,6 +285,9 @@ public abstract class AbstractMcpStreamableHttpController {
         }
 
         try {
+            if (PAGINATED_LIST_METHODS.contains(method)) {
+                refuseCursor(method, params);
+            }
             return switch (method) {
                 case METHOD_INITIALIZE -> initializeResult(id, request);
                 case METHOD_PING -> success(id, Json.createObject());
@@ -288,8 +309,23 @@ public abstract class AbstractMcpStreamableHttpController {
             return error(id, ERROR_INVALID_PARAMS, describe(e));
         } catch (Exception e) {
             log.error("MCP request failed: method={} message={}", method, e.getMessage(), e);
-            return error(id, ERROR_INTERNAL, describe(e));
+            return error(id, ERROR_INTERNAL, clientMessage(e));
         }
+    }
+
+    /**
+     * Refuses a pagination cursor on a method this server never paginates. No answer of its carries a
+     * {@code nextCursor}, so no cursor a client sends can be one it was given; the specification asks
+     * for {@code -32602} on a cursor the server does not recognise, and answering the first page
+     * instead would let a client loop on a page it already holds. A blank one reads as omitted.
+     */
+    private static void refuseCursor(String method, JsonNode params) {
+        JsonNode cursor = params == null ? null : params.get(FIELD_CURSOR);
+        if (cursor == null || cursor.isNull() || (cursor.isString() && cursor.asString().isEmpty())) {
+            return;
+        }
+        throw new IllegalArgumentException("Invalid cursor for " + method + ": this server answers it in "
+                + "one page and never issues a nextCursor, so omit the cursor");
     }
 
     private static boolean supportsStructured(String protocolVersionHeader) {
@@ -368,9 +404,16 @@ public abstract class AbstractMcpStreamableHttpController {
             // Rethrown so the envelope answers -32602: the call never reached a tool.
             throw e;
         } catch (Exception e) {
-            log.warn("MCP tool call failed: tool={} message={}", toolName, e.getMessage());
+            Throwable failure = unwrapToolFailure(e);
+            if (callerActionable(failure)) {
+                log.warn("MCP tool call failed: tool={} message={}", toolName, describe(failure));
+            } else {
+                // The client gets the fixed sentence, so this is the only place the detail survives.
+                log.error("MCP tool call failed inside the server: tool={} message={}",
+                        toolName, describe(failure), e);
+            }
             content.addObject().put(FIELD_TYPE, CONTENT_TYPE_TEXT)
-                    .put(FIELD_TEXT, TOOL_ERROR_PREFIX + describe(e));
+                    .put(FIELD_TEXT, TOOL_ERROR_PREFIX + clientMessage(failure));
             result.put(FIELD_IS_ERROR, true);
         } finally {
             if (advertised && dispatched) {
@@ -483,7 +526,7 @@ public abstract class AbstractMcpStreamableHttpController {
     }
 
     /** The exception a tool threw, when the failure is the wrapper {@link ToolInvocation} puts around it. */
-    private static Throwable unwrapToolFailure(RuntimeException failure) {
+    private static Throwable unwrapToolFailure(Throwable failure) {
         if (failure instanceof IllegalStateException
                 && failure.getMessage() != null
                 && failure.getMessage().startsWith(ToolInvocation.TOOL_EXECUTION_FAILED_PREFIX)
@@ -491,6 +534,31 @@ public abstract class AbstractMcpStreamableHttpController {
             return failure.getCause();
         }
         return failure;
+    }
+
+    /**
+     * The words a client may be given for a failure: the exception's own when it is one the caller
+     * can act on, and {@link #INTERNAL_FAILURE_MESSAGE} for everything else. A tool's failure is
+     * read through the wrapper {@link ToolInvocation} puts around it, so the judgement is made on
+     * what the tool threw rather than on the wrapper's type.
+     */
+    private static String clientMessage(Throwable failure) {
+        Throwable cause = unwrapToolFailure(failure);
+        return callerActionable(cause) ? describe(cause) : INTERNAL_FAILURE_MESSAGE;
+    }
+
+    /**
+     * Whether a failure is about the request rather than the server: an argument a tool refused, a
+     * refusal a tool wrote for the model, a resource that is not there, or a condition Jeffrey names
+     * with a code — a profile that does not exist, a feature this recording did not enable. Each of
+     * those is a sentence the caller can act on. Everything else — a null where a value was expected,
+     * a driver that gave up — is not, and its words would only tell an outsider how the server is built.
+     */
+    private static boolean callerActionable(Throwable failure) {
+        return failure instanceof IllegalArgumentException
+                || failure instanceof ToolExecutionException
+                || failure instanceof McpResourceNotFoundException
+                || (failure instanceof JeffreyException jeffrey && jeffrey.getCode() != null);
     }
 
     /**

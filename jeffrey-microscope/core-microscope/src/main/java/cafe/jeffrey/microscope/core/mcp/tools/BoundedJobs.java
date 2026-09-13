@@ -38,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,18 +46,31 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-/** Keyed background work with bounded waits and attempt-specific cancellation. */
+/**
+ * Keyed background work with bounded waits and attempt-specific cancellation.
+ * <p>
+ * Optionally also bounded in <em>how many run at once</em>: an instance built with a permit count
+ * lets that many attempts execute together and holds the rest back. A held attempt is
+ * {@link OperationState#QUEUED} rather than refused — it keeps its operation id, answers a status
+ * poll as waiting, starts on its own once a permit frees, and can be cancelled before it ever runs,
+ * in which case it never does.
+ */
 public class BoundedJobs<K, V> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BoundedJobs.class);
     public static final Duration WAIT_BUDGET = Duration.ofSeconds(45);
     public static final Duration COMPLETED_RETENTION = Duration.ofHours(1);
 
+    /** No limit on attempts running together, which is what every instance had before permits existed. */
+    public static final int UNBOUNDED_CONCURRENCY = Integer.MAX_VALUE;
+
     private final Map<K, Attempt<V>> jobs = new ConcurrentHashMap<>();
     private final Duration budget;
     private final Duration retention;
     private final Clock clock;
     private final Executor scheduler;
+    private final int maxConcurrent;
+    private final Semaphore permits;
 
     public BoundedJobs() {
         this(WAIT_BUDGET);
@@ -67,7 +81,15 @@ public class BoundedJobs<K, V> {
     }
 
     public BoundedJobs(Duration budget, Duration retention, Clock clock) {
-        this(budget, retention, clock, Schedulers.sharedVirtual());
+        this(budget, retention, clock, UNBOUNDED_CONCURRENCY);
+    }
+
+    /**
+     * @param maxConcurrent how many attempts may run at once; the ones beyond it wait as
+     *                      {@link OperationState#QUEUED} for a permit rather than being refused
+     */
+    public BoundedJobs(Duration budget, Duration retention, Clock clock, int maxConcurrent) {
+        this(budget, retention, clock, Schedulers.sharedVirtual(), maxConcurrent);
     }
 
     /**
@@ -76,15 +98,29 @@ public class BoundedJobs<K, V> {
      *                  shared executor to behave a particular way.
      */
     BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler) {
+        this(budget, retention, clock, scheduler, UNBOUNDED_CONCURRENCY);
+    }
+
+    BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler, int maxConcurrent) {
         validateBudget(budget);
         validateBudget(retention);
         if (clock == null) {
             throw new IllegalArgumentException("clock is required");
         }
+        if (maxConcurrent < 1) {
+            throw new IllegalArgumentException("maxConcurrent must be at least 1: " + maxConcurrent);
+        }
         this.clock = clock;
         this.budget = budget;
         this.retention = retention;
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
+        this.maxConcurrent = maxConcurrent;
+        this.permits = new Semaphore(maxConcurrent);
+    }
+
+    /** How many attempts this instance lets run together. */
+    public int maxConcurrent() {
+        return maxConcurrent;
     }
 
     public Duration waitBudget() {
@@ -146,7 +182,7 @@ public class BoundedJobs<K, V> {
         if (started.get()) {
             // The future is only a result carrier. Cancellation interrupts the tracked worker.
             try {
-                scheduler.execute(() -> attempt.execute(work));
+                scheduler.execute(() -> attempt.execute(work, permits));
             } catch (RuntimeException e) {
                 // Nothing is going to run this attempt, and an attempt that never runs never reaches
                 // a terminal state: finishedAt stays null, so the sweep never takes it, isRunning
@@ -292,12 +328,23 @@ public class BoundedJobs<K, V> {
             this.startedAt = clock.instant();
         }
 
-        private void execute(Function<JobControl, V> work) {
+        /**
+         * @param permits how many attempts of the owning instance may run together. The wait for one
+         *                happens with this thread already registered as the worker, so a cancellation
+         *                of a queued attempt interrupts the wait and the work is never started.
+         */
+        private void execute(Function<JobControl, V> work, Semaphore permits) {
             V produced = null;
             RuntimeException error = null;
+            boolean permitted = false;
             try {
                 synchronized (this) {
                     worker = Thread.currentThread();
+                    checkCancellation();
+                }
+                permits.acquire();
+                permitted = true;
+                synchronized (this) {
                     checkCancellation();
                     state = OperationState.RUNNING;
                     phase = "running";
@@ -309,6 +356,9 @@ public class BoundedJobs<K, V> {
             } catch (Throwable e) {
                 error = asRuntime(e);
             } finally {
+                if (permitted) {
+                    permits.release();
+                }
                 // Progress can involve a database read. It must not hold the cancellation monitor,
                 // including while the worker freezes its final status before releasing ownership.
                 Object finalProgress = resolveProgress(progress);

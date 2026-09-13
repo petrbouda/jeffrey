@@ -105,6 +105,19 @@ class ToolInvocationTest {
             assertTrue(thrown.getMessage().contains("limit must be positive"), thrown.getMessage());
             assertEquals(IllegalArgumentException.class, thrown.getCause().getClass());
         }
+
+        /**
+         * The one failure that is not wrapped. A {@link ToolExecutionException} already is the
+         * sentence the model is meant to read; wrapped, the client would have been given the prefix,
+         * the sentence, and the sentence again out of the cause.
+         */
+        @Test
+        void letsAToolsOwnExecutionExceptionThroughAsItself() {
+            ToolExecutionException thrown =
+                    assertThrows(ToolExecutionException.class, () -> invoke("declines"));
+
+            assertEquals("no heap dump on this profile", thrown.getMessage());
+        }
     }
 
     public static class Sample {
@@ -123,6 +136,10 @@ class ToolInvocationTest {
 
         public String refuses() {
             throw new IllegalArgumentException("limit must be positive");
+        }
+
+        public String declines() {
+            throw new ToolExecutionException("no heap dump on this profile");
         }
     }
 }

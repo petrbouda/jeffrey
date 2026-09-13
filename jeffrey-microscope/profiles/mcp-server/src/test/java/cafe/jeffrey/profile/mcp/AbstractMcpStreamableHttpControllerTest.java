@@ -53,6 +53,10 @@ class AbstractMcpStreamableHttpControllerTest {
     private static final String PING = """
             {"jsonrpc":"2.0","id":1,"method":"ping"}""";
 
+    /** What a tool result says for a failure the client can do nothing about. */
+    private static final String INTERNAL_ERROR_TEXT =
+            "Error: " + AbstractMcpStreamableHttpController.INTERNAL_FAILURE_MESSAGE;
+
     private final Envelope envelope = new Envelope();
     private final McpServerFeatures features = new McpServerFeatures(
             () -> new ReflectiveToolset(new SampleTools(), "test"), Prompts::new, Resources::new);
@@ -266,12 +270,14 @@ class AbstractMcpStreamableHttpControllerTest {
 
         /**
          * A failure with no message of its own used to be pasted into the result as "Error: null" — a
-         * word the model reads as data. What travels instead is the one thing left to say about it.
+         * word the model reads as data — and then as the exception's type name, which told an
+         * outsider how the server is built and the model nothing it could act on. What travels now
+         * is the one fixed sentence every internal failure gets; the detail is in the server log.
          * The failure comes from resolving the profile, which runs outside the wrapper
          * {@link ToolInvocation} puts around a tool body, so nothing supplies a message on its behalf.
          */
         @Test
-        void namesTheFailureWhenItCarriesNoMessage() {
+        void answersAFailureWithNoMessageWithTheFixedSentence() {
             McpServerFeatures speechless = new McpServerFeatures(
                     () -> new ProfileScopedToolset<>(SampleTools.class, "test", profileId -> {
                         throw new IllegalStateException();
@@ -287,7 +293,56 @@ class AbstractMcpStreamableHttpControllerTest {
             String text = response.get("result").get("content").get(0).get("text").asString();
             assertTrue(response.get("result").get("isError").asBoolean());
             assertNotEquals("Error: null", text);
-            assertTrue(text.contains("IllegalStateException"), text);
+            assertEquals(INTERNAL_ERROR_TEXT, text);
+        }
+
+        /**
+         * A tool that failed inside Jeffrey — a null where a value was expected, a driver that gave
+         * up — is not answered with its own words. A helpful-NPE sentence names a field of a class
+         * the client has no business knowing, and tells the model nothing it can act on.
+         */
+        @Test
+        void doesNotRepeatAnInternalFailuresOwnWords() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_crash","arguments":{}}}""");
+
+            String text = response.get("result").get("content").get(0).get("text").asString();
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals(INTERNAL_ERROR_TEXT, text);
+            assertFalse(text.contains("secretField"), text);
+        }
+
+        /**
+         * A refusal a tool wrote for the model travels as written, and once: {@link
+         * ToolExecutionException} is the type that means "the tool decided it could not answer, and
+         * this is why", so it is not wrapped on the way out and its sentence is not prefixed with the
+         * wrapper's.
+         */
+        @Test
+        void keepsARefusalTheToolWroteForTheModel() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_decline","arguments":{}}}""");
+
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals("Error: no heap dump on this profile",
+                    response.get("result").get("content").get(0).get("text").asString());
+        }
+
+        /**
+         * An argument a tool refused from inside its body stays actionable: it arrives under the
+         * wrapper reflection puts around a tool, and the judgement is made on what the tool threw.
+         */
+        @Test
+        void keepsAnArgumentRefusalThrownInsideTheTool() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_refuse","arguments":{}}}""");
+
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals("Error: limit must be positive",
+                    response.get("result").get("content").get(0).get("text").asString());
         }
     }
 
@@ -343,6 +398,20 @@ class AbstractMcpStreamableHttpControllerTest {
         void keepsAFailureThatIsNeitherAsAnInternalError() {
             assertEquals(-32603, read("jeffrey://tool/broken").get("error").get("code").asInt());
             assertEquals(-32603, read("jeffrey://broken").get("error").get("code").asInt());
+        }
+
+        /**
+         * The internal error's message is the fixed sentence, not the failure's own: "database
+         * closed" is for the server log, and a client that reads it learns only how the server is
+         * built.
+         */
+        @Test
+        void doesNotRepeatAnInternalFailuresOwnWords() {
+            JsonNode error = read("jeffrey://broken").get("error");
+
+            assertEquals(AbstractMcpStreamableHttpController.INTERNAL_FAILURE_MESSAGE,
+                    error.get("message").asString());
+            assertFalse(error.toString().contains("database closed"), error.toString());
         }
 
         /** A URI this server never offered is still a bad parameter, not a missing resource. */
@@ -483,6 +552,22 @@ class AbstractMcpStreamableHttpControllerTest {
         @Tool(description = "A tool that ran and could not answer")
         public String fail() {
             return McpToolOutput.error("nothing to report");
+        }
+
+        @Tool(description = "A tool that decided it could not answer, and said why")
+        public String decline() {
+            throw new ToolExecutionException("no heap dump on this profile");
+        }
+
+        @Tool(description = "A tool that refuses its argument from inside its body")
+        public String refuse() {
+            throw new IllegalArgumentException("limit must be positive");
+        }
+
+        @Tool(description = "A tool that fails inside the server, with a message naming its insides")
+        public String crash() {
+            throw new NullPointerException(
+                    "Cannot invoke \"String.length()\" because \"this.secretField\" is null");
         }
 
         @Tool(description = "List what this fixture knows")

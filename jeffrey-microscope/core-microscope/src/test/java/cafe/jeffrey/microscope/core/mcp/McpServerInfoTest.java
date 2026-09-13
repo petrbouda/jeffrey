@@ -24,6 +24,7 @@ import cafe.jeffrey.shared.common.JeffreyVersion;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;
@@ -72,8 +73,38 @@ class McpServerInfoTest {
                 Json.readTree(info.json()).path("capabilities").path("paginatedTools"));
     }
 
+    /**
+     * A tool pages when its schema takes a cursor; the name it happens to carry decides nothing. A
+     * family whose tool is called something else entirely is still advertised as paginated when it
+     * takes one, and a tool named like the catalogue is not when it does not.
+     */
+    @Test
+    void derivesPaginationFromTheCursorArgumentRatherThanTheToolName() {
+        McpToolProvider tools = new CompositeToolset(List.of(
+                new ReflectiveToolset(new ProfileDiscoveryFixture(), "profiles"),
+                new ReflectiveToolset(new PagedFixture(), "events")));
+
+        JsonNode paginated = Json.readTree(new McpServerInfo(
+                new ExternalMcpProperties(true, false, false, Set.of()), tools).json())
+                .path("capabilities").path("paginatedTools");
+
+        assertEquals(Json.readTree("[\"events_scan\",\"profiles_list\"]"), paginated);
+    }
+
     public static class ProfileDiscoveryFixture {
         @Tool(description = "A profile catalogue fixture that must never be invoked")
+        public String list(@ToolParam(required = false, description = "continuation") String cursor) {
+            throw new AssertionError("Server diagnostics must not invoke tools");
+        }
+    }
+
+    public static class PagedFixture {
+        @Tool(description = "A paged fixture with an unfamiliar name that must never be invoked")
+        public String scan(@ToolParam(required = false, description = "continuation") String cursor) {
+            throw new AssertionError("Server diagnostics must not invoke tools");
+        }
+
+        @Tool(description = "A fixture named like the catalogue that does not page")
         public String list() {
             throw new AssertionError("Server diagnostics must not invoke tools");
         }

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
@@ -72,7 +73,7 @@ class HubActivityLifecycleTest {
         var manager = mock(EventStreamingManager.class);
         var tools = tools(manager, new McpOperationRegistry(CLOCK));
         when(manager.getActivity(any())).thenReturn(snapshot("other-scan", ActivityState.COMPLETED));
-        assertThrows(IllegalStateException.class, () -> tools.activityStatus(REF, "scan", "time", 1, 0));
+        assertThrows(ToolExecutionException.class, () -> tools.activityStatus(REF, "scan", "time", 1, 0));
     }
 
     @Test
@@ -145,7 +146,7 @@ class HubActivityLifecycleTest {
                 .thenReturn(snapshot("scan", ActivityState.COMPLETED));
         tools.eventActivity(REF, 0, 60000, 60L, null);
 
-        assertThrows(IllegalStateException.class, () -> operations.status("scan"));
+        assertThrows(ToolExecutionException.class, () -> operations.status("scan"));
         assertEquals("completed", operations.status("scan").status());
     }
 

@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.hub.client.GrpcClientErrors;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
@@ -63,6 +64,8 @@ import java.util.concurrent.TimeUnit;
  */
 public final class HubSessionScan {
 
+    private static final String HUB_SCAN_FAILED = "Hub scan failed: ";
+    private static final String HUB_PROBE_FAILED = "Hub probe failed: ";
     private static final Logger LOG = LoggerFactory.getLogger(HubSessionScan.class);
 
     private static final String UNREACHABLE = "unreachable";
@@ -133,7 +136,17 @@ public final class HubSessionScan {
         }
     }
 
-    public record Failure(String hubName, String scope, String reason) {
+    /**
+     * @param kind why the scope could not be read, as a category rather than a sentence, so that
+     *             whatever counts failures — the diagnostics resource — counts on the classification
+     *             this scan made rather than on the wording of {@code reason}
+     */
+    public record Failure(String hubName, String scope, Kind kind, String reason) {
+
+        /** The categories a scan sorts its failures into; {@link #OTHER} carries the hub's own message. */
+        public enum Kind {
+            UNREACHABLE, DEADLINE_EXCEEDED, CAPACITY_EXHAUSTED, OTHER
+        }
     }
 
     public record Result(List<Row> rows, List<Failure> failures) {
@@ -193,7 +206,7 @@ public final class HubSessionScan {
             if (e instanceof RuntimeException runtime) {
                 throw runtime;
             }
-            throw new IllegalStateException("Hub scan failed", e);
+            throw new ToolExecutionException(HUB_SCAN_FAILED + e.getMessage(), e);
         } finally {
             context.cancel(null);
         }
@@ -236,7 +249,7 @@ public final class HubSessionScan {
             if (e instanceof RuntimeException runtime) {
                 throw runtime;
             }
-            throw new IllegalStateException("Hub probe failed", e);
+            throw new ToolExecutionException(HUB_PROBE_FAILED + e.getMessage(), e);
         } finally {
             context.cancel(null);
         }
@@ -289,7 +302,7 @@ public final class HubSessionScan {
 
         if (!pending.isEmpty()) {
             for (ScopedCall<ScanExpansion> call : pending.values()) {
-                failures.add(new Failure(call.hubName(), call.scope(), deadlineReason()));
+                failures.add(deadlineFailure(call.hubName(), call.scope()));
             }
             cancel(pending);
         }
@@ -356,7 +369,7 @@ public final class HubSessionScan {
             Future<TaskResult<ScanExpansion>> future = completion.submit(context.wrap(() -> execute(call)));
             pending.put(future, call);
         } catch (RejectedExecutionException e) {
-            failures.add(new Failure(call.hubName(), call.scope(), CAPACITY_EXHAUSTED));
+            failures.add(capacityFailure(call.hubName(), call.scope()));
         }
     }
 
@@ -375,7 +388,7 @@ public final class HubSessionScan {
         try {
             TaskResult<ScanExpansion> result = completed.get();
             if (result.error() != null) {
-                failures.add(new Failure(result.hubName(), result.scope(), reasonOf(result.error())));
+                failures.add(failureOf(result.hubName(), result.scope(), result.error()));
                 return;
             }
             ScanExpansion expansion = result.value();
@@ -388,7 +401,7 @@ public final class HubSessionScan {
             cancel(pending);
             throw new IllegalStateException("Interrupted while collecting a hub scan", e);
         } catch (ExecutionException e) {
-            failures.add(new Failure(call.hubName(), call.scope(), reasonOf(e)));
+            failures.add(failureOf(call.hubName(), call.scope(), e));
         }
     }
 
@@ -409,7 +422,7 @@ public final class HubSessionScan {
                 Future<TaskResult<T>> future = completion.submit(context.wrap(() -> execute(call)));
                 pending.put(future, call);
             } catch (RejectedExecutionException e) {
-                failures.add(new Failure(call.hubName(), call.scope(), CAPACITY_EXHAUSTED));
+                failures.add(capacityFailure(call.hubName(), call.scope()));
             }
         }
 
@@ -434,7 +447,7 @@ public final class HubSessionScan {
             LOG.warn("Hub scan stage did not finish within its deadline: pending={} budget={}",
                     pending.size(), budget);
             for (ScopedCall<T> call : pending.values()) {
-                failures.add(new Failure(call.hubName(), call.scope(), deadlineReason()));
+                failures.add(deadlineFailure(call.hubName(), call.scope()));
             }
             cancel(pending);
         }
@@ -456,14 +469,14 @@ public final class HubSessionScan {
             if (result.error() == null) {
                 values.add(result.value());
             } else {
-                failures.add(new Failure(result.hubName(), result.scope(), reasonOf(result.error())));
+                failures.add(failureOf(result.hubName(), result.scope(), result.error()));
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             cancel(pending);
             throw new IllegalStateException("Interrupted while collecting a hub scan", e);
         } catch (ExecutionException e) {
-            failures.add(new Failure(call.hubName(), call.scope(), reasonOf(e)));
+            failures.add(failureOf(call.hubName(), call.scope(), e));
         }
     }
 
@@ -501,6 +514,10 @@ public final class HubSessionScan {
         }
     }
 
+    private Failure deadlineFailure(String hubName, String scope) {
+        return new Failure(hubName, scope, Failure.Kind.DEADLINE_EXCEEDED, deadlineReason());
+    }
+
     private String deadlineReason() {
         if (budget.compareTo(Duration.ofSeconds(1)) < 0) {
             return DEADLINE_EXCEEDED + " after " + budget.toMillis() + "ms";
@@ -508,23 +525,30 @@ public final class HubSessionScan {
         return DEADLINE_EXCEEDED + " after " + budget.toSeconds() + "s";
     }
 
-    private static String reasonOf(Exception exception) {
+    private static Failure capacityFailure(String hubName, String scope) {
+        return new Failure(hubName, scope, Failure.Kind.CAPACITY_EXHAUSTED, CAPACITY_EXHAUSTED);
+    }
+
+    /** Classifies what a hub call threw, walking the cause chain for the gRPC status or Jeffrey code underneath. */
+    private static Failure failureOf(String hubName, String scope, Exception exception) {
         Throwable cause = exception;
         while (cause != null) {
             if (cause instanceof StatusRuntimeException grpc) {
                 Status.Code code = grpc.getStatus().getCode();
                 if (code == Status.Code.UNAVAILABLE) {
-                    return UNREACHABLE;
+                    return new Failure(hubName, scope, Failure.Kind.UNREACHABLE, UNREACHABLE);
                 }
                 if (code == Status.Code.DEADLINE_EXCEEDED || code == Status.Code.CANCELLED) {
-                    return DEADLINE_EXCEEDED;
+                    return new Failure(hubName, scope, Failure.Kind.DEADLINE_EXCEEDED, DEADLINE_EXCEEDED);
                 }
-                return GrpcClientErrors.toJeffreyException(grpc).getMessage();
+                return new Failure(hubName, scope, Failure.Kind.OTHER,
+                        GrpcClientErrors.toJeffreyException(grpc).getMessage());
             }
             if (cause instanceof JeffreyException jeffrey) {
-                return jeffrey.getCode() == ErrorCode.HUB_UNAVAILABLE
-                        ? UNREACHABLE
-                        : jeffrey.getMessage();
+                if (jeffrey.getCode() == ErrorCode.HUB_UNAVAILABLE) {
+                    return new Failure(hubName, scope, Failure.Kind.UNREACHABLE, UNREACHABLE);
+                }
+                return new Failure(hubName, scope, Failure.Kind.OTHER, jeffrey.getMessage());
             }
             if (cause.getCause() == cause) {
                 break;
@@ -532,7 +556,8 @@ public final class HubSessionScan {
             cause = cause.getCause();
         }
         String message = exception.getMessage();
-        return message == null ? exception.getClass().getSimpleName() : message;
+        return new Failure(hubName, scope, Failure.Kind.OTHER,
+                message == null ? exception.getClass().getSimpleName() : message);
     }
 
     private static ScheduledExecutorService deadlineScheduler() {

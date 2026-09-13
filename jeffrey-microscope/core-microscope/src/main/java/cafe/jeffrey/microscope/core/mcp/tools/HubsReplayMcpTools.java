@@ -27,6 +27,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
 import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.activity.ActivityLimits;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -49,8 +50,34 @@ import java.util.stream.Collectors;
 /** A finite read-only query over finished Hub recording files. */
 public final class HubsReplayMcpTools {
     private static final ScheduledExecutorService DEADLINES = deadlineScheduler();
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
-    private static final Duration MAX_TIMEOUT = Duration.ofSeconds(30);
+
+    /** Seconds rather than a Duration, because the tool description quotes the number and must be a constant expression. */
+    private static final long DEFAULT_TIMEOUT_SECONDS = 15;
+    private static final long MAX_TIMEOUT_SECONDS = 30;
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS);
+    private static final Duration MAX_TIMEOUT = Duration.ofSeconds(MAX_TIMEOUT_SECONDS);
+
+    /** Rows handed back when the caller names no limit. */
+    private static final int DEFAULT_ROW_LIMIT = 100;
+
+    /** The limit value that means no row limit at all; bytes and the deadline still bound the answer. */
+    private static final int NO_ROW_LIMIT = 0;
+
+    private static final int DEFAULT_MAX_BYTES = 65536;
+    private static final int MIN_MAX_BYTES = 4096;
+    private static final int MAX_MAX_BYTES = 100000;
+
+    private static final int MAX_SESSION_REF_LENGTH = 2048;
+    private static final int MAX_EVENT_TYPES_LENGTH = 2048;
+
+    /**
+     * The same caps {@code hubs_eventActivity} applies to its event-type filter, so the two tools
+     * agree on what a type name may look like.
+     */
+    private static final int MAX_EVENT_TYPES = ActivityLimits.MAX_FILTER_TYPES;
+    private static final int MAX_EVENT_TYPE_LENGTH = ActivityLimits.MAX_TYPE_LENGTH;
+
+    private static final String EVENT_TYPE_SEPARATOR = ",";
     private static final String TERMINATION_INTERRUPTED = "interrupted";
     private final ProjectManagerResolver resolver;
     private final Duration timeout;
@@ -66,7 +93,8 @@ public final class HubsReplayMcpTools {
             Duration timeout,
             Clock clock) {
         if (timeout == null || timeout.isZero() || timeout.isNegative() || timeout.compareTo(MAX_TIMEOUT) > 0) {
-            throw new IllegalArgumentException("Replay timeout must be positive and no greater than 30 seconds");
+            throw new IllegalArgumentException(
+                    "Replay timeout must be positive and no greater than " + MAX_TIMEOUT_SECONDS + " seconds");
         }
         this.resolver = resolver;
         this.timeout = timeout;
@@ -75,9 +103,10 @@ public final class HubsReplayMcpTools {
 
     @McpToolHints(readOnly = true, openWorld = true)
     @Tool(description = "Query selected JFR events from a Hub session without downloading or analysing it. "
-            + "Returns the first matching events in replay order, not ranked by duration: default 100 rows. "
-            + "Set a positive limit for more rows or 0 for no row limit. "
-            + "The 15-second deadline and maxBytes budget still apply: default 65536, maximum 100000 UTF-8 bytes. "
+            + "Returns the first matching events in replay order, not ranked by duration: default "
+            + DEFAULT_ROW_LIMIT + " rows. Set a positive limit for more rows or " + NO_ROW_LIMIT + " for no row limit. "
+            + "The " + DEFAULT_TIMEOUT_SECONDS + "-second deadline and maxBytes budget still apply: default "
+            + DEFAULT_MAX_BYTES + ", maximum " + MAX_MAX_BYTES + " UTF-8 bytes. "
             + "How many events fit depends on their serialized size; raising limit does not raise maxBytes. "
             + "Narrow eventTypes and the time window when a limit is reached. "
             + "Coverage is finished files visible when replay starts; inspect complete and termination.")
@@ -99,31 +128,37 @@ public final class HubsReplayMcpTools {
             @ToolParam(description = "Comma-separated exact JFR event type names") String eventTypes,
             @ToolParam(description = "Inclusive start epoch milliseconds", required = false) Long startTime,
             @ToolParam(description = "Inclusive end epoch milliseconds", required = false) Long endTime,
-            @ToolParam(description = "Maximum rows; default 100. Any positive integer, or 0 for no row limit. Byte and time limits still apply", required = false) Integer limit,
-            @ToolParam(description = "Maximum UTF-8 JSON object bytes (excluding duplicated MCP text/structured envelope), 4096–100000; default 65536", required = false) Integer maxBytes) {
-        if (sessionRef == null || sessionRef.length() > 2048) {
-            throw new IllegalArgumentException("Pass a complete session_ref from hubs_sessions (at most 2048 characters)");
+            @ToolParam(description = "Maximum rows; default " + DEFAULT_ROW_LIMIT + ". Any positive integer, or "
+                    + NO_ROW_LIMIT + " for no row limit. Byte and time limits still apply", required = false) Integer limit,
+            @ToolParam(description = "Maximum UTF-8 JSON object bytes (excluding duplicated MCP text/structured envelope), "
+                    + MIN_MAX_BYTES + "–" + MAX_MAX_BYTES + "; default " + DEFAULT_MAX_BYTES, required = false) Integer maxBytes) {
+        if (sessionRef == null || sessionRef.length() > MAX_SESSION_REF_LENGTH) {
+            throw new IllegalArgumentException("Pass a complete session_ref from hubs_sessions (at most "
+                    + MAX_SESSION_REF_LENGTH + " characters)");
         }
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
-        if (eventTypes == null || eventTypes.isBlank() || eventTypes.length() > 2048) {
-            throw new IllegalArgumentException("Specify comma-separated JFR event types (at most 2048 characters)");
+        if (eventTypes == null || eventTypes.isBlank() || eventTypes.length() > MAX_EVENT_TYPES_LENGTH) {
+            throw new IllegalArgumentException("Specify comma-separated JFR event types (at most "
+                    + MAX_EVENT_TYPES_LENGTH + " characters)");
         }
-        Set<String> types = Arrays.stream(eventTypes.split(",", -1))
+        Set<String> types = Arrays.stream(eventTypes.split(EVENT_TYPE_SEPARATOR, -1))
                 .map(String::trim)
                 .collect(Collectors.toSet());
-        if (types.size() > 16 || types.stream().anyMatch(type -> type.isBlank() || type.length() > 128)) {
-            throw new IllegalArgumentException("Specify 1–16 nonempty JFR event types of at most 128 characters each");
+        if (types.size() > MAX_EVENT_TYPES
+                || types.stream().anyMatch(type -> type.isBlank() || type.length() > MAX_EVENT_TYPE_LENGTH)) {
+            throw new IllegalArgumentException("Specify 1–" + MAX_EVENT_TYPES + " nonempty JFR event types of at most "
+                    + MAX_EVENT_TYPE_LENGTH + " characters each");
         }
         if (startTime != null && endTime != null && startTime >= endTime) {
             throw new IllegalArgumentException("startTime must be strictly before endTime");
         }
-        int rows = limit == null ? 100 : limit;
-        int bytes = maxBytes == null ? 65536 : maxBytes;
-        if (rows < 0) {
-            throw new IllegalArgumentException("limit must be nonnegative; 0 means no row limit");
+        int rows = limit == null ? DEFAULT_ROW_LIMIT : limit;
+        int bytes = maxBytes == null ? DEFAULT_MAX_BYTES : maxBytes;
+        if (rows < NO_ROW_LIMIT) {
+            throw new IllegalArgumentException("limit must be nonnegative; " + NO_ROW_LIMIT + " means no row limit");
         }
-        if (bytes < 4096 || bytes > 100000) {
-            throw new IllegalArgumentException("maxBytes must be 4096–100000");
+        if (bytes < MIN_MAX_BYTES || bytes > MAX_MAX_BYTES) {
+            throw new IllegalArgumentException("maxBytes must be " + MIN_MAX_BYTES + "–" + MAX_MAX_BYTES);
         }
         HubReplayCollector collector = new HubReplayCollector(ref, rows, bytes);
         collector.filters(types, startTime, endTime);
@@ -170,7 +205,8 @@ public final class HubsReplayMcpTools {
             + "This creates work on the Hub: it claims one of its retained scan slots, runs a reader, and decompresses "
             + "recordings to Hub scratch space. It changes no recording and no profile. "
             + "Returns scanId; poll hubs_activityStatus with the same sessionRef and scanId, or operations_status with "
-            + "the scanId as its operationId. Each call starts a new scan. "
+            + "the scanId as its operationId. An identical call repeated while its scan is still running on the Hub "
+            + "adopts that scan instead of claiming a second slot; once it has finished, the same call starts a new one. "
             + "No total-event cap; at most 288 buckets and 512 observed types. Scans are Hub-process-local, retained up to "
             + "one hour after completion, with at most 16 retained scans and two concurrent readers. Requires an updated Hub.")
     @McpOutputSchema(HubActivityMcpSupport.OUTPUT_SCHEMA)

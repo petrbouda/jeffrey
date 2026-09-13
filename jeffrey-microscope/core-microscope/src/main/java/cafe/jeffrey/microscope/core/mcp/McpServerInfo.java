@@ -34,6 +34,11 @@ public final class McpServerInfo {
 
     public static final String URI = "jeffrey://server";
 
+    private static final String SCHEMA_PROPERTIES = "properties";
+
+    /** The argument a tool takes when it pages: what makes {@code paginatedTools} a fact read off the schemas. */
+    private static final String CURSOR_ARGUMENT = "cursor";
+
     private final String json;
 
     public McpServerInfo(ExternalMcpProperties properties, McpToolProvider toolset) {
@@ -59,12 +64,18 @@ public final class McpServerInfo {
                 .put("structuredToolResults", true)
                 .put("structuredToolResultsFromProtocol",
                         AbstractMcpStreamableHttpController.STRUCTURED_RESULTS_VERSION);
+        // Derived from the schemas rather than named: a tool pages when it takes a cursor, and a list
+        // written here by hand would go stale the day a third tool learned to.
         capabilities.set("paginatedTools", Json.toTree(specs.stream()
+                .filter(McpServerInfo::paginates)
                 .map(McpToolSpec::name)
-                .filter(name -> name.equals("profiles_list") || name.equals("hubs_sessions"))
                 .sorted()
                 .toList()));
         this.json = info.toString();
+    }
+
+    private static boolean paginates(McpToolSpec spec) {
+        return spec.inputSchema() != null && spec.inputSchema().path(SCHEMA_PROPERTIES).has(CURSOR_ARGUMENT);
     }
 
     public String json() {

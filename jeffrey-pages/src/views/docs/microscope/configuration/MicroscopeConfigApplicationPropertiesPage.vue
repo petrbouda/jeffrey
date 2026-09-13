@@ -326,6 +326,26 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.mcp.recordings.max-concurrent-imports</code></td>
+            <td><code>2</code></td>
+            <td>
+              How many <code>recordings_analyzeFile</code> imports run at once. A call beyond that
+              number is not refused: it is reported as <code>queued</code> by
+              <code>operations_status</code> and starts when a slot frees, and
+              <code>operations_cancel</code> on a queued attempt means it never starts. A positive
+              integer. Read at startup.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.diagnostics.probe-timeout</code></td>
+            <td><code>PT2S</code></td>
+            <td>
+              How long the <code>jeffrey://diagnostics</code> resource waits for each configured hub
+              when it probes reachability. A short budget is the point: the resource answers whether a
+              hub responds, not what it holds. A positive ISO-8601 duration. Read at startup.
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.mcp.ide.enabled</code></td>
             <td><code>true</code></td>
             <td>

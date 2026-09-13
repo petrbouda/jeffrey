@@ -114,13 +114,20 @@ public class McpConfiguration {
      * The one family that writes. Built unconditionally and left out of the toolset when ingestion is
      * off: the assembler decides what is advertised, and a bean that exists but is never registered
      * costs nothing next to a conditional bean the reader has to go looking for.
+     *
+     * @param maxConcurrentImports how many {@code recordings_analyzeFile} imports run together, from
+     *                             {@code jeffrey.microscope.mcp.recordings.max-concurrent-imports};
+     *                             the rest wait as queued operations
      */
     @Bean
     public RecordingsMcpTools recordingsMcpTools(
             RecordingsManager recordingsManager,
             PipelineRunRegistry<String> profileInitRunRegistry, McpOperationRegistry operations,
+            @Value("${" + RecordingsMcpTools.MAX_CONCURRENT_IMPORTS_PROPERTY + ":"
+                    + RecordingsMcpTools.DEFAULT_MAX_CONCURRENT_IMPORTS + "}") int maxConcurrentImports,
             Clock applicationClock) {
-        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry, operations, applicationClock);
+        return new RecordingsMcpTools(
+                recordingsManager, profileInitRunRegistry, operations, maxConcurrentImports, applicationClock);
     }
 
     /**
@@ -173,9 +180,9 @@ public class McpConfiguration {
     }
 
     /**
-     * The prompts the MCP endpoint serves — the plugin's skills, copied onto the classpath at build
-     * time. Declared here rather than built inside the controller so the controller keeps the single
-     * constructor component scanning needs.
+     * The process-local catalogue of background operations the {@code operations_} tools poll and
+     * cancel. Shared by every family that starts one, so an id handed out by one tool is the id the
+     * generic tools answer for.
      */
     @Bean
     public McpOperationRegistry mcpOperationRegistry(Clock applicationClock) {
@@ -188,14 +195,26 @@ public class McpConfiguration {
         return new HubsReplayMcpTools(resolver, operations, applicationClock);
     }
 
+    /**
+     * @param probeTimeout how long the {@code jeffrey://diagnostics} resource spends asking each hub
+     *                     for its version before counting it as unreachable, from
+     *                     {@code jeffrey.microscope.mcp.diagnostics.probe-timeout}
+     */
     @Bean
     public McpDiagnostics mcpDiagnostics(
             MicroscopeCorePersistenceProvider persistence, HubsManager hubs,
-            ExternalMcpProperties properties, Clock applicationClock) {
+            ExternalMcpProperties properties, Clock applicationClock,
+            @Value("${" + McpDiagnostics.PROBE_TIMEOUT_PROPERTY + ":"
+                    + McpDiagnostics.DEFAULT_PROBE_TIMEOUT_TEXT + "}") Duration probeTimeout) {
         return new McpDiagnostics(persistence.localCoreRepositories(), hubs, properties,
-                applicationClock, Duration.ofSeconds(2));
+                applicationClock, probeTimeout);
     }
 
+    /**
+     * The prompts the MCP endpoint serves — the plugin's skills, copied onto the classpath at build
+     * time. Declared here rather than built inside the controller so the controller keeps the single
+     * constructor component scanning needs.
+     */
     @Bean
     public McpPromptRegistry mcpPromptRegistry() {
         return new McpPromptRegistry();

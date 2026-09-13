@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
@@ -193,7 +194,7 @@ class HubsActivityMcpToolsTest {
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
             var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
-            var error = assertThrows(IllegalStateException.class, () -> tools.eventActivity(REF, 1, 2, null, null));
+            var error = assertThrows(ToolExecutionException.class, () -> tools.eventActivity(REF, 1, 2, null, null));
             assertTrue(error.getMessage().contains("does not support event activity"), error.toString());
             assertEquals(0, rawCalls.get());
         } finally {
