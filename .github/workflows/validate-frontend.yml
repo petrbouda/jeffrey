@@ -1,0 +1,66 @@
+name: Validate Frontend
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.product }} frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        product: [hub, microscope]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Install frontend dependencies
+        working-directory: jeffrey-${{ matrix.product }}/pages-${{ matrix.product }}
+        run: npm install --no-audit --no-fund
+
+      - name: Test frontend and shared UI
+        if: matrix.product == 'microscope'
+        working-directory: jeffrey-microscope/pages-microscope
+        run: npm test
+
+      - name: Build production frontend
+        working-directory: jeffrey-${{ matrix.product }}/pages-${{ matrix.product }}
+        run: npm run build
+
+      # Maven copies the Vite output onto the classpath. Only the frontend-tagged
+      # HTTP resource tests run here; the rest belong to Validate Backend.
+      - name: Verify frontend delivery through Spring MVC
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -pl jeffrey-${{ matrix.product }}/core-${{ matrix.product }} -am test
+          -Dexec.skip=true
+          -Dgroups=frontend
+
+      - name: Upload frontend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ matrix.product }}-test-reports
+          path: jeffrey-${{ matrix.product }}/core-${{ matrix.product }}/target/surefire-reports/**
+          if-no-files-found: ignore

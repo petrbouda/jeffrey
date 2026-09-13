@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core;
+package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.hub.core.web.JeffreyExceptionHandler;
+import cafe.jeffrey.microscope.core.web.JeffreyExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -44,9 +44,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** Exercises the real Vite output copied by pages-hub's Maven resources phase. */
+/** Exercises the real Vite output copied by pages-microscope's Maven resources phase. */
 @Tag("frontend")
-class HubFrontendTest {
+class MicroscopeFrontendTest {
 
     private AnnotationConfigWebApplicationContext context;
     private MockMvc mvc;
@@ -81,7 +81,7 @@ class HubFrontendTest {
 
         var assets = Pattern.compile("(?:src|href)=\"(/assets/[^\"]+\\.(?:js|css))\"")
                 .matcher(html).results().map(match -> match.group(1)).toList();
-        assertThat(assets).as("Build pages-hub before running frontend tests (npm run build)")
+        assertThat(assets).as("Build pages-microscope before running frontend tests (npm run build)")
                 .anyMatch(asset -> asset.endsWith(".js"))
                 .anyMatch(asset -> asset.endsWith(".css"));
         for (String asset : assets) {
@@ -96,7 +96,7 @@ class HubFrontendTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/index.html", "/scheduler", "/storage", "/api-docs"})
+    @ValueSource(strings = {"/index.html", "/recordings", "/hubs", "/profiles/test/overview"})
     void htmlIsRevalidatedAfterDeployment(String path) throws Exception {
         mvc.perform(get(path).accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
@@ -118,12 +118,12 @@ class HubFrontendTest {
 
         @Override
         public void addResourceHandlers(ResourceHandlerRegistry registry) {
-            new HubApplication().addResourceHandlers(registry);
+            new MicroscopeApplication().addResourceHandlers(registry);
         }
 
         @Override
         public void addViewControllers(ViewControllerRegistry registry) {
-            new HubApplication().addViewControllers(registry);
+            new MicroscopeApplication().addViewControllers(registry);
         }
 
         @Bean

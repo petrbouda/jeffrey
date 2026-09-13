@@ -26,17 +26,6 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-      # HubFrontendTest serves this output through the production MVC resource configuration.
-      - name: Build Hub frontend
-        working-directory: jeffrey-hub/pages-hub
-        run: |
-          npm install --no-audit --no-fund
-          npm run build
-
       - name: Install protobuf documentation tools
         run: |
           sudo apt-get update
@@ -53,11 +42,13 @@ jobs:
           protoc --doc_out=shared/hub-api/target/classes --doc_opt=json,grpc-api-docs.json \
             -Ishared/hub-api/src/main/proto shared/hub-api/src/main/proto/jeffrey/hub/api/v1/*.proto
 
+      # Frontend-tagged HTTP checks run in Validate Frontend with the real Vite builds.
       - name: Test Hub, Microscope and their dependencies
         run: >-
           mvn --batch-mode --no-transfer-progress
           -pl jeffrey-hub/core-hub,jeffrey-microscope/core-microscope -am test
           -Dexec.skip=true
+          -DexcludedGroups=frontend
 
       - name: Check plugin contracts against backend defaults
         run: python3 build/scripts/validate-agent-plugin.py .
