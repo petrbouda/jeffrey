@@ -113,8 +113,8 @@ onMounted(() => {
         <DocsFeatureCard
           color="neutral"
           icon="bi bi-broadcast"
-          title="Live Event Streaming"
-          description="Stream JFR events to connected Microscope clients in real time for live dashboards and incident investigations."
+          title="Replay Stream"
+          description="Replay JFR events from dumped session recordings for incident investigations in Microscope and through MCP."
         />
         <DocsFeatureCard
           color="blue"

@@ -360,14 +360,6 @@ onMounted(() => {
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>LiveStreaming</code>
-                  <span class="rpc-type">server-streaming</span>
-                </div>
-                <p>Live-stream JFR events from a session's streaming repository; the stream stays open until the client disconnects or the session ends</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
                   <code>ReplayStreaming</code>
                   <span class="rpc-type">server-streaming</span>
                 </div>

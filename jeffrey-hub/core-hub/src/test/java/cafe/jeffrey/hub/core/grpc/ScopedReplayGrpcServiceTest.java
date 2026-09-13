@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
@@ -75,7 +74,7 @@ class ScopedReplayGrpcServiceTest {
         HubJeffreyDirs dirs = mock(HubJeffreyDirs.class);
         when(dirs.temp()).thenReturn(temp.resolve("scratch"));
         EventStreamingGrpcService service = new EventStreamingGrpcService(dirs, repositories,
-                mock(LiveStreamingManager.class), new ReplayStreamingManager(), ignored -> storage);
+                new ReplayStreamingManager(), ignored -> storage);
         List<EventBatch> batches = new ArrayList<>();
         CompletableFuture<Void> done = new CompletableFuture<>();
         ServerCallStreamObserver<EventBatch> observer = observer(batches, done);
@@ -100,7 +99,7 @@ class ScopedReplayGrpcServiceTest {
                 "real-workspace", null, null, null, null)));
         RepositoryStorage.Factory storage = mock(RepositoryStorage.Factory.class);
         EventStreamingGrpcService service = new EventStreamingGrpcService(mock(HubJeffreyDirs.class), repositories,
-                mock(LiveStreamingManager.class), mock(ReplayStreamingManager.class), storage);
+                mock(ReplayStreamingManager.class), storage);
         CompletableFuture<Void> done = new CompletableFuture<>();
         service.scopedReplayStreaming(request("wrong-workspace"), observer(new ArrayList<>(), done));
         assertTrue(done.isCompletedExceptionally());

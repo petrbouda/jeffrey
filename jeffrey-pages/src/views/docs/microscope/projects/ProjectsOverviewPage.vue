@@ -45,7 +45,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>A <strong>project</strong> is a folder inside a workspace that groups everything related to a single application or service — its JVM instances, recording sessions, live event streams, and profiler configuration.</p>
+      <p>A <strong>project</strong> is a folder inside a workspace that groups everything related to a single application or service — its JVM instances, recording sessions, event replays, and profiler configuration.</p>
 
       <h2 id="what-are-projects">What are Projects?</h2>
       <p>You typically create one project per application or environment so the data stays organised:</p>
@@ -74,11 +74,6 @@ onMounted(() => {
           <div class="tab-icon"><i class="bi bi-grid"></i></div>
           <h4>Instances</h4>
           <p>JVM processes connected to the project, with status, storage, and file-type breakdown.</p>
-        </router-link>
-        <router-link to="/docs/microscope/projects/event-streaming#live-stream" class="tab-card">
-          <div class="tab-icon"><i class="bi bi-broadcast"></i></div>
-          <h4>Live Stream</h4>
-          <p>Real-time JFR events flowing from a running JVM.</p>
         </router-link>
         <router-link to="/docs/microscope/projects/event-streaming#replay-stream" class="tab-card">
           <div class="tab-icon"><i class="bi bi-collection-play"></i></div>
@@ -120,7 +115,7 @@ onMounted(() => {
         <li>Enter a project name.</li>
         <li>Click <strong>Create</strong>.</li>
       </ol>
-      <p>The new project shows up in the workspace immediately. From there you can wire up profiler agents, watch live streams, and review past sessions.</p>
+      <p>The new project shows up in the workspace immediately. From there you can wire up profiler agents, replay recorded events, and review past sessions.</p>
     </div>
 
     <DocsNavFooter />

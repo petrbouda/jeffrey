@@ -103,10 +103,10 @@ class InitExecutorTest {
         }
 
         @Test
-        void createsTheStreamingAndHeartbeatDirectories() throws Exception {
+        void createsHeartbeatDirectoryWithoutALiveRepository() throws Exception {
             new InitExecutor(Clock.systemUTC()).execute(config());
 
-            assertTrue(Files.isDirectory(sessionPath().resolve(JeffreyLayout.STREAMING_REPO_DIR)));
+            assertFalse(Files.exists(sessionPath().resolve("streaming-repo")));
             assertTrue(Files.isDirectory(sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
         }
 

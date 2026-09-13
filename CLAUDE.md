@@ -76,7 +76,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`, with protocol-version negotiation), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server, the tool-contract types (`McpToolAnnotations`, `McpToolHints`, `ToolParamValues`, `McpToolOutput`), and the non-tool capabilities — `McpPrompt` / `McpPromptProvider`, `McpResource` / `McpResourceProvider`, bundled per endpoint by `McpServerFeatures`. **Only place that knows the protocol** — do not re-implement it in a controller
 
 **jeffrey-hub** (`jeffrey-hub/`):
-- `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs, JFR streaming
+- `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs, JFR event replay
 - `hub-persistence-api` — Persistence interfaces for server domain
 - `hub-sql-persistence` — DuckDB persistence for server (workspaces, projects, scheduling)
 - `pages-hub` — Minimal Vue 3 frontend
@@ -169,7 +169,8 @@ jeffrey/
 │   │       ├── scheduler/             # Job scheduler, job definitions
 │   │       │   └── job/               # Job implementations + descriptor/
 │   │       ├── resources/             # REST resources (WorkspacesResource, GrpcDocsResource)
-│   │       └── streaming/             # JFR streaming
+│   │       ├── session/lifecycle/     # File heartbeats and session finish handling
+│   │       └── streaming/             # JFR event replay
 │   ├── hub-persistence-api/        # Server persistence interfaces
 │   ├── hub-sql-persistence/        # Server DuckDB persistence
 │   └── pages-hub/                  # Minimal Vue 3 frontend
@@ -318,7 +319,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
   - Example: `Duration elapsed = Measuring.r(() -> doWork()); LOG.debug("Work completed: duration_in_sec={}", elapsed.toSeconds());`
 
 ### Java Best Practices
-- **Prefer records for parameter grouping**: When a method has 3+ related parameters (e.g., sessionId + eventTypes + timeRange), group them into a record. This makes call sites readable and refactoring safe. Example: `LiveSubscriptionRequest(sessionIds, eventTypes)` instead of passing them individually.
+- **Prefer records for parameter grouping**: When a method has 3+ related parameters (e.g., sessionId + eventTypes + timeRange), group them into a record. This makes call sites readable and refactoring safe. Use `ReplaySubscriptionRequest` to carry the session, event selection and time window together instead of passing them individually.
 - **Prefer records for callback grouping**: When multiple callbacks travel together (e.g., onBatch + onComplete + onError), group them into a record. Example: `StreamingCallbacks(onBatch, onComplete, onError)`.
 - **Keep domain logic free of framework types**: Records, subscription objects, and domain classes should not depend on gRPC or Spring types. Map framework-specific types (e.g., `StatusRuntimeException`) at the boundary (controller/gRPC service), not in domain code. Example: `StreamingWindow` throws `IllegalArgumentException`, the gRPC service maps it to `INVALID_ARGUMENT`.
 - **Use utility classes for repetitive framework boilerplate**: Extract common framework patterns into static utility classes. Example: `GrpcExceptions.notFound(description)` instead of `Status.NOT_FOUND.withDescription(description).asRuntimeException()`.
@@ -653,7 +654,7 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 
 | Code module | Documentation pages |
 |---|---|
-| `jeffrey-microscope/core-microscope` | `docs/microscope/` — overview, quick start, workspaces, recordings, storage, profiler settings; `docs/microscope/projects/` — projects, instances, event streaming; `docs/microscope/configuration/` — application/advanced properties, secrets |
+| `jeffrey-microscope/core-microscope` | `docs/microscope/` — overview, quick start, workspaces, recordings, storage, profiler settings; `docs/microscope/projects/` — projects, instances, Replay Stream; `docs/microscope/configuration/` — application/advanced properties, secrets |
 | `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, ...) |
 | `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
 | `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |

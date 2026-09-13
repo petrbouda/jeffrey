@@ -104,9 +104,8 @@ onMounted(() => {
       </div>
 
       <p>
-        Recordings stream on demand from the Server when a client opens them, while live JFR
-        events flow over a separate streaming channel for real-time dashboards and incident
-        investigations. See the
+        Recordings stream on demand from the Server when a client opens them, while recorded JFR
+        events flow over a separate replay channel for session and incident investigations. See the
         <router-link to="/docs/hub/grpc-api">gRPC API reference</router-link> for the full
         service surface.
       </p>

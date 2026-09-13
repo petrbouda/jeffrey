@@ -108,13 +108,13 @@ class ProjectStorageQuotaCleanerJobTest {
 
         return new RecordingSession(
                 id, id, "inst-1", createdAt, createdAt.plusSeconds(60),
-                RecordingStatus.FINISHED, null, null, List.of(files), retained);
+                RecordingStatus.FINISHED, null, List.of(files), retained);
     }
 
     private static RecordingSession activeSession(String id, Instant createdAt, RepositoryFile... files) {
         return new RecordingSession(
                 id, id, "inst-1", createdAt, null,
-                RecordingStatus.ACTIVE, null, null, List.of(files), false);
+                RecordingStatus.ACTIVE, null, List.of(files), false);
     }
 
     @Nested
@@ -219,7 +219,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
             RecordingSession pinnedActive = new RecordingSession(
                     "live", "live", "inst-1", NOW.minusSeconds(2500), null,
-                    RecordingStatus.ACTIVE, null, null, List.of(oldChunk), true);
+                    RecordingStatus.ACTIVE, null, List.of(oldChunk), true);
 
             when(storage.listSessions(true)).thenReturn(List.of(pinnedActive));
 

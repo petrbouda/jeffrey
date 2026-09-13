@@ -109,15 +109,14 @@ export function useNavigation() {
     return path ? `${basePath}/${path}` : basePath;
   };
 
-  const buildStreamUrl = (
-    path: 'events/live-stream' | 'events/replay-stream',
+  const generateReplayStreamUrl = (
     sessionId?: string,
     sessionInstance?: string,
     hId?: string,
     pId?: string,
     wId?: string
   ) => {
-    const base = generateProjectUrl(path, hId, pId, wId);
+    const base = generateProjectUrl('events/replay-stream', hId, pId, wId);
     if (!sessionId) {
       return base;
     }
@@ -128,22 +127,6 @@ export function useNavigation() {
     }
     return `${base}?${params.toString()}`;
   };
-
-  const generateLiveStreamUrl = (
-    sessionId?: string,
-    sessionInstance?: string,
-    hId?: string,
-    pId?: string,
-    wId?: string
-  ) => buildStreamUrl('events/live-stream', sessionId, sessionInstance, hId, pId, wId);
-
-  const generateReplayStreamUrl = (
-    sessionId?: string,
-    sessionInstance?: string,
-    hId?: string,
-    pId?: string,
-    wId?: string
-  ) => buildStreamUrl('events/replay-stream', sessionId, sessionInstance, hId, pId, wId);
 
   /**
    * Navigate to an instance detail page.
@@ -175,7 +158,6 @@ export function useNavigation() {
     generateProjectUrl,
     generateProfileUrl,
     generateInstanceUrl,
-    generateLiveStreamUrl,
     generateReplayStreamUrl
   };
 }

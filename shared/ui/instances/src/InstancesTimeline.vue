@@ -250,14 +250,6 @@
                   ></span>
                   <div class="drawer-actions">
                     <router-link
-                      v-if="session.isActive"
-                      :to="generateLiveStreamUrl(session.id, instance.instanceName)"
-                      class="drawer-action drawer-action--primary"
-                      @click.stop
-                    >
-                      <i class="bi bi-broadcast"></i> Live Stream
-                    </router-link>
-                    <router-link
                       :to="generateReplayStreamUrl(session.id, instance.instanceName)"
                       class="drawer-action drawer-action--replay"
                       @click.stop
@@ -590,7 +582,6 @@ const {
   workspaceId,
   projectId,
   generateInstanceUrl,
-  generateLiveStreamUrl,
   generateReplayStreamUrl
 } = useNavigation();
 
@@ -2041,16 +2032,6 @@ onMounted(async () => {
 }
 .drawer-action .bi {
   font-size: 0.78rem;
-}
-.drawer-action--primary {
-  background: var(--color-primary-bg);
-  color: var(--color-primary-hover);
-  border-color: var(--color-primary-border-light);
-}
-.drawer-action--primary:hover {
-  background: var(--color-primary);
-  color: var(--color-white);
-  border-color: var(--color-primary);
 }
 .drawer-action--replay {
   background: var(--color-violet-lightest-bg);

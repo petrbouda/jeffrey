@@ -142,6 +142,6 @@ class InstanceSessionUnitsTest {
 
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         return new RecordingSession(
-                id, id, "inst-1", createdAt, finishedAt, status, null, null, List.of(files), false);
+                id, id, "inst-1", createdAt, finishedAt, status, null, List.of(files), false);
     }
 }

@@ -14,11 +14,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(event, index) in displayedEvents"
-            :key="index"
-            v-bind="rowAttrs?.(event) ?? {}"
-          >
+          <tr v-for="(event, index) in displayedEvents" :key="index">
             <td class="text-nowrap">
               <code>{{ FormattingService.formatTimestamp(event.timestamp) }}</code>
             </td>
@@ -60,7 +56,7 @@
 import { computed, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import Utils from '@/services/Utils';
-import type { StreamingEvent } from '@/services/api/EventStreamingClient';
+import type { StreamingEvent } from '@/services/api/model/StreamingEvent';
 
 const EVENT_TYPE_COLORS = [
   '#5e64ff',
@@ -78,7 +74,6 @@ const EVENT_TYPE_COLORS = [
 const props = defineProps<{
   events: StreamingEvent[];
   eventTypes: string[];
-  rowAttrs?: (event: StreamingEvent) => Record<string, unknown>;
 }>();
 
 const maxDisplayed = ref(200);

@@ -43,7 +43,7 @@ class RecordingSessionTest {
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         return new RecordingSession(
                 "session-1", "session-1", "inst-1", CREATED_AT, finishedAt,
-                status, null, null, List.of(files), false);
+                status, null, List.of(files), false);
     }
 
     @Nested

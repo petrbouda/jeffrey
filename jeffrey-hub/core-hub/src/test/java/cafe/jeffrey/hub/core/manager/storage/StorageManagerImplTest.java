@@ -219,7 +219,7 @@ class StorageManagerImplTest {
         private RecordingSession session(String id, List<RepositoryFile> files) {
             return new RecordingSession(
                     id, id, "instance-1", CREATED_AT, null,
-                    RecordingStatus.FINISHED, null, null, files, false);
+                    RecordingStatus.FINISHED, null, files, false);
         }
 
         private RepositoryFile file(String name, SupportedRecordingFile fileType, Long size, Instant createdAt) {

@@ -212,7 +212,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 sessionInfo.finishedAt(),
                 recordingStatus,
                 sessionPath,
-                sessionPath.resolve(JeffreyLayout.STREAMING_REPO_DIR),
                 repositoryFiles,
                 sessionInfo.retained());
     }
@@ -532,9 +531,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             // compressing the file opens it a moment later regardless.
             long originalSize = FileSizeReader.OPEN_HANDLE.size(sourcePath);
 
-            // Skip empty recording files — can happen when JFR streaming-repo
-            // writes a file before any events are recorded
-            // it can happened if the AsyncProfiler is stopped before any events are written by non-graceful shutdown
+            // Skip empty recording files left when the profiler stops before writing events,
+            // for example after a non-graceful shutdown.
             if (originalSize == 0) {
                 LOG.debug("Skipping empty recording file: sessionId={} file={}", sessionId, sourcePath);
                 return null;

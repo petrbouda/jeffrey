@@ -72,7 +72,7 @@ class ProjectRepositoryControllerTest {
         when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
         when(repositoryManager.listRecordingSessions(true, expected)).thenReturn(List.of(
                 new RecordingSession("s-1", "s-1", "inst-1", hourAgo, now,
-                        RecordingStatus.FINISHED, null, null, List.of(), false)));
+                        RecordingStatus.FINISHED, null, List.of(), false)));
 
         Clock clock = Clock.fixed(now, ZoneOffset.UTC);
         MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));

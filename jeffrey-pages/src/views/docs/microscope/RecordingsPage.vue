@@ -199,8 +199,8 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td>Live event stream from a running JVM</td>
-            <td>Project → Instances → session → Live Stream</td>
+            <td>JFR events from a session’s dumped recordings</td>
+            <td>Project → Instances → session → Replay Stream</td>
           </tr>
           <tr>
             <td>List of past recording sessions in a project</td>

@@ -23,7 +23,6 @@ import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
-import cafe.jeffrey.shared.common.JeffreyLayout;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JvmFeatureTest {
@@ -109,12 +109,11 @@ class JvmFeatureTest {
                 "instance-1", "session-1", 3, Map.of("cluster", "blue"), 1700000000000L);
 
         @Test
-        void loadsTheAgentAndPointsJfrAtTheStreamingRepository() {
+        void loadsTheAgentWithoutOverridingTheJfrRepository() {
             String options = render(new JvmFeature.Agent("/libs/jeffrey-agent.jar", false, IDENTITY));
 
             assertTrue(options.startsWith("-javaagent:/libs/jeffrey-agent.jar="), options);
-            assertTrue(options.contains("-XX:FlightRecorderOptions=repository="
-                    + SESSION + "/" + JeffreyLayout.STREAMING_REPO_DIR), options);
+            assertFalse(options.contains("-XX:FlightRecorderOptions="), options);
         }
 
         @Test
@@ -131,7 +130,6 @@ class JvmFeatureTest {
             assertTrue(!render(new JvmFeature.Agent("/agent.jar", false, IDENTITY)).contains("tracing.enabled"));
         }
 
-        /** The streaming repository is useless without the agent that reads it. */
         @Test
         void rendersNothingWithoutAnAgentPath() {
             assertEquals(Optional.empty(), new JvmFeature.Agent(null, true, IDENTITY).render(SESSION, PLACEHOLDERS));

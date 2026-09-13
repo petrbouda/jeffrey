@@ -194,7 +194,7 @@ export const microscopeNavigation: DocSection[] = [
         children: [
           { title: 'Overview', to: '/docs/microscope/projects' },
           { title: 'Instances', to: '/docs/microscope/projects/instances' },
-          { title: 'Event Streaming', to: '/docs/microscope/projects/event-streaming' },
+          { title: 'Replay Stream', to: '/docs/microscope/projects/event-streaming' },
           { title: 'Profiler Settings', to: '/docs/microscope/projects/profiler-settings' }
         ]
       },

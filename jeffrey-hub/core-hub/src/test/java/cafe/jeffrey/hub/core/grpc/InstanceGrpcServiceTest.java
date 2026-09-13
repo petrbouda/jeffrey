@@ -99,7 +99,7 @@ class InstanceGrpcServiceTest {
 
         return new RecordingSession(
                 id, id, INSTANCE_ID, FIXED_TIME, FIXED_TIME.plusSeconds(60),
-                RecordingStatus.FINISHED, null, null, files, false);
+                RecordingStatus.FINISHED, null, files, false);
     }
 
     // ========== ListInstances ==========

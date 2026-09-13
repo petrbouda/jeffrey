@@ -22,7 +22,6 @@ import io.grpc.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
-import cafe.jeffrey.hub.api.v1.LiveStreamingRequest;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 
 import java.io.Closeable;
@@ -30,7 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * gRPC client for live streaming and replaying JFR events from a Jeffrey Hub.
+ * gRPC client for replaying JFR events from a Jeffrey Hub.
  * Uses an async stub for long-lived server-streaming subscriptions.
  */
 public class EventStreamingClient implements Closeable {
@@ -42,37 +41,6 @@ public class EventStreamingClient implements Closeable {
 
     public EventStreamingClient(GrpcHubConnection connection) {
         this.stub = EventStreamingServiceGrpc.newStub(connection.getChannel());
-    }
-
-    /**
-     * Subscribes to live JFR events from a single session on the hub.
-     * Always continuous — the stream stays open waiting for new events.
-     *
-     * @param sessionId the session ID to subscribe to
-     * @param request   subscription parameters (event types)
-     * @param callbacks streaming lifecycle callbacks (onBatch, onComplete, onError)
-     * @return a cancellation handle to stop the subscription
-     */
-    public EventStreamingSubscription subscribeLiveStreaming(
-            String sessionId,
-            LiveSubscriptionRequest request,
-            StreamingCallbacks callbacks) {
-
-        LiveStreamingRequest liveRequest = LiveStreamingRequest.newBuilder()
-                .setSessionId(sessionId)
-                .addAllEventTypes(request.eventTypes())
-                .setSendEmptyBatches(true)
-                .build();
-
-        Context.CancellableContext cancellableContext = Context.current().withCancellation();
-        EventStreamingSubscription subscription = new EventStreamingSubscription(cancellableContext, sessionId);
-        activeSubscriptions.add(subscription);
-
-        cancellableContext.run(() -> stub.liveStreaming(liveRequest,
-                new EventBatchStreamObserver(sessionId, subscription, activeSubscriptions, callbacks)));
-
-        LOG.info("Subscribed to live stream: sessionId={}", sessionId);
-        return subscription;
     }
 
     /**

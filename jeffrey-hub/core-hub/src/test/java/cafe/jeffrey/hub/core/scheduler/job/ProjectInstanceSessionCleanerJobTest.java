@@ -173,7 +173,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         return new RecordingSession(
-                id, id, instanceId, createdAt, finishedAt, status, null, null, List.of(files), retained);
+                id, id, instanceId, createdAt, finishedAt, status, null, List.of(files), retained);
     }
 
     private List<String> deletedSessionIds() {

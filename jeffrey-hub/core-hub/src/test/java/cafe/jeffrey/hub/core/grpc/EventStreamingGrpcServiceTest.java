@@ -19,23 +19,20 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import io.grpc.Status;
+import io.grpc.CallOptions;
+import io.grpc.MethodDescriptor;
+import io.grpc.protobuf.ProtoUtils;
+import io.grpc.stub.ClientCalls;
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
-import jdk.jfr.Recording;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
-import cafe.jeffrey.hub.api.v1.LiveStreamingRequest;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
@@ -45,20 +42,20 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
 
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -80,6 +77,26 @@ class EventStreamingGrpcServiceTest {
         if (grpc != null) {
             grpc.close();
         }
+    }
+
+    @Test
+    void retiredLiveRpcReturnsUnimplemented(@TempDir Path tempDir) throws Exception {
+        startServer(serviceWithNoSession(tempDir));
+        MethodDescriptor<ReplayStreamingRequest, EventBatch> retiredMethod =
+                MethodDescriptor.<ReplayStreamingRequest, EventBatch>newBuilder()
+                        .setType(MethodDescriptor.MethodType.SERVER_STREAMING)
+                        .setFullMethodName(EventStreamingServiceGrpc.SERVICE_NAME + "/LiveStreaming")
+                        .setRequestMarshaller(ProtoUtils.marshaller(ReplayStreamingRequest.getDefaultInstance()))
+                        .setResponseMarshaller(ProtoUtils.marshaller(EventBatch.getDefaultInstance()))
+                        .build();
+        var observer = new TestStreamObserver<EventBatch>();
+        ClientCalls.asyncServerStreamingCall(
+                grpc.channel().newCall(retiredMethod, CallOptions.DEFAULT),
+                ReplayStreamingRequest.newBuilder().setSessionId(SESSION_ID)
+                        .addEventTypes("jdk.CPULoad").build(), observer);
+
+        assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
+        assertStatus(Status.Code.UNIMPLEMENTED, observer.error);
     }
 
     // ========== Replay Streaming ==========
@@ -245,112 +262,6 @@ class EventStreamingGrpcServiceTest {
         }
     }
 
-    // ========== Live Streaming ==========
-
-    @Nested
-    class LiveStreamingValidation {
-
-        @Test
-        void sessionNotFound_returnsNotFound(@TempDir Path tempDir) throws Exception {
-            var service = serviceWithNoSession(tempDir);
-            var stub = startServer(service);
-            var observer = new TestStreamObserver<EventBatch>();
-
-            stub.liveStreaming(
-                    LiveStreamingRequest.newBuilder()
-                            .setSessionId("non-existent")
-                            .addEventTypes("jdk.CPULoad")
-                            .build(),
-                    observer);
-
-            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
-            assertStatus(Status.Code.NOT_FOUND, observer.error);
-        }
-
-        @Test
-        void emptyEventTypes_returnsInvalidArgument(@TempDir Path tempDir) throws Exception {
-            var service = serviceWithSession(tempDir);
-            var stub = startServer(service);
-            var observer = new TestStreamObserver<EventBatch>();
-
-            stub.liveStreaming(
-                    LiveStreamingRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .build(),
-                    observer);
-
-            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
-            assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
-        }
-
-        @Test
-        void streamingRepoNotAvailable_returnsUnavailable(@TempDir Path tempDir) throws Exception {
-            // Session exists but the streaming-repo directory does not
-            var service = serviceWithSession(tempDir);
-            var stub = startServer(service);
-            var observer = new TestStreamObserver<EventBatch>();
-
-            stub.liveStreaming(
-                    LiveStreamingRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .addEventTypes("jdk.CPULoad")
-                            .build(),
-                    observer);
-
-            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
-            assertStatus(Status.Code.UNAVAILABLE, observer.error);
-        }
-    }
-
-    @Nested
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    class LiveStreamingIntegration {
-
-        private Recording recording;
-        private Path jfrRepoPath;
-
-        @BeforeAll
-        void startRecording() {
-            recording = new Recording();
-            recording.enable("jdk.CPULoad").withPeriod(Duration.ofMillis(10));
-            recording.setToDisk(true);
-            recording.start();
-            jfrRepoPath = Path.of(System.getProperty("jdk.jfr.repository"));
-        }
-
-        @AfterAll
-        void stopRecording() {
-            recording.stop();
-            recording.close();
-        }
-
-        @Test
-        void streamsLiveEvents(@TempDir Path tempDir) throws Exception {
-            // Create directory structure so SessionPaths resolves to the real JFR repo
-            Path streamingRepo = tempDir.resolve("workspaces/ws/proj/session/streaming-repo");
-            Files.createDirectories(streamingRepo.getParent());
-            Files.createSymbolicLink(streamingRepo, jfrRepoPath);
-
-            var service = serviceWithLiveSession(tempDir);
-            var stub = startServer(service);
-            var observer = new TestStreamObserver<EventBatch>();
-
-            stub.liveStreaming(
-                    LiveStreamingRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .addEventTypes("jdk.CPULoad")
-                            .build(),
-                    observer);
-
-            // Wait for at least one batch with events
-            assertEventually(10, TimeUnit.SECONDS, () ->
-                    observer.messages.stream().anyMatch(b -> b.getEventsCount() > 0));
-
-            // Cancel the stream by shutting down the channel
-            grpc.channel().shutdownNow();
-        }
-    }
-
     // ========== Helpers ==========
 
     private EventStreamingGrpcService serviceWithNoSession(Path tempDir) {
@@ -360,7 +271,6 @@ class EventStreamingGrpcServiceTest {
         return new EventStreamingGrpcService(
                 new HubJeffreyDirs(tempDir),
                 repositories,
-                new LiveStreamingManager(),
                 new ReplayStreamingManager(),
                 mock(RepositoryStorage.Factory.class));
     }
@@ -384,22 +294,8 @@ class EventStreamingGrpcServiceTest {
         return new EventStreamingGrpcService(
                 new HubJeffreyDirs(tempDir),
                 repositories,
-                new LiveStreamingManager(),
                 new ReplayStreamingManager(),
                 storageFactory);
-    }
-
-    private EventStreamingGrpcService serviceWithLiveSession(Path tempDir) {
-        var repositories = mock(HubPlatformRepositories.class);
-        when(repositories.findSessionWithRepositoryById(SESSION_ID))
-                .thenReturn(Optional.of(testSession()));
-
-        return new EventStreamingGrpcService(
-                new HubJeffreyDirs(tempDir),
-                repositories,
-                new LiveStreamingManager(),
-                new ReplayStreamingManager(),
-                mock(RepositoryStorage.Factory.class));
     }
 
     private static SessionWithRepository testSession() {
@@ -418,19 +314,6 @@ class EventStreamingGrpcServiceTest {
         assertNotNull(error, "Expected an error");
         assertInstanceOf(StatusRuntimeException.class, error);
         assertEquals(expected, ((StatusRuntimeException) error).getStatus().getCode());
-    }
-
-    private static void assertEventually(long timeout, TimeUnit unit, Runnable assertion) throws InterruptedException {
-        long deadline = System.nanoTime() + unit.toNanos(timeout);
-        while (System.nanoTime() < deadline) {
-            try {
-                assertion.run();
-                return;
-            } catch (AssertionError e) {
-                Thread.sleep(200);
-            }
-        }
-        assertion.run(); // final attempt — let it throw
     }
 
 }

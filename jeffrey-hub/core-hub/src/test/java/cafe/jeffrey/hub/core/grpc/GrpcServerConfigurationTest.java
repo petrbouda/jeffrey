@@ -32,7 +32,6 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
@@ -130,11 +129,6 @@ class GrpcServerConfigurationTest {
         @Bean
         public HubJeffreyDirs jeffreyDirs() {
             return mock(HubJeffreyDirs.class);
-        }
-
-        @Bean
-        public LiveStreamingManager liveStreamingManager() {
-            return mock(LiveStreamingManager.class);
         }
 
         @Bean

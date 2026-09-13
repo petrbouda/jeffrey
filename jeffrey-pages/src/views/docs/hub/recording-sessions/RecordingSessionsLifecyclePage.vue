@@ -32,7 +32,7 @@ const headings = [
   { id: 'heartbeat-mechanism', text: 'Heartbeat Mechanism', level: 3 },
   { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
   { id: 'jvm-crash-detection', text: 'JVM Crash Detection', level: 3 },
-  { id: 'heartbeat-recovery', text: 'Heartbeat Recovery', level: 3 },
+  { id: 'heartbeat-recovery', text: 'Hub Restart', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
 ];
 
@@ -120,28 +120,35 @@ onMounted(() => {
         <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The Jeffrey Agent emits periodic liveness signals that the platform monitors to determine session state.</p>
 
         <h3 id="heartbeat-mechanism">Heartbeat Mechanism</h3>
-        <p>Jeffrey uses a dual heartbeat approach to reliably detect session liveness:</p>
+        <p>The Jeffrey Agent writes liveness files into the session directory on shared storage:</p>
         <ul>
-          <li><strong>JFR Event Stream heartbeat</strong> - The Jeffrey Agent attaches to the profiled JVM and emits periodic <code>jeffrey.Heartbeat</code> JFR events into a streaming repository (<code>streaming-repo/</code>). Each heartbeat carries a sequence number and timestamp. The Jeffrey platform reads these events in real-time via JDK's <code>EventStream</code> API.</li>
-          <li><strong>File-based heartbeat</strong> - The Jeffrey Agent also writes epoch timestamps to a <code>.heartbeat/heartbeat</code> file in the session directory every 10 seconds. This provides a fallback detection mechanism when the JFR streaming path is not available.</li>
+          <li><strong>Heartbeat</strong> — <code>.heartbeat/heartbeat</code> contains epoch milliseconds and is refreshed every 5 seconds by default.</li>
+          <li><strong>Clean exit</strong> — the shutdown hook writes <code>.heartbeat/finished</code> with the exit timestamp. A hard crash can leave this marker absent.</li>
         </ul>
 
         <h3 id="finish-detection-logic">Finish Detection Logic</h3>
         <p>A scheduled job periodically evaluates each active session and applies the following rules:</p>
 
         <div class="detection-cases">
+          <div class="detection-case finished-case">
+            <div class="case-indicator"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="case-content">
+              <h4>Clean-exit marker exists</h4>
+              <p>The marker is checked first. The session becomes <strong>Finished</strong> with the marker's timestamp on the next detector run, without waiting for heartbeat staleness.</p>
+            </div>
+          </div>
           <div class="detection-case active-case">
             <div class="case-indicator"><i class="bi bi-circle-fill"></i></div>
             <div class="case-content">
               <h4>Heartbeat is recent</h4>
-              <p>A recent heartbeat exists (from JFR event stream or file-based heartbeat) and is within the staleness threshold (default 10 seconds). The session remains <strong>Active</strong>.</p>
+              <p>The heartbeat file contains a timestamp within the staleness threshold (default 10 seconds). The session remains <strong>Active</strong>.</p>
             </div>
           </div>
           <div class="detection-case finished-case">
             <div class="case-indicator"><i class="bi bi-check-circle-fill"></i></div>
             <div class="case-content">
               <h4>Heartbeat is stale</h4>
-              <p>The last heartbeat timestamp exists but is older than the staleness threshold. The session is marked as <strong>Finished</strong>.</p>
+              <p>The last heartbeat timestamp is older than the staleness threshold. The session is marked as <strong>Finished</strong> using that timestamp.</p>
             </div>
           </div>
           <div class="detection-case skip-case">
@@ -155,7 +162,7 @@ onMounted(() => {
             <div class="case-indicator"><i class="bi bi-arrow-repeat"></i></div>
             <div class="case-content">
               <h4>No heartbeat, session is old</h4>
-              <p>No heartbeat has been recorded and the session has been around for a while. Jeffrey checks the file-based heartbeat as a fallback and attempts <strong>replay recovery</strong> from the streaming repository. If no heartbeats are found, the session is marked as <strong>Finished</strong>.</p>
+              <p>No readable heartbeat or clean-exit marker exists and the session is older than the threshold. The detector marks it as <strong>Finished</strong> using the current Hub time as a fallback.</p>
             </div>
           </div>
         </div>
@@ -163,11 +170,11 @@ onMounted(() => {
         <h3 id="jvm-crash-detection">JVM Crash Detection</h3>
         <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>) is generated in the session directory. After a session finishes, Jeffrey checks for the presence of this file and emits a JVM crash event, providing visibility into abnormal terminations.</p>
 
-        <h3 id="heartbeat-recovery">Heartbeat Recovery</h3>
-        <p>If the Jeffrey platform was down while a session was active, heartbeats written to the streaming repository can be recovered by replaying the repository files. This ensures accurate <code>finished_at</code> timestamps even after Jeffrey restarts, preventing sessions from being incorrectly marked as finished due to missing heartbeat data.</p>
+        <h3 id="heartbeat-recovery">Hub Restart</h3>
+        <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts. The detector reads those files again when it resumes, using the clean-exit timestamp first and the last heartbeat timestamp when stale. If neither file can be read, the normal age check and fallback apply.</p>
 
         <DocsCallout type="info">
-          <strong>Scheduler job:</strong> The Session Finished Detector job runs periodically on Jeffrey Hub to evaluate heartbeat staleness and detect finished sessions.
+          <strong>Scheduler job:</strong> The Session Finished Detector job runs every 30 seconds by default on Jeffrey Hub to evaluate heartbeat staleness and detect finished sessions.
         </DocsCallout>
 
         <h2 id="session-cleanup">Session Cleanup</h2>

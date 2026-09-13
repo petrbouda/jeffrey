@@ -81,7 +81,7 @@ class HubSessionScanTest {
 
     private static RecordingSession session(String id, Instant createdAt) {
         return new RecordingSession(id, id, "inst-1", createdAt, null,
-                RecordingStatus.ACTIVE, null, null, List.of(), false);
+                RecordingStatus.ACTIVE, null, List.of(), false);
     }
 
     /**

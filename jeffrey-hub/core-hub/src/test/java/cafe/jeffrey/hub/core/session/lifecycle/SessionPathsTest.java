@@ -16,13 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.streaming;
+package cafe.jeffrey.hub.core.session.lifecycle;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
@@ -57,24 +56,6 @@ class SessionPathsTest {
             Path resolved = SessionPaths.resolve(jeffreyDirs, repoInfo, sessionInfo);
 
             assertEquals(Path.of(customPath, "workspace-1", "project-1", "session-2025"), resolved);
-        }
-    }
-
-    @Nested
-    class ResolveStreamingRepo {
-
-        @Test
-        void appendsStreamingRepoDir(@TempDir Path homeDir) {
-            var jeffreyDirs = new HubJeffreyDirs(homeDir);
-            var repoInfo = new RepositoryInfo("repo-1", RepositoryType.JDK, null, "workspace-1", "project-1");
-            var sessionInfo = sessionInfo("session-2025");
-            var session = new SessionWithRepository("proj-1", repoInfo, sessionInfo);
-
-            Path resolved = SessionPaths.resolveStreamingRepo(jeffreyDirs, session);
-
-            assertEquals(
-                    homeDir.resolve("workspaces/workspace-1/project-1/session-2025/streaming-repo"),
-                    resolved);
         }
     }
 

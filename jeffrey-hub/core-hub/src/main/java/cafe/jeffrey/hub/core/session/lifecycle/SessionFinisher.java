@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.streaming;
+package cafe.jeffrey.hub.core.session.lifecycle;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ import java.util.Optional;
 
 /**
  * Centralizes the logic for marking sessions as finished. Consolidates the scattered
- * "mark session finished" code paths (polling detector, stream close, session auto-close).
+ * "mark session finished" code paths (heartbeat polling, reconciliation and session auto-close).
  */
 public class SessionFinisher {
 

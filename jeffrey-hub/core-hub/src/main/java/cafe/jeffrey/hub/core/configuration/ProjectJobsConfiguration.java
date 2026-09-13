@@ -33,8 +33,8 @@ import cafe.jeffrey.hub.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobD
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceRecordingCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleanerJobDescriptor;
-import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.streaming.SessionFinisher;
+import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
+import cafe.jeffrey.hub.core.session.lifecycle.SessionFinisher;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.job.JobType;
 

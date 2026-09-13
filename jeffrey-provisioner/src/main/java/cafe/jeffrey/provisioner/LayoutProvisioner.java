@@ -56,13 +56,9 @@ public class LayoutProvisioner {
         return new ProjectLayout(jeffreyHome, workspaces, workspace, project);
     }
 
-    /**
-     * Creates the session directory and the two subdirectories the agent writes into: the JFR
-     * streaming repository and the heartbeat directory.
-     */
+    /** Creates the session directory and the heartbeat directory the agent writes into. */
     public SessionLayout provisionSession(ProjectLayout layout, Path sessionPath) throws IOException {
         Path session = createDirectories(sessionPath);
-        createDirectories(session.resolve(JeffreyLayout.STREAMING_REPO_DIR));
         createDirectories(session.resolve(HeartbeatConstants.HEARTBEAT_DIR));
 
         LOG.debug("Session directory created: sessionPath={}", session);
