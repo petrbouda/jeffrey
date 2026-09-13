@@ -31,6 +31,9 @@ import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSu
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import io.grpc.Context;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -49,8 +52,10 @@ import static org.mockito.Mockito.when;
 class HubsReplayMcpToolsTest {
     private static final String REF = new HubSessionRef("hub", "workspace", "project", "session").encode();
 
-    @Test
-    void noResponseHasFiniteTimeoutAndCancelsSubscription() {
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(ints = 0)
+    void noResponseHasFiniteTimeoutAndCancelsSubscription(Integer limit) {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
         ProjectManager project = mock(ProjectManager.class);
         EventStreamingManager streaming = mock(EventStreamingManager.class);
@@ -61,7 +66,7 @@ class HubsReplayMcpToolsTest {
         when(streaming.subscribeReplayRaw(any(), any())).thenReturn(new EventStreamingSubscription(context, "session"));
         HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), Duration.ofMillis(40));
         long before = System.nanoTime();
-        var result = tools.queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
+        var result = tools.queryEvents(REF, "jdk.CPULoad", null, null, limit, null).structuredContent();
         assertTrue(Duration.ofNanos(System.nanoTime() - before).compareTo(Duration.ofSeconds(2)) < 0);
         assertEquals("timeout", result.path("termination").asText());
         assertFalse(result.path("complete").asBoolean());
@@ -100,7 +105,7 @@ class HubsReplayMcpToolsTest {
     void invalidLimitsAndTimeWindowNeverContactHub() {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
         HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
-        assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, 1001, null));
+        assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, -1, null));
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "jdk.CPULoad", 2L, 1L, null, null));
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "", null, null, null, null));
         verifyNoInteractions(resolver);

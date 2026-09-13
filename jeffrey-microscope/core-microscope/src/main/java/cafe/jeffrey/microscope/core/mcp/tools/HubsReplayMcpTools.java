@@ -70,7 +70,10 @@ public final class HubsReplayMcpTools {
 
     @McpToolHints(readOnly = true, openWorld = true)
     @Tool(description = "Query selected JFR events from a Hub session without downloading or analysing it. "
-            + "Bounded to 15 seconds, at most 1000 rows and 100000 UTF-8 bytes. "
+            + "Returns the first matching events in replay order, not ranked by duration: default 100 rows. "
+            + "Set a positive limit for more rows or 0 for no row limit. "
+            + "The 15-second deadline and maxBytes budget still apply (at most 100000 UTF-8 bytes). "
+            + "Narrow eventTypes and the time window when a limit is reached. "
             + "Coverage is finished files visible when replay starts; inspect complete and termination.")
     @McpOutputSchema("""
             {"type":"object","properties":{
@@ -79,7 +82,8 @@ public final class HubsReplayMcpTools {
               "complete":{"type":"boolean"},"partial":{"type":"boolean"},"termination":{"type":"string"},
               "coverageKnown":{"type":"boolean"},"sourceErrors":{"type":"integer"},
               "rows":{"type":"integer"},"resultBytes":{"type":"integer"},
-              "limit":{"type":"integer"},"maxBytes":{"type":"integer"}
+              "limit":{"type":"integer","minimum":0,"description":"Requested row limit; 0 means no row limit"},
+              "maxBytes":{"type":"integer"}
             },"required":["sessionRef","events","eventTypes","complete","partial","termination",
               "coverageKnown","sourceErrors","rows","resultBytes","limit","maxBytes"]}
             """)
@@ -88,7 +92,7 @@ public final class HubsReplayMcpTools {
             @ToolParam(description = "Comma-separated exact JFR event type names") String eventTypes,
             @ToolParam(description = "Inclusive start epoch milliseconds", required = false) Long startTime,
             @ToolParam(description = "Inclusive end epoch milliseconds", required = false) Long endTime,
-            @ToolParam(description = "Maximum rows, 1–1000; default 100", required = false) Integer limit,
+            @ToolParam(description = "Maximum rows; default 100. Any positive integer, or 0 for no row limit. Byte and time limits still apply", required = false) Integer limit,
             @ToolParam(description = "Maximum UTF-8 JSON object bytes (excluding duplicated MCP text/structured envelope), 4096–100000; default 65536", required = false) Integer maxBytes) {
         if (sessionRef == null || sessionRef.length() > 2048) {
             throw new IllegalArgumentException("Pass a complete session_ref from hubs_sessions (at most 2048 characters)");
@@ -108,8 +112,11 @@ public final class HubsReplayMcpTools {
         }
         int rows = limit == null ? 100 : limit;
         int bytes = maxBytes == null ? 65536 : maxBytes;
-        if (rows < 1 || rows > 1000 || bytes < 4096 || bytes > 100000) {
-            throw new IllegalArgumentException("limit must be 1–1000 and maxBytes must be 4096–100000");
+        if (rows < 0) {
+            throw new IllegalArgumentException("limit must be nonnegative; 0 means no row limit");
+        }
+        if (bytes < 4096 || bytes > 100000) {
+            throw new IllegalArgumentException("maxBytes must be 4096–100000");
         }
         HubReplayCollector collector = new HubReplayCollector(ref, rows, bytes);
         collector.filters(types, startTime, endTime);
