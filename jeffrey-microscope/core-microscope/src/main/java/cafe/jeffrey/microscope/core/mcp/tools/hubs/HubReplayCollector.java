@@ -37,6 +37,8 @@ import java.util.concurrent.TimeoutException;
 /** Bounds one replay and preserves the first terminal reason, including cancellation races. */
 public final class HubReplayCollector {
     private static final int TERMINAL_RESERVE = 512;
+    /** The caller asked for every matching event; only the byte budget and the deadline bound it. */
+    private static final int NO_ROW_LIMIT = 0;
     private final HubSessionRef ref;
     private final int limit;
     private final int maxBytes;
@@ -122,6 +124,15 @@ public final class HubReplayCollector {
                 stop("scope_mismatch");
                 return;
             }
+            // Truncation is declared by the event that does not fit, never by the last one that did.
+            // Stopping on the limit-th row instead would report a query whose every match was
+            // returned as partial, and would skip the coverage summary that completed() records --
+            // so a caller asking for exactly as many rows as the session holds would be told, with
+            // coverageKnown false, to narrow a window that has nothing left to give.
+            if (limit != NO_ROW_LIMIT && events.size() == limit) {
+                stop("row_limit");
+                return;
+            }
             ObjectNode row = eventJson(event);
             // What this row costs, rather than what the whole answer now weighs. Re-serialising the
             // document once per event is quadratic in the row count, including when the caller
@@ -137,10 +148,6 @@ public final class HubReplayCollector {
             events.add(row);
             accumulated += delta;
             output.put("rows", events.size());
-            if (limit > 0 && events.size() >= limit) {
-                stop("row_limit");
-                return;
-            }
         }
     }
 

@@ -306,6 +306,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p>The default is <strong>100 matching events</strong>, with a 15-second deadline and a 65,536-byte result budget. Set <code>limit</code> to any positive integer for a different event-count limit, or <code>0</code> to disable the event-count limit. Set <code>maxBytes</code> between 4,096 and 100,000. These are the first matches in replay order; they are not ranked by duration and do not represent the whole time window when <code>partial</code> is true. A byte or time limit can return fewer events than requested.</p>
 
+      <p><strong>Row and byte limits apply independently.</strong> Raising <code>limit</code> can return more events until the byte budget or deadline is reached. The number that fits depends on event fields, string lengths and response metadata. For illustration, rows averaging 250 bytes leave room for roughly 250 rows under the default budget or 400 under the maximum, before accounting for metadata. These are estimates, not fixed row capacities.</p>
+
       <p>For example, call this tool through Microscope's MCP endpoint to inspect GC events between 10:00 and 12:00 UTC on 13 September 2026. Copy <code>sessionRef</code> from <code>hubs_sessions</code>. Both time bounds are inclusive.</p>
       <pre><code>{
   "name": "hubs_queryEvents",
@@ -317,9 +319,9 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
     "limit": 100
   }
 }</code></pre>
-      <p>For more events, use <code>"limit": 500</code> or <code>"limit": 2000</code>. To remove the event-count limit, use <code>"limit": 0</code>; optionally raise <code>"maxBytes": 100000</code>. The byte budget and 15-second deadline still apply with <code>limit: 0</code>, so it does not guarantee that every matching event fits into one MCP response. Omitting <code>limit</code> keeps the default of 100.</p>
+      <p>Omitting <code>limit</code> keeps the default of 100. For more events, try <code>"limit": 500</code> and <code>"maxBytes": 100000</code>. Use <code>"limit": 0</code> to remove the row cap. Neither setting guarantees that all matches fit: the byte budget and 15-second deadline still apply.</p>
 
-      <p>If <code>termination</code> is <code>row_limit</code>, <code>byte_limit</code>, or <code>timeout</code>, narrow the time window or event types for a smaller sample. Do not infer total counts, the busiest period, or the slowest events from this truncated result.</p>
+      <p><code>termination</code> explains why the query ended. <code>completed</code> means all matching events from the finished files in scope were returned with known coverage and no source errors. Exactly as many events as the row limit can still be complete: the query waits for another match or the Hub&rsquo;s completion report, subject to the deadline. <code>row_limit</code> means an additional matching event was omitted; <code>byte_limit</code> means the next event did not fit. <code>timeout</code> means completion could not be confirmed before the deadline. Narrow the window or event types when a result is partial. Results follow replay order, with no global chronological ordering or deduplication guarantee; do not infer total counts, the busiest period, or the slowest events from a partial result.</p>
 
       <p><strong>Remote event summaries.</strong> <code>hubs_eventActivity(sessionRef, startTime, endTime, bucketSeconds?, eventTypes?)</code>
         starts an aggregation on Hub through gRPC. The agent connects to Microscope’s existing MCP endpoint.

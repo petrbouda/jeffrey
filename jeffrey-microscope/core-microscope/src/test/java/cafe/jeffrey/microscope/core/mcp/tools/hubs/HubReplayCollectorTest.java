@@ -53,6 +53,46 @@ class HubReplayCollectorTest {
         assertFalse(collector.result().path("complete").asBoolean());
     }
 
+    @ParameterizedTest
+    @CsvSource({"0, completed, true", "2, source_errors, false"})
+    void exactRowLimitWaitsForCoverage(long sourceErrors, String termination, boolean complete) {
+        var collector = new HubReplayCollector(REF, 1, 4096);
+        var cancels = new AtomicInteger();
+        collector.acknowledge("workspace", "project");
+        collector.cancellation(cancels::incrementAndGet);
+        collector.accept(batch("only event"));
+
+        assertEquals(0, cancels.get());
+        assertEquals("running", collector.result().path("termination").asText());
+        collector.completed(sourceErrors);
+
+        var result = collector.result();
+        assertEquals(1, result.path("rows").asInt());
+        assertEquals(termination, result.path("termination").asText());
+        assertEquals(complete, result.path("complete").asBoolean());
+        assertTrue(result.path("coverageKnown").asBoolean());
+        assertEquals(sourceErrors, result.path("sourceErrors").asLong());
+        assertEquals(1, cancels.get());
+    }
+
+    @Test
+    void anExtraEventInALaterBatchConfirmsTruncation() {
+        var collector = new HubReplayCollector(REF, 1, 4096);
+        var cancels = new AtomicInteger();
+        collector.acknowledge("workspace", "project");
+        collector.cancellation(cancels::incrementAndGet);
+        collector.accept(batch("first"));
+        assertEquals(0, cancels.get());
+
+        collector.accept(batch("second"));
+        collector.completed(0);
+
+        assertEquals(1, cancels.get());
+        assertEquals(1, collector.result().path("rows").asInt());
+        assertEquals("row_limit", collector.result().path("termination").asText());
+        assertFalse(collector.result().path("complete").asBoolean());
+    }
+
     @Test
     void unacknowledgedLegacyHubCannotReturnUnscopedRows() {
         HubReplayCollector collector = new HubReplayCollector(REF, 10, 4096);
