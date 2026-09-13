@@ -388,6 +388,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsServerGrpcApi',
         component: () => import('@/views/docs/hub/HubGrpcApiPage.vue')
       },
+      {
+        path: 'hub/mcp',
+        name: 'DocsHubMcp',
+        component: () => import('@/views/docs/hub/HubMcpPage.vue')
+      },
       // Server Configuration — single merged page
       {
         path: 'hub/configuration',

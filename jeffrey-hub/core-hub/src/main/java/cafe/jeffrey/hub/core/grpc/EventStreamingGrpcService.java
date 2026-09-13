@@ -32,16 +32,13 @@ import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
 import cafe.jeffrey.hub.core.streaming.StreamingWindow;
+import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
 import java.nio.file.Path;
 import java.time.Instant;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -101,18 +98,9 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                 if (request.getWorkspaceId().isBlank() || request.getProjectId().isBlank()) {
                     throw new IllegalArgumentException("Both workspace_id and project_id are required for scoped replay");
                 }
-                ProjectInfo project = platformRepositories.newProjectRepository(request.getProjectId()).find()
-                        .filter(info -> request.getWorkspaceId().equals(info.workspaceId()))
-                        .orElseThrow(() -> GrpcExceptions.notFound("Project not found in requested workspace"));
-                RepositoryStorage storage = repositoryStorageFactory.apply(project);
-                RecordingSession session = storage.singleSession(sessionId, true)
-                        .orElseThrow(() -> GrpcExceptions.notFound("Session not found in requested project: " + sessionId));
-                // recordings() compresses files persistently. A query reads existing paths only.
-                recordingFiles = session.files().stream()
-                        .filter(RepositoryFile::isRecordingFile)
-                        .filter(RepositoryFile::isFinished)
-                        .sorted(Comparator.comparing(RepositoryFile::createdAt))
-                        .map(RepositoryFile::filePath).distinct().toList();
+                recordingFiles = new ScopedReplaySource(platformRepositories, repositoryStorageFactory, jeffreyDirs)
+                        .resolve(request.getWorkspaceId(), request.getProjectId(), sessionId,
+                                new HashSet<>(request.getEventTypesList()), window).recordingFiles();
             } else {
                 Optional<SessionWithRepository> sessionOpt =
                         resolveValidatedSession(sessionId, request.getEventTypesList(), observer);

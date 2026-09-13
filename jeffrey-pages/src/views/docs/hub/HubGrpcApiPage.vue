@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Jeffrey Hub exposes gRPC services for Jeffrey Microscope instances to connect and fetch data. All communication between Jeffrey Microscope and Jeffrey Hub uses gRPC on port <code>9090</code> (configurable).</p>
 
         <DocsCallout type="info">
-          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. All CPU-intensive analysis happens locally.
+          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. Full profile analysis happens locally; <router-link to="/docs/hub/mcp">Hub MCP</router-link> can count event activity before downloading.
         </DocsCallout>
 
         <h2 id="purpose">Purpose</h2>

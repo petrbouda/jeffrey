@@ -29,6 +29,8 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import java.io.Closeable;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.time.Instant;
+import java.util.function.BiConsumer;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -59,14 +61,28 @@ public class ReplayStreamingSubscriber implements Closeable {
         this(subscription, callbacks, Schedulers.streamingExecutor());
     }
 
+    /** Streams only type/time metadata to an in-process consumer, avoiding field conversion. */
+    public ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks,
+                                     BiConsumer<String, Instant> metadataConsumer) {
+        this(subscription, callbacks, Schedulers.streamingExecutor(), metadataConsumer);
+        if (!subscription.reportCoverage()) {
+            throw new IllegalArgumentException("Metadata replay must be scoped");
+        }
+    }
+
     ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks, Executor scheduler) {
+        this(subscription, callbacks, scheduler, null);
+    }
+
+    private ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks, Executor scheduler,
+                                      BiConsumer<String, Instant> metadataConsumer) {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.subscription = subscription;
         this.callbacks = callbacks;
         this.replayTempDir = subscription.tempDir()
                 .resolve("replay-" + IDGenerator.generate());
         this.fileReader = new SingleReplyStreamingSubscriber(subscription, replayTempDir, callbacks.onNext(),
-                closed::get, sourceErrors::incrementAndGet);
+                closed::get, sourceErrors::incrementAndGet, metadataConsumer);
     }
 
     /**
