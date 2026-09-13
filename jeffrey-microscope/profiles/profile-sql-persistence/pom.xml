@@ -89,4 +89,16 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Event API contracts are a test-only dependency, not part of the persistence module. -->
+                    <argLine>--add-reads cafe.jeffrey.microscope.profile.persistence.jdbc=cafe.jeffrey.jfr.events</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

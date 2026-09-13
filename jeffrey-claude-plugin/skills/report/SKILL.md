@@ -87,9 +87,12 @@ Things that cap a finding at **medium** at most, and must be said out loud when 
   until the figures support it.
 - **Leak candidates.** `memory_leakCandidates` lists objects that survived collections. Survival is
   not retention: without a heap dump and a GC-root path it stays a candidate.
-- **A comparison whose `compare_list` notes or `compare_quality` verdict fired** — a duration
-  mismatch, an event type on one side only, a thin profile, different sampling settings, sample loss
-  on one side. Report movements from such a pair as suggestive, not measured.
+- **Comparison limitations from `compare_list` and `compare_quality`.** The latter returns
+  evidence, not a single verdict. Different or unknown sampling settings, thin profiles and sample
+  loss limit confidence in the affected event type. Duration differences require an explicit
+  exposure denominator. `workloadNormalization.available=false` rules out a per-request claim
+  from recorded counts alone, not a qualified hotspot-share comparison. State the limitation next
+  to the affected figure; use `compare-jfr` to interpret the fields.
 - **Time overlap.** "During the same window as" is concurrency, not cause. Report it as
   *concurrent with*, and prove cause with a code path or a fix that measurably helped.
 - **A frame you never read in source.** Until the file has been opened — with your own tools or

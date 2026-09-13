@@ -55,19 +55,33 @@ Read its `notes`, and stop to think when:
   baseline onto the primary's length automatically, which is right for a steady workload and wrong
   for a fixed-size benchmark (N requests replayed in both runs). On a benchmark, read the **share**
   column rather than the delta.
-- **An event type appears on one side only.** That is a difference between the two *profiler
-  configurations*, not a change in the application. Report it as such; do not report the work as
-  having appeared or vanished.
+- **An event type appears on one side only.** That may reflect instrumentation or observed
+  activity; presence alone cannot distinguish them. Report the evidence gap rather than claiming
+  that the work appeared or vanished.
 - **`comparable` is empty.** There is nothing to compare — different formats, one is a heap dump,
   or wholly different profiler settings. Say so and stop.
 
-Then `compare_quality`, with the same two ids, before a single delta is quoted. It reads what the
-recordings say about their own evidence: the sampling settings each side was recorded with and
-whether they differ, the CPU-time samples each sampler reported losing, the server-event volumes
-each carries, and whether per-workload normalisation — a share per request rather than per second —
-is available at all, which it is not when the operation counts are incomplete. Its verdict is the
-one the report opens with. When it says the pair is not comparable, stop there and report that; a
-`compare_movements` run on top of it would only make the wrong number look measured.
+Then call `compare_quality` with the same two ids before quoting a delta. It returns evidence,
+not a single comparability verdict. Assess the question using these fields:
+
+- `samplingConfiguration` and `findings`: matching snapshots support comparison of that event type;
+  `mismatch` or `unknown` means its event volumes need qualification. Check each side's
+  `samplerHealth` for sample loss too. A matching snapshot does not prove unchanged settings
+  throughout either recording.
+- `commonEventTypes`, `onlyInPrimary` and `onlyInBaseline`: compare shared evidence. A type absent
+  on one side is not evidence that the application stopped doing that work.
+- `durationNormalization.available`: recording-exposure scaling is possible when true. It does
+  not establish equal workload or request rate; filtered graph exports use the selected window,
+  while this tool describes whole recordings.
+- `workloadNormalization.available`: currently false because observed server events do not
+  establish complete operation counts. This prevents per-request efficiency or speed claims from
+  these counts alone. It does **not** prevent comparing observed hotspot shares or qualified
+  duration-normalized movements. State the denominator and the limitation.
+- `truncation`: omitted evidence is unknown, not a clean bill of health.
+
+Open the report with your assessment of what can be compared and its limitations. If no shared
+event type supports the requested comparison, report that gap and stop. Otherwise compare the
+supported dimensions, and keep a workload regression claim separate from an observed movement.
 
 If the two runs came from different machines, different load levels or different JVM flags, say so
 before anything else. No amount of arithmetic recovers that, and the numbers will look just as

@@ -351,6 +351,12 @@
 
     <build>
         <plugins>
+            <!-- Keep modular test execution identical locally and on CI, regardless of Maven's defaults. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.4</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

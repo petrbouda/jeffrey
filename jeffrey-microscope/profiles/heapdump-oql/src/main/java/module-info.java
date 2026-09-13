@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.profile.heapdump.oql {
     requires transitive cafe.jeffrey.microscope.profile.heapdump;
+    requires cafe.jeffrey.shared.persistence;
     requires org.antlr.antlr4.runtime;
     requires spring.context;
     requires spring.beans;

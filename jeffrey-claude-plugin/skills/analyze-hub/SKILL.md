@@ -70,9 +70,10 @@ If nothing comes back, read the footer before concluding there is nothing. A hub
 answer is listed there, and "production is unreachable" is a completely different answer from "no
 recordings". `hubs_list` shows which hubs are configured and whether each responds.
 
-The table is a page, not the whole. A hundred rows come back at a time, with `nextCursor` and
-`hasMore` in the answer; pass the cursor back with the **same filters** for the next hundred, and
-read `complete` separately — it says whether every hub answered, which `hasMore` does not. A
+The table is a page, not the whole. `hubs_sessions` defaults to 50 rows, and the output byte budget
+may reduce that further. Read `returned`, `nextCursor` and `hasMore`; when `hasMore=true`, pass the
+cursor back with the **same filters**, even if the page contains fewer rows than requested. Read
+`complete` separately — it says whether every hub answered, which `hasMore` does not. A
 relative window keeps the cutoff of the first call across its pages, so paging through "the last
 hour" does not slide the hour.
 

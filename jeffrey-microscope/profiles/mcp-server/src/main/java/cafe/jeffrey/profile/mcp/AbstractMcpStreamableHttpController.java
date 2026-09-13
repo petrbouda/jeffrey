@@ -533,11 +533,8 @@ public abstract class AbstractMcpStreamableHttpController {
 
     /** The exception a tool threw, when the failure is the wrapper {@link ToolInvocation} puts around it. */
     private static Throwable unwrapToolFailure(Throwable failure) {
-        if (failure instanceof IllegalStateException
-                && failure.getMessage() != null
-                && failure.getMessage().startsWith(ToolInvocation.TOOL_EXECUTION_FAILED_PREFIX)
-                && failure.getCause() != null) {
-            return failure.getCause();
+        if (failure instanceof ToolInvocationException invocation) {
+            return invocation.getCause();
         }
         return failure;
     }

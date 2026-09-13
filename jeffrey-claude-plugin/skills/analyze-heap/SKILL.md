@@ -66,8 +66,10 @@ explicitly by `heap_prepare` with report `dominator`. Until one of them has run,
 before anything that ranks by retained size — skipping it is the usual reason a heap session stalls
 on empty results.
 
-**Cached reports, which you can build.** These are computed once and stored. Until something computes
-one it answers `… has not been run for this heap dump yet`, and the fix is `heap_prepare`:
+**Cached reports, which the caller or heap-triage can build.** These are computed once and stored.
+Until something computes one it answers `… has not been run for this heap dump yet`, and the fix is
+`heap_prepare`. If you are `profile-analyst`, report the missing report to the caller and stop that
+part of the analysis; never call `heap_prepare`. For a caller or `heap-triage`, use this mapping:
 
 | Tool | `heap_prepare` report |
 |---|---|

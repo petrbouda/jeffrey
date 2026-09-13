@@ -15,11 +15,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.shared.notifications {
-    requires jdk.jfr;
-    // Transitive: a caller names a Severity constant on every emit, so it would otherwise have to
-    // require the events module itself just to say how serious something is.
-    requires transitive cafe.jeffrey.jfr.events;
+package cafe.jeffrey.profile.mcp;
 
-    exports cafe.jeffrey.shared.notification;
+import java.util.Objects;
+
+/** Identifies a failure thrown by a tool body, independently of its diagnostic message. */
+final class ToolInvocationException extends IllegalStateException {
+
+    ToolInvocationException(Throwable cause) {
+        super("Tool execution failed: " + Objects.requireNonNull(cause).getMessage(), cause);
+    }
 }

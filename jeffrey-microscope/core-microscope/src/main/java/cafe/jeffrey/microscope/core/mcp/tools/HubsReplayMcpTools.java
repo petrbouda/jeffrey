@@ -167,11 +167,7 @@ public final class HubsReplayMcpTools {
         Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINES);
         try {
             context.call(() -> {
-                // Inside the deadline, because resolving a scope reaches the hub -- through discovery,
-                // which sets no deadline of its own -- and this context is the only bound on it. What
-                // must not be lost is the distinction the catch below would otherwise erase: an
-                // unknown hub is the caller's mistake, not a remote failure, so it is rethrown as
-                // itself rather than reported as termination: remote_error with its message dropped.
+                // Workspace and project discovery use blocking gRPC calls and must share this budget.
                 ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
                         .projectManager();
                 var request = new ReplaySubscriptionRequest(
@@ -194,8 +190,7 @@ public final class HubsReplayMcpTools {
             collector.stop(TERMINATION_INTERRUPTED);
             Thread.currentThread().interrupt();
         } catch (IllegalArgumentException | JeffreyClientException e) {
-            // The caller named something that does not exist. Reported as the mistake it is, rather
-            // than folded into a termination code that says the hub misbehaved.
+            // Preserve actionable scope errors instead of presenting them as a partial remote result.
             throw e;
         } catch (Exception e) {
             collector.stop(termination(e), describe(e));

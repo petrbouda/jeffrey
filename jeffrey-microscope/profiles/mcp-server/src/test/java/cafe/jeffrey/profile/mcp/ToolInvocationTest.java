@@ -82,8 +82,8 @@ class ToolInvocationTest {
          */
         @Test
         void reportsTheCauseRatherThanTheReflectionWrapper() {
-            IllegalStateException thrown =
-                    assertThrows(IllegalStateException.class, () -> invoke("boom"));
+            ToolInvocationException thrown =
+                    assertThrows(ToolInvocationException.class, () -> invoke("boom"));
 
             assertTrue(thrown.getMessage().contains("no heap dump on this profile"), thrown.getMessage());
             assertEquals("no heap dump on this profile", thrown.getCause().getMessage());
@@ -99,8 +99,8 @@ class ToolInvocationTest {
          */
         @Test
         void keepsAToolsOwnRefusalOnTheToolSideOfTheLine() {
-            IllegalStateException thrown =
-                    assertThrows(IllegalStateException.class, () -> invoke("refuses"));
+            ToolInvocationException thrown =
+                    assertThrows(ToolInvocationException.class, () -> invoke("refuses"));
 
             assertTrue(thrown.getMessage().contains("limit must be positive"), thrown.getMessage());
             assertEquals(IllegalArgumentException.class, thrown.getCause().getClass());

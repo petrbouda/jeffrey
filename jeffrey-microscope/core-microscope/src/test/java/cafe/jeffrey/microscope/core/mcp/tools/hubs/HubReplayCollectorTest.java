@@ -25,6 +25,7 @@ import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
@@ -110,6 +111,30 @@ class HubReplayCollectorTest {
         assertEquals(1, collector.result().path("events").size());
         assertEquals("byte_limit", collector.result().path("termination").asText());
         assertTrue(Json.toString(collector.result()).getBytes(StandardCharsets.UTF_8).length <= 4096);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"x", "界", "😀", "😀a", "\u0001", "\"\\\n"})
+    void remoteErrorsFitSerializedBudgetWithoutLosingAcceptedEvents(String character) {
+        HubReplayCollector collector = new HubReplayCollector(REF, 0, 4096);
+        collector.filters(Set.of("jdk.JavaExceptionThrow"), null, null);
+        collector.acknowledge("workspace", "project");
+        String message = "x".repeat(2800);
+        collector.accept(batch(message));
+        assertEquals(1, collector.result().path("rows").asInt());
+
+        collector.stop("remote_error", character.repeat(300));
+
+        var result = collector.result();
+        int measured = Json.toString(result).getBytes(StandardCharsets.UTF_8).length;
+        assertTrue(measured <= 4096, "Response exceeded maxBytes: " + measured);
+        assertEquals(measured, result.path("resultBytes").asInt());
+        assertEquals(message, result.path("events").get(0).path("fields").path("message").asText());
+        assertEquals("remote_error", result.path("termination").asText());
+        assertFalse(result.path("error").asText().isBlank());
+        assertTrue(result.path("error").asText().contains("truncated"));
+        String error = result.path("error").asText();
+        assertEquals(error, new String(error.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
     }
 
     // Literal budgets straddle the last whole row by one byte, including the 9→10 and

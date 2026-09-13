@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.common.pipeline.PipelineRun;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
@@ -158,7 +159,10 @@ public final class HeapDumpInitService {
         return startPreparation(profileId, manager, report, compressedOopsOverride, onFinished, true).started();
     }
 
-    /** Returns the exact current attempt and the reports it really computes, including on joins. */
+    /**
+     * Returns the exact current attempt and its reports, including on joins. Completed work is reused
+     * only when it covers the requested reports; in-flight work is always joined for this profile.
+     */
     public synchronized Preparation startPreparation(
             String profileId, HeapDumpManager manager, String report, Boolean compressedOopsOverride,
             Runnable onFinished, boolean retryFailure) {
@@ -167,12 +171,11 @@ public final class HeapDumpInitService {
             throw new IllegalArgumentException("Unknown report: " + selected + ". Expected one of: "
                     + String.join(", ", HeapDumpStages.REPORTS));
         }
-        // Whether the run this call would join already computed what is being asked for. The registry
-        // is keyed by profile, so without this a completed run for one report answers for every other
-        // report as well: the caller is told the preparation already finished, and the report they
-        // asked for is never built. An in-flight run is joined either way -- startOrJoin only replaces
-        // a finished one -- so this cannot interrupt work already under way.
-        boolean alreadyPrepared = alreadyPrepared(profileId, selected);
+        List<String> requestedReports = selected == null ? HeapDumpStages.REPORTS : List.of(selected);
+        Preparation previous = preparations.get(profileId);
+        boolean needsAdditionalReports = previous != null
+                && !previous.reports().containsAll(requestedReports)
+                && previous.operation().lifecycleSnapshot().state() == OperationState.COMPLETED;
         PipelineRunRegistry.StartResult result = registry.startOrJoin(new PipelineRunRequest<>(
                 profileId, "", run -> {
                     if (selected == null) {
@@ -186,23 +189,12 @@ public final class HeapDumpInitService {
                     } finally {
                         onFinished.run();
                     }
-                }), retryFailure || !alreadyPrepared);
+                }), retryFailure || needsAdditionalReports);
         if (result.started()) {
-            preparations.put(profileId, new Preparation(true, result.operation(),
-                    selected == null ? HeapDumpStages.REPORTS : List.of(selected)));
+            preparations.put(profileId, new Preparation(true, result.operation(), requestedReports));
         }
         Preparation current = preparations.get(profileId);
         return new Preparation(result.started(), result.operation(), current.reports());
-    }
-
-    /** Whether the retained preparation for this profile covers every report the caller asked for. */
-    private boolean alreadyPrepared(String profileId, String selected) {
-        Preparation previous = preparations.get(profileId);
-        if (previous == null) {
-            return false;
-        }
-        List<String> requested = selected == null ? HeapDumpStages.REPORTS : List.of(selected);
-        return previous.reports().containsAll(requested);
     }
 
     public Optional<Preparation> operation(String profileId) {

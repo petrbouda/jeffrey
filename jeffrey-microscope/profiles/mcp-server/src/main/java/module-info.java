@@ -26,4 +26,7 @@ module cafe.jeffrey.microscope.profile.mcp {
     requires org.slf4j;
 
     exports cafe.jeffrey.profile.mcp;
+    exports cafe.jeffrey.profile.mcp.finding;
+
+    opens cafe.jeffrey.profile.mcp to tools.jackson.databind;
 }

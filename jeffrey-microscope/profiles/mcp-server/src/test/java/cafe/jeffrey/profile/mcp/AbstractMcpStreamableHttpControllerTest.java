@@ -233,6 +233,23 @@ class AbstractMcpStreamableHttpControllerTest {
     @Nested
     class ToolErrors {
 
+        @Test
+        void doesNotUnwrapAnUnrelatedFailureWithTheOldMessagePrefix() {
+            McpServerFeatures failingResolution = new McpServerFeatures(
+                    () -> new ProfileScopedToolset<>(SampleTools.class, "test", profileId -> {
+                        throw new IllegalStateException("Tool execution failed: database adapter",
+                                new IllegalArgumentException("private database configuration"));
+                    }), Prompts::new, Resources::new);
+
+            JsonNode response = envelope.dispatch(Json.readTree("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_echo","arguments":{"profileId":"p-1","message":"hi"}}}"""),
+                    null, failingResolution).getBody();
+
+            assertTrue(response.path("result").path("isError").asBoolean());
+            assertEquals(INTERNAL_ERROR_TEXT, response.path("result").path("content").get(0).path("text").asString());
+        }
+
         /**
          * The distinction the specification draws: a tool that ran and failed answers the model inside
          * the result, a call that never reached a tool leaves through the error channel.
@@ -399,7 +416,7 @@ class AbstractMcpStreamableHttpControllerTest {
             assertEquals(-32002, response.get("error").get("code").asInt());
             String message = response.get("error").get("message").asString();
             assertEquals("Profile not found: p-9", message);
-            assertFalse(message.contains(ToolInvocation.TOOL_EXECUTION_FAILED_PREFIX), message);
+            assertFalse(message.contains("Tool execution failed:"), message);
         }
 
         @Test
@@ -414,6 +431,15 @@ class AbstractMcpStreamableHttpControllerTest {
         void keepsAFailureThatIsNeitherAsAnInternalError() {
             assertEquals(-32603, read("jeffrey://tool/broken").get("error").get("code").asInt());
             assertEquals(-32603, read("jeffrey://broken").get("error").get("code").asInt());
+        }
+
+        @Test
+        void doesNotClassifyAnUnrelatedWrapperAsResourceNotFound() {
+            JsonNode error = read("jeffrey://unrelated-wrapper").path("error");
+
+            assertEquals(-32603, error.path("code").asInt());
+            assertEquals(AbstractMcpStreamableHttpController.INTERNAL_FAILURE_MESSAGE,
+                    error.path("message").asString());
         }
 
         /**
@@ -513,6 +539,8 @@ class AbstractMcpStreamableHttpControllerTest {
                 case "jeffrey://tool/refused" -> text(uri, tools.call("resource_refused", null));
                 case "jeffrey://tool/broken" -> text(uri, tools.call("resource_broken", null));
                 case "jeffrey://broken" -> throw new IllegalStateException("database closed");
+                case "jeffrey://unrelated-wrapper" -> throw new IllegalStateException(
+                        "Tool execution failed: unrelated provider", Exceptions.profileNotFound("internal-id"));
                 default -> throw new IllegalArgumentException("Unknown resource: " + uri);
             };
         }
