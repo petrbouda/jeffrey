@@ -72,7 +72,8 @@ public final class HubsReplayMcpTools {
     @Tool(description = "Query selected JFR events from a Hub session without downloading or analysing it. "
             + "Returns the first matching events in replay order, not ranked by duration: default 100 rows. "
             + "Set a positive limit for more rows or 0 for no row limit. "
-            + "The 15-second deadline and maxBytes budget still apply (at most 100000 UTF-8 bytes). "
+            + "The 15-second deadline and maxBytes budget still apply: default 65536, maximum 100000 UTF-8 bytes. "
+            + "How many events fit depends on their serialized size; raising limit does not raise maxBytes. "
             + "Narrow eventTypes and the time window when a limit is reached. "
             + "Coverage is finished files visible when replay starts; inspect complete and termination.")
     @McpOutputSchema("""

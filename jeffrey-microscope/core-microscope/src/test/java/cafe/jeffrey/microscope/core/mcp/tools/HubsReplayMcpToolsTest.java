@@ -52,9 +52,10 @@ import static org.mockito.Mockito.when;
 class HubsReplayMcpToolsTest {
     private static final String REF = new HubSessionRef("hub", "workspace", "project", "session").encode();
 
+    /** 5000 is past the retired 1000-row cap: it is accepted, echoed back, and never clamped. */
     @ParameterizedTest
     @NullSource
-    @ValueSource(ints = 0)
+    @ValueSource(ints = {0, 5000})
     void noResponseHasFiniteTimeoutAndCancelsSubscription(Integer limit) {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
         ProjectManager project = mock(ProjectManager.class);
@@ -69,6 +70,7 @@ class HubsReplayMcpToolsTest {
         var result = tools.queryEvents(REF, "jdk.CPULoad", null, null, limit, null).structuredContent();
         assertTrue(Duration.ofNanos(System.nanoTime() - before).compareTo(Duration.ofSeconds(2)) < 0);
         assertEquals("timeout", result.path("termination").asText());
+        assertEquals(limit == null ? 100 : limit, result.path("limit").asInt());
         assertFalse(result.path("complete").asBoolean());
         assertTrue(context.isCancelled());
     }
