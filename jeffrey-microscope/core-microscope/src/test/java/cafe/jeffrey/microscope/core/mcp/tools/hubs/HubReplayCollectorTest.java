@@ -23,8 +23,11 @@ import cafe.jeffrey.hub.api.v1.StreamingEvent;
 import cafe.jeffrey.hub.api.v1.TypedValue;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,21 +72,48 @@ class HubReplayCollectorTest {
         assertTrue(Json.toString(collector.result()).getBytes(StandardCharsets.UTF_8).length <= 4096);
     }
 
-    /**
-     * The budget is now tracked incrementally rather than by re-serialising the document per event, so
-     * what matters is that the running total still agrees with the document it claims to measure --
-     * every row, with multi-byte text and a row counter that grows a digit.
-     */
-    @Test
-    void incrementalByteAccountingAgreesWithTheSerialisedDocument() {
-        HubReplayCollector collector = new HubReplayCollector(REF, 1000, 100_000);
-        collector.acknowledge("workspace", "project");
-        for (int index = 0; index < 40; index++) {
-            collector.accept(batch("猫value" + index));
-            int measured = Json.toString(collector.result()).getBytes(StandardCharsets.UTF_8).length;
-            assertTrue(measured <= 100_000, "row " + index + " measured " + measured);
+    // Literal budgets straddle the last whole row by one byte, including the 9→10 and
+    // 99→100 counter transitions. They include the collector's terminal metadata allowance.
+    // The payload exercises both UTF-8 bytes and JSON escaping; filters change the fixed cost.
+    @ParameterizedTest
+    @CsvSource({
+            "4425, 8, false", "4426, 9, false",
+            "4805, 9, false", "4806, 10, false",
+            "38537, 98, false", "38538, 99, false",
+            "38917, 99, false", "38918, 100, false",
+            "4516, 8, true", "4517, 9, true",
+            "4896, 9, true", "4897, 10, true",
+            "38628, 98, true", "38629, 99, true",
+            "39008, 99, true", "39009, 100, true"
+    })
+    void byteBudgetRetainsExactlyTheWholeRowsThatFit(int maxBytes, int expectedRows, boolean filtered) {
+        String message = "猫\"\n".repeat(40);
+        HubReplayCollector collector = new HubReplayCollector(REF, 1000, maxBytes);
+        if (filtered) {
+            collector.filters(Set.of("猫.Filter", "jdk.JavaExceptionThrow"), 1L, 9999999999999L);
         }
-        assertEquals(40, collector.result().path("events").size());
+        collector.acknowledge("workspace", "project");
+        for (int index = 0; index < 102; index++) {
+            collector.accept(batch(message));
+        }
+        collector.completed(0); // A late terminal callback must not overwrite the byte limit.
+
+        var result = collector.result();
+        int measured = Json.toString(result).getBytes(StandardCharsets.UTF_8).length;
+        assertEquals(expectedRows, result.path("rows").asInt());
+        assertEquals(expectedRows, result.path("events").size());
+        result.path("events").forEach(event -> assertEquals(message, event.path("fields").path("message").asText()));
+        assertEquals("byte_limit", result.path("termination").asText());
+        assertFalse(result.path("complete").asBoolean());
+        assertTrue(result.path("partial").asBoolean());
+        assertTrue(measured <= maxBytes);
+        assertEquals(measured, result.path("resultBytes").asInt());
+        assertEquals(REF.encode(), result.path("sessionRef").asText());
+        if (filtered) {
+            assertEquals(2, result.path("eventTypes").size());
+            assertEquals(1L, result.path("startTime").asLong());
+            assertEquals(9999999999999L, result.path("endTime").asLong());
+        }
     }
 
     @Test

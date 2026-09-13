@@ -39,10 +39,12 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -73,16 +75,22 @@ public final class PipelineRunRegistry<K> {
     private final PipelineRunOptions options;
     private final PipelineSlots slots;
     private final Clock clock;
+    private final Executor scheduler;
 
     private final ConcurrentMap<K, TrackedRun> runsByKey = new ConcurrentHashMap<>();
 
     public PipelineRunRegistry(PipelineDefinition definition, PipelineRunOptions options, Clock clock) {
+        this(definition, options, clock, Schedulers.sharedVirtual());
+    }
+
+    PipelineRunRegistry(PipelineDefinition definition, PipelineRunOptions options, Clock clock, Executor scheduler) {
         if (definition == null || options == null || clock == null) {
             throw new IllegalArgumentException("Definition, options and clock are all required");
         }
         this.definition = definition;
         this.options = options;
         this.clock = clock;
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.slots = new PipelineSlots(options.maxConcurrentRuns());
 
         if (options.evictsFinishedRuns()) {
@@ -131,13 +139,27 @@ public final class PipelineRunRegistry<K> {
         LOG.info("Queued pipeline run: pipeline_id={} key={} scope_id={} available_slots={}",
                 definition.pipelineId(), request.key(), request.scopeId(), slots.availablePermits());
 
-        CompletableFuture
-                .runAsync(() -> execute(request, candidate), Schedulers.sharedVirtual())
-                .exceptionally(ex -> {
-                    LOG.error("Pipeline run crashed: pipeline_id={} key={}",
-                            definition.pipelineId(), request.key(), ex);
-                    return null;
-                });
+        try {
+            CompletableFuture
+                    .runAsync(() -> execute(request, candidate), scheduler)
+                    .exceptionally(ex -> {
+                        LOG.error("Pipeline run crashed: pipeline_id={} key={}",
+                                definition.pipelineId(), request.key(), ex);
+                        return null;
+                    });
+        } catch (RuntimeException e) {
+            // No worker will publish an outcome. Terminate any handle already handed to a joiner
+            // and release the key. The throwing caller still owns its resources: invoking
+            // onFinished here would release them a second time in callers' failure paths.
+            synchronized (candidate) {
+                candidate.stopWorker();
+                candidate.run.fail(errorCodeOf(e), e.getMessage());
+                candidate.finishedAt = clock.instant();
+                candidate.finished = true;
+            }
+            runsByKey.remove(request.key(), candidate);
+            throw e;
+        }
         return new StartResult(true, candidate);
     }
 

@@ -30,9 +30,10 @@ import java.util.function.Consumer;
  * @param key        what the run is filed under; one run per key at a time
  * @param scopeId    what within that key the run targets (an event type, say), or {@code ""}
  * @param work       the pipeline body, which drives the stages
- * @param onFinished called once with the terminal result, whether the run completed or failed; a
- *                   failure here is logged and swallowed, because losing the record of a run is not a
- *                   reason to also lose the run
+ * @param onFinished called once with the terminal result of accepted work, whether it completed or
+ *                   failed. A rejected submission throws without calling this callback; the caller
+ *                   still owns its resources. A failure here is logged and swallowed, because losing
+ *                   the record of a run is not a reason to also lose the run
  */
 public record PipelineRunRequest<K>(
         K key,

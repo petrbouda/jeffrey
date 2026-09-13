@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +39,49 @@ import static org.junit.jupiter.api.Assertions.*;
 class ReplayStreamingSubscriberTest {
 
     private static final String SESSION_ID = "test-session";
+
+    @Test
+    void rejectedSubmissionRemovesScratchAndClosesRegistrationExactlyOnce(@TempDir Path tempDir) throws Exception {
+        AtomicInteger closed = new AtomicInteger();
+        AtomicInteger submissions = new AtomicInteger();
+        var failure = new RejectedExecutionException("scheduler stopped");
+        var subscription = new ReplayStreamSubscription(SESSION_ID, List.of(), Set.of("jdk.CPULoad"),
+                StreamingWindow.UNBOUNDED, tempDir);
+        var callbacks = new StreamingCallbacks(_ -> fail("no events before scheduling"),
+                () -> fail("no completion before scheduling"), _ -> fail("the caller receives the startup error"),
+                closed::incrementAndGet);
+        var reader = new ReplayStreamingSubscriber(subscription, callbacks, _ -> {
+            submissions.incrementAndGet();
+            throw failure;
+        });
+
+        assertSame(failure, assertThrows(RejectedExecutionException.class, reader::start));
+        assertEquals(1, closed.get(), "onClose removes the reader from its manager");
+        try (var files = Files.list(tempDir)) {
+            assertEquals(0, files.count(), "scratch must not survive a rejected submission");
+        }
+        reader.close();
+        reader.start();
+        assertEquals(1, closed.get());
+        assertEquals(1, submissions.get(), "a failed reader must stay closed");
+    }
+
+    @Test
+    void failedScratchCreationClosesRegistrationWithoutScheduling(@TempDir Path tempDir) throws Exception {
+        Path blocked = Files.writeString(tempDir.resolve("not-a-directory"), "keep");
+        AtomicInteger closed = new AtomicInteger();
+        var subscription = new ReplayStreamSubscription(SESSION_ID, List.of(), Set.of("jdk.CPULoad"),
+                StreamingWindow.UNBOUNDED, blocked);
+        var reader = new ReplayStreamingSubscriber(subscription,
+                new StreamingCallbacks(_ -> {}, () -> {}, _ -> {}, closed::incrementAndGet),
+                _ -> fail("must not schedule without a scratch directory"));
+
+        assertThrows(RuntimeException.class, reader::start);
+        assertEquals(1, closed.get());
+        reader.close();
+        assertEquals(1, closed.get());
+        assertEquals("keep", Files.readString(blocked));
+    }
 
     @Nested
     class MultiFileReplay {

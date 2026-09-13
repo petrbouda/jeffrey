@@ -28,6 +28,8 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.io.Closeable;
 import java.nio.file.Path;
+import java.util.Objects;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -50,9 +52,15 @@ public class ReplayStreamingSubscriber implements Closeable {
     private final AtomicBoolean cleaned = new AtomicBoolean(false);
     private final AtomicLong sourceErrors = new AtomicLong();
     private final SingleReplyStreamingSubscriber fileReader;
+    private final Executor scheduler;
     private boolean started;
 
     public ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks) {
+        this(subscription, callbacks, Schedulers.streamingExecutor());
+    }
+
+    ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks, Executor scheduler) {
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.subscription = subscription;
         this.callbacks = callbacks;
         this.replayTempDir = subscription.tempDir()
@@ -70,8 +78,20 @@ public class ReplayStreamingSubscriber implements Closeable {
         }
         started = true;
         LOG.info("Starting replay stream: subscription={}", subscription);
-        FileSystemUtils.createDirectories(replayTempDir);
-        Schedulers.streamingExecutor().execute(this::readAllFiles);
+        try {
+            FileSystemUtils.createDirectories(replayTempDir);
+            scheduler.execute(this::readAllFiles);
+        } catch (RuntimeException e) {
+            // No reader will reach its finally block. Release scratch and the manager's
+            // registration here, and let the caller report the startup failure.
+            closed.set(true);
+            try {
+                cleanup();
+            } catch (RuntimeException cleanupFailure) {
+                e.addSuppressed(cleanupFailure);
+            }
+            throw e;
+        }
     }
 
     private void readAllFiles() {
@@ -127,8 +147,11 @@ public class ReplayStreamingSubscriber implements Closeable {
 
     private void cleanup() {
         if (cleaned.compareAndSet(false, true)) {
-            FileSystemUtils.removeDirectory(replayTempDir);
-            callbacks.onClose().run();
+            try {
+                FileSystemUtils.removeDirectory(replayTempDir);
+            } finally {
+                callbacks.onClose().run();
+            }
         }
     }
 }
