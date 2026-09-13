@@ -41,7 +41,6 @@ import java.util.Set;
 /** The Hub owns scanning and counters. Microscope owns their MCP presentation. */
 public final class EventActivityGrpcService extends EventActivityServiceGrpc.EventActivityServiceImplBase {
 
-    private static final long MILLIS_PER_SECOND = 1000;
     private static final int DEFAULT_OFFSET = 0;
 
     // The domain enums and the generated ones share their simple names, so one side of each pair has
@@ -75,7 +74,7 @@ public final class EventActivityGrpcService extends EventActivityServiceGrpc.Eve
             try {
                 width = Math.multiplyExact(
                         request.hasBucketSeconds() ? request.getBucketSeconds() : ActivityLimits.DEFAULT_BUCKET_SECONDS,
-                        MILLIS_PER_SECOND);
+                        ActivityLimits.MILLIS_PER_SECOND);
             } catch (ArithmeticException e) {
                 throw new IllegalArgumentException("bucket_seconds is too large", e);
             }
@@ -92,7 +91,7 @@ public final class EventActivityGrpcService extends EventActivityServiceGrpc.Eve
             // A refusal for capacity leaves as ActivityCapacityException and GrpcExceptions maps it to
             // RESOURCE_EXHAUSTED; a failure while resolving the scope keeps its own status, so a caller
             // is not told to wait for a slot when the storage underneath is what broke.
-            String id = service.start(activity);
+            String id = service.start(activity, request.getIdempotencyKey());
             return response(service.status(
                     ref(scope, id), ActivityOrder.EVENTS, ActivityLimits.MAX_RESULT_BUCKETS, DEFAULT_OFFSET));
         });

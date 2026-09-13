@@ -58,7 +58,7 @@ final class ActivityCodec {
     }
 
     static StartActivityRequest start(ActivityScanRequest request) {
-        return StartActivityRequest.newBuilder()
+        var wire = StartActivityRequest.newBuilder()
                 .setScope(ActivityScope.newBuilder()
                         .setWorkspaceId(request.workspaceId())
                         .setProjectId(request.projectId())
@@ -66,8 +66,11 @@ final class ActivityCodec {
                 .setStartTime(request.startTime())
                 .setEndTime(request.endTime())
                 .setBucketSeconds(request.bucketSeconds())
-                .addAllEventTypes(request.eventTypes())
-                .build();
+                .addAllEventTypes(request.eventTypes());
+        if (request.hasIdempotencyKey()) {
+            wire.setIdempotencyKey(request.idempotencyKey());
+        }
+        return wire.build();
     }
 
     static GetActivityRequest get(ActivityScanQuery query) {

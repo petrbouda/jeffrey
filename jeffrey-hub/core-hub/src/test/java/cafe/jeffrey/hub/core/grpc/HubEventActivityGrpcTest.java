@@ -255,6 +255,76 @@ class HubEventActivityGrpcTest {
         }
     }
 
+    /**
+     * A {@code StartActivity} whose response was lost on the way back can be repeated under the same
+     * {@code idempotency_key} and answered with the scan already in flight, rather than admitting a
+     * second one beside a first that nobody can poll.
+     */
+    @Nested
+    class IdempotencyKeys {
+
+        private static final String KEY = "microscope-request-hash";
+
+        private final ActivityScope scope = ActivityScope.newBuilder()
+                .setWorkspaceId("workspace")
+                .setProjectId("project")
+                .setSessionId("session")
+                .build();
+
+        private StartActivityRequest start(String key) {
+            long now = Clock.systemUTC().millis();
+            return StartActivityRequest.newBuilder()
+                    .setScope(scope)
+                    .setStartTime(now - 60_000)
+                    .setEndTime(now + 1)
+                    .setIdempotencyKey(key)
+                    .build();
+        }
+
+        private ReplayStreamSubscription subscription(ActivityRequest request, Path temp) {
+            return new ReplayStreamSubscription(
+                    request.sessionId(),
+                    List.of(),
+                    Set.of(),
+                    new StreamingWindow(Instant.ofEpochMilli(request.startTime()), Instant.ofEpochMilli(request.endTime())),
+                    temp.resolve("scratch"),
+                    request.workspaceId(),
+                    request.projectId());
+        }
+
+        @Test
+        void theSameKeyReturnsTheScanStillInFlight(@TempDir Path temp) {
+            try (var service = ActivityServiceFixtures.neverRunning(
+                    request -> subscription(request, temp), Clock.systemUTC());
+                 var grpc = InProcessGrpc.serving(new EventActivityGrpcService(service))) {
+                var stub = EventActivityServiceGrpc.newBlockingStub(grpc.channel());
+
+                var first = stub.startActivity(start(KEY));
+                var repeated = stub.startActivity(start(KEY));
+
+                assertFalse(first.getScanId().isEmpty());
+                assertEquals(first.getScanId(), repeated.getScanId());
+                assertEquals(scope, repeated.getScope());
+                assertNotEquals(first.getScanId(), stub.startActivity(start("another-request")).getScanId());
+                assertNotEquals(first.getScanId(), stub.startActivity(start("")).getScanId());
+                assertNotEquals(first.getScanId(), stub.startActivity(start(KEY).toBuilder()
+                        .setScope(scope.toBuilder().setSessionId("other-session"))
+                        .build()).getScanId());
+            }
+        }
+
+        @Test
+        void anOversizedKeyIsInvalid(@TempDir Path temp) {
+            try (var service = ActivityServiceFixtures.neverRunning(
+                    request -> subscription(request, temp), Clock.systemUTC());
+                 var grpc = InProcessGrpc.serving(new EventActivityGrpcService(service))) {
+                var stub = EventActivityServiceGrpc.newBlockingStub(grpc.channel());
+
+                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.startActivity(start("k".repeat(129))));
+            }
+        }
+    }
+
     /** One service on an in-process server, torn down with the test. */
     private static final class InProcessGrpc implements AutoCloseable {
 

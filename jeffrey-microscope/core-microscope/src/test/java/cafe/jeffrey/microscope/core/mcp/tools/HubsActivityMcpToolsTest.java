@@ -33,6 +33,8 @@ import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -252,6 +254,56 @@ class HubsActivityMcpToolsTest {
             assertEquals("completed", status.path("status").asText());
             assertEquals(42, status.path("progress").path("details").path("totalEvents").asLong());
             assertEquals(3, status.path("progress").path("details").path("filesTotal").asInt());
+        } finally {
+            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+            server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * The key is what lets a {@code hubs_eventActivity} call repeated after a client-side timeout
+     * adopt the scan the first call started instead of claiming a second slot. It therefore has to be
+     * the same for the same request and different for any other, computed here from the arguments
+     * rather than drawn at random.
+     */
+    @Test
+    void startCarriesAKeyDerivedFromTheRequest() throws Exception {
+        List<String> keys = new ArrayList<>();
+        var remote = new EventActivityServiceGrpc.EventActivityServiceImplBase() {
+            @Override
+            public void startActivity(StartActivityRequest request, StreamObserver<EventActivitySnapshot> observer) {
+                keys.add(request.getIdempotencyKey());
+                observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_RUNNING));
+                observer.onCompleted();
+            }
+        };
+        var server = NettyServerBuilder.forPort(0).addService(remote).build().start();
+        var channel = NettyChannelBuilder.forAddress("localhost", server.getPort()).usePlaintext().build();
+        try {
+            GrpcHubConnection connection = mock(GrpcHubConnection.class);
+            when(connection.getChannel()).thenReturn(channel);
+            ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+            ProjectManager project = mock(ProjectManager.class);
+            when(resolver.resolveStrict("hub", "workspace", "project"))
+                    .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+            when(resolver.resolveStrict("other-hub", "workspace", "project"))
+                    .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+            var manager = new EventStreamingManager(new EventStreamingClient(connection));
+            when(project.eventStreamingManager()).thenReturn(manager);
+            var hubs = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
+
+            hubs.eventActivity(REF, 1000, 121000, 60L, "jdk.GarbageCollection, jdk.ThreadPark");
+            hubs.eventActivity(REF, 1000, 121000, 60L, "jdk.ThreadPark,jdk.GarbageCollection");
+            hubs.eventActivity(REF, 1000, 181000, 60L, "jdk.GarbageCollection, jdk.ThreadPark");
+            hubs.eventActivity(REF, 1000, 121000, 30L, "jdk.GarbageCollection, jdk.ThreadPark");
+            hubs.eventActivity(REF, 1000, 121000, 60L, null);
+            String otherHub = new HubSessionRef("other-hub", "workspace", "project", "session").encode();
+            hubs.eventActivity(otherHub, 1000, 121000, 60L, "jdk.GarbageCollection, jdk.ThreadPark");
+
+            assertEquals(6, keys.size());
+            assertFalse(keys.get(0).isBlank());
+            assertEquals(keys.get(0), keys.get(1), "the same request in another spelling is the same key");
+            assertEquals(5, keys.stream().distinct().count(), "another window, width, filter or hub is another key");
         } finally {
             channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
             server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
