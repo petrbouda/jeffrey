@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,10 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.streaming;
+package cafe.jeffrey.hub.core.session.lifecycle;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 
@@ -29,11 +28,6 @@ import java.nio.file.Path;
  * Utility for resolving session filesystem paths from repository and session info.
  */
 public abstract class SessionPaths {
-
-    public static Path resolveStreamingRepo(HubJeffreyDirs jeffreyDirs, SessionWithRepository session) {
-        Path sessionPath = resolve(jeffreyDirs, session.repositoryInfo(), session.sessionInfo());
-        return jeffreyDirs.resolveStreamingRepo(sessionPath);
-    }
 
     public static Path resolve(
             HubJeffreyDirs jeffreyDirs, RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {

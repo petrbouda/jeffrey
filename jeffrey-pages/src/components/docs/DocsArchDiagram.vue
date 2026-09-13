@@ -103,7 +103,7 @@ withDefaults(defineProps<{
           </div>
           <div class="arch-section-label">Features</div>
           <div class="arch-layer">
-            <div class="arch-chip streaming"><i class="bi bi-broadcast"></i> JFR Streaming</div>
+            <div class="arch-chip streaming"><i class="bi bi-broadcast"></i> JFR Replay</div>
             <div class="arch-chip scheduler"><i class="bi bi-clock"></i> Scheduler &amp; Jobs</div>
           </div>
           <div class="arch-layer">

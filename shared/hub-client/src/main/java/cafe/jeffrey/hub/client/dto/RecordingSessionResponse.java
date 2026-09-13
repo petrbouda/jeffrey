@@ -64,7 +64,6 @@ public record RecordingSessionResponse(
                 InstantUtils.fromEpochMilli(response.finishedAt()),
                 response.status(),
                 null,
-                null,
                 response.files().stream()
                         .map(RepositoryFileResponse::from)
                         .toList(),

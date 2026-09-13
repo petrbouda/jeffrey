@@ -86,7 +86,7 @@ onMounted(() => {
             <div class="agent-card-icon"><i class="bi bi-power"></i></div>
             <div class="agent-card-content">
               <h4>Graceful Shutdown Detection</h4>
-              <p>When the JVM shuts down, the heartbeat stops. The server detects the stale timestamp and automatically finishes the session, distinguishing clean exits from crashes.</p>
+              <p>On clean shutdown, the agent writes a finished marker. The Hub reads it on its next check; after a hard crash, it detects the stale heartbeat instead.</p>
             </div>
           </div>
         </div>
@@ -111,7 +111,7 @@ onMounted(() => {
           <div class="lifecycle-step">
             <div class="lifecycle-number">3</div>
             <div class="lifecycle-content">
-              <strong>Shutdown</strong> — A JVM shutdown hook stops the heartbeat thread and cleans up temporary files. The final heartbeat timestamp remains on disk for the server to read.
+              <strong>Shutdown</strong> — A JVM shutdown hook stops the heartbeat thread, writes <code>.heartbeat/finished</code> with the exit timestamp, and cleans up temporary files. The final heartbeat and finished marker remain on disk for the Hub to read.
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@ public Receipt checkout(String orderId, Card card) { ... }</code></pre>
         </DocsCallout>
 
         <h2 id="server-side-detection">Server-Side Detection</h2>
-        <p>Jeffrey Hub runs a periodic job that polls heartbeat files for all active sessions. When a heartbeat becomes stale (older than a configured threshold, typically ~5 minutes), the server marks the session as finished and uses the last heartbeat timestamp as the session end time. If no heartbeat file exists and the session is old enough, a fallback finish time is used instead.</p>
+        <p>Jeffrey Hub checks liveness files for active sessions every 30 seconds by default. A readable <code>.heartbeat/finished</code> marker ends the session using its timestamp. Otherwise, a heartbeat older than the configured threshold (10 seconds by default) ends it at the last heartbeat timestamp. If neither file can be read and the session is old enough, the detector uses the current Hub time as a fallback.</p>
 
       </div>
 

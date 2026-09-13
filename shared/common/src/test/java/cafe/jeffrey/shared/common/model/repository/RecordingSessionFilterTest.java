@@ -38,7 +38,7 @@ class RecordingSessionFilterTest {
 
     private static RecordingSession session(String id, Instant createdAt, Instant finishedAt) {
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
-        return new RecordingSession(id, id, "inst-1", createdAt, finishedAt, status, null, null, List.of(), false);
+        return new RecordingSession(id, id, "inst-1", createdAt, finishedAt, status, null, List.of(), false);
     }
 
     private static List<String> ids(List<RecordingSession> sessions) {

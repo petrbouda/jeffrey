@@ -5,14 +5,10 @@ package jeffrey.hub.api.v1;
 option java_package = "cafe.jeffrey.hub.api.v1";
 option java_multiple_files = true;
 
-// Provides server-streaming RPCs for accessing JFR events from a session:
-// live streaming from the JFR repository, or replay from dumped recording files.
+// Provides server-streaming RPCs for replaying JFR events from a session's
+// finished recording files.
 // Events are delivered as EventBatch messages with typed fields.
 service EventStreamingService {
-  // Live-streams JFR events from a session's streaming repository.
-  // The stream stays open until the client disconnects or the session ends.
-  rpc LiveStreaming(LiveStreamingRequest) returns (stream EventBatch);
-
   // Replays historical JFR events from dumped recording files for a session.
   // Reads events from .jfr/.jfr.lz4 files in chronological order and streams them back.
   // The stream ends when all matching events have been delivered.
@@ -21,19 +17,6 @@ service EventStreamingService {
   // Read-only scoped replay. Both workspace_id and project_id are required.
   // A separate RPC prevents older Hubs from ignoring scope fields and running legacy replay.
   rpc ScopedReplayStreaming(ReplayStreamingRequest) returns (stream EventBatch);
-}
-
-// Request to live-stream JFR events from a session's streaming repository.
-// Always continuous — the stream stays open waiting for new events.
-message LiveStreamingRequest {
-  string session_id = 1;
-  // JFR event types to receive (e.g. "jdk.GCHeapSummary", "jdk.CPULoad").
-  // Empty = all events.
-  repeated string event_types = 2;
-  // Send empty batches as implicit heartbeats (default: false).
-  // When true, a batch is sent every flush interval even if no events arrived.
-  // Useful for client-side connection liveness detection.
-  optional bool send_empty_batches = 3;
 }
 
 // Request to replay historical JFR events from dumped recording files.

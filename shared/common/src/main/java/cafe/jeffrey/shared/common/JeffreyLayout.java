@@ -35,7 +35,7 @@ package cafe.jeffrey.shared.common;
  *         .instance-info.json
  *         &lt;session-id&gt;/
  *           .session-info.json
- *           streaming-repo/               JFR streaming repository
+ *           .heartbeat/                   agent liveness files
  * </pre>
  *
  * <p>Both sides must resolve these names from this single class; any rename
@@ -47,10 +47,6 @@ public abstract class JeffreyLayout {
 
     /** Directory under the Jeffrey home that holds all workspaces */
     public static final String WORKSPACES_DIR = "workspaces";
-
-
-    /** Directory inside a session directory holding the JFR streaming repository */
-    public static final String STREAMING_REPO_DIR = "streaming-repo";
 
     /**
      * Directory under a workspace dir where the provisioner names project subtrees the hub

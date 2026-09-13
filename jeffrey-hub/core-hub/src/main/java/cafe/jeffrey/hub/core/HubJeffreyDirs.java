@@ -48,10 +48,6 @@ public class HubJeffreyDirs implements TempDirFactory {
         return homeDir;
     }
 
-    public Path resolveStreamingRepo(Path sessionPath) {
-        return sessionPath.resolve(JeffreyLayout.STREAMING_REPO_DIR);
-    }
-
     public Path workspaces() {
         return homeDir.resolve(JeffreyLayout.WORKSPACES_DIR);
     }

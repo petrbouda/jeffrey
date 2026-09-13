@@ -370,14 +370,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <div class="feature-card heartbeat">
             <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
             <h4>Heartbeat &amp; Clean-Exit Marker</h4>
-            <p>Automatic whenever <code>agent-path</code> resolves — not a configuration block. The Jeffrey Agent writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean JVM shutdown, so the hub detects finished sessions immediately and falls back to heartbeat staleness only after crashes.</p>
+            <p>Automatic whenever <code>agent-path</code> resolves — not a configuration block. The Jeffrey Agent writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean JVM shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes.</p>
             <code>agent-path = ".../jeffrey-agent.jar"</code>
-          </div>
-          <div class="feature-card streaming">
-            <div class="feature-icon"><i class="bi bi-arrow-repeat"></i></div>
-            <h4>JFR Streaming Repository</h4>
-            <p>Automatic whenever <code>agent-path</code> resolves. The JVM is started with <code>-XX:FlightRecorderOptions=repository=&lt;session&gt;/streaming-repo</code> so the hub can stream live JFR events from the session directory.</p>
-            <code>-XX:FlightRecorderOptions=repository=...</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>
@@ -410,9 +404,9 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         <p>
           JFR applies the most verbose setting across every recording running in a JVM, and all
           recordings write into the same repository chunks. So this one recording lowers the
-          thresholds for the profiler's recording as well, and the extra events reach both places
-          they are read from — the dumped <code>.jfr</code> files and the live stream — without the
-          profiler's own configuration being touched. That is why it works the same whether the
+          thresholds for the profiler's recording as well, and the extra events reach the dumped
+          <code>.jfr</code> files used for analysis and replay without the profiler's own
+          configuration being touched. That is why it works the same whether the
           profiler settings came from the CLI, from the hub, or from the built-in default.
         </p>
 
@@ -589,10 +583,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
 
 .feature-card.debug-safepoints .feature-icon {
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-}
-
-.feature-card.streaming .feature-icon {
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
 }
 
 .feature-card.heartbeat .feature-icon {

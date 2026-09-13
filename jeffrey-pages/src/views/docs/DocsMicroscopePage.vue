@@ -111,7 +111,7 @@ onMounted(() => {
       </div>
 
       <h3 id="server-connection">Connection to Jeffrey Hub</h3>
-      <p>When a workspace is bound to a remote, Microscope opens one cached gRPC client per service, all bundled into a <code>HubClients</code> record. Recording downloads stream as 64&nbsp;KB chunks, and live JFR events flow over a separate event-streaming channel. With no remote bound, Microscope is fully offline and operates only on local files and heap dumps.</p>
+      <p>When a workspace is bound to a remote, Microscope opens one cached gRPC client per service, all bundled into a <code>HubClients</code> record. Recording downloads stream as 64&nbsp;KB chunks, and recorded JFR events flow over a separate replay channel. With no remote bound, Microscope is fully offline and operates only on local files and heap dumps.</p>
 
       <div class="service-chips">
         <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>

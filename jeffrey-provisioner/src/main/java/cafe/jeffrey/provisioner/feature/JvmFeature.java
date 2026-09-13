@@ -23,10 +23,8 @@ import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
-import cafe.jeffrey.shared.common.JeffreyLayout;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -98,18 +96,11 @@ public sealed interface JvmFeature {
         }
     }
 
-    /**
-     * The Jeffrey agent, plus the JFR repository it streams from. The two travel together: the
-     * agent is what reads the repository, so pointing the JVM at one without loading the other
-     * leaves recordings nobody collects.
-     */
+    /** The Jeffrey agent, with file-based liveness and optional method tracing. */
     record Agent(String agentPath, boolean methodTracingEnabled, AppIdentity identity) implements JvmFeature {
 
         private static final String AGENT_OPTION_PREFIX = "-javaagent:";
         private static final String AGENT_ARGS_SEPARATOR = "=";
-
-        private static final String STREAMING_OPTIONS = "-XX:FlightRecorderOptions=repository="
-                + CURRENT_SESSION + "/" + JeffreyLayout.STREAMING_REPO_DIR;
 
         @Override
         public Optional<String> render(Path sessionPath, Placeholders placeholders) {
@@ -121,7 +112,7 @@ public sealed interface JvmFeature {
             String agentOption = AGENT_OPTION_PREFIX + agentPath + AGENT_ARGS_SEPARATOR
                     + AgentArguments.of(heartbeatDir, methodTracingEnabled, identity);
 
-            return Optional.of(String.join(" ", List.of(agentOption, placeholders.resolve(STREAMING_OPTIONS))));
+            return Optional.of(agentOption);
         }
     }
 
@@ -135,8 +126,8 @@ public sealed interface JvmFeature {
      * most verbose setting across every active recording, so this one lowers the thresholds for the
      * profiler's recording as well without either knowing about the other.
      *
-     * <p>The events all land in the same repository chunks, which is what puts them in both places
-     * they are read from — the dumped {@code .jfr} files and the stream the agent follows.
+     * <p>The events all land in the same repository chunks, so the profiler's dumped
+     * {@code .jfr} files carry them for analysis and replay.
      *
      * <p>No {@code settings=} is given, which leaves this recording on the JVM's default
      * configuration — the same one the profiler records with, so the union is unchanged by it.

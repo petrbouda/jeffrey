@@ -324,7 +324,7 @@ import type {
 } from '@/components/streaming/streamingTypes';
 import FormattingService from '@shared/services/FormattingService';
 import ReplayStreamClient from '@/services/api/ReplayStreamClient';
-import type { StreamingEvent } from '@/services/api/EventStreamingClient';
+import type { StreamingEvent } from '@/services/api/model/StreamingEvent';
 import ToastService from '@shared/services/ToastService';
 import { useNavigation } from '@/composables/useNavigation';
 

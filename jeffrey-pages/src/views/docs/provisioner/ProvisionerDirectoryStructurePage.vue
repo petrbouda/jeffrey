@@ -28,7 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'jeffrey-home-structure', text: 'Jeffrey Home Structure', level: 2 },
   { id: 'session-directory', text: 'Session Directory', level: 2 },
-  { id: 'streaming-repository', text: 'Streaming Repository', level: 2 }
+  { id: 'recorded-events', text: 'Recorded Events', level: 2 }
 ];
 
 onMounted(() => {
@@ -78,7 +78,6 @@ onMounted(() => {
 ├── profile-1704067200.jfr       # JFR chunk (timestamp-based naming)
 ├── profile-1704067800.jfr       # Next chunk after loop interval
 ├── profile-1704068400.jfr       # ... more chunks
-├── streaming-repo/              # JDK JFR streaming repository (always created)
 ├── .heartbeat/                  # Agent liveness files
 │   ├── heartbeat                # Epoch millis, rewritten every 5 seconds
 │   └── finished                 # Clean-exit marker (written on JVM shutdown)
@@ -92,28 +91,11 @@ onMounted(() => {
         <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp.</p>
 
         <DocsCallout type="info">
-          <strong>Liveness files:</strong> the Jeffrey Agent rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> from its shutdown hook on clean exit. The hub finishes a session immediately when the <code>finished</code> marker appears, and falls back to heartbeat staleness for crashed JVMs. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
+          <strong>Liveness files:</strong> the Jeffrey Agent rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> from its shutdown hook on clean exit. The hub finishes a session on the next check after the <code>finished</code> marker appears, and falls back to heartbeat staleness for crashed JVMs. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
         </DocsCallout>
 
-        <h2 id="streaming-repository">Streaming Repository</h2>
-        <p>The <code>streaming-repo/</code> subdirectory is created unconditionally and the JVM is started with <code>-XX:FlightRecorderOptions=repository=&lt;session&gt;/streaming-repo</code>, so JDK's JFR streaming repository lives inside the session directory:</p>
-
-        <div class="directory-structure">
-          <pre><code>&lt;session-id&gt;/
-├── profile-*.jfr                # Async-Profiler output
-├── streaming-repo/              # JDK JFR streaming repository
-│   ├── metadata                 # Repository metadata
-│   ├── chunk0                   # Streaming chunks
-│   ├── chunk1
-│   └── ...
-└── .session-info.json</code></pre>
-        </div>
-
-        <p>The streaming repository lets the hub stream live JFR events from a running session — including the <code>jeffrey.AppInformation</code> event the Jeffrey Agent emits at the start of every JFR chunk, which makes each chunk self-describing (workspace, project, instance, session, order).</p>
-
-        <DocsCallout type="info">
-          <strong>Two recording mechanisms:</strong> Async-Profiler generates high-performance profiling data (CPU, allocation, lock) written as chunked <code>profile-*.jfr</code> files, while the JDK streaming repository captures live events for real-time streaming. Both coexist in the same session directory.
-        </DocsCallout>
+        <h2 id="recorded-events">Recorded Events</h2>
+        <p>Async-Profiler writes CPU, allocation, and lock samples to <code>profile-*.jfr</code> files. Its <code>jfrsync</code> setting captures JVM and Jeffrey instrumentation events in those recordings, including <code>jeffrey.AppInformation</code> identity metadata. The Hub reads dumped files for Replay Stream.</p>
       </div>
 
       <DocsNavFooter />

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReplayStreamClient from './ReplayStreamClient';
-import EventStreamingClient from './EventStreamingClient';
 
 // EventSource is a browser transport, unavailable in the Node test environment.
 // Drive its incoming events while exercising the real clients and their callbacks.
@@ -94,6 +93,27 @@ describe('replay streaming', () => {
     expect(onComplete).not.toHaveBeenCalled();
   });
 
+  it('cancels replay by closing the connection without reporting a result', () => {
+    const { client, source, onComplete, onError } = startReplay();
+    client.cancel();
+    client.cancel();
+
+    expect(source.closed).toBe(true);
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('closes the previous stream before starting a different replay', () => {
+    const { client, source } = startReplay();
+    client.replay('session-2', [], vi.fn(), vi.fn(), vi.fn());
+
+    expect(source.closed).toBe(true);
+    expect(TestEventSource.latest.closed).toBe(false);
+    const url = new URL(TestEventSource.latest.url, 'http://localhost');
+    expect(url.searchParams.get('sessionId')).toBe('session-2');
+    expect(url.searchParams.has('eventTypes')).toBe(false);
+  });
+
   it('preserves server errors without reporting a second failure on disconnect', () => {
     const { source, onComplete, onError } = startReplay();
     source.receive('replayError', 'Session not found');
@@ -101,25 +121,5 @@ describe('replay streaming', () => {
     expect(onError).toHaveBeenCalledExactlyOnceWith('Session not found');
     expect(onComplete).not.toHaveBeenCalled();
     expect(source.closed).toBe(true);
-  });
-});
-
-describe('live streaming', () => {
-  it('routes through the selected hub and preserves selected sessions and event types', () => {
-    const client = new EventStreamingClient('hub-1', 'workspace-1', 'project-1');
-    client.subscribe(
-      ['session-1', 'session-2'],
-      ['jdk.GarbageCollection'],
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn()
-    );
-    const url = new URL(TestEventSource.latest.url, 'http://localhost');
-    expect(url.pathname).toBe(
-      '/api/internal/hubs/hub-1/workspaces/workspace-1/projects/project-1/live-stream/subscribe'
-    );
-    expect(url.searchParams.get('sessionIds')).toBe('session-1,session-2');
-    expect(url.searchParams.get('eventTypes')).toBe('jdk.GarbageCollection');
   });
 });

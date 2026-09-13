@@ -52,7 +52,6 @@ tracing {
 
 const generatedOptions = `# Written into the @argfile the entrypoint hands to the JVM
 -javaagent:/opt/jeffrey/jeffrey-agent.jar=heartbeat.dir=<session>/.heartbeat,tracing.enabled=true,app...
--XX:FlightRecorderOptions=repository=<session>/streaming-repo
 -XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,<event settings below>`;
 
 const thresholds = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
@@ -73,7 +72,6 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 ├── .settings/settings-<timestamp>.json # hub-pushed profiler settings, read on the next run
 └── <project-name>/<instance-id>/<session-id>/
     ├── profile-<timestamp>.jfr        # the durable chunks — traces live in these
-    ├── streaming-repo/                # live JFR repository the hub tails
     ├── .heartbeat/heartbeat           # epoch millis, rewritten every 5s
     ├── .heartbeat/finished            # clean-exit marker, written on shutdown
     └── .session-info.json`;
@@ -144,7 +142,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes the marker files, then appends a pointer file to <code>.pending/</code> — an index, not a queue, carrying a path rather than a copy of the state. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, JFR keeps live chunks in <code>streaming-repo/</code>, and the Jeffrey Agent rewrites the heartbeat every 5&nbsp;seconds.</p>
+      <p>The Provisioner creates the tree and writes the marker files, then appends a pointer file to <code>.pending/</code> — an index, not a queue, carrying a path rather than a copy of the state. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the Jeffrey Agent rewrites the heartbeat every 5&nbsp;seconds.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 
@@ -186,7 +184,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
       <ul>
         <li><strong>Catalog</strong> — <code>RepositoryService</code> lists sessions and their files, so you can see what a project recorded without downloading anything.</li>
         <li><strong>Bytes</strong> — <code>RecordingDownloadService</code> streams a merged recording, a single file, or an artifact back in 64&nbsp;KB chunks.</li>
-        <li><strong>Live and replay</strong> — <code>EventStreamingService</code> tails <code>streaming-repo/</code> for a running session, or replays a finished one.</li>
+        <li><strong>Replay</strong> — <code>EventStreamingService</code> reads dumped recording files for a selected session and time window.</li>
       </ul>
 
       <p>Downloaded bytes land under <code>~/.jeffrey-microscope/recordings/</code>, and initializing a profile parses them once into a per-profile DuckDB at <code>~/.jeffrey-microscope/profiles/&lt;profile-id&gt;/profile-data.db</code>. The trace tables described in <router-link to="/docs/tracing/analysis">Analyzing Traces</router-link> are derived at that moment — which is why <router-link to="/docs/tracing/jdk-events">promoted blocking spans</router-link> and <router-link to="/docs/tracing/gc-safepoints">GC context</router-link> apply retroactively to recordings made before those features existed.</p>

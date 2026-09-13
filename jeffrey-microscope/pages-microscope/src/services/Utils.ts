@@ -17,7 +17,7 @@
  */
 
 import TimeRange from '@/services/api/model/TimeRange';
-import type { TypedValue } from '@/services/api/EventStreamingClient';
+import type { TypedValue } from '@/services/api/model/StreamingEvent';
 import type { Variant } from '@shared/types/ui';
 
 export default class Utils {

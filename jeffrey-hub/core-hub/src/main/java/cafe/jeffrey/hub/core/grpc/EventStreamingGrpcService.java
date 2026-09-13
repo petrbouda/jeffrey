@@ -25,20 +25,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
-import cafe.jeffrey.hub.api.v1.LiveStreamingRequest;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.LiveStreamSubscription;
-import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
-import cafe.jeffrey.hub.core.streaming.SessionPaths;
 import cafe.jeffrey.hub.core.streaming.StreamingWindow;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -52,11 +47,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * gRPC service providing two modes of JFR event access:
- * <ul>
- *   <li><b>Live streaming</b> — subscribes to a session's streaming repository for real-time events</li>
- *   <li><b>Replay streaming</b> — reads dumped recording files (.jfr/.jfr.lz4) for historical events</li>
- * </ul>
+ * Replays JFR events from finished recording files (.jfr/.jfr.lz4).
+ * Supports legacy session lookup and workspace/project-scoped read-only queries.
  */
 public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventStreamingServiceImplBase {
 
@@ -64,60 +56,19 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
     private final HubJeffreyDirs jeffreyDirs;
     private final HubPlatformRepositories platformRepositories;
-    private final LiveStreamingManager liveStreamingManager;
     private final ReplayStreamingManager replayStreamingManager;
     private final RepositoryStorage.Factory repositoryStorageFactory;
 
     public EventStreamingGrpcService(
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
-            LiveStreamingManager liveStreamingManager,
             ReplayStreamingManager replayStreamingManager,
             RepositoryStorage.Factory repositoryStorageFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
-        this.liveStreamingManager = liveStreamingManager;
         this.replayStreamingManager = replayStreamingManager;
         this.repositoryStorageFactory = repositoryStorageFactory;
-    }
-
-    @Override
-    public void liveStreaming(LiveStreamingRequest request, StreamObserver<EventBatch> observer) {
-        String sessionId = request.getSessionId();
-
-        try {
-            Optional<SessionWithRepository> sessionOpt =
-                    resolveValidatedSession(sessionId, request.getEventTypesList(), observer);
-            if (sessionOpt.isEmpty()) {
-                return;
-            }
-
-            Path streamingRepoPath = SessionPaths.resolveStreamingRepo(jeffreyDirs, sessionOpt.get());
-            if (!FileSystemUtils.isDirectory(streamingRepoPath)) {
-                observer.onError(GrpcExceptions.unavailable("Session repository for streaming is not available: " + sessionId));
-                return;
-            }
-
-            LiveStreamSubscription subscription = new LiveStreamSubscription(
-                    sessionId,
-                    streamingRepoPath,
-                    new HashSet<>(request.getEventTypesList()),
-                    request.getSendEmptyBatches());
-
-            var callbacks = new StreamingCallbacks(
-                    observer::onNext,
-                    observer::onCompleted,
-                    t -> observer.onError(GrpcExceptions.internal(t)));
-
-            String subscriptionId = liveStreamingManager.subscribe(subscription, callbacks);
-
-            GrpcStreams.unsubscribeOnDisconnect("live", subscription,
-                    () -> liveStreamingManager.unsubscribe(subscriptionId));
-        } catch (Exception e) {
-            LOG.error("Failed to start live streaming: sessionId={}", sessionId, e);
-            observer.onError(GrpcExceptions.internal(e));
-        }
     }
 
     @Override

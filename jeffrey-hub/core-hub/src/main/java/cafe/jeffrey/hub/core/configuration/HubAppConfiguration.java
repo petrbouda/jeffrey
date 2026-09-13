@@ -32,8 +32,7 @@ import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
-import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
+import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
@@ -211,11 +210,6 @@ public class HubAppConfiguration {
     @Bean
     public FileHeartbeatReader fileHeartbeatReader() {
         return new FileHeartbeatReader();
-    }
-
-    @Bean(destroyMethod = "close")
-    public LiveStreamingManager liveStreamingManager() {
-        return new LiveStreamingManager();
     }
 
     @Bean(destroyMethod = "close")

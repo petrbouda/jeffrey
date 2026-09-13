@@ -22,7 +22,6 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.grpc.client.LiveSubscriptionRequest;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
 import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
@@ -32,10 +31,7 @@ import cafe.jeffrey.hub.api.v1.StreamingEvent;
 import cafe.jeffrey.hub.api.v1.TypedValue;
 import cafe.jeffrey.shared.common.Json;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -49,52 +45,6 @@ public class EventStreamingManager {
 
     public EventStreamingManager(EventStreamingClient eventStreamingClient) {
         this.eventStreamingClient = eventStreamingClient;
-    }
-
-    /**
-     * Subscribes to live JFR events from multiple remote sessions.
-     * Always continuous — streams stay open waiting for new events.
-     * Each session runs as an independent gRPC subscription — a failure in one does not affect the others.
-     *
-     * @param request        live subscription parameters (session IDs, event types)
-     * @param onBatch        callback receiving event batches as JSON array nodes
-     *                       (invoked concurrently from multiple gRPC threads — callers must serialize)
-     * @param onSessionError callback receiving the sessionId of a session whose stream errored
-     * @param onAllComplete  called once when every session's stream has ended
-     * @return a cancellation handle for all subscriptions
-     */
-    public CompositeSubscription subscribeLiveStreaming(
-            LiveSubscriptionRequest request,
-            Consumer<ArrayNode> onBatch,
-            Consumer<String> onSessionError,
-            Runnable onAllComplete) {
-
-        LOG.info("Subscribing to multi-session event stream: request={}", request);
-
-        AtomicInteger remaining = new AtomicInteger(request.sessionIds().size());
-        List<EventStreamingSubscription> subs = new ArrayList<>(request.sessionIds().size());
-
-        for (String sessionId : request.sessionIds()) {
-            var callbacks = new StreamingCallbacks(
-                    batch -> onBatch.accept(batchToJson(batch)),
-                    () -> {
-                        if (remaining.decrementAndGet() == 0) {
-                            onAllComplete.run();
-                        }
-                    },
-                    _ -> {
-                        onSessionError.accept(sessionId);
-                        if (remaining.decrementAndGet() == 0) {
-                            onAllComplete.run();
-                        }
-                    });
-
-            EventStreamingSubscription sub = eventStreamingClient.subscribeLiveStreaming(
-                    sessionId, request, callbacks);
-            subs.add(sub);
-        }
-
-        return new CompositeSubscription(subs);
     }
 
     /**
@@ -125,17 +75,6 @@ public class EventStreamingManager {
     /** Supplies protobuf batches, including scoped replay coverage metadata. */
     public EventStreamingSubscription subscribeReplayRaw(ReplaySubscriptionRequest request, StreamingCallbacks callbacks) {
         return eventStreamingClient.subscribeReplayStreaming(request, callbacks);
-    }
-
-    /**
-     * Handle that cancels a fan-in of per-session subscriptions as a single unit.
-     */
-    public record CompositeSubscription(List<EventStreamingSubscription> subscriptions) {
-        public void cancel() {
-            for (EventStreamingSubscription sub : subscriptions) {
-                sub.cancel();
-            }
-        }
     }
 
     /**

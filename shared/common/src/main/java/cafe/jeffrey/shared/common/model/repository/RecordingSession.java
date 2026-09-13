@@ -31,7 +31,6 @@ public record RecordingSession(
         Instant finishedAt,
         RecordingStatus status,
         Path absolutePath,
-        Path absoluteStreamingPath,
         List<RepositoryFile> files,
         boolean retained) {
 

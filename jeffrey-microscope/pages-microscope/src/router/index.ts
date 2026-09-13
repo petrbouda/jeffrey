@@ -103,12 +103,6 @@ const router = createRouter({
                   meta: { layout: 'project' }
                 },
                 {
-                  path: 'events/live-stream',
-                  name: 'project-live-stream',
-                  component: () => import('@/views/projects/ProjectLiveStreamView.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
                   path: 'events/replay-stream',
                   name: 'project-replay-stream',
                   component: () => import('@/views/projects/ProjectReplayStreamView.vue'),

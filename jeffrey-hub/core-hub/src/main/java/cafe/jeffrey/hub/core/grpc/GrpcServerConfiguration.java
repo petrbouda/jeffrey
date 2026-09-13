@@ -30,7 +30,6 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
@@ -110,10 +109,9 @@ public class GrpcServerConfiguration {
     public BindableService eventStreamingGrpcService(
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
-            LiveStreamingManager liveStreamingManager,
             ReplayStreamingManager replayStreamingManager,
             RepositoryStorage.Factory repositoryStorageFactory) {
         return new EventStreamingGrpcService(
-                jeffreyDirs, platformRepositories, liveStreamingManager, replayStreamingManager, repositoryStorageFactory);
+                jeffreyDirs, platformRepositories, replayStreamingManager, repositoryStorageFactory);
     }
 }

@@ -17,7 +17,7 @@
  */
 
 import GlobalVars from '@/services/GlobalVars';
-import type { StreamingEvent } from '@/services/api/EventStreamingClient';
+import type { StreamingEvent } from '@/services/api/model/StreamingEvent';
 
 /**
  * Client for replaying historical JFR events from a single session's dumped recording files via SSE.

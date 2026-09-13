@@ -121,7 +121,7 @@ class HubsMcpToolsTest {
 
     private static RecordingSession session(String id, Instant createdAt, RepositoryFile... files) {
         return new RecordingSession(id, id, "inst-1", createdAt, createdAt.plusSeconds(600),
-                RecordingStatus.FINISHED, null, null, List.of(files), false);
+                RecordingStatus.FINISHED, null, List.of(files), false);
     }
 
     private static RecordingSession jfrSession(String id, Instant createdAt) {
