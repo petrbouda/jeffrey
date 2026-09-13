@@ -16,13 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.mcp;
+package cafe.jeffrey.hub.core.activity;
 
 import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
 import cafe.jeffrey.hub.core.streaming.StreamingWindow;
 import jdk.jfr.Event;
 import jdk.jfr.Name;
 import jdk.jfr.Recording;
+import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
@@ -40,11 +41,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
 class HubActivityServiceTest {
-    @Name("test.ActivityA") static class ActivityA extends Event { String message = "large field".repeat(100); }
-    @Name("test.ActivityB") static class ActivityB extends Event {}
+    @Name("test.ActivityA")
+    static class ActivityA extends Event {
+        String message = "large field".repeat(100);
+    }
+    @Name("test.ActivityB")
+    static class ActivityB extends Event {}
 
     private static ActivityRequest request() {
-        long start = Instant.now().minusSeconds(60).toEpochMilli();
+        long start = Clock.systemUTC().instant().minusSeconds(60).toEpochMilli();
         return new ActivityRequest("workspace", "project", "session", start, start + 120000, 60000, Set.of());
     }
 
@@ -55,7 +60,9 @@ class HubActivityServiceTest {
             recording.enable(ActivityA.class);
             recording.enable(ActivityB.class);
             recording.start();
-            for (int i = 0; i < 1501; i++) new ActivityA().commit();
+            for (int i = 0; i < 1501; i++) {
+                new ActivityA().commit();
+            }
             new ActivityB().commit();
             recording.stop();
             recording.dump(file);
@@ -63,22 +70,22 @@ class HubActivityServiceTest {
         Path corrupt = Files.writeString(temp.resolve("corrupt.jfr"), "not JFR");
         try (var service = new HubActivityService(req -> subscription(req, List.of(file), temp))) {
             String id = service.start(request());
-            await().atMost(10, TimeUnit.SECONDS).until(() -> !service.status(id, "events", 20).path("finishedAt").isNull());
-            var result = service.status(id, "types", 20);
+            await().atMost(10, TimeUnit.SECONDS).until(() -> !Json.toTree(service.status(ref(id), "events", 20)).path("finishedAt").isNull());
+            var result = Json.toTree(service.status(ref(id), "types", 20));
             assertTrue(result.path("complete").asBoolean(), result.toString());
-            assertEquals(1502, result.path("totalEvents").asLong());
-            assertEquals(2, result.path("distinctEventTypes").asInt());
-            assertEquals(1501, result.path("buckets").get(0).path("eventTypes").get(0).path("count").asLong());
-            assertEquals("completed", service.cancel(id).path("status").asText());
+            assertEquals(1502, result.path("summary").path("totalEvents").asLong());
+            assertEquals(2, result.path("summary").path("distinctEventTypes").asInt());
+            assertEquals(1501, result.path("summary").path("buckets").get(0).path("eventTypes").get(0).path("count").asLong());
+            assertEquals("completed", Json.toTree(service.cancel(ref(id))).path("status").asText());
         }
         try (var service = new HubActivityService(req -> subscription(req, List.of(file, corrupt), temp))) {
             String id = service.start(request());
-            await().atMost(10, TimeUnit.SECONDS).until(() -> !service.status(id, "events", 20).path("finishedAt").isNull());
-            var result = service.status(id, "events", 20);
+            await().atMost(10, TimeUnit.SECONDS).until(() -> !Json.toTree(service.status(ref(id), "events", 20)).path("finishedAt").isNull());
+            var result = Json.toTree(service.status(ref(id), "events", 20));
             assertFalse(result.path("complete").asBoolean());
             assertTrue(result.path("coverageKnown").asBoolean());
             assertEquals(1, result.path("sourceErrors").asInt());
-            assertEquals(1502, result.path("totalEvents").asLong());
+            assertEquals(1502, result.path("summary").path("totalEvents").asLong());
         }
         try (var files = Files.list(temp.resolve("scratch"))) { assertEquals(0, files.count()); }
         assertTrue(Files.exists(file));
@@ -96,10 +103,10 @@ class HubActivityServiceTest {
                 service.start(request());
             }
             assertThrows(IllegalStateException.class, () -> service.start(request()));
-            assertEquals("cancel_requested", service.cancel(first).path("status").asText());
+            assertEquals("cancel_requested", Json.toTree(service.cancel(ref(first))).path("status").asText());
             queued.get(0).run();
-            assertEquals("cancelled", service.status(first, "events", 20).path("status").asText());
-            assertFalse(service.status(first, "events", 20).path("complete").asBoolean());
+            assertEquals("cancelled", Json.toTree(service.status(ref(first), "events", 20)).path("status").asText());
+            assertFalse(Json.toTree(service.status(ref(first), "events", 20)).path("complete").asBoolean());
             service.start(request()); // A finished job can be evicted to admit new work.
             assertEquals(0, sources.get());
         }
@@ -116,9 +123,9 @@ class HubActivityServiceTest {
         })) {
             String id = service.start(request());
             assertTrue(entered.await(5, TimeUnit.SECONDS));
-            service.cancel(id);
-            await().atMost(5, TimeUnit.SECONDS).until(() -> !service.status(id, "events", 20).path("finishedAt").isNull());
-            assertEquals("cancelled", service.status(id, "events", 20).path("status").asText());
+            service.cancel(ref(id));
+            await().atMost(5, TimeUnit.SECONDS).until(() -> !Json.toTree(service.status(ref(id), "events", 20)).path("finishedAt").isNull());
+            assertEquals("cancelled", Json.toTree(service.status(ref(id), "events", 20)).path("status").asText());
         }
     }
 
@@ -139,8 +146,8 @@ class HubActivityServiceTest {
             service.start(request());
             await().atMost(5, TimeUnit.SECONDS).until(() -> entered.get() == 2);
             String third = service.start(request());
-            assertEquals("queued", service.status(third, "events", 20).path("status").asText());
-            service.cancel(first);
+            assertEquals("queued", Json.toTree(service.status(ref(third), "events", 20)).path("status").asText());
+            service.cancel(ref(first));
             await().atMost(5, TimeUnit.SECONDS).until(() -> entered.get() == 3);
             assertEquals(2, maximum.get());
         }
@@ -151,8 +158,14 @@ class HubActivityServiceTest {
     void rejectedSchedulingDoesNotConsumeTheJobCapacity() {
         try (var service = new HubActivityService(req -> { throw new AssertionError(); },
                 _ -> { throw new RejectedExecutionException("closed"); }, Clock.systemUTC())) {
-            for (int i = 0; i < 20; i++) assertThrows(RejectedExecutionException.class, () -> service.start(request()));
+            for (int i = 0; i < 20; i++) {
+                assertThrows(RejectedExecutionException.class, () -> service.start(request()));
+            }
         }
+    }
+
+    private static ActivityScanRef ref(String id) {
+        return new ActivityScanRef("workspace", "project", "session", id);
     }
 
     private static ReplayStreamSubscription subscription(ActivityRequest req, List<Path> files, Path temp) {

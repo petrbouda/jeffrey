@@ -23,6 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
+import cafe.jeffrey.hub.api.v1.EventActivityServiceGrpc;
+import cafe.jeffrey.hub.api.v1.EventActivitySnapshot;
+import cafe.jeffrey.hub.api.v1.StartActivityRequest;
+import cafe.jeffrey.hub.api.v1.GetActivityRequest;
+import cafe.jeffrey.hub.api.v1.CancelActivityRequest;
+import java.util.concurrent.TimeUnit;
 
 import java.io.Closeable;
 import java.util.Set;
@@ -36,11 +42,14 @@ public class EventStreamingClient implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamingClient.class);
 
+    private static final long ACTIVITY_RPC_TIMEOUT_SECONDS = 10;
     private final EventStreamingServiceGrpc.EventStreamingServiceStub stub;
+    private final EventActivityServiceGrpc.EventActivityServiceBlockingStub activityStub;
     private final Set<EventStreamingSubscription> activeSubscriptions = ConcurrentHashMap.newKeySet();
 
     public EventStreamingClient(GrpcHubConnection connection) {
         this.stub = EventStreamingServiceGrpc.newStub(connection.getChannel());
+        this.activityStub = EventActivityServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
     /**
@@ -88,6 +97,19 @@ public class EventStreamingClient implements Closeable {
 
         LOG.info("Subscribed to replay stream: request={}", request);
         return subscription;
+    }
+
+    /** Starts an independent Hub scan; its lifetime is not limited by this RPC's deadline. */
+    public EventActivitySnapshot startActivity(StartActivityRequest request) {
+        return activityStub.withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS).startActivity(request);
+    }
+
+    public EventActivitySnapshot getActivity(GetActivityRequest request) {
+        return activityStub.withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS).getActivity(request);
+    }
+
+    public EventActivitySnapshot cancelActivity(CancelActivityRequest request) {
+        return activityStub.withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS).cancelActivity(request);
     }
 
     @Override

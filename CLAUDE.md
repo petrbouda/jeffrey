@@ -76,6 +76,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`, with protocol-version negotiation), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server, the tool-contract types (`McpToolAnnotations`, `McpToolHints`, `ToolParamValues`, `McpToolOutput`), and the non-tool capabilities — `McpPrompt` / `McpPromptProvider`, `McpResource` / `McpResourceProvider`, bundled per endpoint by `McpServerFeatures`. **Only place that knows the protocol** — do not re-implement it in a controller
 
 **jeffrey-hub** (`jeffrey-hub/`):
+- **MCP belongs exclusively to Microscope. Never add an MCP endpoint or MCP protocol dependency to Hub.** Hub exposes event-activity aggregation through `EventActivityService` gRPC; Microscope routes its `hubs_eventActivity`, `hubs_activityStatus`, and `hubs_activityCancel` tools over the existing Hub connection. Counts and scan jobs stay in Hub.
 - `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs, JFR event replay
 - `hub-persistence-api` — Persistence interfaces for server domain
 - `hub-sql-persistence` — DuckDB persistence for server (workspaces, projects, scheduling)

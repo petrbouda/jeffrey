@@ -26,7 +26,7 @@ import io.grpc.Status;
 import java.util.Comparator;
 import java.util.Set;
 
-/** The same read-only, project-scoped file selection for gRPC replay and Hub MCP aggregation. */
+/** The same read-only, project-scoped file selection for gRPC replay and event-activity aggregation. */
 public final class ScopedReplaySource {
     private final HubPlatformRepositories repositories;
     private final RepositoryStorage.Factory storage;

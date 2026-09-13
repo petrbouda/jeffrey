@@ -314,8 +314,7 @@ export const hubNavigation: DocSection[] = [
     children: [
       { title: 'Overview', to: '/docs/hub/architecture' },
       { title: 'Storage', to: '/docs/hub/storage' },
-      { title: 'gRPC API', to: '/docs/hub/grpc-api' },
-      { title: 'Hub MCP', to: '/docs/hub/mcp' }
+      { title: 'gRPC API', to: '/docs/hub/grpc-api' }
     ]
   },
   {

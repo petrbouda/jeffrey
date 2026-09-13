@@ -16,8 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.mcp;
+package cafe.jeffrey.hub.core.activity;
 
+import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,11 +37,11 @@ class EventActivityTest {
         activity.add("Allocation", 119999);
         activity.add("Excluded", 120000);
         activity.add("Excluded", -1);
-        var volume = activity.summary("events", 20);
+        var volume = Json.toTree(activity.summary("events", 20));
         assertEquals(1000003, volume.path("totalEvents").asLong());
         assertEquals(3, volume.path("distinctEventTypes").asInt());
         assertEquals(0, volume.path("buckets").get(0).path("startTime").asLong());
-        var variety = activity.summary("types", 20).path("buckets").get(0);
+        var variety = Json.toTree(activity.summary("types", 20)).path("buckets").get(0);
         assertEquals(60000, variety.path("startTime").asLong());
         assertEquals(2, variety.path("distinctEventTypes").asInt());
         assertEquals(2, variety.path("eventCount").asLong());
@@ -52,12 +53,12 @@ class EventActivityTest {
         for (int i = 0; i < 12; i++) {
             activity.add("Type" + i, 1);
         }
-        var result = activity.summary("events", 1);
+        var result = Json.toTree(activity.summary("events", 1));
         assertEquals(2, result.path("totalBuckets").asInt());
         assertEquals(1, result.path("omittedBuckets").asInt());
         assertEquals(12, result.path("buckets").get(0).path("distinctEventTypes").asInt());
         assertEquals(2, result.path("buckets").get(0).path("omittedTypes").asInt());
-        assertEquals(0, activity.summary("time", 20).path("buckets").get(1).path("eventCount").asLong());
+        assertEquals(0, Json.toTree(activity.summary("time", 20)).path("buckets").get(1).path("eventCount").asLong());
     }
 
     @Test
@@ -69,6 +70,6 @@ class EventActivityTest {
             activity.add("Type" + i, 1);
         }
         assertThrows(IllegalStateException.class, () -> activity.add("Extra", 1));
-        assertEquals(512, activity.summary("events", 20).path("totalEvents").asLong());
+        assertEquals(512, Json.toTree(activity.summary("events", 20)).path("totalEvents").asLong());
     }
 }

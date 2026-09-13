@@ -36,12 +36,6 @@
     </properties>
 
     <dependencies>
-        <!-- Shared MCP protocol machinery; no Microscope application or profile storage is needed. -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>mcp-server</artifactId>
-        </dependency>
-
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.core.activity.ActivityScanNotFoundException;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
@@ -70,6 +71,7 @@ public abstract class GrpcExceptions {
             case StatusException e -> e.getStatus().asRuntimeException();
             case WorkspaceAlreadyExistsException e ->
                     Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException();
+            case ActivityScanNotFoundException e -> notFound(e.getMessage());
             case IllegalArgumentException e ->
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException();
             default -> {

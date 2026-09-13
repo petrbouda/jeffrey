@@ -239,6 +239,9 @@ class McpToolsetAssemblerTest {
             assertTrue(names.contains("hubs_list"));
             assertTrue(names.contains("hubs_sessions"));
             assertTrue(names.contains("hubs_download"));
+            assertTrue(names.contains("hubs_eventActivity"));
+            assertTrue(names.contains("hubs_activityStatus"));
+            assertTrue(names.contains("hubs_activityCancel"));
         }
 
         @Test
@@ -360,6 +363,7 @@ class McpToolsetAssemblerTest {
                 "recordings_analyzeRecording",
                 "heap_prepare",
                 "hubs_download",
+                "hubs_activityCancel",
                 "operations_cancel",
                 "ide_link",
                 "ide_open");

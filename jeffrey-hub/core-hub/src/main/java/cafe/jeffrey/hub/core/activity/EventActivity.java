@@ -16,10 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.mcp;
+package cafe.jeffrey.hub.core.activity;
 
-import cafe.jeffrey.shared.common.Json;
-import tools.jackson.databind.node.ObjectNode;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,7 +53,7 @@ final class EventActivity {
         total++;
     }
 
-    synchronized ObjectNode summary(String order, int limit) {
+    synchronized ActivitySummary summary(String order, int limit) {
         Comparator<Integer> comparator = switch (order) {
             case "events" -> Comparator.<Integer>comparingLong(i -> totals[i]).reversed();
             case "types" -> Comparator.<Integer>comparingInt(this::distinct).reversed();
@@ -65,24 +63,21 @@ final class EventActivity {
         if (limit < 1 || limit > MAX_RESULT_BUCKETS) {
             throw new IllegalArgumentException("limit must be 1–20");
         }
-        ObjectNode result = Json.createObject().put("totalEvents", total).put("distinctEventTypes", counts.size())
-                .put("totalBuckets", totals.length).put("order", order)
-                .put("omittedBuckets", Math.max(0, totals.length - limit));
-        var buckets = result.putArray("buckets");
-        IntStream.range(0, totals.length).boxed().sorted(comparator.thenComparingInt(i -> i)).limit(limit).forEach(i -> {
-            long start = request.startTime() + i * request.bucketMillis();
-            long remaining = request.endTime() - start;
-            long end = remaining <= request.bucketMillis() ? request.endTime() : start + request.bucketMillis();
-            var bucket = buckets.addObject().put("startTime", start).put("endTime", end)
-                    .put("eventCount", totals[i]).put("distinctEventTypes", distinct(i))
-                    .put("omittedTypes", Math.max(0, distinct(i) - MAX_RESULT_TYPES));
-            var types = bucket.putArray("eventTypes");
-            counts.entrySet().stream().filter(entry -> entry.getValue()[i] > 0)
-                    .sorted(Comparator.<Map.Entry<String, long[]>>comparingLong(entry -> entry.getValue()[i])
-                            .reversed().thenComparing(Map.Entry::getKey)).limit(MAX_RESULT_TYPES)
-                    .forEach(entry -> types.addObject().put("eventType", entry.getKey()).put("count", entry.getValue()[i]));
-        });
-        return result;
+        var buckets = IntStream.range(0, totals.length).boxed()
+                .sorted(comparator.thenComparingInt(i -> i)).limit(limit).map(i -> {
+                    long start = request.startTime() + i * request.bucketMillis();
+                    long remaining = request.endTime() - start;
+                    long end = remaining <= request.bucketMillis() ? request.endTime() : start + request.bucketMillis();
+                    var types = counts.entrySet().stream().filter(entry -> entry.getValue()[i] > 0)
+                            .sorted(Comparator.<Map.Entry<String, long[]>>comparingLong(entry -> entry.getValue()[i])
+                                    .reversed().thenComparing(Map.Entry::getKey)).limit(MAX_RESULT_TYPES)
+                            .map(entry -> new ActivitySummary.TypeCount(entry.getKey(), entry.getValue()[i])).toList();
+                    int distinct = distinct(i);
+                    return new ActivitySummary.Bucket(start, end, totals[i], distinct,
+                            Math.max(0, distinct - MAX_RESULT_TYPES), types);
+                }).toList();
+        return new ActivitySummary(total, counts.size(), totals.length, order,
+                Math.max(0, totals.length - limit), buckets);
     }
 
     private int distinct(int bucket) {

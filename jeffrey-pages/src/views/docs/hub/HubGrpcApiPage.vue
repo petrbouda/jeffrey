@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Jeffrey Hub exposes gRPC services for Jeffrey Microscope instances to connect and fetch data. All communication between Jeffrey Microscope and Jeffrey Hub uses gRPC on port <code>9090</code> (configurable).</p>
 
         <DocsCallout type="info">
-          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. Full profile analysis happens locally; <router-link to="/docs/hub/mcp">Hub MCP</router-link> can count event activity before downloading.
+          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. Full profile analysis happens locally; Hub counts event activity through gRPC for <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s MCP tools</router-link> before downloading.
         </DocsCallout>
 
         <h2 id="purpose">Purpose</h2>
@@ -77,9 +77,47 @@ onMounted(() => {
         </div>
 
         <h2 id="grpc-services">gRPC Services</h2>
-        <p>Jeffrey Hub exposes 7 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
+        <p>Jeffrey Hub exposes 8 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
 
         <div class="endpoint-groups">
+          <!-- EventActivityService -->
+          <div class="endpoint-group">
+            <div class="group-header">
+              <i class="bi bi-bar-chart"></i>
+              <h4>EventActivityService</h4>
+            </div>
+            <div class="group-body">
+              <div class="endpoint-item">
+                <div class="endpoint-line"><span class="method rpc">RPC</span><code>StartActivity</code></div>
+                <p>Start an asynchronous scan of finished JFR files on Hub. Supply <code>scope</code> with workspace,
+                  project and session IDs, required <code>start_time</code> and <code>end_time</code> (UTC epoch milliseconds,
+                  start inclusive and end exclusive), optional <code>bucket_seconds</code> (default 300), and
+                  <code>event_types</code> (empty means all types). Returns a typed <code>EventActivitySnapshot</code> with a <code>scan_id</code>.</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line"><span class="method rpc">RPC</span><code>GetActivity</code></div>
+                <p>Poll with the original <code>scope</code> and <code>scan_id</code>. Optional <code>order</code> ranks
+                  by event count, distinct event types, or time. Optional <code>limit</code> selects 1–20 buckets (default 20).
+                  The snapshot includes total counts, bucket/type counts, omitted detail, state, and source coverage.
+                  Polling never starts another scan.</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line"><span class="method rpc">RPC</span><code>CancelActivity</code></div>
+                <p>Cancel the scan identified by its original <code>scope</code> and <code>scan_id</code>.
+                  Cancellation remains pending until the reader releases its resources. A scope mismatch or expired scan
+                  returns <code>NOT_FOUND</code>; invalid requests return <code>INVALID_ARGUMENT</code>.</p>
+              </div>
+              <p>Hub performs all aggregation. Microscope calls these RPCs through its existing Hub connection and exposes
+                <code>hubs_eventActivity</code>, <code>hubs_activityStatus</code>, and <code>hubs_activityCancel</code>.
+                The MCP endpoint belongs to Microscope.</p>
+              <p>There is no total-event cap. Counts use at most 288 buckets and 512 observed types; two scans run
+                concurrently, with at most 16 retained scans and up to one hour of retention after completion.
+                Read <code>complete</code> and <code>source_errors</code> even when the state is completed.
+                Finished files visible at scan start define coverage; overlapping files may count an event twice.
+                Definitions are in <code>event_activity_service.proto</code>.</p>
+            </div>
+          </div>
+
           <!-- WorkspaceService -->
           <div class="endpoint-group">
             <div class="group-header">

@@ -34,6 +34,10 @@ import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
 import java.time.Clock;
+import java.time.Instant;
+import cafe.jeffrey.hub.core.activity.HubActivityService;
+import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
+import cafe.jeffrey.hub.core.streaming.StreamingWindow;
 
 /**
  * Wires the hub's gRPC services as Spring beans. Spring gRPC's auto-configuration owns the
@@ -103,6 +107,20 @@ public class GrpcServerConfiguration {
     @Bean
     public BindableService recordingDownloadGrpcService(GrpcLookups grpcLookups) {
         return new RecordingDownloadGrpcService(grpcLookups);
+    }
+
+    @Bean(destroyMethod = "close")
+    public HubActivityService hubActivityService(HubPlatformRepositories repositories,
+                                                RepositoryStorage.Factory storage, HubJeffreyDirs dirs, Clock clock) {
+        var source = new ScopedReplaySource(repositories, storage, dirs);
+        return new HubActivityService(request -> source.resolve(request.workspaceId(), request.projectId(), request.sessionId(),
+                request.eventTypes(), new StreamingWindow(Instant.ofEpochMilli(request.startTime()),
+                        Instant.ofEpochMilli(request.endTime()))), clock);
+    }
+
+    @Bean
+    public BindableService eventActivityGrpcService(HubActivityService activityService) {
+        return new EventActivityGrpcService(activityService);
     }
 
     @Bean

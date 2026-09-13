@@ -27,6 +27,10 @@ import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSu
 import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import cafe.jeffrey.hub.api.v1.EventBatch;
+import cafe.jeffrey.hub.api.v1.EventActivitySnapshot;
+import cafe.jeffrey.hub.api.v1.StartActivityRequest;
+import cafe.jeffrey.hub.api.v1.GetActivityRequest;
+import cafe.jeffrey.hub.api.v1.CancelActivityRequest;
 import cafe.jeffrey.hub.api.v1.StreamingEvent;
 import cafe.jeffrey.hub.api.v1.TypedValue;
 import cafe.jeffrey.shared.common.Json;
@@ -75,6 +79,18 @@ public class EventStreamingManager {
     /** Supplies protobuf batches, including scoped replay coverage metadata. */
     public EventStreamingSubscription subscribeReplayRaw(ReplaySubscriptionRequest request, StreamingCallbacks callbacks) {
         return eventStreamingClient.subscribeReplayStreaming(request, callbacks);
+    }
+
+    public EventActivitySnapshot startActivity(StartActivityRequest request) {
+        return eventStreamingClient.startActivity(request);
+    }
+
+    public EventActivitySnapshot getActivity(GetActivityRequest request) {
+        return eventStreamingClient.getActivity(request);
+    }
+
+    public EventActivitySnapshot cancelActivity(CancelActivityRequest request) {
+        return eventStreamingClient.cancelActivity(request);
     }
 
     /**

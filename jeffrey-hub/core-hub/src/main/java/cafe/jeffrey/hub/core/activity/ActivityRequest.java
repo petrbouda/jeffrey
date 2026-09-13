@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.mcp;
+package cafe.jeffrey.hub.core.activity;
 
 import java.util.Set;
 

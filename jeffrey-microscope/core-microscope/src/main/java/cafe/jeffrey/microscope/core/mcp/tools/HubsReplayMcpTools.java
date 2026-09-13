@@ -19,6 +19,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubActivityMcpSupport;
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubReplayCollector;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
@@ -48,6 +50,7 @@ public final class HubsReplayMcpTools {
     private static final ScheduledExecutorService DEADLINES = deadlineScheduler();
     private final ProjectManagerResolver resolver;
     private final Duration timeout;
+    private final HubActivityMcpSupport activity;
     public HubsReplayMcpTools(ProjectManagerResolver resolver) {
         this(resolver, Duration.ofSeconds(15));
     }
@@ -57,6 +60,7 @@ public final class HubsReplayMcpTools {
         }
         this.resolver = resolver;
         this.timeout = timeout;
+        this.activity = new HubActivityMcpSupport(resolver, timeout, DEADLINES);
     }
     @McpToolHints(readOnly = true, openWorld = true)
     @Tool(description = "Query selected JFR events from a Hub session without downloading or analysing it. "
@@ -125,6 +129,42 @@ public final class HubsReplayMcpTools {
         }
         ObjectNode result = collector.result();
         return new McpToolResult(Json.toString(result), result);
+    }
+
+    @Tool(description = "Start a background event-activity scan on the Hub for a session_ref from hubs_sessions. "
+            + "Hub counts matching events by time bucket without transferring recordings or raw events to Microscope. "
+            + "Returns scanId; poll hubs_activityStatus with the same sessionRef and scanId. Each call starts a new scan. "
+            + "No total-event cap; at most 288 buckets and 512 observed types. Scans are Hub-process-local, retained up to "
+            + "one hour after completion, with at most 16 retained scans and two concurrent readers. Requires an updated Hub.")
+    @McpToolHints(readOnly = true, idempotent = false, openWorld = true)
+    public McpToolResult eventActivity(
+            @ToolParam(description = "Exact session_ref from hubs_sessions") String sessionRef,
+            @ToolParam(description = "Inclusive start UTC epoch milliseconds") long startTime,
+            @ToolParam(description = "Exclusive end UTC epoch milliseconds") long endTime,
+            @ToolParam(description = "Bucket width in seconds; default 300, at most 288 buckets", required = false) Long bucketSeconds,
+            @ToolParam(description = "Comma-separated exact event types, at most 16; omit to count all types", required = false) String eventTypes) {
+        return activity.start(sessionRef, startTime, endTime, bucketSeconds, eventTypes);
+    }
+
+    @Tool(description = "Read a Hub activity scan without restarting it. Rank intervals by event count (events), "
+            + "distinct event types (types), or chronological time (time). Counts are lower bounds until complete=true. "
+            + "At most 20 buckets and 10 types per bucket; totals include omitted details. Use the original sessionRef and scanId.")
+    @McpToolHints(readOnly = true, openWorld = true)
+    public McpToolResult activityStatus(
+            @ToolParam(description = "The session_ref used to start the scan") String sessionRef,
+            @ToolParam(description = "scanId returned by hubs_eventActivity") String scanId,
+            @ToolParam(description = "events (default), types or time", required = false) @ToolParamValues({"events", "types", "time"}) String order,
+            @ToolParam(description = "Maximum buckets returned, 1–20; default 20", required = false) Integer limit) {
+        return activity.status(sessionRef, scanId, order, limit);
+    }
+
+    @Tool(description = "Cancel an exact activity scan on its Hub. Use the original sessionRef and scanId. "
+            + "cancel_requested remains nonterminal until reader cleanup finishes. Partial counts remain available; recordings are unchanged.")
+    @McpToolHints(readOnly = false, idempotent = true, openWorld = true)
+    public McpToolResult activityCancel(
+            @ToolParam(description = "The session_ref used to start the scan") String sessionRef,
+            @ToolParam(description = "scanId returned by hubs_eventActivity") String scanId) {
+        return activity.cancel(sessionRef, scanId);
     }
 
     private static String termination(Throwable error) {

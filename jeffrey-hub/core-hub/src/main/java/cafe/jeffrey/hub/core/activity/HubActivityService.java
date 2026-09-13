@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.mcp;
+package cafe.jeffrey.hub.core.activity;
 
 import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingSubscriber;
 import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
 import cafe.jeffrey.shared.common.Schedulers;
-import tools.jackson.databind.node.ObjectNode;
 
 import java.io.InterruptedIOException;
 import java.nio.channels.ClosedByInterruptException;
@@ -58,6 +57,10 @@ public final class HubActivityService implements AutoCloseable {
         this(source, Schedulers.sharedVirtual(), Clock.systemUTC());
     }
 
+    public HubActivityService(Function<ActivityRequest, ReplayStreamSubscription> source, Clock clock) {
+        this(source, Schedulers.sharedVirtual(), clock);
+    }
+
     HubActivityService(Function<ActivityRequest, ReplayStreamSubscription> source, Executor executor, Clock clock) {
         this.source = source;
         this.executor = executor;
@@ -88,20 +91,28 @@ public final class HubActivityService implements AutoCloseable {
         return job.id;
     }
 
-    public ObjectNode status(String id, String order, int limit) {
-        return require(id).snapshot(order, limit);
+    public ActivitySnapshot status(ActivityScanRef ref, String order, int limit) {
+        return require(ref).snapshot(order, limit);
     }
 
-    public ObjectNode cancel(String id) {
-        Job job = require(id);
+    public ActivitySnapshot cancel(ActivityScanRef ref) {
+        Job job = require(ref);
         job.cancel();
         return job.snapshot("events", DEFAULT_RESULT_BUCKETS);
+    }
+
+    private synchronized Job require(ActivityScanRef ref) {
+        Job job = require(ref.scanId());
+        if (!ref.matches(job.request)) {
+            throw new ActivityScanNotFoundException();
+        }
+        return job;
     }
 
     private synchronized Job require(String id) {
         Job job = jobs.get(id);
         if (job == null || (job.finishedAt != null && job.finishedAt.isBefore(clock.instant().minus(RESULT_RETENTION)))) {
-            throw new IllegalArgumentException("Unknown or expired scanId; scans are local to this Hub process");
+            throw new ActivityScanNotFoundException();
         }
         return job;
     }
@@ -252,21 +263,10 @@ public final class HubActivityService implements AutoCloseable {
             }
         }
 
-        synchronized ObjectNode snapshot(String order, int limit) {
-            ObjectNode result = activity.summary(order, limit);
-            result.put("scanId", id).put("status", state).put("startedAt", startedAt.toString());
-            result.put("finishedAt", finishedAt == null ? null : finishedAt.toString());
-            result.put("complete", finishedAt != null && coverageKnown && sourceErrors == 0 && failure == null)
-                    .put("coverageKnown", coverageKnown).put("sourceErrors", sourceErrors).put("filesTotal", filesTotal)
-                    .put("error", failure).put("workspaceId", request.workspaceId()).put("projectId", request.projectId())
-                    .put("sessionId", request.sessionId()).put("startTime", request.startTime())
-                    .put("endTime", request.endTime()).put("bucketMillis", request.bucketMillis());
-            var types = result.putArray("eventTypes");
-            request.eventTypes().stream().sorted().forEach(types::add);
-            result.put("coverage", "Finished files visible at scan start. Overlapping recordings may count events more than once. "
-                    + "Counts reflect recorded events, not equivalent workloads. Incomplete scans are lower bounds; their rankings may change.");
-            result.put("timeSemantics", "Epoch milliseconds, start inclusive and end exclusive; buckets anchored at startTime.");
-            return result;
+        synchronized ActivitySnapshot snapshot(String order, int limit) {
+            return new ActivitySnapshot(id, state, startedAt, finishedAt,
+                    finishedAt != null && coverageKnown && sourceErrors == 0 && failure == null,
+                    coverageKnown, sourceErrors, filesTotal, failure, request, activity.summary(order, limit));
         }
     }
 }

@@ -65,8 +65,9 @@ onMounted(() => {
 
       <DocsCallout type="info">
         <strong>Full profile analysis stays in Microscope.</strong> Flame graphs and heap dump
-        forensics run on developer machines. The optional <router-link to="/docs/hub/mcp">Hub MCP</router-link>
-        endpoint counts event activity by time and type on the Hub, helping select recordings before downloading them.
+        forensics and the MCP endpoint run in Microscope. Hub exposes event-activity summaries through gRPC:
+        it counts events by time and type locally, and <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
+        return the summaries to agents before recordings are downloaded.
       </DocsCallout>
 
       <h2 id="components">Components</h2>

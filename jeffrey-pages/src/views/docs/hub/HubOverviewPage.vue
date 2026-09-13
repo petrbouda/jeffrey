@@ -51,7 +51,7 @@ onMounted(() => {
           Jeffrey Hub runs alongside your Java fleet — typically on Kubernetes or a dedicated
           host — and continuously collects JFR recordings. It catalogs them by workspace, project,
           and instance, schedules recording jobs, and serves the results over gRPC. Detailed profile
-          analysis happens in Microscope. Use <router-link to="/docs/hub/mcp">Hub MCP</router-link>
+          analysis happens in Microscope. Use <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
           to count event activity and select a time period before downloading recordings.
         </p>
         <div class="hero-actions">
