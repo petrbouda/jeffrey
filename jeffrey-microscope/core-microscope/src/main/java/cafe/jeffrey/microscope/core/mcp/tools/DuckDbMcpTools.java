@@ -48,6 +48,15 @@ public class DuckDbMcpTools {
      */
     private static final int QUERY_TIMEOUT_SECONDS = 30;
 
+    /**
+     * Bound as a value rather than passed to {@code DatabaseMetaData.getColumns}, whose table
+     * argument is a LIKE pattern: a name holding {@code %} or {@code _} described every table that
+     * matched it instead of reporting that no such table exists.
+     */
+    private static final String DESCRIBE_TABLE_COLUMNS =
+            "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
+                    + "WHERE table_name = ? ORDER BY ordinal_position";
+
     private static final String MULTIPLE_STATEMENTS_MESSAGE =
             "Only one statement per call. Send the SELECT on its own, without a second statement "
                     + "after a semicolon.";
@@ -89,9 +98,11 @@ public class DuckDbMcpTools {
             throw new ToolExecutionException("Table name is required");
         }
 
-        try (Connection conn = dataSource.getConnection()) {
-            DatabaseMetaData metaData = conn.getMetaData();
-            try (ResultSet rs = metaData.getColumns(null, null, tableName, "%")) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(DESCRIBE_TABLE_COLUMNS)) {
+            stmt.setString(1, tableName);
+            stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+            try (ResultSet rs = stmt.executeQuery()) {
                 StringBuilder result = new StringBuilder("Schema for table '").append(tableName).append("':\n\n");
                 result.append(String.format("%-25s %-20s %-10s%n", "COLUMN", "TYPE", "NULLABLE"));
                 result.append("-".repeat(55)).append("\n");
@@ -99,9 +110,9 @@ public class DuckDbMcpTools {
                 boolean hasColumns = false;
                 while (rs.next()) {
                     hasColumns = true;
-                    String columnName = rs.getString("COLUMN_NAME");
-                    String typeName = rs.getString("TYPE_NAME");
-                    String nullable = rs.getInt("NULLABLE") == DatabaseMetaData.columnNullable ? "YES" : "NO";
+                    String columnName = rs.getString(1);
+                    String typeName = rs.getString(2);
+                    String nullable = rs.getString(3);
                     result.append(String.format("%-25s %-20s %-10s%n", columnName, typeName, nullable));
                 }
 

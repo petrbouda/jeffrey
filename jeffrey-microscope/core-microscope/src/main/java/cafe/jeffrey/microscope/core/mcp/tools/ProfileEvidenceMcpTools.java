@@ -55,6 +55,14 @@ public class ProfileEvidenceMcpTools {
               "required":["schemaVersion","profile","filters","replay","eventTypes","findings","capabilityGaps","truncation"]}
             """;
 
+    /** Bumped when the shape of the document changes, so a saved snapshot says what it was written to. */
+    private static final int SCHEMA_VERSION = 1;
+    private static final int FINDING_SCHEMA_VERSION = 1;
+
+    /** Records per collection before the output budget has anything to say about it. */
+    private static final int DEFAULT_ROWS = 100;
+    private static final int MAX_ROWS = 500;
+
     private final ProfileManager manager;
     private final RecordingCommitResolver commits;
     private final ProfileCapabilityGaps capabilityGaps;
@@ -77,8 +85,9 @@ public class ProfileEvidenceMcpTools {
     public McpToolResult evidence(
             @ToolParam(required = false, description = "Maximum records per evidence collection; default 100, maximum 500. Output size may reduce it further.")
             Integer limit) {
-        int rows = ToolArguments.boundedLimit(limit, 100, 500);
-        ObjectNode root = Json.createObject().put("schemaVersion", 1).put("findingSchemaVersion", 1)
+        int rows = ToolArguments.boundedLimit(limit, DEFAULT_ROWS, MAX_ROWS);
+        ObjectNode root = Json.createObject().put("schemaVersion", SCHEMA_VERSION)
+                .put("findingSchemaVersion", FINDING_SCHEMA_VERSION)
                 .put("generatedAt", clock.instant().toString())
                 .put("serverVersion", AbstractMcpStreamableHttpController.serverVersion())
                 .put("semantics", "Snapshot of current profile state; replay reads current state again, not an immutable historical version")

@@ -287,7 +287,10 @@ public final class PipelineRunRegistry<K> {
             tracked.run.checkCancellation();
             driveWork(request, tracked.run);
         } catch (InterruptedException | CancellationException e) {
-            tracked.run.fail("CANCELLED", CANCELLED_WHILE_QUEUED_MESSAGE);
+            // Only a run still waiting on the semaphore was cancelled while queued. Past that point
+            // the slot is held and the work has begun, and saying otherwise sent a reader looking for
+            // a queue that was never what stopped it.
+            tracked.run.fail("CANCELLED", acquired ? CANCELLED_MESSAGE : CANCELLED_WHILE_QUEUED_MESSAGE);
         } finally {
             // Cancellation no longer interrupts once work has ended. Cleanup still owns the key.
             tracked.stopWorker();

@@ -42,7 +42,13 @@ import java.util.function.Supplier;
 /** Process-local catalogue of existing workers. This class never schedules or starts work. */
 public final class McpOperationRegistry {
 
-    public static final Duration RETENTION = Duration.ofHours(1);
+    /**
+     * How long a terminal attempt stays readable. The same window the jobs behind it keep their
+     * outcomes for, and deliberately the same constant rather than a second hour that happens to
+     * agree: a job outliving the entry that names it makes {@code register} refuse a retry that the
+     * tool descriptions promise works.
+     */
+    public static final Duration RETENTION = BoundedJobs.COMPLETED_RETENTION;
     private final Map<String, Entry<?>> entries = new ConcurrentHashMap<>();
     private final Clock clock;
     private final AtomicLong registrationSequence = new AtomicLong();
@@ -51,7 +57,11 @@ public final class McpOperationRegistry {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public McpOperationRegistry() {
+    /**
+     * Package-private for the same reason {@link BoundedJobs}'s clockless constructors are: a test
+     * that does not care what time it is may default, while production passes the application clock.
+     */
+    McpOperationRegistry() {
         this(Clock.systemUTC());
     }
 

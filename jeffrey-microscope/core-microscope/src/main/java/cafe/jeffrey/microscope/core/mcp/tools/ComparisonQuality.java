@@ -50,13 +50,21 @@ final class ComparisonQuality {
               "required":["schemaVersion","primary","baseline","scope","replay","samplingConfiguration","workloadNormalization","truncation"]}
             """;
 
+    /** Bumped when the shape of the document changes; read beside the evidence snapshot's own. */
+    private static final int SCHEMA_VERSION = 1;
+    private static final int FINDING_SCHEMA_VERSION = 1;
+
+    /** Records per collection. Fixed rather than a caller's choice: the verdict is a page, not a dump. */
+    private static final int MAX_ROWS = 100;
+
     private ComparisonQuality() {
     }
 
     static McpToolResult result(ProfileManager primary, ProfileManager baseline, Clock clock) {
         List<ProfileEvidence.EventEvidence> primaryEvents = ProfileEvidence.events(primary);
         List<ProfileEvidence.EventEvidence> baselineEvents = ProfileEvidence.events(baseline);
-        ObjectNode root = Json.createObject().put("schemaVersion", 1).put("findingSchemaVersion", 1)
+        ObjectNode root = Json.createObject().put("schemaVersion", SCHEMA_VERSION)
+                .put("findingSchemaVersion", FINDING_SCHEMA_VERSION)
                 .put("generatedAt", clock.instant().toString())
                 .put("serverVersion", AbstractMcpStreamableHttpController.serverVersion())
                 .put("scope", ProfileEvidence.WHOLE_RECORDING)
@@ -108,7 +116,7 @@ final class ComparisonQuality {
         onlyPrimary.removeAll(common);
         Set<String> onlyBaseline = new LinkedHashSet<>(baselineByType.keySet());
         onlyBaseline.removeAll(common);
-        EvidenceOutput output = new EvidenceOutput(root, 100);
+        EvidenceOutput output = new EvidenceOutput(root, MAX_ROWS);
         output.rows("findings", findings);
         output.rows("samplingConfiguration", settings);
         output.rows("commonEventTypes", List.copyOf(common));

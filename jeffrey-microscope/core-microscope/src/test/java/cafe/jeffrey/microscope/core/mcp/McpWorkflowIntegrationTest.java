@@ -90,7 +90,8 @@ class McpWorkflowIntegrationTest {
     }
 
     private String completed(OperationKind kind) {
-        BoundedJobs<String, String> jobs = new BoundedJobs<>();
+        BoundedJobs<String, String> jobs =
+                new BoundedJobs<>(BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, clock);
         var handle = jobs.startOrJoin("key", false, value -> true, () -> "profile-1");
         String id = operations.register(kind, handle, value -> Map.of("profileId", value));
         assertEquals("profile-1", jobs.awaitWithin(handle, Duration.ofSeconds(5)).orElseThrow());
@@ -109,7 +110,7 @@ class McpWorkflowIntegrationTest {
                 mock(McpProfileContextCache.class), mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
-                new HubsReplayMcpTools(resolver, new McpOperationRegistry(), clock), operations, clock);
+                new HubsReplayMcpTools(resolver, new McpOperationRegistry(clock), clock), operations, clock);
         return new ExternalMcpController(assembler, properties, new McpRequestGuard(), new McpPromptRegistry(),
                 new McpDiagnostics(repositories, hubs, properties, clock, Duration.ofSeconds(1)));
     }

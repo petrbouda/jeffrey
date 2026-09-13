@@ -508,8 +508,9 @@ public class HeapDumpMcpTools {
     public String getInstanceDetail(
             @ToolParam(required = true, description = "The object ID of the instance to inspect")
             Long objectId) {
+        long instanceId = requireObjectId(objectId);
         try {
-            InstanceDetail detail = delegate.getInstanceDetail(requireObjectId(objectId), false);
+            InstanceDetail detail = delegate.getInstanceDetail(instanceId, false);
             if (detail == null) {
                 throw new ToolExecutionException("Instance not found for object ID: " + objectId);
             }
@@ -584,10 +585,11 @@ public class HeapDumpMcpTools {
             Long objectId,
             @ToolParam(required = false, description = "Maximum number of children to return (default: 20, max: 50)")
             Integer limit) {
+        long instanceId = requireObjectId(objectId);
         try {
             int effectiveLimit = limit != null ? Math.min(Math.max(1, limit), 50) : 20;
 
-            DominatorTreeResponse response = delegate.getDominatorTreeChildren(requireObjectId(objectId), effectiveLimit);
+            DominatorTreeResponse response = delegate.getDominatorTreeChildren(instanceId, effectiveLimit);
 
             StringBuilder result = new StringBuilder();
             result.append("Dominator Tree Children of Object ID ").append(objectId).append(":\n\n");
@@ -621,10 +623,11 @@ public class HeapDumpMcpTools {
             Long objectId,
             @ToolParam(required = false, description = "Maximum number of paths to return (default: 3, max: 5)")
             Integer maxPaths) {
+        long instanceId = requireObjectId(objectId);
         try {
             int effectiveMaxPaths = maxPaths != null ? Math.min(Math.max(1, maxPaths), 5) : 3;
 
-            List<GCRootPath> paths = delegate.getPathsToGCRoot(requireObjectId(objectId), true, effectiveMaxPaths);
+            List<GCRootPath> paths = delegate.getPathsToGCRoot(instanceId, true, effectiveMaxPaths);
 
             if (paths.isEmpty()) {
                 return "No paths to GC root found for object ID: " + objectId;
@@ -670,10 +673,11 @@ public class HeapDumpMcpTools {
             Long objectId,
             @ToolParam(required = false, description = "Maximum number of referrers to return (default: 20, max: 50)")
             Integer limit) {
+        long instanceId = requireObjectId(objectId);
         try {
             int effectiveLimit = limit != null ? Math.min(Math.max(1, limit), 50) : 20;
 
-            InstanceTreeResponse response = delegate.getReferrers(requireObjectId(objectId), effectiveLimit, 0);
+            InstanceTreeResponse response = delegate.getReferrers(instanceId, effectiveLimit, 0);
 
             StringBuilder result = new StringBuilder();
             result.append("Referrers of Object ID ").append(objectId).append(":\n\n");
@@ -822,6 +826,9 @@ public class HeapDumpMcpTools {
      * <p>
      * The delegate takes a primitive, so an absent id would unbox to zero and quietly inspect whichever
      * object happens to be numbered nought rather than saying that nothing was asked for.
+     * <p>
+     * Called before the {@code try} each of these tools wraps its work in, so a missing id reads as
+     * the invalid argument it is rather than as a heap failure.
      */
     private static long requireObjectId(Long objectId) {
         if (objectId == null) {

@@ -159,7 +159,7 @@ class HubsReplayMcpEndpointTest {
             });
 
             var assembler = mock(McpToolsetAssembler.class);
-            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK), "hubs"));
+            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry(CLOCK), CLOCK), "hubs"));
             var mvc = mockMvcTesterFor(new ExternalMcpController(
                     assembler,
                     new ExternalMcpProperties(true, true, true, Set.of()),

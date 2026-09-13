@@ -72,11 +72,16 @@ public class BoundedJobs<K, V> {
     private final int maxConcurrent;
     private final Semaphore permits;
 
-    public BoundedJobs() {
+    /**
+     * Package-private, and both of these are: a default system clock is a convenience for a test that
+     * does not care what time it is, and production wiring has an application {@link Clock} to pass.
+     * Public, they were an easy way for a new caller to opt out of the one the project injects.
+     */
+    BoundedJobs() {
         this(WAIT_BUDGET);
     }
 
-    public BoundedJobs(Duration budget) {
+    BoundedJobs(Duration budget) {
         this(budget, COMPLETED_RETENTION, Clock.systemUTC());
     }
 
