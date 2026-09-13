@@ -109,11 +109,25 @@ public final class McpProfileContextCache implements AutoCloseable {
             return thread;
         });
         executor.scheduleAtFixedRate(
-                this::evictIdle,
+                this::sweep,
                 EVICTION_SWEEP_PERIOD.toMillis(),
                 EVICTION_SWEEP_PERIOD.toMillis(),
                 TimeUnit.MILLISECONDS);
         return executor;
+    }
+
+    /**
+     * One scheduled sweep. Nothing may escape it: a task that throws out of
+     * {@code scheduleAtFixedRate} is never run again, so one failing release would have silently
+     * ended idle eviction for the life of the process, and every later profile would have stayed
+     * pinned until shutdown. Logged, since a sweep that fails twice is a thing to go looking for.
+     */
+    void sweep() {
+        try {
+            evictIdle();
+        } catch (RuntimeException e) {
+            LOG.warn("Idle MCP profile context sweep failed: message={}", e.getMessage(), e);
+        }
     }
 
     /**
@@ -169,13 +183,23 @@ public final class McpProfileContextCache implements AutoCloseable {
 
     /**
      * Releases every context untouched for longer than the idle timeout.
+     * <p>
+     * One release failing does not stop the others: the context that threw is already marked retired
+     * and closed by the time its lease's close runs, so it is dropped from the map like a context that
+     * released cleanly, and the sweep carries on to the next profile.
      */
     public void evictIdle() {
         Instant threshold = clock.instant().minus(idleTimeout);
         for (String profileId : List.copyOf(contexts.keySet())) {
             contexts.computeIfPresent(profileId, (id, context) -> {
-                if (!context.retireIfIdle(threshold)) {
-                    return context;
+                try {
+                    if (!context.retireIfIdle(threshold)) {
+                        return context;
+                    }
+                } catch (RuntimeException e) {
+                    LOG.warn("Releasing an idle MCP profile context failed, dropping it: profile_id={} message={}",
+                            id, e.getMessage(), e);
+                    return null;
                 }
                 LOG.debug("Evicting idle MCP profile context: profile_id={}", id);
                 return null;

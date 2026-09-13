@@ -26,6 +26,7 @@ import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.shared.common.activity.ActivityState;
 import io.grpc.Status;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -53,15 +54,18 @@ final class HubActivityOperation implements OperationHandle<ActivityScanSnapshot
 
     private final Supplier<ActivityScanSnapshot> refresh;
     private final Supplier<ActivityScanSnapshot> remoteCancel;
+    private final Clock clock;
     private volatile ActivityScanSnapshot last;
 
     HubActivityOperation(
             ActivityScanSnapshot initial,
             Supplier<ActivityScanSnapshot> refresh,
-            Supplier<ActivityScanSnapshot> remoteCancel) {
+            Supplier<ActivityScanSnapshot> remoteCancel,
+            Clock clock) {
         this.last = initial;
         this.refresh = refresh;
         this.remoteCancel = remoteCancel;
+        this.clock = clock;
     }
 
     @Override
@@ -97,7 +101,7 @@ final class HubActivityOperation implements OperationHandle<ActivityScanSnapshot
             }
             // Eviction, expiry and a Hub restart all remove the remote worker. A stale running
             // handle must become terminal locally so normal operation retention can reclaim it.
-            return last.failedAt(Instant.now().toEpochMilli(),
+            return last.failedAt(clock.instant().toEpochMilli(),
                     "Hub scan is no longer available: it expired, was evicted, or the Hub restarted");
         }
     }

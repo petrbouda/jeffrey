@@ -91,7 +91,7 @@ class RecordingsMcpToolsTest {
     void setUp() {
         runRegistry = new PipelineRunRegistry<>(
                 ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK);
-        tools = new RecordingsMcpTools(recordingsManager, runRegistry);
+        tools = new RecordingsMcpTools(recordingsManager, runRegistry, CLOCK);
         // The tools build a UI link off the incoming request, the way ProfileMcpTools#link does.
         RequestContextHolder.setRequestAttributes(
                 new ServletRequestAttributes(new MockHttpServletRequest()));
@@ -143,9 +143,9 @@ class RecordingsMcpToolsTest {
         Path file = recordingFile("large.jfr");
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
-        McpOperationRegistry operations = new McpOperationRegistry();
+        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
         RecordingsMcpTools bounded = new RecordingsMcpTools(recordingsManager, runRegistry,
-                new BoundedJobs<>(Duration.ofMillis(50)), operations);
+                new BoundedJobs<>(Duration.ofMillis(50)), operations, CLOCK);
         when(recordingsManager.importRecordingFromPath(file)).thenAnswer(invocation -> {
             entered.countDown();
             while (release.getCount() != 0) {
@@ -189,9 +189,9 @@ class RecordingsMcpToolsTest {
         Path file = recordingFile("finishing.jfr");
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
-        McpOperationRegistry operations = new McpOperationRegistry();
+        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
         RecordingsMcpTools bounded = new RecordingsMcpTools(recordingsManager, runRegistry,
-                new BoundedJobs<>(Duration.ofMillis(50)), operations);
+                new BoundedJobs<>(Duration.ofMillis(50)), operations, CLOCK);
         when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
         when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
         when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
@@ -286,7 +286,7 @@ class RecordingsMcpToolsTest {
         void joinedCallersSeeTheNameAppliedByTheAttemptTheyJoined() throws Exception {
             Path file = recordingFile("app.jfr");
             BoundedJobs<String, String> jobs = new BoundedJobs<>(Duration.ofSeconds(5));
-            RecordingsMcpTools concurrent = new RecordingsMcpTools(recordingsManager, runRegistry, jobs);
+            RecordingsMcpTools concurrent = new RecordingsMcpTools(recordingsManager, runRegistry, jobs, CLOCK);
             CountDownLatch analysisReached = new CountDownLatch(1);
             CountDownLatch releaseAnalysis = new CountDownLatch(1);
             when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
@@ -466,7 +466,7 @@ class RecordingsMcpToolsTest {
             // A budget short enough that the stubbed work cannot beat it, so the timeout path is the
             // one under test rather than a race.
             RecordingsMcpTools slow = new RecordingsMcpTools(
-                    recordingsManager, runRegistry, new BoundedJobs<>(Duration.ofMillis(50)));
+                    recordingsManager, runRegistry, new BoundedJobs<>(Duration.ofMillis(50)), CLOCK);
             // Held open by the test rather than by a sleep, so the work is still running when the
             // budget expires without leaving a thread asleep for five seconds after the assertions.
             CountDownLatch release = new CountDownLatch(1);
@@ -492,7 +492,7 @@ class RecordingsMcpToolsTest {
         void appliesTheRequestedNameAfterAWaitTimeout() throws IOException {
             Path file = recordingFile("app.jfr");
             BoundedJobs<String, String> jobs = new BoundedJobs<>(Duration.ofMillis(50));
-            RecordingsMcpTools slow = new RecordingsMcpTools(recordingsManager, runRegistry, jobs);
+            RecordingsMcpTools slow = new RecordingsMcpTools(recordingsManager, runRegistry, jobs, CLOCK);
             CountDownLatch release = new CountDownLatch(1);
             when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
@@ -511,7 +511,7 @@ class RecordingsMcpToolsTest {
         @Test
         void reportsALateFailureWithItsReasonOnEveryPoll() {
             BoundedJobs<String, String> jobs = new BoundedJobs<>(Duration.ofMillis(50));
-            RecordingsMcpTools slow = new RecordingsMcpTools(recordingsManager, runRegistry, jobs);
+            RecordingsMcpTools slow = new RecordingsMcpTools(recordingsManager, runRegistry, jobs, CLOCK);
             CountDownLatch release = new CountDownLatch(1);
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
                 release.await();
@@ -600,7 +600,7 @@ class RecordingsMcpToolsTest {
                     ProfileInitStages.DEFINITION,
                     PipelineRunOptions.bounded(1, null),
                     CLOCK);
-            RecordingsMcpTools serial = new RecordingsMcpTools(recordingsManager, serialRegistry);
+            RecordingsMcpTools serial = new RecordingsMcpTools(recordingsManager, serialRegistry, CLOCK);
             CountDownLatch firstStarted = new CountDownLatch(1);
             CountDownLatch releaseFirst = new CountDownLatch(1);
             AtomicBoolean queuedWorkStarted = new AtomicBoolean();
@@ -653,6 +653,49 @@ class RecordingsMcpToolsTest {
             assertTrue(result.contains("\"status\":\"failed\""), result);
             assertTrue(result.contains("malformed chunk"), result);
             assertTrue(result.contains("\"id\":\"" + ProfileInitStages.PARSE + "\""), result);
+        }
+
+        /**
+         * The failure this process remembers is about an attempt it made; the profile can have been
+         * built since by another one. Reporting the stale failure over a profile every other tool
+         * answers from sends the reader off to build a third copy.
+         */
+        @Test
+        void reportsALiveProfileOverAStaleRetainedFailure() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
+            when(recordingsManager.analyzeRecording(RECORDING_ID))
+                    .thenThrow(new IllegalStateException("recording parser stopped"));
+            String failure = tools.analyzeRecording(RECORDING_ID, true);
+            assertTrue(failure.contains("recording parser stopped"), failure);
+
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(true);
+
+            var result = Json.mapper().readTree(tools.status(RECORDING_ID));
+
+            // The profile leads; the retained attempt still travels as the operation, where a reader
+            // who wants to know what went wrong last time can find it.
+            assertEquals(PROFILE_ID, result.path("profileId").asString(), result.toString());
+            assertTrue(result.path("status").isMissingNode(), "no top-level failure: " + result);
+            assertEquals("failed", result.path("operation").path("status").asString());
+        }
+
+        @Test
+        void analyzeWithoutRetryReturnsTheLiveProfileInsteadOfTheStaleFailure() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
+            when(recordingsManager.analyzeRecording(RECORDING_ID))
+                    .thenThrow(new IllegalStateException("recording parser stopped"));
+            tools.analyzeRecording(RECORDING_ID, true);
+
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(true);
+
+            var result = Json.mapper().readTree(tools.analyzeRecording(RECORDING_ID, null));
+
+            assertEquals(PROFILE_ID, result.path("profileId").asString(), result.toString());
+            assertTrue(result.path("status").isMissingNode(), "no failure status: " + result);
+            assertTrue(result.path("operation").isMissingNode(), "the stale attempt is set aside: " + result);
+            verify(recordingsManager, times(1)).analyzeRecording(RECORDING_ID);
         }
 
         @Test

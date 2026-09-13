@@ -552,7 +552,7 @@ public class HubsMcpTools {
 
     private String registerDownload(HubSessionRef ref, OperationHandle<String> operation) {
         String sessionRef = ref.encode();
-        return operations.register("hub_download", operation,
+        return operations.register(OperationKind.HUB_DOWNLOAD, operation,
                 recordingId -> Map.of("recordingId", recordingId, "sessionRef", sessionRef));
     }
 

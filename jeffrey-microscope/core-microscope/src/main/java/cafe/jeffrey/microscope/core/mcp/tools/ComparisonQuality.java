@@ -25,7 +25,7 @@ import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -53,11 +53,11 @@ final class ComparisonQuality {
     private ComparisonQuality() {
     }
 
-    static McpToolResult result(ProfileManager primary, ProfileManager baseline) {
+    static McpToolResult result(ProfileManager primary, ProfileManager baseline, Clock clock) {
         List<ProfileEvidence.EventEvidence> primaryEvents = ProfileEvidence.events(primary);
         List<ProfileEvidence.EventEvidence> baselineEvents = ProfileEvidence.events(baseline);
         ObjectNode root = Json.createObject().put("schemaVersion", 1).put("findingSchemaVersion", 1)
-                .put("generatedAt", Instant.now().toString())
+                .put("generatedAt", clock.instant().toString())
                 .put("serverVersion", AbstractMcpStreamableHttpController.serverVersion())
                 .put("scope", ProfileEvidence.WHOLE_RECORDING)
                 .put("semantics", "Current-state recording evidence; does not certify equivalent workloads or immutable historical state")

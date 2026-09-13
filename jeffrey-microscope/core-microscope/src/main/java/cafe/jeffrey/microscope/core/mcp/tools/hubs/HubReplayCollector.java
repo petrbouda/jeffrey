@@ -37,6 +37,13 @@ import java.util.concurrent.TimeoutException;
 /** Bounds one replay and preserves the first terminal reason, including cancellation races. */
 public final class HubReplayCollector {
     private static final int TERMINAL_RESERVE = 512;
+    /**
+     * What a remote failure message may take of the terminal reserve. Smaller than the activity
+     * tools' bound because the reserve is fixed and the termination fields already share it.
+     */
+    private static final int MAX_ERROR_LENGTH = 256;
+    private static final String TERMINATION_COMPLETED = "completed";
+    private static final String ERROR_FIELD = "error";
     /** The caller asked for every matching event; only the byte budget and the deadline bound it. */
     private static final int NO_ROW_LIMIT = 0;
     private final HubSessionRef ref;
@@ -173,13 +180,25 @@ public final class HubReplayCollector {
     }
 
     public synchronized void stop(String reason) {
+        stop(reason, null);
+    }
+
+    /**
+     * Ends the replay with a reason and, for a remote failure, the message that came with it — the
+     * only thing a caller can act on when the termination alone says "remote_error". The text is the
+     * Hub's, so it is bounded before it is quoted back.
+     */
+    public synchronized void stop(String reason, String error) {
         if (terminal) {
             return;
         }
         terminal = true;
         output.put("termination", reason);
-        output.put("complete", reason.equals("completed"));
-        output.put("partial", !reason.equals("completed"));
+        output.put("complete", reason.equals(TERMINATION_COMPLETED));
+        output.put("partial", !reason.equals(TERMINATION_COMPLETED));
+        if (error != null && !error.isBlank()) {
+            output.put(ERROR_FIELD, HubActivityMcpSupport.shortened(error, MAX_ERROR_LENGTH));
+        }
         done.complete(null);
         cancelIfFinished();
     }

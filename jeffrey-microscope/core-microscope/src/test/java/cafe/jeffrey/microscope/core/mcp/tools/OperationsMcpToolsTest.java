@@ -74,7 +74,7 @@ class OperationsMcpToolsTest {
             }
             return "result";
         });
-        String id = registry.register("recording_analysis", operation, value -> value);
+        String id = registry.register(OperationKind.RECORDING_ANALYSIS, operation, value -> value);
         ExecutorService callers = Executors.newFixedThreadPool(2);
         try {
             assertTrue(workerEntered.await(5, TimeUnit.SECONDS));
@@ -114,7 +114,7 @@ class OperationsMcpToolsTest {
             control.checkCancellation();
             return "copy";
         });
-        String firstId = registry.register("hub_download", first, value -> Map.of("recordingId", value));
+        String firstId = registry.register(OperationKind.HUB_DOWNLOAD, first, value -> Map.of("recordingId", value));
         try {
             assertTrue(entered.await(5, TimeUnit.SECONDS));
             JsonNode cancelled = Json.mapper().readTree(tools.cancel(firstId));
@@ -130,7 +130,7 @@ class OperationsMcpToolsTest {
         }
         await().atMost(5, TimeUnit.SECONDS).until(() -> first.snapshot().state().terminal());
         OperationHandle<String> retry = jobs.startOrJoin("session", true, value -> true, () -> "new-copy");
-        String retryId = registry.register("hub_download", retry, value -> Map.of("recordingId", value));
+        String retryId = registry.register(OperationKind.HUB_DOWNLOAD, retry, value -> Map.of("recordingId", value));
         assertFalse(firstId.equals(retryId));
         assertEquals("cancelled", Json.mapper().readTree(tools.cancel(firstId)).path("status").asString());
         await().atMost(5, TimeUnit.SECONDS).until(() -> retry.snapshot().state().terminal());
@@ -143,8 +143,8 @@ class OperationsMcpToolsTest {
         BoundedJobs<String, String> jobs = new BoundedJobs<>();
         McpOperationRegistry registry = new McpOperationRegistry();
         OperationHandle<String> finished = jobs.rememberCompleted("s", "r");
-        String id = registry.register("hub_download", finished, value -> value);
-        OperationsMcpTools hidden = new OperationsMcpTools(registry, kind -> !kind.equals("hub_download"));
+        String id = registry.register(OperationKind.HUB_DOWNLOAD, finished, value -> value);
+        OperationsMcpTools hidden = new OperationsMcpTools(registry, kind -> kind != OperationKind.HUB_DOWNLOAD);
         assertThrows(IllegalArgumentException.class, () -> hidden.status(id));
         assertThrows(IllegalArgumentException.class, () -> hidden.cancel(id));
         assertEquals("completed", registry.status(id).status());
@@ -155,7 +155,7 @@ class OperationsMcpToolsTest {
         MutableClock clock = new MutableClock();
         BoundedJobs<String, String> jobs = new BoundedJobs<>(Duration.ofSeconds(1), Duration.ofHours(1), clock);
         McpOperationRegistry registry = new McpOperationRegistry(clock);
-        String id = registry.register("recording_analysis", jobs.rememberCompleted("r", "p"), value -> value);
+        String id = registry.register(OperationKind.RECORDING_ANALYSIS, jobs.rememberCompleted("r", "p"), value -> value);
         clock.now = clock.now.plus(Duration.ofHours(2));
         assertThrows(IllegalArgumentException.class, () -> registry.status(id));
         assertThrows(IllegalArgumentException.class, () -> registry.cancel(id, kind -> true));

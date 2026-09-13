@@ -36,11 +36,16 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class HubsActivityMcpToolsTest {
     private static final String REF = new HubSessionRef("hub", "workspace", "project", "session").encode();
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     private static final ActivityScope SCOPE = ActivityScope.newBuilder()
             .setWorkspaceId("workspace")
@@ -120,7 +125,7 @@ class HubsActivityMcpToolsTest {
                     .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
-            var tools = new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry()), "hubs");
+            var tools = new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK), "hubs");
             var started = tools.callResult("hubs_eventActivity", Json.createObject()
                     .put("sessionRef", REF)
                     .put("startTime", 1000)
@@ -185,7 +190,7 @@ class HubsActivityMcpToolsTest {
                     .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
-            var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
+            var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
             var error = assertThrows(IllegalStateException.class, () -> tools.eventActivity(REF, 1, 2, null, null));
             assertTrue(error.getMessage().contains("does not support event activity"), error.toString());
             assertEquals(0, rawCalls.get());
@@ -236,7 +241,7 @@ class HubsActivityMcpToolsTest {
             when(project.eventStreamingManager()).thenReturn(manager);
 
             var operations = new McpOperationRegistry();
-            var hubs = new HubsReplayMcpTools(resolver, operations);
+            var hubs = new HubsReplayMcpTools(resolver, operations, CLOCK);
             var started = hubs.eventActivity(REF, 1000, 121000, 60L, null).structuredContent();
 
             // The scan ID is the operation ID, so a reader tracks one identifier rather than two.
@@ -256,7 +261,7 @@ class HubsActivityMcpToolsTest {
     @Test
     void invalidScanArgumentsNeverContactHub() {
         var resolver = mock(ProjectManagerResolver.class);
-        var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
+        var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 2, 1, null, null));
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 0, Long.MAX_VALUE, 1L, null));
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 1, 2, Long.MAX_VALUE, null));

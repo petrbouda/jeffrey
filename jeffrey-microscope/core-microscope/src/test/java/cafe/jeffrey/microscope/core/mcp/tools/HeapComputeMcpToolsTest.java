@@ -135,6 +135,30 @@ class HeapComputeMcpToolsTest {
         assertEquals("cancelled", operations.cancel(firstId, kind -> true).status());
     }
 
+    /**
+     * "Omit to inspect it without restarting" has to hold for a preparation that completed, not only
+     * for one that failed: the registry used to keep a failed run and replace a completed one, so an
+     * inspection call rebuilt a dominator tree that was already there.
+     */
+    @Test
+    void omittingRetryDoesNotRestartACompletedPreparation() throws Exception {
+        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, initService, () -> () -> {}, operations);
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        String first = Json.mapper().readTree(tools.prepare("leaks", false)).path("operationId").asString();
+        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status().equals("completed"));
+
+        var inspected = Json.mapper().readTree(tools.prepare("leaks", null));
+
+        assertFalse(inspected.path("started").asBoolean());
+        assertEquals(first, inspected.path("operationId").asString());
+        assertTrue(inspected.path("nextSteps").get(0).asString().contains("already completed"), inspected.toString());
+        verify(heapDumpManager, times(1)).initialize(eq(null), any());
+
+        String retried = Json.mapper().readTree(tools.prepare("leaks", true)).path("operationId").asString();
+        assertFalse(first.equals(retried), "an explicit retry is what restarts a finished run");
+    }
+
     @Test
     void heapHistoryRemainsReadableAfterOperationRetentionExpires() {
         MutableClock clock = new MutableClock();

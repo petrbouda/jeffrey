@@ -120,15 +120,23 @@ public final class PipelineRunRegistry<K> {
         return startOrJoin(request, true).started();
     }
 
-    /** Atomically selects one exact attempt; retained failures restart only on explicit retry. */
+    /**
+     * Atomically selects one exact attempt.
+     * <p>
+     * A run in flight is always joined. A finished run -- completed or failed alike -- is kept and
+     * joined unless {@code retryFailure} asks for a fresh one: a caller that only wants to inspect
+     * what happened must not restart a preparation that already completed, which is what "omit retry
+     * to inspect without restarting" promises the reader. {@link #start} passes {@code true}, so the
+     * UI's own re-initialize keeps restarting a finished run.
+     *
+     * @param retryFailure whether a finished run may be replaced by a new attempt
+     */
     public StartResult startOrJoin(PipelineRunRequest<K> request, boolean retryFailure) {
         // The candidate is built up front so the outcome can be decided by identity: if compute() gave
         // back anything else, an in-flight run kept the key and this call started nothing.
         TrackedRun candidate = new TrackedRun(new PipelineRun(definition, request.scopeId(), clock));
         TrackedRun current = runsByKey.compute(request.key(), (_, existing) ->
-                existing != null && (!existing.finished
-                        || (!retryFailure && existing.run.progress().state() == PipelineState.FAILED))
-                        ? existing : candidate);
+                existing != null && (!existing.finished || !retryFailure) ? existing : candidate);
 
         if (current != candidate) {
             LOG.debug("Pipeline run already in flight: pipeline_id={} key={}",

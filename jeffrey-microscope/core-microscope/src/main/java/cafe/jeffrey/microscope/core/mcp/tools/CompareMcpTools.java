@@ -36,10 +36,13 @@ import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -98,15 +101,21 @@ public class CompareMcpTools {
     private static final String NOTE_ONLY_IN_BASELINE =
             "Some event types were recorded only in the baseline. That is a profiler-configuration "
                     + "difference between the two runs, not a change in the application.";
+    private static final String NOTE_NOT_COMPARABLE =
+            "Some event types were recorded by both runs but are not among the types the differential "
+                    + "tools compare. That is neither a configuration difference nor a change in the "
+                    + "application; read them with the single-profile tools on each side.";
 
     private final ProfileManager primaryManager;
     private final Function<String, ProfileManager> baselineResolver;
+    private final Clock clock;
 
     public CompareMcpTools(
-            ProfileManager primaryManager, Function<String, ProfileManager> baselineResolver) {
+            ProfileManager primaryManager, Function<String, ProfileManager> baselineResolver, Clock clock) {
 
         this.primaryManager = primaryManager;
         this.baselineResolver = baselineResolver;
+        this.clock = clock;
     }
 
     @Tool(description = "Establish whether two profiles can be compared at all, and on which event "
@@ -131,8 +140,12 @@ public class CompareMcpTools {
                 .map(ComparableType::eventType)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        List<String> onlyInPrimary = exclusiveTypes(primaryManager, comparableCodes);
-        List<String> onlyInBaseline = exclusiveTypes(baseline, comparableCodes);
+        Map<String, Long> primarySamples = recordedSamples(primaryManager);
+        Map<String, Long> baselineSamples = recordedSamples(baseline);
+        List<String> onlyInPrimary = exclusiveTypes(primarySamples, baselineSamples, comparableCodes);
+        List<String> onlyInBaseline = exclusiveTypes(baselineSamples, primarySamples, comparableCodes);
+        List<String> recordedByBothNotComparable =
+                sharedNotComparable(primarySamples, baselineSamples, comparableCodes);
 
         Comparability comparability = new Comparability(
                 side(primaryManager),
@@ -140,7 +153,9 @@ public class CompareMcpTools {
                 comparable,
                 onlyInPrimary,
                 onlyInBaseline,
-                notes(primaryManager.info(), baseline.info(), onlyInPrimary, onlyInBaseline));
+                recordedByBothNotComparable,
+                notes(primaryManager.info(), baseline.info(),
+                        onlyInPrimary, onlyInBaseline, recordedByBothNotComparable));
 
         if (comparable.isEmpty()) {
             return NOTHING_COMPARABLE + "\n\n" + McpToolOutput.json(comparability);
@@ -236,7 +251,7 @@ public class CompareMcpTools {
     public McpToolResult quality(
             @ToolParam(required = true, description = "Baseline profile id, as listed by profiles_list")
             String baselineProfileId) {
-        return ComparisonQuality.result(primaryManager, baseline(baselineProfileId));
+        return ComparisonQuality.result(primaryManager, baseline(baselineProfileId), clock);
     }
 
     private ProfileManager baseline(String baselineProfileId) {
@@ -292,32 +307,74 @@ public class CompareMcpTools {
         return new RelativeTimeRange(Duration.ofMillis(from), endMs == null ? null : Duration.ofMillis(endMs));
     }
 
-    /**
-     * Event types one profile recorded and the pair cannot be compared on. Reported rather than
-     * dropped: a type missing from one side is a difference between the two profiler configurations,
-     * and a reader who does not know that will read its absence as the application no longer doing it.
-     */
-    private static List<String> exclusiveTypes(ProfileManager manager, Set<String> comparableCodes) {
-        List<String> exclusive = new ArrayList<>();
+    /** Every event type one profile recorded, with its sample count, in the order the manager lists them. */
+    private static Map<String, Long> recordedSamples(ProfileManager manager) {
+        Map<String, Long> samples = new LinkedHashMap<>();
         for (EventSummaryResult summary : manager.flamegraphManager().eventSummaries()) {
-            if (summary.primary().samples() > 0 && !comparableCodes.contains(summary.code())) {
-                exclusive.add(summary.code());
+            if (summary.primary().samples() > 0) {
+                samples.put(summary.code(), summary.primary().samples());
+            }
+        }
+        return samples;
+    }
+
+    /**
+     * Event types one profile recorded and the other did not at all. Reported rather than dropped:
+     * a type missing from one side is a difference between the two profiler configurations, and a
+     * reader who does not know that will read its absence as the application no longer doing it.
+     * <p>
+     * "Recorded" is decided by the other side's sample count, not by the differential set: the
+     * differential tools compare a handful of types, and a type both runs recorded that is not among
+     * them used to be reported as exclusive to <em>both</em>, with a note asserting a configuration
+     * difference that did not exist.
+     */
+    private static List<String> exclusiveTypes(
+            Map<String, Long> thisSide, Map<String, Long> otherSide, Set<String> comparableCodes) {
+
+        List<String> exclusive = new ArrayList<>();
+        for (String code : thisSide.keySet()) {
+            if (!comparableCodes.contains(code) && !otherSide.containsKey(code)) {
+                exclusive.add(code);
             }
         }
         return exclusive;
     }
 
+    /** Event types both runs recorded that the differential tools nonetheless cannot compare. */
+    private static List<String> sharedNotComparable(
+            Map<String, Long> primary, Map<String, Long> baseline, Set<String> comparableCodes) {
+
+        List<String> shared = new ArrayList<>();
+        for (String code : primary.keySet()) {
+            if (!comparableCodes.contains(code) && baseline.containsKey(code)) {
+                shared.add(code);
+            }
+        }
+        return shared;
+    }
+
     private static ProfileSide side(ProfileManager manager) {
         ProfileInfo info = manager.info();
-        Duration duration = info.duration() == null ? Duration.ZERO : info.duration();
+        Duration duration = Duration.ofMillis(durationMillis(info));
         return new ProfileSide(info.id(), info.name(), duration.toString(), duration.toMillis());
+    }
+
+    /**
+     * Zero when the recording carries no window, the same as the recording being too short to
+     * compare. {@code ProfileInfo.duration()} itself dereferences both timestamps, and a profile
+     * imported from a format without them -- or one whose parse never reached the end -- has neither.
+     */
+    private static long durationMillis(ProfileInfo info) {
+        Long millis = ProfileEvidence.durationMillis(info);
+        return millis == null ? 0L : millis;
     }
 
     private static List<String> notes(
             ProfileInfo primary,
             ProfileInfo baseline,
             List<String> onlyInPrimary,
-            List<String> onlyInBaseline) {
+            List<String> onlyInBaseline,
+            List<String> recordedByBothNotComparable) {
 
         List<String> notes = new ArrayList<>();
         if (durationsDiverge(primary, baseline)) {
@@ -329,12 +386,15 @@ public class CompareMcpTools {
         if (!onlyInBaseline.isEmpty()) {
             notes.add(NOTE_ONLY_IN_BASELINE);
         }
+        if (!recordedByBothNotComparable.isEmpty()) {
+            notes.add(NOTE_NOT_COMPARABLE);
+        }
         return notes;
     }
 
     private static boolean durationsDiverge(ProfileInfo primary, ProfileInfo baseline) {
-        long primaryMillis = primary.duration() == null ? 0L : primary.duration().toMillis();
-        long baselineMillis = baseline.duration() == null ? 0L : baseline.duration().toMillis();
+        long primaryMillis = durationMillis(primary);
+        long baselineMillis = durationMillis(baseline);
         if (primaryMillis <= 0 || baselineMillis <= 0) {
             return true;
         }
@@ -352,6 +412,7 @@ public class CompareMcpTools {
             List<ComparableType> comparable,
             List<String> onlyInPrimary,
             List<String> onlyInBaseline,
+            List<String> recordedByBothNotComparable,
             List<String> notes) {
     }
 

@@ -88,7 +88,7 @@ public class McpConfiguration {
      */
     @Bean
     public McpRequestGuard mcpRequestGuard(
-            @Value("${jeffrey.microscope.mcp.allowed-hosts:localhost,127.0.0.1,::1}") Set<String> allowedHosts) {
+            @Value("${" + McpRequestGuard.ALLOWED_HOSTS_PROPERTY + ":localhost,127.0.0.1,::1}") Set<String> allowedHosts) {
         return new McpRequestGuard(allowedHosts);
     }
 
@@ -118,8 +118,9 @@ public class McpConfiguration {
     @Bean
     public RecordingsMcpTools recordingsMcpTools(
             RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> profileInitRunRegistry, McpOperationRegistry operations) {
-        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry, operations);
+            PipelineRunRegistry<String> profileInitRunRegistry, McpOperationRegistry operations,
+            Clock applicationClock) {
+        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry, operations, applicationClock);
     }
 
     /**
@@ -163,11 +164,12 @@ public class McpConfiguration {
             RecordingCommitResolver recordingCommitResolver,
             HeapDumpInitService heapDumpInitService,
             IdeBridge ideBridge,
-            ExternalMcpProperties properties, HubsReplayMcpTools replayMcpTools, McpOperationRegistry operations) {
+            ExternalMcpProperties properties, HubsReplayMcpTools replayMcpTools, McpOperationRegistry operations,
+            Clock applicationClock) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
-                properties, replayMcpTools, operations);
+                properties, replayMcpTools, operations, applicationClock);
     }
 
     /**
@@ -181,8 +183,9 @@ public class McpConfiguration {
     }
 
     @Bean
-    public HubsReplayMcpTools hubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations) {
-        return new HubsReplayMcpTools(resolver, operations);
+    public HubsReplayMcpTools hubsReplayMcpTools(
+            ProjectManagerResolver resolver, McpOperationRegistry operations, Clock applicationClock) {
+        return new HubsReplayMcpTools(resolver, operations, applicationClock);
     }
 
     @Bean

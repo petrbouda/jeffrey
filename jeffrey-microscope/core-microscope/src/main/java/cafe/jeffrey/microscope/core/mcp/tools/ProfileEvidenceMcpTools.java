@@ -34,7 +34,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,12 +58,15 @@ public class ProfileEvidenceMcpTools {
     private final ProfileManager manager;
     private final RecordingCommitResolver commits;
     private final ProfileCapabilityGaps capabilityGaps;
+    private final Clock clock;
 
     public ProfileEvidenceMcpTools(ProfileManager manager, RecordingCommitResolver commits,
-                                  JfrFlamegraphPanelProvider jfrPanels, StackSampleFlamegraphPanelProvider stackPanels) {
+                                  JfrFlamegraphPanelProvider jfrPanels, StackSampleFlamegraphPanelProvider stackPanels,
+                                  Clock clock) {
         this.manager = manager;
         this.commits = commits;
         this.capabilityGaps = new ProfileCapabilityGaps(manager, new FlamegraphCatalog(manager, jfrPanels, stackPanels));
+        this.clock = clock;
     }
 
     @Tool(description = "Download a versioned evidence snapshot of the profile's current state: recording identity, "
@@ -76,7 +79,7 @@ public class ProfileEvidenceMcpTools {
             Integer limit) {
         int rows = ToolArguments.boundedLimit(limit, 100, 500);
         ObjectNode root = Json.createObject().put("schemaVersion", 1).put("findingSchemaVersion", 1)
-                .put("generatedAt", Instant.now().toString())
+                .put("generatedAt", clock.instant().toString())
                 .put("serverVersion", AbstractMcpStreamableHttpController.serverVersion())
                 .put("semantics", "Snapshot of current profile state; replay reads current state again, not an immutable historical version")
                 .put("samplingSettingsScope", ProfileEvidence.SETTINGS_SCOPE);

@@ -27,13 +27,13 @@ import java.util.function.Predicate;
 /** Status and best-effort cancellation for one exact import, download or heap attempt. */
 public final class OperationsMcpTools {
     private final McpOperationRegistry operations;
-    private final Predicate<String> allowedKind;
+    private final Predicate<OperationKind> allowedKind;
 
     public OperationsMcpTools(McpOperationRegistry operations) {
         this(operations, kind -> true);
     }
 
-    public OperationsMcpTools(McpOperationRegistry operations, Predicate<String> allowedKind) {
+    public OperationsMcpTools(McpOperationRegistry operations, Predicate<OperationKind> allowedKind) {
         this.operations = operations;
         this.allowedKind = allowedKind;
     }

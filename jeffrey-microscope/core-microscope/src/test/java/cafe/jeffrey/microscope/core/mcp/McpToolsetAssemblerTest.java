@@ -25,6 +25,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -108,7 +109,7 @@ class McpToolsetAssemblerTest {
         return new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories),
                 new RecordingsMcpTools(recordingsManager, new PipelineRunRegistry<>(
-                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK)),
+                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK), CLOCK),
                 new HubsMcpTools(hubsManager, projectManagerResolver, recordingsManager, CLOCK),
                 contextCache,
                 jfrPanelProvider,
@@ -116,7 +117,8 @@ class McpToolsetAssemblerTest {
                 recordingCommitResolver,
                 new HeapDumpInitService(CLOCK),
                 ideBridge,
-                properties, new HubsReplayMcpTools(projectManagerResolver, new McpOperationRegistry(CLOCK)), new McpOperationRegistry(CLOCK));
+                properties, new HubsReplayMcpTools(projectManagerResolver, new McpOperationRegistry(CLOCK), CLOCK),
+                new McpOperationRegistry(CLOCK), CLOCK);
     }
 
     private List<String> toolNames(boolean hubsEnabled) {
@@ -487,6 +489,19 @@ class McpToolsetAssemblerTest {
          * still advertised -- it just cannot be named or reached through a preset. Nothing about the
          * served tool list would look wrong, which is why the two sets are compared here instead.
          */
+        /**
+         * The operations family gates each operation by the family that started it, so a kind whose
+         * family is not a name the properties know would be reachable by nobody and unreachable for no
+         * reason anyone could read off the configuration.
+         */
+        @Test
+        void everyOperationKindBelongsToAKnownFamily() {
+            for (OperationKind kind : OperationKind.values()) {
+                assertTrue(ExternalMcpProperties.knownFamilies().contains(kind.family()),
+                        kind + " names family " + kind.family() + ", which ExternalMcpProperties does not know");
+            }
+        }
+
         @Test
         void everyBuiltFamilyIsANameAReaderCanSelect() {
             assertEquals(ExternalMcpProperties.knownFamilies(), families(assembler(true)),

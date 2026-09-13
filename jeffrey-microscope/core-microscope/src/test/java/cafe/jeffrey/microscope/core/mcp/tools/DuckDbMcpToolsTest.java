@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -255,6 +256,95 @@ class DuckDbMcpToolsTest {
                 return true;
             } catch (SQLException e) {
                 return false;
+            }
+        }
+    }
+
+    /**
+     * The prefix check is a message, not a boundary. DuckDB runs a CTE-prefixed DELETE through
+     * executeQuery -- with RETURNING it even produces a result set -- and in autocommit mode the row
+     * is gone by the time the driver answers. What stops it is the transaction the tool wraps every
+     * caller-supplied statement in and rolls back whatever happened.
+     */
+    @Nested
+    @DisplayName("Nothing a query does persists")
+    class NothingPersists {
+
+        private static final String CTE_DELETE_RETURNING =
+                "WITH t AS (SELECT 1) DELETE FROM big WHERE i = 1 RETURNING i";
+        private static final String CTE_DELETE = "WITH t AS (SELECT 1) DELETE FROM big WHERE i = 1";
+        private static final String CTE_INSERT = "WITH t AS (SELECT 1) INSERT INTO big SELECT 99";
+
+        @Test
+        @DisplayName("a CTE-prefixed DELETE with RETURNING leaves the table as it was")
+        void rollsBackADeleteWithReturning(DataSource dataSource) throws SQLException {
+            seedRows(dataSource, 10);
+
+            runIgnoringRefusal(dataSource, CTE_DELETE_RETURNING);
+
+            assertEquals(10, rowCount(dataSource));
+        }
+
+        @Test
+        @DisplayName("a CTE-prefixed DELETE without RETURNING leaves the table as it was")
+        void rollsBackADeleteWithoutReturning(DataSource dataSource) throws SQLException {
+            seedRows(dataSource, 10);
+
+            runIgnoringRefusal(dataSource, CTE_DELETE);
+
+            assertEquals(10, rowCount(dataSource));
+        }
+
+        @Test
+        @DisplayName("a CTE-prefixed INSERT leaves the table as it was")
+        void rollsBackAnInsert(DataSource dataSource) throws SQLException {
+            seedRows(dataSource, 10);
+
+            runIgnoringRefusal(dataSource, CTE_INSERT);
+
+            assertEquals(10, rowCount(dataSource));
+        }
+
+        @Test
+        @DisplayName("the connection is handed back in autocommit, as the pool expects it")
+        void restoresAutocommit(DataSource dataSource) throws SQLException {
+            seedRows(dataSource, 3);
+
+            new DuckDbMcpTools(dataSource).executeQuery("SELECT i FROM big");
+
+            try (Connection conn = dataSource.getConnection()) {
+                assertTrue(conn.getAutoCommit());
+            }
+        }
+
+        @Test
+        @DisplayName("an honest read still answers")
+        void stillAnswersAPlainRead(DataSource dataSource) throws SQLException {
+            seedRows(dataSource, 3);
+
+            String out = new DuckDbMcpTools(dataSource).executeQuery("SELECT i FROM big ORDER BY i");
+
+            assertEquals(3, rowsReported(out), out);
+        }
+
+        /**
+         * Whether the engine answers the write or refuses it is the driver's business; what this
+         * class asserts is the table afterwards.
+         */
+        private static void runIgnoringRefusal(DataSource dataSource, String sql) {
+            try {
+                new DuckDbMcpTools(dataSource).executeQuery(sql);
+            } catch (ToolExecutionException refused) {
+                // A refusal is fine; a silently persisted write is the bug.
+            }
+        }
+
+        private static int rowCount(DataSource dataSource) throws SQLException {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM big")) {
+                rs.next();
+                return rs.getInt(1);
             }
         }
     }

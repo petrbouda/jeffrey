@@ -136,12 +136,15 @@ public class DuckDbMcpTools {
             throw new ToolExecutionException("Query is required");
         }
 
-        // Defence in depth, and deliberately not the boundary. What confines this query is the
+        // Defence in depth, and deliberately not the boundary. Two things confine this query. The
         // connection: the profile DataSource disables DuckDB's external file access and extension
-        // autoloading, so no spelling of a SELECT reaches read_text, glob or ATTACH. A prefix test
-        // could never do that on its own -- it is a string check, not a parser, and the reach is a
-        // function call rather than a leading keyword. It stays only to turn an obvious write into
-        // a clear message instead of an engine error.
+        // autoloading, so no spelling of a SELECT reaches read_text, glob or ATTACH. And the
+        // transaction: readOnly() below runs the statement with autocommit off and rolls it back
+        // unconditionally, so a write that satisfies every textual check -- "WITH t AS (SELECT 1)
+        // DELETE FROM events ... RETURNING id" starts with WITH, is one statement, and DuckDB runs it
+        // through executeQuery -- changes nothing that outlives the call. A prefix test could never
+        // do either on its own: it is a string check, not a parser. It stays only to turn an obvious
+        // write into a clear message instead of an engine error.
         String normalizedQuery = query.trim().toLowerCase();
         if (!normalizedQuery.startsWith("select") && !normalizedQuery.startsWith("with")) {
             throw new ToolExecutionException("Only SELECT and WITH queries are allowed");
@@ -168,14 +171,15 @@ public class DuckDbMcpTools {
         // The row cap is applied while reading, not with setMaxRows: DuckDB's driver accepts that
         // call and ignores it (getMaxRows stays 0). Reading is cheap because results stream, so
         // stopping at the cap does not make the engine materialise the rest.
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-
-            stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                return formatResultSet(rs);
-            }
+        try (Connection conn = dataSource.getConnection()) {
+            return readOnly(conn, () -> {
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        return formatResultSet(rs);
+                    }
+                }
+            });
         } catch (SQLException e) {
             LOG.error("Failed to execute query: query={} message={}", query, e.getMessage(), e);
             throw new ToolExecutionException("Query execution failed: " + e.getMessage(), e);
@@ -276,9 +280,10 @@ public class DuckDbMcpTools {
 
         if (whereClause != null && !whereClause.isBlank()) {
             // The fragment is caller-supplied SQL spliced into the statement, and it is confined by
-            // the same thing executeQuery is: the connection has no filesystem and no extension
-            // loading, so the worst a fragment can do is read this profile's own tables -- which is
-            // what the tool is for. The keyword denylist that used to stand here was worse than
+            // the same two things executeQuery is: the connection has no filesystem and no extension
+            // loading, and the statement runs inside a transaction that is always rolled back, so the
+            // worst a fragment can do is read this profile's own tables -- which is what the tool is
+            // for. The keyword denylist that used to stand here was worse than
             // nothing: it missed ATTACH, COPY and every file function, so a scalar subquery walked
             // straight through the AND (...) it lands in, while it rejected honest filters over any
             // value containing "created" or "updated".
@@ -287,20 +292,52 @@ public class DuckDbMcpTools {
 
         queryBuilder.append(" ORDER BY start_timestamp DESC LIMIT ?");
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(queryBuilder.toString())) {
-
-            stmt.setString(1, eventType);
-            stmt.setInt(2, safeLimit);
-            stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                return formatResultSet(rs);
-            }
+        try (Connection conn = dataSource.getConnection()) {
+            return readOnly(conn, () -> {
+                try (PreparedStatement stmt = conn.prepareStatement(queryBuilder.toString())) {
+                    stmt.setString(1, eventType);
+                    stmt.setInt(2, safeLimit);
+                    stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        return formatResultSet(rs);
+                    }
+                }
+            });
         } catch (SQLException e) {
             LOG.error("Failed to query events: eventType={} message={}", eventType, e.getMessage(), e);
             throw new ToolExecutionException("Failed to query events: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Runs caller-supplied SQL inside a transaction that is rolled back whatever happens, and hands
+     * the connection back with autocommit as it found it, since the connection is pooled and the UI
+     * reads the same profile through that pool.
+     * <p>
+     * This is the boundary the prefix check is not. DuckDB accepts a CTE-prefixed DELETE, UPDATE or
+     * INSERT through {@code executeQuery} -- with RETURNING it even produces a result set -- and in
+     * autocommit mode the row is gone by the time the driver answers. Under an explicit transaction
+     * the same statement runs, returns, and is undone before the connection leaves this method. The
+     * result set is fully rendered inside the transaction; nothing read here is needed after the
+     * rollback.
+     */
+    private static <T> T readOnly(Connection conn, SqlRead<T> read) throws SQLException {
+        boolean autoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try {
+            return read.run();
+        } finally {
+            try {
+                conn.rollback();
+            } finally {
+                conn.setAutoCommit(autoCommit);
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface SqlRead<T> {
+        T run() throws SQLException;
     }
 
     @Tool(description = "Get information about the current JFR profile including profile ID, project ID, and workspace ID.")

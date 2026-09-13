@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.grpc.client.ActivityScanQuery;
 import cafe.jeffrey.microscope.grpc.client.ActivityScanRequest;
@@ -38,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
@@ -91,7 +93,7 @@ public final class HubActivityMcpSupport {
     /** The Hub's failure text is its own; it is quoted back, so it cannot be trusted to be short. */
     private static final int MAX_ERROR_LENGTH = 2000;
 
-    private static final String OPERATION_KIND = "hub_activity";
+    private static final OperationKind OPERATION_KIND = OperationKind.HUB_ACTIVITY;
     private static final String TYPE_SEPARATOR = ",";
 
     private static final String COVERAGE_NOTE =
@@ -106,16 +108,19 @@ public final class HubActivityMcpSupport {
     private final McpOperationRegistry operations;
     private final Duration timeout;
     private final ScheduledExecutorService deadlines;
+    private final Clock clock;
 
     public HubActivityMcpSupport(
             ProjectManagerResolver resolver,
             McpOperationRegistry operations,
             Duration timeout,
-            ScheduledExecutorService deadlines) {
+            ScheduledExecutorService deadlines,
+            Clock clock) {
         this.resolver = resolver;
         this.operations = operations;
         this.timeout = timeout;
         this.deadlines = deadlines;
+        this.clock = clock;
     }
 
     public McpToolResult start(
@@ -182,7 +187,8 @@ public final class HubActivityMcpSupport {
         var handle = new HubActivityOperation(
                 snapshot,
                 () -> call(ref, target, manager -> manager.getActivity(query)),
-                () -> call(ref, target, manager -> manager.cancelActivity(target)));
+                () -> call(ref, target, manager -> manager.cancelActivity(target)),
+                clock);
         try {
             operations.registerIfRetained(
                     OPERATION_KIND, handle, scan -> operationResult(ref, scan), McpOperationRegistry.RETENTION);
@@ -265,9 +271,17 @@ public final class HubActivityMcpSupport {
 
     /** The Hub wrote this text, so it is quoted back at a length this result can afford. */
     private static String shortened(String error) {
-        return error.length() <= MAX_ERROR_LENGTH
+        return shortened(error, MAX_ERROR_LENGTH);
+    }
+
+    /**
+     * The same bound for any remote text quoted back into a result: a replay's failure message is
+     * the Hub's too, and {@link HubReplayCollector} has a smaller budget to fit it in.
+     */
+    static String shortened(String error, int maxLength) {
+        return error.length() <= maxLength
                 ? error
-                : error.substring(0, MAX_ERROR_LENGTH) + "… (truncated to " + MAX_ERROR_LENGTH + " characters)";
+                : error.substring(0, maxLength) + "… (truncated to " + maxLength + " characters)";
     }
 
     private static ActivityScanTarget target(HubSessionRef ref, String scanId) {

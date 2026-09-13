@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -49,11 +50,12 @@ import static org.mockito.Mockito.when;
 class HubActivityLifecycleTest {
 
     private static final String REF = new HubSessionRef("hub", "workspace", "project", "session").encode();
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     @Test
     void completedFamilyPollRemainsReadableAfterHubEvictsTheScan() {
         var manager = mock(EventStreamingManager.class);
-        var operations = new McpOperationRegistry();
+        var operations = new McpOperationRegistry(CLOCK);
         var tools = tools(manager, operations);
         when(manager.startActivity(any())).thenReturn(snapshot("scan", ActivityState.RUNNING));
         when(manager.getActivity(any()))
@@ -68,7 +70,7 @@ class HubActivityLifecycleTest {
     @Test
     void aDifferentScanInTheSameSessionIsRejected() {
         var manager = mock(EventStreamingManager.class);
-        var tools = tools(manager, new McpOperationRegistry());
+        var tools = tools(manager, new McpOperationRegistry(CLOCK));
         when(manager.getActivity(any())).thenReturn(snapshot("other-scan", ActivityState.COMPLETED));
         assertThrows(IllegalStateException.class, () -> tools.activityStatus(REF, "scan", "time", 1, 0));
     }
@@ -81,7 +83,7 @@ class HubActivityLifecycleTest {
             polling.complete(null);
             release.join();
             return snapshot("scan", ActivityState.RUNNING);
-        }, () -> snapshot("scan", ActivityState.CANCELLED));
+        }, () -> snapshot("scan", ActivityState.CANCELLED), CLOCK);
         var done = new CompletableFuture<Void>();
         Thread.ofVirtual().start(() -> {
             try {
@@ -105,7 +107,7 @@ class HubActivityLifecycleTest {
     @Test
     void anExpiredRemoteScanBecomesTerminalLocally() {
         var manager = mock(EventStreamingManager.class);
-        var operations = new McpOperationRegistry();
+        var operations = new McpOperationRegistry(CLOCK);
         var tools = tools(manager, operations);
         when(manager.startActivity(any())).thenReturn(snapshot("scan", ActivityState.RUNNING));
         when(manager.getActivity(any())).thenThrow(Status.NOT_FOUND.asRuntimeException());
@@ -135,7 +137,7 @@ class HubActivityLifecycleTest {
     @Test
     void aTransientHubFailureDoesNotFinishTheLocalOperation() {
         var manager = mock(EventStreamingManager.class);
-        var operations = new McpOperationRegistry();
+        var operations = new McpOperationRegistry(CLOCK);
         var tools = tools(manager, operations);
         when(manager.startActivity(any())).thenReturn(snapshot("scan", ActivityState.RUNNING));
         when(manager.getActivity(any()))
@@ -153,7 +155,7 @@ class HubActivityLifecycleTest {
         when(resolver.resolveStrict("hub", "workspace", "project"))
                 .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
         when(project.eventStreamingManager()).thenReturn(manager);
-        return new HubsReplayMcpTools(resolver, operations);
+        return new HubsReplayMcpTools(resolver, operations, CLOCK);
     }
 
     private static ActivityScanSnapshot snapshot(String id, ActivityState state) {

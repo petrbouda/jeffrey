@@ -42,6 +42,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -77,6 +79,7 @@ class CompareMcpToolsTest {
 
     private static final long ONE_MINUTE_SECONDS = 60L;
     private static final long TWENTY_SECONDS = 20L;
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     @Mock
     ProfileManager primaryManager;
@@ -135,6 +138,13 @@ class CompareMcpToolsTest {
                 true, false, "recording-" + id);
     }
 
+    /** A profile whose recording carries no window at all -- an import, or a parse that never reached the end. */
+    private static ProfileInfo infoWithoutTimestamps(String id, String name) {
+        return new ProfileInfo(
+                id, "project-1", "workspace-1", name, RecordingEventSource.JDK,
+                null, null, Instant.EPOCH, true, false, "recording-" + id);
+    }
+
     private CompareMcpTools tools() {
         Function<String, ProfileManager> resolver = profileId -> {
             if (BASELINE_ID.equals(profileId)) {
@@ -142,7 +152,7 @@ class CompareMcpToolsTest {
             }
             throw new AssertionError("unexpected baseline profile id: " + profileId);
         };
-        return new CompareMcpTools(primaryManager, resolver);
+        return new CompareMcpTools(primaryManager, resolver, CLOCK);
     }
 
     private static EventSummaryResult shared(
@@ -256,6 +266,47 @@ class CompareMcpToolsTest {
             baselineLasting(TWENTY_SECONDS);
 
             assertTrue(tools().list(BASELINE_ID).contains("noticeably different length"));
+        }
+
+        /**
+         * {@code ProfileInfo.duration()} dereferences both timestamps, so a recording without them
+         * used to take the whole listing down with a NullPointerException. The length is unknown,
+         * which is a note, not a crash.
+         */
+        @Test
+        void survivesARecordingWithoutTimestamps() {
+            when(diffManager.eventSummaries())
+                    .thenReturn(List.of(shared(CPU_EVENT, 4_200, 3_900, 0)));
+            when(baselineManager.info()).thenReturn(infoWithoutTimestamps(BASELINE_ID, BASELINE_NAME));
+
+            String out = tools().list(BASELINE_ID);
+
+            assertTrue(out.contains("\"profileId\":\"" + BASELINE_ID + "\""), out);
+            assertTrue(out.contains("\"durationMs\":0"), out);
+            assertTrue(out.contains("noticeably different length"), out);
+        }
+
+        /**
+         * The differential tools compare a handful of types. One both runs recorded that is not
+         * among them was reported as exclusive to each side at once, with a note asserting a
+         * profiler-configuration difference that did not exist.
+         */
+        @Test
+        void doesNotReportATypeRecordedByBothSidesAsExclusiveToEither() {
+            when(diffManager.eventSummaries())
+                    .thenReturn(List.of(shared(CPU_EVENT, 4_200, 3_900, 0)));
+            when(primaryFlamegraphManager.eventSummaries()).thenReturn(List.of(
+                    exclusive(CPU_EVENT, 4_200), exclusive(ONLY_IN_BASELINE_EVENT, 71)));
+            when(baselineFlamegraphManager.eventSummaries()).thenReturn(List.of(
+                    exclusive(CPU_EVENT, 3_900), exclusive(ONLY_IN_BASELINE_EVENT, 12)));
+
+            String out = tools().list(BASELINE_ID);
+
+            assertTrue(out.contains("\"onlyInPrimary\":[]"), out);
+            assertTrue(out.contains("\"onlyInBaseline\":[]"), out);
+            assertTrue(out.contains("\"recordedByBothNotComparable\":[\"" + ONLY_IN_BASELINE_EVENT + "\"]"), out);
+            assertFalse(out.contains("profiler-configuration difference"), out);
+            assertTrue(out.contains("neither a configuration difference nor a change"), out);
         }
 
         @Test

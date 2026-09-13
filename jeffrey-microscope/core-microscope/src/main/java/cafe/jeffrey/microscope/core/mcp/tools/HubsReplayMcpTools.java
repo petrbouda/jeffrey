@@ -37,6 +37,7 @@ import cafe.jeffrey.profile.mcp.McpOutputSchema;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
@@ -48,24 +49,28 @@ import java.util.stream.Collectors;
 /** A finite read-only query over finished Hub recording files. */
 public final class HubsReplayMcpTools {
     private static final ScheduledExecutorService DEADLINES = deadlineScheduler();
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration MAX_TIMEOUT = Duration.ofSeconds(30);
+    private static final String TERMINATION_INTERRUPTED = "interrupted";
     private final ProjectManagerResolver resolver;
     private final Duration timeout;
     private final HubActivityMcpSupport activity;
 
-    public HubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations) {
-        this(resolver, operations, Duration.ofSeconds(15));
+    public HubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations, Clock clock) {
+        this(resolver, operations, DEFAULT_TIMEOUT, clock);
     }
 
     public HubsReplayMcpTools(
             ProjectManagerResolver resolver,
             McpOperationRegistry operations,
-            Duration timeout) {
-        if (timeout == null || timeout.isZero() || timeout.isNegative() || timeout.compareTo(Duration.ofSeconds(30)) > 0) {
+            Duration timeout,
+            Clock clock) {
+        if (timeout == null || timeout.isZero() || timeout.isNegative() || timeout.compareTo(MAX_TIMEOUT) > 0) {
             throw new IllegalArgumentException("Replay timeout must be positive and no greater than 30 seconds");
         }
         this.resolver = resolver;
         this.timeout = timeout;
-        this.activity = new HubActivityMcpSupport(resolver, operations, timeout, DEADLINES);
+        this.activity = new HubActivityMcpSupport(resolver, operations, timeout, DEADLINES, clock);
     }
 
     @McpToolHints(readOnly = true, openWorld = true)
@@ -82,6 +87,7 @@ public final class HubsReplayMcpTools {
               "eventTypes":{"type":"array","items":{"type":"string"}},
               "complete":{"type":"boolean"},"partial":{"type":"boolean"},"termination":{"type":"string"},
               "coverageKnown":{"type":"boolean"},"sourceErrors":{"type":"integer"},
+              "error":{"type":"string","description":"The remote failure message, present only when the Hub or the transport failed"},
               "rows":{"type":"integer"},"resultBytes":{"type":"integer"},
               "limit":{"type":"integer","minimum":0,"description":"Requested row limit; 0 means no row limit"},
               "maxBytes":{"type":"integer"}
@@ -121,12 +127,16 @@ public final class HubsReplayMcpTools {
         }
         HubReplayCollector collector = new HubReplayCollector(ref, rows, bytes);
         collector.filters(types, startTime, endTime);
+        // Resolved before the deadline context, not inside it: the resolver is local, and an unknown
+        // hub, workspace or project is the caller's mistake. Inside the context every exception was
+        // read as a remote failure, so a typo in the session_ref came back as rows: 0 and
+        // termination: remote_error with the message that named the typo thrown away.
+        ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
+                .projectManager();
         Deadline deadline = Deadline.after(timeout.toNanos(), TimeUnit.NANOSECONDS);
         Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINES);
         try {
             context.call(() -> {
-                ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
-                        .projectManager();
                 var request = new ReplaySubscriptionRequest(
                         ref.sessionId(),
                         types,
@@ -137,17 +147,17 @@ public final class HubsReplayMcpTools {
                 var callbacks = new StreamingCallbacks(
                         collector::accept,
                         collector::streamCompleted,
-                        error -> collector.stop(termination(error)));
+                        error -> collector.stop(termination(error), describe(error)));
                 var subscription = project.eventStreamingManager().subscribeReplayRaw(request, callbacks);
                 collector.cancellation(subscription::cancel);
                 collector.await(Duration.ofNanos(Math.max(1, deadline.timeRemaining(TimeUnit.NANOSECONDS))));
                 return null;
             });
         } catch (InterruptedException e) {
-            collector.stop("interrupted");
+            collector.stop(TERMINATION_INTERRUPTED);
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            collector.stop(termination(e));
+            collector.stop(termination(e), describe(e));
         } finally {
             context.cancel(null);
         }
@@ -210,6 +220,21 @@ public final class HubsReplayMcpTools {
             case UNIMPLEMENTED -> "unsupported_hub";
             default -> "remote_error";
         };
+    }
+
+    /**
+     * The message worth quoting back for a failure: the gRPC status description when there is one,
+     * otherwise whatever the exception says, and at the very least the status code's name.
+     */
+    private static String describe(Throwable error) {
+        Status status = Status.fromThrowable(error);
+        if (status.getDescription() != null && !status.getDescription().isBlank()) {
+            return status.getDescription();
+        }
+        if (error.getMessage() != null && !error.getMessage().isBlank()) {
+            return error.getMessage();
+        }
+        return status.getCode().name();
     }
 
     private static ScheduledExecutorService deadlineScheduler() {
