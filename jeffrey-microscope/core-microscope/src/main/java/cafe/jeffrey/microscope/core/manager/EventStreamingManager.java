@@ -22,15 +22,15 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanQuery;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanRequest;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanSnapshot;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanTarget;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
 import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import cafe.jeffrey.hub.api.v1.EventBatch;
-import cafe.jeffrey.hub.api.v1.EventActivitySnapshot;
-import cafe.jeffrey.hub.api.v1.StartActivityRequest;
-import cafe.jeffrey.hub.api.v1.GetActivityRequest;
-import cafe.jeffrey.hub.api.v1.CancelActivityRequest;
 import cafe.jeffrey.hub.api.v1.StreamingEvent;
 import cafe.jeffrey.hub.api.v1.TypedValue;
 import cafe.jeffrey.shared.common.Json;
@@ -81,16 +81,16 @@ public class EventStreamingManager {
         return eventStreamingClient.subscribeReplayStreaming(request, callbacks);
     }
 
-    public EventActivitySnapshot startActivity(StartActivityRequest request) {
+    public ActivityScanSnapshot startActivity(ActivityScanRequest request) {
         return eventStreamingClient.startActivity(request);
     }
 
-    public EventActivitySnapshot getActivity(GetActivityRequest request) {
-        return eventStreamingClient.getActivity(request);
+    public ActivityScanSnapshot getActivity(ActivityScanQuery query) {
+        return eventStreamingClient.getActivity(query);
     }
 
-    public EventActivitySnapshot cancelActivity(CancelActivityRequest request) {
-        return eventStreamingClient.cancelActivity(request);
+    public ActivityScanSnapshot cancelActivity(ActivityScanTarget target) {
+        return eventStreamingClient.cancelActivity(target);
     }
 
     /**

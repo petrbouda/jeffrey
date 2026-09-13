@@ -16,22 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.activity;
+package cafe.jeffrey.shared.common.activity;
 
-import cafe.jeffrey.shared.common.activity.ActivityState;
+import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.time.Instant;
+/** Lifecycle of one scan. A cancellation request is not yet a terminal outcome. */
+public enum ActivityState {
 
-public record ActivitySnapshot(
-        String scanId,
-        ActivityState status,
-        Instant startedAt,
-        Instant finishedAt,
-        boolean complete,
-        boolean coverageKnown,
-        long sourceErrors,
-        int filesTotal,
-        String error,
-        ActivityRequest request,
-        ActivitySummary summary) {
+    QUEUED("queued"),
+    RUNNING("running"),
+    CANCEL_REQUESTED("cancel_requested"),
+    COMPLETED("completed"),
+    CANCELLED("cancelled"),
+    FAILED("failed");
+
+    private final String code;
+
+    ActivityState(String code) {
+        this.code = code;
+    }
+
+    @JsonValue
+    public String code() {
+        return code;
+    }
+
+    public boolean terminal() {
+        return this == COMPLETED || this == CANCELLED || this == FAILED;
+    }
 }

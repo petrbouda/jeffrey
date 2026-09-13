@@ -109,13 +109,16 @@ public class GrpcServerConfiguration {
         return new RecordingDownloadGrpcService(grpcLookups);
     }
 
-    @Bean(destroyMethod = "close")
-    public HubActivityService hubActivityService(
+    @Bean
+    public ScopedReplaySource scopedReplaySource(
             HubPlatformRepositories repositories,
             RepositoryStorage.Factory storage,
-            HubJeffreyDirs dirs,
-            Clock clock) {
-        var source = new ScopedReplaySource(repositories, storage, dirs);
+            HubJeffreyDirs dirs) {
+        return new ScopedReplaySource(repositories, storage, dirs);
+    }
+
+    @Bean(destroyMethod = "close")
+    public HubActivityService hubActivityService(ScopedReplaySource source, Clock clock) {
         return new HubActivityService(
                 request -> source.resolve(
                         request.workspaceId(),
@@ -138,8 +141,10 @@ public class GrpcServerConfiguration {
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             ReplayStreamingManager replayStreamingManager,
-            RepositoryStorage.Factory repositoryStorageFactory) {
+            RepositoryStorage.Factory repositoryStorageFactory,
+            ScopedReplaySource scopedReplaySource) {
         return new EventStreamingGrpcService(
-                jeffreyDirs, platformRepositories, replayStreamingManager, repositoryStorageFactory);
+                jeffreyDirs, platformRepositories, replayStreamingManager, repositoryStorageFactory,
+                scopedReplaySource);
     }
 }

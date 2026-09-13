@@ -16,22 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.activity;
+package cafe.jeffrey.hub.core.streaming;
 
-import cafe.jeffrey.shared.common.activity.ActivityState;
+/**
+ * The workspace, project or session a replay was asked for does not exist.
+ *
+ * <p>A domain exception rather than a gRPC status: this travels through the activity service, whose
+ * worker would otherwise store {@code "NOT_FOUND: ..."} as a scan's error and hand that wire spelling
+ * to an MCP client. {@code GrpcExceptions.toStatus} turns it into NOT_FOUND at the boundary.</p>
+ */
+public class ReplayScopeNotFoundException extends RuntimeException {
 
-import java.time.Instant;
-
-public record ActivitySnapshot(
-        String scanId,
-        ActivityState status,
-        Instant startedAt,
-        Instant finishedAt,
-        boolean complete,
-        boolean coverageKnown,
-        long sourceErrors,
-        int filesTotal,
-        String error,
-        ActivityRequest request,
-        ActivitySummary summary) {
+    public ReplayScopeNotFoundException(String message) {
+        super(message);
+    }
 }

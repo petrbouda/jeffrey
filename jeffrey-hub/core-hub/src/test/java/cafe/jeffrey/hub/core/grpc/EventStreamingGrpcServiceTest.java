@@ -34,6 +34,7 @@ import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
+import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -272,7 +273,8 @@ class EventStreamingGrpcServiceTest {
                 new HubJeffreyDirs(tempDir),
                 repositories,
                 new ReplayStreamingManager(),
-                mock(RepositoryStorage.Factory.class));
+                mock(RepositoryStorage.Factory.class),
+                new ScopedReplaySource(repositories, mock(RepositoryStorage.Factory.class), new HubJeffreyDirs(tempDir)));
     }
 
     private EventStreamingGrpcService serviceWithSession(Path tempDir) {
@@ -295,7 +297,8 @@ class EventStreamingGrpcServiceTest {
                 new HubJeffreyDirs(tempDir),
                 repositories,
                 new ReplayStreamingManager(),
-                storageFactory);
+                storageFactory,
+                new ScopedReplaySource(repositories, storageFactory, new HubJeffreyDirs(tempDir)));
     }
 
     private static SessionWithRepository testSession() {

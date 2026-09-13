@@ -30,7 +30,6 @@ import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
 import cafe.jeffrey.hub.core.streaming.StreamingWindow;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
-import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -54,17 +53,20 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     private final HubPlatformRepositories platformRepositories;
     private final ReplayStreamingManager replayStreamingManager;
     private final RepositoryStorage.Factory repositoryStorageFactory;
+    private final ScopedReplaySource scopedReplaySource;
 
     public EventStreamingGrpcService(
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             ReplayStreamingManager replayStreamingManager,
-            RepositoryStorage.Factory repositoryStorageFactory) {
+            RepositoryStorage.Factory repositoryStorageFactory,
+            ScopedReplaySource scopedReplaySource) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.replayStreamingManager = replayStreamingManager;
         this.repositoryStorageFactory = repositoryStorageFactory;
+        this.scopedReplaySource = scopedReplaySource;
     }
 
     @Override
@@ -97,7 +99,7 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                 if (request.getWorkspaceId().isBlank() || request.getProjectId().isBlank()) {
                     throw new IllegalArgumentException("Both workspace_id and project_id are required for scoped replay");
                 }
-                recordingFiles = new ScopedReplaySource(platformRepositories, repositoryStorageFactory, jeffreyDirs)
+                recordingFiles = scopedReplaySource
                         .resolve(
                                 request.getWorkspaceId(),
                                 request.getProjectId(),
@@ -135,13 +137,12 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
             GrpcStreams.unsubscribeOnDisconnect("replay", replaySubscription,
                     () -> replayStreamingManager.unsubscribe(replayId));
-        } catch (StatusRuntimeException e) {
-            observer.onError(e);
-        } catch (IllegalArgumentException e) {
-            observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
         } catch (Exception e) {
-            LOG.error("Failed to start replay streaming: sessionId={}", sessionId, e);
-            observer.onError(GrpcExceptions.internal(e));
+            // One mapping for the whole server: a scope that does not exist is NOT_FOUND here for the
+            // same reason it is on the unary activity calls, and anything unrecognised is logged and
+            // reported as INTERNAL by the mapper itself.
+            LOG.debug("Replay streaming rejected: sessionId={}", sessionId, e);
+            observer.onError(GrpcExceptions.toStatus(e));
         }
     }
 

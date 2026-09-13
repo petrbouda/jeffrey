@@ -51,17 +51,19 @@ public final class HubsReplayMcpTools {
     private final ProjectManagerResolver resolver;
     private final Duration timeout;
     private final HubActivityMcpSupport activity;
-    public HubsReplayMcpTools(ProjectManagerResolver resolver) {
-        this(resolver, Duration.ofSeconds(15));
+
+    public HubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations) {
+        this(resolver, operations, Duration.ofSeconds(15));
     }
-    public HubsReplayMcpTools(ProjectManagerResolver resolver, Duration timeout) {
+    public HubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations, Duration timeout) {
         if (timeout == null || timeout.isZero() || timeout.isNegative() || timeout.compareTo(Duration.ofSeconds(30)) > 0) {
             throw new IllegalArgumentException("Replay timeout must be positive and no greater than 30 seconds");
         }
         this.resolver = resolver;
         this.timeout = timeout;
-        this.activity = new HubActivityMcpSupport(resolver, timeout, DEADLINES);
+        this.activity = new HubActivityMcpSupport(resolver, operations, timeout, DEADLINES);
     }
+
     @McpToolHints(readOnly = true, openWorld = true)
     @Tool(description = "Query selected JFR events from a Hub session without downloading or analysing it. "
             + "Bounded to 15 seconds, at most 1000 rows and 100000 UTF-8 bytes. "
@@ -133,10 +135,14 @@ public final class HubsReplayMcpTools {
 
     @Tool(description = "Start a background event-activity scan on the Hub for a session_ref from hubs_sessions. "
             + "Hub counts matching events by time bucket without transferring recordings or raw events to Microscope. "
-            + "Returns scanId; poll hubs_activityStatus with the same sessionRef and scanId. Each call starts a new scan. "
+            + "This creates work on the Hub: it claims one of its retained scan slots, runs a reader, and decompresses "
+            + "recordings to Hub scratch space. It changes no recording and no profile. "
+            + "Returns scanId; poll hubs_activityStatus with the same sessionRef and scanId, or operations_status with "
+            + "the scanId as its operationId. Each call starts a new scan. "
             + "No total-event cap; at most 288 buckets and 512 observed types. Scans are Hub-process-local, retained up to "
             + "one hour after completion, with at most 16 retained scans and two concurrent readers. Requires an updated Hub.")
-    @McpToolHints(readOnly = true, idempotent = false, openWorld = true)
+    @McpOutputSchema(HubActivityMcpSupport.OUTPUT_SCHEMA)
+    @McpToolHints(readOnly = false, idempotent = false, openWorld = true)
     public McpToolResult eventActivity(
             @ToolParam(description = "Exact session_ref from hubs_sessions") String sessionRef,
             @ToolParam(description = "Inclusive start UTC epoch milliseconds") long startTime,
@@ -148,18 +154,24 @@ public final class HubsReplayMcpTools {
 
     @Tool(description = "Read a Hub activity scan without restarting it. Rank intervals by event count (events), "
             + "distinct event types (types), or chronological time (time). Counts are lower bounds until complete=true. "
-            + "At most 20 buckets and 10 types per bucket; totals include omitted details. Use the original sessionRef and scanId.")
+            + "At most 20 buckets per page and 10 types per bucket; totals include omitted details. "
+            + "A window holds up to 288 buckets, so page with offset while hasMoreBuckets is true — with order=time the "
+            + "first page can be entirely empty when the recording starts late in the window. "
+            + "Use the original sessionRef and scanId.")
+    @McpOutputSchema(HubActivityMcpSupport.OUTPUT_SCHEMA)
     @McpToolHints(readOnly = true, openWorld = true)
     public McpToolResult activityStatus(
             @ToolParam(description = "The session_ref used to start the scan") String sessionRef,
             @ToolParam(description = "scanId returned by hubs_eventActivity") String scanId,
             @ToolParam(description = "events (default), types or time", required = false) @ToolParamValues({"events", "types", "time"}) String order,
-            @ToolParam(description = "Maximum buckets returned, 1–20; default 20", required = false) Integer limit) {
-        return activity.status(sessionRef, scanId, order, limit);
+            @ToolParam(description = "Maximum buckets returned per page, 1–20; default 20", required = false) Integer limit,
+            @ToolParam(description = "Buckets to skip in the ranked order before this page; default 0, at most 288", required = false) Integer offset) {
+        return activity.status(sessionRef, scanId, order, limit, offset);
     }
 
     @Tool(description = "Cancel an exact activity scan on its Hub. Use the original sessionRef and scanId. "
             + "cancel_requested remains nonterminal until reader cleanup finishes. Partial counts remain available; recordings are unchanged.")
+    @McpOutputSchema(HubActivityMcpSupport.OUTPUT_SCHEMA)
     @McpToolHints(readOnly = false, idempotent = true, openWorld = true)
     public McpToolResult activityCancel(
             @ToolParam(description = "The session_ref used to start the scan") String sessionRef,

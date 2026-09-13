@@ -120,6 +120,15 @@ class HubEventActivityGrpcTest {
                 assertTrue(result.getComplete());
                 assertEquals(1501, result.getTotalEvents());
                 assertEquals(1501, result.getBuckets(0).getEventCount());
+                assertEquals(0, result.getOffset());
+
+                // Paging past the only populated bucket reaches the rest of the window.
+                var second = stub.getActivity(poll.toBuilder().setOffset(1).build());
+                assertEquals(1, second.getOffset());
+                assertEquals(1501, second.getTotalEvents());
+                assertTrue(second.getBucketsCount() <= 1);
+                assertNotEquals(result.getBuckets(0).getStartTime(),
+                        second.getBucketsCount() == 0 ? -1 : second.getBuckets(0).getStartTime());
                 assertEquals(scope, result.getScope());
                 assertEquals(1, result.getFilesTotal());
                 assertEquals(ActivityState.ACTIVITY_STATE_COMPLETED, stub.cancelActivity(CancelActivityRequest.newBuilder()
@@ -145,6 +154,14 @@ class HubEventActivityGrpcTest {
                         .build()));
                 assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.startActivity(request.toBuilder()
                         .setBucketSeconds(0)
+                        .build()));
+                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.getActivity(poll.toBuilder()
+                        .setOffset(-1)
+                        .build()));
+                // An unknown scope is refused by StartActivity itself, so no scan ID is handed out
+                // for a scan that could only ever report a failure.
+                assertCode(Status.Code.NOT_FOUND, () -> stub.startActivity(request.toBuilder()
+                        .setScope(scope.toBuilder().setSessionId("absent"))
                         .build()));
 
                 verify(storage, never()).recordings(any(), any());

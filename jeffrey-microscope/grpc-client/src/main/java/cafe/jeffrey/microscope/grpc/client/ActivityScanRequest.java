@@ -16,43 +16,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.activity;
+package cafe.jeffrey.microscope.grpc.client;
 
 import cafe.jeffrey.shared.common.activity.ActivityLimits;
 
 import java.util.Set;
 
 /**
- * One scan's scope, window and filter.
+ * What to count, in Microscope's own terms. The gRPC message is built inside
+ * {@link EventStreamingClient}, so nothing above it has to speak protobuf.
  *
- * <p>The window is half-open, {@code [startTime, endTime)}. That is enforced here and in
- * {@link EventActivity#add}, not by the replay window the reader is given: {@code StreamingWindow}
- * is inclusive at both ends, so an event landing exactly on {@code endTime} reaches the counter and
- * has to be rejected there. Removing either guard shifts the last bucket by one event.</p>
+ * <p>The window is half-open, {@code [startTime, endTime)}, in UTC epoch milliseconds.</p>
  */
-public record ActivityRequest(
+public record ActivityScanRequest(
         String workspaceId,
         String projectId,
         String sessionId,
         long startTime,
         long endTime,
-        long bucketMillis,
+        long bucketSeconds,
         Set<String> eventTypes) {
 
-    public ActivityRequest {
-        for (String id : new String[]{workspaceId, projectId, sessionId}) {
-            if (id == null || id.isBlank() || id.length() > ActivityLimits.MAX_ID_LENGTH) {
-                throw new IllegalArgumentException(
-                        "Workspace, project and session IDs must contain 1–" + ActivityLimits.MAX_ID_LENGTH + " characters");
-            }
-        }
+    public ActivityScanRequest {
         long duration;
+        long width;
         try {
             duration = Math.subtractExact(endTime, startTime);
+            width = Math.multiplyExact(bucketSeconds, ActivityLimits.MILLIS_PER_SECOND);
         } catch (ArithmeticException e) {
-            throw new IllegalArgumentException("Time range is too large", e);
+            throw new IllegalArgumentException("Time window or bucket width is too large", e);
         }
-        if (duration <= 0 || bucketMillis <= 0 || (duration - 1) / bucketMillis >= ActivityLimits.MAX_BUCKETS) {
+        if (duration <= 0 || width <= 0 || (duration - 1) / width >= ActivityLimits.MAX_BUCKETS) {
             throw new IllegalArgumentException("Use startTime < endTime and a positive bucket size producing at most "
                     + ActivityLimits.MAX_BUCKETS + " buckets");
         }
@@ -62,9 +56,5 @@ public record ActivityRequest(
             throw new IllegalArgumentException("Specify at most " + ActivityLimits.MAX_FILTER_TYPES
                     + " nonempty event types, each at most " + ActivityLimits.MAX_TYPE_LENGTH + " characters");
         }
-    }
-
-    int bucketCount() {
-        return (int) ((endTime - startTime - 1) / bucketMillis + 1);
     }
 }

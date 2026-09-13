@@ -18,13 +18,9 @@
 
 package cafe.jeffrey.microscope.grpc.client;
 
-import cafe.jeffrey.hub.api.v1.CancelActivityRequest;
 import cafe.jeffrey.hub.api.v1.EventActivityServiceGrpc;
-import cafe.jeffrey.hub.api.v1.EventActivitySnapshot;
 import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
-import cafe.jeffrey.hub.api.v1.GetActivityRequest;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
-import cafe.jeffrey.hub.api.v1.StartActivityRequest;
 import io.grpc.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * gRPC client for replaying JFR events from a Jeffrey Hub.
@@ -42,7 +37,6 @@ public class EventStreamingClient implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamingClient.class);
 
-    private static final long ACTIVITY_RPC_TIMEOUT_SECONDS = 10;
     private final EventStreamingServiceGrpc.EventStreamingServiceStub stub;
     private final EventActivityServiceGrpc.EventActivityServiceBlockingStub activityStub;
     private final Set<EventStreamingSubscription> activeSubscriptions = ConcurrentHashMap.newKeySet();
@@ -99,23 +93,23 @@ public class EventStreamingClient implements Closeable {
         return subscription;
     }
 
-    /** Starts an independent Hub scan; its lifetime is not limited by this RPC's deadline. */
-    public EventActivitySnapshot startActivity(StartActivityRequest request) {
-        return activityStub
-                .withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .startActivity(request);
+    /**
+     * Starts an independent Hub scan; its lifetime is not limited by this RPC's deadline.
+     *
+     * <p>None of the three activity calls sets a deadline of its own. The caller owns it, through the
+     * gRPC {@link Context} it makes the call in, so the timeout it was configured with is the one that
+     * applies — a second deadline here would silently win whenever it were the shorter of the two.</p>
+     */
+    public ActivityScanSnapshot startActivity(ActivityScanRequest request) {
+        return ActivityCodec.snapshot(activityStub.startActivity(ActivityCodec.start(request)));
     }
 
-    public EventActivitySnapshot getActivity(GetActivityRequest request) {
-        return activityStub
-                .withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .getActivity(request);
+    public ActivityScanSnapshot getActivity(ActivityScanQuery query) {
+        return ActivityCodec.snapshot(activityStub.getActivity(ActivityCodec.get(query)));
     }
 
-    public EventActivitySnapshot cancelActivity(CancelActivityRequest request) {
-        return activityStub
-                .withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .cancelActivity(request);
+    public ActivityScanSnapshot cancelActivity(ActivityScanTarget target) {
+        return ActivityCodec.snapshot(activityStub.cancelActivity(ActivityCodec.cancel(target)));
     }
 
     @Override

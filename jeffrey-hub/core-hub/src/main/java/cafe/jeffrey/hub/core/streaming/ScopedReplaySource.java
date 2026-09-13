@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import io.grpc.Status;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -53,15 +52,11 @@ public final class ScopedReplaySource {
         var project = repositories.newProjectRepository(projectId)
                 .find()
                 .filter(info -> workspaceId.equals(info.workspaceId()))
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Project not found in requested workspace")
-                        .asRuntimeException());
+                .orElseThrow(() -> new ReplayScopeNotFoundException("Project not found in requested workspace"));
 
         var session = storage.apply(project)
                 .singleSession(sessionId, true)
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Session not found in requested project")
-                        .asRuntimeException());
+                .orElseThrow(() -> new ReplayScopeNotFoundException("Session not found in requested project"));
 
         var files = session.files().stream()
                 .filter(RepositoryFile::isRecordingFile)

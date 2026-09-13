@@ -228,6 +228,7 @@ public final class McpOperationRegistry {
                 case "recording_import" -> "If progress contains a recordingId, call recordings_analyzeRecording with retry=true; otherwise call recordings_analyzeFile again to start a new import.";
                 case "recording_analysis" -> "Call recordings_analyzeRecording with the same recordingId and retry=true to start a new attempt.";
                 case "hub_download" -> "Call hubs_download with the same sessionRef and retry=true to start a new attempt.";
+                case "hub_activity" -> "Call hubs_eventActivity with the same sessionRef and window to start a new scan; its partial counts remain readable until they expire.";
                 case "heap_prepare" -> "Call heap_prepare for the same profile/report with retry=true to start a new attempt.";
                 default -> "Start a new attempt explicitly using the originating tool.";
             };

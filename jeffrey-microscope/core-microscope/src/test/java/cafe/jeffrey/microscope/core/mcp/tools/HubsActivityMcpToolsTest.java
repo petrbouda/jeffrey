@@ -71,6 +71,7 @@ class HubsActivityMcpToolsTest {
                 assertEquals("scan", request.getScanId());
                 assertEquals(ActivityOrder.ACTIVITY_ORDER_TYPES, request.getOrder());
                 assertEquals(1, request.getLimit());
+                assertEquals(1, request.getOffset());
                 observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_COMPLETED).toBuilder()
                         .setFinishedAt(2000)
                         .setCoverageKnown(true)
@@ -80,6 +81,8 @@ class HubsActivityMcpToolsTest {
                         .setDistinctEventTypes(1)
                         .setTotalBuckets(2)
                         .setOmittedBuckets(1)
+                        .setOffset(request.getOffset())
+                        .setHasMoreBuckets(false)
                         .setOrder(request.getOrder())
                         .addBuckets(ActivityBucket.newBuilder()
                                 .setStartTime(1000)
@@ -117,7 +120,7 @@ class HubsActivityMcpToolsTest {
                     .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
-            var tools = new ReflectiveToolset(new HubsReplayMcpTools(resolver), "hubs");
+            var tools = new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry()), "hubs");
             var started = tools.callResult("hubs_eventActivity", Json.createObject()
                     .put("sessionRef", REF)
                     .put("startTime", 1000)
@@ -130,11 +133,14 @@ class HubsActivityMcpToolsTest {
                     .put("sessionRef", REF)
                     .put("scanId", "scan")
                     .put("order", "types")
-                    .put("limit", 1)).structuredContent();
+                    .put("limit", 1)
+                    .put("offset", 1)).structuredContent();
             assertEquals(1501, result.path("totalEvents").asLong());
             assertFalse(result.path("complete").asBoolean());
             assertEquals(1, result.path("sourceErrors").asInt());
             assertEquals(1, result.path("omittedBuckets").asInt());
+            assertEquals(1, result.path("offset").asInt());
+            assertFalse(result.path("hasMoreBuckets").asBoolean());
             assertEquals(1501, result.path("buckets").get(0).path("eventTypes").get(0).path("count").asLong());
             var cancelled = tools.callResult("hubs_activityCancel", Json.createObject()
                     .put("sessionRef", REF)
@@ -179,7 +185,7 @@ class HubsActivityMcpToolsTest {
                     .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
-            var tools = new HubsReplayMcpTools(resolver);
+            var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
             var error = assertThrows(IllegalStateException.class, () -> tools.eventActivity(REF, 1, 2, null, null));
             assertTrue(error.getMessage().contains("does not support event activity"), error.toString());
             assertEquals(0, rawCalls.get());
@@ -189,16 +195,76 @@ class HubsActivityMcpToolsTest {
         }
     }
 
+    /**
+     * A Hub scan is one of Microscope's operations, so the generic pair reaches it too. Without this
+     * a reader would have to know that background work started by hubs_ is the one kind that is not
+     * polled with operations_status.
+     */
+    @Test
+    void startedScanIsReadableThroughTheGenericOperationTools() throws Exception {
+        var remote = new EventActivityServiceGrpc.EventActivityServiceImplBase() {
+            @Override
+            public void startActivity(StartActivityRequest request, StreamObserver<EventActivitySnapshot> observer) {
+                observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_RUNNING));
+                observer.onCompleted();
+            }
+
+            @Override
+            public void getActivity(GetActivityRequest request, StreamObserver<EventActivitySnapshot> observer) {
+                observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_COMPLETED).toBuilder()
+                        .setFinishedAt(2000)
+                        .setCoverageKnown(true)
+                        .setComplete(true)
+                        .setTotalEvents(42)
+                        .setFilesTotal(3)
+                        .build());
+                observer.onCompleted();
+            }
+        };
+        var server = NettyServerBuilder.forPort(0).addService(remote).build().start();
+        var channel = NettyChannelBuilder.forAddress("localhost", server.getPort()).usePlaintext().build();
+        try {
+            GrpcHubConnection connection = mock(GrpcHubConnection.class);
+            when(connection.getChannel()).thenReturn(channel);
+            ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+            ProjectManager project = mock(ProjectManager.class);
+            when(resolver.resolveStrict("hub", "workspace", "project"))
+                    .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+            // Built before the stubbing: constructing the client calls the mocked channel getter,
+            // which Mockito would otherwise read as an unfinished stub.
+            var manager = new EventStreamingManager(new EventStreamingClient(connection));
+            when(project.eventStreamingManager()).thenReturn(manager);
+
+            var operations = new McpOperationRegistry();
+            var hubs = new HubsReplayMcpTools(resolver, operations);
+            var started = hubs.eventActivity(REF, 1000, 121000, 60L, null).structuredContent();
+
+            // The scan ID is the operation ID, so a reader tracks one identifier rather than two.
+            assertEquals("scan", started.path("operationId").asText());
+
+            var status = Json.mapper().readTree(new OperationsMcpTools(operations).status("scan"));
+            assertEquals("hub_activity", status.path("kind").asText());
+            assertEquals("completed", status.path("status").asText());
+            assertEquals(42, status.path("progress").path("details").path("totalEvents").asLong());
+            assertEquals(3, status.path("progress").path("details").path("filesTotal").asInt());
+        } finally {
+            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+            server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+
     @Test
     void invalidScanArgumentsNeverContactHub() {
         var resolver = mock(ProjectManagerResolver.class);
-        var tools = new HubsReplayMcpTools(resolver);
+        var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 2, 1, null, null));
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 0, Long.MAX_VALUE, 1L, null));
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 1, 2, Long.MAX_VALUE, null));
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 1, 2, null, "GC,"));
-        assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "time", 21));
-        assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "unknown", 1));
+        assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "time", 21, null));
+        assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "unknown", 1, null));
+        assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "time", 1, -1));
+        assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "time", 1, 289));
         assertThrows(IllegalArgumentException.class, () -> tools.activityCancel(REF, ""));
         verifyNoInteractions(resolver);
     }

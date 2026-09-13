@@ -20,17 +20,21 @@ package cafe.jeffrey.hub.core.activity;
 
 import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
-import cafe.jeffrey.hub.core.streaming.ReplayStreamingSubscriber;
 import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.activity.ActivityLimits;
+import cafe.jeffrey.shared.common.activity.ActivityOrder;
+import cafe.jeffrey.shared.common.activity.ActivityState;
 
 import java.io.InterruptedIOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -45,15 +49,15 @@ public final class HubActivityService implements AutoCloseable {
     private static final int MAX_CONCURRENT_SCANS = 2;
     private static final int MAX_RETAINED_SCANS = 16;
     private static final int MAX_CAUSE_DEPTH = 20;
-    private static final int DEFAULT_RESULT_BUCKETS = 20;
     private static final Duration RESULT_RETENTION = Duration.ofHours(1);
 
     private final Map<String, Job> jobs = new LinkedHashMap<>();
     private final Semaphore slots = new Semaphore(MAX_CONCURRENT_SCANS);
     private final Function<ActivityRequest, ReplayStreamSubscription> source;
+    private final ActivityReader.Factory readers;
     private final Executor executor;
     private final Clock clock;
-    private boolean closed;
+    private volatile boolean closed;
 
     public HubActivityService(Function<ActivityRequest, ReplayStreamSubscription> source) {
         this(source, Schedulers.sharedVirtual(), Clock.systemUTC());
@@ -67,18 +71,39 @@ public final class HubActivityService implements AutoCloseable {
             Function<ActivityRequest, ReplayStreamSubscription> source,
             Executor executor,
             Clock clock) {
+        this(source, ActivityReader.Factory.replay(), executor, clock);
+    }
+
+    HubActivityService(
+            Function<ActivityRequest, ReplayStreamSubscription> source,
+            ActivityReader.Factory readers,
+            Executor executor,
+            Clock clock) {
         this.source = source;
+        this.readers = readers;
         this.executor = executor;
         this.clock = clock;
     }
 
-    public synchronized String start(ActivityRequest request) {
-        if (closed) {
-            throw new IllegalStateException("Hub activity service is stopping");
-        }
+    /**
+     * Resolves the scope and admits a scan, or throws because one of the two failed.
+     *
+     * <p>The scope is resolved here rather than on the worker so that an unknown workspace, project
+     * or session is the caller's error — reported now, with nothing registered — instead of a scan ID
+     * that occupies one of the retained slots only to report a failure on the first poll. It also
+     * runs outside this instance's monitor: it reads a repository and lists a directory, and polls of
+     * other scans must not queue behind it.</p>
+     */
+    public String start(ActivityRequest request) {
+        requireOpen();
+        ReplayStreamSubscription subscription = source.apply(request);
+        return admit(request, subscription);
+    }
 
-        jobs.values().removeIf(job -> job.finishedAt != null
-                && job.finishedAt.isBefore(clock.instant().minus(RESULT_RETENTION)));
+    private synchronized String admit(ActivityRequest request, ReplayStreamSubscription subscription) {
+        requireOpen();
+        Instant cutoff = clock.instant().minus(RESULT_RETENTION);
+        jobs.values().removeIf(job -> job.finishedAt != null && job.finishedAt.isBefore(cutoff));
 
         if (jobs.size() >= MAX_RETAINED_SCANS) {
             var oldest = jobs.values().stream()
@@ -89,7 +114,7 @@ public final class HubActivityService implements AutoCloseable {
             }
             jobs.remove(oldest.get().id);
         }
-        Job job = new Job(request);
+        Job job = new Job(request, subscription);
         jobs.put(job.id, job);
         try {
             executor.execute(() -> run(job));
@@ -100,27 +125,27 @@ public final class HubActivityService implements AutoCloseable {
         return job.id;
     }
 
-    public ActivitySnapshot status(ActivityScanRef ref, String order, int limit) {
-        return require(ref).snapshot(order, limit);
+    private void requireOpen() {
+        if (closed) {
+            throw new IllegalStateException("Hub activity service is stopping");
+        }
+    }
+
+    public ActivitySnapshot status(ActivityScanRef ref, ActivityOrder order, int limit, int offset) {
+        return require(ref).snapshot(order, limit, offset);
     }
 
     public ActivitySnapshot cancel(ActivityScanRef ref) {
         Job job = require(ref);
         job.cancel();
-        return job.snapshot("events", DEFAULT_RESULT_BUCKETS);
+        return job.snapshot(ActivityOrder.EVENTS, ActivityLimits.MAX_RESULT_BUCKETS, 0);
     }
 
     private synchronized Job require(ActivityScanRef ref) {
-        Job job = require(ref.scanId());
-        if (!ref.matches(job.request)) {
-            throw new ActivityScanNotFoundException();
-        }
-        return job;
-    }
-
-    private synchronized Job require(String id) {
-        Job job = jobs.get(id);
-        if (job == null || (job.finishedAt != null && job.finishedAt.isBefore(clock.instant().minus(RESULT_RETENTION)))) {
+        Job job = jobs.get(ref.scanId());
+        if (job == null
+                || !ref.matches(job.request)
+                || (job.finishedAt != null && job.finishedAt.isBefore(clock.instant().minus(RESULT_RETENTION)))) {
             throw new ActivityScanNotFoundException();
         }
         return job;
@@ -129,7 +154,7 @@ public final class HubActivityService implements AutoCloseable {
     private void run(Job job) {
         boolean acquired = false;
         CompletableFuture<Void> cleaned = new CompletableFuture<>();
-        ReplayStreamingSubscriber reader = null;
+        ActivityReader reader = null;
         try {
             synchronized (job) {
                 job.worker = Thread.currentThread();
@@ -143,14 +168,10 @@ public final class HubActivityService implements AutoCloseable {
                 if (job.cancelRequested) {
                     throw new InterruptedException();
                 }
-                job.state = "running";
+                job.state = ActivityState.RUNNING;
             }
-            ReplayStreamSubscription subscription = source.apply(job.request);
-            synchronized (job) {
-                job.filesTotal = subscription.recordingFiles().size();
-            }
-            reader = new ReplayStreamingSubscriber(
-                    subscription,
+            reader = readers.open(
+                    job.subscription,
                     new StreamingCallbacks(
                             job::accept,
                             () -> {},
@@ -184,8 +205,9 @@ public final class HubActivityService implements AutoCloseable {
             synchronized (job) {
                 job.worker = null;
                 job.reader = null;
-                job.state = job.failure != null ? "failed" : job.coverageKnown ? "completed"
-                        : job.cancelRequested ? "cancelled" : "failed";
+                job.state = job.failure != null ? ActivityState.FAILED
+                        : job.coverageKnown ? ActivityState.COMPLETED
+                        : job.cancelRequested ? ActivityState.CANCELLED : ActivityState.FAILED;
                 job.finishedAt = clock.instant();
             }
         }
@@ -203,30 +225,39 @@ public final class HubActivityService implements AutoCloseable {
     }
 
     @Override
-    public synchronized void close() {
+    public void close() {
         closed = true;
-        jobs.values().forEach(Job::cancel);
+        List<Job> running;
+        synchronized (this) {
+            running = new ArrayList<>(jobs.values());
+        }
+        // Cancelling closes a reader, which can block on the file it holds. Do it off the monitor so
+        // a shutdown cannot stall a poll that is already in flight.
+        running.forEach(Job::cancel);
     }
 
     private final class Job {
 
         private final String id = UUID.randomUUID().toString();
         private final ActivityRequest request;
+        private final ReplayStreamSubscription subscription;
         private final EventActivity activity;
         private final Instant startedAt = clock.instant();
+        private final int filesTotal;
         private volatile Instant finishedAt;
         private volatile boolean cancelRequested;
-        private String state = "queued";
+        private ActivityState state = ActivityState.QUEUED;
         private Thread worker;
-        private ReplayStreamingSubscriber reader;
+        private ActivityReader reader;
         private String failure;
         private boolean coverageKnown;
         private long sourceErrors;
-        private int filesTotal;
 
-        Job(ActivityRequest request) {
+        Job(ActivityRequest request, ReplayStreamSubscription subscription) {
             this.request = request;
-            activity = new EventActivity(request);
+            this.subscription = subscription;
+            this.filesTotal = subscription.recordingFiles().size();
+            this.activity = new EventActivity(request);
         }
 
         synchronized void accept(EventBatch batch) {
@@ -240,7 +271,7 @@ public final class HubActivityService implements AutoCloseable {
         }
 
         void acceptEvent(String type, Instant timestamp) {
-            boolean stop = false;
+            ActivityReader stop = null;
             synchronized (this) {
                 if (cancelRequested || failure != null) {
                     return;
@@ -249,11 +280,11 @@ public final class HubActivityService implements AutoCloseable {
                     activity.add(type, timestamp.toEpochMilli());
                 } catch (IllegalStateException e) {
                     failure = e.getMessage();
-                    stop = true;
+                    stop = reader;
                 }
             }
-            if (stop) {
-                reader.close();
+            if (stop != null) {
+                stop.close();
             }
         }
 
@@ -262,13 +293,13 @@ public final class HubActivityService implements AutoCloseable {
         }
 
         void cancel() {
-            ReplayStreamingSubscriber current;
+            ActivityReader current;
             synchronized (this) {
                 if (finishedAt != null || coverageKnown || cancelRequested) {
                     return;
                 }
                 cancelRequested = true;
-                state = "cancel_requested";
+                state = ActivityState.CANCEL_REQUESTED;
                 current = reader;
                 if (worker != null) {
                     worker.interrupt();
@@ -279,7 +310,7 @@ public final class HubActivityService implements AutoCloseable {
             }
         }
 
-        synchronized ActivitySnapshot snapshot(String order, int limit) {
+        synchronized ActivitySnapshot snapshot(ActivityOrder order, int limit, int offset) {
             return new ActivitySnapshot(
                     id,
                     state,
@@ -291,7 +322,7 @@ public final class HubActivityService implements AutoCloseable {
                     filesTotal,
                     failure,
                     request,
-                    activity.summary(order, limit));
+                    activity.summary(order, limit, offset));
         }
     }
 }

@@ -5,98 +5,179 @@ package jeffrey.hub.api.v1;
 option java_package = "cafe.jeffrey.hub.api.v1";
 option java_multiple_files = true;
 
-// Counts events on Hub; callers receive bounded summaries, never the raw recordings.
-// Scans outlive individual RPCs. Poll using the same scope and scan_id, or cancel explicitly.
+// Counts JFR events on the Hub and returns bounded time-bucket summaries, so a caller can find the
+// busy intervals of a session before deciding to download it. Recordings and raw events never leave
+// the Hub; only counts do.
+//
+// A scan outlives the RPC that starts it. StartActivity admits it and returns immediately with a
+// scan_id; GetActivity polls it; CancelActivity stops it. All three answer with the same
+// EventActivitySnapshot, so a caller reads one shape whatever it asked for.
+//
+// Scans are local to one Hub process: at most 16 are retained, at most two read at a time, and a
+// completed one expires an hour after it finished. Restarting the Hub forgets every scan_id.
 service EventActivityService {
+  // Admits a scan and returns its first snapshot, before any file has been read.
+  // The scope is resolved first, so an unknown workspace, project or session is NOT_FOUND here
+  // rather than a scan_id that only reports a failure when it is first polled.
+  // RESOURCE_EXHAUSTED means every retained slot is held by a scan that has not finished.
   rpc StartActivity(StartActivityRequest) returns (EventActivitySnapshot);
+
+  // Reads one page of a scan's buckets without restarting or extending it.
+  // NOT_FOUND covers a scan_id that never existed, expired, or belongs to another session.
   rpc GetActivity(GetActivityRequest) returns (EventActivitySnapshot);
+
+  // Requests cancellation of one exact scan. Best effort: the state stays CANCEL_REQUESTED until
+  // the reader has released its scratch files. Counts already taken remain readable until expiry.
   rpc CancelActivity(CancelActivityRequest) returns (EventActivitySnapshot);
 }
 
+// Identifies one recording session. Carried on every request and echoed on every snapshot, because
+// a scan_id alone does not say which session it belongs to and must never read across sessions.
 message ActivityScope {
   string workspace_id = 1;
   string project_id = 2;
   string session_id = 3;
 }
 
+// Request to start counting a session's events over a window.
 message StartActivityRequest {
   ActivityScope scope = 1;
-  // Required half-open UTC window [start_time, end_time), epoch milliseconds.
+  // Required half-open window [start_time, end_time), epoch millis. An event landing exactly on
+  // end_time is not counted.
   optional int64 start_time = 2;
   optional int64 end_time = 3;
-  // Defaults to 300 seconds; must produce at most 288 buckets, anchored at start_time.
+  // Bucket width in seconds (default: 300). The window must divide into at most 288 buckets,
+  // which is what bounds a scan's memory. Buckets are anchored at start_time, so the last one is
+  // short whenever the window is not a whole multiple of the width.
   optional int64 bucket_seconds = 4;
-  // Empty means all observed types; at most 16 exact names.
+  // Exact JFR event type names to count, at most 16. Empty = every type the scan observes,
+  // up to 512 distinct ones; a scan that reaches that limit fails and asks for a filter.
   repeated string event_types = 5;
 }
 
+// How a page of buckets is ranked before limit and offset are applied.
 enum ActivityOrder {
-  ACTIVITY_ORDER_UNSPECIFIED = 0; // Defaults to event count.
+  // Treated as ACTIVITY_ORDER_EVENTS.
+  ACTIVITY_ORDER_UNSPECIFIED = 0;
+  // Busiest first, by event count.
   ACTIVITY_ORDER_EVENTS = 1;
+  // Greatest variety first, by distinct event types.
   ACTIVITY_ORDER_TYPES = 2;
+  // Chronological.
   ACTIVITY_ORDER_TIME = 3;
 }
 
+// Request to read one page of a scan's buckets.
 message GetActivityRequest {
   ActivityScope scope = 1;
   string scan_id = 2;
   ActivityOrder order = 3;
-  // Defaults to 20; range 1–20. Counts include omitted bucket/type detail.
+  // Buckets per page (default: 20). Range 1–20. Totals are unaffected by this cap.
   optional int32 limit = 4;
+  // Buckets to skip in the ranked order before this page (default: 0). Range 0–288.
+  // Paging is what makes every bucket reachable: a window holds up to 288 of them, so with
+  // ACTIVITY_ORDER_TIME the first page is all a caller would ever see, and it is empty whenever
+  // the session began recording late in the window.
+  optional int32 offset = 5;
 }
 
+// Request to cancel one exact scan.
 message CancelActivityRequest {
   ActivityScope scope = 1;
   string scan_id = 2;
 }
 
+// Lifecycle of a scan. A cancellation request is not itself terminal.
 enum ActivityState {
+  // Never sent; present because proto3 requires a zero value.
   ACTIVITY_STATE_UNSPECIFIED = 0;
+  // Admitted, waiting for one of the two reader slots.
   ACTIVITY_STATE_QUEUED = 1;
   ACTIVITY_STATE_RUNNING = 2;
+  // Cancellation asked for; the reader has not finished releasing its scratch files.
   ACTIVITY_STATE_CANCEL_REQUESTED = 3;
+  // Every file in scope was read to its end.
   ACTIVITY_STATE_COMPLETED = 4;
   ACTIVITY_STATE_CANCELLED = 5;
   ACTIVITY_STATE_FAILED = 6;
 }
 
+// Events of one type counted inside one bucket.
 message ActivityTypeCount {
   string event_type = 1;
   int64 count = 2;
 }
 
+// One interval of the requested window. Empty buckets are reported rather than skipped, so the
+// returned page describes a continuous time axis under ACTIVITY_ORDER_TIME.
 message ActivityBucket {
+  // Epoch millis. The interval is half-open, [start_time, end_time).
   int64 start_time = 1;
+  // start_time plus the bucket width, except for the last bucket of the window, which is clamped
+  // to the requested end_time.
   int64 end_time = 2;
   int64 event_count = 3;
+  // Types seen in this bucket, counting the ones event_types does not list.
   int32 distinct_event_types = 4;
+  // distinct_event_types minus the number carried in event_types.
   int32 omitted_types = 5;
+  // The busiest types in this bucket, at most 10, highest count first.
   repeated ActivityTypeCount event_types = 6;
 }
 
-// Process-local: at most 16 scans, up to one hour after completion, two concurrent readers.
-// Coverage is finished files visible at scan start; overlapping files may count events twice.
-// Counts reflect recorded activity, not equivalent workloads. Partial rankings can change.
+// One observation of a scan: its lifecycle, what it was asked for, and one page of what it counted.
+//
+// Counts describe recorded events, not the work that produced them, and two recordings that overlap
+// in time may both contain the same event. Coverage is the finished files that were visible when the
+// scan started, so a file that finished afterwards is not in it. Until complete is true the counts
+// are lower bounds and the ranking can still change.
 message EventActivitySnapshot {
   string scan_id = 1;
+  // Echoes the requested scope, so a caller can verify it was answered about the session it asked
+  // about rather than trusting the transport.
   ActivityScope scope = 2;
   ActivityState state = 3;
+  // Epoch millis. Set when the scan was admitted, not when a reader picked it up.
   int64 started_at = 4;
+  // Epoch millis. Absent until the scan reaches a terminal state.
   optional int64 finished_at = 5;
-  // True only after successful completion with known coverage and zero source errors.
+  // True only when the scan finished successfully with known coverage and no source errors, which
+  // is the one case where the counts are final rather than a lower bound.
   bool complete = 6;
+  // Whether the reader reached the end of every file in scope.
   bool coverage_known = 7;
+  // Files skipped, corrupt chunks, and events that failed to read. Same meaning as on ReplayStatus.
   int64 source_errors = 8;
+  // Files that were in scope when the scan started.
   int32 files_total = 9;
+  // Why the scan failed. Absent unless state is ACTIVITY_STATE_FAILED.
   optional string error = 10;
+
+  // ----- What was asked for, echoed so a page can be read without the request beside it. -----
+
+  // The requested window, epoch millis, half-open [start_time, end_time).
   int64 start_time = 11;
   int64 end_time = 12;
+  // Bucket width the window was actually divided by.
   int64 bucket_millis = 13;
-  repeated string event_types = 14;
+  // The event_types filter this scan was started with, sorted; empty means every type.
+  // Not the types observed — those are counted per bucket in ActivityBucket.event_types.
+  repeated string requested_event_types = 14;
+
+  // ----- What was counted. Totals cover the whole scan, not just the buckets on this page. -----
+
   int64 total_events = 15;
   int32 distinct_event_types = 16;
+  // Buckets the window divides into, whatever this page carries.
   int32 total_buckets = 17;
+  // The order this page was ranked by, resolved from ACTIVITY_ORDER_UNSPECIFIED.
   ActivityOrder order = 18;
-  int32 omitted_buckets = 19;
-  repeated ActivityBucket buckets = 20;
+  // The offset this page was read at, echoed so a caller can page without tracking it.
+  int32 offset = 19;
+  // total_buckets minus the number carried here, whether skipped by offset, cut by limit, or
+  // dropped to keep the response within its size budget.
+  int32 omitted_buckets = 20;
+  // True when offset plus the buckets on this page is short of total_buckets.
+  bool has_more_buckets = 21;
+  repeated ActivityBucket buckets = 22;
 }

@@ -116,7 +116,7 @@ class McpToolsetAssemblerTest {
                 recordingCommitResolver,
                 new HeapDumpInitService(CLOCK),
                 ideBridge,
-                properties, new HubsReplayMcpTools(projectManagerResolver), new McpOperationRegistry(CLOCK));
+                properties, new HubsReplayMcpTools(projectManagerResolver, new McpOperationRegistry(CLOCK)), new McpOperationRegistry(CLOCK));
     }
 
     private List<String> toolNames(boolean hubsEnabled) {
@@ -363,6 +363,7 @@ class McpToolsetAssemblerTest {
                 "recordings_analyzeRecording",
                 "heap_prepare",
                 "hubs_download",
+                "hubs_eventActivity",
                 "hubs_activityCancel",
                 "operations_cancel",
                 "ide_link",

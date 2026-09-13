@@ -16,13 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.activity;
+package cafe.jeffrey.microscope.grpc.client;
 
 import cafe.jeffrey.shared.common.activity.ActivityOrder;
+import cafe.jeffrey.shared.common.activity.ActivityState;
 
 import java.util.List;
 
-public record ActivitySummary(
+/** One observation of a Hub scan, with the gRPC message already left behind. */
+public record ActivityScanSnapshot(
+        String scanId,
+        String workspaceId,
+        String projectId,
+        String sessionId,
+        ActivityState status,
+        long startedAt,
+        Long finishedAt,
+        boolean complete,
+        boolean coverageKnown,
+        long sourceErrors,
+        int filesTotal,
+        String error,
+        long startTime,
+        long endTime,
+        long bucketMillis,
+        List<String> eventTypes,
         long totalEvents,
         int distinctEventTypes,
         int totalBuckets,
@@ -31,6 +49,14 @@ public record ActivitySummary(
         int omittedBuckets,
         boolean hasMoreBuckets,
         List<Bucket> buckets) {
+
+    /** True when the snapshot describes the scope it was asked about. */
+    public boolean describes(ActivityScanTarget target) {
+        return workspaceId.equals(target.workspaceId())
+                && projectId.equals(target.projectId())
+                && sessionId.equals(target.sessionId())
+                && scanId.equals(target.scanId());
+    }
 
     public record Bucket(
             long startTime,

@@ -16,28 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.activity;
+package cafe.jeffrey.microscope.grpc.client;
 
 import cafe.jeffrey.shared.common.activity.ActivityLimits;
 
-/** A scan is addressed by its full scope, never by scan ID alone — that would read across sessions. */
-public record ActivityScanRef(
+/** One scan, addressed by its full scope. A scan ID alone would read across sessions. */
+public record ActivityScanTarget(
         String workspaceId,
         String projectId,
         String sessionId,
         String scanId) {
 
-    public ActivityScanRef {
+    public ActivityScanTarget {
         for (String id : new String[]{workspaceId, projectId, sessionId, scanId}) {
             if (id == null || id.isBlank() || id.length() > ActivityLimits.MAX_ID_LENGTH) {
-                throw new IllegalArgumentException("Workspace, project, session and scan IDs are required (at most "
-                        + ActivityLimits.MAX_ID_LENGTH + " characters)");
+                throw new IllegalArgumentException("A nonempty ID of at most "
+                        + ActivityLimits.MAX_ID_LENGTH + " characters is required");
             }
         }
-    }
-
-    boolean matches(ActivityRequest request) {
-        return workspaceId.equals(request.workspaceId()) && projectId.equals(request.projectId())
-                && sessionId.equals(request.sessionId());
     }
 }

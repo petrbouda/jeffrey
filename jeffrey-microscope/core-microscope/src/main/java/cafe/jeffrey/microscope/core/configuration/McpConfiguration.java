@@ -181,8 +181,8 @@ public class McpConfiguration {
     }
 
     @Bean
-    public HubsReplayMcpTools hubsReplayMcpTools(ProjectManagerResolver resolver) {
-        return new HubsReplayMcpTools(resolver);
+    public HubsReplayMcpTools hubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations) {
+        return new HubsReplayMcpTools(resolver, operations);
     }
 
     @Bean

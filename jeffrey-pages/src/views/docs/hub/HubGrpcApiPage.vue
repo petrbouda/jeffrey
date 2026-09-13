@@ -92,14 +92,21 @@ onMounted(() => {
                 <p>Start an asynchronous scan of finished JFR files on Hub. Supply <code>scope</code> with workspace,
                   project and session IDs, required <code>start_time</code> and <code>end_time</code> (UTC epoch milliseconds,
                   start inclusive and end exclusive), optional <code>bucket_seconds</code> (default 300), and
-                  <code>event_types</code> (empty means all types). Returns a typed <code>EventActivitySnapshot</code> with a <code>scan_id</code>.</p>
+                  <code>event_types</code> (empty means all types). Returns a typed <code>EventActivitySnapshot</code> with a <code>scan_id</code>.
+                  The scope is resolved before the scan is admitted, so an unknown workspace, project or session returns
+                  <code>NOT_FOUND</code> here rather than a <code>scan_id</code> that only reports a failure when it is first
+                  polled. <code>RESOURCE_EXHAUSTED</code> means every retained slot is held by a scan that has not finished.</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line"><span class="method rpc">RPC</span><code>GetActivity</code></div>
                 <p>Poll with the original <code>scope</code> and <code>scan_id</code>. Optional <code>order</code> ranks
-                  by event count, distinct event types, or time. Optional <code>limit</code> selects 1–20 buckets (default 20).
-                  The snapshot includes total counts, bucket/type counts, omitted detail, state, and source coverage.
-                  Polling never starts another scan.</p>
+                  by event count, distinct event types, or time. Optional <code>limit</code> selects 1–20 buckets per page
+                  (default 20) and optional <code>offset</code> skips that many in the ranked order (default 0, at most 288).
+                  The snapshot includes total counts, bucket/type counts, omitted detail, state, and source coverage, and
+                  echoes <code>offset</code> with <code>has_more_buckets</code> so a caller can page without tracking it.
+                  Paging is what makes every bucket reachable: a window holds up to 288, so under
+                  <code>ACTIVITY_ORDER_TIME</code> the first page is all a caller would otherwise see — and it is empty
+                  whenever the session began recording late in the window. Polling never starts another scan.</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line"><span class="method rpc">RPC</span><code>CancelActivity</code></div>
@@ -112,6 +119,8 @@ onMounted(() => {
                 The MCP endpoint belongs to Microscope.</p>
               <p>There is no total-event cap. Counts use at most 288 buckets and 512 observed types; two scans run
                 concurrently, with at most 16 retained scans and up to one hour of retention after completion.
+                <code>requested_event_types</code> on the snapshot echoes the filter the scan was started with — the types
+                actually observed are counted per bucket in <code>ActivityBucket.event_types</code>.
                 Read <code>complete</code> and <code>source_errors</code> even when the state is completed.
                 Finished files visible at scan start define coverage; overlapping files may count an event twice.
                 Definitions are in <code>event_activity_service.proto</code>.</p>
