@@ -26,6 +26,17 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      # HubFrontendTest serves this output through the production MVC resource configuration.
+      - name: Build Hub frontend
+        working-directory: jeffrey-hub/pages-hub
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
       - name: Install protobuf documentation tools
         run: |
           sudo apt-get update

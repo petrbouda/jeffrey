@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorResponse;
 import cafe.jeffrey.shared.common.exception.ErrorType;
@@ -39,6 +40,11 @@ import cafe.jeffrey.shared.common.exception.ErrorType;
 public class JeffreyExceptionHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(JeffreyExceptionHandler.class);
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleMissingResource(NoResourceFoundException ex) {
+        return ResponseEntity.notFound().build();
+    }
 
     /**
      * Preserves a status a controller chose deliberately. Without this the catch-all below would
