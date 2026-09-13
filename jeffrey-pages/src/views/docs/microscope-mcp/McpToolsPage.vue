@@ -304,6 +304,23 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Bounded remote events.</strong> <code>hubs_queryEvents(sessionRef, eventTypes, startTime?, endTime?, limit?, maxBytes?)</code> reads finished recording files directly from a Hub. Event types are comma-separated; timestamps are epoch milliseconds. It returns complete event rows within the limits, then cancels the replay. Inspect source coverage and the termination reason before interpreting an empty or partial response. It requires a Hub that acknowledges the full workspace/project/session identity; an older Hub is not treated as a complete empty result. This is a finite query, with a deadline, rather than a live subscription.</p>
 
+      <p>The default is <strong>100 matching events</strong>, with a 15-second deadline and a 65,536-byte result budget. Set <code>limit</code> to any positive integer for a different event-count limit, or <code>0</code> to disable the event-count limit. Set <code>maxBytes</code> between 4,096 and 100,000. These are the first matches in replay order; they are not ranked by duration and do not represent the whole time window when <code>partial</code> is true. A byte or time limit can return fewer events than requested.</p>
+
+      <p>For example, call this tool through Microscope's MCP endpoint to inspect GC events between 10:00 and 12:00 UTC on 13 September 2026. Copy <code>sessionRef</code> from <code>hubs_sessions</code>. Both time bounds are inclusive.</p>
+      <pre><code>{
+  "name": "hubs_queryEvents",
+  "arguments": {
+    "sessionRef": "&lt;session_ref from hubs_sessions&gt;",
+    "eventTypes": "jdk.GarbageCollection,jdk.GCPhasePause",
+    "startTime": 1789293600000,
+    "endTime": 1789300800000,
+    "limit": 100
+  }
+}</code></pre>
+      <p>For more events, use <code>"limit": 500</code> or <code>"limit": 2000</code>. To remove the event-count limit, use <code>"limit": 0</code>; optionally raise <code>"maxBytes": 100000</code>. The byte budget and 15-second deadline still apply with <code>limit: 0</code>, so it does not guarantee that every matching event fits into one MCP response. Omitting <code>limit</code> keeps the default of 100.</p>
+
+      <p>If <code>termination</code> is <code>row_limit</code>, <code>byte_limit</code>, or <code>timeout</code>, narrow the time window or event types for a smaller sample. Do not infer total counts, the busiest period, or the slowest events from this truncated result.</p>
+
       <p><strong>Remote event summaries.</strong> <code>hubs_eventActivity(sessionRef, startTime, endTime, bucketSeconds?, eventTypes?)</code>
         starts an aggregation on Hub through gRPC. The agent connects to Microscope’s existing MCP endpoint.
         Hub reads the recordings and keeps the counters; only compact summaries travel to Microscope.</p>

@@ -124,10 +124,9 @@ public final class HubReplayCollector {
             }
             ObjectNode row = eventJson(event);
             // What this row costs, rather than what the whole answer now weighs. Re-serialising the
-            // document once per event is quadratic in the row count, and at the limits this tool
-            // accepts -- a thousand rows inside a hundred kilobytes -- that is most of the work the
-            // call does. Rows are independent elements of one array, so the delta is exact: the row
-            // itself, the comma before it, and any digit the row counter grows by.
+            // document once per event is quadratic in the row count, including when the caller
+            // disables the row limit. Rows are independent array elements, so the delta is exact:
+            // the row itself, the comma before it, and any digit the row counter grows by.
             int delta = utf8Length(Json.toString(row))
                     + (events.isEmpty() ? 0 : 1)
                     + digits(events.size() + 1) - digits(events.size());
@@ -138,7 +137,7 @@ public final class HubReplayCollector {
             events.add(row);
             accumulated += delta;
             output.put("rows", events.size());
-            if (events.size() >= limit) {
+            if (limit > 0 && events.size() >= limit) {
                 stop("row_limit");
                 return;
             }
