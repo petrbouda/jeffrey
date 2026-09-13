@@ -41,14 +41,6 @@ final class ToolInvocation {
     /** Attribute recording how many characters a tool handed back to the model. */
     private static final String RESULT_CHARS_ATTRIBUTE = "resultChars";
 
-    /**
-     * What a tool's own failure is wrapped in before it leaves here — every failure except a
-     * {@link ToolExecutionException}, which already is the sentence the model is meant to read and
-     * leaves as itself. The envelope reads the prefix back off a wrapped failure to reach the cause
-     * underneath, so the two must agree on the spelling.
-     */
-    static final String TOOL_EXECUTION_FAILED_PREFIX = "Tool execution failed: ";
-
     private ToolInvocation() {
     }
 
@@ -80,7 +72,7 @@ final class ToolInvocation {
                         // front of the sentence and the sentence itself in the cause, doubled.
                         throw failure;
                     }
-                    throw new IllegalStateException(TOOL_EXECUTION_FAILED_PREFIX + cause.getMessage(), cause);
+                    throw new ToolInvocationException(cause);
                 }
             });
             // A tool that returned a result did its job; the outcome is observed, not assumed.

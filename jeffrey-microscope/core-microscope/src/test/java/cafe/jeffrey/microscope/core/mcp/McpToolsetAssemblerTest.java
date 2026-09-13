@@ -36,6 +36,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
+import cafe.jeffrey.profile.mcp.McpPrompt;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.Json;
@@ -296,12 +297,32 @@ class McpToolsetAssemblerTest {
         /** {@code family_toolName} as it appears inside prose. */
         private static final Pattern REFERENCE = Pattern.compile("\\b([a-z][a-z]*_[a-zA-Z][a-zA-Z0-9]*)\\b");
 
-        /** Names that look like a tool reference and are not: deliberate counter-examples. */
+        /** Names that look like tool references: deliberate counter-examples and a SQL alias. */
         private static final Set<String> NOT_REFERENCES = Set.of(
-                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list");
+                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "hubs_list_sessions", "heap_used");
 
         private List<McpToolSpec> specs() {
             return assembler(true).toolset().specs();
+        }
+
+        @Test
+        void pluginSkillsNameToolsThatExist() {
+            Set<String> registered = Set.copyOf(toolNames(true));
+            Set<String> prefixes = registered.stream()
+                    .map(name -> name.substring(0, name.indexOf('_')))
+                    .collect(Collectors.toSet());
+            List<String> dangling = new ArrayList<>();
+            for (McpPrompt prompt : new McpPromptRegistry().prompts()) {
+                Matcher matcher = REFERENCE.matcher(prompt.text());
+                while (matcher.find()) {
+                    String reference = matcher.group(1);
+                    if (!registered.contains(reference) && !NOT_REFERENCES.contains(reference)
+                            && prefixes.contains(reference.substring(0, reference.indexOf('_')))) {
+                        dangling.add(prompt.name() + " -> " + reference);
+                    }
+                }
+            }
+            assertTrue(dangling.isEmpty(), "Skills naming tools that do not exist: " + dangling);
         }
 
         @Test

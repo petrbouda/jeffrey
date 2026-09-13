@@ -31,6 +31,8 @@ an install, plus the version agreement across the four manifests that only exist
 this repository.
 
 Usage: validate-agent-plugin.py <repo-root>
+
+Also checks analyst preparation restrictions and the session-page default copied from Java.
 """
 
 import json
@@ -157,6 +159,31 @@ def check_versions(root: Path) -> None:
         fail("versions", f"the manifests disagree: {versions}")
 
 
+def check_agent_contracts(root: Path) -> None:
+    """Cross-check permissions and copied defaults against their source of truth."""
+    plugin = root / PLUGIN_DIR
+    analyst = plugin / "agents/profile-analyst.md"
+    frontmatter = analyst.read_text().split("---", 2)[1]
+    denied_section = re.search(r"^disallowedTools:\n((?:  - .+\n)+)", frontmatter, re.M)
+    denied = set(re.findall(r"^  - (.+)$", denied_section.group(1), re.M)) if denied_section else set()
+    for prefix in ("mcp__plugin_microscope_jeffrey__", "mcp__jeffrey__"):
+        if prefix + "heap_prepare" not in denied:
+            fail(str(analyst), f"read-only analyst must deny {prefix}heap_prepare")
+
+    for relative in ("codex/agents/profile-analyst.toml", "gemini/agents/profile-analyst.md"):
+        path = plugin / relative
+        rules = path.read_text().split("## What you never do", 1)[-1]
+        if "Never call `heap_prepare`" not in rules:
+            fail(str(path), "read-only analyst must explicitly forbid heap_prepare")
+
+    hub_source = root / "jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/HubsMcpTools.java"
+    default = re.search(r"DEFAULT_LIMIT\s*=\s*(\d+)", hub_source.read_text())
+    skill = plugin / "skills/analyze-hub/SKILL.md"
+    documented = re.search(r"hubs_sessions` defaults to (\d+) rows", skill.read_text())
+    if not default or not documented or default.group(1) != documented.group(1):
+        fail(str(skill), "hubs_sessions documented default must match HubsMcpTools.DEFAULT_LIMIT")
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     plugin_root = root / PLUGIN_DIR
@@ -181,13 +208,14 @@ def main() -> int:
 
     check_skills(plugin_root)
     check_versions(root)
+    check_agent_contracts(root)
 
     if failures:
         for failure in failures:
             print(f"::error::{failure}")
         print(f"\n{len(failures)} problem(s) found.")
         return 1
-    print("Agent Plugins manifest, MCP configuration, skills and versions all valid.")
+    print("Agent Plugins manifest, MCP configuration, skills, versions and agent contracts all valid.")
     return 0
 
 

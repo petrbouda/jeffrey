@@ -1,0 +1,60 @@
+name: Validate Backend
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Install protobuf documentation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes protobuf-compiler golang-go
+          mkdir -p "$RUNNER_TEMP/bin"
+          GOBIN="$RUNNER_TEMP/bin" go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # exec.skip skips frontend builds and the Maven documentation generator together.
+      # Generate the JSON explicitly so Hub's documentation endpoint is exercised too.
+      - name: Generate protobuf documentation
+        run: |
+          mkdir -p shared/hub-api/target/classes
+          protoc --doc_out=shared/hub-api/target/classes --doc_opt=json,grpc-api-docs.json \
+            -Ishared/hub-api/src/main/proto shared/hub-api/src/main/proto/jeffrey/hub/api/v1/*.proto
+
+      - name: Test Hub, Microscope and their dependencies
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -pl jeffrey-hub/core-hub,jeffrey-microscope/core-microscope -am test
+          -Dexec.skip=true
+
+      - name: Check plugin contracts against backend defaults
+        run: python3 build/scripts/validate-agent-plugin.py .
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: ignore
