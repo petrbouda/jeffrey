@@ -64,10 +64,10 @@ onMounted(() => {
       </p>
 
       <DocsCallout type="info">
-        <strong>No analysis on Server.</strong> Flame graphs, heap dump
-        forensics, and the MCP server all live in Microscope. Server only collects and serves
-        — that keeps expensive profile processing off your production infrastructure and on
-        developer machines.
+        <strong>Full profile analysis stays in Microscope.</strong> Flame graphs and heap dump
+        forensics and the MCP endpoint run in Microscope. Hub exposes event-activity summaries through gRPC:
+        it counts events by time and type locally, and <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
+        return the summaries to agents before recordings are downloaded.
       </DocsCallout>
 
       <h2 id="components">Components</h2>

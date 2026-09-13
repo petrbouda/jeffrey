@@ -18,10 +18,10 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
@@ -116,7 +116,7 @@ class McpToolsetAssemblerTest {
                 recordingCommitResolver,
                 new HeapDumpInitService(CLOCK),
                 ideBridge,
-                properties, new HubsReplayMcpTools(projectManagerResolver), new McpOperationRegistry(CLOCK));
+                properties, new HubsReplayMcpTools(projectManagerResolver, new McpOperationRegistry(CLOCK)), new McpOperationRegistry(CLOCK));
     }
 
     private List<String> toolNames(boolean hubsEnabled) {
@@ -239,6 +239,9 @@ class McpToolsetAssemblerTest {
             assertTrue(names.contains("hubs_list"));
             assertTrue(names.contains("hubs_sessions"));
             assertTrue(names.contains("hubs_download"));
+            assertTrue(names.contains("hubs_eventActivity"));
+            assertTrue(names.contains("hubs_activityStatus"));
+            assertTrue(names.contains("hubs_activityCancel"));
         }
 
         @Test
@@ -360,6 +363,8 @@ class McpToolsetAssemblerTest {
                 "recordings_analyzeRecording",
                 "heap_prepare",
                 "hubs_download",
+                "hubs_eventActivity",
+                "hubs_activityCancel",
                 "operations_cancel",
                 "ide_link",
                 "ide_open");
@@ -398,6 +403,7 @@ class McpToolsetAssemblerTest {
                     .collect(Collectors.toSet());
 
             remote.add("operations_cancel");
+            remote.add("operations_status");
             assertEquals(remote, declared);
         }
 

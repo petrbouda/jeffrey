@@ -19,6 +19,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubActivityMcpSupport;
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubReplayCollector;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
@@ -48,16 +50,24 @@ public final class HubsReplayMcpTools {
     private static final ScheduledExecutorService DEADLINES = deadlineScheduler();
     private final ProjectManagerResolver resolver;
     private final Duration timeout;
-    public HubsReplayMcpTools(ProjectManagerResolver resolver) {
-        this(resolver, Duration.ofSeconds(15));
+    private final HubActivityMcpSupport activity;
+
+    public HubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations) {
+        this(resolver, operations, Duration.ofSeconds(15));
     }
-    public HubsReplayMcpTools(ProjectManagerResolver resolver, Duration timeout) {
+
+    public HubsReplayMcpTools(
+            ProjectManagerResolver resolver,
+            McpOperationRegistry operations,
+            Duration timeout) {
         if (timeout == null || timeout.isZero() || timeout.isNegative() || timeout.compareTo(Duration.ofSeconds(30)) > 0) {
             throw new IllegalArgumentException("Replay timeout must be positive and no greater than 30 seconds");
         }
         this.resolver = resolver;
         this.timeout = timeout;
+        this.activity = new HubActivityMcpSupport(resolver, operations, timeout, DEADLINES);
     }
+
     @McpToolHints(readOnly = true, openWorld = true)
     @Tool(description = "Query selected JFR events from a Hub session without downloading or analysing it. "
             + "Bounded to 15 seconds, at most 1000 rows and 100000 UTF-8 bytes. "
@@ -87,7 +97,9 @@ public final class HubsReplayMcpTools {
         if (eventTypes == null || eventTypes.isBlank() || eventTypes.length() > 2048) {
             throw new IllegalArgumentException("Specify comma-separated JFR event types (at most 2048 characters)");
         }
-        Set<String> types = Arrays.stream(eventTypes.split(",", -1)).map(String::trim).collect(Collectors.toSet());
+        Set<String> types = Arrays.stream(eventTypes.split(",", -1))
+                .map(String::trim)
+                .collect(Collectors.toSet());
         if (types.size() > 16 || types.stream().anyMatch(type -> type.isBlank() || type.length() > 128)) {
             throw new IllegalArgumentException("Specify 1–16 nonempty JFR event types of at most 128 characters each");
         }
@@ -105,12 +117,20 @@ public final class HubsReplayMcpTools {
         Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINES);
         try {
             context.call(() -> {
-                ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId()).projectManager();
-                var request = new ReplaySubscriptionRequest(ref.sessionId(), types, startTime, endTime,
-                        ref.workspaceId(), ref.projectId());
-                var subscription = project.eventStreamingManager().subscribeReplayRaw(request,
-                        new StreamingCallbacks(collector::accept, collector::streamCompleted,
-                                error -> collector.stop(termination(error))));
+                ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
+                        .projectManager();
+                var request = new ReplaySubscriptionRequest(
+                        ref.sessionId(),
+                        types,
+                        startTime,
+                        endTime,
+                        ref.workspaceId(),
+                        ref.projectId());
+                var callbacks = new StreamingCallbacks(
+                        collector::accept,
+                        collector::streamCompleted,
+                        error -> collector.stop(termination(error)));
+                var subscription = project.eventStreamingManager().subscribeReplayRaw(request, callbacks);
                 collector.cancellation(subscription::cancel);
                 collector.await(Duration.ofNanos(Math.max(1, deadline.timeRemaining(TimeUnit.NANOSECONDS))));
                 return null;
@@ -127,6 +147,52 @@ public final class HubsReplayMcpTools {
         return new McpToolResult(Json.toString(result), result);
     }
 
+    @Tool(description = "Start a background event-activity scan on the Hub for a session_ref from hubs_sessions. "
+            + "Hub counts matching events by time bucket without transferring recordings or raw events to Microscope. "
+            + "This creates work on the Hub: it claims one of its retained scan slots, runs a reader, and decompresses "
+            + "recordings to Hub scratch space. It changes no recording and no profile. "
+            + "Returns scanId; poll hubs_activityStatus with the same sessionRef and scanId, or operations_status with "
+            + "the scanId as its operationId. Each call starts a new scan. "
+            + "No total-event cap; at most 288 buckets and 512 observed types. Scans are Hub-process-local, retained up to "
+            + "one hour after completion, with at most 16 retained scans and two concurrent readers. Requires an updated Hub.")
+    @McpOutputSchema(HubActivityMcpSupport.OUTPUT_SCHEMA)
+    @McpToolHints(readOnly = false, idempotent = false, openWorld = true)
+    public McpToolResult eventActivity(
+            @ToolParam(description = "Exact session_ref from hubs_sessions") String sessionRef,
+            @ToolParam(description = "Inclusive start UTC epoch milliseconds") long startTime,
+            @ToolParam(description = "Exclusive end UTC epoch milliseconds") long endTime,
+            @ToolParam(description = "Bucket width in seconds; default 300, at most 288 buckets", required = false) Long bucketSeconds,
+            @ToolParam(description = "Comma-separated exact event types, at most 16; omit to count all types", required = false) String eventTypes) {
+        return activity.start(sessionRef, startTime, endTime, bucketSeconds, eventTypes);
+    }
+
+    @Tool(description = "Read a Hub activity scan without restarting it. Rank intervals by event count (events), "
+            + "distinct event types (types), or chronological time (time). Counts are lower bounds until complete=true. "
+            + "At most 20 buckets per page and 10 types per bucket; totals include omitted details. "
+            + "A window holds up to 288 buckets, so page with offset while hasMoreBuckets is true — with order=time the "
+            + "first page can be entirely empty when the recording starts late in the window. "
+            + "Use the original sessionRef and scanId.")
+    @McpOutputSchema(HubActivityMcpSupport.OUTPUT_SCHEMA)
+    @McpToolHints(readOnly = true, openWorld = true)
+    public McpToolResult activityStatus(
+            @ToolParam(description = "The session_ref used to start the scan") String sessionRef,
+            @ToolParam(description = "scanId returned by hubs_eventActivity") String scanId,
+            @ToolParam(description = "events (default), types or time", required = false) @ToolParamValues({"events", "types", "time"}) String order,
+            @ToolParam(description = "Maximum buckets returned per page, 1–20; default 20", required = false) Integer limit,
+            @ToolParam(description = "Buckets to skip in the ranked order before this page; default 0, at most 288", required = false) Integer offset) {
+        return activity.status(sessionRef, scanId, order, limit, offset);
+    }
+
+    @Tool(description = "Cancel an exact activity scan on its Hub. Use the original sessionRef and scanId. "
+            + "cancel_requested remains nonterminal until reader cleanup finishes. Partial counts remain available; recordings are unchanged.")
+    @McpOutputSchema(HubActivityMcpSupport.OUTPUT_SCHEMA)
+    @McpToolHints(readOnly = false, idempotent = true, openWorld = true)
+    public McpToolResult activityCancel(
+            @ToolParam(description = "The session_ref used to start the scan") String sessionRef,
+            @ToolParam(description = "scanId returned by hubs_eventActivity") String scanId) {
+        return activity.cancel(sessionRef, scanId);
+    }
+
     private static String termination(Throwable error) {
         return switch (Status.fromThrowable(error).getCode()) {
             case DEADLINE_EXCEEDED -> "timeout";
@@ -139,8 +205,11 @@ public final class HubsReplayMcpTools {
     }
 
     private static ScheduledExecutorService deadlineScheduler() {
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1,
-                Thread.ofPlatform().daemon().name("hub-mcp-replay-deadline-", 0).factory());
+        var factory = Thread.ofPlatform()
+                .daemon()
+                .name("hub-mcp-replay-deadline-", 0)
+                .factory();
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, factory);
         executor.setRemoveOnCancelPolicy(true);
         return executor;
     }

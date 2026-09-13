@@ -18,23 +18,25 @@
 
 package cafe.jeffrey.hub.core.streaming;
 
+import cafe.jeffrey.hub.api.v1.EventBatch;
+import cafe.jeffrey.hub.api.v1.StreamingEvent;
+import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.api.v1.EventBatch;
-import cafe.jeffrey.hub.api.v1.StreamingEvent;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -58,6 +60,7 @@ public class SingleReplyStreamingSubscriber {
     private final Consumer<EventBatch> consumer;
     private final Supplier<Boolean> isClosed;
     private final Runnable sourceError;
+    private final BiConsumer<String, Instant> metadataConsumer;
     private final AtomicReference<EventStream> activeStream = new AtomicReference<>();
 
     public SingleReplyStreamingSubscriber(
@@ -71,6 +74,17 @@ public class SingleReplyStreamingSubscriber {
 
     public SingleReplyStreamingSubscriber(ReplayStreamSubscription subscription, Path tempDir,
                                          Consumer<EventBatch> consumer, Supplier<Boolean> isClosed, Runnable sourceError) {
+        this(subscription, tempDir, consumer, isClosed, sourceError, null);
+    }
+
+    SingleReplyStreamingSubscriber(
+            ReplayStreamSubscription subscription,
+            Path tempDir,
+            Consumer<EventBatch> consumer,
+            Supplier<Boolean> isClosed,
+            Runnable sourceError,
+            BiConsumer<String, Instant> metadataConsumer) {
+        this.metadataConsumer = metadataConsumer;
         this.sourceError = sourceError;
         this.subscription = subscription;
         this.tempDir = tempDir;
@@ -109,9 +123,14 @@ public class SingleReplyStreamingSubscriber {
             try (RecordingFile recording = new RecordingFile(readPath)) {
                 while (!isClosed.get() && recording.hasMoreEvents()) {
                     RecordedEvent event = recording.readEvent();
-                    if (subscription.eventTypes().contains(event.getEventType().getName())
+                    if ((subscription.eventTypes().isEmpty() || subscription.eventTypes().contains(event.getEventType().getName()))
                             && subscription.window().contains(event.getStartTime())) {
-                        bufferEvent(event, buffer);
+                        if (metadataConsumer == null) {
+                            bufferEvent(event, buffer);
+                        } else {
+                            // Aggregation needs no field/stack conversion or intermediate event batches.
+                            metadataConsumer.accept(event.getEventType().getName(), event.getStartTime());
+                        }
                     }
                 }
                 if (!isClosed.get() && !buffer.isEmpty()) {

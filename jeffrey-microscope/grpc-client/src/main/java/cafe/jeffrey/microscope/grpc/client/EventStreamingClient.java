@@ -18,11 +18,12 @@
 
 package cafe.jeffrey.microscope.grpc.client;
 
+import cafe.jeffrey.hub.api.v1.EventActivityServiceGrpc;
+import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
+import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import io.grpc.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
-import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 
 import java.io.Closeable;
 import java.util.Set;
@@ -37,10 +38,12 @@ public class EventStreamingClient implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamingClient.class);
 
     private final EventStreamingServiceGrpc.EventStreamingServiceStub stub;
+    private final EventActivityServiceGrpc.EventActivityServiceBlockingStub activityStub;
     private final Set<EventStreamingSubscription> activeSubscriptions = ConcurrentHashMap.newKeySet();
 
     public EventStreamingClient(GrpcHubConnection connection) {
         this.stub = EventStreamingServiceGrpc.newStub(connection.getChannel());
+        this.activityStub = EventActivityServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
     /**
@@ -88,6 +91,25 @@ public class EventStreamingClient implements Closeable {
 
         LOG.info("Subscribed to replay stream: request={}", request);
         return subscription;
+    }
+
+    /**
+     * Starts an independent Hub scan; its lifetime is not limited by this RPC's deadline.
+     *
+     * <p>None of the three activity calls sets a deadline of its own. The caller owns it, through the
+     * gRPC {@link Context} it makes the call in, so the timeout it was configured with is the one that
+     * applies — a second deadline here would silently win whenever it were the shorter of the two.</p>
+     */
+    public ActivityScanSnapshot startActivity(ActivityScanRequest request) {
+        return ActivityCodec.snapshot(activityStub.startActivity(ActivityCodec.start(request)));
+    }
+
+    public ActivityScanSnapshot getActivity(ActivityScanQuery query) {
+        return ActivityCodec.snapshot(activityStub.getActivity(ActivityCodec.get(query)));
+    }
+
+    public ActivityScanSnapshot cancelActivity(ActivityScanTarget target) {
+        return ActivityCodec.snapshot(activityStub.cancelActivity(ActivityCodec.cancel(target)));
     }
 
     @Override

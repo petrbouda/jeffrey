@@ -39,6 +39,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ScopedReplayStreamingSubscriberTest {
     @Test
+    void emptyTypeFilterCountsAllObservedTypes(@TempDir Path temp) throws Exception {
+        var subscription = new ReplayStreamSubscription("session", List.of(JfrTestFiles.resolve(JfrTestFiles.PROFILE_1)),
+                Set.of(), StreamingWindow.UNBOUNDED, temp, "workspace", "project");
+        Set<String> types = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        CountDownLatch closed = new CountDownLatch(1);
+        var reader = new ReplayStreamingSubscriber(subscription, new StreamingCallbacks(
+                batch -> batch.getEventsList().forEach(event -> types.add(event.getEventType())),
+                () -> {}, error -> {}, closed::countDown));
+        reader.start();
+        assertTrue(closed.await(10, TimeUnit.SECONDS));
+        assertTrue(types.size() > 1, "aggregation without a type filter must discover event types");
+    }
+
+    @Test
     void strictReplayPreservesTypesAndTimeWindowAndReportsCompleteSource(@TempDir Path temp) throws Exception {
         Instant start = Instant.parse("2025-12-20T00:12:24Z");
         Instant end = start.plusSeconds(300);

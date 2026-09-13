@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -58,26 +59,77 @@ public final class McpOperationRegistry {
         return register(kind, handle, result, null);
     }
 
-    public <V> String register(String kind, OperationHandle<V> handle, Function<V, Object> result,
-                               Supplier<String> recordingIdentity) {
-        return registerIfRetained(kind, handle, result, recordingIdentity)
+    public <V> String register(
+            String kind,
+            OperationHandle<V> handle,
+            Function<V, Object> result,
+            Supplier<String> recordingIdentity) {
+        return registerIfRetained(kind, handle, result, recordingIdentity, null)
                 .orElseThrow(() -> new IllegalArgumentException("Operation retention has expired"));
     }
 
     public <V> Optional<String> registerIfRetained(String kind, OperationHandle<V> handle, Function<V, Object> result) {
-        return registerIfRetained(kind, handle, result, null);
+        return registerIfRetained(kind, handle, result, null, null);
     }
 
-    private <V> Optional<String> registerIfRetained(String kind, OperationHandle<V> handle,
-                                                   Function<V, Object> result, Supplier<String> recordingIdentity) {
+    /** Remote workers may disappear without a final observation; forget handles left idle. */
+    public <V> Optional<String> registerIfRetained(
+            String kind,
+            OperationHandle<V> handle,
+            Function<V, Object> result,
+            Duration idleRetention) {
+        if (idleRetention == null || idleRetention.isZero() || idleRetention.isNegative()) {
+            throw new IllegalArgumentException("Idle retention must be positive");
+        }
+        return registerIfRetained(kind, handle, result, null, idleRetention);
+    }
+
+    private <V> Optional<String> registerIfRetained(
+            String kind,
+            OperationHandle<V> handle,
+            Function<V, Object> result,
+            Supplier<String> recordingIdentity,
+            Duration idleRetention) {
         evictExpired();
         Instant finished = handle.finishedAt();
         if (finished != null && finished.isBefore(clock.instant().minus(RETENTION))) {
             return Optional.empty();
         }
         String id = handle.operationId();
-        entries.putIfAbsent(id, new Entry<>(kind, handle, result, recordingIdentity, registrationSequence.incrementAndGet()));
+        var entry = new Entry<>(
+                kind,
+                handle,
+                result,
+                recordingIdentity,
+                registrationSequence.incrementAndGet(),
+                idleRetention,
+                clock.instant());
+        entries.putIfAbsent(id, entry);
         return Optional.of(id);
+    }
+
+    /** Applies a family tool's observation to the same handle used by the generic tools. No RPC runs here. */
+    public <H extends OperationHandle<?>> boolean updateHandle(
+            String operationId,
+            String kind,
+            Class<H> handleType,
+            Consumer<H> update) {
+        evictExpired();
+        Entry<?> entry = entries.get(operationId);
+        if (entry == null || !kind.equals(entry.kind)) {
+            return false;
+        }
+        synchronized (entry) {
+            entry.lastAccessed = clock.instant();
+            if (entry.terminal != null) {
+                return true;
+            }
+            if (!handleType.isInstance(entry.handle)) {
+                return false;
+            }
+            update.accept(handleType.cast(entry.handle));
+            return true;
+        }
     }
 
     public Optional<String> latestForRecording(String recordingId) {
@@ -122,6 +174,7 @@ public final class McpOperationRegistry {
             throw new IllegalArgumentException("Unknown or expired operation: " + id
                     + ". Operations are process-local and retained for one hour after completion.");
         }
+        entry.lastAccessed = clock.instant();
         return entry;
     }
 
@@ -129,7 +182,11 @@ public final class McpOperationRegistry {
         Instant cutoff = clock.instant().minus(RETENTION);
         entries.values().removeIf(entry -> {
             Instant finished = entry.finishedAt();
-            return finished != null && finished.isBefore(cutoff);
+            if (finished != null) {
+                return finished.isBefore(cutoff);
+            }
+            return entry.idleRetention != null
+                    && entry.lastAccessed.plus(entry.idleRetention).isBefore(clock.instant());
         });
     }
 
@@ -154,9 +211,19 @@ public final class McpOperationRegistry {
         private volatile OperationHandle<V> handle;
         private Function<V, Object> renderer;
         private volatile Snapshot terminal;
+        private final Duration idleRetention;
+        private volatile Instant lastAccessed;
 
-        private Entry(String kind, OperationHandle<V> handle, Function<V, Object> renderer,
-                      Supplier<String> recordingIdentity, long registrationSequence) {
+        private Entry(
+                String kind,
+                OperationHandle<V> handle,
+                Function<V, Object> renderer,
+                Supplier<String> recordingIdentity,
+                long registrationSequence,
+                Duration idleRetention,
+                Instant lastAccessed) {
+            this.idleRetention = idleRetention;
+            this.lastAccessed = lastAccessed;
             this.registrationSequence = registrationSequence;
             this.kind = kind;
             this.operationId = handle.operationId();
@@ -228,6 +295,7 @@ public final class McpOperationRegistry {
                 case "recording_import" -> "If progress contains a recordingId, call recordings_analyzeRecording with retry=true; otherwise call recordings_analyzeFile again to start a new import.";
                 case "recording_analysis" -> "Call recordings_analyzeRecording with the same recordingId and retry=true to start a new attempt.";
                 case "hub_download" -> "Call hubs_download with the same sessionRef and retry=true to start a new attempt.";
+                case "hub_activity" -> "Call hubs_eventActivity with the same sessionRef and window to start a new scan; its partial counts remain readable until they expire.";
                 case "heap_prepare" -> "Call heap_prepare for the same profile/report with retry=true to start a new attempt.";
                 default -> "Start a new attempt explicitly using the originating tool.";
             };

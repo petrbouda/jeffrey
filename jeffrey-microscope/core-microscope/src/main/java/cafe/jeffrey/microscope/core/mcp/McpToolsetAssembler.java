@@ -138,7 +138,7 @@ public class McpToolsetAssembler {
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
                 new ReflectiveToolset(new OperationsMcpTools(operations, kind -> switch (kind) {
                     case "recording_import", "recording_analysis" -> properties.advertises(PREFIX_RECORDINGS);
-                    case "hub_download" -> properties.hubsEnabled() && properties.advertises(PREFIX_HUBS);
+                    case "hub_download", "hub_activity" -> properties.hubsEnabled() && properties.advertises(PREFIX_HUBS);
                     case "heap_prepare" -> properties.advertises(PREFIX_HEAP);
                     default -> false;
                 }), "operations"),

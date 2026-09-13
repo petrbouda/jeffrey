@@ -108,7 +108,7 @@ class McpWorkflowIntegrationTest {
                 mock(McpProfileContextCache.class), mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
-                new HubsReplayMcpTools(resolver), operations);
+                new HubsReplayMcpTools(resolver, new McpOperationRegistry()), operations);
         return new ExternalMcpController(assembler, properties, new McpRequestGuard(), new McpPromptRegistry(),
                 new McpDiagnostics(repositories, hubs, properties, clock, Duration.ofSeconds(1)));
     }

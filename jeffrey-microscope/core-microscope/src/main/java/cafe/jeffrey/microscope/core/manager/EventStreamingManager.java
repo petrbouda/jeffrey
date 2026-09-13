@@ -22,6 +22,10 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanQuery;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanRequest;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanSnapshot;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanTarget;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
 import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
@@ -75,6 +79,18 @@ public class EventStreamingManager {
     /** Supplies protobuf batches, including scoped replay coverage metadata. */
     public EventStreamingSubscription subscribeReplayRaw(ReplaySubscriptionRequest request, StreamingCallbacks callbacks) {
         return eventStreamingClient.subscribeReplayStreaming(request, callbacks);
+    }
+
+    public ActivityScanSnapshot startActivity(ActivityScanRequest request) {
+        return eventStreamingClient.startActivity(request);
+    }
+
+    public ActivityScanSnapshot getActivity(ActivityScanQuery query) {
+        return eventStreamingClient.getActivity(query);
+    }
+
+    public ActivityScanSnapshot cancelActivity(ActivityScanTarget target) {
+        return eventStreamingClient.cancelActivity(target);
     }
 
     /**

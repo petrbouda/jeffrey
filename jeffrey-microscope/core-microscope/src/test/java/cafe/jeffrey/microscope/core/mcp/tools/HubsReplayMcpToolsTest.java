@@ -59,7 +59,7 @@ class HubsReplayMcpToolsTest {
         when(project.eventStreamingManager()).thenReturn(streaming);
         Context.CancellableContext context = Context.ROOT.withCancellation();
         when(streaming.subscribeReplayRaw(any(), any())).thenReturn(new EventStreamingSubscription(context, "session"));
-        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, Duration.ofMillis(40));
+        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), Duration.ofMillis(40));
         long before = System.nanoTime();
         var result = tools.queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
         assertTrue(Duration.ofNanos(System.nanoTime() - before).compareTo(Duration.ofSeconds(2)) < 0);
@@ -83,7 +83,7 @@ class HubsReplayMcpToolsTest {
             return new EventStreamingSubscription(context, "session");
         });
         CompletableFuture<String> termination = new CompletableFuture<>();
-        Thread worker = Thread.ofVirtual().start(() -> termination.complete(new HubsReplayMcpTools(resolver)
+        Thread worker = Thread.ofVirtual().start(() -> termination.complete(new HubsReplayMcpTools(resolver, new McpOperationRegistry())
                 .queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent().path("termination").asText()));
         try {
             assertTrue(subscribed.await(2, TimeUnit.SECONDS));
@@ -99,7 +99,7 @@ class HubsReplayMcpToolsTest {
     @Test
     void invalidLimitsAndTimeWindowNeverContactHub() {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
-        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver);
+        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, 1001, null));
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "jdk.CPULoad", 2L, 1L, null, null));
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "", null, null, null, null));
@@ -133,7 +133,7 @@ class HubsReplayMcpToolsTest {
             callbacks.onComplete().run();
             return new EventStreamingSubscription(Context.ROOT.withCancellation(), "session");
         });
-        var result = new HubsReplayMcpTools(resolver).queryEvents(REF, "jdk.CPULoad", 1L, 100L, null, null).structuredContent();
+        var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry()).queryEvents(REF, "jdk.CPULoad", 1L, 100L, null, null).structuredContent();
         assertTrue(result.path("complete").asBoolean());
         assertEquals(123L, result.path("events").get(0).path("fields").path("value").asLong());
         assertEquals(1L, result.path("startTime").asLong());
@@ -154,7 +154,7 @@ class HubsReplayMcpToolsTest {
             callbacks.onComplete().run();
             return new EventStreamingSubscription(context, "session");
         });
-        var result = new HubsReplayMcpTools(resolver).queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
+        var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry()).queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
         assertEquals("unsupported_hub", result.path("termination").asText());
         assertTrue(context.isCancelled());
     }
