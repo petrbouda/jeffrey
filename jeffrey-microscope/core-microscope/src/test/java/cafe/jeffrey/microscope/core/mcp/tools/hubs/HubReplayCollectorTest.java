@@ -69,6 +69,23 @@ class HubReplayCollectorTest {
         assertTrue(Json.toString(collector.result()).getBytes(StandardCharsets.UTF_8).length <= 4096);
     }
 
+    /**
+     * The budget is now tracked incrementally rather than by re-serialising the document per event, so
+     * what matters is that the running total still agrees with the document it claims to measure --
+     * every row, with multi-byte text and a row counter that grows a digit.
+     */
+    @Test
+    void incrementalByteAccountingAgreesWithTheSerialisedDocument() {
+        HubReplayCollector collector = new HubReplayCollector(REF, 1000, 100_000);
+        collector.acknowledge("workspace", "project");
+        for (int index = 0; index < 40; index++) {
+            collector.accept(batch("猫value" + index));
+            int measured = Json.toString(collector.result()).getBytes(StandardCharsets.UTF_8).length;
+            assertTrue(measured <= 100_000, "row " + index + " measured " + measured);
+        }
+        assertEquals(40, collector.result().path("events").size());
+    }
+
     @Test
     void sourceErrorsPreventCompleteEvenAfterNormalCompletion() {
         HubReplayCollector collector = new HubReplayCollector(REF, 10, 4096);

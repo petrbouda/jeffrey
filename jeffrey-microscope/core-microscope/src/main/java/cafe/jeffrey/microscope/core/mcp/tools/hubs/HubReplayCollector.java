@@ -43,6 +43,7 @@ public final class HubReplayCollector {
     private final ObjectNode output = Json.createObject();
     private final ArrayNode events = output.putArray("events");
     private final CompletableFuture<Void> done = new CompletableFuture<>();
+    private int accumulated;
     private boolean acknowledged;
     private boolean terminal;
     private boolean cancelled;
@@ -66,6 +67,9 @@ public final class HubReplayCollector {
         output.put("coverage", "Finished files visible at replay start; overlapping files may repeat events. "
                 + "No global ordering or deduplication guarantee. Stack traces are omitted.");
         output.put("fieldUnits", "Event timestamps and timestamp fields: epoch milliseconds; timespans: nanoseconds; percentages: fractions.");
+        // Seeded here as well as in filters(), which is optional: a running total that started at zero
+        // would under-count the identity fields by their whole size and let the answer past maxBytes.
+        accumulated = bytes();
     }
 
     public synchronized void filters(Set<String> eventTypes, Long startTime, Long endTime) {
@@ -77,7 +81,8 @@ public final class HubReplayCollector {
         if (endTime != null) {
             output.put("endTime", endTime);
         }
-        if (bytes() + TERMINAL_RESERVE > maxBytes) {
+        accumulated = bytes();
+        if (accumulated + TERMINAL_RESERVE > maxBytes) {
             throw new IllegalArgumentException("maxBytes is too small for the requested identity and filters");
         }
     }
@@ -118,14 +123,21 @@ public final class HubReplayCollector {
                 return;
             }
             ObjectNode row = eventJson(event);
-            events.add(row);
-            output.put("rows", events.size());
-            if (bytes() + TERMINAL_RESERVE > maxBytes) {
-                events.remove(events.size() - 1);
-                output.put("rows", events.size());
+            // What this row costs, rather than what the whole answer now weighs. Re-serialising the
+            // document once per event is quadratic in the row count, and at the limits this tool
+            // accepts -- a thousand rows inside a hundred kilobytes -- that is most of the work the
+            // call does. Rows are independent elements of one array, so the delta is exact: the row
+            // itself, the comma before it, and any digit the row counter grows by.
+            int delta = utf8Length(Json.toString(row))
+                    + (events.isEmpty() ? 0 : 1)
+                    + digits(events.size() + 1) - digits(events.size());
+            if (accumulated + delta + TERMINAL_RESERVE > maxBytes) {
                 stop("byte_limit");
                 return;
             }
+            events.add(row);
+            accumulated += delta;
+            output.put("rows", events.size());
             if (events.size() >= limit) {
                 stop("row_limit");
                 return;
@@ -197,7 +209,15 @@ public final class HubReplayCollector {
     }
 
     private int bytes() {
-        return Json.toString(output).getBytes(StandardCharsets.UTF_8).length;
+        return utf8Length(Json.toString(output));
+    }
+
+    private static int utf8Length(String value) {
+        return value.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    private static int digits(int value) {
+        return Integer.toString(value).length();
     }
 
     private static ObjectNode eventJson(StreamingEvent event) {

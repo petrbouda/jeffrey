@@ -288,19 +288,40 @@ public class HubsMcpTools {
         SessionPage page = new SessionPage(filter, fingerprint, withinLastMinutes, scanned.rows().size(),
                 remaining.size(), boundedFailures(scanned.failures()));
         DownloadedSessionIndex local = DownloadedSessionIndex.build(recordingsManager);
-        List<HubSessionScan.Row> selected = new ArrayList<>(remaining.subList(0, Math.min(rowLimit, remaining.size())));
-        while (true) {
-            PageCandidate result = renderPage(page, selected, local);
-            if (result.text().length() <= McpToolOutput.MAX_CHARS
-                    && Json.toString(result.structuredContent()).length() <= McpToolOutput.MAX_CHARS) {
-                return new McpToolResult(result.text(), result.structuredContent());
-            }
-            if (selected.size() <= 1) {
-                throw new IllegalArgumentException(
-                        "A session identity exceeds the catalogue response limit and cannot be returned intact.");
-            }
-            selected.removeLast();
+        int selected = Math.min(rowLimit, remaining.size());
+        PageCandidate whole = renderPage(page, remaining.subList(0, selected), local);
+        if (fits(whole)) {
+            return new McpToolResult(whole.text(), whole.structuredContent());
         }
+
+        // The largest complete prefix that fits, found by halving rather than by dropping one row at a
+        // time: the limit reaches 500 and a page nearly fills the budget, so shrinking row by row
+        // re-renders the whole answer hundreds of times to arrive at the same place. profiles_list
+        // pages the same way, and renderPage derives hasMore and nextCursor from the rows it is
+        // handed, so whichever prefix this settles on is a correct page for exactly those rows.
+        int low = 1;
+        int high = selected - 1;
+        PageCandidate fitting = null;
+        while (low <= high) {
+            int count = low + (high - low) / 2;
+            PageCandidate candidate = renderPage(page, remaining.subList(0, count), local);
+            if (fits(candidate)) {
+                fitting = candidate;
+                low = count + 1;
+            } else {
+                high = count - 1;
+            }
+        }
+        if (fitting == null) {
+            throw new IllegalArgumentException(
+                    "A session identity exceeds the catalogue response limit and cannot be returned intact.");
+        }
+        return new McpToolResult(fitting.text(), fitting.structuredContent());
+    }
+
+    private static boolean fits(PageCandidate candidate) {
+        return candidate.text().length() <= McpToolOutput.MAX_CHARS
+                && Json.toString(candidate.structuredContent()).length() <= McpToolOutput.MAX_CHARS;
     }
 
     /** Java callers retain the original text-only contract; MCP reflects the cursor overload. */
