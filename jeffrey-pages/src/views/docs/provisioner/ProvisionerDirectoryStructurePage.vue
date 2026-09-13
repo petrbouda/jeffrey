@@ -96,6 +96,10 @@ onMounted(() => {
 
         <h2 id="recorded-events">Recorded Events</h2>
         <p>Async-Profiler writes CPU, allocation, and lock samples to <code>profile-*.jfr</code> files. Its <code>jfrsync</code> setting captures JVM and Jeffrey instrumentation events in those recordings, including <code>jeffrey.AppInformation</code> identity metadata. The Hub reads dumped files for Replay Stream.</p>
+
+        <DocsCallout type="info">
+          <strong>Where the JVM keeps its own JFR chunks:</strong> <code>jfrsync</code> runs a JDK recording alongside Async-Profiler, and the JVM buffers that recording in its own JFR repository. Jeffrey no longer points that repository at the session directory, so it goes wherever the JVM puts it by default &mdash; a timestamped folder under <code>java.io.tmpdir</code>. Nothing Jeffrey reads lives there, and the working set is transient, but it is disk the session volume used to absorb. On a container with a small <code>/tmp</code> or a tight ephemeral-storage limit, set <code>-XX:FlightRecorderOptions=repository=&lt;path&gt;</code> yourself to put it somewhere sized for it.
+        </DocsCallout>
       </div>
 
       <DocsNavFooter />
