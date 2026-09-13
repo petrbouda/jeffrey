@@ -41,8 +41,12 @@ import static org.mockito.Mockito.*;
 
 class HubsActivityMcpToolsTest {
     private static final String REF = new HubSessionRef("hub", "workspace", "project", "session").encode();
-    private static final ActivityScope SCOPE = ActivityScope.newBuilder().setWorkspaceId("workspace")
-            .setProjectId("project").setSessionId("session").build();
+
+    private static final ActivityScope SCOPE = ActivityScope.newBuilder()
+            .setWorkspaceId("workspace")
+            .setProjectId("project")
+            .setSessionId("session")
+            .build();
 
     @Test
     void existingHubFamilyRoutesStartPollAndCancelThroughGrpc() throws Exception {
@@ -60,21 +64,35 @@ class HubsActivityMcpToolsTest {
                 observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_RUNNING));
                 observer.onCompleted();
             }
+
             @Override
             public void getActivity(GetActivityRequest request, StreamObserver<EventActivitySnapshot> observer) {
                 assertEquals(SCOPE, request.getScope());
                 assertEquals("scan", request.getScanId());
                 assertEquals(ActivityOrder.ACTIVITY_ORDER_TYPES, request.getOrder());
                 assertEquals(1, request.getLimit());
-                observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_COMPLETED).toBuilder().setFinishedAt(2000)
-                        .setCoverageKnown(true).setComplete(false).setSourceErrors(1).setTotalEvents(1501)
-                        .setDistinctEventTypes(1).setTotalBuckets(2).setOmittedBuckets(1)
-                        .setOrder(request.getOrder()).addBuckets(ActivityBucket.newBuilder().setStartTime(1000)
-                                .setEndTime(61000).setEventCount(1501).setDistinctEventTypes(1)
-                                .addEventTypes(ActivityTypeCount.newBuilder().setEventType("jdk.GarbageCollection").setCount(1501)))
+                observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_COMPLETED).toBuilder()
+                        .setFinishedAt(2000)
+                        .setCoverageKnown(true)
+                        .setComplete(false)
+                        .setSourceErrors(1)
+                        .setTotalEvents(1501)
+                        .setDistinctEventTypes(1)
+                        .setTotalBuckets(2)
+                        .setOmittedBuckets(1)
+                        .setOrder(request.getOrder())
+                        .addBuckets(ActivityBucket.newBuilder()
+                                .setStartTime(1000)
+                                .setEndTime(61000)
+                                .setEventCount(1501)
+                                .setDistinctEventTypes(1)
+                                .addEventTypes(ActivityTypeCount.newBuilder()
+                                        .setEventType("jdk.GarbageCollection")
+                                        .setCount(1501)))
                         .build());
                 observer.onCompleted();
             }
+
             @Override
             public void cancelActivity(CancelActivityRequest request, StreamObserver<EventActivitySnapshot> observer) {
                 assertEquals(SCOPE, request.getScope());
@@ -83,8 +101,13 @@ class HubsActivityMcpToolsTest {
                 observer.onCompleted();
             }
         };
-        var server = NettyServerBuilder.forPort(0).addService(remote).build().start();
-        var channel = NettyChannelBuilder.forAddress("localhost", server.getPort()).usePlaintext().build();
+        var server = NettyServerBuilder.forPort(0)
+                .addService(remote)
+                .build()
+                .start();
+        var channel = NettyChannelBuilder.forAddress("localhost", server.getPort())
+                .usePlaintext()
+                .build();
         try {
             GrpcHubConnection connection = mock(GrpcHubConnection.class);
             when(connection.getChannel()).thenReturn(channel);
@@ -95,19 +118,26 @@ class HubsActivityMcpToolsTest {
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
             var tools = new ReflectiveToolset(new HubsReplayMcpTools(resolver), "hubs");
-            var started = tools.callResult("hubs_eventActivity", Json.createObject().put("sessionRef", REF)
-                    .put("startTime", 1000).put("endTime", 121000).put("bucketSeconds", 60)
+            var started = tools.callResult("hubs_eventActivity", Json.createObject()
+                    .put("sessionRef", REF)
+                    .put("startTime", 1000)
+                    .put("endTime", 121000)
+                    .put("bucketSeconds", 60)
                     .put("eventTypes", "jdk.GarbageCollection")).structuredContent();
             assertEquals("scan", started.path("scanId").asText());
             assertEquals(REF, started.path("sessionRef").asText());
-            var result = tools.callResult("hubs_activityStatus", Json.createObject().put("sessionRef", REF)
-                    .put("scanId", "scan").put("order", "types").put("limit", 1)).structuredContent();
+            var result = tools.callResult("hubs_activityStatus", Json.createObject()
+                    .put("sessionRef", REF)
+                    .put("scanId", "scan")
+                    .put("order", "types")
+                    .put("limit", 1)).structuredContent();
             assertEquals(1501, result.path("totalEvents").asLong());
             assertFalse(result.path("complete").asBoolean());
             assertEquals(1, result.path("sourceErrors").asInt());
             assertEquals(1, result.path("omittedBuckets").asInt());
             assertEquals(1501, result.path("buckets").get(0).path("eventTypes").get(0).path("count").asLong());
-            var cancelled = tools.callResult("hubs_activityCancel", Json.createObject().put("sessionRef", REF)
+            var cancelled = tools.callResult("hubs_activityCancel", Json.createObject()
+                    .put("sessionRef", REF)
                     .put("scanId", "scan")).structuredContent();
             assertEquals("cancel_requested", cancelled.path("status").asText());
             assertEquals(1, starts.get());
@@ -126,14 +156,20 @@ class HubsActivityMcpToolsTest {
                 rawCalls.incrementAndGet();
                 observer.onCompleted();
             }
+
             @Override
             public void scopedReplayStreaming(ReplayStreamingRequest request, StreamObserver<EventBatch> observer) {
                 rawCalls.incrementAndGet();
                 observer.onCompleted();
             }
         };
-        var server = NettyServerBuilder.forPort(0).addService(legacy).build().start();
-        var channel = NettyChannelBuilder.forAddress("localhost", server.getPort()).usePlaintext().build();
+        var server = NettyServerBuilder.forPort(0)
+                .addService(legacy)
+                .build()
+                .start();
+        var channel = NettyChannelBuilder.forAddress("localhost", server.getPort())
+                .usePlaintext()
+                .build();
         try {
             GrpcHubConnection connection = mock(GrpcHubConnection.class);
             when(connection.getChannel()).thenReturn(channel);
@@ -168,7 +204,13 @@ class HubsActivityMcpToolsTest {
     }
 
     private static EventActivitySnapshot snapshot(ActivityState state) {
-        return EventActivitySnapshot.newBuilder().setScanId("scan").setScope(SCOPE).setState(state)
-                .setStartTime(1000).setEndTime(121000).setBucketMillis(60000).build();
+        return EventActivitySnapshot.newBuilder()
+                .setScanId("scan")
+                .setScope(SCOPE)
+                .setState(state)
+                .setStartTime(1000)
+                .setEndTime(121000)
+                .setBucketMillis(60000)
+                .build();
     }
 }

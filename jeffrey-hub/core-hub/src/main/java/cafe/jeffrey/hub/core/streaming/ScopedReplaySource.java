@@ -23,30 +23,54 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import io.grpc.Status;
+
 import java.util.Comparator;
 import java.util.Set;
 
 /** The same read-only, project-scoped file selection for gRPC replay and event-activity aggregation. */
 public final class ScopedReplaySource {
+
     private final HubPlatformRepositories repositories;
     private final RepositoryStorage.Factory storage;
     private final HubJeffreyDirs dirs;
 
-    public ScopedReplaySource(HubPlatformRepositories repositories, RepositoryStorage.Factory storage, HubJeffreyDirs dirs) {
+    public ScopedReplaySource(
+            HubPlatformRepositories repositories,
+            RepositoryStorage.Factory storage,
+            HubJeffreyDirs dirs) {
         this.repositories = repositories;
         this.storage = storage;
         this.dirs = dirs;
     }
 
-    public ReplayStreamSubscription resolve(String workspaceId, String projectId, String sessionId,
-                                             Set<String> types, StreamingWindow window) {
-        var project = repositories.newProjectRepository(projectId).find()
+    public ReplayStreamSubscription resolve(
+            String workspaceId,
+            String projectId,
+            String sessionId,
+            Set<String> types,
+            StreamingWindow window) {
+
+        var project = repositories.newProjectRepository(projectId)
+                .find()
                 .filter(info -> workspaceId.equals(info.workspaceId()))
-                .orElseThrow(() -> Status.NOT_FOUND.withDescription("Project not found in requested workspace").asRuntimeException());
-        var session = storage.apply(project).singleSession(sessionId, true)
-                .orElseThrow(() -> Status.NOT_FOUND.withDescription("Session not found in requested project").asRuntimeException());
-        var files = session.files().stream().filter(RepositoryFile::isRecordingFile).filter(RepositoryFile::isFinished)
-                .sorted(Comparator.comparing(RepositoryFile::createdAt)).map(RepositoryFile::filePath).distinct().toList();
+                .orElseThrow(() -> Status.NOT_FOUND
+                        .withDescription("Project not found in requested workspace")
+                        .asRuntimeException());
+
+        var session = storage.apply(project)
+                .singleSession(sessionId, true)
+                .orElseThrow(() -> Status.NOT_FOUND
+                        .withDescription("Session not found in requested project")
+                        .asRuntimeException());
+
+        var files = session.files().stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(RepositoryFile::isFinished)
+                .sorted(Comparator.comparing(RepositoryFile::createdAt))
+                .map(RepositoryFile::filePath)
+                .distinct()
+                .toList();
+
         return new ReplayStreamSubscription(sessionId, files, types, window, dirs.temp(), workspaceId, projectId);
     }
 }

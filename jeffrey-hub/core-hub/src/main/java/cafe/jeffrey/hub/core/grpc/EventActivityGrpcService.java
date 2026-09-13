@@ -31,11 +31,13 @@ import java.util.Set;
 
 /** The Hub owns scanning and counters. Microscope owns their MCP presentation. */
 public final class EventActivityGrpcService extends EventActivityServiceGrpc.EventActivityServiceImplBase {
+
     private static final long DEFAULT_BUCKET_SECONDS = 300;
     private static final long MILLIS_PER_SECOND = 1000;
     private static final int DEFAULT_LIMIT = 20;
     private static final String STATE_PREFIX = "ACTIVITY_STATE_";
     private static final String ORDER_PREFIX = "ACTIVITY_ORDER_";
+
     private final HubActivityService service;
 
     public EventActivityGrpcService(HubActivityService service) {
@@ -50,19 +52,29 @@ public final class EventActivityGrpcService extends EventActivityServiceGrpc.Eve
             }
             long width;
             try {
-                width = Math.multiplyExact(request.hasBucketSeconds() ? request.getBucketSeconds() : DEFAULT_BUCKET_SECONDS,
+                width = Math.multiplyExact(
+                        request.hasBucketSeconds() ? request.getBucketSeconds() : DEFAULT_BUCKET_SECONDS,
                         MILLIS_PER_SECOND);
             } catch (ArithmeticException e) {
                 throw new IllegalArgumentException("bucket_seconds is too large", e);
             }
             var scope = request.getScope();
-            var activity = new ActivityRequest(scope.getWorkspaceId(), scope.getProjectId(), scope.getSessionId(),
-                    request.getStartTime(), request.getEndTime(), width, Set.copyOf(request.getEventTypesList()));
+            var activity = new ActivityRequest(
+                    scope.getWorkspaceId(),
+                    scope.getProjectId(),
+                    scope.getSessionId(),
+                    request.getStartTime(),
+                    request.getEndTime(),
+                    width,
+                    Set.copyOf(request.getEventTypesList()));
+
             String id;
             try {
                 id = service.start(activity);
             } catch (IllegalStateException e) {
-                throw Status.RESOURCE_EXHAUSTED.withDescription(e.getMessage()).asRuntimeException();
+                throw Status.RESOURCE_EXHAUSTED
+                        .withDescription(e.getMessage())
+                        .asRuntimeException();
             }
             return response(service.status(ref(scope, id), "events", DEFAULT_LIMIT));
         });
@@ -70,8 +82,10 @@ public final class EventActivityGrpcService extends EventActivityServiceGrpc.Eve
 
     @Override
     public void getActivity(GetActivityRequest request, StreamObserver<EventActivitySnapshot> observer) {
-        GrpcUnary.respond(observer, () -> response(service.status(ref(request.getScope(), request.getScanId()),
-                order(request.getOrder()), request.hasLimit() ? request.getLimit() : DEFAULT_LIMIT)));
+        GrpcUnary.respond(observer, () -> response(service.status(
+                ref(request.getScope(), request.getScanId()),
+                order(request.getOrder()),
+                request.hasLimit() ? request.getLimit() : DEFAULT_LIMIT)));
     }
 
     @Override
@@ -95,32 +109,52 @@ public final class EventActivityGrpcService extends EventActivityServiceGrpc.Eve
     private static EventActivitySnapshot response(ActivitySnapshot snapshot) {
         var request = snapshot.request();
         var summary = snapshot.summary();
-        var result = EventActivitySnapshot.newBuilder().setScanId(snapshot.scanId())
-                .setScope(ActivityScope.newBuilder().setWorkspaceId(request.workspaceId())
-                        .setProjectId(request.projectId()).setSessionId(request.sessionId()))
+
+        var result = EventActivitySnapshot.newBuilder()
+                .setScanId(snapshot.scanId())
+                .setScope(ActivityScope.newBuilder()
+                        .setWorkspaceId(request.workspaceId())
+                        .setProjectId(request.projectId())
+                        .setSessionId(request.sessionId()))
                 .setState(ActivityState.valueOf(STATE_PREFIX + snapshot.status().toUpperCase(Locale.ROOT)))
-                .setStartedAt(snapshot.startedAt().toEpochMilli()).setComplete(snapshot.complete())
-                .setCoverageKnown(snapshot.coverageKnown()).setSourceErrors(snapshot.sourceErrors())
-                .setFilesTotal(snapshot.filesTotal()).setStartTime(request.startTime()).setEndTime(request.endTime())
-                .setBucketMillis(request.bucketMillis()).addAllEventTypes(request.eventTypes().stream().sorted().toList())
-                .setTotalEvents(summary.totalEvents()).setDistinctEventTypes(summary.distinctEventTypes())
-                .setTotalBuckets(summary.totalBuckets()).setOrder(ActivityOrder.valueOf(ORDER_PREFIX + summary.order().toUpperCase(Locale.ROOT)))
+                .setStartedAt(snapshot.startedAt().toEpochMilli())
+                .setComplete(snapshot.complete())
+                .setCoverageKnown(snapshot.coverageKnown())
+                .setSourceErrors(snapshot.sourceErrors())
+                .setFilesTotal(snapshot.filesTotal())
+                .setStartTime(request.startTime())
+                .setEndTime(request.endTime())
+                .setBucketMillis(request.bucketMillis())
+                .addAllEventTypes(request.eventTypes().stream().sorted().toList())
+                .setTotalEvents(summary.totalEvents())
+                .setDistinctEventTypes(summary.distinctEventTypes())
+                .setTotalBuckets(summary.totalBuckets())
+                .setOrder(ActivityOrder.valueOf(ORDER_PREFIX + summary.order().toUpperCase(Locale.ROOT)))
                 .setOmittedBuckets(summary.omittedBuckets());
+
         if (snapshot.finishedAt() != null) {
             result.setFinishedAt(snapshot.finishedAt().toEpochMilli());
         }
         if (snapshot.error() != null) {
             result.setError(snapshot.error());
         }
+
         for (var bucket : summary.buckets()) {
-            var row = ActivityBucket.newBuilder().setStartTime(bucket.startTime()).setEndTime(bucket.endTime())
-                    .setEventCount(bucket.eventCount()).setDistinctEventTypes(bucket.distinctEventTypes())
+            var row = ActivityBucket.newBuilder()
+                    .setStartTime(bucket.startTime())
+                    .setEndTime(bucket.endTime())
+                    .setEventCount(bucket.eventCount())
+                    .setDistinctEventTypes(bucket.distinctEventTypes())
                     .setOmittedTypes(bucket.omittedTypes());
+
             for (var type : bucket.eventTypes()) {
-                row.addEventTypes(ActivityTypeCount.newBuilder().setEventType(type.eventType()).setCount(type.count()));
+                row.addEventTypes(ActivityTypeCount.newBuilder()
+                        .setEventType(type.eventType())
+                        .setCount(type.count()));
             }
             result.addBuckets(row);
         }
+
         return result.build();
     }
 }

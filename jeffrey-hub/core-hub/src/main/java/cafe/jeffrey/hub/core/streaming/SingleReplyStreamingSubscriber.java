@@ -18,26 +18,26 @@
 
 package cafe.jeffrey.hub.core.streaming;
 
+import cafe.jeffrey.hub.api.v1.EventBatch;
+import cafe.jeffrey.hub.api.v1.StreamingEvent;
+import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.api.v1.EventBatch;
-import cafe.jeffrey.hub.api.v1.StreamingEvent;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.BiConsumer;
-import java.time.Instant;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -77,9 +77,13 @@ public class SingleReplyStreamingSubscriber {
         this(subscription, tempDir, consumer, isClosed, sourceError, null);
     }
 
-    SingleReplyStreamingSubscriber(ReplayStreamSubscription subscription, Path tempDir,
-                                  Consumer<EventBatch> consumer, Supplier<Boolean> isClosed, Runnable sourceError,
-                                  BiConsumer<String, Instant> metadataConsumer) {
+    SingleReplyStreamingSubscriber(
+            ReplayStreamSubscription subscription,
+            Path tempDir,
+            Consumer<EventBatch> consumer,
+            Supplier<Boolean> isClosed,
+            Runnable sourceError,
+            BiConsumer<String, Instant> metadataConsumer) {
         this.metadataConsumer = metadataConsumer;
         this.sourceError = sourceError;
         this.subscription = subscription;

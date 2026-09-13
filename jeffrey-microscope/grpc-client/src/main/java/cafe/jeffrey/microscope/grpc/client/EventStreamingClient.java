@@ -18,21 +18,21 @@
 
 package cafe.jeffrey.microscope.grpc.client;
 
+import cafe.jeffrey.hub.api.v1.CancelActivityRequest;
+import cafe.jeffrey.hub.api.v1.EventActivityServiceGrpc;
+import cafe.jeffrey.hub.api.v1.EventActivitySnapshot;
+import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
+import cafe.jeffrey.hub.api.v1.GetActivityRequest;
+import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
+import cafe.jeffrey.hub.api.v1.StartActivityRequest;
 import io.grpc.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
-import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
-import cafe.jeffrey.hub.api.v1.EventActivityServiceGrpc;
-import cafe.jeffrey.hub.api.v1.EventActivitySnapshot;
-import cafe.jeffrey.hub.api.v1.StartActivityRequest;
-import cafe.jeffrey.hub.api.v1.GetActivityRequest;
-import cafe.jeffrey.hub.api.v1.CancelActivityRequest;
-import java.util.concurrent.TimeUnit;
 
 import java.io.Closeable;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * gRPC client for replaying JFR events from a Jeffrey Hub.
@@ -101,15 +101,21 @@ public class EventStreamingClient implements Closeable {
 
     /** Starts an independent Hub scan; its lifetime is not limited by this RPC's deadline. */
     public EventActivitySnapshot startActivity(StartActivityRequest request) {
-        return activityStub.withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS).startActivity(request);
+        return activityStub
+                .withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .startActivity(request);
     }
 
     public EventActivitySnapshot getActivity(GetActivityRequest request) {
-        return activityStub.withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS).getActivity(request);
+        return activityStub
+                .withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .getActivity(request);
     }
 
     public EventActivitySnapshot cancelActivity(CancelActivityRequest request) {
-        return activityStub.withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS).cancelActivity(request);
+        return activityStub
+                .withDeadlineAfter(ACTIVITY_RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .cancelActivity(request);
     }
 
     @Override

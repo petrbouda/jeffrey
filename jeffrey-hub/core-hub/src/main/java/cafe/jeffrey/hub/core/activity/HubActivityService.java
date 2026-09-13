@@ -26,7 +26,6 @@ import cafe.jeffrey.shared.common.Schedulers;
 
 import java.io.InterruptedIOException;
 import java.nio.channels.ClosedByInterruptException;
-import java.util.concurrent.CancellationException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,6 +33,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
@@ -41,11 +41,13 @@ import java.util.function.Function;
 
 /** Process-local scans. At most two readers run and at most sixteen jobs are retained. */
 public final class HubActivityService implements AutoCloseable {
+
     private static final int MAX_CONCURRENT_SCANS = 2;
     private static final int MAX_RETAINED_SCANS = 16;
     private static final int MAX_CAUSE_DEPTH = 20;
     private static final int DEFAULT_RESULT_BUCKETS = 20;
     private static final Duration RESULT_RETENTION = Duration.ofHours(1);
+
     private final Map<String, Job> jobs = new LinkedHashMap<>();
     private final Semaphore slots = new Semaphore(MAX_CONCURRENT_SCANS);
     private final Function<ActivityRequest, ReplayStreamSubscription> source;
@@ -61,7 +63,10 @@ public final class HubActivityService implements AutoCloseable {
         this(source, Schedulers.sharedVirtual(), clock);
     }
 
-    HubActivityService(Function<ActivityRequest, ReplayStreamSubscription> source, Executor executor, Clock clock) {
+    HubActivityService(
+            Function<ActivityRequest, ReplayStreamSubscription> source,
+            Executor executor,
+            Clock clock) {
         this.source = source;
         this.executor = executor;
         this.clock = clock;
@@ -71,9 +76,13 @@ public final class HubActivityService implements AutoCloseable {
         if (closed) {
             throw new IllegalStateException("Hub activity service is stopping");
         }
-        jobs.values().removeIf(job -> job.finishedAt != null && job.finishedAt.isBefore(clock.instant().minus(RESULT_RETENTION)));
+
+        jobs.values().removeIf(job -> job.finishedAt != null
+                && job.finishedAt.isBefore(clock.instant().minus(RESULT_RETENTION)));
+
         if (jobs.size() >= MAX_RETAINED_SCANS) {
-            var oldest = jobs.values().stream().filter(job -> job.finishedAt != null)
+            var oldest = jobs.values().stream()
+                    .filter(job -> job.finishedAt != null)
                     .min(Comparator.comparing(job -> job.finishedAt));
             if (oldest.isEmpty()) {
                 throw new IllegalStateException("Too many active scans; cancel or wait for an existing scan");
@@ -140,8 +149,14 @@ public final class HubActivityService implements AutoCloseable {
             synchronized (job) {
                 job.filesTotal = subscription.recordingFiles().size();
             }
-            reader = new ReplayStreamingSubscriber(subscription, new StreamingCallbacks(job::accept,
-                    () -> {}, error -> job.failed(error.getMessage()), () -> cleaned.complete(null)), job::acceptEvent);
+            reader = new ReplayStreamingSubscriber(
+                    subscription,
+                    new StreamingCallbacks(
+                            job::accept,
+                            () -> {},
+                            error -> job.failed(error.getMessage()),
+                            () -> cleaned.complete(null)),
+                    job::acceptEvent);
             synchronized (job) {
                 job.reader = reader;
             }
@@ -194,6 +209,7 @@ public final class HubActivityService implements AutoCloseable {
     }
 
     private final class Job {
+
         private final String id = UUID.randomUUID().toString();
         private final ActivityRequest request;
         private final EventActivity activity;
@@ -264,9 +280,18 @@ public final class HubActivityService implements AutoCloseable {
         }
 
         synchronized ActivitySnapshot snapshot(String order, int limit) {
-            return new ActivitySnapshot(id, state, startedAt, finishedAt,
+            return new ActivitySnapshot(
+                    id,
+                    state,
+                    startedAt,
+                    finishedAt,
                     finishedAt != null && coverageKnown && sourceErrors == 0 && failure == null,
-                    coverageKnown, sourceErrors, filesTotal, failure, request, activity.summary(order, limit));
+                    coverageKnown,
+                    sourceErrors,
+                    filesTotal,
+                    failure,
+                    request,
+                    activity.summary(order, limit));
         }
     }
 }

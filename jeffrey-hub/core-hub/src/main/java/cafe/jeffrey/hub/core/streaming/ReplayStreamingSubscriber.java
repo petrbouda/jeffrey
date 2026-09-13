@@ -20,20 +20,20 @@ package cafe.jeffrey.hub.core.streaming;
 
 import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.api.v1.ReplayStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.nio.file.Path;
-import java.util.Objects;
 import java.time.Instant;
-import java.util.function.BiConsumer;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 
 /**
  * Composite reader that iterates over all recording files in a {@link ReplayStreamSubscription}
@@ -62,8 +62,10 @@ public class ReplayStreamingSubscriber implements Closeable {
     }
 
     /** Streams only type/time metadata to an in-process consumer, avoiding field conversion. */
-    public ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks,
-                                     BiConsumer<String, Instant> metadataConsumer) {
+    public ReplayStreamingSubscriber(
+            ReplayStreamSubscription subscription,
+            StreamingCallbacks callbacks,
+            BiConsumer<String, Instant> metadataConsumer) {
         this(subscription, callbacks, Schedulers.streamingExecutor(), metadataConsumer);
         if (!subscription.reportCoverage()) {
             throw new IllegalArgumentException("Metadata replay must be scoped");
@@ -74,8 +76,11 @@ public class ReplayStreamingSubscriber implements Closeable {
         this(subscription, callbacks, scheduler, null);
     }
 
-    private ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks, Executor scheduler,
-                                      BiConsumer<String, Instant> metadataConsumer) {
+    private ReplayStreamingSubscriber(
+            ReplayStreamSubscription subscription,
+            StreamingCallbacks callbacks,
+            Executor scheduler,
+            BiConsumer<String, Instant> metadataConsumer) {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.subscription = subscription;
         this.callbacks = callbacks;

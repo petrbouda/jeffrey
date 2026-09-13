@@ -25,10 +25,12 @@ import java.util.stream.IntStream;
 
 /** Memory depends on buckets and event types, never on the number of events scanned. */
 final class EventActivity {
+
     private static final int MAX_TYPE_LENGTH = 256;
     private static final int MAX_OBSERVED_TYPES = 512;
     private static final int MAX_RESULT_BUCKETS = 20;
     private static final int MAX_RESULT_TYPES = 10;
+
     private final ActivityRequest request;
     private final long[] totals;
     private final Map<String, long[]> counts = new HashMap<>();
@@ -63,24 +65,47 @@ final class EventActivity {
         if (limit < 1 || limit > MAX_RESULT_BUCKETS) {
             throw new IllegalArgumentException("limit must be 1–20");
         }
-        var buckets = IntStream.range(0, totals.length).boxed()
-                .sorted(comparator.thenComparingInt(i -> i)).limit(limit).map(i -> {
+        var buckets = IntStream.range(0, totals.length)
+                .boxed()
+                .sorted(comparator.thenComparingInt(i -> i))
+                .limit(limit)
+                .map(i -> {
                     long start = request.startTime() + i * request.bucketMillis();
                     long remaining = request.endTime() - start;
                     long end = remaining <= request.bucketMillis() ? request.endTime() : start + request.bucketMillis();
-                    var types = counts.entrySet().stream().filter(entry -> entry.getValue()[i] > 0)
+
+                    var types = counts.entrySet().stream()
+                            .filter(entry -> entry.getValue()[i] > 0)
                             .sorted(Comparator.<Map.Entry<String, long[]>>comparingLong(entry -> entry.getValue()[i])
-                                    .reversed().thenComparing(Map.Entry::getKey)).limit(MAX_RESULT_TYPES)
-                            .map(entry -> new ActivitySummary.TypeCount(entry.getKey(), entry.getValue()[i])).toList();
+                                    .reversed()
+                                    .thenComparing(Map.Entry::getKey))
+                            .limit(MAX_RESULT_TYPES)
+                            .map(entry -> new ActivitySummary.TypeCount(entry.getKey(), entry.getValue()[i]))
+                            .toList();
+
                     int distinct = distinct(i);
-                    return new ActivitySummary.Bucket(start, end, totals[i], distinct,
-                            Math.max(0, distinct - MAX_RESULT_TYPES), types);
-                }).toList();
-        return new ActivitySummary(total, counts.size(), totals.length, order,
-                Math.max(0, totals.length - limit), buckets);
+                    return new ActivitySummary.Bucket(
+                            start,
+                            end,
+                            totals[i],
+                            distinct,
+                            Math.max(0, distinct - MAX_RESULT_TYPES),
+                            types);
+                })
+                .toList();
+
+        return new ActivitySummary(
+                total,
+                counts.size(),
+                totals.length,
+                order,
+                Math.max(0, totals.length - limit),
+                buckets);
     }
 
     private int distinct(int bucket) {
-        return (int) counts.values().stream().filter(values -> values[bucket] > 0).count();
+        return (int) counts.values().stream()
+                .filter(values -> values[bucket] > 0)
+                .count();
     }
 }

@@ -19,7 +19,12 @@
 package cafe.jeffrey.hub.core.activity;
 
 /** Scope travels with the scan ID so a caller cannot read or cancel a scan in another session. */
-public record ActivityScanRef(String workspaceId, String projectId, String sessionId, String scanId) {
+public record ActivityScanRef(
+        String workspaceId,
+        String projectId,
+        String sessionId,
+        String scanId) {
+
     private static final int MAX_ID_LENGTH = 512;
 
     public ActivityScanRef {

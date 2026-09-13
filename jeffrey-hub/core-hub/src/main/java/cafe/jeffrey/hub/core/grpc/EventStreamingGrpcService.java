@@ -18,11 +18,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.StatusRuntimeException;
-import io.grpc.stub.ServerCallStreamObserver;
-import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
@@ -30,15 +25,19 @@ import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
+import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
 import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
 import cafe.jeffrey.hub.core.streaming.StreamingWindow;
-import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
-import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.ServerCallStreamObserver;
+import io.grpc.stub.StreamObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.time.Instant;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -99,8 +98,13 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                     throw new IllegalArgumentException("Both workspace_id and project_id are required for scoped replay");
                 }
                 recordingFiles = new ScopedReplaySource(platformRepositories, repositoryStorageFactory, jeffreyDirs)
-                        .resolve(request.getWorkspaceId(), request.getProjectId(), sessionId,
-                                new HashSet<>(request.getEventTypesList()), window).recordingFiles();
+                        .resolve(
+                                request.getWorkspaceId(),
+                                request.getProjectId(),
+                                sessionId,
+                                new HashSet<>(request.getEventTypesList()),
+                                window)
+                        .recordingFiles();
             } else {
                 Optional<SessionWithRepository> sessionOpt =
                         resolveValidatedSession(sessionId, request.getEventTypesList(), observer);

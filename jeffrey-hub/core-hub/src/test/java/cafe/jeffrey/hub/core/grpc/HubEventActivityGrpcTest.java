@@ -89,32 +89,64 @@ class HubEventActivityGrpcTest {
             var builder = InProcessServerBuilder.forName(name).directExecutor();
             context.getBeansOfType(BindableService.class).values().forEach(builder::addService);
             var server = builder.build().start();
-            var channel = InProcessChannelBuilder.forName(name).directExecutor().build();
+            var channel = InProcessChannelBuilder.forName(name)
+                    .directExecutor()
+                    .build();
             try {
                 var stub = EventActivityServiceGrpc.newBlockingStub(channel);
-                var scope = ActivityScope.newBuilder().setWorkspaceId("workspace").setProjectId("project")
-                        .setSessionId("session").build();
-                var request = StartActivityRequest.newBuilder().setScope(scope).setStartTime(start)
-                        .setEndTime(Clock.systemUTC().millis() + 1).addEventTypes("test.HubActivity").build();
+                var scope = ActivityScope.newBuilder()
+                        .setWorkspaceId("workspace")
+                        .setProjectId("project")
+                        .setSessionId("session")
+                        .build();
+                var request = StartActivityRequest.newBuilder()
+                        .setScope(scope)
+                        .setStartTime(start)
+                        .setEndTime(Clock.systemUTC().millis() + 1)
+                        .addEventTypes("test.HubActivity")
+                        .build();
                 var initial = stub.startActivity(request);
-                var poll = GetActivityRequest.newBuilder().setScope(scope).setScanId(initial.getScanId()).setLimit(1).build();
-                await().atMost(10, TimeUnit.SECONDS).until(() -> stub.getActivity(poll).hasFinishedAt());
+                var poll = GetActivityRequest.newBuilder()
+                        .setScope(scope)
+                        .setScanId(initial.getScanId())
+                        .setLimit(1)
+                        .build();
+
+                await().atMost(10, TimeUnit.SECONDS)
+                        .until(() -> stub.getActivity(poll).hasFinishedAt());
+
                 var result = stub.getActivity(poll);
+
                 assertTrue(result.getComplete());
                 assertEquals(1501, result.getTotalEvents());
                 assertEquals(1501, result.getBuckets(0).getEventCount());
                 assertEquals(scope, result.getScope());
                 assertEquals(1, result.getFilesTotal());
                 assertEquals(ActivityState.ACTIVITY_STATE_COMPLETED, stub.cancelActivity(CancelActivityRequest.newBuilder()
-                        .setScope(scope).setScanId(initial.getScanId()).build()).getState());
+                        .setScope(scope)
+                        .setScanId(initial.getScanId())
+                        .build()).getState());
                 assertCode(Status.Code.NOT_FOUND, () -> stub.getActivity(poll.toBuilder()
-                        .setScope(scope.toBuilder().setWorkspaceId("wrong")).build()));
+                        .setScope(scope.toBuilder()
+                                .setWorkspaceId("wrong"))
+                        .build()));
                 assertCode(Status.Code.NOT_FOUND, () -> stub.cancelActivity(CancelActivityRequest.newBuilder()
-                        .setScope(scope.toBuilder().setSessionId("wrong")).setScanId(initial.getScanId()).build()));
-                assertCode(Status.Code.NOT_FOUND, () -> stub.getActivity(poll.toBuilder().setScanId("unknown").build()));
-                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.getActivity(poll.toBuilder().setLimit(21).build()));
-                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.startActivity(request.toBuilder().clearStartTime().build()));
-                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.startActivity(request.toBuilder().setBucketSeconds(0).build()));
+                        .setScope(scope.toBuilder()
+                                .setSessionId("wrong"))
+                        .setScanId(initial.getScanId())
+                        .build()));
+                assertCode(Status.Code.NOT_FOUND, () -> stub.getActivity(poll.toBuilder()
+                        .setScanId("unknown")
+                        .build()));
+                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.getActivity(poll.toBuilder()
+                        .setLimit(21)
+                        .build()));
+                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.startActivity(request.toBuilder().clearStartTime()
+                        .build()));
+                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.startActivity(request.toBuilder()
+                        .setBucketSeconds(0)
+                        .build()));
+
                 verify(storage, never()).recordings(any(), any());
                 verify(repositories, never()).findSessionWithRepositoryById(any());
             } finally {

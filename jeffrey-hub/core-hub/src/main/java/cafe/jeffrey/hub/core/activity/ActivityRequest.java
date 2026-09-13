@@ -21,8 +21,15 @@ package cafe.jeffrey.hub.core.activity;
 import java.util.Set;
 
 /** Half-open epoch-millisecond window; buckets are anchored at its start. */
-public record ActivityRequest(String workspaceId, String projectId, String sessionId,
-                              long startTime, long endTime, long bucketMillis, Set<String> eventTypes) {
+public record ActivityRequest(
+        String workspaceId,
+        String projectId,
+        String sessionId,
+        long startTime,
+        long endTime,
+        long bucketMillis,
+        Set<String> eventTypes) {
+
     private static final int MAX_ID_LENGTH = 512;
     private static final int MAX_BUCKETS = 288;
     private static final int MAX_FILTER_TYPES = 16;
@@ -44,7 +51,8 @@ public record ActivityRequest(String workspaceId, String projectId, String sessi
             throw new IllegalArgumentException("Use startTime < endTime and a positive bucket size producing at most 288 buckets");
         }
         eventTypes = eventTypes == null ? Set.of() : Set.copyOf(eventTypes);
-        if (eventTypes.size() > MAX_FILTER_TYPES || eventTypes.stream().anyMatch(type -> type.isBlank() || type.length() > MAX_TYPE_LENGTH)) {
+        if (eventTypes.size() > MAX_FILTER_TYPES
+                || eventTypes.stream().anyMatch(type -> type.isBlank() || type.length() > MAX_TYPE_LENGTH)) {
             throw new IllegalArgumentException("Specify at most 16 nonempty event types, each at most 256 characters");
         }
     }

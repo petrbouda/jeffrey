@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 /** Converts Hub summaries to bounded MCP results using the existing strict Hub resolver. */
 public final class HubActivityMcpSupport {
+
     private static final int MAX_REF_LENGTH = 2048;
     private static final int MAX_ID_LENGTH = 512;
     private static final int MAX_FILTER_LENGTH = 4096;
@@ -51,17 +52,26 @@ public final class HubActivityMcpSupport {
     private static final long MILLIS_PER_SECOND = 1000;
     private static final String STATE_PREFIX = "ACTIVITY_STATE_";
     private static final String ORDER_PREFIX = "ACTIVITY_ORDER_";
+
     private final ProjectManagerResolver resolver;
     private final Duration timeout;
     private final ScheduledExecutorService deadlines;
 
-    public HubActivityMcpSupport(ProjectManagerResolver resolver, Duration timeout, ScheduledExecutorService deadlines) {
+    public HubActivityMcpSupport(
+            ProjectManagerResolver resolver,
+            Duration timeout,
+            ScheduledExecutorService deadlines) {
         this.resolver = resolver;
         this.timeout = timeout;
         this.deadlines = deadlines;
     }
 
-    public McpToolResult start(String sessionRef, long startTime, long endTime, Long bucketSeconds, String eventTypes) {
+    public McpToolResult start(
+            String sessionRef,
+            long startTime,
+            long endTime,
+            Long bucketSeconds,
+            String eventTypes) {
         var ref = reference(sessionRef);
         long seconds = bucketSeconds == null ? DEFAULT_BUCKET_SECONDS : bucketSeconds;
         long duration;
@@ -79,12 +89,22 @@ public final class HubActivityMcpSupport {
             throw new IllegalArgumentException("eventTypes is too long");
         }
         Set<String> types = eventTypes == null || eventTypes.isBlank() ? Set.of()
-                : Arrays.stream(eventTypes.split(",", -1)).map(String::trim).collect(Collectors.toSet());
-        if (types.size() > MAX_FILTER_TYPES || types.stream().anyMatch(type -> type.isBlank() || type.length() > MAX_TYPE_LENGTH)) {
+                : Arrays.stream(eventTypes.split(",", -1))
+                        .map(String::trim)
+                        .collect(Collectors.toSet());
+        if (types.size() > MAX_FILTER_TYPES
+                || types.stream().anyMatch(type -> type.isBlank() || type.length() > MAX_TYPE_LENGTH)) {
             throw new IllegalArgumentException("Specify at most 16 nonempty event types, each at most 256 characters");
         }
-        var request = StartActivityRequest.newBuilder().setScope(scope(ref)).setStartTime(startTime).setEndTime(endTime)
-                .setBucketSeconds(seconds).addAllEventTypes(types).build();
+
+        var request = StartActivityRequest.newBuilder()
+                .setScope(scope(ref))
+                .setStartTime(startTime)
+                .setEndTime(endTime)
+                .setBucketSeconds(seconds)
+                .addAllEventTypes(types)
+                .build();
+
         return call(ref, manager -> manager.startActivity(request));
     }
 
@@ -101,14 +121,26 @@ public final class HubActivityMcpSupport {
             case "time" -> ActivityOrder.ACTIVITY_ORDER_TIME;
             default -> throw new IllegalArgumentException("order must be events, types or time");
         };
-        var request = GetActivityRequest.newBuilder().setScope(scope(ref)).setScanId(scanId).setOrder(sort).setLimit(selected).build();
+
+        var request = GetActivityRequest.newBuilder()
+                .setScope(scope(ref))
+                .setScanId(scanId)
+                .setOrder(sort)
+                .setLimit(selected)
+                .build();
+
         return call(ref, manager -> manager.getActivity(request));
     }
 
     public McpToolResult cancel(String sessionRef, String scanId) {
         var ref = reference(sessionRef);
         validateId(scanId);
-        var request = CancelActivityRequest.newBuilder().setScope(scope(ref)).setScanId(scanId).build();
+
+        var request = CancelActivityRequest.newBuilder()
+                .setScope(scope(ref))
+                .setScanId(scanId)
+                .build();
+
         return call(ref, manager -> manager.cancelActivity(request));
     }
 
@@ -116,8 +148,11 @@ public final class HubActivityMcpSupport {
         var deadline = Deadline.after(timeout.toNanos(), TimeUnit.NANOSECONDS);
         Context.CancellableContext context = Context.current().withDeadline(deadline, deadlines);
         try {
-            var snapshot = context.call(() -> operation.apply(resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
-                    .projectManager().eventStreamingManager()));
+            var snapshot = context.call(() -> operation.apply(resolver
+                    .resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
+                    .projectManager()
+                    .eventStreamingManager()));
+
             if (!snapshot.getScope().equals(scope(ref))) {
                 throw new IllegalStateException("Hub returned activity for a different session");
             }
@@ -156,47 +191,70 @@ public final class HubActivityMcpSupport {
     }
 
     private static ActivityScope scope(HubSessionRef ref) {
-        return ActivityScope.newBuilder().setWorkspaceId(ref.workspaceId()).setProjectId(ref.projectId())
-                .setSessionId(ref.sessionId()).build();
+        return ActivityScope.newBuilder()
+                .setWorkspaceId(ref.workspaceId())
+                .setProjectId(ref.projectId())
+                .setSessionId(ref.sessionId())
+                .build();
     }
 
     private static McpToolResult result(HubSessionRef ref, EventActivitySnapshot snapshot) {
-        ObjectNode result = Json.createObject().put("sessionRef", ref.encode()).put("scanId", snapshot.getScanId())
+        ObjectNode result = Json.createObject()
+                .put("sessionRef", ref.encode())
+                .put("scanId", snapshot.getScanId())
                 .put("status", snapshot.getState().name().replace(STATE_PREFIX, "").toLowerCase(Locale.ROOT))
-                .put("startedAt", snapshot.getStartedAt()).put("complete", snapshot.getComplete())
-                .put("coverageKnown", snapshot.getCoverageKnown()).put("sourceErrors", snapshot.getSourceErrors())
-                .put("filesTotal", snapshot.getFilesTotal()).put("startTime", snapshot.getStartTime())
-                .put("endTime", snapshot.getEndTime()).put("bucketMillis", snapshot.getBucketMillis())
-                .put("totalEvents", snapshot.getTotalEvents()).put("distinctEventTypes", snapshot.getDistinctEventTypes())
-                .put("totalBuckets", snapshot.getTotalBuckets()).put("omittedBuckets", snapshot.getOmittedBuckets())
+                .put("startedAt", snapshot.getStartedAt())
+                .put("complete", snapshot.getComplete())
+                .put("coverageKnown", snapshot.getCoverageKnown())
+                .put("sourceErrors", snapshot.getSourceErrors())
+                .put("filesTotal", snapshot.getFilesTotal())
+                .put("startTime", snapshot.getStartTime())
+                .put("endTime", snapshot.getEndTime())
+                .put("bucketMillis", snapshot.getBucketMillis())
+                .put("totalEvents", snapshot.getTotalEvents())
+                .put("distinctEventTypes", snapshot.getDistinctEventTypes())
+                .put("totalBuckets", snapshot.getTotalBuckets())
+                .put("omittedBuckets", snapshot.getOmittedBuckets())
                 .put("order", snapshot.getOrder().name().replace(ORDER_PREFIX, "").toLowerCase(Locale.ROOT));
+
         if (snapshot.hasFinishedAt()) {
             result.put("finishedAt", snapshot.getFinishedAt());
         } else {
             result.putNull("finishedAt");
         }
         result.put("error", snapshot.hasError() ? snapshot.getError() : null);
+
         var types = result.putArray("eventTypes");
         snapshot.getEventTypesList().forEach(types::add);
+
         var buckets = result.putArray("buckets");
         for (var bucket : snapshot.getBucketsList()) {
-            var row = buckets.addObject().put("startTime", bucket.getStartTime()).put("endTime", bucket.getEndTime())
-                    .put("eventCount", bucket.getEventCount()).put("distinctEventTypes", bucket.getDistinctEventTypes())
+            var row = buckets.addObject()
+                    .put("startTime", bucket.getStartTime())
+                    .put("endTime", bucket.getEndTime())
+                    .put("eventCount", bucket.getEventCount())
+                    .put("distinctEventTypes", bucket.getDistinctEventTypes())
                     .put("omittedTypes", bucket.getOmittedTypes());
+
             var counts = row.putArray("eventTypes");
             for (var type : bucket.getEventTypesList()) {
-                counts.addObject().put("eventType", type.getEventType()).put("count", type.getCount());
+                counts.addObject()
+                        .put("eventType", type.getEventType())
+                        .put("count", type.getCount());
             }
         }
+
         result.put("coverage", "Finished files visible at scan start. Overlapping recordings may count events more than once. "
                 + "Counts reflect recorded events, not equivalent workloads. Incomplete scans are lower bounds; their rankings may change.");
         result.put("timeSemantics", "UTC epoch milliseconds, start inclusive and end exclusive; buckets anchored at startTime.");
+
         String json = Json.toString(result);
         while (json.length() > McpToolOutput.MAX_CHARS && !buckets.isEmpty()) {
             buckets.remove(buckets.size() - 1);
             result.put("omittedBuckets", snapshot.getOmittedBuckets() + snapshot.getBucketsCount() - buckets.size());
             json = Json.toString(result);
         }
+
         return new McpToolResult(json, result);
     }
 }

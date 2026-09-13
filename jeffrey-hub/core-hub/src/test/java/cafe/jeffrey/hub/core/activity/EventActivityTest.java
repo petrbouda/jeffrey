@@ -20,7 +20,9 @@ package cafe.jeffrey.hub.core.activity;
 
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
+
 import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class EventActivityTest {
@@ -63,8 +65,10 @@ class EventActivityTest {
 
     @Test
     void rejectsUnboundedBucketCountsAndStopsAtTheTypeCapacity() {
-        assertThrows(IllegalArgumentException.class, () -> new ActivityRequest("w", "p", "s", 0, Long.MAX_VALUE, 1, Set.of()));
-        assertThrows(IllegalArgumentException.class, () -> new ActivityRequest("w", "p", "s", Long.MIN_VALUE, Long.MAX_VALUE, 1, Set.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ActivityRequest("w", "p", "s", 0, Long.MAX_VALUE, 1, Set.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ActivityRequest("w", "p", "s", Long.MIN_VALUE, Long.MAX_VALUE, 1, Set.of()));
         var activity = new EventActivity(request);
         for (int i = 0; i < 512; i++) {
             activity.add("Type" + i, 1);

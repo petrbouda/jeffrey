@@ -21,9 +21,25 @@ package cafe.jeffrey.hub.core.activity;
 import java.util.List;
 
 /** Immutable counters and selected details; totals include omitted rows. */
-public record ActivitySummary(long totalEvents, int distinctEventTypes, int totalBuckets,
-                              String order, int omittedBuckets, List<Bucket> buckets) {
-    public record Bucket(long startTime, long endTime, long eventCount, int distinctEventTypes,
-                         int omittedTypes, List<TypeCount> eventTypes) {}
-    public record TypeCount(String eventType, long count) {}
+public record ActivitySummary(
+        long totalEvents,
+        int distinctEventTypes,
+        int totalBuckets,
+        String order,
+        int omittedBuckets,
+        List<Bucket> buckets) {
+
+    public record Bucket(
+            long startTime,
+            long endTime,
+            long eventCount,
+            int distinctEventTypes,
+            int omittedTypes,
+            List<TypeCount> eventTypes) {
+    }
+
+    public record TypeCount(
+            String eventType,
+            long count) {
+    }
 }

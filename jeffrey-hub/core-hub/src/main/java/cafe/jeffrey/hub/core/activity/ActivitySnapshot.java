@@ -21,6 +21,16 @@ package cafe.jeffrey.hub.core.activity;
 import java.time.Instant;
 
 /** Transport-independent snapshot of a scan running on this Hub. */
-public record ActivitySnapshot(String scanId, String status, Instant startedAt, Instant finishedAt,
-                               boolean complete, boolean coverageKnown, long sourceErrors, int filesTotal,
-                               String error, ActivityRequest request, ActivitySummary summary) {}
+public record ActivitySnapshot(
+        String scanId,
+        String status,
+        Instant startedAt,
+        Instant finishedAt,
+        boolean complete,
+        boolean coverageKnown,
+        long sourceErrors,
+        int filesTotal,
+        String error,
+        ActivityRequest request,
+        ActivitySummary summary) {
+}
