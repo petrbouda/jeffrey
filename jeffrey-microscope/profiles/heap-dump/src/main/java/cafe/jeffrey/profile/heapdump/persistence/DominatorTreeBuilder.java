@@ -94,6 +94,9 @@ public final class DominatorTreeBuilder {
     private static final String DOMINATOR_TABLE = "dominator";
 
     private static final String RETAINED_SIZE_TABLE = "retained_size";
+    private static final String BEGIN_TRANSACTION = "BEGIN TRANSACTION";
+    private static final String COMMIT_TRANSACTION = "COMMIT";
+    private static final String ROLLBACK_TRANSACTION = "ROLLBACK";
 
     /**
      * Switched on for the one insert whose row order matters. The dominator rows go in sorted by
@@ -175,17 +178,30 @@ public final class DominatorTreeBuilder {
             for (String ddl : DROP_INDEX_DDL) {
                 client.execute(HeapDumpStatement.DROP_INDEXES, ddl);
             }
-            client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
-            client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
+            // One transaction from the first DELETE to the last load. The presence check the readers
+            // make is "are there rows", and the two tables are loaded one after the other, so a
+            // process that died between them used to leave a dominator table with no retained sizes
+            // that read as a finished tree. Under a transaction the tables are either both loaded or
+            // both as they were.
+            client.execute(HeapDumpStatement.BEGIN_TRANSACTION, BEGIN_TRANSACTION);
+            Elapsed<BuildResult> elapsed;
+            try {
+                client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
+                client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
 
-            Path stagingDir = HeapDumpIndexPaths.stagingForIndex(indexDbPath);
-            Elapsed<BuildResult> elapsed = Measuring.s(() -> {
-                try {
-                    return doBuild(client, indexDbPath, stagingDir);
-                } catch (SQLException | IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+                Path stagingDir = HeapDumpIndexPaths.stagingForIndex(indexDbPath);
+                elapsed = Measuring.s(() -> {
+                    try {
+                        return doBuild(client, indexDbPath, stagingDir);
+                    } catch (SQLException | IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                client.execute(HeapDumpStatement.COMMIT_TRANSACTION, COMMIT_TRANSACTION);
+            } catch (RuntimeException e) {
+                rollbackQuietly(client, indexDbPath);
+                throw e;
+            }
             BuildResult r = elapsed.entity();
             BuildResult timed = new BuildResult(
                     r.reachableInstances, r.rootEdges, r.iterations, elapsed.duration(), r.subPhases());
@@ -195,6 +211,18 @@ public final class DominatorTreeBuilder {
                     indexDbPath, timed.reachableInstances, timed.rootEdges, timed.iterations,
                     timed.buildTime.toMillis());
             return timed;
+        }
+    }
+
+    /**
+     * Undoes a partial load. Logged rather than thrown, because the failure that got us here is the
+     * one worth reporting, and a rollback that fails leaves the connection to close it anyway.
+     */
+    private static void rollbackQuietly(HeapDumpDatabaseClient client, Path indexDbPath) {
+        try {
+            client.execute(HeapDumpStatement.ROLLBACK_TRANSACTION, ROLLBACK_TRANSACTION);
+        } catch (RuntimeException e) {
+            LOG.warn("Could not roll back a failed dominator build: path={} message={}", indexDbPath, e.getMessage());
         }
     }
 

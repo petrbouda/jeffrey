@@ -49,11 +49,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import cafe.jeffrey.shared.common.Json;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -461,6 +463,44 @@ class RecordingsMcpToolsTest {
     @Nested
     class SlowAnalysis {
 
+        /**
+         * The manager answers with the profile id the moment it finds a run already in flight for
+         * it -- the UI's own Analyze, say. That answer is a promise of a profile, not a profile, and
+         * the attempt has to wait for the run rather than hand out a link to a half-parsed one.
+         */
+        @Test
+        void joinsARunAlreadyInFlightRatherThanReportingItDone() throws Exception {
+            CountDownLatch entered = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            runRegistry.start(PipelineRunRequest.of(PROFILE_ID, run -> run.runStage(ProfileInitStages.PARSE, () -> {
+                entered.countDown();
+                awaitIgnoringInterrupts(release);
+            })));
+            assertTrue(entered.await(5, SECONDS));
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+
+            // The link builder reads the request bound to the calling thread, so the worker binds one
+            // the way the fixture does for the test thread.
+            CompletableFuture<String> answer = CompletableFuture.supplyAsync(() -> {
+                RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+                try {
+                    return tools.analyzeRecording(RECORDING_ID);
+                } finally {
+                    RequestContextHolder.resetRequestAttributes();
+                }
+            });
+            try {
+                assertThrows(TimeoutException.class, () -> answer.get(300, MILLISECONDS),
+                        "the attempt must not complete while the run it joined is still parsing");
+            } finally {
+                release.countDown();
+            }
+            String result = answer.get(5, SECONDS);
+            assertTrue(result.contains("\"profileId\":\"" + PROFILE_ID + "\""), result);
+            assertFalse(runRegistry.isRunning(PROFILE_ID));
+        }
+
         @Test
         void handsBackSomethingToPollRatherThanHangingOn() {
             // A budget short enough that the stubbed work cannot beat it, so the timeout path is the
@@ -733,6 +773,16 @@ class RecordingsMcpToolsTest {
             return call.get();
         } finally {
             RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    private static void awaitIgnoringInterrupts(CountDownLatch latch) {
+        while (latch.getCount() != 0) {
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {
+                // The run stands in for a parser that does not stop on a cancellation request.
+            }
         }
     }
 

@@ -70,6 +70,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class RecordingsMcpTools {
 
     private static final String RECORDING_VANISHED = "Recording vanished while being analyzed: ";
+    private static final String PIPELINE_FAILED = "The analysis this attempt joined failed: ";
+    private static final String INTERRUPTED_JOINING_PIPELINE = "Interrupted while waiting for the running analysis";
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsMcpTools.class);
 
     /** The application property that caps how many {@code recordings_analyzeFile} imports run together. */
@@ -228,9 +230,9 @@ public class RecordingsMcpTools {
         if (finished.isEmpty()) {
             return operations.decorate(McpToolOutput.json(Map.of("status", STILL_RUNNING)), operationId);
         }
-        Object details = operation.snapshot().progress();
-        String recordingId = String.valueOf(((Map<?, ?>) details).get("recordingId"));
-        return operations.decorate(analyzedProfile(recordingId, finished.get()), operationId);
+        // The id the import handed over, not a read of the progress map: a progress supplier that
+        // failed leaves that map saying so instead of naming a recording.
+        return operations.decorate(analyzedProfile(importedRecording.get(), finished.get()), operationId);
     }
 
     @Tool(description = "Analyze a recording that is already in Jeffrey's Quick Analysis store but has "
@@ -412,6 +414,7 @@ public class RecordingsMcpTools {
             });
             control.checkCancellation();
             String profileId = recordingsManager.analyzeRecording(recordingId);
+            joinRunningPipeline(profileId);
             // A durable profile is already produced. Finish the short, accepted naming step and
             // preserve that result even if the analysis could not honour a cancellation request.
             if (control.cancellationRequested()) {
@@ -423,6 +426,25 @@ public class RecordingsMcpTools {
             }
             return profileId;
         });
+    }
+
+    /**
+     * A run the manager found already in flight -- started from the UI, or by an earlier call whose
+     * attempt has since been forgotten -- is joined here rather than taken for a result: the manager
+     * answers with the profile id the moment it sees such a run, and an attempt that completed on
+     * that answer would hand out a link to a profile still being parsed.
+     */
+    private void joinRunningPipeline(String profileId) {
+        Optional<PipelineProgress> outcome;
+        try {
+            outcome = runRegistry.awaitCompletion(profileId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(INTERRUPTED_JOINING_PIPELINE, e);
+        }
+        if (outcome.isPresent() && outcome.get().state() == PipelineState.FAILED) {
+            throw new ToolExecutionException(PIPELINE_FAILED + outcome.get().errorMessage());
+        }
     }
 
     /** The enabled profile this recording is linked to, if it has one that works right now. */

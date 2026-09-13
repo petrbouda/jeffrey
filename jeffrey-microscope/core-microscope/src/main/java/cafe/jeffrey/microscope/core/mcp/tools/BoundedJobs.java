@@ -336,6 +336,7 @@ public class BoundedJobs<K, V> {
         private void execute(Function<JobControl, V> work, Semaphore permits) {
             V produced = null;
             RuntimeException error = null;
+            Throwable raised = null;
             boolean permitted = false;
             try {
                 synchronized (this) {
@@ -354,6 +355,7 @@ public class BoundedJobs<K, V> {
                     throw new IllegalStateException("A bounded MCP job returned no result: " + operationId);
                 }
             } catch (Throwable e) {
+                raised = e;
                 error = asRuntime(e);
             } finally {
                 if (permitted) {
@@ -382,6 +384,11 @@ public class BoundedJobs<K, V> {
                     LOG.warn("A bounded MCP job failed: operation_id={} message={}", operationId, error.getMessage());
                 }
                 Thread.interrupted();
+            }
+            if (raised instanceof Error fatal) {
+                // Marked FAILED above so the attempt never reads as running forever, and still thrown,
+                // the way PipelineRunRegistry does: an OutOfMemoryError is not an outcome a job owns.
+                throw fatal;
             }
         }
 

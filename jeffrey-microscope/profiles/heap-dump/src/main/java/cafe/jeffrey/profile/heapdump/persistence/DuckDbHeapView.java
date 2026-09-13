@@ -128,8 +128,13 @@ public final class DuckDbHeapView implements HeapView {
     private static final String SELECT_RETAINED_SIZE =
             "SELECT bytes FROM retained_size WHERE instance_id = ?";
 
-    private static final String COUNT_DOMINATORS =
-            "SELECT COUNT(*) FROM dominator";
+    /**
+     * Both tables, not one: the tree is built as two loads, and a dominator table with no retained
+     * sizes beside it is a build that did not finish, not a tree.
+     */
+    private static final String DOMINATOR_TREE_LOADED =
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dominator) AND EXISTS (SELECT 1 FROM retained_size) "
+                    + "THEN 1 ELSE 0 END";
 
     private static final String SELECT_INSTANCE_FIELDS_BY_CLASS =
             "SELECT class_id, field_index, name, basic_type "
@@ -413,7 +418,7 @@ public final class DuckDbHeapView implements HeapView {
 
     @Override
     public boolean hasDominatorTree() throws SQLException {
-        return scalarLong(COUNT_DOMINATORS) > 0;
+        return scalarLong(DOMINATOR_TREE_LOADED) > 0;
     }
 
     // ---- Class fields + instance values ----------------------------------

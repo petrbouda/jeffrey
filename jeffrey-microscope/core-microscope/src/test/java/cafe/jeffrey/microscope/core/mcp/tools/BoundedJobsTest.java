@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -147,6 +148,23 @@ class BoundedJobsTest {
         assertEquals(OperationState.COMPLETED, operation.snapshot().state());
         assertTrue(operation.snapshot().cancellationRequested());
         assertEquals("persisted-recording", operation.snapshot().result());
+    }
+
+    /**
+     * An Error is not an outcome a job owns: the attempt is marked failed so it never reads as
+     * running, but the throwable itself goes on to the scheduler rather than being swallowed into a
+     * status line, the way the pipeline registry treats it.
+     */
+    @Test
+    void marksAnErrorAsFailedRatherThanLeavingTheAttemptRunning() {
+        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        OperationHandle<String> operation = jobs.startOrJoin("fatal", false, value -> true, () -> {
+            throw new StackOverflowError("simulated");
+        });
+        await().atMost(5, SECONDS).until(() -> operation.snapshot().state().terminal());
+        assertEquals(OperationState.FAILED, operation.snapshot().state());
+        assertTrue(operation.snapshot().failure().getMessage().contains("simulated"));
+        assertInstanceOf(StackOverflowError.class, operation.snapshot().failure().getCause());
     }
 
     @Test

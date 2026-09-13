@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -164,6 +165,7 @@ public final class PipelineRunRegistry<K> {
                 candidate.run.fail(errorCodeOf(e), e.getMessage());
                 candidate.finishedAt = clock.instant();
                 candidate.finished = true;
+                candidate.completion.complete(null);
             }
             runsByKey.remove(request.key(), candidate);
             throw e;
@@ -248,6 +250,30 @@ public final class PipelineRunRegistry<K> {
         return Optional.ofNullable(runsByKey.get(key));
     }
 
+    /**
+     * Waits for the run holding this key, if there is one, and reports how it ended.
+     * <p>
+     * For a caller that needs a run to be over rather than merely to exist: an attempt that found
+     * a run already in flight -- started from the UI, say -- must not report the profile as built
+     * while that run is still parsing it. The key stays held by the run until its result is stored,
+     * so the progress read afterwards is the terminal one.
+     *
+     * @return the terminal progress of the run, or empty when no run holds the key
+     */
+    public Optional<PipelineProgress> awaitCompletion(K key) throws InterruptedException {
+        TrackedRun tracked = runsByKey.get(key);
+        if (tracked == null) {
+            return Optional.empty();
+        }
+        try {
+            tracked.completion.get();
+        } catch (ExecutionException e) {
+            // Only ever completed normally: the future says the run finished, nothing about how.
+            throw new IllegalStateException(e.getCause());
+        }
+        return Optional.of(tracked.run.progress());
+    }
+
     private void execute(PipelineRunRequest<K> request, TrackedRun tracked) {
         boolean acquired = false;
         try {
@@ -283,6 +309,7 @@ public final class PipelineRunRegistry<K> {
             synchronized (tracked) {
                 tracked.finishedAt = clock.instant();
                 tracked.finished = true;
+                tracked.completion.complete(null);
             }
         }
     }
@@ -422,6 +449,8 @@ public final class PipelineRunRegistry<K> {
         private boolean started;
         private volatile boolean finished;
         private volatile Instant finishedAt;
+        /** Completed once {@link #finished} is set, so a joiner can wait rather than poll. */
+        private final CompletableFuture<Void> completion = new CompletableFuture<>();
 
         private TrackedRun(PipelineRun run) {
             this.run = run;
