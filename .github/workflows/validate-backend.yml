@@ -15,8 +15,26 @@ concurrency:
 
 jobs:
   test:
+    name: ${{ matrix.component }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: Hub
+            module: jeffrey-hub/core-hub
+            phase: test
+          - component: Microscope
+            module: jeffrey-microscope/core-microscope
+            phase: test
+          - component: Provisioner
+            module: build/build-provisioner
+            phase: verify
+          # verify packages the shaded agent before Failsafe attaches it with -javaagent.
+          - component: Agent
+            module: build/build-agent-tests
+            phase: verify
     steps:
       - uses: actions/checkout@v6
 
@@ -27,6 +45,7 @@ jobs:
           cache: maven
 
       - name: Install protobuf documentation tools
+        if: matrix.component == 'Hub'
         run: |
           sudo apt-get update
           sudo apt-get install --yes protobuf-compiler golang-go
@@ -37,26 +56,34 @@ jobs:
       # exec.skip skips frontend builds and the Maven documentation generator together.
       # Generate the JSON explicitly so Hub's documentation endpoint is exercised too.
       - name: Generate protobuf documentation
+        if: matrix.component == 'Hub'
         run: |
           mkdir -p shared/hub-api/target/classes
           protoc --doc_out=shared/hub-api/target/classes --doc_opt=json,grpc-api-docs.json \
             -Ishared/hub-api/src/main/proto shared/hub-api/src/main/proto/jeffrey/hub/api/v1/*.proto
 
       # Frontend-tagged HTTP checks run in Validate Frontend with the real Vite builds.
-      - name: Test Hub, Microscope and their dependencies
+      - name: Validate ${{ matrix.component }} and its dependencies
         run: >-
           mvn --batch-mode --no-transfer-progress
-          -pl jeffrey-hub/core-hub,jeffrey-microscope/core-microscope -am test
+          -pl ${{ matrix.module }} -am ${{ matrix.phase }}
           -Dexec.skip=true
           -DexcludedGroups=frontend
 
+      - name: Check packaged Provisioner starts
+        if: matrix.component == 'Provisioner'
+        run: java -jar build/build-provisioner/target/provisioner.jar --help
+
       - name: Check plugin contracts against backend defaults
+        if: matrix.component == 'Microscope'
         run: python3 build/scripts/validate-agent-plugin.py .
 
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-test-reports
-          path: '**/target/surefire-reports/**'
+          name: backend-${{ matrix.component }}-test-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
           if-no-files-found: ignore
