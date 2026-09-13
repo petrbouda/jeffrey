@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.common.pipeline.StageProgress;
 import cafe.jeffrey.profile.common.pipeline.StageStatus;
@@ -26,6 +27,8 @@ import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,12 +46,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class HeapDumpInitServiceTest {
@@ -57,6 +64,71 @@ class HeapDumpInitServiceTest {
 
     @Mock
     HeapDumpManager manager;
+
+    @ParameterizedTest
+    @CsvSource({"dominator, leaks, true", "dominator, all, true",
+            "dominator, dominator, false", "all, leaks, false", "all, all, false"})
+    void completedPreparationIsReusedOnlyWhenItCoversRequestedReports(
+            String previous, String requested, boolean shouldStart) {
+        HeapDumpInitService service = new HeapDumpInitService(Clock.systemUTC());
+        var first = service.startPreparation(PROFILE_ID, manager,
+                previous.equals("all") ? null : previous, null, () -> {}, false);
+        await().atMost(5, SECONDS).until(() -> first.operation().finishedAt() != null);
+        assertEquals(OperationState.COMPLETED, first.operation().snapshot().state());
+
+        var second = service.startPreparation(PROFILE_ID, manager,
+                requested.equals("all") ? null : requested, null, () -> {}, false);
+
+        assertEquals(shouldStart, second.started());
+        if (shouldStart) {
+            assertEquals(requested.equals("all") ? HeapDumpStages.REPORTS : List.of(requested), second.reports());
+            await().atMost(5, SECONDS).until(() -> second.operation().finishedAt() != null);
+            assertEquals(OperationState.COMPLETED, second.operation().snapshot().state());
+            verify(manager).runLeakSuspects();
+        } else {
+            assertSame(first.operation(), second.operation());
+            assertEquals(first.reports(), second.reports());
+        }
+    }
+
+    @Test
+    void differentReportJoinsInFlightPreparation() throws InterruptedException {
+        HeapDumpInitService service = new HeapDumpInitService(Clock.systemUTC());
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(manager.initialize(eq(null), any())).thenAnswer(call -> {
+            entered.countDown();
+            release.await();
+            return null;
+        });
+        var first = service.startPreparation(PROFILE_ID, manager, "dominator", null, () -> {}, false);
+        try {
+            assertTrue(entered.await(5, SECONDS));
+            var second = service.startPreparation(PROFILE_ID, manager, "leaks", null, () -> {}, false);
+            assertFalse(second.started());
+            assertSame(first.operation(), second.operation());
+            assertEquals(List.of("dominator"), second.reports());
+            verify(manager, never()).runLeakSuspects();
+        } finally {
+            release.countDown();
+            await().atMost(5, SECONDS).until(() -> first.operation().finishedAt() != null);
+        }
+    }
+
+    @Test
+    void differentReportDoesNotImplicitlyRetryFailedPreparation() {
+        HeapDumpInitService service = new HeapDumpInitService(Clock.systemUTC());
+        when(manager.initialize(eq(null), any())).thenThrow(new IllegalStateException("index failed"));
+        var first = service.startPreparation(PROFILE_ID, manager, "dominator", null, () -> {}, false);
+        await().atMost(5, SECONDS).until(() -> first.operation().finishedAt() != null);
+        assertEquals(OperationState.FAILED, first.operation().snapshot().state());
+
+        var second = service.startPreparation(PROFILE_ID, manager, "leaks", null, () -> {}, false);
+
+        assertFalse(second.started());
+        assertSame(first.operation(), second.operation());
+        verify(manager, never()).runLeakSuspects();
+    }
 
     @Test
     void reportsLiveElapsedForInProgressStageAndClearsItOnCompletion() throws InterruptedException {

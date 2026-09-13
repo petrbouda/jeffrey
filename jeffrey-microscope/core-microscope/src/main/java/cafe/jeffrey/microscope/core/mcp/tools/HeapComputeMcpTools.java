@@ -108,7 +108,9 @@ public class HeapComputeMcpTools {
             + "has not been run yet, or when a ranking by retained size comes back empty. Returns "
             + "immediately with the stage list; the work continues in the background and heap_status "
             + "reports it. Pass a report name to compute just that one on a dump that is already "
-            + "indexed. The result includes an operationId for operations_status/cancel; retries of retained "
+            + "indexed. Completed work is reused when it covers the requested reports; requesting another "
+            + "report starts new work. An active run is always joined. "
+            + "The result includes an operationId for operations_status/cancel; retries of retained "
             + "failed or cancelled work require retry=true. This is the one heap tool that writes, and what it writes is a cache.")
     @McpToolHints(readOnly = false)
     public String prepare(
@@ -117,7 +119,8 @@ public class HeapComputeMcpTools {
             @ToolParamValues({"strings", "dominator", "threads", "biggest", "collections", "leaks",
                     "classloaders", "biggest-collections", "consumers", "duplicates"})
             String report,
-            @ToolParam(required = false, description = "Set true to retry a retained failed or cancelled preparation. Omit to inspect it without restarting")
+            @ToolParam(required = false, description = "Set true to restart a finished preparation, including failed or cancelled work. "
+                    + "Omit to reuse completed work covering the requested reports or inspect a failed/cancelled attempt")
             Boolean retry) {
 
         HeapDumpManager heapDumpManager = requireHeapDump();

@@ -37,11 +37,9 @@ import java.util.concurrent.TimeoutException;
 /** Bounds one replay and preserves the first terminal reason, including cancellation races. */
 public final class HubReplayCollector {
     private static final int TERMINAL_RESERVE = 512;
-    /**
-     * What a remote failure message may take of the terminal reserve. Smaller than the activity
-     * tools' bound because the reserve is fixed and the termination fields already share it.
-     */
+    /** Initial character cap; the serialized UTF-8 byte budget may require a shorter message. */
     private static final int MAX_ERROR_LENGTH = 256;
+    private static final String TRUNCATED_ERROR = "… (truncated)";
     private static final String TERMINATION_COMPLETED = "completed";
     private static final String ERROR_FIELD = "error";
     /** The caller asked for every matching event; only the byte budget and the deadline bound it. */
@@ -197,10 +195,31 @@ public final class HubReplayCollector {
         output.put("complete", reason.equals(TERMINATION_COMPLETED));
         output.put("partial", !reason.equals(TERMINATION_COMPLETED));
         if (error != null && !error.isBlank()) {
-            output.put(ERROR_FIELD, HubActivityMcpSupport.shortened(error, MAX_ERROR_LENGTH));
+            putErrorWithinBudget(error);
         }
         done.complete(null);
         cancelIfFinished();
+    }
+
+    private void putErrorWithinBudget(String error) {
+        // Reserve the widest possible resultBytes value before measuring the remaining space.
+        output.put("resultBytes", maxBytes);
+        int available = maxBytes - bytes();
+        int end = Math.min(error.length(), MAX_ERROR_LENGTH);
+        if (end < error.length() && Character.isHighSurrogate(error.charAt(end - 1))) {
+            end--;
+        }
+        ObjectNode detail = Json.createObject();
+        while (end > 0) {
+            String message = error.substring(0, end) + (end < error.length() ? TRUNCATED_ERROR : "");
+            detail.put(ERROR_FIELD, message);
+            // The standalone object's braces become one comma when its field joins the response.
+            if (utf8Length(Json.toString(detail)) - 1 <= available) {
+                output.put(ERROR_FIELD, message);
+                return;
+            }
+            end = error.offsetByCodePoints(end, -1);
+        }
     }
 
     public synchronized void cancellation(Runnable cancel) {

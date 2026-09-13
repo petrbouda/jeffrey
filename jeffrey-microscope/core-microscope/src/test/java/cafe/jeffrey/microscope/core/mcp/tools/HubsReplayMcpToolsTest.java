@@ -30,10 +30,14 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import io.grpc.Context;
+import io.grpc.Deadline;
 import io.grpc.Status;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
@@ -43,9 +47,12 @@ import java.time.ZoneOffset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,11 +72,19 @@ class HubsReplayMcpToolsTest {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
         ProjectManager project = mock(ProjectManager.class);
         EventStreamingManager streaming = mock(EventStreamingManager.class);
+        AtomicReference<Deadline> discoveryDeadline = new AtomicReference<>();
         when(resolver.resolveStrict("hub", "workspace", "project"))
-                .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+                .thenAnswer(call -> {
+                    discoveryDeadline.set(Context.current().getDeadline());
+                    return new ProjectManagerResolver.ProjectContext(null, null, project);
+                });
         when(project.eventStreamingManager()).thenReturn(streaming);
         Context.CancellableContext context = Context.ROOT.withCancellation();
-        when(streaming.subscribeReplayRaw(any(), any())).thenReturn(new EventStreamingSubscription(context, "session"));
+        when(streaming.subscribeReplayRaw(any(), any())).thenAnswer(call -> {
+            assertNotNull(discoveryDeadline.get());
+            assertSame(discoveryDeadline.get(), Context.current().getDeadline());
+            return new EventStreamingSubscription(context, "session");
+        });
         HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), Duration.ofMillis(40), CLOCK);
         long before = System.nanoTime();
         var result = tools.queryEvents(REF, "jdk.CPULoad", null, null, limit, null).structuredContent();
@@ -108,11 +123,7 @@ class HubsReplayMcpToolsTest {
         }
     }
 
-    /**
-     * The resolver is local and an unknown hub is the caller's mistake. Resolved inside the deadline
-     * context it was read as a remote failure, so a typo in the session_ref came back as rows: 0 and
-     * termination: remote_error with the message that named the typo thrown away.
-     */
+    /** Unknown scope remains a caller error even though discovery shares the replay deadline. */
     @Test
     void unknownHubIsTheCallersErrorNotARemoteOne() {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
@@ -124,6 +135,38 @@ class HubsReplayMcpToolsTest {
                 () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, null, null));
 
         assertTrue(error.getMessage().contains("hub"), error.getMessage());
+    }
+
+    @Test
+    void missingWorkspaceRemainsACallerError() {
+        ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+        JeffreyClientException expected = Exceptions.workspaceNotFound("workspace");
+        when(resolver.resolveStrict("hub", "workspace", "project")).thenThrow(expected);
+        var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
+
+        assertSame(expected, assertThrows(JeffreyClientException.class,
+                () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, null, null)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"DEADLINE_EXCEEDED, timeout", "UNAVAILABLE, unavailable"})
+    void discoverySharesReplayDeadlineAndReportsTransportFailures(String status, String termination) {
+        ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+        AtomicReference<Deadline> observed = new AtomicReference<>();
+        when(resolver.resolveStrict("hub", "workspace", "project")).thenAnswer(call -> {
+            observed.set(Context.current().getDeadline());
+            throw Status.fromCode(Status.Code.valueOf(status)).withDescription("discovery failed").asRuntimeException();
+        });
+        Context.ROOT.run(() -> {
+            var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), Duration.ofMillis(40), CLOCK)
+                    .queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
+            assertNotNull(observed.get(), "Remote discovery must inherit the replay deadline");
+            assertTrue(observed.get().timeRemaining(TimeUnit.MILLISECONDS) <= 40);
+            assertEquals(termination, result.path("termination").asText());
+            assertEquals("discovery failed", result.path("error").asText());
+            assertEquals(0, result.path("rows").asInt());
+            assertFalse(result.path("complete").asBoolean());
+        });
     }
 
     @Test

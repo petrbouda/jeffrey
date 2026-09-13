@@ -28,6 +28,7 @@ import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.activity.ActivityLimits;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -162,16 +163,13 @@ public final class HubsReplayMcpTools {
         }
         HubReplayCollector collector = new HubReplayCollector(ref, rows, bytes);
         collector.filters(types, startTime, endTime);
-        // Resolved before the deadline context, not inside it: the resolver is local, and an unknown
-        // hub, workspace or project is the caller's mistake. Inside the context every exception was
-        // read as a remote failure, so a typo in the session_ref came back as rows: 0 and
-        // termination: remote_error with the message that named the typo thrown away.
-        ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
-                .projectManager();
         Deadline deadline = Deadline.after(timeout.toNanos(), TimeUnit.NANOSECONDS);
         Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINES);
         try {
             context.call(() -> {
+                // Workspace and project discovery use blocking gRPC calls and must share this budget.
+                ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
+                        .projectManager();
                 var request = new ReplaySubscriptionRequest(
                         ref.sessionId(),
                         types,
@@ -191,6 +189,9 @@ public final class HubsReplayMcpTools {
         } catch (InterruptedException e) {
             collector.stop(TERMINATION_INTERRUPTED);
             Thread.currentThread().interrupt();
+        } catch (IllegalArgumentException | JeffreyClientException e) {
+            // Preserve actionable scope errors instead of presenting them as a partial remote result.
+            throw e;
         } catch (Exception e) {
             collector.stop(termination(e), describe(e));
         } finally {
