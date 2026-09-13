@@ -21,6 +21,7 @@ module cafe.jeffrey.microscope.profile.heapdump {
     requires cafe.jeffrey.microscope.profile.common;
     requires cafe.jeffrey.shared.persistence;
     requires cafe.jeffrey.jfr.events;
+    requires jdk.jfr;
     requires java.sql;
     requires duckdb.jdbc;
     requires tools.jackson.databind;
