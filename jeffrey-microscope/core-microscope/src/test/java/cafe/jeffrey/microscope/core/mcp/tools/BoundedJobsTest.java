@@ -17,6 +17,8 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +31,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -49,6 +52,134 @@ class BoundedJobsTest {
 
     private static final Duration GENEROUS = Duration.ofSeconds(10);
     private static final Duration IMMEDIATE = Duration.ofMillis(50);
+
+    @Test
+    void cancelledAttemptKeepsItsIdentityAndKeyUntilTheWorkerExits() throws InterruptedException {
+        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch interrupted = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger attempts = new AtomicInteger();
+        try {
+            OperationHandle<String> first = jobs.startOrJoin("key", false, value -> true, control -> {
+                attempts.incrementAndGet();
+                entered.countDown();
+                while (release.getCount() != 0) {
+                    try {
+                        release.await();
+                    } catch (InterruptedException e) {
+                        interrupted.countDown();
+                    }
+                }
+                control.checkCancellation();
+                return "result";
+            });
+            assertTrue(entered.await(5, SECONDS));
+            assertTrue(first.cancel());
+            assertTrue(interrupted.await(5, SECONDS));
+            assertEquals(OperationState.CANCEL_REQUESTED, first.snapshot().state());
+            OperationHandle<String> joined = jobs.startOrJoin("key", true, value -> true, () -> "rival");
+            assertEquals(first.snapshot().operationId(), joined.snapshot().operationId());
+            assertEquals(1, attempts.get());
+            release.countDown();
+            await().atMost(5, SECONDS).until(() -> first.snapshot().state().terminal());
+            OperationHandle<String> retained = jobs.startOrJoin("key", false, value -> true, () -> "rival");
+            assertEquals(first.snapshot().operationId(), retained.snapshot().operationId());
+            OperationHandle<String> retry = jobs.startOrJoin("key", true, value -> true, () -> "retry");
+            assertFalse(first.snapshot().operationId().equals(retry.snapshot().operationId()));
+            assertFalse(first.cancel(), "an old attempt cannot cancel its replacement");
+            await().atMost(5, SECONDS).until(() -> retry.snapshot().state().terminal());
+            assertEquals(OperationState.COMPLETED, retry.snapshot().state());
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test
+    void cancellationBeforeHookRegistrationStillCancelsTheUnderlyingTransport() throws Exception {
+        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch installHook = new CountDownLatch(1);
+        AtomicInteger cancellations = new AtomicInteger();
+        OperationHandle<String> operation = jobs.startOrJoin("transport", false, value -> true, control -> {
+            entered.countDown();
+            while (installHook.getCount() != 0) {
+                try {
+                    installHook.await();
+                } catch (InterruptedException ignored) {
+                    // Let registration race a cancellation already requested by the client.
+                }
+            }
+            control.onCancellation(cancellations::incrementAndGet);
+            control.checkCancellation();
+            return "result";
+        });
+        try {
+            assertTrue(entered.await(5, SECONDS));
+            assertTrue(operation.cancel());
+            assertFalse(operation.cancel());
+        } finally {
+            installHook.countDown();
+        }
+        await().atMost(5, SECONDS).until(() -> operation.snapshot().state().terminal());
+        assertEquals(1, cancellations.get());
+        assertEquals(OperationState.CANCELLED, operation.snapshot().state());
+    }
+
+    @Test
+    void cancellationDoesNotDiscardASuccessfullyPersistedResult() throws Exception {
+        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        OperationHandle<String> operation = jobs.startOrJoin("persisted", false, value -> true, () -> {
+            entered.countDown();
+            awaitIgnoringInterrupts(release);
+            return "persisted-recording";
+        });
+        try {
+            assertTrue(entered.await(5, SECONDS));
+            assertTrue(operation.cancel());
+            assertEquals(OperationState.CANCEL_REQUESTED, operation.snapshot().state());
+        } finally {
+            release.countDown();
+        }
+        await().atMost(5, SECONDS).until(() -> operation.snapshot().state().terminal());
+        assertEquals(OperationState.COMPLETED, operation.snapshot().state());
+        assertTrue(operation.snapshot().cancellationRequested());
+        assertEquals("persisted-recording", operation.snapshot().result());
+    }
+
+    @Test
+    void cancellationDoesNotHideAnIndependentWorkerFailure() throws Exception {
+        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        OperationHandle<String> operation = jobs.startOrJoin("disk", false, value -> true, () -> {
+            entered.countDown();
+            awaitIgnoringInterrupts(release);
+            throw new IllegalStateException("disk full");
+        });
+        try {
+            assertTrue(entered.await(5, SECONDS));
+            assertTrue(operation.cancel());
+        } finally {
+            release.countDown();
+        }
+        await().atMost(5, SECONDS).until(() -> operation.snapshot().state().terminal());
+        assertEquals(OperationState.FAILED, operation.snapshot().state());
+        assertEquals("disk full", operation.snapshot().failure().getMessage());
+        assertTrue(operation.snapshot().cancellationRequested());
+    }
+
+    private static void awaitIgnoringInterrupts(CountDownLatch latch) {
+        while (latch.getCount() != 0) {
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {
+                // Deliberately uncooperative worker for cancellation outcome tests.
+            }
+        }
+    }
 
     /**
      * A retained outcome outlives the call that produced it so a client can still read it, and then
@@ -144,6 +275,37 @@ class BoundedJobsTest {
             // retryFailure=false would rethrow a retained failure; a swept one starts fresh instead.
             assertEquals(Optional.of("done"),
                     jobs.runWithin("import-1", GENEROUS, false, () -> "done"));
+        }
+    }
+
+    /**
+     * An attempt that is never scheduled never runs its own finally, so nothing sets finishedAt --
+     * and without it the sweep skips the entry, isRunning keeps saying yes, and every later call for
+     * that key joins work that does not exist. The key has to stay askable.
+     */
+    @Nested
+    class SchedulingFailure {
+
+        private final MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
+
+        @Test
+        void aJobThatCannotBeScheduledLeavesItsKeyRetryable() {
+            AtomicInteger scheduled = new AtomicInteger();
+            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS, Duration.ofMinutes(30), clock,
+                    command -> {
+                        if (scheduled.incrementAndGet() == 1) {
+                            throw new RejectedExecutionException("shutting down");
+                        }
+                        command.run();
+                    });
+
+            assertThrows(RejectedExecutionException.class,
+                    () -> jobs.runWithin("import-1", () -> "done"));
+
+            assertFalse(jobs.isRunning("import-1"), "an attempt nothing will run is not running");
+            assertTrue(jobs.outcome("import-1").isPresent(), "it must be readable as a failure");
+            assertEquals(Optional.of("done"), jobs.runWithin("import-1", () -> "done"),
+                    "the key must accept work again");
         }
     }
 

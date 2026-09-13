@@ -148,20 +148,20 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
     />
 
     <div class="docs-content">
-      <p>A hundred and four tools in eighteen families. Fifteen of them read a profile; <code>recordings_</code> and <code>hubs_</code> create one &mdash; from a file on this machine, or from a recording still sitting on a Jeffrey Hub &mdash; and <code>ide_</code> reads the code behind it out of the developer&rsquo;s running IntelliJ.</p>
+      <p>Tools are grouped by the questions they answer. Most families read a profile; <code>recordings_</code> and <code>hubs_</code> create one &mdash; from a file on this machine, or from a recording still sitting on a Jeffrey Hub &mdash; and <code>ide_</code> reads the code behind it out of the developer&rsquo;s running IntelliJ.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
       <p><strong>Names are <code>family_methodName</code>, camelCase preserved</strong> &mdash; <code>jfr_listTables</code>, not <code>jfr_list_tables</code>.</p>
       <DocsCodeBlock :code="nameShape" language="bash" />
 
-      <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code> and <code>hubs_</code> families takes a <code>profileId</code></strong> (<code>ide_</code> included: the IDE window is linked per profile), and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
+      <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code>, <code>hubs_</code> and <code>operations_</code> families takes a <code>profileId</code></strong> (<code>ide_</code> included: the IDE window is linked per profile), and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
 
       <p><strong>Output is capped at 120,000 characters, and says so when it cuts.</strong> A silently shortened flamegraph would be read as a complete one, so nothing is trimmed quietly. A Markdown answer &mdash; the exports, the listings &mdash; ends with an explicit <code>TRUNCATED</code> line naming the cap and suggesting a narrower query. A JSON answer is trimmed <em>in the tree</em> instead of at a character count: the largest array is shortened until the document fits, so what comes back is still parseable rather than ending mid-token, and it carries a <code>_truncated</code> object saying how many elements each shortened array kept out of how many it had. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
 
       <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>source</code>, <code>operator</code>, <code>scope</code>, <code>sort</code>, <code>sortBy</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. A value outside the list is refused by name, with the alternatives spelled out, before the tool runs &mdash; as is a required argument the call left out, rather than being bound to an empty value the tool then reads as an answer. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
 
-      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. Six write, and no more: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code> and <code>heap_status</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families, the two that reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
+      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. The tools that change state are: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, <code>operations_cancel</code>, which requests cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code> and <code>heap_status</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families, the two that reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
 
       <p id="findings"><strong>The two tools that judge share one finding shape.</strong> Almost everything here reports figures and routes; two tools go further and say something is wrong &mdash; <code>jvm_autoAnalysis</code>, the JMC rule set, and the throttling verdict in <code>jvm_container</code> &mdash; and both emit the same record rather than a shape of their own: <code>id</code> (<code>category:subject</code>, stable across tools, so the same condition reported twice collapses into one), <code>severity</code> (<code>CRITICAL</code>, <code>WARNING</code>, <code>INFO</code>, or <code>OK</code> for a check that ran and passed), <code>category</code>, <code>title</code>, <code>detail</code>, <code>source</code> (the tool that produced it), <code>evidence</code> (the figures it rests on), <code>action</code> (the source&rsquo;s suggestion, not a diagnosis) and <code>nextTool</code> (the call that carries the figures in full). <code>profiles_summary</code> leads with the ones that flagged something. A rule that had no events to run on is not a finding of any severity: it goes under <code>notEvaluated</code>, and the summary&rsquo;s <code>capabilityGaps</code> say what it would have needed.</p>
 
@@ -183,7 +183,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><a href="#profiles"><code>profiles_</code></a></td>
-            <td class="map-count">7</td>
+            <td class="map-count">8</td>
             <td>Which recordings are analysed, what each one can answer, and a deep link into the UI. Every <code>profileId</code> comes from here.</td>
           </tr>
           <tr>
@@ -193,8 +193,13 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><a href="#hubs"><code>hubs_</code></a></td>
-            <td class="map-count">3</td>
+            <td class="map-count">4</td>
             <td>The recordings that never reached this machine &mdash; what a deployed application sent to a connected Jeffrey Hub. Finds a session and pulls it in; <code>recordings_</code> then turns it into a profile.</td>
+          </tr>
+          <tr>
+            <td><a href="#operations"><code>operations_</code></a></td>
+            <td class="map-count">2</td>
+            <td>Status and cancellation for background imports, analysis, Hub downloads and heap preparation.</td>
           </tr>
           <tr>
             <td><a href="#ide"><code>ide_</code></a></td>
@@ -216,7 +221,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><a href="#compare"><code>compare_</code></a></td>
-            <td class="map-count">3</td>
+            <td class="map-count">4</td>
             <td>Two profiles against each other: whether they are comparable at all, what moved, and the differential call tree.</td>
           </tr>
           <tr class="map-group">
@@ -290,6 +295,16 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       </table>
 
       <p><strong>Structured discovery results.</strong> <code>profiles_list</code> and <code>hubs_sessions</code> keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
+
+      <p id="operations"><strong>Background operations.</strong> Imports, Hub downloads and heap preparation return an <code>operationId</code>. Use <code>operations_status(operationId)</code> to read that exact attempt and <code>operations_cancel(operationId)</code> to request cancellation. Status distinguishes queued, running, cancel_requested, completed, failed and cancelled. Cancellation is cooperative: the operation retains its slot until the worker and cleanup finish, and already written data is not rolled back. An old operation ID cannot cancel a retry. Terminal attempts remain available for one hour in this process; a restart or expiry makes the ID unavailable. Progress reports measured stages; absent byte totals or percentages remain unknown. A rejected submission reports an error without leaving queued work behind; the request can be tried again once the server can accept work.</p>
+
+      <p><strong>Evidence snapshots.</strong> <code>profiles_evidence(profileId, limit?)</code>, also available at <code>jeffrey://profile/{profileId}/evidence</code>, exports the current profile and recording identity, filters, units, denominators, existing findings, sampling evidence and capability gaps. The snapshot is versioned and explicitly reports omitted rows. Save the response to preserve that evidence: reading the URI again reflects the current profile state.</p>
+
+      <p><strong>Comparison quality.</strong> <code>compare_quality(profileId, baselineProfileId)</code> reports duration, event overlap, available sampling settings and loss telemetry before interpreting a difference. Persisted settings are a merged snapshot, so matching settings do not prove they stayed constant. Observed HTTP/gRPC events are not automatically a complete request count; per-operation normalization remains unavailable without a defensible denominator.</p>
+
+      <p><strong>Bounded remote events.</strong> <code>hubs_queryEvents(sessionRef, eventTypes, startTime?, endTime?, limit?, maxBytes?)</code> reads finished recording files directly from a Hub. Event types are comma-separated; timestamps are epoch milliseconds. It returns complete event rows within the limits, then cancels the replay. Inspect source coverage and the termination reason before interpreting an empty or partial response. It requires a Hub that acknowledges the full workspace/project/session identity; an older Hub is not treated as a complete empty result. This is a finite query, with a deadline, rather than a live subscription.</p>
+
+      <p><strong>Runtime diagnostics.</strong> Read <code>jeffrey://diagnostics</code> for build and family information, profile readiness counts, bounded Hub reachability and aggregate tool latency/output-size measurements. The resource does not retain tool arguments or result contents and respects the Hub access switch.</p>
 
       <h2 id="profiles">profiles_ &mdash; the catalogue</h2>
       <p>Start here. <code>profiles_list</code> discovers the profile IDs used by analysis tools.</p>

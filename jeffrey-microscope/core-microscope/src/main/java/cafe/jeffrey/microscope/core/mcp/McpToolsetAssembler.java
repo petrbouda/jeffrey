@@ -19,6 +19,10 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
@@ -126,10 +130,21 @@ public class McpToolsetAssembler {
             RecordingCommitResolver recordingCommitResolver,
             HeapDumpInitService heapDumpInitService,
             IdeBridge ideBridge,
-            ExternalMcpProperties properties) {
+            ExternalMcpProperties properties,
+            HubsReplayMcpTools replayMcpTools,
+            McpOperationRegistry operations) {
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
+                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> switch (kind) {
+                    case "recording_import", "recording_analysis" -> properties.advertises(PREFIX_RECORDINGS);
+                    case "hub_download" -> properties.hubsEnabled() && properties.advertises(PREFIX_HUBS);
+                    case "heap_prepare" -> properties.advertises(PREFIX_HEAP);
+                    default -> false;
+                }), "operations"),
+                ProfileScopedToolset.leased(ProfileEvidenceMcpTools.class, PREFIX_PROFILES,
+                        profileId -> scoped(contextCache, profileId, scope -> new ProfileEvidenceMcpTools(
+                                scope.profileManager(), recordingCommitResolver, jfrPanelProvider, stackSamplePanelProvider))),
                 ProfileScopedToolset.leased(ProfileMcpTools.class, PREFIX_PROFILES,
                         profileId -> scoped(contextCache, profileId, scope -> new ProfileMcpTools(
                                 scope.profileManager(),
@@ -197,7 +212,7 @@ public class McpToolsetAssembler {
                                 scope -> new HeapComputeMcpTools(
                                         scope.profileManager(),
                                         heapDumpInitService,
-                                        () -> contextCache.acquire(profileId))),
+                                        () -> contextCache.acquire(profileId), operations)),
                         McpToolAnnotations.CREATES),
                 new ReflectiveToolset(
                         recordingsMcpTools, PREFIX_RECORDINGS, McpToolAnnotations.CREATES)));
@@ -216,6 +231,7 @@ public class McpToolsetAssembler {
         }
 
         if (properties.hubsEnabled()) {
+            families.add(new ReflectiveToolset(replayMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
             families.add(new ReflectiveToolset(
                     hubsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
         }

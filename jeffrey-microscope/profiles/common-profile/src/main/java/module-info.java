@@ -27,5 +27,6 @@ module cafe.jeffrey.microscope.profile.common {
     exports cafe.jeffrey.profile.common.event;
     exports cafe.jeffrey.profile.common.model;
     exports cafe.jeffrey.profile.common.pipeline;
+    exports cafe.jeffrey.profile.common.operation;
     exports cafe.jeffrey.profile.common.treetable;
 }

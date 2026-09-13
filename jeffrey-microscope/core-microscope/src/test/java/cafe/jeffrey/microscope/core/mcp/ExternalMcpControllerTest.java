@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -76,7 +77,7 @@ class ExternalMcpControllerTest {
                 assembler,
                 new ExternalMcpProperties(enabled, true, true, Set.of()),
                 new McpRequestGuard(),
-                new McpPromptRegistry()));
+                new McpPromptRegistry(), mock(McpDiagnostics.class)));
     }
 
     @Nested
@@ -416,7 +417,7 @@ class ExternalMcpControllerTest {
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.result.resources[*].uri").asArray()
-                    .containsExactly("jeffrey://server");
+                    .containsExactly("jeffrey://server", "jeffrey://diagnostics");
         }
 
         @Test

@@ -102,7 +102,8 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
             McpToolsetAssembler assembler,
             ExternalMcpProperties properties,
             McpRequestGuard guard,
-            McpPromptRegistry prompts) {
+            McpPromptRegistry prompts,
+            McpDiagnostics diagnostics) {
         this.assembler = assembler;
         this.properties = properties;
         this.guard = guard;
@@ -111,7 +112,8 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
         this.features = new McpServerFeatures(
                 assembler::toolset,
                 () -> prompts,
-                () -> new McpResources(assembler.toolset(), properties));
+                () -> new McpResources(assembler.toolset(), properties,
+                        () -> diagnostics.json(assembler.toolset(), toolMetrics().snapshot(), toolMetrics().droppedCalls())));
     }
 
     @PostMapping

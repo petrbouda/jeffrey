@@ -27,5 +27,15 @@ public record ReplayStreamSubscription(
         List<Path> recordingFiles,
         Set<String> eventTypes,
         StreamingWindow window,
-        Path tempDir) {
+        Path tempDir,
+        String workspaceId,
+        String projectId) {
+    public ReplayStreamSubscription(String sessionId, List<Path> recordingFiles, Set<String> eventTypes,
+                                    StreamingWindow window, Path tempDir) {
+        this(sessionId, recordingFiles, eventTypes, window, tempDir, null, null);
+    }
+
+    public boolean reportCoverage() {
+        return workspaceId != null && projectId != null;
+    }
 }

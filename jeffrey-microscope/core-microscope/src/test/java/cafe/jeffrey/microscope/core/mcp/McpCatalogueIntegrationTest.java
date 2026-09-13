@@ -61,7 +61,7 @@ class McpCatalogueIntegrationTest {
         when(assembler.toolset()).thenReturn(tools);
         controller = new ExternalMcpController(assembler,
                 new ExternalMcpProperties(true, true, true, Set.of(), "hub"),
-                new McpRequestGuard(), new McpPromptRegistry());
+                new McpRequestGuard(), new McpPromptRegistry(), mock(McpDiagnostics.class));
     }
 
     private JsonNode request(String method, ObjectNode params) {

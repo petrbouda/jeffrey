@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -73,12 +74,18 @@ public class McpResources implements McpResourceProvider {
     private final McpToolProvider toolset;
     private final Set<String> availableTools;
     private final McpServerInfo serverInfo;
+    private final Supplier<String> diagnostics;
 
     public McpResources(McpToolProvider toolset) {
         this(toolset, new ExternalMcpProperties(true, true, true, Set.of()));
     }
 
     public McpResources(McpToolProvider toolset, ExternalMcpProperties properties) {
+        this(toolset, properties, null);
+    }
+
+    public McpResources(McpToolProvider toolset, ExternalMcpProperties properties, Supplier<String> diagnostics) {
+        this.diagnostics = diagnostics;
         this.toolset = toolset;
         this.serverInfo = new McpServerInfo(properties, toolset);
         this.availableTools = toolset.specs().stream()
@@ -109,6 +116,11 @@ public class McpResources implements McpResourceProvider {
         resources.add(new McpResource(McpServerInfo.URI, "Jeffrey server",
                 "Build version, selected preset, effective tool families and supported MCP capabilities.",
                 McpResource.APPLICATION_JSON));
+        if (diagnostics != null) {
+            resources.add(new McpResource(McpDiagnostics.URI, "MCP runtime diagnostics",
+                    "Profile readiness, bounded Hub reachability and aggregate tool latency/output sizes; no arguments or result contents.",
+                    McpResource.APPLICATION_JSON));
+        }
         return List.copyOf(resources);
     }
 
@@ -137,11 +149,19 @@ public class McpResources implements McpResourceProvider {
                             + "jdk.ObjectAllocationSample for allocation.",
                     McpResource.TEXT_MARKDOWN));
         }
+        if (availableTools.contains("profiles_evidence")) {
+            templates.add(new McpResource(PROFILE_PREFIX + "{profileId}/evidence", "Profile evidence snapshot",
+                    "Current profile/recording identity, filters, units, denominators, versioned findings and capability gaps. Save the response to preserve it.",
+                    McpResource.APPLICATION_JSON));
+        }
         return List.copyOf(templates);
     }
 
     @Override
     public Contents read(String uri) {
+        if (McpDiagnostics.URI.equals(uri) && diagnostics != null) {
+            return new Contents(uri, McpResource.APPLICATION_JSON, diagnostics.get());
+        }
         if (McpServerInfo.URI.equals(uri)) {
             return new Contents(uri, McpResource.APPLICATION_JSON, serverInfo.json());
         }
@@ -159,6 +179,10 @@ public class McpResources implements McpResourceProvider {
         String[] segments = uri.substring(PROFILE_PREFIX.length()).split("/");
         // A profile id followed by "summary", or by "flamegraph" and an event type. Anything else is
         // not a URI this server offers, and guessing which it meant would answer the wrong question.
+        if (segments.length == 2 && "evidence".equals(segments[1])) {
+            return new Contents(uri, McpResource.APPLICATION_JSON,
+                    call("profiles_evidence", Json.createObject().put(PROFILE_ID_ARGUMENT, decode(segments[0]))));
+        }
         if (segments.length == 2 && SUMMARY_SEGMENT.equals(segments[1])) {
             ObjectNode arguments = Json.createObject().put(PROFILE_ID_ARGUMENT, decode(segments[0]));
             return new Contents(uri, McpResource.APPLICATION_JSON, call(PROFILE_SUMMARY_TOOL, arguments));
@@ -211,6 +235,7 @@ public class McpResources implements McpResourceProvider {
 
     private static String unknown(String uri) {
         return "No resource at '" + uri + "'. This server serves " + PROFILES_URI + ", "
-                + PROFILES_TEMPLATE + ", " + McpServerInfo.URI + ", " + SUMMARY_TEMPLATE + " and " + FLAMEGRAPH_TEMPLATE + ".";
+                + PROFILES_TEMPLATE + ", " + McpServerInfo.URI + ", " + McpDiagnostics.URI + ", "
+                + PROFILE_PREFIX + "{profileId}/evidence, " + SUMMARY_TEMPLATE + " and " + FLAMEGRAPH_TEMPLATE + ".";
     }
 }

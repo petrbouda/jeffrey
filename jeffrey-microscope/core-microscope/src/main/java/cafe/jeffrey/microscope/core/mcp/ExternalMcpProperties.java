@@ -60,10 +60,10 @@ public record ExternalMcpProperties(
     private static final Map<String, Set<String>> PRESETS = Map.of(
             DEFAULT_PRESET, Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
-                    "memory", "heap", "hubs", "ide"),
-            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare"),
-            "heap", Set.of("profiles", "recordings", "heap"),
-            "hub", Set.of("profiles", "recordings", "hubs"));
+                    "memory", "heap", "hubs", "ide", "operations"),
+            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "operations"),
+            "heap", Set.of("profiles", "recordings", "heap", "operations"),
+            "hub", Set.of("profiles", "recordings", "hubs", "operations"));
 
     public ExternalMcpProperties {
         families = families == null ? Set.of() : Set.copyOf(families);

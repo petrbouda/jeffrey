@@ -30,6 +30,8 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionCursor;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.profile.mcp.McpToolHints;
+import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.McpToolResult;
 import cafe.jeffrey.profile.mcp.McpOutputSchema;
@@ -141,6 +143,7 @@ public class HubsMcpTools {
      */
     private final BoundedJobs<HubSessionRef, String> downloads;
     private final HubSessionScan scan;
+    private final McpOperationRegistry operations;
 
     public HubsMcpTools(
             HubsManager hubsManager,
@@ -167,13 +170,27 @@ public class HubsMcpTools {
             Duration downloadResponseBudget,
             Duration downloadDeadline) {
 
+        this(hubsManager, resolver, recordingsManager, clock, scanBudget,
+                downloadResponseBudget, downloadDeadline, new McpOperationRegistry(clock));
+    }
+
+    public HubsMcpTools(HubsManager hubsManager, ProjectManagerResolver resolver,
+            RecordingsManager recordingsManager, Clock clock, McpOperationRegistry operations) {
+        this(hubsManager, resolver, recordingsManager, clock, SCAN_BUDGET,
+                DOWNLOAD_RESPONSE_BUDGET, DOWNLOAD_DEADLINE, operations);
+    }
+
+    public HubsMcpTools(HubsManager hubsManager, ProjectManagerResolver resolver,
+            RecordingsManager recordingsManager, Clock clock, Duration scanBudget,
+            Duration downloadResponseBudget, Duration downloadDeadline, McpOperationRegistry operations) {
+        this.operations = operations;
         this.hubsManager = hubsManager;
         this.resolver = resolver;
         this.recordingsManager = recordingsManager;
         this.clock = clock;
         this.downloadResponseBudget = requirePositive(downloadResponseBudget, "downloadResponseBudget");
         this.downloadDeadline = requirePositive(downloadDeadline, "downloadDeadline");
-        this.downloads = new BoundedJobs<>(downloadResponseBudget);
+        this.downloads = new BoundedJobs<>(downloadResponseBudget, BoundedJobs.COMPLETED_RETENTION, clock);
         this.scan = new HubSessionScan(hubsManager, scanBudget);
     }
 
@@ -271,19 +288,40 @@ public class HubsMcpTools {
         SessionPage page = new SessionPage(filter, fingerprint, withinLastMinutes, scanned.rows().size(),
                 remaining.size(), boundedFailures(scanned.failures()));
         DownloadedSessionIndex local = DownloadedSessionIndex.build(recordingsManager);
-        List<HubSessionScan.Row> selected = new ArrayList<>(remaining.subList(0, Math.min(rowLimit, remaining.size())));
-        while (true) {
-            PageCandidate result = renderPage(page, selected, local);
-            if (result.text().length() <= McpToolOutput.MAX_CHARS
-                    && Json.toString(result.structuredContent()).length() <= McpToolOutput.MAX_CHARS) {
-                return new McpToolResult(result.text(), result.structuredContent());
-            }
-            if (selected.size() <= 1) {
-                throw new IllegalArgumentException(
-                        "A session identity exceeds the catalogue response limit and cannot be returned intact.");
-            }
-            selected.removeLast();
+        int selected = Math.min(rowLimit, remaining.size());
+        PageCandidate whole = renderPage(page, remaining.subList(0, selected), local);
+        if (fits(whole)) {
+            return new McpToolResult(whole.text(), whole.structuredContent());
         }
+
+        // The largest complete prefix that fits, found by halving rather than by dropping one row at a
+        // time: the limit reaches 500 and a page nearly fills the budget, so shrinking row by row
+        // re-renders the whole answer hundreds of times to arrive at the same place. profiles_list
+        // pages the same way, and renderPage derives hasMore and nextCursor from the rows it is
+        // handed, so whichever prefix this settles on is a correct page for exactly those rows.
+        int low = 1;
+        int high = selected - 1;
+        PageCandidate fitting = null;
+        while (low <= high) {
+            int count = low + (high - low) / 2;
+            PageCandidate candidate = renderPage(page, remaining.subList(0, count), local);
+            if (fits(candidate)) {
+                fitting = candidate;
+                low = count + 1;
+            } else {
+                high = count - 1;
+            }
+        }
+        if (fitting == null) {
+            throw new IllegalArgumentException(
+                    "A session identity exceeds the catalogue response limit and cannot be returned intact.");
+        }
+        return new McpToolResult(fitting.text(), fitting.structuredContent());
+    }
+
+    private static boolean fits(PageCandidate candidate) {
+        return candidate.text().length() <= McpToolOutput.MAX_CHARS
+                && Json.toString(candidate.structuredContent()).length() <= McpToolOutput.MAX_CHARS;
     }
 
     /** Java callers retain the original text-only contract; MCP reflects the cursor overload. */
@@ -401,7 +439,9 @@ public class HubsMcpTools {
             + "the same session_ref reports it once it lands. A session already downloaded is returned "
             + "as it is rather than fetched twice. Failed transfer outcomes are retained in memory for "
             + "one hour after completion. During that window, later calls report the failure without "
-            + "restarting unless retry=true. After expiry or a server restart, calling this tool can "
+            + "restarting unless retry=true. Every started transfer includes an operationId; use "
+            + "operations_status to poll locally or operations_cancel to request cancellation. "
+            + "Fast transfer failures also return their operationId. After expiry or a server restart, this tool can "
             + "start a new transfer even when retry is omitted or false.")
     public String download(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
@@ -410,7 +450,31 @@ public class HubsMcpTools {
                     + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
                     + "After expiry or a server restart, this call can start a new transfer regardless of retry")
             Boolean retry) {
+        HubSessionRef ref = HubSessionRef.decode(sessionRef);
+        Optional<OperationHandle<String>> before = downloads.current(ref);
+        String priorId = before.map(OperationHandle::operationId).orElse(null);
+        boolean priorTerminal = before.map(handle -> handle.snapshot().state().terminal()).orElse(false);
+        try {
+            return downloadLegacy(sessionRef, retry);
+        } catch (RuntimeException failure) {
+            Optional<OperationHandle<String>> attempt = downloads.current(ref);
+            if (attempt.isPresent()) {
+                OperationHandle<String> current = attempt.get();
+                OperationState state = current.snapshot().state();
+                boolean reportsThisAttempt = !Boolean.TRUE.equals(retry) || !priorTerminal
+                        || !current.operationId().equals(priorId);
+                if (reportsThisAttempt && (state == OperationState.FAILED || state == OperationState.CANCELLED)) {
+                    return McpToolOutput.json(operations.status(registerDownload(ref, current)));
+                }
+            }
+            // A rejected retry preflight did not create an attempt. Its own error must not be
+            // replaced by the previous attempt's retained outcome.
+            throw failure;
+        }
+    }
 
+    /** The legacy Java wrapper retains transfer exceptions; MCP returns the retained attempt. */
+    private String downloadLegacy(String sessionRef, Boolean retry) {
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
         boolean retryFailed = Boolean.TRUE.equals(retry);
 
@@ -419,7 +483,9 @@ public class HubsMcpTools {
         if (alreadyHere.isPresent()) {
             LOG.debug("Hub session was already downloaded: session_id={} recording_id={}",
                     ref.sessionId(), alreadyHere.get().recordingId());
-            return McpToolOutput.json(existing(ref, alreadyHere.get()));
+            OperationHandle<String> operation = downloads.rememberCompleted(ref, alreadyHere.get().recordingId());
+            return operations.decorate(McpToolOutput.json(existing(ref, alreadyHere.get())),
+                    registerDownload(ref, operation));
         }
 
         Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(ref);
@@ -429,7 +495,8 @@ public class HubsMcpTools {
                 throw mapRemoteFailure(outcome.failure());
             }
             if (outcome.value() != null && recordingsManager.findRecording(outcome.value()).isPresent()) {
-                return McpToolOutput.json(completedOutcome(ref, outcome.value()));
+                return operations.decorate(McpToolOutput.json(completedOutcome(ref, outcome.value())),
+                        registerDownload(ref, downloads.current(ref).orElseThrow()));
             }
         }
 
@@ -441,14 +508,17 @@ public class HubsMcpTools {
 
         LOG.info("Downloading a hub session over MCP: hub_id={} project_id={} session_id={}",
                 ref.hubId(), ref.projectId(), ref.sessionId());
+        OperationHandle<String> operation = downloads.startOrJoin(ref, retryFailed,
+                recordingId -> recordingsManager.findRecording(recordingId).isPresent(), control -> {
+                    control.phase("downloading");
+                    control.progress(Map.of("sessionRef", ref.encode(), "sessionId", ref.sessionId(),
+                            "totalSizeBytes", session.totalSizeBytes()));
+                    return transferWithinDeadline(project, ref, control);
+                });
+        String operationId = registerDownload(ref, operation);
         Optional<String> transferred;
         try {
-            transferred = downloads.runWithin(
-                    ref,
-                    remaining(responseDeadline),
-                    retryFailed,
-                    recordingId -> recordingsManager.findRecording(recordingId).isPresent(),
-                    () -> transferWithinDeadline(project, ref));
+            transferred = downloads.awaitWithin(operation, remaining(responseDeadline));
         } catch (RuntimeException e) {
             throw mapRemoteFailure(e);
         }
@@ -458,16 +528,16 @@ public class HubsMcpTools {
             // Names travel unescaped here. Replacing a pipe is a Markdown-cell concern, and these
             // two answers are JSON, where the serialiser escapes what needs escaping and a mangled
             // name is simply the wrong name.
-            return McpToolOutput.json(new DownloadInProgress(
+            return operations.decorate(McpToolOutput.json(new DownloadInProgress(
                     ref.sessionId(),
                     session.name(),
                     session.totalSizeBytes(),
-                    DOWNLOAD_STILL_RUNNING));
+                    DOWNLOAD_STILL_RUNNING)), operationId);
         }
         String recordingId = transferred.get();
 
         List<RepositoryFile> finished = finishedFiles(session);
-        return McpToolOutput.json(new DownloadedSession(
+        return operations.decorate(McpToolOutput.json(new DownloadedSession(
                 recordingId,
                 session.name(),
                 hubInfo.name(),
@@ -477,7 +547,13 @@ public class HubsMcpTools {
                 (int) finished.stream().filter(RepositoryFile::isArtifactFile).count(),
                 session.totalSizeBytes(),
                 "Call recordings_analyzeRecording with recordingId=" + recordingId
-                        + " to build the profile every analysis tool takes."));
+                        + " to build the profile every analysis tool takes.")), operationId);
+    }
+
+    private String registerDownload(HubSessionRef ref, OperationHandle<String> operation) {
+        String sessionRef = ref.encode();
+        return operations.register("hub_download", operation,
+                recordingId -> Map.of("recordingId", recordingId, "sessionRef", sessionRef));
     }
 
     /**
@@ -485,7 +561,7 @@ public class HubsMcpTools {
      * MCP reflection uses the annotated two-argument method above.
      */
     public String download(String sessionRef) {
-        return download(sessionRef, false);
+        return downloadLegacy(sessionRef, false);
     }
 
     private RecordingSessionFilter sessionFilter(
@@ -652,15 +728,23 @@ public class HubsMcpTools {
         }
     }
 
-    private String transferWithinDeadline(ProjectManager project, HubSessionRef ref) {
+    private String transferWithinDeadline(ProjectManager project, HubSessionRef ref, BoundedJobs.JobControl control) {
         Context.CancellableContext context = Context.ROOT.withDeadlineAfter(
                 downloadDeadline.toNanos(), TimeUnit.NANOSECONDS, DEADLINE_SCHEDULER);
+        control.onCancellation(() -> context.cancel(null));
         try {
+            control.checkCancellation();
             return context.call(() ->
                     project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId()));
         } catch (StatusRuntimeException e) {
+            if (e.getStatus().getCode() == Status.Code.CANCELLED) {
+                control.checkCancellation();
+            }
             throw GrpcClientErrors.toJeffreyException(e);
         } catch (Exception e) {
+            if (Status.fromThrowable(e).getCode() == Status.Code.CANCELLED) {
+                control.checkCancellation();
+            }
             if (e instanceof RuntimeException runtime) {
                 throw runtime;
             }

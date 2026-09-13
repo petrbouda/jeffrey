@@ -49,7 +49,15 @@ public record ComparisonScale(
         Duration primaryDuration,
         Duration baselineDuration,
         long primaryTotal,
-        long baselineTotal) {
+        long baselineTotal,
+        long primarySamples,
+        long baselineSamples) {
+
+    /** Compatibility for callers comparing sample counts directly. */
+    public ComparisonScale(Duration primaryDuration, Duration baselineDuration,
+                           long primaryTotal, long baselineTotal) {
+        this(primaryDuration, baselineDuration, primaryTotal, baselineTotal, primaryTotal, baselineTotal);
+    }
 
     /**
      * How far the two recording lengths may drift before the scaling is worth mentioning. Sampling
@@ -103,7 +111,7 @@ public record ComparisonScale(
         if (primaryDuration == null || baselineDuration == null) {
             throw new IllegalArgumentException("both durations are required");
         }
-        if (primaryTotal < 0 || baselineTotal < 0) {
+        if (primaryTotal < 0 || baselineTotal < 0 || primarySamples < 0 || baselineSamples < 0) {
             throw new IllegalArgumentException(
                     "totals cannot be negative: primaryTotal=" + primaryTotal
                             + " baselineTotal=" + baselineTotal);
@@ -188,14 +196,14 @@ public record ComparisonScale(
 
         if (primaryTotal == 0) {
             warnings.add(WARNING_EMPTY_PRIMARY);
-        } else if (primaryTotal < THIN_SAMPLE_FLOOR) {
-            warnings.add(String.format(Locale.ROOT, WARNING_THIN_PRIMARY, primaryTotal));
+        } else if (primarySamples < THIN_SAMPLE_FLOOR) {
+            warnings.add(String.format(Locale.ROOT, WARNING_THIN_PRIMARY, primarySamples));
         }
 
         if (baselineTotal == 0) {
             warnings.add(WARNING_EMPTY_BASELINE);
-        } else if (baselineTotal < THIN_SAMPLE_FLOOR) {
-            warnings.add(String.format(Locale.ROOT, WARNING_THIN_BASELINE, baselineTotal));
+        } else if (baselineSamples < THIN_SAMPLE_FLOOR) {
+            warnings.add(String.format(Locale.ROOT, WARNING_THIN_BASELINE, baselineSamples));
         }
 
         double divergence = workloadDivergence();

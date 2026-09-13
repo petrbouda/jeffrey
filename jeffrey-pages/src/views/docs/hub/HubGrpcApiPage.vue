@@ -371,7 +371,18 @@ onMounted(() => {
                   <code>ReplayStreaming</code>
                   <span class="rpc-type">server-streaming</span>
                 </div>
-                <p>Replay historical JFR events from a session's dumped recording files in chronological order</p>
+                <p>Replay selected historical JFR events from finished recording files. Optional <code>start_time</code> and <code>end_time</code> bound the event window in epoch milliseconds.</p>
+                <p>Existing callers may omit scope fields and retain the legacy replay behavior. New read-only clients use <code>ScopedReplayStreaming</code>.</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>ScopedReplayStreaming</code>
+                  <span class="rpc-type">server-streaming</span>
+                </div>
+                <p>Supply both <code>workspace_id</code> and <code>project_id</code> to resolve <code>session_id</code> within that project. Scoped replay reads raw or compressed files without replacing the originals. The <code>ScopedReplayStreaming</code> RPC enforces this read-only contract; older Hubs return <code>UNIMPLEMENTED</code> without invoking legacy replay. Its first <code>EventBatch.replay_status</code> acknowledges the scope; a terminal status reports skipped files, corrupt chunks and mapping failures through <code>source_errors</code>.</p>
+                <p>The Microscope MCP tool <code>hubs_queryEvents</code> accepts a <code>session_ref</code>, comma-separated event types, optional epoch-millisecond bounds, and row/UTF-8 byte limits. Defaults are 100 rows, 65,536 bytes and a 15-second deadline; ceilings are 1,000 rows and 100,000 bytes. The byte limit covers the returned JSON object, including its metadata; the MCP transport may carry both text and structured copies, plus envelope overhead. Whole event rows are returned with <code>complete</code>, <code>termination</code> and applied filters. Limits, timeout, source errors and missing scope/coverage support produce a partial result. Cancellation stops replay and releases temporary files after the reader exits. Scoped replay uses strict JFR parsing so unreadable input cannot silently become a complete result.</p>
+                <p>Coverage describes finished files visible when replay starts. An active session may create additional files later; overlapping recordings may repeat events. Replay does not establish a globally ordered or deduplicated event set, and stack traces are omitted.</p>
               </div>
             </div>
           </div>

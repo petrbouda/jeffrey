@@ -18,8 +18,6 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import cafe.jeffrey.microscope.grpc.client.*;
-
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
@@ -121,6 +119,11 @@ public class EventStreamingManager {
                 onComplete,
                 onError);
 
+        return eventStreamingClient.subscribeReplayStreaming(request, callbacks);
+    }
+
+    /** Supplies protobuf batches, including scoped replay coverage metadata. */
+    public EventStreamingSubscription subscribeReplayRaw(ReplaySubscriptionRequest request, StreamingCallbacks callbacks) {
         return eventStreamingClient.subscribeReplayStreaming(request, callbacks);
     }
 

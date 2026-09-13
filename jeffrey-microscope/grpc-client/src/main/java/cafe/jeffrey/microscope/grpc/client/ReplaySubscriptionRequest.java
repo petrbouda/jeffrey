@@ -24,5 +24,10 @@ public record ReplaySubscriptionRequest(
         String sessionId,
         Set<String> eventTypes,
         Long startTime,
-        Long endTime) {
+        Long endTime,
+        String workspaceId,
+        String projectId) {
+    public ReplaySubscriptionRequest(String sessionId, Set<String> eventTypes, Long startTime, Long endTime) {
+        this(sessionId, eventTypes, startTime, endTime, null, null);
+    }
 }

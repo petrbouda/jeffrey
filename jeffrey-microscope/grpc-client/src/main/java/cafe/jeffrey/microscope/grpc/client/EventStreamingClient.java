@@ -98,13 +98,25 @@ public class EventStreamingClient implements Closeable {
             requestBuilder.setEndTime(request.endTime());
         }
 
+        if (request.workspaceId() != null) {
+            requestBuilder.setWorkspaceId(request.workspaceId());
+        }
+        if (request.projectId() != null) {
+            requestBuilder.setProjectId(request.projectId());
+        }
         String sessionId = request.sessionId();
         Context.CancellableContext cancellableContext = Context.current().withCancellation();
         EventStreamingSubscription subscription = new EventStreamingSubscription(cancellableContext, sessionId);
         activeSubscriptions.add(subscription);
 
-        cancellableContext.run(() -> stub.replayStreaming(requestBuilder.build(),
-                new EventBatchStreamObserver(sessionId, subscription, activeSubscriptions, callbacks)));
+        cancellableContext.run(() -> {
+            var observer = new EventBatchStreamObserver(sessionId, subscription, activeSubscriptions, callbacks);
+            if (request.workspaceId() != null || request.projectId() != null) {
+                stub.scopedReplayStreaming(requestBuilder.build(), observer);
+            } else {
+                stub.replayStreaming(requestBuilder.build(), observer);
+            }
+        });
 
         LOG.info("Subscribed to replay stream: request={}", request);
         return subscription;

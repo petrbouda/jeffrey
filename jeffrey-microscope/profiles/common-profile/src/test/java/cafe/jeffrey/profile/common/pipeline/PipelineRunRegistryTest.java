@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.common.pipeline;
 
+import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorType;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
@@ -31,6 +33,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,6 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class PipelineRunRegistryTest {
 
@@ -66,6 +71,43 @@ class PipelineRunRegistryTest {
                 throw new IllegalStateException("interrupted", e);
             }
         }));
+    }
+
+    @Test
+    void rejectedSubmissionTerminatesJoinersAndLeavesResourcesWithTheCaller() {
+        AtomicReference<PipelineRunRegistry<String>> registryRef = new AtomicReference<>();
+        AtomicReference<OperationHandle<PipelineProgress>> rejected = new AtomicReference<>();
+        AtomicInteger submissions = new AtomicInteger();
+        AtomicInteger bodies = new AtomicInteger();
+        AtomicInteger completions = new AtomicInteger();
+        var failure = new RejectedExecutionException("scheduler stopped");
+        var registry = new PipelineRunRegistry<String>(DEFINITION, PipelineRunOptions.unbounded(), CLOCK, task -> {
+            if (submissions.incrementAndGet() == 1) {
+                // Another caller can join the attempt between its registration and scheduling.
+                var joined = registryRef.get().startOrJoin(PipelineRunRequest.of("profile-1", _ -> bodies.incrementAndGet()), false);
+                assertFalse(joined.started());
+                rejected.set(joined.operation());
+                throw failure;
+            }
+            task.run();
+        });
+        registryRef.set(registry);
+        var request = new PipelineRunRequest<String>("profile-1", "", _ -> bodies.incrementAndGet(),
+                _ -> completions.incrementAndGet());
+
+        assertSame(failure, assertThrows(RejectedExecutionException.class, () -> registry.start(request)));
+        assertFalse(registry.isRunning("profile-1"));
+        assertEquals(OperationState.FAILED, rejected.get().snapshot().state());
+        assertEquals(CLOCK.instant(), rejected.get().finishedAt());
+        assertFalse(rejected.get().cancel());
+        assertTrue(registry.operation("profile-1").isEmpty());
+        assertEquals(0, bodies.get());
+        assertEquals(0, completions.get(), "a rejected start leaves cleanup to the caller");
+
+        assertTrue(registry.startOrJoin(request, false).started(), "rejected submissions must not strand the key");
+        assertEquals(1, bodies.get());
+        assertEquals(1, completions.get());
+        assertEquals(OperationState.COMPLETED, registry.operation("profile-1").orElseThrow().snapshot().state());
     }
 
     @Nested
@@ -180,8 +222,9 @@ class PipelineRunRegistryTest {
 
             assertTrue(registry.cancel("profile-1"));
 
+            // Cancellation becomes terminal only when the worker and its cleanup have ended.
+            await().atMost(5, SECONDS).until(() -> !registry.isRunning("profile-1"));
             assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
-            assertFalse(registry.isRunning("profile-1"));
             // The interrupt reaches the blocked work — no need to release the latch — and the
             // terminal result delivered to the caller is the cancellation, not a late completion.
             await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
@@ -190,8 +233,8 @@ class PipelineRunRegistryTest {
         }
 
         @Test
-        @DisplayName("stays cancelled even when the work ignores the interrupt and returns normally")
-        void zombieCompletionCannotOverturnCancellation() throws InterruptedException {
+        @DisplayName("preserves successful completion when the work ignores a cancellation request")
+        void successfulCompletionAfterACancellationRequestIsPreserved() throws InterruptedException {
             PipelineRunRegistry<String> registry = unbounded();
             CountDownLatch entered = new CountDownLatch(1);
             CountDownLatch cancelled = new CountDownLatch(1);
@@ -213,9 +256,9 @@ class PipelineRunRegistryTest {
             cancelled.countDown();
 
             await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
-            assertEquals(PipelineState.FAILED, stored.get().state(),
-                    "the first terminal transition (the cancel) must win");
-            assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
+            assertEquals(PipelineState.COMPLETED, stored.get().state(),
+                    "a request cannot erase a successful result produced by non-cooperative work");
+            assertEquals(PipelineState.COMPLETED, registry.progress("profile-1").state());
         }
 
         @Test

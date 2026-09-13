@@ -27,6 +27,7 @@ import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
@@ -82,22 +83,26 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
 
     @Override
     public String generateAiExport(GraphParameters parameters, AiExportConfig exportConfig) {
+        GraphParameters effective = adjust(parameters);
         return ProfileComparison.treeMarkdown(
-                parameters.eventType(),
-                generator.diffFrame(adjust(parameters)),
-                duration(primaryInfo),
-                duration(secondaryInfo),
-                exportConfig == null ? aiExportConfig : exportConfig);
+                effective.eventType(),
+                generator.diffFrame(effective),
+                exposure(primaryInfo, effective.timeRange()),
+                exposure(secondaryInfo, effective.timeRange()),
+                exportConfig == null ? aiExportConfig : exportConfig,
+                effective.useWeight());
     }
 
     @Override
     public String rankedMovements(GraphParameters parameters, int limit) {
+        GraphParameters effective = adjust(parameters);
         return ProfileComparison.rankedMarkdown(
-                parameters.eventType(),
-                generator.diffFrame(adjust(parameters)),
-                duration(primaryInfo),
-                duration(secondaryInfo),
-                limit);
+                effective.eventType(),
+                generator.diffFrame(effective),
+                exposure(primaryInfo, effective.timeRange()),
+                exposure(secondaryInfo, effective.timeRange()),
+                limit,
+                effective.useWeight());
     }
 
     /**
@@ -120,7 +125,8 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
         }
         Type eventType = parameters.eventType();
         return parameters.toBuilder()
-                .withUseWeight(eventType.isAllocationEvent() || eventType.isBlockingEvent())
+                .withUseWeight(eventType.isAllocationEvent() || eventType.isBlockingEvent()
+                        || eventType.isMethodTraceEvent())
                 .build();
     }
 
@@ -129,9 +135,17 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
      * {@link cafe.jeffrey.flamegraph.diff.ComparisonScale} says so in its own warning rather than
      * being handed a fabricated one here.
      */
-    private static Duration duration(ProfileInfo profileInfo) {
+    private static Duration exposure(ProfileInfo profileInfo, RelativeTimeRange range) {
+        if (profileInfo.profilingStartedAt() == null || profileInfo.profilingFinishedAt() == null) {
+            return Duration.ZERO;
+        }
         Duration duration = profileInfo.duration();
-        return duration == null ? Duration.ZERO : duration;
+        if (range == null) {
+            return duration;
+        }
+        Duration start = range.start() == null || range.start().isNegative() ? Duration.ZERO : range.start();
+        Duration end = range.end() == null || range.end().compareTo(duration) > 0 ? duration : range.end();
+        return end.compareTo(start) > 0 ? end.minus(start) : Duration.ZERO;
     }
 
     @Override

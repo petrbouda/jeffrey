@@ -37,17 +37,23 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import cafe.jeffrey.shared.common.Json;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -76,6 +82,91 @@ class HeapComputeMcpToolsTest {
 
     private HeapComputeMcpTools tools() {
         return new HeapComputeMcpTools(profileManager, initService);
+    }
+
+    @Test
+    void preparationExposesAnAttemptIdentity() {
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        String result = tools().prepare("leaks");
+        assertTrue(result.contains("\"operationId\""), result);
+        assertTrue(result.contains("\"operation\""), result);
+    }
+
+    @Test
+    void cancelledPreparationRetainsItsLeaseAndReportsTheWorkActuallyJoined() throws Exception {
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger leases = new AtomicInteger();
+        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, initService, () -> {
+            leases.incrementAndGet();
+            return leases::decrementAndGet;
+        }, operations);
+        when(heapDumpManager.initialize(eq(null), any())).thenAnswer(invocation -> {
+            entered.countDown();
+            while (release.getCount() != 0) {
+                try {
+                    release.await();
+                } catch (InterruptedException ignored) {
+                    // A native index operation may finish its current work before observing cancellation.
+                }
+            }
+            return null;
+        });
+        String firstId = Json.mapper().readTree(tools.prepare("leaks", false)).path("operationId").asString();
+        try {
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            assertEquals("cancel_requested", operations.cancel(firstId, kind -> true).status());
+            var joined = Json.mapper().readTree(tools.prepare("dominator", true));
+            assertEquals(firstId, joined.path("operationId").asString());
+            assertEquals("leaks", joined.path("computing").get(0).asString());
+            assertEquals(1, leases.get());
+            assertFalse(operations.status(firstId).retryable());
+        } finally {
+            release.countDown();
+        }
+        await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
+        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(firstId).status().equals("cancelled"));
+        String retained = Json.mapper().readTree(tools.prepare("leaks", false)).path("operationId").asString();
+        assertEquals(firstId, retained);
+        String retry = Json.mapper().readTree(tools.prepare("leaks", true)).path("operationId").asString();
+        assertFalse(firstId.equals(retry));
+        assertEquals("cancelled", operations.cancel(firstId, kind -> true).status());
+    }
+
+    @Test
+    void heapHistoryRemainsReadableAfterOperationRetentionExpires() {
+        MutableClock clock = new MutableClock();
+        HeapDumpInitService service = new HeapDumpInitService(clock);
+        McpOperationRegistry operations = new McpOperationRegistry(clock);
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, service, () -> () -> {}, operations);
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        when(heapDumpManager.initialize(eq(null), any())).thenThrow(new IllegalStateException("index failed"));
+        String operationId = Json.mapper().readTree(tools.prepare("leaks", false)).path("operationId").asString();
+        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(operationId).finishedAt() != null);
+        clock.now = clock.now.plusSeconds(7200);
+        String history = assertDoesNotThrow(tools::status);
+        assertTrue(history.contains("index failed"), history);
+        String retained = assertDoesNotThrow(() -> tools.prepare("leaks", false));
+        assertTrue(retained.contains("retry=true"), retained);
+        verify(heapDumpManager, times(1)).initialize(eq(null), any());
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant now = Instant.parse("2026-09-12T12:00:00Z");
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
+        @Override
+        public Instant instant() {
+            return now;
+        }
     }
 
     @Nested

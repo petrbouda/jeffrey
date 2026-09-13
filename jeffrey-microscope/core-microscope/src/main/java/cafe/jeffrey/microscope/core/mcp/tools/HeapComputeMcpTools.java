@@ -26,12 +26,16 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -71,6 +75,7 @@ public class HeapComputeMcpTools {
     private final ProfileManager profileManager;
     private final HeapDumpInitService initService;
     private final Supplier<? extends AutoCloseable> backgroundLease;
+    private final McpOperationRegistry operations;
 
     public HeapComputeMcpTools(ProfileManager profileManager, HeapDumpInitService initService) {
         this(profileManager, initService, () -> () -> {});
@@ -79,6 +84,12 @@ public class HeapComputeMcpTools {
     public HeapComputeMcpTools(
             ProfileManager profileManager, HeapDumpInitService initService,
             Supplier<? extends AutoCloseable> backgroundLease) {
+        this(profileManager, initService, backgroundLease, new McpOperationRegistry(initService.clock()));
+    }
+
+    public HeapComputeMcpTools(ProfileManager profileManager, HeapDumpInitService initService,
+            Supplier<? extends AutoCloseable> backgroundLease, McpOperationRegistry operations) {
+        this.operations = operations;
         this.backgroundLease = backgroundLease;
         this.profileManager = profileManager;
         this.initService = initService;
@@ -91,23 +102,27 @@ public class HeapComputeMcpTools {
             + "has not been run yet, or when a ranking by retained size comes back empty. Returns "
             + "immediately with the stage list; the work continues in the background and heap_status "
             + "reports it. Pass a report name to compute just that one on a dump that is already "
-            + "indexed. This is the one heap tool that writes, and what it writes is a cache.")
+            + "indexed. The result includes an operationId for operations_status/cancel; retries of retained "
+            + "failed or cancelled work require retry=true. This is the one heap tool that writes, and what it writes is a cache.")
     @McpToolHints(readOnly = false)
     public String prepare(
             @ToolParam(required = false, description = "Compute only this report instead of all of them. "
                     + "Omit for a dump that has never been opened, which needs the whole pipeline")
             @ToolParamValues({"strings", "dominator", "threads", "biggest", "collections", "leaks",
                     "classloaders", "biggest-collections", "consumers", "duplicates"})
-            String report) {
+            String report,
+            @ToolParam(required = false, description = "Set true to retry a retained failed or cancelled preparation. Omit to inspect it without restarting")
+            Boolean retry) {
 
         HeapDumpManager heapDumpManager = requireHeapDump();
         String profileId = profileManager.info().id();
         AutoCloseable lease = backgroundLease.get();
         boolean started = false;
+        HeapDumpInitService.Preparation preparation;
         try {
-            started = report == null || report.isBlank()
-                    ? initService.start(profileId, heapDumpManager, null, () -> release(lease))
-                    : initService.startReport(profileId, heapDumpManager, report.trim(), null, () -> release(lease));
+            preparation = initService.startPreparation(profileId, heapDumpManager, report, null,
+                    () -> release(lease), Boolean.TRUE.equals(retry));
+            started = preparation.started();
         } finally {
             // A joined or rejected request handed no work to the service, so it still owns its lease.
             if (!started) {
@@ -115,12 +130,24 @@ public class HeapComputeMcpTools {
             }
         }
 
-        return LinkedOutput.json(new PrepareResult(
-                started,
-                report == null || report.isBlank() ? HeapDumpStages.REPORTS : List.of(report.trim()),
-                stages(initService.progress(profileId)),
-                nextSteps(started),
-                UiLinks.view(profileId, HEAP_VIEW)));
+        List<String> steps = !started && preparation.operation().snapshot().state().terminal()
+                ? List.of("The prior attempt failed or was cancelled. Use heap_prepare with retry=true to start a new attempt.")
+                : nextSteps(started);
+        String legacy = LinkedOutput.json(new PrepareResult(
+                started, preparation.reports(), stages(initService.progress(profileId)),
+                steps, UiLinks.view(profileId, HEAP_VIEW)));
+        return register(profileId, preparation).map(operationId -> operations.decorate(legacy, operationId))
+                .orElseGet(() -> expiredHistory(legacy));
+    }
+
+    public String prepare(String report) {
+        return prepare(report, true);
+    }
+
+    private Optional<String> register(String profileId, HeapDumpInitService.Preparation preparation) {
+        List<String> reports = preparation.reports();
+        return operations.registerIfRetained("heap_prepare", preparation.operation(),
+                progress -> Map.of("profileId", profileId, "reports", reports));
     }
 
     /**
@@ -150,12 +177,24 @@ public class HeapComputeMcpTools {
     public String status() {
         String profileId = profileManager.info().id();
         PipelineProgress progress = initService.progress(profileId);
-        return LinkedOutput.json(new StatusResult(
+        String legacy = LinkedOutput.json(new StatusResult(
                 progress.state().name(),
                 progress.isRunning(),
                 progress.errorMessage(),
                 stages(progress),
                 UiLinks.view(profileId, HEAP_VIEW)));
+        return initService.operation(profileId)
+                .map(preparation -> register(profileId, preparation)
+                        .map(operationId -> operations.decorate(legacy, operationId))
+                        .orElseGet(() -> expiredHistory(legacy)))
+                .orElse(legacy);
+    }
+
+    private static String expiredHistory(String legacy) {
+        ObjectNode result = (ObjectNode) Json.mapper().readTree(legacy);
+        result.put("operationExpired", true);
+        result.put("operationRetention", "The operation ID expired after one hour; this is the last heap pipeline history. Use heap_prepare with retry=true to start a new attempt.");
+        return LinkedOutput.json(result);
     }
 
     /**

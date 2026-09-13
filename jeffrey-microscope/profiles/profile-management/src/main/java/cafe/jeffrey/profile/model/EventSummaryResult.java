@@ -42,7 +42,17 @@ public record EventSummaryResult(
             long samples,
             long weight,
             boolean calculated,
-            Map<String, String> extras) {
+            Map<String, String> extras,
+            Map<String, String> settings) {
+
+        public SingleResult {
+            settings = settings == null ? Map.of() : Map.copyOf(settings);
+        }
+
+        public SingleResult(String code, String label, String source, String subtype, long samples,
+                            long weight, boolean calculated, Map<String, String> extras) {
+            this(code, label, source, subtype, samples, weight, calculated, extras, Map.of());
+        }
 
         public SingleResult(EventSummary eventSummary) {
             this(eventSummary.name(),
@@ -52,7 +62,8 @@ public record EventSummaryResult(
                     eventSummary.samples(),
                     eventSummary.weight(),
                     eventSummary.calculated(),
-                    eventSummary.extras() != null ? eventSummary.extras() : Map.of());
+                    eventSummary.extras() != null ? eventSummary.extras() : Map.of(),
+                    eventSummary.settings());
         }
     }
 }
