@@ -18,8 +18,6 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
-import cafe.jeffrey.microscope.grpc.client.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -35,7 +33,6 @@ import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.RequestParams;
-import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.IOException;
 import java.util.List;
@@ -68,21 +65,20 @@ public class ProjectReplayStreamController {
             @RequestParam(value = "startTime", required = false) Long startTime,
             @RequestParam(value = "endTime", required = false) Long endTime) {
 
-        if (sessionId == null || sessionId.isBlank()) {
-            throw Exceptions.invalidRequest("sessionId is required");
-        }
-        if (startTime != null && endTime != null && startTime >= endTime) {
-            throw Exceptions.invalidRequest("startTime must be strictly before endTime");
-        }
-
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
-        EventStreamingManager streamingManager = pm.eventStreamingManager();
-
+        // The request validates itself (blank session, inverted window), and it is built before the
+        // project is resolved so a malformed query answers 400 without a round trip to the hub.
+        // The scope travels with it: the client then uses the scoped RPC, and the Hub resolves the
+        // session inside this project rather than by id alone across every project it holds.
         var request = new ReplaySubscriptionRequest(
                 sessionId,
                 RequestParams.parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()),
                 startTime,
-                endTime);
+                endTime,
+                workspaceId,
+                projectId);
+
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        EventStreamingManager streamingManager = pm.eventStreamingManager();
 
         SseEmitter emitter = new SseEmitter(0L);
         var subscriptionRef = new AtomicReference<EventStreamingSubscription>();

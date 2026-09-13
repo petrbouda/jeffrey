@@ -95,7 +95,11 @@ onMounted(() => {
                   <code>event_types</code> (empty means all types). Returns a typed <code>EventActivitySnapshot</code> with a <code>scan_id</code>.
                   The scope is resolved before the scan is admitted, so an unknown workspace, project or session returns
                   <code>NOT_FOUND</code> here rather than a <code>scan_id</code> that only reports a failure when it is first
-                  polled. <code>RESOURCE_EXHAUSTED</code> means every retained slot is held by a scan that has not finished.</p>
+                  polled. <code>RESOURCE_EXHAUSTED</code> means every retained slot is held by a scan that has not finished.
+                  An optional <code>idempotency_key</code> (at most 128 characters) makes a repeat safe: while a scan with
+                  the same key is still in flight in the same scope, the Hub answers with that scan instead of admitting a
+                  second one, so a caller whose own deadline expired after admission can retry without claiming another
+                  slot. A finished scan is never adopted; the same request after completion starts a fresh scan.</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line"><span class="method rpc">RPC</span><code>GetActivity</code></div>
@@ -419,7 +423,7 @@ onMounted(() => {
                   <code>ScopedReplayStreaming</code>
                   <span class="rpc-type">server-streaming</span>
                 </div>
-                <p>Supply both <code>workspace_id</code> and <code>project_id</code> to resolve <code>session_id</code> within that project. Scoped replay reads raw or compressed files without replacing the originals. The <code>ScopedReplayStreaming</code> RPC enforces this read-only contract; older Hubs return <code>UNIMPLEMENTED</code> without invoking legacy replay. Its first <code>EventBatch.replay_status</code> acknowledges the scope; a terminal status reports skipped files, corrupt chunks and mapping failures through <code>source_errors</code>.</p>
+                <p>Supply both <code>workspace_id</code> and <code>project_id</code> to resolve <code>session_id</code> within that project. Scoped replay reads raw or compressed files without replacing the originals. The <code>ScopedReplayStreaming</code> RPC enforces this read-only contract; older Hubs return <code>UNIMPLEMENTED</code> without invoking legacy replay. Its first <code>EventBatch.replay_status</code> acknowledges the scope; a terminal status reports skipped files, corrupt chunks and mapping failures through <code>source_errors</code>. A session that resolves but has no finished file yet completes the same way with zero events, the shape <code>StartActivity</code> reports for it; <code>NOT_FOUND</code> is reserved for a workspace, project or session that does not resolve.</p>
                 <p>The Microscope MCP tool <code>hubs_queryEvents</code> accepts a <code>session_ref</code>, comma-separated event types, optional epoch-millisecond bounds, and row/UTF-8 byte limits. Defaults are 100 rows, 65,536 bytes and a 15-second deadline; the row limit takes any positive integer, or <code>0</code> for no row cap at all, and the byte ceiling is 100,000. The byte limit covers the returned JSON object, including its metadata; the MCP transport may carry both text and structured copies, plus envelope overhead. Whole event rows are returned with <code>complete</code>, <code>termination</code> and applied filters. Limits, timeout, source errors and missing scope/coverage support produce a partial result. Cancellation stops replay and releases temporary files after the reader exits. Scoped replay uses strict JFR parsing so unreadable input cannot silently become a complete result.</p>
                 <p>Coverage describes finished files visible when replay starts. An active session may create additional files later; overlapping recordings may repeat events. Replay does not establish a globally ordered or deduplicated event set, and stack traces are omitted.</p>
               </div>
