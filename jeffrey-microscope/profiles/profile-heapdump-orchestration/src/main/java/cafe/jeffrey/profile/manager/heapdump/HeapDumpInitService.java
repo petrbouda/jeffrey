@@ -167,6 +167,12 @@ public final class HeapDumpInitService {
             throw new IllegalArgumentException("Unknown report: " + selected + ". Expected one of: "
                     + String.join(", ", HeapDumpStages.REPORTS));
         }
+        // Whether the run this call would join already computed what is being asked for. The registry
+        // is keyed by profile, so without this a completed run for one report answers for every other
+        // report as well: the caller is told the preparation already finished, and the report they
+        // asked for is never built. An in-flight run is joined either way -- startOrJoin only replaces
+        // a finished one -- so this cannot interrupt work already under way.
+        boolean alreadyPrepared = alreadyPrepared(profileId, selected);
         PipelineRunRegistry.StartResult result = registry.startOrJoin(new PipelineRunRequest<>(
                 profileId, "", run -> {
                     if (selected == null) {
@@ -180,13 +186,23 @@ public final class HeapDumpInitService {
                     } finally {
                         onFinished.run();
                     }
-                }), retryFailure);
+                }), retryFailure || !alreadyPrepared);
         if (result.started()) {
             preparations.put(profileId, new Preparation(true, result.operation(),
                     selected == null ? HeapDumpStages.REPORTS : List.of(selected)));
         }
         Preparation current = preparations.get(profileId);
         return new Preparation(result.started(), result.operation(), current.reports());
+    }
+
+    /** Whether the retained preparation for this profile covers every report the caller asked for. */
+    private boolean alreadyPrepared(String profileId, String selected) {
+        Preparation previous = preparations.get(profileId);
+        if (previous == null) {
+            return false;
+        }
+        List<String> requested = selected == null ? HeapDumpStages.REPORTS : List.of(selected);
+        return previous.reports().containsAll(requested);
     }
 
     public Optional<Preparation> operation(String profileId) {

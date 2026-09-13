@@ -55,7 +55,7 @@ public class DuckDbMcpTools {
      */
     private static final String DESCRIBE_TABLE_COLUMNS =
             "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
-                    + "WHERE table_name = ? ORDER BY ordinal_position";
+                    + "WHERE table_name = ? AND table_schema = current_schema() ORDER BY ordinal_position";
 
     private static final String MULTIPLE_STATEMENTS_MESSAGE =
             "Only one statement per call. Send the SELECT on its own, without a second statement "

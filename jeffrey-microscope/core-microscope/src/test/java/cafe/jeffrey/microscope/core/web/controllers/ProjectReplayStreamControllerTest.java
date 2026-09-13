@@ -83,9 +83,10 @@ class ProjectReplayStreamControllerTest {
     }
 
     @Test
-    void replaysThroughTheScopedRpc() {
-        // The path already names the workspace and project, so the request the manager receives
-        // must carry them: that is what makes the client pick the scoped RPC over the legacy one.
+    void replaysThroughTheLegacyRpcSoAnOlderHubStillServesThePage() {
+        // Without the scope the client takes ReplayStreaming, which every Hub answers. Carrying it
+        // would take ScopedReplayStreaming, which an older Hub refuses and which never falls back,
+        // so the page would go blank against a Hub that has not been upgraded.
         when(resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID))
                 .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, projectManager));
         when(projectManager.eventStreamingManager()).thenReturn(streamingManager);
@@ -101,8 +102,7 @@ class ProjectReplayStreamControllerTest {
         assertThat(result).hasStatusOk();
         verify(streamingManager).subscribeReplayStreaming(
                 eq(new ReplaySubscriptionRequest(
-                        SESSION_ID, Set.of("jdk.CPULoad", "jdk.GarbageCollection"), null, null,
-                        WORKSPACE_ID, PROJECT_ID)),
+                        SESSION_ID, Set.of("jdk.CPULoad", "jdk.GarbageCollection"), null, null)),
                 any(), any(), any());
     }
 }

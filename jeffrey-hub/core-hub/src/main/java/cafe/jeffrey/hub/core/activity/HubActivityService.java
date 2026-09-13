@@ -145,7 +145,7 @@ public final class HubActivityService implements AutoCloseable {
             return Optional.empty();
         }
         return jobs.values().stream()
-                .filter(job -> job.finishedAt == null && key.equals(job.idempotencyKey) && job.sameScope(request))
+                .filter(job -> job.finishedAt == null && key.equals(job.idempotencyKey) && job.sameRequest(request))
                 .map(job -> job.id)
                 .findFirst();
     }
@@ -183,7 +183,7 @@ public final class HubActivityService implements AutoCloseable {
 
     private void requireOpen() {
         if (closed) {
-            throw new ActivityCapacityException(SERVICE_STOPPING);
+            throw new ActivityServiceStoppingException(SERVICE_STOPPING);
         }
     }
 
@@ -318,10 +318,15 @@ public final class HubActivityService implements AutoCloseable {
             this.activity = new EventActivity(request);
         }
 
-        boolean sameScope(ActivityRequest other) {
-            return request.workspaceId().equals(other.workspaceId())
-                    && request.projectId().equals(other.projectId())
-                    && request.sessionId().equals(other.sessionId());
+        /**
+          * Whether an adopting caller would get the scan it actually asked for.
+          * <p>
+          * The whole request, not only the scope it runs in: a key is the caller's to choose, and one
+          * reused across two windows would otherwise be answered with counts for the wrong one. The
+          * server does not rely on a particular client deriving its keys carefully.
+          */
+        boolean sameRequest(ActivityRequest other) {
+            return request.equals(other);
         }
 
         synchronized void accept(EventBatch batch) {

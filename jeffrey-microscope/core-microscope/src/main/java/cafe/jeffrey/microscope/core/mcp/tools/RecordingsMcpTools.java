@@ -414,7 +414,7 @@ public class RecordingsMcpTools {
             });
             control.checkCancellation();
             String profileId = recordingsManager.analyzeRecording(recordingId);
-            joinRunningPipeline(profileId);
+            joinRunningPipeline(recordingId, profileId);
             // A durable profile is already produced. Finish the short, accepted naming step and
             // preserve that result even if the analysis could not honour a cancellation request.
             if (control.cancellationRequested()) {
@@ -434,7 +434,7 @@ public class RecordingsMcpTools {
      * answers with the profile id the moment it sees such a run, and an attempt that completed on
      * that answer would hand out a link to a profile still being parsed.
      */
-    private void joinRunningPipeline(String profileId) {
+    private void joinRunningPipeline(String recordingId, String profileId) {
         Optional<PipelineProgress> outcome;
         try {
             outcome = runRegistry.awaitCompletion(profileId);
@@ -442,7 +442,14 @@ public class RecordingsMcpTools {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(INTERRUPTED_JOINING_PIPELINE, e);
         }
-        if (outcome.isPresent() && outcome.get().state() == PipelineState.FAILED) {
+        if (outcome.isEmpty() || outcome.get().state() != PipelineState.FAILED) {
+            return;
+        }
+        // A failed run under this key is only this attempt's answer while there is no profile to
+        // hand back. The registry retains a failure for as long as it retains anything, and a
+        // profile enabled by some other path outranks it -- the same precedence status() and
+        // analyzed() apply, which this would otherwise contradict from three lines away.
+        if (enabledProfile(recordingId).isEmpty()) {
             throw new ToolExecutionException(PIPELINE_FAILED + outcome.get().errorMessage());
         }
     }

@@ -67,15 +67,19 @@ public class ProjectReplayStreamController {
 
         // The request validates itself (blank session, inverted window), and it is built before the
         // project is resolved so a malformed query answers 400 without a round trip to the hub.
-        // The scope travels with it: the client then uses the scoped RPC, and the Hub resolves the
-        // session inside this project rather than by id alone across every project it holds.
+        //
+        // Deliberately unscoped, although the path names the workspace and project. Carrying the
+        // scope makes the client take ScopedReplayStreaming, which an older Hub answers UNIMPLEMENTED
+        // and which never falls back to the legacy call -- that refusal is the read-only contract the
+        // scoped RPC exists to enforce, and ScopedReplayClientTest pins it. The page would simply
+        // stop working against a Hub that has not been upgraded, where before it worked against any.
+        // hubs_queryEvents is where the scoped RPC is used, because an MCP client is told
+        // "unsupported_hub" in words rather than left with an empty view.
         var request = new ReplaySubscriptionRequest(
                 sessionId,
                 RequestParams.parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()),
                 startTime,
-                endTime,
-                workspaceId,
-                projectId);
+                endTime);
 
         ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         EventStreamingManager streamingManager = pm.eventStreamingManager();

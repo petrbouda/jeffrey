@@ -299,8 +299,11 @@ class HubEventActivityGrpcTest {
                  var grpc = InProcessGrpc.serving(new EventActivityGrpcService(service))) {
                 var stub = EventActivityServiceGrpc.newBlockingStub(grpc.channel());
 
-                var first = stub.startActivity(start(KEY));
-                var repeated = stub.startActivity(start(KEY));
+                // One request sent twice, not two requests built a few milliseconds apart: the second
+                // is a retry of the first, and the windows have to match for it to be one.
+                StartActivityRequest request = start(KEY);
+                var first = stub.startActivity(request);
+                var repeated = stub.startActivity(request);
 
                 assertFalse(first.getScanId().isEmpty());
                 assertEquals(first.getScanId(), repeated.getScanId());
@@ -309,6 +312,11 @@ class HubEventActivityGrpcTest {
                 assertNotEquals(first.getScanId(), stub.startActivity(start("")).getScanId());
                 assertNotEquals(first.getScanId(), stub.startActivity(start(KEY).toBuilder()
                         .setScope(scope.toBuilder().setSessionId("other-session"))
+                        .build()).getScanId());
+                // The key is the caller's to choose, so it cannot be the whole of the question: a key
+                // reused for a different window must not be answered with counts for this one.
+                assertNotEquals(first.getScanId(), stub.startActivity(request.toBuilder()
+                        .setStartTime(request.getStartTime() - 1)
                         .build()).getScanId());
             }
         }

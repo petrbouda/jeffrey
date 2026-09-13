@@ -94,6 +94,8 @@ public final class DominatorTreeBuilder {
     private static final String DOMINATOR_TABLE = "dominator";
 
     private static final String RETAINED_SIZE_TABLE = "retained_size";
+    private static final String DELETE_DOMINATOR = "DELETE FROM dominator";
+    private static final String DELETE_RETAINED_SIZE = "DELETE FROM retained_size";
     private static final String BEGIN_TRANSACTION = "BEGIN TRANSACTION";
     private static final String COMMIT_TRANSACTION = "COMMIT";
     private static final String ROLLBACK_TRANSACTION = "ROLLBACK";
@@ -178,30 +180,18 @@ public final class DominatorTreeBuilder {
             for (String ddl : DROP_INDEX_DDL) {
                 client.execute(HeapDumpStatement.DROP_INDEXES, ddl);
             }
-            // One transaction from the first DELETE to the last load. The presence check the readers
-            // make is "are there rows", and the two tables are loaded one after the other, so a
-            // process that died between them used to leave a dominator table with no retained sizes
-            // that read as a finished tree. Under a transaction the tables are either both loaded or
-            // both as they were.
-            client.execute(HeapDumpStatement.BEGIN_TRANSACTION, BEGIN_TRANSACTION);
-            Elapsed<BuildResult> elapsed;
-            try {
-                client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
-                client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
-
-                Path stagingDir = HeapDumpIndexPaths.stagingForIndex(indexDbPath);
-                elapsed = Measuring.s(() -> {
-                    try {
-                        return doBuild(client, indexDbPath, stagingDir);
-                    } catch (SQLException | IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-                client.execute(HeapDumpStatement.COMMIT_TRANSACTION, COMMIT_TRANSACTION);
-            } catch (RuntimeException e) {
-                rollbackQuietly(client, indexDbPath);
-                throw e;
-            }
+            // The replacement of both tables is one transaction, taken in persistViaParquet around
+            // the deletes and the two loads. It is not taken here: the graph computation between
+            // them touches no table, and holding a write transaction open across minutes of it
+            // would pin every deleted row version and block the checkpoint for the whole build.
+            Path stagingDir = HeapDumpIndexPaths.stagingForIndex(indexDbPath);
+            Elapsed<BuildResult> elapsed = Measuring.s(() -> {
+                try {
+                    return doBuild(client, indexDbPath, stagingDir);
+                } catch (SQLException | IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
             BuildResult r = elapsed.entity();
             BuildResult timed = new BuildResult(
                     r.reachableInstances, r.rootEdges, r.iterations, elapsed.duration(), r.subPhases());
@@ -218,11 +208,11 @@ public final class DominatorTreeBuilder {
      * Undoes a partial load. Logged rather than thrown, because the failure that got us here is the
      * one worth reporting, and a rollback that fails leaves the connection to close it anyway.
      */
-    private static void rollbackQuietly(HeapDumpDatabaseClient client, Path indexDbPath) {
+    private static void rollbackQuietly(HeapDumpDatabaseClient client) {
         try {
             client.execute(HeapDumpStatement.ROLLBACK_TRANSACTION, ROLLBACK_TRANSACTION);
         } catch (RuntimeException e) {
-            LOG.warn("Could not roll back a failed dominator build: path={} message={}", indexDbPath, e.getMessage());
+            LOG.warn("Could not roll back a failed dominator load: message={}", e.getMessage());
         }
     }
 
@@ -289,7 +279,9 @@ public final class DominatorTreeBuilder {
         });
 
         // Stage 3: the indexes dropped in build(), rebuilt in bulk over the loaded tables, one
-        // worker per table.
+        // worker per table. After persistViaParquet has committed, and it must stay that way: the
+        // workers build each index on a connection of their own, which inside the load transaction
+        // would see the rows as they were before it and index a snapshot the commit then replaces.
         Duration createIndexesDuration = Measuring.r(() ->
                 BulkIndexes.createAll(client, indexDbPath, INDEX_GROUPS, INDEX_GROUPS.size()));
 
@@ -385,17 +377,31 @@ public final class DominatorTreeBuilder {
             // exactly that statement: the order is what serves the children lookup
             // (see DOMINATOR_ORDER_COLUMN), and it is only guaranteed to survive the
             // insert while the session preserves it.
-            client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER_ON);
+            //
+            // Both tables are emptied and refilled inside one transaction, and only here: readers ask
+            // "are there rows", so a process that died between the two loads used to leave a dominator
+            // table with no retained sizes that read as a finished tree. The shards are already on
+            // disk by this point, so the transaction spans two inserts rather than the whole build.
+            client.execute(HeapDumpStatement.BEGIN_TRANSACTION, BEGIN_TRANSACTION);
             try {
-                staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_DOMINATOR, DOMINATOR_TABLE,
-                        DOMINATOR_ORDER_COLUMN);
-            } finally {
-                client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
+                client.execute(HeapDumpStatement.DELETE_DOMINATOR, DELETE_DOMINATOR);
+                client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, DELETE_RETAINED_SIZE);
+                client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER_ON);
+                try {
+                    staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_DOMINATOR, DOMINATOR_TABLE,
+                            DOMINATOR_ORDER_COLUMN);
+                } finally {
+                    client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
+                }
+                staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
+                client.execute(HeapDumpStatement.COMMIT_TRANSACTION, COMMIT_TRANSACTION);
+            } catch (RuntimeException e) {
+                rollbackQuietly(client);
+                throw e;
             }
-            // Outside the finally: the pragma has to be restored whether or not the load succeeded,
-            // whereas the shards are only dropped once they are safely in the index DB.
+            // After the commit, and after the pragma is restored either way: the shards are only
+            // dropped once they are safely in the index DB.
             staging.clearTable(DOMINATOR_TABLE);
-            staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
             staging.clearTable(RETAINED_SIZE_TABLE);
         }
     }

@@ -165,8 +165,10 @@ public final class PipelineRunRegistry<K> {
                 candidate.run.fail(errorCodeOf(e), e.getMessage());
                 candidate.finishedAt = clock.instant();
                 candidate.finished = true;
-                candidate.completion.complete(null);
             }
+            // Outside the monitor: a joiner woken here must not run anything of its own under the
+            // lock the run itself takes.
+            candidate.completion.complete(null);
             runsByKey.remove(request.key(), candidate);
             throw e;
         }
@@ -312,8 +314,8 @@ public final class PipelineRunRegistry<K> {
             synchronized (tracked) {
                 tracked.finishedAt = clock.instant();
                 tracked.finished = true;
-                tracked.completion.complete(null);
             }
+            tracked.completion.complete(null);
         }
     }
 

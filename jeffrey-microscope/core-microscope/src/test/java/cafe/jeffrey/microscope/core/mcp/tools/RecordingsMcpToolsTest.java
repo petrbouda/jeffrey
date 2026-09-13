@@ -720,6 +720,28 @@ class RecordingsMcpToolsTest {
             assertEquals("failed", result.path("operation").path("status").asString());
         }
 
+        /**
+         * The same precedence, applied to the run this attempt joins rather than to the outcome it
+         * retains: a pipeline that failed under this profile's key is not this call's answer while
+         * the profile it names is enabled and every other tool reads from it.
+         */
+        @Test
+        void joiningARetainedPipelineFailureStillReturnsAProfileThatWorks() {
+            assertThrows(IllegalStateException.class,
+                    () -> runRegistry.runInline(PipelineRunRequest.of(
+                            PROFILE_ID,
+                            run -> run.runStage(ProfileInitStages.PARSE, () -> {
+                                throw new IllegalStateException("malformed chunk");
+                            }))));
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
+            profileIs(true);
+
+            String result = tools.analyzeRecording(RECORDING_ID, true);
+
+            assertTrue(result.contains("\"profileId\":\"" + PROFILE_ID + "\""), result);
+        }
+
         @Test
         void analyzeWithoutRetryReturnsTheLiveProfileInsteadOfTheStaleFailure() {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));

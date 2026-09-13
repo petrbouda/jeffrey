@@ -28,6 +28,7 @@ import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.activity.ActivityLimits;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -162,16 +163,17 @@ public final class HubsReplayMcpTools {
         }
         HubReplayCollector collector = new HubReplayCollector(ref, rows, bytes);
         collector.filters(types, startTime, endTime);
-        // Resolved before the deadline context, not inside it: the resolver is local, and an unknown
-        // hub, workspace or project is the caller's mistake. Inside the context every exception was
-        // read as a remote failure, so a typo in the session_ref came back as rows: 0 and
-        // termination: remote_error with the message that named the typo thrown away.
-        ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
-                .projectManager();
         Deadline deadline = Deadline.after(timeout.toNanos(), TimeUnit.NANOSECONDS);
         Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINES);
         try {
             context.call(() -> {
+                // Inside the deadline, because resolving a scope reaches the hub -- through discovery,
+                // which sets no deadline of its own -- and this context is the only bound on it. What
+                // must not be lost is the distinction the catch below would otherwise erase: an
+                // unknown hub is the caller's mistake, not a remote failure, so it is rethrown as
+                // itself rather than reported as termination: remote_error with its message dropped.
+                ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
+                        .projectManager();
                 var request = new ReplaySubscriptionRequest(
                         ref.sessionId(),
                         types,
@@ -191,6 +193,10 @@ public final class HubsReplayMcpTools {
         } catch (InterruptedException e) {
             collector.stop(TERMINATION_INTERRUPTED);
             Thread.currentThread().interrupt();
+        } catch (IllegalArgumentException | JeffreyClientException e) {
+            // The caller named something that does not exist. Reported as the mistake it is, rather
+            // than folded into a termination code that says the hub misbehaved.
+            throw e;
         } catch (Exception e) {
             collector.stop(termination(e), describe(e));
         } finally {

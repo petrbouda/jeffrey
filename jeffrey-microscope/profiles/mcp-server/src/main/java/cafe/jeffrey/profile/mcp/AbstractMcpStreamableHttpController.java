@@ -512,11 +512,17 @@ public abstract class AbstractMcpStreamableHttpController {
         if (cause instanceof McpResourceNotFoundException notFound) {
             return notFound;
         }
-        if (cause instanceof JeffreyException jeffrey && jeffrey.getCode() != null && jeffrey.getCode().isNotFound()) {
+        if (cause instanceof JeffreyException jeffrey && jeffrey.isClientError()
+                && jeffrey.getCode() != null && jeffrey.getCode().isNotFound()) {
             return new McpResourceNotFoundException(describe(jeffrey), jeffrey);
         }
         if (cause instanceof IllegalArgumentException invalid) {
             return invalid;
+        }
+        if (cause instanceof JeffreyException jeffrey && jeffrey.isClientError()) {
+            // Named by Jeffrey as the caller's mistake, but not a missing subject: an argument the
+            // tool refused reads as invalid params rather than as a fault of the server's.
+            return new ToolDispatchException(describe(jeffrey));
         }
         if (cause != failure && cause instanceof RuntimeException runtime) {
             log.warn("Resource read failed underneath its tool: uri={} message={}", uri, describe(runtime));
@@ -550,15 +556,17 @@ public abstract class AbstractMcpStreamableHttpController {
     /**
      * Whether a failure is about the request rather than the server: an argument a tool refused, a
      * refusal a tool wrote for the model, a resource that is not there, or a condition Jeffrey names
-     * with a code — a profile that does not exist, a feature this recording did not enable. Each of
-     * those is a sentence the caller can act on. Everything else — a null where a value was expected,
+     * as a client error — a profile that does not exist, a feature this recording did not enable. Each
+     * of those is a sentence the caller can act on. A {@code JeffreyException} carrying a code is not
+     * enough on its own: an internal one carries a code too, and the paths that reach here with one
+     * name host file paths. Everything else — a null where a value was expected,
      * a driver that gave up — is not, and its words would only tell an outsider how the server is built.
      */
     private static boolean callerActionable(Throwable failure) {
         return failure instanceof IllegalArgumentException
                 || failure instanceof ToolExecutionException
                 || failure instanceof McpResourceNotFoundException
-                || (failure instanceof JeffreyException jeffrey && jeffrey.getCode() != null);
+                || (failure instanceof JeffreyException jeffrey && jeffrey.isClientError());
     }
 
     /**

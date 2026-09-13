@@ -248,6 +248,22 @@ class AbstractMcpStreamableHttpControllerTest {
                     .contains("nothing to report"));
         }
 
+        /**
+         * An internal failure carries an error code too, so "does it have a code" let every one of
+         * them through — including the paths that name host file paths in their message.
+         */
+        @Test
+        void hidesAnInternalFailureEvenWhenJeffreyGaveItACode() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_breakInside","arguments":{}}}""");
+
+            String text = response.get("result").get("content").get(0).get("text").asString();
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals(INTERNAL_ERROR_TEXT, text);
+            assertFalse(text.contains("/home/someone"), text);
+        }
+
         @Test
         void reportsAnUnknownToolAsAProtocolError() {
             JsonNode response = dispatch("""
@@ -562,6 +578,11 @@ class AbstractMcpStreamableHttpControllerTest {
         @Tool(description = "A tool that refuses its argument from inside its body")
         public String refuse() {
             throw new IllegalArgumentException("limit must be positive");
+        }
+
+        @Tool(description = "A tool whose internal failure Jeffrey names with a code of its own")
+        public String breakInside() {
+            throw Exceptions.internal("Recording file does not exist: /home/someone/private/app.jfr");
         }
 
         @Tool(description = "A tool that fails inside the server, with a message naming its insides")
