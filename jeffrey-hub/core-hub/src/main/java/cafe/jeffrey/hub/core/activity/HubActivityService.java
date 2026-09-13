@@ -50,6 +50,9 @@ public final class HubActivityService implements AutoCloseable {
     private static final int MAX_RETAINED_SCANS = 16;
     private static final int MAX_CAUSE_DEPTH = 20;
     private static final Duration RESULT_RETENTION = Duration.ofHours(1);
+    private static final String TOO_MANY_ACTIVE_SCANS =
+            "Too many active scans; cancel or wait for an existing scan";
+    private static final String SERVICE_STOPPING = "Hub activity service is stopping";
 
     private final Map<String, Job> jobs = new LinkedHashMap<>();
     private final Semaphore slots = new Semaphore(MAX_CONCURRENT_SCANS);
@@ -93,6 +96,9 @@ public final class HubActivityService implements AutoCloseable {
      * that occupies one of the retained slots only to report a failure on the first poll. It also
      * runs outside this instance's monitor: it reads a repository and lists a directory, and polls of
      * other scans must not queue behind it.</p>
+     *
+     * @throws ActivityCapacityException when every retained slot holds a running scan, or the service
+     *                                   is stopping — the only two refusals a caller should wait out
      */
     public String start(ActivityRequest request) {
         requireOpen();
@@ -110,7 +116,7 @@ public final class HubActivityService implements AutoCloseable {
                     .filter(job -> job.finishedAt != null)
                     .min(Comparator.comparing(job -> job.finishedAt));
             if (oldest.isEmpty()) {
-                throw new IllegalStateException("Too many active scans; cancel or wait for an existing scan");
+                throw new ActivityCapacityException(TOO_MANY_ACTIVE_SCANS);
             }
             jobs.remove(oldest.get().id);
         }
@@ -127,7 +133,7 @@ public final class HubActivityService implements AutoCloseable {
 
     private void requireOpen() {
         if (closed) {
-            throw new IllegalStateException("Hub activity service is stopping");
+            throw new ActivityCapacityException(SERVICE_STOPPING);
         }
     }
 

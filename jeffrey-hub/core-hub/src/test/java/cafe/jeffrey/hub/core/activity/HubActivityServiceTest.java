@@ -171,7 +171,7 @@ class HubActivityServiceTest {
             for (int i = 1; i < 16; i++) {
                 service.start(request());
             }
-            assertThrows(IllegalStateException.class, () -> service.start(request()));
+            assertThrows(ActivityCapacityException.class, () -> service.start(request()));
             assertEquals("cancel_requested", Json.toTree(service.cancel(ref(first))).path("status").asText());
             queued.get(0).run();
             assertEquals("cancelled",

@@ -41,6 +41,12 @@ final class ToolInvocation {
     /** Attribute recording how many characters a tool handed back to the model. */
     private static final String RESULT_CHARS_ATTRIBUTE = "resultChars";
 
+    /**
+     * What a tool's own failure is wrapped in before it leaves here. The envelope reads it back off a
+     * resource read to reach the cause underneath, so the two must agree on the spelling.
+     */
+    static final String TOOL_EXECUTION_FAILED_PREFIX = "Tool execution failed: ";
+
     private ToolInvocation() {
     }
 
@@ -67,7 +73,7 @@ final class ToolInvocation {
                     throw new IllegalStateException("Failed to invoke tool: " + toolName, e);
                 } catch (InvocationTargetException e) {
                     Throwable cause = e.getCause() != null ? e.getCause() : e;
-                    throw new IllegalStateException("Tool execution failed: " + cause.getMessage(), cause);
+                    throw new IllegalStateException(TOOL_EXECUTION_FAILED_PREFIX + cause.getMessage(), cause);
                 }
             });
             // A tool that returned a result did its job; the outcome is observed, not assumed.

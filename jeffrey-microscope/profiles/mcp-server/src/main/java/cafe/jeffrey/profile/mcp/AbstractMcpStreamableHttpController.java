@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -140,6 +141,9 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final int ERROR_METHOD_NOT_FOUND = -32601;
     private static final int ERROR_INVALID_PARAMS = -32602;
     private static final int ERROR_INTERNAL = -32603;
+
+    /** The MCP code for a {@code resources/read} whose subject does not exist. */
+    private static final int ERROR_RESOURCE_NOT_FOUND = -32002;
 
     /** The supported revisions as a client-readable list, built once. */
     private static final String SUPPORTED_VERSIONS_SENTENCE = String.join(", ", SUPPORTED_PROTOCOL_VERSIONS);
@@ -276,12 +280,15 @@ public abstract class AbstractMcpStreamableHttpController {
                         resourcesRead(id, features.resources().get(), request.path(FIELD_PARAMS));
                 default -> error(id, ERROR_METHOD_NOT_FOUND, "Method not found: " + method);
             };
+        } catch (McpResourceNotFoundException e) {
+            log.warn("MCP resource not found: method={} message={}", method, e.getMessage());
+            return error(id, ERROR_RESOURCE_NOT_FOUND, describe(e));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid MCP request: method={} message={}", method, e.getMessage());
-            return error(id, ERROR_INVALID_PARAMS, e.getMessage());
+            return error(id, ERROR_INVALID_PARAMS, describe(e));
         } catch (Exception e) {
             log.error("MCP request failed: method={} message={}", method, e.getMessage(), e);
-            return error(id, ERROR_INTERNAL, e.getMessage());
+            return error(id, ERROR_INTERNAL, describe(e));
         }
     }
 
@@ -363,7 +370,7 @@ public abstract class AbstractMcpStreamableHttpController {
         } catch (Exception e) {
             log.warn("MCP tool call failed: tool={} message={}", toolName, e.getMessage());
             content.addObject().put(FIELD_TYPE, CONTENT_TYPE_TEXT)
-                    .put(FIELD_TEXT, TOOL_ERROR_PREFIX + e.getMessage());
+                    .put(FIELD_TEXT, TOOL_ERROR_PREFIX + describe(e));
             result.put(FIELD_IS_ERROR, true);
         } finally {
             if (advertised && dispatched) {
@@ -422,14 +429,76 @@ public abstract class AbstractMcpStreamableHttpController {
         return success(id, result);
     }
 
+    /**
+     * Reads one resource, answering a failure with the code the specification reserves for it.
+     * <p>
+     * A resource is read by running a tool, and a tool that fails is wrapped by {@link ToolInvocation}
+     * before it gets here. Under a {@code tools/call} that wrapper is the answer — the model reads it
+     * inside the result — but under {@code resources/read} there is no result to put it in, so the
+     * cause is read back out and classified: a profile or event type that does not exist is
+     * {@code -32002}, an argument the tool refused (a cursor it cannot parse) is {@code -32602}, and
+     * only a failure that is neither stays the {@code -32603} it would otherwise have been. Without
+     * this, every one of them was "Internal error", and a client could not tell a profile it should
+     * stop asking for from a server it should stop trusting.
+     */
     private JsonNode resourcesRead(JsonNode id, McpResourceProvider provider, JsonNode params) {
-        McpResourceProvider.Contents contents = provider.read(params.path(FIELD_URI).asString());
+        String uri = params.path(FIELD_URI).asString();
+        McpResourceProvider.Contents contents;
+        try {
+            contents = provider.read(uri);
+        } catch (RuntimeException e) {
+            throw classifyResourceFailure(e, uri);
+        }
         ObjectNode result = Json.createObject();
         result.putArray(FIELD_CONTENTS).addObject()
                 .put(FIELD_URI, contents.uri())
                 .put(FIELD_MIME_TYPE, contents.mimeType())
                 .put(FIELD_TEXT, contents.text());
         return success(id, result);
+    }
+
+    /**
+     * The exception {@link #dispatchOne} should see for a failed resource read: the cause underneath a
+     * tool-execution wrapper when there is one, translated to {@link McpResourceNotFoundException} when
+     * it is a not-found error of Jeffrey's own, and otherwise left as it is so the existing mapping —
+     * {@link IllegalArgumentException} to {@code -32602}, anything else to {@code -32603} — applies
+     * to the failure itself rather than to the wrapper around it.
+     */
+    private RuntimeException classifyResourceFailure(RuntimeException failure, String uri) {
+        Throwable cause = unwrapToolFailure(failure);
+        if (cause instanceof McpResourceNotFoundException notFound) {
+            return notFound;
+        }
+        if (cause instanceof JeffreyException jeffrey && jeffrey.getCode() != null && jeffrey.getCode().isNotFound()) {
+            return new McpResourceNotFoundException(describe(jeffrey), jeffrey);
+        }
+        if (cause instanceof IllegalArgumentException invalid) {
+            return invalid;
+        }
+        if (cause != failure && cause instanceof RuntimeException runtime) {
+            log.warn("Resource read failed underneath its tool: uri={} message={}", uri, describe(runtime));
+            return runtime;
+        }
+        return failure;
+    }
+
+    /** The exception a tool threw, when the failure is the wrapper {@link ToolInvocation} puts around it. */
+    private static Throwable unwrapToolFailure(RuntimeException failure) {
+        if (failure instanceof IllegalStateException
+                && failure.getMessage() != null
+                && failure.getMessage().startsWith(ToolInvocation.TOOL_EXECUTION_FAILED_PREFIX)
+                && failure.getCause() != null) {
+            return failure.getCause();
+        }
+        return failure;
+    }
+
+    /**
+     * An exception's message, or its type when it has none. An answer that reads "Error: null" tells the
+     * model nothing, and a client reads the word as data.
+     */
+    private static String describe(Throwable e) {
+        return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
     }
 
     private static ObjectNode resourceArray(String field, List<McpResource> resources) {

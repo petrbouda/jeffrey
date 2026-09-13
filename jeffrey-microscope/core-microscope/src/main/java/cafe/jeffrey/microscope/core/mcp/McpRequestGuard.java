@@ -48,11 +48,22 @@ public final class McpRequestGuard {
 
     private static final Logger LOG = LoggerFactory.getLogger(McpRequestGuard.class);
 
+    /**
+     * The application property that lists the hosts this endpoint answers on. Named in the refusal,
+     * because the operator reading a 403 from behind {@code host.docker.internal} or a LAN address
+     * needs the property to set, not a description of the check that refused them.
+     */
+    public static final String ALLOWED_HOSTS_PROPERTY = "jeffrey.microscope.mcp.allowed-hosts";
+
     private static final String ORIGIN_HEADER = "Origin";
-    private static final Set<String> DEFAULT_ALLOWED_HOSTS = Set.of("localhost", "127.0.0.1", "::1");
+    private static final String HOST_LIST_SEPARATOR = ",";
+    private static final String DEFAULT_ALLOWED_HOSTS_VALUE = "localhost,127.0.0.1,::1";
+    private static final Set<String> DEFAULT_ALLOWED_HOSTS = Set.of(DEFAULT_ALLOWED_HOSTS_VALUE.split(HOST_LIST_SEPARATOR));
     private static final Set<String> HTTP_SCHEMES = Set.of("http", "https");
-    private static final String UNTRUSTED_HOST_REASON =
-            "Requests to an untrusted host are not accepted by the MCP endpoint.";
+    private static final String UNTRUSTED_HOST_REASON_FORMAT =
+            "Requests to an untrusted host are not accepted by the MCP endpoint: the request Host '%s' is not "
+                    + "listed in " + ALLOWED_HOSTS_PROPERTY + ". Set that property to a comma-separated list "
+                    + "that includes it (the default is " + DEFAULT_ALLOWED_HOSTS_VALUE + ") and restart Jeffrey.";
     private static final String CROSS_ORIGIN_REASON =
             "Cross-origin requests are not accepted by the MCP endpoint.";
 
@@ -77,8 +88,9 @@ public final class McpRequestGuard {
     public String refusalReason(HttpServletRequest request) {
         String requestHost = normalizeHost(request.getServerName());
         if (!allowedHosts.contains(requestHost)) {
-            LOG.warn("Refused an MCP request to an untrusted host: host={}", request.getServerName());
-            return UNTRUSTED_HOST_REASON;
+            LOG.warn("Refused an MCP request to an untrusted host: host={} property={}",
+                    request.getServerName(), ALLOWED_HOSTS_PROPERTY);
+            return UNTRUSTED_HOST_REASON_FORMAT.formatted(request.getServerName());
         }
 
         String origin = request.getHeader(ORIGIN_HEADER);
