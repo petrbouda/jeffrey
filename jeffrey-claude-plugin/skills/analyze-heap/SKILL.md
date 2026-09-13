@@ -1,7 +1,7 @@
 ---
 name: analyze-heap
 description: Analyses a heap dump held by a running Jeffrey Microscope — what is holding the memory, what is leaking, which class loader survived a redeploy, where the waste is — starting from the catalogue or from a .hprof file Jeffrey has not seen yet. Use whenever the user asks what is holding memory, why the heap keeps growing, why the JVM ran out of memory, what is leaking, or mentions retained size, a dominator tree, GC roots, a heap dump or an .hprof file.
-allowed-tools: mcp__plugin_microscope_jeffrey__heap_* mcp__plugin_microscope_jeffrey__profiles_* mcp__plugin_microscope_jeffrey__recordings_* mcp__jeffrey__heap_* mcp__jeffrey__profiles_* mcp__jeffrey__recordings_*
+allowed-tools: mcp__plugin_microscope_jeffrey__heap_* mcp__plugin_microscope_jeffrey__profiles_* mcp__plugin_microscope_jeffrey__recordings_* mcp__plugin_microscope_jeffrey__operations_* mcp__jeffrey__heap_* mcp__jeffrey__profiles_* mcp__jeffrey__recordings_* mcp__jeffrey__operations_*
 ---
 
 # Analysing a heap dump
@@ -21,9 +21,13 @@ The part after it is exact and camelCase:
 **The user named a file** (`heap.hprof`, `dump.hprof.gz`) — check `recordings_list` or
 `profiles_list` for it first, because every `recordings_analyzeFile` call imports the file again
 and creates another profile. If absent, call `recordings_analyzeFile` with the **absolute** path.
-The Jeffrey process opens that path, so the file has to be on the machine Jeffrey runs on. The
-call returns once the dump is parsed, which takes a while for a large dump; that is the work, not
-a hang.
+The Jeffrey process opens that path, so the file has to be on the machine Jeffrey runs on. A
+small dump is parsed inside the call and comes back with its `profileId`. A large one comes back
+with a status of `running` and an `operationId` — and no `recordingId`, because the copy may not
+have finished — and `operations_status(operationId)` follows the copy and the parse until the
+`profileId` appears. Poll that rather than calling `recordings_analyzeFile` again: every call
+imports the file again and builds a second profile of the same dump. `operations_cancel(operationId)`
+stops an import started by mistake; the ids live for an hour in Jeffrey's memory.
 
 **The dump is on a hub** — the user asked about a deployed application rather than a file. Switch to
 the **analyze-hub** skill: a hub session carries its heap dump alongside the recording, and it comes
@@ -76,10 +80,13 @@ one it answers `… has not been run for this heap dump yet`, and the fix is `he
 
 `heap_prepare` with no argument builds everything — the index, the dominator tree and all of the
 above — which is the right call for a dump nobody has opened yet. Pass one report name to compute
-just that one on a dump that is already indexed. It returns immediately; `heap_status` reports the
-stages as they complete, and each answer becomes readable as its stage finishes rather than at the
-end. A dominator build over a multi-gigabyte heap takes minutes, so do something else meanwhile
-rather than polling tightly.
+just that one on a dump that is already indexed. It returns immediately with an `operationId`;
+`heap_status` reports the stages as they complete, `operations_status(operationId)` reports the same
+attempt with its result and retry instructions, and each answer becomes readable as its stage
+finishes rather than at the end. A dominator build over a multi-gigabyte heap takes minutes, so do
+something else meanwhile rather than polling tightly. A build that failed or was cancelled stays
+that way until `heap_prepare` is called with `retry=true`; without it the tool reports the retained
+outcome rather than starting again.
 
 ## 5. Pick the route
 

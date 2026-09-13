@@ -87,8 +87,9 @@ Things that cap a finding at **medium** at most, and must be said out loud when 
   until the figures support it.
 - **Leak candidates.** `memory_leakCandidates` lists objects that survived collections. Survival is
   not retention: without a heap dump and a GC-root path it stays a candidate.
-- **A comparison whose `compare_list` notes fired** — a duration mismatch, an event type on one
-  side only, a thin profile. Report movements from such a pair as suggestive, not measured.
+- **A comparison whose `compare_list` notes or `compare_quality` verdict fired** — a duration
+  mismatch, an event type on one side only, a thin profile, different sampling settings, sample loss
+  on one side. Report movements from such a pair as suggestive, not measured.
 - **Time overlap.** "During the same window as" is concurrency, not cause. Report it as
   *concurrent with*, and prove cause with a code path or a fix that measurably helped.
 - **A frame you never read in source.** Until the file has been opened — with your own tools or
@@ -125,7 +126,17 @@ blocking_monitors profileId=p-7c1
 flamegraph_export profileId=p-7c1 eventType=jdk.JavaMonitorEnter useWeight=true thresholdPct=1
 ```
 
-For a regression claim, the two profiles and the `compare_list` call are the reproduction.
+For a regression claim, the two profiles and the `compare_list` and `compare_quality` calls are the
+reproduction.
+
+A profile id alone names a thing that can change under the reader — a report computed later, a
+finding re-evaluated, the profile deleted. `profiles_evidence` (the MCP resource
+`jeffrey://profile/{profileId}/evidence` is the same document) is the versioned snapshot to cite
+beside it: the recording's identity and build, the whole-recording units and denominators, the
+sampling settings it was recorded with, the findings as they were evaluated and the capability gaps
+as they stood, with the replay arguments and the omission counts of every bounded collection. It is
+a live snapshot rather than an archive, so save what it returned with the report; a reader can then
+check the figures against what the profile said at the time rather than what it says now.
 
 ## What a recommendation must contain
 

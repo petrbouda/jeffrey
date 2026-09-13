@@ -68,7 +68,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and four tools in eighteen families:</p>
+      <p>A hundred and twelve tools in nineteen families:</p>
       <table>
         <thead>
           <tr>
@@ -80,8 +80,8 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>profiles_</code></td>
-            <td>7</td>
-            <td>The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI</td>
+            <td>8</td>
+            <td>The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI, and a versioned evidence snapshot of one profile to cite in a report</td>
           </tr>
           <tr>
             <td><code>flamegraph_</code></td>
@@ -90,8 +90,8 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>compare_</code></td>
-            <td>3</td>
-            <td>Two profiles against each other: whether they are comparable, what moved, and the differential call tree</td>
+            <td>4</td>
+            <td>Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, and the differential call tree</td>
           </tr>
           <tr>
             <td><code>traces_</code></td>
@@ -156,12 +156,17 @@ onMounted(() => {
           <tr>
             <td><code>recordings_</code></td>
             <td>4</td>
-            <td>One of the two families that write: imports a recording file from the machine Jeffrey runs on and builds a profile from it</td>
+            <td>One of the five families with a writer in it: imports a recording file from the machine Jeffrey runs on and builds a profile from it</td>
           </tr>
           <tr>
             <td><code>hubs_</code></td>
-            <td>3</td>
-            <td>The recordings still on a connected Jeffrey Hub: lists the sessions across every hub and pulls one in to be analysed</td>
+            <td>7</td>
+            <td>The recordings still on a connected Jeffrey Hub: lists the sessions across every hub, reads a bounded sample of events or a time-bucketed activity summary from one where it lies, and pulls one in to be analysed</td>
+          </tr>
+          <tr>
+            <td><code>operations_</code></td>
+            <td>2</td>
+            <td>The work the writers start &mdash; an import, a Hub download or scan, a heap preparation &mdash; followed by its <code>operationId</code>: where it has got to, and a request that it stop</td>
           </tr>
           <tr>
             <td><code>ide_</code></td>

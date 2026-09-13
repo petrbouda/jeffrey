@@ -76,7 +76,9 @@ default_tools_approval_mode = "auto"`;
 const ingestDenyRule = `[mcp_servers.jeffrey]
 disabled_tools = [
   "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_list",
-  "hubs_list", "hubs_sessions", "hubs_download",
+  "hubs_list", "hubs_sessions", "hubs_queryEvents", "hubs_download",
+  "hubs_eventActivity", "hubs_activityStatus", "hubs_activityCancel",
+  "operations_cancel",
 ]`;
 
 const manualAdd = `codex mcp add jeffrey --url http://localhost:8585/api/mcp`;
@@ -140,11 +142,11 @@ const removal = `codex plugin marketplace remove jeffrey`;
 
       <p><code>~/.codex/agents/</code> makes them available in every repository; <code>.codex/agents/</code> inside a checkout scopes them to that one. The skills look for an agent by name and delegate to it when one exists, and read the exports themselves when none does &mdash; so this step is optional, and skipping it costs context rather than correctness.</p>
 
-      <p>One difference worth knowing: the Claude Code subagents are denied the <code>recordings_</code> and <code>hubs_</code> tools by their own definitions, so they cannot create a profile even if they tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the family at the server instead:</p>
+      <p>One difference worth knowing: the Claude Code subagents are denied the writing tools one by one in their own definitions &mdash; the <code>recordings_</code> and <code>hubs_</code> families, <code>operations_cancel</code> and the two <code>ide_</code> tools that act on the editor, everything that writes except the cache <code>heap_prepare</code> builds &mdash; so they cannot create a profile even if they tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the family at the server instead:</p>
       <DocsCodeBlock :code="ingestDenyRule" language="toml" />
 
       <h2 id="approvals">Approvals</h2>
-      <p>Codex asks before each tool the first time. Every tool here reads except the <code>recordings_</code> and <code>hubs_</code> families, which build a profile from a recording file on this machine or from a session on a connected hub, so approving the server once is usually what you want:</p>
+      <p>Codex asks before each tool the first time. Every tool here reads except nine: the two <code>recordings_</code> analyse tools and <code>hubs_download</code>, which build a profile from a recording file on this machine or from a session on a connected hub, <code>heap_prepare</code>, which builds a cache, <code>hubs_eventActivity</code>, which starts a scan on a hub, <code>hubs_activityCancel</code> and <code>operations_cancel</code>, which stop background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey &mdash; so approving the server once is usually what you want:</p>
       <DocsCodeBlock :code="approvalRule" language="toml" />
 
       <p>Tool names arrive prefixed with the server they came from &mdash; <code>mcp__jeffrey__flamegraph_export</code> and so on. <code>enabled_tools</code> and <code>disabled_tools</code> on the same block narrow what the model sees at all, which is the sharper instrument when you want a strictly read-only Jeffrey for one machine regardless of what the server advertises.</p>

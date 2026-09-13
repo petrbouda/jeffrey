@@ -65,9 +65,11 @@ path. If Jeffrey runs in a container, write into a mounted directory.
 recordings_analyzeFile(path="/absolute/path/run.jfr")
 ```
 
-A small recording comes back with a `profileId`. A large one comes back with a status of `running`;
-poll `recordings_status` with the `recordingId` rather than importing it again, which would build a
-second profile of the same file.
+A small recording comes back with a `profileId`. A large one comes back with a status of `running`
+and an `operationId` — no `recordingId` yet, because the copy may still be in flight — and
+`operations_status(operationId)` follows it until the `profileId` appears. Poll that rather than
+importing again, which would build a second profile of the same file; `operations_cancel(operationId)`
+stops an import that pointed at the wrong file. The ids live for an hour in Jeffrey's memory.
 
 Then hand off: the **analyze-jfr** skill has the families, the entry sequence and the flamegraph
 choice per question. Start with `profiles_summary` — it reports what the recording actually captured,

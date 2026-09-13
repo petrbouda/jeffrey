@@ -23,6 +23,7 @@ Tool names below omit the prefix your client puts in front of them.
 2. Record the baseline          → recordings_analyzeFile → profileId B
 3. Record the candidate         → recordings_analyzeFile → profileId C
 4. compare_list(C, baseline=B)  → are these two even comparable
+   compare_quality(C, baseline=B) → and does the evidence support a verdict
 5. compare_movements            → what moved, ranked
 6. compare_flamegraph           → where it moved, in the call tree
 ```
@@ -67,17 +68,22 @@ recordings_analyzeFile(path="/abs/base.jfr", name="baseline <short-sha>")
 recordings_analyzeFile(path="/abs/head.jfr", name="candidate <short-sha>")
 ```
 
-Both may come back with a status of `running`; poll `recordings_status` rather than importing again.
+Both may come back with a status of `running` and an `operationId`; poll `operations_status` with
+it rather than importing again, and `operations_cancel` it if the wrong build was recorded.
 
 ## 4. Ask whether they are comparable before reading the difference
 
 ```
 compare_list(profileId=<candidate>, baselineProfileId=<baseline>)
+compare_quality(profileId=<candidate>, baselineProfileId=<baseline>)
 ```
 
-This is not a formality. It reports whether the two recordings cover comparable windows and carry the
-same event types, and **"these two are not comparable" is the finding** — reporting a regression from
-an incomparable pair is worse than reporting nothing, because it will be believed. If they are not
+This is not a formality. `compare_list` reports whether the two recordings cover comparable windows
+and carry the same event types; `compare_quality` then judges the evidence itself — the sampling
+settings each side recorded with, the CPU-time samples each lost, and whether the server-event
+volumes are complete enough to normalise per unit of work. Call both before quoting a single delta,
+and **"these two are not comparable" is the finding** — reporting a regression from an incomparable
+pair is worse than reporting nothing, because it will be believed. If either says the pair is not
 comparable, say why and either re-record or stop.
 
 ## 5 and 6. Read what moved, then say what it means

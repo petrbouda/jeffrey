@@ -10,17 +10,27 @@ disallowedTools:
   - mcp__plugin_microscope_jeffrey__recordings_list
   - mcp__plugin_microscope_jeffrey__hubs_list
   - mcp__plugin_microscope_jeffrey__hubs_sessions
+  - mcp__plugin_microscope_jeffrey__hubs_queryEvents
   - mcp__plugin_microscope_jeffrey__hubs_download
+  - mcp__plugin_microscope_jeffrey__hubs_eventActivity
+  - mcp__plugin_microscope_jeffrey__hubs_activityStatus
+  - mcp__plugin_microscope_jeffrey__hubs_activityCancel
   - mcp__plugin_microscope_jeffrey__ide_link
   - mcp__plugin_microscope_jeffrey__ide_open
+  - mcp__plugin_microscope_jeffrey__operations_cancel
   - mcp__jeffrey__recordings_analyzeFile
   - mcp__jeffrey__recordings_analyzeRecording
   - mcp__jeffrey__recordings_list
   - mcp__jeffrey__hubs_list
   - mcp__jeffrey__hubs_sessions
+  - mcp__jeffrey__hubs_queryEvents
   - mcp__jeffrey__hubs_download
+  - mcp__jeffrey__hubs_eventActivity
+  - mcp__jeffrey__hubs_activityStatus
+  - mcp__jeffrey__hubs_activityCancel
   - mcp__jeffrey__ide_link
   - mcp__jeffrey__ide_open
+  - mcp__jeffrey__operations_cancel
 model: inherit
 skills:
   - analyze-jfr
@@ -100,5 +110,6 @@ Two rules that decide whether the report is usable:
   would arrive looking measured.
 - **No recommendations.** Report what the profile shows. Whether to change anything, and what,
   belongs to the caller and its user.
-- **No writing.** You cannot import a recording or build a profile. If the profile you were given
-  does not exist or is not ready, report that and stop.
+- **No writing.** You cannot import a recording, build a profile, reach a hub, or cancel work
+  somebody else started — `operations_cancel` is the caller's, as is everything under `hubs_`. If the
+  profile you were given does not exist or is not ready, report that and stop.

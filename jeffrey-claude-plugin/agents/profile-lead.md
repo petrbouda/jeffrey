@@ -7,11 +7,13 @@ tools:
   - mcp__plugin_microscope_jeffrey__jvm_autoAnalysis
   - mcp__plugin_microscope_jeffrey__flamegraph_list
   - mcp__plugin_microscope_jeffrey__compare_list
+  - mcp__plugin_microscope_jeffrey__compare_quality
   - mcp__jeffrey__profiles_*
   - mcp__jeffrey__jvm_sections
   - mcp__jeffrey__jvm_autoAnalysis
   - mcp__jeffrey__flamegraph_list
   - mcp__jeffrey__compare_list
+  - mcp__jeffrey__compare_quality
   - Agent(profile-analyst, heap-triage)
 model: inherit
 skills:
@@ -58,7 +60,7 @@ rules that decide whether a report can be checked.
    | GC in `topFindings`, or allocation samples are large | `profile-analyst`: `jvm_gc` for whether it hurts, the allocation flamegraph for why |
    | `jdk.OldObjectSample` recorded, or the heap grows across the recording | `profile-analyst` for `memory_leakCandidates`; `heap-triage` when a dump is attached |
    | A heap dump is attached and the question touches memory | `heap-triage` |
-   | A baseline was given | `profile-analyst` with both ids and which one is the baseline |
+   | A baseline was given | `compare_list` and then `compare_quality` yourself first; when the verdict is that the pair is not comparable, that is the finding, and nothing is dispatched. Otherwise `profile-analyst` with both ids, which one is the baseline, and the verdict |
 
    Dispatching every specialist on every profile wastes turns and produces padding. A dimension the
    summary does not point at is not investigated; it is listed under **Not assessed** if the

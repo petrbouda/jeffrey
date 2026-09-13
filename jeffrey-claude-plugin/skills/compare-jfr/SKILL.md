@@ -23,10 +23,11 @@ one depends on facts the deltas do not show: that both runs did the same kind of
 comparable length of time, with the same profiler settings. Nothing inside a JFR file proves any of
 that.
 
-So `compare_list` is not a warm-up call. It is the step that decides whether the rest means
-anything, and its answer is a finding in its own right — "these two runs are not comparable" is a
-real, reportable result, and a far better one than a confident regression that was really a
-recording twice as long.
+So `compare_list` is not a warm-up call, and `compare_quality` after it is not one either. Between
+them they decide whether the rest means anything, and their answer is a finding in its own right —
+"these two runs are not comparable" is a real, reportable result, and a far better one than a
+confident regression that was really a recording twice as long, or a sampler that dropped a third
+of its samples on one side.
 
 ## 1. Get two `profileId`s
 
@@ -59,6 +60,14 @@ Read its `notes`, and stop to think when:
   having appeared or vanished.
 - **`comparable` is empty.** There is nothing to compare — different formats, one is a heap dump,
   or wholly different profiler settings. Say so and stop.
+
+Then `compare_quality`, with the same two ids, before a single delta is quoted. It reads what the
+recordings say about their own evidence: the sampling settings each side was recorded with and
+whether they differ, the CPU-time samples each sampler reported losing, the server-event volumes
+each carries, and whether per-workload normalisation — a share per request rather than per second —
+is available at all, which it is not when the operation counts are incomplete. Its verdict is the
+one the report opens with. When it says the pair is not comparable, stop there and report that; a
+`compare_movements` run on top of it would only make the wrong number look measured.
 
 If the two runs came from different machines, different load levels or different JVM flags, say so
 before anything else. No amount of arithmetic recovers that, and the numbers will look just as

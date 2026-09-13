@@ -161,14 +161,14 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>source</code>, <code>operator</code>, <code>scope</code>, <code>sort</code>, <code>sortBy</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. A value outside the list is refused by name, with the alternatives spelled out, before the tool runs &mdash; as is a required argument the call left out, rather than being bound to an empty value the tool then reads as an answer. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
 
-      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. The tools that change state are: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, <code>hubs_eventActivity</code>, which claims one of a Hub&rsquo;s retained scan slots and runs a reader there, <code>operations_cancel</code> and <code>hubs_activityCancel</code>, which request cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code>, <code>heap_status</code> and <code>hubs_activityStatus</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families and the generic operation tools, which can poll or cancel work on a Hub. These tools can reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
+      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. The tools that change state are: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, <code>hubs_eventActivity</code>, which claims one of a Hub&rsquo;s retained scan slots and runs a reader there, <code>operations_cancel</code> and <code>hubs_activityCancel</code>, which request cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code>, <code>heap_status</code> and <code>hubs_activityStatus</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families and the <code>operations_</code> pair, which can poll or cancel work on a Hub. These tools can reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
 
       <p id="findings"><strong>The two tools that judge share one finding shape.</strong> Almost everything here reports figures and routes; two tools go further and say something is wrong &mdash; <code>jvm_autoAnalysis</code>, the JMC rule set, and the throttling verdict in <code>jvm_container</code> &mdash; and both emit the same record rather than a shape of their own: <code>id</code> (<code>category:subject</code>, stable across tools, so the same condition reported twice collapses into one), <code>severity</code> (<code>CRITICAL</code>, <code>WARNING</code>, <code>INFO</code>, or <code>OK</code> for a check that ran and passed), <code>category</code>, <code>title</code>, <code>detail</code>, <code>source</code> (the tool that produced it), <code>evidence</code> (the figures it rests on), <code>action</code> (the source&rsquo;s suggestion, not a diagnosis) and <code>nextTool</code> (the call that carries the figures in full). <code>profiles_summary</code> leads with the ones that flagged something. A rule that had no events to run on is not a finding of any severity: it goes under <code>notEvaluated</code>, and the summary&rsquo;s <code>capabilityGaps</code> say what it would have needed.</p>
 
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
 
       <h2 id="family-map">Which Family Answers Your Question</h2>
-      <p>Eighteen families is more than anyone reads through. They group into six questions, and the question you arrived with picks the family for you &mdash; the same taxonomy the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> skill routes by, so the docs and the skill tell the same story. Every row links to its section below.</p>
+      <p>Nineteen families is more than anyone reads through. They group into six questions, and the question you arrived with picks the family for you &mdash; the same taxonomy the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> skill routes by, so the docs and the skill tell the same story. Every row links to its section below.</p>
       <table class="family-map">
         <thead>
           <tr>
@@ -296,8 +296,6 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Structured discovery results.</strong> <code>profiles_list</code> and <code>hubs_sessions</code> keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
 
-      <p id="operations"><strong>Background operations.</strong> Imports, Hub downloads and heap preparation return an <code>operationId</code>. Use <code>operations_status(operationId)</code> to read that exact attempt and <code>operations_cancel(operationId)</code> to request cancellation. Status distinguishes queued, running, cancel_requested, completed, failed and cancelled. Cancellation is cooperative: the operation retains its slot until the worker and cleanup finish, and already written data is not rolled back. An old operation ID cannot cancel a retry. Terminal attempts remain available for one hour in this process; a restart or expiry makes the ID unavailable. Progress reports measured stages; absent byte totals or percentages remain unknown. A rejected submission reports an error without leaving queued work behind; the request can be tried again once the server can accept work.</p>
-
       <p><strong>Evidence snapshots.</strong> <code>profiles_evidence(profileId, limit?)</code>, also available at <code>jeffrey://profile/{profileId}/evidence</code>, exports the current profile and recording identity, filters, units, denominators, existing findings, sampling evidence and capability gaps. The snapshot is versioned and explicitly reports omitted rows. Save the response to preserve that evidence: reading the URI again reflects the current profile state.</p>
 
       <p><strong>Comparison quality.</strong> <code>compare_quality(profileId, baselineProfileId)</code> reports duration, event overlap, available sampling settings and loss telemetry before interpreting a difference. Persisted settings are a merged snapshot, so matching settings do not prove they stayed constant. Observed HTTP/gRPC events are not automatically a complete request count; per-operation normalization remains unavailable without a defensible denominator.</p>
@@ -376,6 +374,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td><code>profileId</code>, <code>view</code>, <code>objectId?</code></td>
             <td>A deep link to one named view &mdash; the GC, thread, JIT, memory and heap-dump pages. An unknown <code>view</code> is refused with the list of valid ones</td>
           </tr>
+          <tr>
+            <td><code>profiles_evidence</code></td>
+            <td><code>profileId</code>, <code>limit?</code></td>
+            <td>A versioned evidence snapshot of the profile as it stands &mdash; recording identity and build, whole-recording units and denominators, the sampling settings it was recorded with, the findings as evaluated and the capability gaps, with omission counts for every bounded collection. Also served as the resource <code>jeffrey://profile/{profileId}/evidence</code></td>
+          </tr>
         </tbody>
       </table>
 
@@ -441,6 +444,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td><code>compare_flamegraph</code></td>
             <td><code>profileId</code>, <code>baselineProfileId</code>, <code>eventType</code>, <code>thresholdPct?</code>, <code>startMs?</code>, <code>endMs?</code>, <code>useWeight?</code>, <code>excludeIdle?</code>, <code>excludeNonJava?</code></td>
             <td>The differential call tree as Markdown, every frame carrying both sides and the movement between them</td>
+          </tr>
+          <tr>
+            <td><code>compare_quality</code></td>
+            <td><code>profileId</code>, <code>baselineProfileId</code></td>
+            <td>Whether the pair&rsquo;s evidence supports a verdict at all: both identities and durations, event overlap, differences in the stored sampling settings, the CPU-time samples each side lost, and whether per-workload normalisation is available. Call it after <code>compare_list</code> and before quoting any delta</td>
           </tr>
         </tbody>
       </table>
@@ -928,8 +936,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         <tbody>
           <tr>
             <td><code>heap_prepare</code></td>
-            <td><code>profileId</code>, <code>report?</code></td>
-            <td>Starts the index, the dominator tree and the cached reports, and returns straight away with the stage list. Pass a report name &mdash; <code>leaks</code>, <code>biggest</code>, <code>classloaders</code>, <code>consumers</code>, <code>strings</code>, <code>collections</code>, <code>dominator</code>, <code>threads</code>, <code>biggest-collections</code>, <code>duplicates</code> &mdash; to compute one on a dump that is already indexed</td>
+            <td><code>profileId</code>, <code>report?</code>, <code>retry?</code></td>
+            <td>Starts the index, the dominator tree and the cached reports, and returns straight away with the stage list and an <code>operationId</code> for <code>operations_status</code>. A build that failed or was cancelled is reported as it stands until <code>retry</code> is true. Pass a report name &mdash; <code>leaks</code>, <code>biggest</code>, <code>classloaders</code>, <code>consumers</code>, <code>strings</code>, <code>collections</code>, <code>dominator</code>, <code>threads</code>, <code>biggest-collections</code>, <code>duplicates</code> &mdash; to compute one on a dump that is already indexed</td>
           </tr>
           <tr>
             <td><code>heap_status</code></td>
@@ -1123,6 +1131,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td>Recording sessions across <strong>every</strong> hub at once, newest first, each row carrying a <code>session_ref</code> and a <code>local</code> column saying whether it is already here</td>
           </tr>
           <tr>
+            <td><code>hubs_queryEvents</code></td>
+            <td><code>sessionRef</code>, <code>eventTypes</code>, <code>startTime?</code>, <code>endTime?</code>, <code>limit?</code>, <code>maxBytes?</code></td>
+            <td>A bounded sample of matching events read from the session where it lies, in replay order &mdash; the first hundred by default; <code>limit</code> is any positive integer, or <code>0</code> for no row cap, under a 15-second deadline and a byte budget either way</td>
+          </tr>
+          <tr>
             <td><code>hubs_eventActivity</code></td>
             <td><code>sessionRef</code>, <code>startTime</code>, <code>endTime</code>, <code>bucketSeconds?</code>, <code>eventTypes?</code></td>
             <td>Starts an event-count scan on Hub and returns a <code>scanId</code>, which doubles as its <code>operationId</code>. Each call starts a new scan.</td>
@@ -1140,7 +1153,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><code>hubs_download</code></td>
             <td><code>sessionRef</code>, <code>retry?</code></td>
-            <td>Pulls that session in &mdash; its recording files merged into one, its heap dumps and logs alongside &mdash; and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code>. A transfer that outlasts the call comes back with a status saying so; call the tool again with the same <code>sessionRef</code> to check</td>
+            <td>Pulls that session in &mdash; its recording files merged into one, its heap dumps and logs alongside &mdash; and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code>. A transfer that outlasts the call comes back with a status saying so and an <code>operationId</code>; <code>operations_status</code> is where to follow it</td>
           </tr>
         </tbody>
       </table>
@@ -1189,7 +1202,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Downloading and analysing are two calls on purpose.</strong> <code>hubs_download</code> stops at a recording and hands back its id; <code>recordings_analyzeRecording</code> builds the profile. A single call covering a multi-gigabyte transfer <em>and</em> a full analysis is the shape that trips a client's tool timeout, and a timeout partway through says nothing about whether the work survived.</p>
 
-      <p><strong>Response and transfer deadlines.</strong> A download call waits up to forty-five seconds, including remote session lookup. A longer transfer continues in the background under its own one-hour deadline. Call <code>hubs_download</code> again with the same <code>sessionRef</code> to check it; concurrent calls share a transfer only when hub, workspace, project and session all match. These deadlines are configurable on the <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> page.</p>
+      <p><strong>Response and transfer deadlines.</strong> A download call waits up to forty-five seconds, including remote session lookup. A longer transfer continues in the background under its own one-hour deadline, and the answer carries an <code>operationId</code>: poll <code>operations_status</code> with it, which reports the attempt&rsquo;s progress, its result and its retry instructions, and <code>operations_cancel</code> it if it is no longer wanted. Calling <code>hubs_download</code> again with the same <code>sessionRef</code> is harmless &mdash; concurrent calls share a transfer when hub, workspace, project and session all match &mdash; but it is the poll that says what is happening. These deadlines are configurable on the <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> page.</p>
 
       <p><strong>Failed transfers and retries.</strong> Failed transfer outcomes are retained in memory for one hour after completion. During that window, subsequent polls report the failure; set <code>retry=true</code> to start another attempt. After the outcome expires or Microscope restarts, calling <code>hubs_download</code> can start a new transfer even with <code>retry</code> omitted or set to <code>false</code>. An existing local copy is still returned without downloading it again.</p>
 
@@ -1276,17 +1289,17 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><code>recordings_analyzeFile</code></td>
             <td><code>path</code>, <code>name?</code></td>
-            <td>Imports the file at <code>path</code> and builds a profile from it &mdash; the <code>profileId</code> every other family takes, plus a UI link</td>
+            <td>Imports the file at <code>path</code> and builds a profile from it &mdash; the <code>profileId</code> every other family takes, plus a UI link. A large file comes back with a status of <code>running</code> and an <code>operationId</code> instead, and no <code>recordingId</code>, because the copy itself may not have finished; <code>operations_status</code> follows it from there</td>
           </tr>
           <tr>
             <td><code>recordings_analyzeRecording</code></td>
-            <td><code>recordingId</code></td>
-            <td>The same, for a recording already in the Quick Analysis store &mdash; one uploaded through the UI but never analysed</td>
+            <td><code>recordingId</code>, <code>retry?</code></td>
+            <td>The same, for a recording already in the Quick Analysis store &mdash; one uploaded through the UI or pulled in by <code>hubs_download</code> but never analysed. Carries an <code>operationId</code> either way; an attempt that failed is reported as it stands until <code>retry</code> is true</td>
           </tr>
           <tr>
             <td><code>recordings_status</code></td>
             <td><code>recordingId</code></td>
-            <td>Whether an analysis that outlasted its call has finished, and the profile id once it has. Poll this rather than analysing again, which would build a second profile of the same file</td>
+            <td>Whether an analysis that outlasted its call has finished, and the profile id once it has, for a <code>recordingId</code> the caller already holds &mdash; from <code>recordings_list</code> or <code>recordings_analyzeRecording</code>. A running <code>recordings_analyzeFile</code> has none to give yet; its <code>operationId</code> and <code>operations_status</code> are the handle there</td>
           </tr>
           <tr>
             <td><code>recordings_list</code></td>
@@ -1303,10 +1316,10 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       </DocsCallout>
 
       <DocsCallout type="warning" title="A large recording outlasts the call &mdash; poll, do not re-analyse">
-        Both analyse tools wait about <strong>forty-five seconds</strong> for the parse. A small recording finishes inside that and its <code>profileId</code> comes straight back, exactly as before. A large one comes back with a status of <code>running</code> while the parse carries on in the background, and <code>recordings_status</code> reports the stage it is on and the <code>profileId</code> once it lands. Poll that rather than calling the analyse tool again: a second <code>recordings_analyzeFile</code> imports the file a second time and leaves you with two profiles of one recording and no way to tell them apart. A second <code>recordings_analyzeRecording</code> for the same recording is safe &mdash; it joins the run already in flight rather than racing it.
+        Both analyse tools wait about <strong>forty-five seconds</strong> for the parse. A small recording finishes inside that and its <code>profileId</code> comes straight back, exactly as before. A large one comes back with a status of <code>running</code> and an <code>operationId</code> while the copy and the parse carry on in the background &mdash; and, from <code>recordings_analyzeFile</code>, no <code>recordingId</code>, because the file may still be being copied in. <code>operations_status(operationId)</code> reports the stage it is on and the <code>profileId</code> once it lands; <code>recordings_status</code> answers the same question for a <code>recordingId</code> you already hold. Poll one of those rather than calling the analyse tool again: a second <code>recordings_analyzeFile</code> imports the file a second time and leaves you with two profiles of one recording and no way to tell them apart. A second <code>recordings_analyzeRecording</code> for the same recording is safe &mdash; it joins the run already in flight rather than racing it.
       </DocsCallout>
 
-      <p><code>recordings_status</code> reports retained failures and their error details for repeated polls. Completed import job outcomes are retained in memory for one hour and are lost on restart. Once failure details are no longer available, a disabled profile with no active initialization is reported as <code>interrupted</code>; an attempt that never created a profile is reported as <code>not_started</code>. Call <code>recordings_analyzeRecording</code> again to retry a failed or interrupted attempt. Work waiting for a pipeline slot is included in <code>running</code>. A requested profile name is applied before the background attempt completes, including when the original call has already returned.</p>
+      <p><code>recordings_status</code> reports retained failures and their error details for repeated polls. Completed import job outcomes are retained in memory for one hour and are lost on restart. Once failure details are no longer available, a disabled profile with no active initialization is reported as <code>interrupted</code>; an attempt that never created a profile is reported as <code>not_started</code>. Call <code>recordings_analyzeRecording</code> again with <code>retry=true</code> to retry a failed or interrupted attempt; without it the retained outcome is reported rather than a new attempt started. <code>operations_cancel</code> asks a running one to stop. Work waiting for a pipeline slot is included in <code>running</code>. A requested profile name is applied before the background attempt completes, including when the original call has already returned.</p>
 
       <p>One more thing worth knowing: each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
 
@@ -1314,6 +1327,32 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Example.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exRecordings" language="json" />
+
+      <h2 id="operations">operations_ &mdash; the work the writers start</h2>
+      <p>Four of the tools above start something that can outlast the call &mdash; <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, <code>hubs_download</code> and <code>heap_prepare</code> &mdash; and a fifth, <code>hubs_eventActivity</code>, starts a scan on a Hub whose <code>scanId</code> is the same kind of handle. Each returns an <code>operationId</code> naming that exact attempt, and this family is how the attempt is followed afterwards without touching the tool that started it. Neither tool here takes a <code>profileId</code>.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>operations_status</code></td>
+            <td><code>operationId</code></td>
+            <td>The status, progress, result and explicit retry instructions of that attempt &mdash; <code>queued</code>, <code>running</code>, <code>cancel_requested</code>, <code>completed</code>, <code>failed</code> or <code>cancelled</code>, with the measured stages and, once an import lands, the <code>profileId</code>. Polling never starts work</td>
+          </tr>
+          <tr>
+            <td><code>operations_cancel</code></td>
+            <td><code>operationId</code></td>
+            <td>A request that the attempt stop. Best effort: <code>cancel_requested</code> stays non-terminal while the worker or its cleanup is active, nothing already written &mdash; a file, a profile, a cached report &mdash; is rolled back, and an old id never cancels a newer retry</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Cancellation is cooperative: the operation keeps its slot until the worker and its cleanup finish, and repeating the request is safe. Terminal attempts stay readable for one hour in this process; a restart or expiry makes the id unavailable, and an unobserved Hub scan expires after an hour without a poll. Progress reports the stages that were measured, and where a byte total or a percentage was never known it stays unknown rather than being estimated. A submission the server refused &mdash; a full pipeline, say &mdash; reports an error without leaving queued work behind, and can be tried again once it can accept work.</p>
+      <p>The family is advertised by every preset, because a client that can start work and not follow it is worse off than one that can do neither; an explicit <code>jeffrey.microscope.mcp.families</code> list that leaves <code>operations</code> out has to accept that a running import can only be followed through <code>recordings_status</code>, and a Hub scan through <code>hubs_activityStatus</code>.</p>
 
       <h2 id="links">Links Back to the UI</h2>
       <p>Analysis answers carry a link to the view that shows them &mdash; a <code>uiLink</code> field on the JSON answers, and a trailing <code>Open in Jeffrey: &hellip;</code> line on the Markdown exports. The flamegraph link reproduces the event type and filters the export was built with, the operation link opens on its slowest or flames tab, and a trace link opens that trace&rsquo;s span waterfall.</p>
