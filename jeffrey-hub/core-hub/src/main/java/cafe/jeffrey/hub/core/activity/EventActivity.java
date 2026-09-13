@@ -40,8 +40,8 @@ final class EventActivity {
     }
 
     /**
-     * Counts one event. The upper bound is exclusive here as well as in the replay window, because
-     * that window is inclusive at both ends — see {@link ActivityRequest}.
+     * Counts one event, enforcing the exclusive upper bound that the inclusive replay window
+     * cannot enforce — see {@link ActivityRequest}.
      */
     synchronized void add(String type, long timestamp) {
         if (timestamp < request.startTime() || timestamp >= request.endTime()

@@ -18,10 +18,10 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
@@ -403,6 +403,7 @@ class McpToolsetAssemblerTest {
                     .collect(Collectors.toSet());
 
             remote.add("operations_cancel");
+            remote.add("operations_status");
             assertEquals(remote, declared);
         }
 

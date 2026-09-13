@@ -38,8 +38,8 @@ public final class OperationsMcpTools {
         this.allowedKind = allowedKind;
     }
 
-    @McpToolHints
-    @Tool(description = "Read the status, progress, result and explicit retry instructions for one operationId returned by recording import, Hub download or heap preparation. Polling never starts work. IDs identify exact attempts and survive for one hour after completion in this process only; a server restart forgets them.")
+    @McpToolHints(openWorld = true)
+    @Tool(description = "Read the status, progress, result and explicit retry instructions for one operationId returned by recording import, Hub download, Hub activity scan or heap preparation. Polling never starts work. IDs identify exact attempts and survive for one hour after completion in this process only; a server restart forgets them. Unobserved Hub activity handles also expire after one hour without a poll.")
     public String status(@ToolParam(required = true, description = "Exact operationId returned by the starting tool") String operationId) {
         return McpToolOutput.json(operations.status(operationId, allowedKind));
     }

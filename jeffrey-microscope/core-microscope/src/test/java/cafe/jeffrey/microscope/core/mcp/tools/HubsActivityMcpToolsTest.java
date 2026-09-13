@@ -266,6 +266,8 @@ class HubsActivityMcpToolsTest {
         assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "time", 1, -1));
         assertThrows(IllegalArgumentException.class, () -> tools.activityStatus(REF, "scan", "time", 1, 289));
         assertThrows(IllegalArgumentException.class, () -> tools.activityCancel(REF, ""));
+        String oversizedScope = new HubSessionRef("hub", "w".repeat(513), "project", "session").encode();
+        assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(oversizedScope, 1, 2, 1L, null));
         verifyNoInteractions(resolver);
     }
 

@@ -25,10 +25,10 @@ import java.util.Set;
 /**
  * One scan's scope, window and filter.
  *
- * <p>The window is half-open, {@code [startTime, endTime)}. That is enforced here and in
- * {@link EventActivity#add}, not by the replay window the reader is given: {@code StreamingWindow}
- * is inclusive at both ends, so an event landing exactly on {@code endTime} reaches the counter and
- * has to be rejected there. Removing either guard shifts the last bucket by one event.</p>
+ * <p>The window is half-open, {@code [startTime, endTime)}. This record validates its bounds;
+ * {@link EventActivity#add} rejects events at the exclusive upper bound. The reader's
+ * {@code StreamingWindow} is inclusive at both ends, so an event landing exactly on
+ * {@code endTime} can reach the counter and must be rejected there.</p>
  */
 public record ActivityRequest(
         String workspaceId,

@@ -135,15 +135,17 @@ class HubActivityServiceTest {
             String id = service.start(request());
             reader.awaitOpen();
 
-            long timestamp = request().startTime();
-            for (int i = 0; i < ActivityLimits.MAX_OBSERVED_TYPES; i++) {
-                reader.emit("Type" + i, timestamp);
+            try {
+                long timestamp = request().startTime();
+                for (int i = 0; i < ActivityLimits.MAX_OBSERVED_TYPES; i++) {
+                    reader.emit("Type" + i, timestamp);
+                }
+                assertFalse(reader.closed());
+                reader.emit("OneTooMany", timestamp);
+                assertTrue(reader.closed(), "the reader must be abandoned, not left counting");
+            } finally {
+                reader.finish();
             }
-            assertFalse(reader.closed());
-            reader.emit("OneTooMany", timestamp);
-            assertTrue(reader.closed(), "the reader must be abandoned, not left counting");
-
-            reader.finish();
             awaitFinished(service, id);
             var result = Json.toTree(service.status(ref(id), ActivityOrder.EVENTS, 20, 0));
             assertEquals("failed", result.path("status").asText());
@@ -271,10 +273,10 @@ class HubActivityServiceTest {
             return (subscription, streamingCallbacks, consumer) -> {
                 events = consumer;
                 callbacks = streamingCallbacks;
-                opened.countDown();
                 return new ActivityReader() {
                     @Override
                     public void start() {
+                        opened.countDown();
                     }
 
                     @Override

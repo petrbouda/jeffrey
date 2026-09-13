@@ -19,10 +19,12 @@
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.grpc.client.ActivityScanSnapshot;
+import cafe.jeffrey.microscope.grpc.client.ActivityScanTarget;
 import cafe.jeffrey.profile.common.operation.OperationHandle;
 import cafe.jeffrey.profile.common.operation.OperationSnapshot;
 import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.shared.common.activity.ActivityState;
+import io.grpc.Status;
 
 import java.time.Instant;
 import java.util.Map;
@@ -66,10 +68,38 @@ final class HubActivityOperation implements OperationHandle<ActivityScanSnapshot
     public OperationSnapshot<ActivityScanSnapshot> snapshot() {
         ActivityScanSnapshot current = last;
         if (!STATES.get(current.status()).terminal()) {
-            current = refresh.get();
-            last = current;
+            current = observe(fetch(refresh));
         }
         return toOperation(current);
+    }
+
+    /** A delayed poll must never move a terminal or cancellation state backwards. */
+    synchronized ActivityScanSnapshot observe(ActivityScanSnapshot observation) {
+        var target = new ActivityScanTarget(last.workspaceId(), last.projectId(), last.sessionId(), last.scanId());
+        if (!observation.describes(target)) {
+            throw new IllegalStateException("Hub returned activity for a different scan");
+        }
+        if (last.status().terminal()
+                || (last.status() == ActivityState.CANCEL_REQUESTED && !observation.status().terminal())
+                || (last.status() == ActivityState.RUNNING && observation.status() == ActivityState.QUEUED)) {
+            return last;
+        }
+        last = observation;
+        return last;
+    }
+
+    private ActivityScanSnapshot fetch(Supplier<ActivityScanSnapshot> operation) {
+        try {
+            return operation.get();
+        } catch (RuntimeException error) {
+            if (Status.fromThrowable(error).getCode() != Status.Code.NOT_FOUND) {
+                throw error;
+            }
+            // Eviction, expiry and a Hub restart all remove the remote worker. A stale running
+            // handle must become terminal locally so normal operation retention can reclaim it.
+            return last.failedAt(Instant.now().toEpochMilli(),
+                    "Hub scan is no longer available: it expired, was evicted, or the Hub restarted");
+        }
     }
 
     /** The last observation, never a new one — see the class comment. */
@@ -99,8 +129,7 @@ final class HubActivityOperation implements OperationHandle<ActivityScanSnapshot
         if (STATES.get(last.status()).terminal()) {
             return false;
         }
-        ActivityScanSnapshot cancelled = remoteCancel.get();
-        last = cancelled;
+        ActivityScanSnapshot cancelled = observe(fetch(remoteCancel));
         return cancelled.status() == ActivityState.CANCEL_REQUESTED;
     }
 

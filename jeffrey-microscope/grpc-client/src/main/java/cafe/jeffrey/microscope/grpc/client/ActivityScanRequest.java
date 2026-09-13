@@ -38,6 +38,12 @@ public record ActivityScanRequest(
         Set<String> eventTypes) {
 
     public ActivityScanRequest {
+        for (String id : new String[]{workspaceId, projectId, sessionId}) {
+            if (id == null || id.isBlank() || id.length() > ActivityLimits.MAX_ID_LENGTH) {
+                throw new IllegalArgumentException("Workspace, project and session IDs must contain 1–"
+                        + ActivityLimits.MAX_ID_LENGTH + " characters");
+            }
+        }
         long duration;
         long width;
         try {

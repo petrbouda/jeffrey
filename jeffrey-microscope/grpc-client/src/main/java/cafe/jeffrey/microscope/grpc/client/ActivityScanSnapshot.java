@@ -58,6 +58,35 @@ public record ActivityScanSnapshot(
                 && scanId.equals(target.scanId());
     }
 
+    /** Preserve observed counts when the remote scan disappears before a terminal result is read. */
+    public ActivityScanSnapshot failedAt(long finishedAt, String error) {
+        return new ActivityScanSnapshot(
+                scanId,
+                workspaceId,
+                projectId,
+                sessionId,
+                ActivityState.FAILED,
+                startedAt,
+                finishedAt,
+                false,
+                coverageKnown,
+                sourceErrors,
+                filesTotal,
+                error,
+                startTime,
+                endTime,
+                bucketMillis,
+                eventTypes,
+                totalEvents,
+                distinctEventTypes,
+                totalBuckets,
+                order,
+                offset,
+                omittedBuckets,
+                hasMoreBuckets,
+                buckets);
+    }
+
     public record Bucket(
             long startTime,
             long endTime,

@@ -55,7 +55,11 @@ public final class HubsReplayMcpTools {
     public HubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations) {
         this(resolver, operations, Duration.ofSeconds(15));
     }
-    public HubsReplayMcpTools(ProjectManagerResolver resolver, McpOperationRegistry operations, Duration timeout) {
+
+    public HubsReplayMcpTools(
+            ProjectManagerResolver resolver,
+            McpOperationRegistry operations,
+            Duration timeout) {
         if (timeout == null || timeout.isZero() || timeout.isNegative() || timeout.compareTo(Duration.ofSeconds(30)) > 0) {
             throw new IllegalArgumentException("Replay timeout must be positive and no greater than 30 seconds");
         }
@@ -93,7 +97,9 @@ public final class HubsReplayMcpTools {
         if (eventTypes == null || eventTypes.isBlank() || eventTypes.length() > 2048) {
             throw new IllegalArgumentException("Specify comma-separated JFR event types (at most 2048 characters)");
         }
-        Set<String> types = Arrays.stream(eventTypes.split(",", -1)).map(String::trim).collect(Collectors.toSet());
+        Set<String> types = Arrays.stream(eventTypes.split(",", -1))
+                .map(String::trim)
+                .collect(Collectors.toSet());
         if (types.size() > 16 || types.stream().anyMatch(type -> type.isBlank() || type.length() > 128)) {
             throw new IllegalArgumentException("Specify 1–16 nonempty JFR event types of at most 128 characters each");
         }
@@ -111,12 +117,20 @@ public final class HubsReplayMcpTools {
         Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINES);
         try {
             context.call(() -> {
-                ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId()).projectManager();
-                var request = new ReplaySubscriptionRequest(ref.sessionId(), types, startTime, endTime,
-                        ref.workspaceId(), ref.projectId());
-                var subscription = project.eventStreamingManager().subscribeReplayRaw(request,
-                        new StreamingCallbacks(collector::accept, collector::streamCompleted,
-                                error -> collector.stop(termination(error))));
+                ProjectManager project = resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())
+                        .projectManager();
+                var request = new ReplaySubscriptionRequest(
+                        ref.sessionId(),
+                        types,
+                        startTime,
+                        endTime,
+                        ref.workspaceId(),
+                        ref.projectId());
+                var callbacks = new StreamingCallbacks(
+                        collector::accept,
+                        collector::streamCompleted,
+                        error -> collector.stop(termination(error)));
+                var subscription = project.eventStreamingManager().subscribeReplayRaw(request, callbacks);
                 collector.cancellation(subscription::cancel);
                 collector.await(Duration.ofNanos(Math.max(1, deadline.timeRemaining(TimeUnit.NANOSECONDS))));
                 return null;
@@ -191,8 +205,11 @@ public final class HubsReplayMcpTools {
     }
 
     private static ScheduledExecutorService deadlineScheduler() {
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1,
-                Thread.ofPlatform().daemon().name("hub-mcp-replay-deadline-", 0).factory());
+        var factory = Thread.ofPlatform()
+                .daemon()
+                .name("hub-mcp-replay-deadline-", 0)
+                .factory();
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, factory);
         executor.setRemoveOnCancelPolicy(true);
         return executor;
     }

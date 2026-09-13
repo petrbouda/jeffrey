@@ -33,6 +33,8 @@ import cafe.jeffrey.shared.common.activity.ActivityOrder;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -47,6 +49,8 @@ import java.util.stream.Collectors;
 
 /** Converts Hub summaries to bounded MCP results using the existing strict Hub resolver. */
 public final class HubActivityMcpSupport {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HubActivityMcpSupport.class);
 
     /**
      * The one shape all three activity tools answer with, so a client that has read it once can parse
@@ -141,7 +145,7 @@ public final class HubActivityMcpSupport {
                 bucketSeconds == null ? ActivityLimits.DEFAULT_BUCKET_SECONDS : bucketSeconds,
                 types);
 
-        var snapshot = call(ref, manager -> manager.startActivity(request));
+        var snapshot = call(ref, null, manager -> manager.startActivity(request));
         register(ref, snapshot);
         return result(ref, snapshot);
     }
@@ -154,13 +158,17 @@ public final class HubActivityMcpSupport {
                 limit == null ? ActivityLimits.MAX_RESULT_BUCKETS : limit,
                 offset == null ? 0 : offset);
 
-        return result(ref, call(ref, manager -> manager.getActivity(query)));
+        var snapshot = call(ref, query.target(), manager -> manager.getActivity(query));
+        observe(ref, snapshot);
+        return result(ref, snapshot);
     }
 
     public McpToolResult cancel(String sessionRef, String scanId) {
         var ref = reference(sessionRef);
         var target = target(ref, scanId);
-        return result(ref, call(ref, manager -> manager.cancelActivity(target)));
+        var snapshot = call(ref, target, manager -> manager.cancelActivity(target));
+        observe(ref, snapshot);
+        return result(ref, snapshot);
     }
 
     /**
@@ -173,17 +181,37 @@ public final class HubActivityMcpSupport {
         var query = new ActivityScanQuery(target, ActivityOrder.EVENTS, ActivityLimits.MAX_RESULT_BUCKETS, 0);
         var handle = new HubActivityOperation(
                 snapshot,
-                () -> call(ref, manager -> manager.getActivity(query)),
-                () -> call(ref, manager -> manager.cancelActivity(target)));
+                () -> call(ref, target, manager -> manager.getActivity(query)),
+                () -> call(ref, target, manager -> manager.cancelActivity(target)));
         try {
-            operations.registerIfRetained(OPERATION_KIND, handle, scan -> scan);
+            operations.registerIfRetained(
+                    OPERATION_KIND, handle, scan -> operationResult(ref, scan), McpOperationRegistry.RETENTION);
         } catch (RuntimeException e) {
-            // Nothing to recover: hubs_activityStatus still reads the scan directly.
+            LOG.warn("Could not register Hub activity operation: scanId={}", snapshot.scanId(), e);
+        }
+    }
+
+    private static ObjectNode operationResult(HubSessionRef ref, ActivityScanSnapshot scan) {
+        return Json.createObject()
+                .put("sessionRef", ref.encode())
+                .put("scanId", scan.scanId())
+                .put("complete", scan.complete())
+                .put("coverageKnown", scan.coverageKnown())
+                .put("sourceErrors", scan.sourceErrors())
+                .put("nextTool", "hubs_activityStatus");
+    }
+
+    private void observe(HubSessionRef ref, ActivityScanSnapshot snapshot) {
+        boolean retained = operations.updateHandle(
+                snapshot.scanId(), OPERATION_KIND, HubActivityOperation.class, handle -> handle.observe(snapshot));
+        if (!retained) {
+            register(ref, snapshot);
         }
     }
 
     private ActivityScanSnapshot call(
             HubSessionRef ref,
+            ActivityScanTarget target,
             Function<EventStreamingManager, ActivityScanSnapshot> operation) {
 
         // The only deadline on these calls. The client sets none of its own, so this is the timeout
@@ -201,6 +229,9 @@ public final class HubActivityMcpSupport {
                     || !ref.projectId().equals(snapshot.projectId())
                     || !ref.sessionId().equals(snapshot.sessionId())) {
                 throw new IllegalStateException("Hub returned activity for a different session");
+            }
+            if (target != null && !snapshot.describes(target)) {
+                throw new IllegalStateException("Hub returned activity for a different scan");
             }
             return snapshot;
         } catch (Exception e) {
