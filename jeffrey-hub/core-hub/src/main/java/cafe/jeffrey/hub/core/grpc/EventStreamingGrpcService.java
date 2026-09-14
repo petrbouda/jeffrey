@@ -23,6 +23,7 @@ import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.streaming.ReplayScopeNotFoundException;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
@@ -39,7 +40,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 /**
  * Replays JFR events from finished recording files (.jfr/.jfr.lz4).
@@ -48,6 +49,11 @@ import java.util.Optional;
 public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventStreamingServiceImplBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamingGrpcService.class);
+
+    private static final String NO_EVENT_TYPES = "At least one event type must be specified";
+    private static final String SCOPE_REQUIRED = "Both workspace_id and project_id are required for scoped replay";
+    private static final String SESSION_NOT_FOUND = "Session not found: ";
+    private static final String NO_RECORDING_FILES = "No recording files found for session: ";
 
     private final HubJeffreyDirs jeffreyDirs;
     private final HubPlatformRepositories platformRepositories;
@@ -89,44 +95,15 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
         ReadyGate gate = ReadyGate.attach(serverObserver);
 
         try {
-            boolean scoped = request.hasWorkspaceId() || request.hasProjectId();
             if (request.getEventTypesCount() == 0) {
-                throw new IllegalArgumentException("At least one event type must be specified");
+                throw new IllegalArgumentException(NO_EVENT_TYPES);
             }
             StreamingWindow window = resolveStreamingWindow(request);
-            List<Path> recordingFiles;
-            if (scoped) {
-                if (request.getWorkspaceId().isBlank() || request.getProjectId().isBlank()) {
-                    throw new IllegalArgumentException("Both workspace_id and project_id are required for scoped replay");
-                }
-                recordingFiles = scopedReplaySource
-                        .resolve(
-                                request.getWorkspaceId(),
-                                request.getProjectId(),
-                                sessionId,
-                                new HashSet<>(request.getEventTypesList()),
-                                window)
-                        .recordingFiles();
-            } else {
-                Optional<SessionWithRepository> sessionOpt =
-                        resolveValidatedSession(sessionId, request.getEventTypesList(), observer);
-                if (sessionOpt.isEmpty()) {
-                    return;
-                }
-                RepositoryStorage storage = repositoryStorageFactory.apply(sessionOpt.get().projectInfo());
-                recordingFiles = storage.recordings(sessionId, null);
-            }
-            if (recordingFiles.isEmpty()) {
-                observer.onError(GrpcExceptions.notFound("No recording files found for session: " + sessionId));
-                return;
-            }
-
-            ReplayStreamSubscription replaySubscription = new ReplayStreamSubscription(
-                    sessionId,
-                    recordingFiles,
-                    new HashSet<>(request.getEventTypesList()),
-                    window, jeffreyDirs.temp(), scoped ? request.getWorkspaceId() : null,
-                    scoped ? request.getProjectId() : null);
+            Set<String> eventTypes = new HashSet<>(request.getEventTypesList());
+            boolean scoped = request.hasWorkspaceId() || request.hasProjectId();
+            ReplayStreamSubscription replaySubscription = scoped
+                    ? resolveScopedSubscription(request, eventTypes, window)
+                    : resolveLegacySubscription(sessionId, eventTypes, window);
 
             var callbacks = new StreamingCallbacks(
                     batch -> GrpcStreams.sendWithBackpressure(serverObserver, gate, batch),
@@ -149,26 +126,43 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     // ========== Helpers ==========
 
     /**
-     * Resolves the session and validates the request. When the session is missing or the
-     * event-type list is empty, the appropriate terminal error is already sent to the
-     * observer and an empty Optional is returned — the caller just stops.
+     * Resolves the session inside its workspace and project. A session that resolves but has no
+     * finished recording file yet is a valid, empty replay — the subscriber acknowledges the scope,
+     * reports terminal coverage and completes with zero events — so that replay and the activity
+     * scan, which admits the same scope, agree about what that session is. Only a workspace, project
+     * or session that does not resolve is NOT_FOUND, thrown by the source as
+     * {@link ReplayScopeNotFoundException}.
      */
-    private Optional<SessionWithRepository> resolveValidatedSession(
-            String sessionId, List<String> eventTypes, StreamObserver<EventBatch> observer) {
+    private ReplayStreamSubscription resolveScopedSubscription(
+            ReplayStreamingRequest request, Set<String> eventTypes, StreamingWindow window) {
 
-        Optional<SessionWithRepository> sessionOpt =
-                platformRepositories.findSessionWithRepositoryById(sessionId);
-        if (sessionOpt.isEmpty()) {
-            observer.onError(GrpcExceptions.notFound("Session not found: " + sessionId));
-            return Optional.empty();
+        if (request.getWorkspaceId().isBlank() || request.getProjectId().isBlank()) {
+            throw new IllegalArgumentException(SCOPE_REQUIRED);
         }
+        return scopedReplaySource.resolve(
+                request.getWorkspaceId(),
+                request.getProjectId(),
+                request.getSessionId(),
+                eventTypes,
+                window);
+    }
 
-        if (eventTypes.isEmpty()) {
-            observer.onError(GrpcExceptions.invalidArgument("At least one event type must be specified"));
-            return Optional.empty();
+    /**
+     * Looks the session up by id alone, across every project, the way callers older than the
+     * scoped RPC expect. Keeps answering NOT_FOUND for a session with no recording files, because
+     * legacy replay carries no coverage status that could say the empty answer was a complete one.
+     */
+    private ReplayStreamSubscription resolveLegacySubscription(
+            String sessionId, Set<String> eventTypes, StreamingWindow window) {
+
+        SessionWithRepository session = platformRepositories.findSessionWithRepositoryById(sessionId)
+                .orElseThrow(() -> new ReplayScopeNotFoundException(SESSION_NOT_FOUND + sessionId));
+        RepositoryStorage storage = repositoryStorageFactory.apply(session.projectInfo());
+        List<Path> recordingFiles = storage.recordings(sessionId, null);
+        if (recordingFiles.isEmpty()) {
+            throw new ReplayScopeNotFoundException(NO_RECORDING_FILES + sessionId);
         }
-
-        return sessionOpt;
+        return new ReplayStreamSubscription(sessionId, recordingFiles, eventTypes, window, jeffreyDirs.temp());
     }
 
     private static StreamingWindow resolveStreamingWindow(ReplayStreamingRequest request) {

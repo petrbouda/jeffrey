@@ -18,6 +18,7 @@
 package cafe.jeffrey.profile.mcp;
 
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * The JSON-RPC envelope itself, exercised without a servlet container.
@@ -50,6 +52,10 @@ class AbstractMcpStreamableHttpControllerTest {
             List.of("2024-11-05", "2025-03-26", PROTOCOL_VERSION, "2025-11-25");
     private static final String PING = """
             {"jsonrpc":"2.0","id":1,"method":"ping"}""";
+
+    /** What a tool result says for a failure the client can do nothing about. */
+    private static final String INTERNAL_ERROR_TEXT =
+            "Error: " + AbstractMcpStreamableHttpController.INTERNAL_FAILURE_MESSAGE;
 
     private final Envelope envelope = new Envelope();
     private final McpServerFeatures features = new McpServerFeatures(
@@ -227,6 +233,23 @@ class AbstractMcpStreamableHttpControllerTest {
     @Nested
     class ToolErrors {
 
+        @Test
+        void doesNotUnwrapAnUnrelatedFailureWithTheOldMessagePrefix() {
+            McpServerFeatures failingResolution = new McpServerFeatures(
+                    () -> new ProfileScopedToolset<>(SampleTools.class, "test", profileId -> {
+                        throw new IllegalStateException("Tool execution failed: database adapter",
+                                new IllegalArgumentException("private database configuration"));
+                    }), Prompts::new, Resources::new);
+
+            JsonNode response = envelope.dispatch(Json.readTree("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_echo","arguments":{"profileId":"p-1","message":"hi"}}}"""),
+                    null, failingResolution).getBody();
+
+            assertTrue(response.path("result").path("isError").asBoolean());
+            assertEquals(INTERNAL_ERROR_TEXT, response.path("result").path("content").get(0).path("text").asString());
+        }
+
         /**
          * The distinction the specification draws: a tool that ran and failed answers the model inside
          * the result, a call that never reached a tool leaves through the error channel.
@@ -240,6 +263,22 @@ class AbstractMcpStreamableHttpControllerTest {
             assertTrue(response.get("result").get("isError").asBoolean());
             assertTrue(response.get("result").get("content").get(0).get("text").asString()
                     .contains("nothing to report"));
+        }
+
+        /**
+         * An internal failure carries an error code too, so "does it have a code" let every one of
+         * them through — including the paths that name host file paths in their message.
+         */
+        @Test
+        void hidesAnInternalFailureEvenWhenJeffreyGaveItACode() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_breakInside","arguments":{}}}""");
+
+            String text = response.get("result").get("content").get(0).get("text").asString();
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals(INTERNAL_ERROR_TEXT, text);
+            assertFalse(text.contains("/home/someone"), text);
         }
 
         @Test
@@ -260,6 +299,167 @@ class AbstractMcpStreamableHttpControllerTest {
 
             assertEquals(-32602, response.get("error").get("code").asInt());
             assertTrue(response.get("error").get("message").asString().contains("message"));
+        }
+
+        /**
+         * A failure with no message of its own used to be pasted into the result as "Error: null" — a
+         * word the model reads as data — and then as the exception's type name, which told an
+         * outsider how the server is built and the model nothing it could act on. What travels now
+         * is the one fixed sentence every internal failure gets; the detail is in the server log.
+         * The failure comes from resolving the profile, which runs outside the wrapper
+         * {@link ToolInvocation} puts around a tool body, so nothing supplies a message on its behalf.
+         */
+        @Test
+        void answersAFailureWithNoMessageWithTheFixedSentence() {
+            McpServerFeatures speechless = new McpServerFeatures(
+                    () -> new ProfileScopedToolset<>(SampleTools.class, "test", profileId -> {
+                        throw new IllegalStateException();
+                    }),
+                    Prompts::new,
+                    Resources::new);
+
+            JsonNode response = envelope.dispatch(Json.readTree("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_echo","arguments":{"profileId":"p-1","message":"hi"}}}"""),
+                    null, speechless).getBody();
+
+            String text = response.get("result").get("content").get(0).get("text").asString();
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertNotEquals("Error: null", text);
+            assertEquals(INTERNAL_ERROR_TEXT, text);
+        }
+
+        /**
+         * A tool that failed inside Jeffrey — a null where a value was expected, a driver that gave
+         * up — is not answered with its own words. A helpful-NPE sentence names a field of a class
+         * the client has no business knowing, and tells the model nothing it can act on.
+         */
+        @Test
+        void doesNotRepeatAnInternalFailuresOwnWords() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_crash","arguments":{}}}""");
+
+            String text = response.get("result").get("content").get(0).get("text").asString();
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals(INTERNAL_ERROR_TEXT, text);
+            assertFalse(text.contains("secretField"), text);
+        }
+
+        /**
+         * A refusal a tool wrote for the model travels as written, and once: {@link
+         * ToolExecutionException} is the type that means "the tool decided it could not answer, and
+         * this is why", so it is not wrapped on the way out and its sentence is not prefixed with the
+         * wrapper's.
+         */
+        @Test
+        void keepsARefusalTheToolWroteForTheModel() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_decline","arguments":{}}}""");
+
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals("Error: no heap dump on this profile",
+                    response.get("result").get("content").get(0).get("text").asString());
+        }
+
+        /**
+         * An argument a tool refused from inside its body stays actionable: it arrives under the
+         * wrapper reflection puts around a tool, and the judgement is made on what the tool threw.
+         */
+        @Test
+        void keepsAnArgumentRefusalThrownInsideTheTool() {
+            JsonNode response = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call",
+                     "params":{"name":"test_refuse","arguments":{}}}""");
+
+            assertTrue(response.get("result").get("isError").asBoolean());
+            assertEquals("Error: limit must be positive",
+                    response.get("result").get("content").get(0).get("text").asString());
+        }
+    }
+
+    /**
+     * The three answers a failed {@code resources/read} can have, and which failure earns which. The
+     * read runs a tool, and the tool's failure arrives wrapped; every one of them used to come back as
+     * {@code -32603} "Internal error", which is the code that tells a client to stop trusting the
+     * server rather than to stop asking for that profile.
+     */
+    @Nested
+    class ResourceErrors {
+
+        private final McpServerFeatures failing = new McpServerFeatures(
+                () -> new ReflectiveToolset(new SampleTools(), "test"), Prompts::new, FailingResources::new);
+
+        private JsonNode read(String uri) {
+            return envelope.dispatch(Json.readTree("""
+                    {"jsonrpc":"2.0","id":1,"method":"resources/read","params":{"uri":"%s"}}""".formatted(uri)),
+                    null, failing).getBody();
+        }
+
+        @Test
+        void answersAProviderThatSaysNotFoundWithTheCodeForIt() {
+            JsonNode response = read("jeffrey://missing");
+
+            assertEquals(-32002, response.get("error").get("code").asInt());
+            assertEquals("no such profile: p-9", response.get("error").get("message").asString());
+        }
+
+        /**
+         * The tool underneath threw Jeffrey's own not-found, and reflection wrapped it. What the client
+         * gets is the code for a missing resource and the sentence the tool wrote, not the wrapper's.
+         */
+        @Test
+        void readsAToolsOwnNotFoundBackThroughTheWrapper() {
+            JsonNode response = read("jeffrey://tool/missing");
+
+            assertEquals(-32002, response.get("error").get("code").asInt());
+            String message = response.get("error").get("message").asString();
+            assertEquals("Profile not found: p-9", message);
+            assertFalse(message.contains("Tool execution failed:"), message);
+        }
+
+        @Test
+        void answersAnArgumentTheToolRefusedAsInvalidParams() {
+            JsonNode response = read("jeffrey://tool/refused");
+
+            assertEquals(-32602, response.get("error").get("code").asInt());
+            assertEquals("Invalid cursor", response.get("error").get("message").asString());
+        }
+
+        @Test
+        void keepsAFailureThatIsNeitherAsAnInternalError() {
+            assertEquals(-32603, read("jeffrey://tool/broken").get("error").get("code").asInt());
+            assertEquals(-32603, read("jeffrey://broken").get("error").get("code").asInt());
+        }
+
+        @Test
+        void doesNotClassifyAnUnrelatedWrapperAsResourceNotFound() {
+            JsonNode error = read("jeffrey://unrelated-wrapper").path("error");
+
+            assertEquals(-32603, error.path("code").asInt());
+            assertEquals(AbstractMcpStreamableHttpController.INTERNAL_FAILURE_MESSAGE,
+                    error.path("message").asString());
+        }
+
+        /**
+         * The internal error's message is the fixed sentence, not the failure's own: "database
+         * closed" is for the server log, and a client that reads it learns only how the server is
+         * built.
+         */
+        @Test
+        void doesNotRepeatAnInternalFailuresOwnWords() {
+            JsonNode error = read("jeffrey://broken").get("error");
+
+            assertEquals(AbstractMcpStreamableHttpController.INTERNAL_FAILURE_MESSAGE,
+                    error.get("message").asString());
+            assertFalse(error.toString().contains("database closed"), error.toString());
+        }
+
+        /** A URI this server never offered is still a bad parameter, not a missing resource. */
+        @Test
+        void keepsAUriItDoesNotServeAsInvalidParams() {
+            assertEquals(-32602, read("jeffrey://nonsense").get("error").get("code").asInt());
         }
     }
 
@@ -312,6 +512,62 @@ class AbstractMcpStreamableHttpControllerTest {
         }
     }
 
+    /**
+     * Resources whose reads fail the ways a real one can. The {@code jeffrey://tool/*} URIs run a real
+     * tool through {@link ReflectiveToolset}, so the failure arrives wrapped exactly as it would in
+     * production rather than as a hand-built imitation of the wrapper.
+     */
+    private static final class FailingResources implements McpResourceProvider {
+
+        private final McpToolProvider tools = new ReflectiveToolset(new ResourceTools(), "resource");
+
+        @Override
+        public List<McpResource> resources() {
+            return List.of();
+        }
+
+        @Override
+        public List<McpResource> templates() {
+            return List.of();
+        }
+
+        @Override
+        public Contents read(String uri) {
+            return switch (uri) {
+                case "jeffrey://missing" -> throw new McpResourceNotFoundException("no such profile: p-9");
+                case "jeffrey://tool/missing" -> text(uri, tools.call("resource_missing", null));
+                case "jeffrey://tool/refused" -> text(uri, tools.call("resource_refused", null));
+                case "jeffrey://tool/broken" -> text(uri, tools.call("resource_broken", null));
+                case "jeffrey://broken" -> throw new IllegalStateException("database closed");
+                case "jeffrey://unrelated-wrapper" -> throw new IllegalStateException(
+                        "Tool execution failed: unrelated provider", Exceptions.profileNotFound("internal-id"));
+                default -> throw new IllegalArgumentException("Unknown resource: " + uri);
+            };
+        }
+
+        private static Contents text(String uri, String text) {
+            return new Contents(uri, McpResource.TEXT_MARKDOWN, text);
+        }
+    }
+
+    public static class ResourceTools {
+
+        @Tool(description = "A profile that is not there")
+        public String missing() {
+            throw Exceptions.profileNotFound("p-9");
+        }
+
+        @Tool(description = "A cursor the catalogue cannot read")
+        public String refused() {
+            throw new IllegalArgumentException("Invalid cursor");
+        }
+
+        @Tool(description = "A failure with no explanation")
+        public String broken() {
+            throw new NullPointerException();
+        }
+    }
+
     private static final class Resources implements McpResourceProvider {
 
         @Override
@@ -340,6 +596,27 @@ class AbstractMcpStreamableHttpControllerTest {
         @Tool(description = "A tool that ran and could not answer")
         public String fail() {
             return McpToolOutput.error("nothing to report");
+        }
+
+        @Tool(description = "A tool that decided it could not answer, and said why")
+        public String decline() {
+            throw new ToolExecutionException("no heap dump on this profile");
+        }
+
+        @Tool(description = "A tool that refuses its argument from inside its body")
+        public String refuse() {
+            throw new IllegalArgumentException("limit must be positive");
+        }
+
+        @Tool(description = "A tool whose internal failure Jeffrey names with a code of its own")
+        public String breakInside() {
+            throw Exceptions.internal("Recording file does not exist: /home/someone/private/app.jfr");
+        }
+
+        @Tool(description = "A tool that fails inside the server, with a message naming its insides")
+        public String crash() {
+            throw new NullPointerException(
+                    "Cannot invoke \"String.length()\" because \"this.secretField\" is null");
         }
 
         @Tool(description = "List what this fixture knows")

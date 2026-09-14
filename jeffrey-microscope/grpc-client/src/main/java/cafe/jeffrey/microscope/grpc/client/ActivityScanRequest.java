@@ -27,6 +27,10 @@ import java.util.Set;
  * {@link EventStreamingClient}, so nothing above it has to speak protobuf.
  *
  * <p>The window is half-open, {@code [startTime, endTime)}, in UTC epoch milliseconds.</p>
+ *
+ * <p>{@code idempotencyKey} is optional — null or blank means none. When it names a scan still in
+ * flight on the Hub in the same scope, the Hub answers with that scan instead of admitting another,
+ * which is how a start whose response was lost is recovered rather than repeated.</p>
  */
 public record ActivityScanRequest(
         String workspaceId,
@@ -35,7 +39,8 @@ public record ActivityScanRequest(
         long startTime,
         long endTime,
         long bucketSeconds,
-        Set<String> eventTypes) {
+        Set<String> eventTypes,
+        String idempotencyKey) {
 
     public ActivityScanRequest {
         for (String id : new String[]{workspaceId, projectId, sessionId}) {
@@ -62,5 +67,15 @@ public record ActivityScanRequest(
             throw new IllegalArgumentException("Specify at most " + ActivityLimits.MAX_FILTER_TYPES
                     + " nonempty event types, each at most " + ActivityLimits.MAX_TYPE_LENGTH + " characters");
         }
+        idempotencyKey = idempotencyKey == null || idempotencyKey.isBlank() ? null : idempotencyKey;
+        if (idempotencyKey != null && idempotencyKey.length() > ActivityLimits.MAX_IDEMPOTENCY_KEY_LENGTH) {
+            throw new IllegalArgumentException("An idempotency key contains at most "
+                    + ActivityLimits.MAX_IDEMPOTENCY_KEY_LENGTH + " characters");
+        }
+    }
+
+    /** True when a repeated start may be answered with the scan already in flight. */
+    public boolean hasIdempotencyKey() {
+        return idempotencyKey != null;
     }
 }

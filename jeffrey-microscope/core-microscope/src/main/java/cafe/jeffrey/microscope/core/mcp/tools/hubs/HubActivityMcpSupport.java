@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.grpc.client.ActivityScanQuery;
 import cafe.jeffrey.microscope.grpc.client.ActivityScanRequest;
@@ -27,6 +28,7 @@ import cafe.jeffrey.microscope.grpc.client.ActivityScanSnapshot;
 import cafe.jeffrey.microscope.grpc.client.ActivityScanTarget;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.activity.ActivityLimits;
 import cafe.jeffrey.shared.common.activity.ActivityOrder;
@@ -38,8 +40,14 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,7 +55,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Converts Hub summaries to bounded MCP results using the existing strict Hub resolver. */
+/**
+ * Converts Hub summaries to bounded MCP results using the existing strict Hub resolver.
+ *
+ * <p>Every start carries an idempotency key derived from the request itself — hub, workspace,
+ * project, session, window, bucket width and the sorted event types — so a {@code hubs_eventActivity}
+ * call repeated with the same arguments while its scan is still in flight on the Hub adopts that scan
+ * and registers it locally instead of claiming a second retained slot; once the scan has finished,
+ * the same call starts a fresh one as before. That is what makes a retry after a client-side timeout
+ * safe: the first call's scan was admitted before the deadline fired, and the retry is how Microscope
+ * learns its ID.</p>
+ */
 public final class HubActivityMcpSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubActivityMcpSupport.class);
@@ -91,8 +109,12 @@ public final class HubActivityMcpSupport {
     /** The Hub's failure text is its own; it is quoted back, so it cannot be trusted to be short. */
     private static final int MAX_ERROR_LENGTH = 2000;
 
-    private static final String OPERATION_KIND = "hub_activity";
+    private static final OperationKind OPERATION_KIND = OperationKind.HUB_ACTIVITY;
     private static final String TYPE_SEPARATOR = ",";
+
+    /** ASCII unit separator: a byte no hub, scope or event-type name is expected to contain. */
+    private static final String KEY_SEPARATOR = "\u001F";
+    private static final String KEY_HASH_ALGORITHM = "SHA-256";
 
     private static final String COVERAGE_NOTE =
             "Finished files visible at scan start. Overlapping recordings may count events more than once. "
@@ -106,16 +128,19 @@ public final class HubActivityMcpSupport {
     private final McpOperationRegistry operations;
     private final Duration timeout;
     private final ScheduledExecutorService deadlines;
+    private final Clock clock;
 
     public HubActivityMcpSupport(
             ProjectManagerResolver resolver,
             McpOperationRegistry operations,
             Duration timeout,
-            ScheduledExecutorService deadlines) {
+            ScheduledExecutorService deadlines,
+            Clock clock) {
         this.resolver = resolver;
         this.operations = operations;
         this.timeout = timeout;
         this.deadlines = deadlines;
+        this.clock = clock;
     }
 
     public McpToolResult start(
@@ -136,14 +161,16 @@ public final class HubActivityMcpSupport {
 
         // The request record enforces the same window, bucket and filter bounds the Hub does, so a
         // rejection is explained here instead of arriving as a remote INVALID_ARGUMENT.
+        long width = bucketSeconds == null ? ActivityLimits.DEFAULT_BUCKET_SECONDS : bucketSeconds;
         var request = new ActivityScanRequest(
                 ref.workspaceId(),
                 ref.projectId(),
                 ref.sessionId(),
                 startTime,
                 endTime,
-                bucketSeconds == null ? ActivityLimits.DEFAULT_BUCKET_SECONDS : bucketSeconds,
-                types);
+                width,
+                types,
+                idempotencyKey(ref, startTime, endTime, width, types));
 
         var snapshot = call(ref, null, manager -> manager.startActivity(request));
         register(ref, snapshot);
@@ -182,12 +209,36 @@ public final class HubActivityMcpSupport {
         var handle = new HubActivityOperation(
                 snapshot,
                 () -> call(ref, target, manager -> manager.getActivity(query)),
-                () -> call(ref, target, manager -> manager.cancelActivity(target)));
+                () -> call(ref, target, manager -> manager.cancelActivity(target)),
+                clock);
         try {
             operations.registerIfRetained(
                     OPERATION_KIND, handle, scan -> operationResult(ref, scan), McpOperationRegistry.RETENTION);
         } catch (RuntimeException e) {
             LOG.warn("Could not register Hub activity operation: scanId={}", snapshot.scanId(), e);
+        }
+    }
+
+    /**
+     * The same arguments always produce the same key, and any change to them a different one, so
+     * the Hub can tell a retry of one scan from a request for another without seeing the arguments.
+     * The hub ID is part of it because two hubs may hold a session under the same scope IDs.
+     */
+    static String idempotencyKey(HubSessionRef ref, long startTime, long endTime, long bucketSeconds, Set<String> types) {
+        List<String> parts = List.of(
+                ref.hubId(),
+                ref.workspaceId(),
+                ref.projectId(),
+                ref.sessionId(),
+                Long.toString(startTime),
+                Long.toString(endTime),
+                Long.toString(bucketSeconds),
+                types.stream().sorted().collect(Collectors.joining(KEY_SEPARATOR)));
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance(KEY_HASH_ALGORITHM)
+                    .digest(String.join(KEY_SEPARATOR, parts).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Required idempotency-key hash is unavailable", e);
         }
     }
 
@@ -238,7 +289,7 @@ public final class HubActivityMcpSupport {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            throw new IllegalStateException(explain(e), e);
+            throw new ToolExecutionException(explain(e), e);
         } finally {
             context.cancel(null);
         }
@@ -265,9 +316,17 @@ public final class HubActivityMcpSupport {
 
     /** The Hub wrote this text, so it is quoted back at a length this result can afford. */
     private static String shortened(String error) {
-        return error.length() <= MAX_ERROR_LENGTH
+        return shortened(error, MAX_ERROR_LENGTH);
+    }
+
+    /**
+     * The same bound for any remote text quoted back into a result: a replay's failure message is
+     * the Hub's too, and {@link HubReplayCollector} has a smaller budget to fit it in.
+     */
+    static String shortened(String error, int maxLength) {
+        return error.length() <= maxLength
                 ? error
-                : error.substring(0, MAX_ERROR_LENGTH) + "… (truncated to " + MAX_ERROR_LENGTH + " characters)";
+                : error.substring(0, maxLength) + "… (truncated to " + maxLength + " characters)";
     }
 
     private static ActivityScanTarget target(HubSessionRef ref, String scanId) {
@@ -308,7 +367,7 @@ public final class HubActivityMcpSupport {
 
         // Named for what it is: the filter the scan was started with, not the types it observed.
         ArrayNode types = result.putArray("requestedEventTypes");
-        snapshot.eventTypes().forEach(types::add);
+        snapshot.requestedEventTypes().forEach(types::add);
 
         ArrayNode buckets = result.putArray("buckets");
         for (var bucket : snapshot.buckets()) {

@@ -25,6 +25,9 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.McpToolMetrics;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.exception.ErrorCode;
+import cafe.jeffrey.shared.common.exception.ErrorType;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
@@ -88,6 +91,32 @@ class McpDiagnosticsTest {
         assertEquals(1, result.path("deadlineExceeded").asInt());
         assertFalse(text.contains("credential-secret"));
         assertFalse(text.contains("internal.example"));
+    }
+
+    /**
+     * The counts come from the kind the scan assigned, not from the wording of its reason. A hub
+     * whose unavailability is explained with words that happen to spell out a deadline is still
+     * unreachable, and a failure that merely says "unreachable" in its message is neither.
+     */
+    @Test
+    void countsFailuresByTheKindTheScanAssignedRatherThanByTheirWording() {
+        when(repositories.findAllProfiles()).thenReturn(List.of());
+        HubManager unavailable = hub("unavailable");
+        HubManager broken = hub("broken");
+        when(unavailable.infoOrThrow()).thenThrow(new JeffreyException(
+                ErrorType.INTERNAL, ErrorCode.HUB_UNAVAILABLE, "deadline exceeded while dialling"));
+        when(broken.infoOrThrow()).thenThrow(new IllegalStateException("unreachable"));
+        when(hubs.findAll()).thenReturn(List.of(unavailable, broken));
+        var diagnostics = new McpDiagnostics(repositories, hubs,
+                new ExternalMcpProperties(true, true, false, Set.of()), Clock.systemUTC(), Duration.ofSeconds(1));
+
+        var result = Json.readTree(diagnostics.json(tools, List.of())).path("hubs");
+
+        assertEquals(0, result.path("reachable").asInt());
+        assertEquals(1, result.path("unreachable").asInt());
+        assertEquals(0, result.path("deadlineExceeded").asInt());
+        assertEquals(1, result.path("otherFailures").asInt());
+        assertFalse(result.path("complete").asBoolean(true));
     }
 
     private static HubManager hub(String id) {

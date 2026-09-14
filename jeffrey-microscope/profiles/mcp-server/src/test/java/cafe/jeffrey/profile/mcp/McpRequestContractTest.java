@@ -83,6 +83,39 @@ class McpRequestContractTest {
         assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":[]}", -32602);
     }
 
+    /**
+     * The list methods take a cursor, and this server never issues one: each list is answered in a
+     * single page and no answer carries nextCursor. A cursor it is sent is therefore one it did not
+     * hand out, which the specification says is -32602 -- rather than the first page over again,
+     * which a client following cursors would loop on. Refused before the provider is resolved: the
+     * resources supplier here answers null, and never gets asked.
+     */
+    @Test
+    void refusesACursorOnEveryListMethodBecauseNoneOfThemPaginates() {
+        for (String method : List.of("tools/list", "prompts/list", "resources/list", "resources/templates/list")) {
+            String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"" + method + "\",\"params\":{\"cursor\":\"page-2\"}}";
+            assertError(body, -32602);
+            String message = dispatch(body).path("error").path("message").asString();
+            assertTrue(message.contains("cursor"), message);
+            assertTrue(message.contains(method), message);
+        }
+    }
+
+    @Test
+    void refusesACursorThatIsNotEvenAString() {
+        assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"cursor\":7}}", -32602);
+    }
+
+    /** An omitted, null or blank cursor is no cursor, and the list is answered as usual. */
+    @Test
+    void listsWhenTheCursorIsAbsentNullOrBlank() {
+        for (String params : List.of("{}", "{\"cursor\":null}", "{\"cursor\":\"\"}")) {
+            JsonNode response = dispatch("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":" + params + "}");
+            assertFalse(response.has("error"), response.toString());
+            assertTrue(response.path("result").path("tools").isArray(), response.toString());
+        }
+    }
+
     @Test
     void refusesIncorrectToolTypesAndRangesBeforeInvocation() {
         for (String args : List.of("[]", "null", "{\"limit\":1.9}", "{\"limit\":\"1\"}",

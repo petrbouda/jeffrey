@@ -1,0 +1,54 @@
+name: Validate IntelliJ Plugin
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: intellij-plugin-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: IntelliJ Plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      # This standalone Gradle project targets IntelliJ's Java 21 runtime.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            jeffrey-intellij-plugin/*.gradle.kts
+            jeffrey-intellij-plugin/gradle.properties
+            jeffrey-intellij-plugin/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Test and package IntelliJ plugin
+        working-directory: jeffrey-intellij-plugin
+        run: ./gradlew --no-daemon --console=plain test buildPlugin
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: intellij-plugin-test-reports
+          path: |
+            jeffrey-intellij-plugin/build/test-results/**
+            jeffrey-intellij-plugin/build/reports/tests/**
+          if-no-files-found: ignore
+
+      - name: Upload packaged plugin
+        uses: actions/upload-artifact@v7
+        with:
+          name: intellij-plugin-distribution
+          path: jeffrey-intellij-plugin/build/distributions/*.zip
+          if-no-files-found: error

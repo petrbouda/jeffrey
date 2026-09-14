@@ -59,8 +59,7 @@ public class EventStreamingClient implements Closeable {
 
         ReplayStreamingRequest.Builder requestBuilder = ReplayStreamingRequest.newBuilder()
                 .setSessionId(request.sessionId())
-                .addAllEventTypes(request.eventTypes())
-                .setSendEmptyBatches(false);
+                .addAllEventTypes(request.eventTypes());
 
         if (request.startTime() != null) {
             requestBuilder.setStartTime(request.startTime());
@@ -82,7 +81,7 @@ public class EventStreamingClient implements Closeable {
 
         cancellableContext.run(() -> {
             var observer = new EventBatchStreamObserver(sessionId, subscription, activeSubscriptions, callbacks);
-            if (request.workspaceId() != null || request.projectId() != null) {
+            if (request.scoped()) {
                 stub.scopedReplayStreaming(requestBuilder.build(), observer);
             } else {
                 stub.replayStreaming(requestBuilder.build(), observer);

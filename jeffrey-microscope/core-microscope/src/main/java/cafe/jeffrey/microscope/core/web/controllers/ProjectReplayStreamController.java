@@ -18,8 +18,6 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
-import cafe.jeffrey.microscope.grpc.client.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -35,7 +33,6 @@ import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.RequestParams;
-import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.IOException;
 import java.util.List;
@@ -68,21 +65,24 @@ public class ProjectReplayStreamController {
             @RequestParam(value = "startTime", required = false) Long startTime,
             @RequestParam(value = "endTime", required = false) Long endTime) {
 
-        if (sessionId == null || sessionId.isBlank()) {
-            throw Exceptions.invalidRequest("sessionId is required");
-        }
-        if (startTime != null && endTime != null && startTime >= endTime) {
-            throw Exceptions.invalidRequest("startTime must be strictly before endTime");
-        }
-
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
-        EventStreamingManager streamingManager = pm.eventStreamingManager();
-
+        // The request validates itself (blank session, inverted window), and it is built before the
+        // project is resolved so a malformed query answers 400 without a round trip to the hub.
+        //
+        // Deliberately unscoped, although the path names the workspace and project. Carrying the
+        // scope makes the client take ScopedReplayStreaming, which an older Hub answers UNIMPLEMENTED
+        // and which never falls back to the legacy call -- that refusal is the read-only contract the
+        // scoped RPC exists to enforce, and ScopedReplayClientTest pins it. The page would simply
+        // stop working against a Hub that has not been upgraded, where before it worked against any.
+        // hubs_queryEvents is where the scoped RPC is used, because an MCP client is told
+        // "unsupported_hub" in words rather than left with an empty view.
         var request = new ReplaySubscriptionRequest(
                 sessionId,
                 RequestParams.parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()),
                 startTime,
                 endTime);
+
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        EventStreamingManager streamingManager = pm.eventStreamingManager();
 
         SseEmitter emitter = new SseEmitter(0L);
         var subscriptionRef = new AtomicReference<EventStreamingSubscription>();

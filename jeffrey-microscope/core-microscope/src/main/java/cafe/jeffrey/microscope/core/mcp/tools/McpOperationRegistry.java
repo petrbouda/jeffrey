@@ -42,7 +42,13 @@ import java.util.function.Supplier;
 /** Process-local catalogue of existing workers. This class never schedules or starts work. */
 public final class McpOperationRegistry {
 
-    public static final Duration RETENTION = Duration.ofHours(1);
+    /**
+     * How long a terminal attempt stays readable. The same window the jobs behind it keep their
+     * outcomes for, and deliberately the same constant rather than a second hour that happens to
+     * agree: a job outliving the entry that names it makes {@code register} refuse a retry that the
+     * tool descriptions promise works.
+     */
+    public static final Duration RETENTION = BoundedJobs.COMPLETED_RETENTION;
     private final Map<String, Entry<?>> entries = new ConcurrentHashMap<>();
     private final Clock clock;
     private final AtomicLong registrationSequence = new AtomicLong();
@@ -51,16 +57,20 @@ public final class McpOperationRegistry {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public McpOperationRegistry() {
+    /**
+     * Package-private for the same reason {@link BoundedJobs}'s clockless constructors are: a test
+     * that does not care what time it is may default, while production passes the application clock.
+     */
+    McpOperationRegistry() {
         this(Clock.systemUTC());
     }
 
-    public <V> String register(String kind, OperationHandle<V> handle, Function<V, Object> result) {
+    public <V> String register(OperationKind kind, OperationHandle<V> handle, Function<V, Object> result) {
         return register(kind, handle, result, null);
     }
 
     public <V> String register(
-            String kind,
+            OperationKind kind,
             OperationHandle<V> handle,
             Function<V, Object> result,
             Supplier<String> recordingIdentity) {
@@ -68,13 +78,13 @@ public final class McpOperationRegistry {
                 .orElseThrow(() -> new IllegalArgumentException("Operation retention has expired"));
     }
 
-    public <V> Optional<String> registerIfRetained(String kind, OperationHandle<V> handle, Function<V, Object> result) {
+    public <V> Optional<String> registerIfRetained(OperationKind kind, OperationHandle<V> handle, Function<V, Object> result) {
         return registerIfRetained(kind, handle, result, null, null);
     }
 
     /** Remote workers may disappear without a final observation; forget handles left idle. */
     public <V> Optional<String> registerIfRetained(
-            String kind,
+            OperationKind kind,
             OperationHandle<V> handle,
             Function<V, Object> result,
             Duration idleRetention) {
@@ -85,11 +95,12 @@ public final class McpOperationRegistry {
     }
 
     private <V> Optional<String> registerIfRetained(
-            String kind,
+            OperationKind kind,
             OperationHandle<V> handle,
             Function<V, Object> result,
             Supplier<String> recordingIdentity,
             Duration idleRetention) {
+        Objects.requireNonNull(kind, "kind");
         evictExpired();
         Instant finished = handle.finishedAt();
         if (finished != null && finished.isBefore(clock.instant().minus(RETENTION))) {
@@ -111,12 +122,12 @@ public final class McpOperationRegistry {
     /** Applies a family tool's observation to the same handle used by the generic tools. No RPC runs here. */
     public <H extends OperationHandle<?>> boolean updateHandle(
             String operationId,
-            String kind,
+            OperationKind kind,
             Class<H> handleType,
             Consumer<H> update) {
         evictExpired();
         Entry<?> entry = entries.get(operationId);
-        if (entry == null || !kind.equals(entry.kind)) {
+        if (entry == null || kind != entry.kind) {
             return false;
         }
         synchronized (entry) {
@@ -135,7 +146,7 @@ public final class McpOperationRegistry {
     public Optional<String> latestForRecording(String recordingId) {
         evictExpired();
         return entries.values().stream()
-                .filter(entry -> entry.kind.startsWith("recording_"))
+                .filter(entry -> entry.kind.tracksRecording())
                 .filter(entry -> entry.recordingIdentity != null
                         && recordingId.equals(entry.recordingIdentity.get()))
                 .max(Comparator.<Entry<?>, Instant>comparing(entry -> entry.startedAt)
@@ -146,11 +157,11 @@ public final class McpOperationRegistry {
         return status(operationId, kind -> true);
     }
 
-    public Snapshot status(String operationId, Predicate<String> allowedKind) {
+    public Snapshot status(String operationId, Predicate<OperationKind> allowedKind) {
         return require(operationId, allowedKind).snapshot();
     }
 
-    public Snapshot cancel(String operationId, Predicate<String> allowedKind) {
+    public Snapshot cancel(String operationId, Predicate<OperationKind> allowedKind) {
         Entry<?> entry = require(operationId, allowedKind);
         entry.cancel();
         return entry.snapshot(false);
@@ -164,7 +175,7 @@ public final class McpOperationRegistry {
         return McpToolOutput.json(json);
     }
 
-    private Entry<?> require(String id, Predicate<String> allowedKind) {
+    private Entry<?> require(String id, Predicate<OperationKind> allowedKind) {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("operationId is required");
         }
@@ -190,6 +201,9 @@ public final class McpOperationRegistry {
         });
     }
 
+    /**
+     * @param kind the operation kind's wire name -- see {@link OperationKind#wireName()}
+     */
     public record Snapshot(
             String operationId, String kind, String status,
             Instant startedAt, Instant finishedAt, boolean cancellationRequested,
@@ -203,7 +217,7 @@ public final class McpOperationRegistry {
     }
 
     private static final class Entry<V> {
-        private final String kind;
+        private final OperationKind kind;
         private final String operationId;
         private final long registrationSequence;
         private final Instant startedAt;
@@ -215,7 +229,7 @@ public final class McpOperationRegistry {
         private volatile Instant lastAccessed;
 
         private Entry(
-                String kind,
+                OperationKind kind,
                 OperationHandle<V> handle,
                 Function<V, Object> renderer,
                 Supplier<String> recordingIdentity,
@@ -268,12 +282,12 @@ public final class McpOperationRegistry {
             if (!source.state().terminal()) {
                 nextSteps = List.of("Poll operations_status with this operationId. A cancellation request remains pending until the worker exits.");
             } else if (retryable) {
-                nextSteps = List.of(retryInstruction(kind),
+                nextSteps = List.of(kind.retryInstruction(),
                         "Cancellation does not roll back files or reports already written.");
             } else {
                 nextSteps = List.of("The operation completed. Its status is retained in this process for one hour.");
             }
-            Snapshot snapshot = new Snapshot(source.operationId(), kind, source.state().code(),
+            Snapshot snapshot = new Snapshot(source.operationId(), kind.wireName(), source.state().code(),
                     source.startedAt(), source.finishedAt(), source.cancellationRequested(), retryable,
                     new Progress(source.phase(), source.progress()),
                     source.result() == null ? null : currentRenderer.apply(source.result()), error, nextSteps);
@@ -290,15 +304,5 @@ public final class McpOperationRegistry {
             }
         }
 
-        private static String retryInstruction(String kind) {
-            return switch (kind) {
-                case "recording_import" -> "If progress contains a recordingId, call recordings_analyzeRecording with retry=true; otherwise call recordings_analyzeFile again to start a new import.";
-                case "recording_analysis" -> "Call recordings_analyzeRecording with the same recordingId and retry=true to start a new attempt.";
-                case "hub_download" -> "Call hubs_download with the same sessionRef and retry=true to start a new attempt.";
-                case "hub_activity" -> "Call hubs_eventActivity with the same sessionRef and window to start a new scan; its partial counts remain readable until they expire.";
-                case "heap_prepare" -> "Call heap_prepare for the same profile/report with retry=true to start a new attempt.";
-                default -> "Start a new attempt explicitly using the originating tool.";
-            };
-        }
     }
 }

@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.common.pipeline.PipelineRun;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
@@ -158,7 +159,10 @@ public final class HeapDumpInitService {
         return startPreparation(profileId, manager, report, compressedOopsOverride, onFinished, true).started();
     }
 
-    /** Returns the exact current attempt and the reports it really computes, including on joins. */
+    /**
+     * Returns the exact current attempt and its reports, including on joins. Completed work is reused
+     * only when it covers the requested reports; in-flight work is always joined for this profile.
+     */
     public synchronized Preparation startPreparation(
             String profileId, HeapDumpManager manager, String report, Boolean compressedOopsOverride,
             Runnable onFinished, boolean retryFailure) {
@@ -167,6 +171,11 @@ public final class HeapDumpInitService {
             throw new IllegalArgumentException("Unknown report: " + selected + ". Expected one of: "
                     + String.join(", ", HeapDumpStages.REPORTS));
         }
+        List<String> requestedReports = selected == null ? HeapDumpStages.REPORTS : List.of(selected);
+        Preparation previous = preparations.get(profileId);
+        boolean needsAdditionalReports = previous != null
+                && !previous.reports().containsAll(requestedReports)
+                && previous.operation().lifecycleSnapshot().state() == OperationState.COMPLETED;
         PipelineRunRegistry.StartResult result = registry.startOrJoin(new PipelineRunRequest<>(
                 profileId, "", run -> {
                     if (selected == null) {
@@ -180,10 +189,9 @@ public final class HeapDumpInitService {
                     } finally {
                         onFinished.run();
                     }
-                }), retryFailure);
+                }), retryFailure || needsAdditionalReports);
         if (result.started()) {
-            preparations.put(profileId, new Preparation(true, result.operation(),
-                    selected == null ? HeapDumpStages.REPORTS : List.of(selected)));
+            preparations.put(profileId, new Preparation(true, result.operation(), requestedReports));
         }
         Preparation current = preparations.get(profileId);
         return new Preparation(result.started(), result.operation(), current.reports());

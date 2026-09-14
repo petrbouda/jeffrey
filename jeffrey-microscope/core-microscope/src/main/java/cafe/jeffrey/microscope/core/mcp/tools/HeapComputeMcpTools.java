@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
@@ -71,6 +72,11 @@ public class HeapComputeMcpTools {
     private static final String STEP_ALREADY_RUNNING =
             "A run was already in flight for this profile, so this call joined it rather than starting "
                     + "a second one. The progress below is that run's.";
+    private static final String STEP_ALREADY_COMPLETED =
+            "The preparation already completed, so nothing was restarted: the stages below are that "
+                    + "run's history. Pass retry=true to build it again.";
+    private static final String STEP_RETRY_FAILED =
+            "The prior attempt failed or was cancelled. Use heap_prepare with retry=true to start a new attempt.";
 
     private final ProfileManager profileManager;
     private final HeapDumpInitService initService;
@@ -102,7 +108,9 @@ public class HeapComputeMcpTools {
             + "has not been run yet, or when a ranking by retained size comes back empty. Returns "
             + "immediately with the stage list; the work continues in the background and heap_status "
             + "reports it. Pass a report name to compute just that one on a dump that is already "
-            + "indexed. The result includes an operationId for operations_status/cancel; retries of retained "
+            + "indexed. Completed work is reused when it covers the requested reports; requesting another "
+            + "report starts new work. An active run is always joined. "
+            + "The result includes an operationId for operations_status/cancel; retries of retained "
             + "failed or cancelled work require retry=true. This is the one heap tool that writes, and what it writes is a cache.")
     @McpToolHints(readOnly = false)
     public String prepare(
@@ -111,7 +119,8 @@ public class HeapComputeMcpTools {
             @ToolParamValues({"strings", "dominator", "threads", "biggest", "collections", "leaks",
                     "classloaders", "biggest-collections", "consumers", "duplicates"})
             String report,
-            @ToolParam(required = false, description = "Set true to retry a retained failed or cancelled preparation. Omit to inspect it without restarting")
+            @ToolParam(required = false, description = "Set true to restart a finished preparation, including failed or cancelled work. "
+                    + "Omit to reuse completed work covering the requested reports or inspect a failed/cancelled attempt")
             Boolean retry) {
 
         HeapDumpManager heapDumpManager = requireHeapDump();
@@ -130,9 +139,7 @@ public class HeapComputeMcpTools {
             }
         }
 
-        List<String> steps = !started && preparation.operation().snapshot().state().terminal()
-                ? List.of("The prior attempt failed or was cancelled. Use heap_prepare with retry=true to start a new attempt.")
-                : nextSteps(started);
+        List<String> steps = nextSteps(started, preparation.operation().snapshot().state());
         String legacy = LinkedOutput.json(new PrepareResult(
                 started, preparation.reports(), stages(initService.progress(profileId)),
                 steps, UiLinks.view(profileId, HEAP_VIEW)));
@@ -146,7 +153,7 @@ public class HeapComputeMcpTools {
 
     private Optional<String> register(String profileId, HeapDumpInitService.Preparation preparation) {
         List<String> reports = preparation.reports();
-        return operations.registerIfRetained("heap_prepare", preparation.operation(),
+        return operations.registerIfRetained(OperationKind.HEAP_PREPARE, preparation.operation(),
                 progress -> Map.of("profileId", profileId, "reports", reports));
     }
 
@@ -221,7 +228,18 @@ public class HeapComputeMcpTools {
                 .toList();
     }
 
-    private static List<String> nextSteps(boolean started) {
+    /**
+     * A joined call reads differently depending on what it joined: a run still going, a run that
+     * already finished (which an omitted {@code retry} deliberately does not restart), or one that
+     * failed and is waiting for an explicit retry.
+     */
+    private static List<String> nextSteps(boolean started, OperationState joined) {
+        if (!started && joined == OperationState.COMPLETED) {
+            return List.of(STEP_ALREADY_COMPLETED);
+        }
+        if (!started && joined.terminal()) {
+            return List.of(STEP_RETRY_FAILED);
+        }
         return NextSteps.builder()
                 .when(!started, STEP_ALREADY_RUNNING)
                 .add(STEP_STATUS)

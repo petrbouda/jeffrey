@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.hub.core.activity;
 
+import cafe.jeffrey.hub.api.v1.EventBatch;
+import cafe.jeffrey.hub.api.v1.ReplayStatus;
 import cafe.jeffrey.hub.core.streaming.ReplayScopeNotFoundException;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
 import cafe.jeffrey.hub.core.streaming.StreamingCallbacks;
@@ -29,6 +31,7 @@ import cafe.jeffrey.shared.common.activity.ActivityOrder;
 import jdk.jfr.Event;
 import jdk.jfr.Name;
 import jdk.jfr.Recording;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -171,7 +174,7 @@ class HubActivityServiceTest {
             for (int i = 1; i < 16; i++) {
                 service.start(request());
             }
-            assertThrows(IllegalStateException.class, () -> service.start(request()));
+            assertThrows(ActivityCapacityException.class, () -> service.start(request()));
             assertEquals("cancel_requested", Json.toTree(service.cancel(ref(first))).path("status").asText());
             queued.get(0).run();
             assertEquals("cancelled",
@@ -237,6 +240,129 @@ class HubActivityServiceTest {
             for (int i = 0; i < 20; i++) {
                 assertThrows(RejectedExecutionException.class, () -> service.start(request()));
             }
+        }
+    }
+
+    /**
+     * A start whose response was lost can be repeated under the same key and answered with the scan
+     * it already admitted, so a client-side timeout does not leave a second slot claimed and a first
+     * one nobody can poll. Adoption is for in-flight scans only: once one has finished, the same key
+     * starts a fresh scan, so a repeated call after completion means what it always did.
+     */
+    @Nested
+    class IdempotencyKeys {
+
+        private static final String KEY = "same-request";
+
+        @Test
+        void theSameKeyAdoptsTheScanStillInFlightWithoutResolvingOrAdmittingAgain(@TempDir Path temp) {
+            List<Runnable> queued = new ArrayList<>();
+            AtomicInteger resolutions = new AtomicInteger();
+            try (var service = new HubActivityService(
+                    req -> {
+                        resolutions.incrementAndGet();
+                        return subscription(req, List.of(), temp);
+                    },
+                    queued::add,
+                    Clock.systemUTC())) {
+                String first = service.start(request(), KEY);
+
+                assertEquals(first, service.start(request(), KEY));
+                assertEquals(1, resolutions.get(), "an adopted scan resolves no scope");
+                assertEquals(1, queued.size(), "an adopted scan takes no retained slot");
+                // The table still has room for fifteen more, so nothing was claimed twice.
+                for (int i = 1; i < 16; i++) {
+                    service.start(request(), "other-" + i);
+                }
+                assertThrows(ActivityCapacityException.class, () -> service.start(request(), "one-too-many"));
+            }
+        }
+
+        @Test
+        void aFinishedScanIsNeverAdopted(@TempDir Path temp) {
+            List<Runnable> queued = new ArrayList<>();
+            try (var service = new HubActivityService(
+                    req -> subscription(req, List.of(), temp),
+                    completing(),
+                    queued::add,
+                    Clock.systemUTC())) {
+                String first = service.start(request(), KEY);
+                queued.get(0).run();
+                assertEquals("completed",
+                        Json.toTree(service.status(ref(first), ActivityOrder.EVENTS, 20, 0)).path("status").asText());
+
+                String second = service.start(request(), KEY);
+
+                assertNotEquals(first, second);
+                assertEquals(2, queued.size());
+            }
+        }
+
+        @Test
+        void theSameKeyInAnotherScopeIsAnotherScan(@TempDir Path temp) {
+            List<Runnable> queued = new ArrayList<>();
+            try (var service = new HubActivityService(
+                    req -> subscription(req, List.of(), temp), queued::add, Clock.systemUTC())) {
+                String first = service.start(request(), KEY);
+                long start = request().startTime();
+                var elsewhere = new ActivityRequest(
+                        "workspace", "project", "other-session", start, start + 120000, 60000, Set.of());
+
+                String second = service.start(elsewhere, KEY);
+
+                assertNotEquals(first, second);
+                assertEquals(2, queued.size());
+                assertThrows(ActivityScanNotFoundException.class,
+                        () -> service.status(ref(second), ActivityOrder.EVENTS, 20, 0));
+            }
+        }
+
+        @Test
+        void aBlankOrAbsentKeyAlwaysStartsANewScan(@TempDir Path temp) {
+            List<Runnable> queued = new ArrayList<>();
+            try (var service = new HubActivityService(
+                    req -> subscription(req, List.of(), temp), queued::add, Clock.systemUTC())) {
+                String first = service.start(request(), null);
+
+                assertNotEquals(first, service.start(request(), null));
+                assertNotEquals(first, service.start(request(), ""));
+                assertNotEquals(first, service.start(request(), "   "));
+                assertNotEquals(first, service.start(request()));
+                assertEquals(5, queued.size());
+            }
+        }
+
+        @Test
+        void anOversizedKeyIsTheCallersError(@TempDir Path temp) {
+            AtomicInteger resolutions = new AtomicInteger();
+            try (var service = new HubActivityService(
+                    req -> {
+                        resolutions.incrementAndGet();
+                        return subscription(req, List.of(), temp);
+                    },
+                    _ -> { },
+                    Clock.systemUTC())) {
+                assertThrows(IllegalArgumentException.class, () -> service.start(
+                        request(), "k".repeat(ActivityLimits.MAX_IDEMPOTENCY_KEY_LENGTH + 1)));
+                assertEquals(0, resolutions.get());
+            }
+        }
+
+        /** A reader that reports full coverage and closes as soon as it is started. */
+        private static ActivityReader.Factory completing() {
+            return (subscription, callbacks, events) -> new ActivityReader() {
+                @Override
+                public void start() {
+                    callbacks.onNext().accept(EventBatch.newBuilder()
+                            .setReplayStatus(ReplayStatus.newBuilder().setTerminal(true))
+                            .build());
+                    callbacks.onClose().run();
+                }
+
+                @Override
+                public void close() {
+                }
+            };
         }
     }
 

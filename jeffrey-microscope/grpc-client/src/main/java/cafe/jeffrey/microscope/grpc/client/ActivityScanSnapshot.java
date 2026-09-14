@@ -23,7 +23,13 @@ import cafe.jeffrey.shared.common.activity.ActivityState;
 
 import java.util.List;
 
-/** One observation of a Hub scan, with the gRPC message already left behind. */
+/**
+ * One observation of a Hub scan, with the gRPC message already left behind.
+ *
+ * <p>{@code requestedEventTypes} is the filter the scan was started with, sorted, and empty for
+ * every type — named after the wire field so it cannot be read as the types observed, which are
+ * counted per {@link Bucket}.</p>
+ */
 public record ActivityScanSnapshot(
         String scanId,
         String workspaceId,
@@ -40,7 +46,7 @@ public record ActivityScanSnapshot(
         long startTime,
         long endTime,
         long bucketMillis,
-        List<String> eventTypes,
+        List<String> requestedEventTypes,
         long totalEvents,
         int distinctEventTypes,
         int totalBuckets,
@@ -76,7 +82,7 @@ public record ActivityScanSnapshot(
                 startTime,
                 endTime,
                 bucketMillis,
-                eventTypes,
+                requestedEventTypes,
                 totalEvents,
                 distinctEventTypes,
                 totalBuckets,

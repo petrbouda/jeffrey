@@ -10,8 +10,9 @@
 # The tool restriction is instruction-level rather than enforced, as it is in Codex: a Gemini subagent
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
 # every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off
-# recordings_, hubs_download and the two ide_ tools. To make it a wall, name those tools in
-# excludeTools on the server entry in settings.json.
+# recordings_, the three hubs_ tools that write (hubs_download, hubs_eventActivity,
+# hubs_activityCancel), operations_cancel and the two ide_ tools. To make it a wall, name those tools
+# in excludeTools on the server entry in settings.json.
 name: heap-triage
 description: Works a heap dump end to end and returns only the findings — what is holding the memory, with class names, retained bytes and the GC-root paths that make each claim checkable. Delegate a whole heap question to it rather than reading histograms and dominator trees in the main conversation. It reports figures; it never maps them to source, edits anything, or decides what to change.
 tools:
@@ -75,5 +76,7 @@ about how these numbers were obtained.
 
 - **No source.** Name the class and the field, never a file or a line.
 - **No recommendations.** What to change belongs to the caller.
-- **No writing.** Never call the `recordings_` or `hubs_` families. `heap_prepare` is the one
-  exception and it writes only a cache — use it when a report or a retained size is missing.
+- **No writing.** Never call the `recordings_` or `hubs_` families, and never `operations_cancel` —
+  the work it stops was started by the caller. `heap_prepare` is the one exception and it writes only
+  a cache — use it when a report or a retained size is missing, and follow it with `heap_status`, or
+  `operations_status` with the `operationId` it returned.

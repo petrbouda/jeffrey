@@ -40,12 +40,14 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -86,6 +88,18 @@ class McpProfileContextCacheTest {
         when(databaseManagerResolver.acquire(profileManager.info())).thenAnswer(invocation ->
                 new DatabaseLease(mock(DataSource.class), () -> released.add(profileId)));
         return profileManager;
+    }
+
+    private void stubProfileWhoseReleaseFails(String profileId) {
+        ProfileManager profileManager = mock(ProfileManager.class);
+        when(profileManager.info()).thenReturn(new ProfileInfo(
+                profileId, "proj", "ws", "Profile", RecordingEventSource.JDK,
+                start, start.plusSeconds(60), start, true, false, "rec-1"));
+        when(profileManagerResolver.resolve(profileId)).thenReturn(profileManager);
+        when(databaseManagerResolver.acquire(profileManager.info())).thenAnswer(invocation ->
+                new DatabaseLease(mock(DataSource.class), () -> {
+                    throw new IllegalStateException("pool already closed");
+                }));
     }
 
     @Nested
@@ -276,6 +290,43 @@ class McpProfileContextCacheTest {
             assertEquals(List.of(PROFILE), released);
         }
 
+        /**
+         * A pool that refuses to close is that profile's problem, not the sweep's. One release
+         * throwing used to abandon the rest of the sweep -- and, run from the scheduler, every sweep
+         * after it, so nothing was ever evicted again.
+         */
+        @Test
+        void aFailingReleaseDoesNotStopTheSweepFromEvictingTheOthers() {
+            stubProfile("p-1");
+            stubProfileWhoseReleaseFails("p-2");
+            stubProfile("p-3");
+            McpProfileContextCache cache = newCache();
+            cache.acquire("p-1").close();
+            cache.acquire("p-2").close();
+            cache.acquire("p-3").close();
+
+            clock.advance(IDLE_TIMEOUT.plusMinutes(1));
+            assertDoesNotThrow(cache::evictIdle);
+
+            assertEquals(Set.of("p-1", "p-3"), Set.copyOf(released));
+            assertEquals(0, cache.size(), "the context whose release failed is closed and dropped too");
+        }
+
+        @Test
+        void aSweepThatFailsDoesNotPreventTheNextOne() {
+            stubProfile(PROFILE);
+            McpProfileContextCache cache = newCache();
+            cache.acquire(PROFILE).close();
+
+            clock.failNextRead();
+            assertDoesNotThrow(cache::sweep);
+            assertTrue(released.isEmpty());
+
+            clock.advance(IDLE_TIMEOUT.plusMinutes(1));
+            cache.sweep();
+            assertEquals(List.of(PROFILE), released);
+        }
+
         @Test
         void invalidationDefersOneCloseUntilTheActiveCallEnds() {
             stubProfile(PROFILE);
@@ -356,6 +407,7 @@ class McpProfileContextCacheTest {
     private static final class MutableClock extends Clock {
 
         private Instant now;
+        private boolean failNextRead;
 
         private MutableClock(Instant now) {
             this.now = now;
@@ -363,6 +415,11 @@ class McpProfileContextCacheTest {
 
         void advance(Duration amount) {
             now = now.plus(amount);
+        }
+
+        /** The next read throws, which is the cheapest way to make a whole sweep fail. */
+        void failNextRead() {
+            failNextRead = true;
         }
 
         @Override
@@ -377,6 +434,10 @@ class McpProfileContextCacheTest {
 
         @Override
         public Instant instant() {
+            if (failNextRead) {
+                failNextRead = false;
+                throw new IllegalStateException("clock unavailable");
+            }
             return now;
         }
     }

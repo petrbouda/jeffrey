@@ -12,11 +12,13 @@ the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plu
 are the same files for all three.
 
 Every analysis tool is **read-only**, and every tool says so in its MCP annotations rather than
-leaving a client to infer it. Six do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
+leaving a client to infer it. Nine do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
 rather than changing them, `heap_prepare`, which writes only a cache, `hubs_download`, which pulls one
-off another machine, and `ide_link` and `ide_open`, which act on the editor running beside Jeffrey
-rather than on any profile. Each declares itself, so the reading members of those same families -
-`recordings_list`, `recordings_status`, `heap_status` - are not swept up with them. Two families
+off another machine, `hubs_eventActivity`, which starts a scan on a hub, `hubs_activityCancel` and
+`operations_cancel`, which ask background work to stop, and `ide_link` and `ide_open`, which act on the
+editor running beside Jeffrey rather than on any profile. Each declares itself, so the reading members
+of those same families - `recordings_list`, `recordings_status`, `heap_status`, `hubs_activityStatus`,
+`operations_status` - are not swept up with them. Two families
 reach outside this server and have switches of their own —
 `jeffrey.microscope.mcp.hubs.enabled=false` for the one that leaves the machine, and
 `jeffrey.microscope.mcp.ide.enabled=false` for the one that reaches into the developer's IntelliJ.
@@ -118,13 +120,14 @@ prefix is built from the server's name.
 
 ## What you get
 
-**Tools**, in eighteen families:
+**Tools**, in nineteen families:
 
 | Family | What it does |
 |---|---|
-| `profiles_` | The catalogue: which recordings are analysed, what each one can answer, and deep links into the UI |
+| `profiles_` | The catalogue: which recordings are analysed, what each one can answer, deep links into the UI, and a versioned evidence snapshot of one profile to cite |
+| `operations_` | The work the writers start — an import, a hub download or scan, a heap preparation — followed by its `operationId`: where it has got to, and a request that it stop |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
-| `compare_` | Two profiles against each other: whether they are comparable, what moved, and the differential call tree |
+| `compare_` | Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, and the differential call tree |
 | `traces_` | Trace operations, the application's own notifications, exemplars, span trees, span-scoped flamegraphs, and the attributes that say which population a trace belonged to |
 | `jvm_` | The machine underneath: garbage collection and the pages beneath it, safepoints, JIT compilation, threads, thread dumps, native memory, class loading, exceptions, the host and who else is on it, TLS and certificates, the container, the JVM flags and what it was started with |
 | `http_` | The HTTP traffic the application served: percentiles, endpoints, status codes, slowest requests |
@@ -137,8 +140,8 @@ prefix is built from the server's name.
 | `memory_` | Allocation by type, and JFR-side leak candidates that need no heap dump |
 | `jfr_` | The profile's DuckDB tables — schema, the fields of one event type, and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL, OQL, and the one pair that builds rather than reads: `heap_prepare` and `heap_status` |
-| `recordings_` | One of those that write: imports a recording file and builds a profile from it |
-| `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub and pulls one in |
+| `recordings_` | One of the five families with a writer in it: imports a recording file and builds a profile from it |
+| `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub, reads a bounded sample of events or a time-bucketed activity summary from one where it lies, and pulls one in |
 | `ide_` | Where a frame actually lives, answered by the developer's running IntelliJ: the file and line for a class and method, a class's source, which checkouts are open and on what commit, and — the one tool here with a visible side effect — opening a location in the editor |
 
 `recordings_analyzeFile` takes an **absolute path**, and the file has to be on the machine Jeffrey
@@ -223,12 +226,16 @@ instead of spending a tool call on it.
 
 **Narrowing what is advertised.** `jeffrey.microscope.mcp.families` takes a comma-separated
 allow-list of family prefixes — `profiles,flamegraph,jfr,heap`, say — and everything outside it is
-left out of `tools/list` entirely. Empty, the default, advertises all of them. It is the blunt
-instrument for a shared installation, and it composes with the three per-family switches above.
+left out of `tools/list` entirely. Empty, the default, advertises whatever
+`jeffrey.microscope.mcp.preset` selects — `all`, or `jfr`, `heap` and `hub`, each of which keeps
+`profiles`, `recordings` and `operations` beside the families it is named for. A non-empty list wins
+over the preset, and `operations` belongs in any list that keeps a writer, since it is how the work
+the writer starts is followed. It is the blunt instrument for a shared installation, and it composes
+with the three per-family switches above.
 
 ## Permissions
 
-Every client asks before each tool the first time. Every Jeffrey tool reads except the five named
+Every client asks before each tool the first time. Every Jeffrey tool reads except the nine named
 above, so approving a family once is usually what you want — `hubs_` and `ide_` are the two worth
 reading twice, since one moves data off another machine and the other acts on your editor.
 

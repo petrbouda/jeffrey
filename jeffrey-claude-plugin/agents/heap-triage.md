@@ -4,8 +4,10 @@ description: Works a heap dump end to end and returns only the findings — what
 tools:
   - mcp__plugin_microscope_jeffrey__heap_*
   - mcp__plugin_microscope_jeffrey__profiles_*
+  - mcp__plugin_microscope_jeffrey__operations_status
   - mcp__jeffrey__heap_*
   - mcp__jeffrey__profiles_*
+  - mcp__jeffrey__operations_status
 model: inherit
 skills:
   - analyze-heap
@@ -35,7 +37,9 @@ heap dump, say that and stop — `analyze-jfr` is the caller's next move, not yo
 
 1. **Build what you need before ranking by it.** Retained sizes and the dominator tree do not exist
    until something computes them. When they are missing, `heap_prepare` builds them and `heap_status`
-   says when it is done; an empty retained ranking is a signal to prepare, never a finding that
+   says when it is done — or `operations_status` with the `operationId` that `heap_prepare` returned,
+   which is the one tool outside your two families you hold, and the only thing it does is read
+   progress; an empty retained ranking is a signal to prepare, never a finding that
    nothing retains memory. The same goes for the cached reports — leak suspects, class-loader
    analysis, top consumers — each of which `heap_prepare` can compute by name.
 2. **Never report a leak without a GC-root path.** A large class is an observation. The path is the

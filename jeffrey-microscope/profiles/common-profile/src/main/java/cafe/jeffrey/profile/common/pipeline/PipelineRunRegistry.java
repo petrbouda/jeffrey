@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -120,15 +121,23 @@ public final class PipelineRunRegistry<K> {
         return startOrJoin(request, true).started();
     }
 
-    /** Atomically selects one exact attempt; retained failures restart only on explicit retry. */
+    /**
+     * Atomically selects one exact attempt.
+     * <p>
+     * A run in flight is always joined. A finished run -- completed or failed alike -- is kept and
+     * joined unless {@code retryFailure} asks for a fresh one: a caller that only wants to inspect
+     * what happened must not restart a preparation that already completed, which is what "omit retry
+     * to inspect without restarting" promises the reader. {@link #start} passes {@code true}, so the
+     * UI's own re-initialize keeps restarting a finished run.
+     *
+     * @param retryFailure whether a finished run may be replaced by a new attempt
+     */
     public StartResult startOrJoin(PipelineRunRequest<K> request, boolean retryFailure) {
         // The candidate is built up front so the outcome can be decided by identity: if compute() gave
         // back anything else, an in-flight run kept the key and this call started nothing.
         TrackedRun candidate = new TrackedRun(new PipelineRun(definition, request.scopeId(), clock));
         TrackedRun current = runsByKey.compute(request.key(), (_, existing) ->
-                existing != null && (!existing.finished
-                        || (!retryFailure && existing.run.progress().state() == PipelineState.FAILED))
-                        ? existing : candidate);
+                existing != null && (!existing.finished || !retryFailure) ? existing : candidate);
 
         if (current != candidate) {
             LOG.debug("Pipeline run already in flight: pipeline_id={} key={}",
@@ -157,6 +166,9 @@ public final class PipelineRunRegistry<K> {
                 candidate.finishedAt = clock.instant();
                 candidate.finished = true;
             }
+            // Outside the monitor: a joiner woken here must not run anything of its own under the
+            // lock the run itself takes.
+            candidate.completion.complete(null);
             runsByKey.remove(request.key(), candidate);
             throw e;
         }
@@ -240,6 +252,30 @@ public final class PipelineRunRegistry<K> {
         return Optional.ofNullable(runsByKey.get(key));
     }
 
+    /**
+     * Waits for the run holding this key, if there is one, and reports how it ended.
+     * <p>
+     * For a caller that needs a run to be over rather than merely to exist: an attempt that found
+     * a run already in flight -- started from the UI, say -- must not report the profile as built
+     * while that run is still parsing it. The key stays held by the run until its result is stored,
+     * so the progress read afterwards is the terminal one.
+     *
+     * @return the terminal progress of the run, or empty when no run holds the key
+     */
+    public Optional<PipelineProgress> awaitCompletion(K key) throws InterruptedException {
+        TrackedRun tracked = runsByKey.get(key);
+        if (tracked == null) {
+            return Optional.empty();
+        }
+        try {
+            tracked.completion.get();
+        } catch (ExecutionException e) {
+            // Only ever completed normally: the future says the run finished, nothing about how.
+            throw new IllegalStateException(e.getCause());
+        }
+        return Optional.of(tracked.run.progress());
+    }
+
     private void execute(PipelineRunRequest<K> request, TrackedRun tracked) {
         boolean acquired = false;
         try {
@@ -253,7 +289,10 @@ public final class PipelineRunRegistry<K> {
             tracked.run.checkCancellation();
             driveWork(request, tracked.run);
         } catch (InterruptedException | CancellationException e) {
-            tracked.run.fail("CANCELLED", CANCELLED_WHILE_QUEUED_MESSAGE);
+            // Only a run still waiting on the semaphore was cancelled while queued. Past that point
+            // the slot is held and the work has begun, and saying otherwise sent a reader looking for
+            // a queue that was never what stopped it.
+            tracked.run.fail("CANCELLED", acquired ? CANCELLED_MESSAGE : CANCELLED_WHILE_QUEUED_MESSAGE);
         } finally {
             // Cancellation no longer interrupts once work has ended. Cleanup still owns the key.
             tracked.stopWorker();
@@ -276,6 +315,7 @@ public final class PipelineRunRegistry<K> {
                 tracked.finishedAt = clock.instant();
                 tracked.finished = true;
             }
+            tracked.completion.complete(null);
         }
     }
 
@@ -414,6 +454,8 @@ public final class PipelineRunRegistry<K> {
         private boolean started;
         private volatile boolean finished;
         private volatile Instant finishedAt;
+        /** Completed once {@link #finished} is set, so a joiner can wait rather than poll. */
+        private final CompletableFuture<Void> completion = new CompletableFuture<>();
 
         private TrackedRun(PipelineRun run) {
             this.run = run;

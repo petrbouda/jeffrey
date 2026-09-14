@@ -23,6 +23,7 @@ Tool names below omit the prefix your client puts in front of them.
 2. Record the baseline          → recordings_analyzeFile → profileId B
 3. Record the candidate         → recordings_analyzeFile → profileId C
 4. compare_list(C, baseline=B)  → are these two even comparable
+   compare_quality(C, baseline=B) → sampling, duration and workload evidence
 5. compare_movements            → what moved, ranked
 6. compare_flamegraph           → where it moved, in the call tree
 ```
@@ -67,18 +68,28 @@ recordings_analyzeFile(path="/abs/base.jfr", name="baseline <short-sha>")
 recordings_analyzeFile(path="/abs/head.jfr", name="candidate <short-sha>")
 ```
 
-Both may come back with a status of `running`; poll `recordings_status` rather than importing again.
+Both may come back with a status of `running` and an `operationId`; poll `operations_status` with
+it rather than importing again, and `operations_cancel` it if the wrong build was recorded.
 
 ## 4. Ask whether they are comparable before reading the difference
 
 ```
 compare_list(profileId=<candidate>, baselineProfileId=<baseline>)
+compare_quality(profileId=<candidate>, baselineProfileId=<baseline>)
 ```
 
-This is not a formality. It reports whether the two recordings cover comparable windows and carry the
-same event types, and **"these two are not comparable" is the finding** — reporting a regression from
-an incomparable pair is worse than reporting nothing, because it will be believed. If they are not
-comparable, say why and either re-record or stop.
+`compare_list` identifies shared event types and window differences. `compare_quality` returns
+evidence, not a single comparability verdict: inspect `samplingConfiguration`, `findings`, each
+side's `samplerHealth`, and `truncation` using the interpretation in `compare-jfr`. Call both before
+quoting a delta. If no shared evidence supports the requested claim, explain why and re-record or
+stop that comparison.
+
+`durationNormalization.available=true` permits exposure scaling, not an assumption of equal load.
+`workloadNormalization.available=false` means the recorded server events cannot supply a complete
+per-operation denominator. You may still compare hotspot distributions and qualified movements;
+do not turn those alone into a faster/slower-per-request verdict. Use the controlled workload and
+measured benchmark outcomes from this run to support a regression claim, or report the missing
+denominator under **Not assessed**.
 
 ## 5 and 6. Read what moved, then say what it means
 
@@ -87,7 +98,9 @@ tree. Use `useWeight: true` when comparing allocation or lock time rather than s
 
 Report, in the `report` skill's shape:
 
-- **The verdict first** — slower, faster, or indistinguishable — and the figure it rests on.
+- **The verdict first** — slower, faster, indistinguishable, or insufficient evidence — and the
+  measurement or evidence gap it rests on. Missing support for a performance claim is not proof
+  that the runs are indistinguishable.
 - **Where**, as a frame with its share on each side.
 - **The uncertainty.** One run each on a shared machine supports "no obvious change"; it does not
   support "3% slower". A movement smaller than the difference between two runs of the *same* revision

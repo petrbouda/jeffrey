@@ -30,18 +30,29 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
 import io.grpc.Context;
+import io.grpc.Deadline;
+import io.grpc.Status;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,6 +62,7 @@ import static org.mockito.Mockito.when;
 
 class HubsReplayMcpToolsTest {
     private static final String REF = new HubSessionRef("hub", "workspace", "project", "session").encode();
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     /** 5000 is past the retired 1000-row cap: it is accepted, echoed back, and never clamped. */
     @ParameterizedTest
@@ -60,12 +72,20 @@ class HubsReplayMcpToolsTest {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
         ProjectManager project = mock(ProjectManager.class);
         EventStreamingManager streaming = mock(EventStreamingManager.class);
+        AtomicReference<Deadline> discoveryDeadline = new AtomicReference<>();
         when(resolver.resolveStrict("hub", "workspace", "project"))
-                .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+                .thenAnswer(call -> {
+                    discoveryDeadline.set(Context.current().getDeadline());
+                    return new ProjectManagerResolver.ProjectContext(null, null, project);
+                });
         when(project.eventStreamingManager()).thenReturn(streaming);
         Context.CancellableContext context = Context.ROOT.withCancellation();
-        when(streaming.subscribeReplayRaw(any(), any())).thenReturn(new EventStreamingSubscription(context, "session"));
-        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), Duration.ofMillis(40));
+        when(streaming.subscribeReplayRaw(any(), any())).thenAnswer(call -> {
+            assertNotNull(discoveryDeadline.get());
+            assertSame(discoveryDeadline.get(), Context.current().getDeadline());
+            return new EventStreamingSubscription(context, "session");
+        });
+        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), Duration.ofMillis(40), CLOCK);
         long before = System.nanoTime();
         var result = tools.queryEvents(REF, "jdk.CPULoad", null, null, limit, null).structuredContent();
         assertTrue(Duration.ofNanos(System.nanoTime() - before).compareTo(Duration.ofSeconds(2)) < 0);
@@ -90,7 +110,7 @@ class HubsReplayMcpToolsTest {
             return new EventStreamingSubscription(context, "session");
         });
         CompletableFuture<String> termination = new CompletableFuture<>();
-        Thread worker = Thread.ofVirtual().start(() -> termination.complete(new HubsReplayMcpTools(resolver, new McpOperationRegistry())
+        Thread worker = Thread.ofVirtual().start(() -> termination.complete(new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK)
                 .queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent().path("termination").asText()));
         try {
             assertTrue(subscribed.await(2, TimeUnit.SECONDS));
@@ -103,10 +123,80 @@ class HubsReplayMcpToolsTest {
         }
     }
 
+    /** Unknown scope remains a caller error even though discovery shares the replay deadline. */
+    @Test
+    void unknownHubIsTheCallersErrorNotARemoteOne() {
+        ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+        when(resolver.resolveStrict("hub", "workspace", "project"))
+                .thenThrow(new IllegalArgumentException("Unknown hub: hub"));
+        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, null, null));
+
+        assertTrue(error.getMessage().contains("hub"), error.getMessage());
+    }
+
+    @Test
+    void missingWorkspaceRemainsACallerError() {
+        ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+        JeffreyClientException expected = Exceptions.workspaceNotFound("workspace");
+        when(resolver.resolveStrict("hub", "workspace", "project")).thenThrow(expected);
+        var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
+
+        assertSame(expected, assertThrows(JeffreyClientException.class,
+                () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, null, null)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"DEADLINE_EXCEEDED, timeout", "UNAVAILABLE, unavailable"})
+    void discoverySharesReplayDeadlineAndReportsTransportFailures(String status, String termination) {
+        ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+        AtomicReference<Deadline> observed = new AtomicReference<>();
+        when(resolver.resolveStrict("hub", "workspace", "project")).thenAnswer(call -> {
+            observed.set(Context.current().getDeadline());
+            throw Status.fromCode(Status.Code.valueOf(status)).withDescription("discovery failed").asRuntimeException();
+        });
+        Context.ROOT.run(() -> {
+            var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), Duration.ofMillis(40), CLOCK)
+                    .queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
+            assertNotNull(observed.get(), "Remote discovery must inherit the replay deadline");
+            assertTrue(observed.get().timeRemaining(TimeUnit.MILLISECONDS) <= 40);
+            assertEquals(termination, result.path("termination").asText());
+            assertEquals("discovery failed", result.path("error").asText());
+            assertEquals(0, result.path("rows").asInt());
+            assertFalse(result.path("complete").asBoolean());
+        });
+    }
+
+    @Test
+    void remoteFailureCarriesItsStatusAndMessage() {
+        ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+        ProjectManager project = mock(ProjectManager.class);
+        EventStreamingManager streaming = mock(EventStreamingManager.class);
+        when(resolver.resolveStrict("hub", "workspace", "project"))
+                .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+        when(project.eventStreamingManager()).thenReturn(streaming);
+        Context.CancellableContext context = Context.ROOT.withCancellation();
+        when(streaming.subscribeReplayRaw(any(), any())).thenAnswer(call -> {
+            StreamingCallbacks callbacks = call.getArgument(1);
+            callbacks.onError().accept(Status.UNAVAILABLE.withDescription("hub is restarting").asRuntimeException());
+            return new EventStreamingSubscription(context, "session");
+        });
+
+        var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK)
+                .queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
+
+        assertEquals("unavailable", result.path("termination").asText());
+        assertEquals("hub is restarting", result.path("error").asText());
+        assertFalse(result.path("complete").asBoolean());
+        assertTrue(context.isCancelled());
+    }
+
     @Test
     void invalidLimitsAndTimeWindowNeverContactHub() {
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
-        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
+        HubsReplayMcpTools tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "jdk.CPULoad", null, null, -1, null));
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "jdk.CPULoad", 2L, 1L, null, null));
         assertThrows(IllegalArgumentException.class, () -> tools.queryEvents(REF, "", null, null, null, null));
@@ -140,7 +230,7 @@ class HubsReplayMcpToolsTest {
             callbacks.onComplete().run();
             return new EventStreamingSubscription(Context.ROOT.withCancellation(), "session");
         });
-        var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry()).queryEvents(REF, "jdk.CPULoad", 1L, 100L, null, null).structuredContent();
+        var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK).queryEvents(REF, "jdk.CPULoad", 1L, 100L, null, null).structuredContent();
         assertTrue(result.path("complete").asBoolean());
         assertEquals(123L, result.path("events").get(0).path("fields").path("value").asLong());
         assertEquals(1L, result.path("startTime").asLong());
@@ -161,7 +251,7 @@ class HubsReplayMcpToolsTest {
             callbacks.onComplete().run();
             return new EventStreamingSubscription(context, "session");
         });
-        var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry()).queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
+        var result = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK).queryEvents(REF, "jdk.CPULoad", null, null, null, null).structuredContent();
         assertEquals("unsupported_hub", result.path("termination").asText());
         assertTrue(context.isCancelled());
     }

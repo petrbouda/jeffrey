@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
@@ -33,14 +34,21 @@ import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class HubsActivityMcpToolsTest {
     private static final String REF = new HubSessionRef("hub", "workspace", "project", "session").encode();
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     private static final ActivityScope SCOPE = ActivityScope.newBuilder()
             .setWorkspaceId("workspace")
@@ -120,7 +128,7 @@ class HubsActivityMcpToolsTest {
                     .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
-            var tools = new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry()), "hubs");
+            var tools = new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK), "hubs");
             var started = tools.callResult("hubs_eventActivity", Json.createObject()
                     .put("sessionRef", REF)
                     .put("startTime", 1000)
@@ -185,8 +193,8 @@ class HubsActivityMcpToolsTest {
                     .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
             var manager = new EventStreamingManager(new EventStreamingClient(connection));
             when(project.eventStreamingManager()).thenReturn(manager);
-            var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
-            var error = assertThrows(IllegalStateException.class, () -> tools.eventActivity(REF, 1, 2, null, null));
+            var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
+            var error = assertThrows(ToolExecutionException.class, () -> tools.eventActivity(REF, 1, 2, null, null));
             assertTrue(error.getMessage().contains("does not support event activity"), error.toString());
             assertEquals(0, rawCalls.get());
         } finally {
@@ -236,7 +244,7 @@ class HubsActivityMcpToolsTest {
             when(project.eventStreamingManager()).thenReturn(manager);
 
             var operations = new McpOperationRegistry();
-            var hubs = new HubsReplayMcpTools(resolver, operations);
+            var hubs = new HubsReplayMcpTools(resolver, operations, CLOCK);
             var started = hubs.eventActivity(REF, 1000, 121000, 60L, null).structuredContent();
 
             // The scan ID is the operation ID, so a reader tracks one identifier rather than two.
@@ -253,10 +261,60 @@ class HubsActivityMcpToolsTest {
         }
     }
 
+    /**
+     * The key is what lets a {@code hubs_eventActivity} call repeated after a client-side timeout
+     * adopt the scan the first call started instead of claiming a second slot. It therefore has to be
+     * the same for the same request and different for any other, computed here from the arguments
+     * rather than drawn at random.
+     */
+    @Test
+    void startCarriesAKeyDerivedFromTheRequest() throws Exception {
+        List<String> keys = new ArrayList<>();
+        var remote = new EventActivityServiceGrpc.EventActivityServiceImplBase() {
+            @Override
+            public void startActivity(StartActivityRequest request, StreamObserver<EventActivitySnapshot> observer) {
+                keys.add(request.getIdempotencyKey());
+                observer.onNext(snapshot(ActivityState.ACTIVITY_STATE_RUNNING));
+                observer.onCompleted();
+            }
+        };
+        var server = NettyServerBuilder.forPort(0).addService(remote).build().start();
+        var channel = NettyChannelBuilder.forAddress("localhost", server.getPort()).usePlaintext().build();
+        try {
+            GrpcHubConnection connection = mock(GrpcHubConnection.class);
+            when(connection.getChannel()).thenReturn(channel);
+            ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
+            ProjectManager project = mock(ProjectManager.class);
+            when(resolver.resolveStrict("hub", "workspace", "project"))
+                    .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+            when(resolver.resolveStrict("other-hub", "workspace", "project"))
+                    .thenReturn(new ProjectManagerResolver.ProjectContext(null, null, project));
+            var manager = new EventStreamingManager(new EventStreamingClient(connection));
+            when(project.eventStreamingManager()).thenReturn(manager);
+            var hubs = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
+
+            hubs.eventActivity(REF, 1000, 121000, 60L, "jdk.GarbageCollection, jdk.ThreadPark");
+            hubs.eventActivity(REF, 1000, 121000, 60L, "jdk.ThreadPark,jdk.GarbageCollection");
+            hubs.eventActivity(REF, 1000, 181000, 60L, "jdk.GarbageCollection, jdk.ThreadPark");
+            hubs.eventActivity(REF, 1000, 121000, 30L, "jdk.GarbageCollection, jdk.ThreadPark");
+            hubs.eventActivity(REF, 1000, 121000, 60L, null);
+            String otherHub = new HubSessionRef("other-hub", "workspace", "project", "session").encode();
+            hubs.eventActivity(otherHub, 1000, 121000, 60L, "jdk.GarbageCollection, jdk.ThreadPark");
+
+            assertEquals(6, keys.size());
+            assertFalse(keys.get(0).isBlank());
+            assertEquals(keys.get(0), keys.get(1), "the same request in another spelling is the same key");
+            assertEquals(5, keys.stream().distinct().count(), "another window, width, filter or hub is another key");
+        } finally {
+            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+            server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+
     @Test
     void invalidScanArgumentsNeverContactHub() {
         var resolver = mock(ProjectManagerResolver.class);
-        var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry());
+        var tools = new HubsReplayMcpTools(resolver, new McpOperationRegistry(), CLOCK);
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 2, 1, null, null));
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 0, Long.MAX_VALUE, 1L, null));
         assertThrows(IllegalArgumentException.class, () -> tools.eventActivity(REF, 1, 2, Long.MAX_VALUE, null));

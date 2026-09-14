@@ -82,8 +82,8 @@ class ToolInvocationTest {
          */
         @Test
         void reportsTheCauseRatherThanTheReflectionWrapper() {
-            IllegalStateException thrown =
-                    assertThrows(IllegalStateException.class, () -> invoke("boom"));
+            ToolInvocationException thrown =
+                    assertThrows(ToolInvocationException.class, () -> invoke("boom"));
 
             assertTrue(thrown.getMessage().contains("no heap dump on this profile"), thrown.getMessage());
             assertEquals("no heap dump on this profile", thrown.getCause().getMessage());
@@ -99,11 +99,24 @@ class ToolInvocationTest {
          */
         @Test
         void keepsAToolsOwnRefusalOnTheToolSideOfTheLine() {
-            IllegalStateException thrown =
-                    assertThrows(IllegalStateException.class, () -> invoke("refuses"));
+            ToolInvocationException thrown =
+                    assertThrows(ToolInvocationException.class, () -> invoke("refuses"));
 
             assertTrue(thrown.getMessage().contains("limit must be positive"), thrown.getMessage());
             assertEquals(IllegalArgumentException.class, thrown.getCause().getClass());
+        }
+
+        /**
+         * The one failure that is not wrapped. A {@link ToolExecutionException} already is the
+         * sentence the model is meant to read; wrapped, the client would have been given the prefix,
+         * the sentence, and the sentence again out of the cause.
+         */
+        @Test
+        void letsAToolsOwnExecutionExceptionThroughAsItself() {
+            ToolExecutionException thrown =
+                    assertThrows(ToolExecutionException.class, () -> invoke("declines"));
+
+            assertEquals("no heap dump on this profile", thrown.getMessage());
         }
     }
 
@@ -123,6 +136,10 @@ class ToolInvocationTest {
 
         public String refuses() {
             throw new IllegalArgumentException("limit must be positive");
+        }
+
+        public String declines() {
+            throw new ToolExecutionException("no heap dump on this profile");
         }
     }
 }

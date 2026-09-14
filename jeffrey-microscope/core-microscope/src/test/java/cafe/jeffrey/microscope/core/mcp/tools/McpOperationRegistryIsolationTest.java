@@ -57,13 +57,13 @@ class McpOperationRegistryIsolationTest {
             return "first-result";
         });
         try {
-            registry.register("recording_analysis", first, value -> value, () -> "recording-a");
+            registry.register(OperationKind.RECORDING_ANALYSIS, first, value -> value, () -> "recording-a");
             install.countDown();
             assertTrue(installed.await(5, TimeUnit.SECONDS));
             var second = jobs.startOrJoin("second", false, value -> true, () -> "second-result");
             jobs.awaitWithin(second, Duration.ofSeconds(5));
             assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
-                String id = registry.register("recording_analysis", second, value -> value, () -> "recording-b");
+                String id = registry.register(OperationKind.RECORDING_ANALYSIS, second, value -> value, () -> "recording-b");
                 assertEquals("completed", registry.status(id).status());
                 assertEquals("completed", registry.cancel(id, kind -> true).status());
                 assertEquals(id, registry.latestForRecording("recording-b").orElseThrow());
@@ -81,10 +81,10 @@ class McpOperationRegistryIsolationTest {
     void latestRecordingAttemptUsesRegistrationOrderWhenTimestampsMatch() {
         Instant now = Instant.parse("2026-09-12T12:00:00Z");
         McpOperationRegistry registry = new McpOperationRegistry(Clock.fixed(now, ZoneOffset.UTC));
-        registry.register("recording_analysis", completed("a", now), value -> value, () -> "recording");
-        registry.register("recording_analysis", completed("b", now), value -> value, () -> "recording");
+        registry.register(OperationKind.RECORDING_ANALYSIS, completed("a", now), value -> value, () -> "recording");
+        registry.register(OperationKind.RECORDING_ANALYSIS, completed("b", now), value -> value, () -> "recording");
         assertEquals("b", registry.latestForRecording("recording").orElseThrow());
-        registry.register("recording_analysis", completed("a", now), value -> value, () -> "recording");
+        registry.register(OperationKind.RECORDING_ANALYSIS, completed("a", now), value -> value, () -> "recording");
         assertEquals("b", registry.latestForRecording("recording").orElseThrow());
     }
 

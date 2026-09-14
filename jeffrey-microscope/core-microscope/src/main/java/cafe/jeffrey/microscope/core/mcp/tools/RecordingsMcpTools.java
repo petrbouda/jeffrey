@@ -26,6 +26,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -38,6 +39,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
@@ -67,7 +69,21 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class RecordingsMcpTools {
 
+    private static final String RECORDING_VANISHED = "Recording vanished while being analyzed: ";
+    private static final String PIPELINE_FAILED = "The analysis this attempt joined failed: ";
+    private static final String INTERRUPTED_JOINING_PIPELINE = "Interrupted while waiting for the running analysis";
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsMcpTools.class);
+
+    /** The application property that caps how many {@code recordings_analyzeFile} imports run together. */
+    public static final String MAX_CONCURRENT_IMPORTS_PROPERTY =
+            "jeffrey.microscope.mcp.recordings.max-concurrent-imports";
+
+    /**
+     * How many imports run together unless the property says otherwise. An import is a file copy
+     * followed by a full parse, and N calls in one turn used to start N of both at once; the ones
+     * beyond this wait as {@code queued} and start on their own when a slot frees.
+     */
+    public static final int DEFAULT_MAX_CONCURRENT_IMPORTS = 2;
 
     private static final String HOME_PREFIX = "~";
     private static final String USER_HOME_PROPERTY = "user.home";
@@ -111,8 +127,8 @@ public class RecordingsMcpTools {
     private final McpOperationRegistry operations;
 
     public RecordingsMcpTools(
-            RecordingsManager recordingsManager, PipelineRunRegistry<String> runRegistry) {
-        this(recordingsManager, runRegistry, new BoundedJobs<>());
+            RecordingsManager recordingsManager, PipelineRunRegistry<String> runRegistry, Clock clock) {
+        this(recordingsManager, runRegistry, defaultJobs(clock), clock);
     }
 
     /**
@@ -122,23 +138,48 @@ public class RecordingsMcpTools {
     public RecordingsMcpTools(
             RecordingsManager recordingsManager,
             PipelineRunRegistry<String> runRegistry,
-            BoundedJobs<String, String> jobs) {
-        this(recordingsManager, runRegistry, jobs, new McpOperationRegistry());
+            BoundedJobs<String, String> jobs,
+            Clock clock) {
+        this(recordingsManager, runRegistry, jobs, new McpOperationRegistry(clock), clock);
     }
 
     public RecordingsMcpTools(RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> runRegistry, McpOperationRegistry operations) {
-        this(recordingsManager, runRegistry, new BoundedJobs<>(), operations);
+            PipelineRunRegistry<String> runRegistry, McpOperationRegistry operations, Clock clock) {
+        this(recordingsManager, runRegistry, operations, DEFAULT_MAX_CONCURRENT_IMPORTS, clock);
+    }
+
+    /**
+     * @param maxConcurrentImports how many {@code recordings_analyzeFile} imports may run together,
+     *                             from {@link #MAX_CONCURRENT_IMPORTS_PROPERTY}
+     */
+    public RecordingsMcpTools(RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> runRegistry, McpOperationRegistry operations,
+            int maxConcurrentImports, Clock clock) {
+        this(recordingsManager, runRegistry, defaultJobs(clock), operations, maxConcurrentImports, clock);
     }
 
     public RecordingsMcpTools(RecordingsManager recordingsManager,
             PipelineRunRegistry<String> runRegistry, BoundedJobs<String, String> jobs,
-            McpOperationRegistry operations) {
+            McpOperationRegistry operations, Clock clock) {
+        this(recordingsManager, runRegistry, jobs, operations, DEFAULT_MAX_CONCURRENT_IMPORTS, clock);
+    }
+
+    /**
+     * @param clock what the import jobs stamp their attempts with; the analysis jobs carry their own
+     */
+    public RecordingsMcpTools(RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> runRegistry, BoundedJobs<String, String> jobs,
+            McpOperationRegistry operations, int maxConcurrentImports, Clock clock) {
         this.operations = operations;
-        this.imports = new BoundedJobs<>(jobs.waitBudget());
+        this.imports = new BoundedJobs<>(
+                jobs.waitBudget(), BoundedJobs.COMPLETED_RETENTION, clock, maxConcurrentImports);
         this.recordingsManager = recordingsManager;
         this.runRegistry = runRegistry;
         this.jobs = jobs;
+    }
+
+    private static BoundedJobs<String, String> defaultJobs(Clock clock) {
+        return new BoundedJobs<>(BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, clock);
     }
 
     @Tool(description = "Analyze a recording file that is not in Jeffrey yet: imports the file at the "
@@ -178,7 +219,7 @@ public class RecordingsMcpTools {
                             "recordingId", recordingId, "analysis", Optional.ofNullable(analysis.snapshot().progress()).orElse(Map.of())));
                     return jobs.awaitCompletion(analysis);
                 });
-        String operationId = operations.register("recording_import", operation,
+        String operationId = operations.register(OperationKind.RECORDING_IMPORT, operation,
                 profileId -> Map.of("profileId", profileId), importedRecording::get);
         Optional<String> finished;
         try {
@@ -189,9 +230,9 @@ public class RecordingsMcpTools {
         if (finished.isEmpty()) {
             return operations.decorate(McpToolOutput.json(Map.of("status", STILL_RUNNING)), operationId);
         }
-        Object details = operation.snapshot().progress();
-        String recordingId = String.valueOf(((Map<?, ?>) details).get("recordingId"));
-        return operations.decorate(analyzedProfile(recordingId, finished.get()), operationId);
+        // The id the import handed over, not a read of the progress map: a progress supplier that
+        // failed leaves that map saying so instead of naming a recording.
+        return operations.decorate(analyzedProfile(importedRecording.get(), finished.get()), operationId);
     }
 
     @Tool(description = "Analyze a recording that is already in Jeffrey's Quick Analysis store but has "
@@ -304,11 +345,6 @@ public class RecordingsMcpTools {
             return failed(id, profileId, stages, progress.errorCode(), progress.errorMessage());
         }
 
-        Optional<BoundedJobs.Outcome<String>> outcome = jobs.outcome(id);
-        if (outcome.isPresent() && outcome.get().failure() != null) {
-            return failed(id, profileId, stages, null, outcome.get().failure().getMessage());
-        }
-
         // The parser can have completed while post-parse work in this bounded job (notably an MCP
         // requested rename) is still running. The profile is not the job's result until all of that
         // finalization has finished.
@@ -317,9 +353,17 @@ public class RecordingsMcpTools {
                     id, profileId, STILL_RUNNING, stages, null, null, NOT_READY_YET));
         }
 
+        // A live profile outranks a retained failure. The failure this process remembers is about an
+        // attempt it made; the profile can have been built since by another one -- the UI, or an
+        // earlier attempt whose outcome expired -- and a reader told "failed" about a profile every
+        // other tool answers from would start a third build of it.
         Optional<ProfileInfo> profileInfo = recordingsManager.profile(profileId)
                 .map(profile -> profile.info());
         if (profileInfo.isEmpty() || !profileInfo.get().enabled()) {
+            Optional<BoundedJobs.Outcome<String>> outcome = jobs.outcome(id);
+            if (outcome.isPresent() && outcome.get().failure() != null) {
+                return failed(id, profileId, stages, null, outcome.get().failure().getMessage());
+            }
             return McpToolOutput.json(new AnalysisProgress(
                     id, profileId, INTERRUPTED, stages, null, null, INTERRUPTED_NOTE));
         }
@@ -370,6 +414,7 @@ public class RecordingsMcpTools {
             });
             control.checkCancellation();
             String profileId = recordingsManager.analyzeRecording(recordingId);
+            joinRunningPipeline(recordingId, profileId);
             // A durable profile is already produced. Finish the short, accepted naming step and
             // preserve that result even if the analysis could not honour a cancellation request.
             if (control.cancellationRequested()) {
@@ -383,6 +428,41 @@ public class RecordingsMcpTools {
         });
     }
 
+    /**
+     * A run the manager found already in flight -- started from the UI, or by an earlier call whose
+     * attempt has since been forgotten -- is joined here rather than taken for a result: the manager
+     * answers with the profile id the moment it sees such a run, and an attempt that completed on
+     * that answer would hand out a link to a profile still being parsed.
+     */
+    private void joinRunningPipeline(String recordingId, String profileId) {
+        Optional<PipelineProgress> outcome;
+        try {
+            outcome = runRegistry.awaitCompletion(profileId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(INTERRUPTED_JOINING_PIPELINE, e);
+        }
+        if (outcome.isEmpty() || outcome.get().state() != PipelineState.FAILED) {
+            return;
+        }
+        // A failed run under this key is only this attempt's answer while there is no profile to
+        // hand back. The registry retains a failure for as long as it retains anything, and a
+        // profile enabled by some other path outranks it -- the same precedence status() and
+        // analyzed() apply, which this would otherwise contradict from three lines away.
+        if (enabledProfile(recordingId).isEmpty()) {
+            throw new ToolExecutionException(PIPELINE_FAILED + outcome.get().errorMessage());
+        }
+    }
+
+    /** The enabled profile this recording is linked to, if it has one that works right now. */
+    private Optional<String> enabledProfile(String recordingId) {
+        return recordingsManager.findRecording(recordingId)
+                .filter(Recording::hasProfile)
+                .map(Recording::profileId)
+                .filter(profileId -> recordingsManager.profile(profileId)
+                        .map(profile -> profile.info().enabled()).orElse(false));
+    }
+
     private boolean profileStillAvailable(String recordingId, String profileId) {
         boolean linked = recordingsManager.findRecording(recordingId)
                 .filter(Recording::hasProfile).map(recording -> profileId.equals(recording.profileId())).orElse(false);
@@ -390,8 +470,18 @@ public class RecordingsMcpTools {
     }
 
     private String analyzed(String recordingId, String name, boolean retry) {
+        if (!retry) {
+            // The same precedence as recordings_status: a retained failure is obsolete once the
+            // recording has a working profile, so an inspection call hands that profile back rather
+            // than the failure that predates it. Undecorated, because no attempt of this call's is
+            // what produced the profile -- the retained one is the failure being set aside.
+            Optional<String> live = enabledProfile(recordingId);
+            if (live.isPresent()) {
+                return analyzedProfile(recordingId, live.get());
+            }
+        }
         OperationHandle<String> operation = analysisOperation(recordingId, name, retry);
-        String operationId = operations.register("recording_analysis", operation,
+        String operationId = operations.register(OperationKind.RECORDING_ANALYSIS, operation,
                 profileId -> Map.of("profileId", profileId, "recordingId", recordingId), () -> recordingId);
         Optional<String> finished;
         try {
@@ -408,7 +498,7 @@ public class RecordingsMcpTools {
 
     private String analyzedProfile(String recordingId, String profileId) {
         Recording recording = recordingsManager.findRecording(recordingId)
-                .orElseThrow(() -> new IllegalStateException("Recording vanished while being analyzed: " + recordingId));
+                .orElseThrow(() -> new ToolExecutionException(RECORDING_VANISHED + recordingId));
         String actualName = recordingsManager.profile(profileId)
                 .map(profile -> profile.info().name())
                 .orElse(recording.profileName() == null ? recording.recordingName() : recording.profileName());

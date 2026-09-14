@@ -12,7 +12,9 @@ option java_multiple_files = true;
 // An admitted scan runs independently of its starting RPC. StartActivity returns a scan_id and an
 // initial observation; GetActivity polls it; CancelActivity requests cancellation. All three return
 // EventActivitySnapshot. Losing a start response can leave an admitted scan running without the
-// caller knowing its ID; retrying StartActivity creates another scan.
+// caller knowing its ID. A retry of StartActivity without an idempotency_key creates another scan;
+// a retry carrying the same idempotency_key as the lost start is answered with the scan that is
+// still in flight under it, so the caller learns the ID it lost instead of claiming a second slot.
 //
 // Scans are local to one Hub process: at most 16 are retained, at most two read at a time, and a
 // terminal result is retained for up to one hour after it finished. A new scan may evict the oldest
@@ -67,6 +69,13 @@ message StartActivityRequest {
   // Empty means all types. A scan can count up to 512 observed types; a 513th matching type, or a
   // matching type name longer than 256 characters, fails the scan and preserves its partial counts.
   repeated string event_types = 5;
+  // Optional, at most 128 characters; empty or blank means none. When present and a scan started
+  // with the same key is still in flight (not finished) in the same workspace/project/session
+  // scope, StartActivity returns that scan instead of admitting a new one, and the request's window,
+  // bucket width and event types are ignored in favour of the adopted scan's. A finished scan is
+  // never adopted: a repeat of the same request after completion, cancellation or failure starts a
+  // fresh scan as before. The key is matched within one Hub process only.
+  string idempotency_key = 6;
 }
 
 // How buckets are ranked before offset and limit are applied. Count ties use earlier start_time first.

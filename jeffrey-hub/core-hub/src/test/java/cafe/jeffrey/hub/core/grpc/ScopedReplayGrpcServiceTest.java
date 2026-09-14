@@ -19,6 +19,8 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.hub.api.v1.EventBatch;
+import cafe.jeffrey.hub.api.v1.EventStreamingServiceGrpc;
+import cafe.jeffrey.hub.api.v1.ReplayStatus;
 import cafe.jeffrey.hub.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
@@ -26,11 +28,14 @@ import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -45,6 +50,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -111,6 +118,142 @@ class ScopedReplayGrpcServiceTest {
             return null;
         }).join();
         verify(storage, never()).apply(any());
+    }
+
+    /**
+     * The same service behind a real in-process transport, so the status codes asserted here are the
+     * ones a client stub decodes rather than the ones a mocked observer was handed.
+     */
+    @Nested
+    class OverInProcessTransport {
+
+        private static final String SESSION_ID = "shared-session";
+        private static final String WORKSPACE_ID = "workspace";
+        private static final String PROJECT_ID = "project";
+        private static final String EVENT_TYPE = "jdk.CPULoad";
+
+        private InProcessGrpcServer grpc;
+
+        @AfterEach
+        void shutdown() {
+            if (grpc != null) {
+                grpc.close();
+            }
+        }
+
+        @Test
+        void blankWorkspaceIsInvalidArgument(@TempDir Path temp) throws Exception {
+            var stub = start(scopedService(temp, mock(RepositoryStorage.class)));
+            var observer = new TestStreamObserver<EventBatch>();
+
+            stub.scopedReplayStreaming(request(""), observer);
+
+            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
+            assertCode(Status.Code.INVALID_ARGUMENT, observer.error);
+        }
+
+        @Test
+        void unknownSessionIsNotFound(@TempDir Path temp) throws Exception {
+            RepositoryStorage storage = mock(RepositoryStorage.class);
+            when(storage.singleSession(SESSION_ID, true)).thenReturn(Optional.empty());
+            var stub = start(scopedService(temp, storage));
+            var observer = new TestStreamObserver<EventBatch>();
+
+            stub.scopedReplayStreaming(request(WORKSPACE_ID), observer);
+
+            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
+            assertCode(Status.Code.NOT_FOUND, observer.error);
+        }
+
+        @Test
+        void sessionWithoutFinishedFilesCompletesEmptyWithCoverage(@TempDir Path temp) throws Exception {
+            // The session exists but is still writing its first file: the activity scan admits this
+            // scope and counts zero events, and replay must say the same rather than NOT_FOUND.
+            RepositoryFile unfinished = mock(RepositoryFile.class);
+            when(unfinished.isRecordingFile()).thenReturn(true);
+            when(unfinished.isFinished()).thenReturn(false);
+            var stub = start(scopedService(temp, storageWithSession(List.of(unfinished))));
+            var observer = new TestStreamObserver<EventBatch>();
+
+            stub.scopedReplayStreaming(request(WORKSPACE_ID), observer);
+
+            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS), "Empty replay should complete");
+            assertNull(observer.error, "Empty replay must not be an error");
+            assertEquals(2, observer.messages.size(), "Exactly the acknowledgement and the terminal status");
+            assertAcknowledgement(observer.messages.getFirst());
+            assertTerminal(observer.messages.getLast(), 0);
+            assertEquals(0, totalEvents(observer));
+        }
+
+        @Test
+        void replaysEventsFromFinishedFile(@TempDir Path temp) throws Exception {
+            RepositoryFile finished = mock(RepositoryFile.class);
+            when(finished.isRecordingFile()).thenReturn(true);
+            when(finished.isFinished()).thenReturn(true);
+            when(finished.createdAt()).thenReturn(Instant.EPOCH);
+            when(finished.filePath()).thenReturn(FileSystemUtils.classpathPath("jfrs/profile-1.jfr"));
+            var stub = start(scopedService(temp, storageWithSession(List.of(finished))));
+            var observer = new TestStreamObserver<EventBatch>();
+
+            stub.scopedReplayStreaming(request(WORKSPACE_ID), observer);
+
+            assertTrue(observer.completeLatch.await(30, TimeUnit.SECONDS), "Replay should complete");
+            assertNull(observer.error);
+            assertAcknowledgement(observer.messages.getFirst());
+            assertTerminal(observer.messages.getLast(), 0);
+            assertTrue(totalEvents(observer) > 0, "Should receive events");
+            observer.messages.stream()
+                    .flatMap(batch -> batch.getEventsList().stream())
+                    .forEach(event -> assertEquals(EVENT_TYPE, event.getEventType()));
+        }
+
+        private EventStreamingServiceGrpc.EventStreamingServiceStub start(EventStreamingGrpcService service) {
+            grpc = InProcessGrpcServer.start(service);
+            return EventStreamingServiceGrpc.newStub(grpc.channel());
+        }
+
+        private static EventStreamingGrpcService scopedService(Path temp, RepositoryStorage storage) {
+            HubPlatformRepositories repositories = mock(HubPlatformRepositories.class);
+            ProjectRepository projects = mock(ProjectRepository.class);
+            when(repositories.newProjectRepository(PROJECT_ID)).thenReturn(projects);
+            when(projects.find()).thenReturn(Optional.of(new ProjectInfo(
+                    PROJECT_ID, null, null, null, null, WORKSPACE_ID, null, null, null, null)));
+            HubJeffreyDirs dirs = new HubJeffreyDirs(temp);
+            return new EventStreamingGrpcService(dirs, repositories, new ReplayStreamingManager(),
+                    ignored -> storage, new ScopedReplaySource(repositories, ignored -> storage, dirs));
+        }
+
+        private static RepositoryStorage storageWithSession(List<RepositoryFile> files) {
+            RecordingSession session = mock(RecordingSession.class);
+            when(session.files()).thenReturn(files);
+            RepositoryStorage storage = mock(RepositoryStorage.class);
+            when(storage.singleSession(SESSION_ID, true)).thenReturn(Optional.of(session));
+            return storage;
+        }
+
+        private static void assertAcknowledgement(EventBatch batch) {
+            ReplayStatus status = batch.getReplayStatus();
+            assertEquals(WORKSPACE_ID, status.getWorkspaceId());
+            assertEquals(PROJECT_ID, status.getProjectId());
+            assertFalse(status.getTerminal());
+            assertEquals(0, batch.getEventsCount());
+        }
+
+        private static void assertTerminal(EventBatch batch, long sourceErrors) {
+            ReplayStatus status = batch.getReplayStatus();
+            assertTrue(status.getTerminal());
+            assertEquals(sourceErrors, status.getSourceErrors());
+            assertEquals(0, batch.getEventsCount());
+        }
+
+        private static long totalEvents(TestStreamObserver<EventBatch> observer) {
+            return observer.messages.stream().mapToInt(EventBatch::getEventsCount).sum();
+        }
+
+        private static void assertCode(Status.Code expected, Throwable error) {
+            assertNotNull(error, "Expected an error");
+            assertEquals(expected, Status.fromThrowable(error).getCode());
+        }
     }
 
     private static ReplayStreamingRequest request(String workspace) {

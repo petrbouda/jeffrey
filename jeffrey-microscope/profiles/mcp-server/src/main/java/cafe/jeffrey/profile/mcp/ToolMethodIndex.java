@@ -44,8 +44,9 @@ import java.util.Set;
  * only on the type, so a per-request toolset over the same class costs a map lookup rather than a scan.
  * <p>
  * Tool names are {@code <prefix>_<methodName>}. Argument names rely on {@code -parameters} being enabled
- * at compile time (it is, in the project's compiler configuration). All {@link Tool} methods are expected
- * to return a {@link String}.
+ * at compile time (it is, in the project's compiler configuration). A {@link Tool} method returns a
+ * {@link String}, or an {@link McpToolResult} when it also carries structured content — which it must
+ * when it declares an {@link McpOutputSchema}.
  * <p>
  * Two things are rejected here rather than left to fail later, both because the failure would otherwise
  * be silent or far from its cause: two {@code @Tool} methods that would share one tool name, and a
@@ -60,6 +61,17 @@ final class ToolMethodIndex {
     private static final String SCHEMA_REQUIRED = "required";
     private static final String SCHEMA_DESCRIPTION = "description";
     private static final String SCHEMA_ENUM = "enum";
+
+    /** The JSON Schema type names an output schema may use. */
+    private static final Set<String> SCHEMA_TYPES =
+            Set.of("object", "array", "string", "number", "integer", "boolean", "null");
+
+    /** Keywords whose value is itself a subschema, validated recursively. */
+    private static final List<String> SUBSCHEMA_KEYWORDS = List.of("items", "additionalProperties");
+
+    /** Keywords whose value is a nonnegative count. */
+    private static final List<String> COUNT_KEYWORDS =
+            List.of("minLength", "maxLength", "minItems", "maxItems", "minProperties", "maxProperties");
 
     private final Map<String, Method> methodsByToolName = new LinkedHashMap<>();
     private final Map<Method, Set<String>> requiredParamsByMethod = new LinkedHashMap<>();
@@ -139,15 +151,14 @@ final class ToolMethodIndex {
         }
         JsonNode type = schema.get(SCHEMA_TYPE);
         if (type != null) {
-            Set<String> types = Set.of("object", "array", "string", "number", "integer", "boolean", "null");
             if (type.isString()) {
-                if (!types.contains(type.asString())) {
+                if (!SCHEMA_TYPES.contains(type.asString())) {
                     throw new IllegalArgumentException("Unknown output schema type");
                 }
             } else if (type.isArray() && !type.isEmpty()) {
                 Set<String> seen = new HashSet<>();
                 for (JsonNode item : type) {
-                    if (!item.isString() || !types.contains(item.asString()) || !seen.add(item.asString())) {
+                    if (!item.isString() || !SCHEMA_TYPES.contains(item.asString()) || !seen.add(item.asString())) {
                         throw new IllegalArgumentException("Invalid output schema type array");
                     }
                 }
@@ -176,13 +187,13 @@ final class ToolMethodIndex {
                 }
             }
         }
-        for (String keyword : List.of("items", "additionalProperties")) {
+        for (String keyword : SUBSCHEMA_KEYWORDS) {
             JsonNode child = schema.get(keyword);
             if (child != null) {
                 validateOutputSchema(child);
             }
         }
-        for (String keyword : List.of("minLength", "maxLength", "minItems", "maxItems", "minProperties", "maxProperties")) {
+        for (String keyword : COUNT_KEYWORDS) {
             JsonNode count = schema.get(keyword);
             if (count != null && (!count.isIntegralNumber() || count.asLong() < 0)) {
                 throw new IllegalArgumentException("Output schema " + keyword + " must be a nonnegative integer");

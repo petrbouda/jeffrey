@@ -165,6 +165,34 @@ class PipelineRunRegistryTest {
             }))));
         }
 
+        /**
+         * A caller that only wants to inspect must not restart what already completed: the registry
+         * used to keep a failed run and replace a completed one, so "omit retry to inspect without
+         * restarting" held for a failure and rebuilt a success.
+         */
+        @Test
+        @DisplayName("keeps a completed run unless the caller explicitly retries")
+        void keepsACompletedRunWithoutAnExplicitRetry() {
+            PipelineRunRegistry<String> registry = unbounded();
+            AtomicInteger bodies = new AtomicInteger();
+            PipelineRunRequest<String> request = PipelineRunRequest.of("profile-1",
+                    run -> run.runStage("first", bodies::incrementAndGet));
+
+            PipelineRunRegistry.StartResult first = registry.startOrJoin(request, false);
+            assertTrue(first.started());
+            await().atMost(5, SECONDS).untilAsserted(() -> assertFalse(registry.isRunning("profile-1")));
+            assertEquals(OperationState.COMPLETED, first.operation().snapshot().state());
+
+            PipelineRunRegistry.StartResult inspected = registry.startOrJoin(request, false);
+            assertFalse(inspected.started(), "an inspection must not restart a completed run");
+            assertSame(first.operation(), inspected.operation());
+            assertEquals(1, bodies.get());
+
+            PipelineRunRegistry.StartResult retried = registry.startOrJoin(request, true);
+            assertTrue(retried.started(), "an explicit retry is what restarts a finished run");
+            await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(2, bodies.get()));
+        }
+
         @Test
         @DisplayName("reports idle for a key that has never run")
         void reportsIdleForUnknownKey() {

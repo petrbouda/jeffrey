@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -147,6 +148,23 @@ class BoundedJobsTest {
         assertEquals(OperationState.COMPLETED, operation.snapshot().state());
         assertTrue(operation.snapshot().cancellationRequested());
         assertEquals("persisted-recording", operation.snapshot().result());
+    }
+
+    /**
+     * An Error is not an outcome a job owns: the attempt is marked failed so it never reads as
+     * running, but the throwable itself goes on to the scheduler rather than being swallowed into a
+     * status line, the way the pipeline registry treats it.
+     */
+    @Test
+    void marksAnErrorAsFailedRatherThanLeavingTheAttemptRunning() {
+        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        OperationHandle<String> operation = jobs.startOrJoin("fatal", false, value -> true, () -> {
+            throw new StackOverflowError("simulated");
+        });
+        await().atMost(5, SECONDS).until(() -> operation.snapshot().state().terminal());
+        assertEquals(OperationState.FAILED, operation.snapshot().state());
+        assertTrue(operation.snapshot().failure().getMessage().contains("simulated"));
+        assertInstanceOf(StackOverflowError.class, operation.snapshot().failure().getCause());
     }
 
     @Test
@@ -306,6 +324,103 @@ class BoundedJobsTest {
             assertTrue(jobs.outcome("import-1").isPresent(), "it must be readable as a failure");
             assertEquals(Optional.of("done"), jobs.runWithin("import-1", () -> "done"),
                     "the key must accept work again");
+        }
+    }
+
+    /**
+     * A permit count is how one turn that points at several recordings stops being several copies
+     * and parses running together. The attempt beyond the limit is not refused: it keeps its id,
+     * answers a poll as queued, and starts on its own when a permit frees -- and a cancellation
+     * while it is still waiting means it never runs at all.
+     */
+    @Nested
+    class Permits {
+
+        private static final int ONE_AT_A_TIME = 1;
+
+        private final BoundedJobs<String, String> jobs =
+                new BoundedJobs<>(GENEROUS, Duration.ofMinutes(30), Clock.systemUTC(), ONE_AT_A_TIME);
+
+        @Test
+        void refusesAPermitCountThatCouldRunNothing() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> new BoundedJobs<>(GENEROUS, Duration.ofMinutes(30), Clock.systemUTC(), 0));
+        }
+
+        @Test
+        void reportsThePermitCountItWasBuiltWith() {
+            assertEquals(ONE_AT_A_TIME, jobs.maxConcurrent());
+            assertEquals(BoundedJobs.UNBOUNDED_CONCURRENCY, new BoundedJobs<>(GENEROUS).maxConcurrent());
+        }
+
+        @Test
+        void holdsTheSecondJobAsQueuedUntilTheFirstCompletes() throws Exception {
+            CountDownLatch firstEntered = new CountDownLatch(1);
+            CountDownLatch releaseFirst = new CountDownLatch(1);
+            CountDownLatch secondEntered = new CountDownLatch(1);
+            try {
+                OperationHandle<String> first = jobs.startOrJoin("import-1", false, value -> true, () -> {
+                    firstEntered.countDown();
+                    awaitIgnoringInterrupts(releaseFirst);
+                    return "first";
+                });
+                assertTrue(firstEntered.await(5, SECONDS));
+
+                OperationHandle<String> second = jobs.startOrJoin("import-2", false, value -> true, () -> {
+                    secondEntered.countDown();
+                    return "second";
+                });
+
+                assertFalse(secondEntered.await(200, TimeUnit.MILLISECONDS),
+                        "the second job must wait for the first to free its permit");
+                assertEquals(OperationState.QUEUED, second.snapshot().state());
+                assertEquals("queued", second.snapshot().phase());
+                assertTrue(jobs.isRunning("import-2"), "a queued job is still in flight for its key");
+
+                releaseFirst.countDown();
+                assertTrue(secondEntered.await(5, SECONDS), "the freed permit must start the queued job");
+                await().atMost(5, SECONDS).until(() -> second.snapshot().state().terminal()
+                        && first.snapshot().state().terminal());
+                assertEquals(OperationState.COMPLETED, first.snapshot().state());
+                assertEquals(OperationState.COMPLETED, second.snapshot().state());
+                assertEquals("second", second.snapshot().result());
+            } finally {
+                releaseFirst.countDown();
+            }
+        }
+
+        @Test
+        void neverStartsAQueuedJobThatWasCancelledWhileWaiting() throws Exception {
+            CountDownLatch firstEntered = new CountDownLatch(1);
+            CountDownLatch releaseFirst = new CountDownLatch(1);
+            AtomicInteger secondStarted = new AtomicInteger();
+            try {
+                jobs.startOrJoin("import-1", false, value -> true, () -> {
+                    firstEntered.countDown();
+                    awaitIgnoringInterrupts(releaseFirst);
+                    return "first";
+                });
+                assertTrue(firstEntered.await(5, SECONDS));
+                OperationHandle<String> second = jobs.startOrJoin("import-2", false, value -> true, () -> {
+                    secondStarted.incrementAndGet();
+                    return "second";
+                });
+                assertEquals(OperationState.QUEUED, second.snapshot().state());
+
+                assertTrue(second.cancel());
+                await().atMost(5, SECONDS).until(() -> second.snapshot().state().terminal());
+                assertEquals(OperationState.CANCELLED, second.snapshot().state());
+
+                // The permit the first job frees goes to the next job that wants it, never to the
+                // one cancelled while it was waiting.
+                releaseFirst.countDown();
+                OperationHandle<String> third = jobs.startOrJoin("import-3", false, value -> true, () -> "third");
+                await().atMost(5, SECONDS).until(() -> third.snapshot().state().terminal());
+                assertEquals(OperationState.COMPLETED, third.snapshot().state());
+                assertEquals(0, secondStarted.get(), "a job cancelled while queued never runs");
+            } finally {
+                releaseFirst.countDown();
+            }
         }
     }
 

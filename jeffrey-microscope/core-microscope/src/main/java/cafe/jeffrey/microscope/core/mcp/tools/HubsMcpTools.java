@@ -34,6 +34,7 @@ import cafe.jeffrey.profile.common.operation.OperationHandle;
 import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.profile.mcp.McpOutputSchema;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
@@ -92,6 +93,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class HubsMcpTools {
 
+    private static final String DOWNLOAD_PREFLIGHT_FAILED = "Hub download preflight failed: ";
+    private static final String DOWNLOAD_FAILED = "Hub download failed: ";
     private static final Logger LOG = LoggerFactory.getLogger(HubsMcpTools.class);
 
     private static final int DEFAULT_LIMIT = 50;
@@ -246,8 +249,10 @@ public class HubsMcpTools {
               "observedTotal":{"type":"integer"},"hasMore":{"type":"boolean"},
               "nextCursor":{"type":["string","null"]},"complete":{"type":"boolean"},
               "failures":{"type":"array","items":{"type":"object","properties":{
-                "hubName":{"type":"string"},"scope":{"type":"string"},"reason":{"type":"string"}
-              },"required":["hubName","scope","reason"]}}
+                "hubName":{"type":"string"},"scope":{"type":"string"},
+                "kind":{"type":"string","description":"UNREACHABLE, DEADLINE_EXCEEDED, CAPACITY_EXHAUSTED or OTHER"},
+                "reason":{"type":"string"}
+              },"required":["hubName","scope","kind","reason"]}}
             },"required":["sessions","returned","total","observedTotal","hasMore","nextCursor","complete","failures"]}
             """)
     public McpToolResult sessions(
@@ -403,10 +408,10 @@ public class HubsMcpTools {
         List<HubSessionScan.Failure> displayed = new ArrayList<>();
         for (HubSessionScan.Failure failure : failures.subList(0, Math.min(failures.size(), MAX_DISPLAYED_FAILURES))) {
             displayed.add(new HubSessionScan.Failure(bounded(failure.hubName(), DISPLAY_CHARS),
-                    bounded(failure.scope(), FAILURE_CHARS), bounded(failure.reason(), FAILURE_CHARS)));
+                    bounded(failure.scope(), FAILURE_CHARS), failure.kind(), bounded(failure.reason(), FAILURE_CHARS)));
         }
         if (failures.size() > displayed.size()) {
-            displayed.add(new HubSessionScan.Failure("", "additional remote scopes",
+            displayed.add(new HubSessionScan.Failure("", "additional remote scopes", HubSessionScan.Failure.Kind.OTHER,
                     (failures.size() - displayed.size()) + " additional failed scopes omitted; narrow filters for details."));
         }
         return List.copyOf(displayed);
@@ -552,7 +557,7 @@ public class HubsMcpTools {
 
     private String registerDownload(HubSessionRef ref, OperationHandle<String> operation) {
         String sessionRef = ref.encode();
-        return operations.register("hub_download", operation,
+        return operations.register(OperationKind.HUB_DOWNLOAD, operation,
                 recordingId -> Map.of("recordingId", recordingId, "sessionRef", sessionRef));
     }
 
@@ -722,7 +727,7 @@ public class HubsMcpTools {
             if (e instanceof RuntimeException runtime) {
                 throw runtime;
             }
-            throw new IllegalStateException("Hub download preflight failed", e);
+            throw new ToolExecutionException(DOWNLOAD_PREFLIGHT_FAILED + e.getMessage(), e);
         } finally {
             context.cancel(null);
         }
@@ -748,7 +753,7 @@ public class HubsMcpTools {
             if (e instanceof RuntimeException runtime) {
                 throw runtime;
             }
-            throw new IllegalStateException("Hub download failed", e);
+            throw new ToolExecutionException(DOWNLOAD_FAILED + e.getMessage(), e);
         } finally {
             context.cancel(null);
         }

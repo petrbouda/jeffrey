@@ -36,6 +36,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -50,6 +51,11 @@ public final class HubActivityService implements AutoCloseable {
     private static final int MAX_RETAINED_SCANS = 16;
     private static final int MAX_CAUSE_DEPTH = 20;
     private static final Duration RESULT_RETENTION = Duration.ofHours(1);
+    private static final String TOO_MANY_ACTIVE_SCANS =
+            "Too many active scans; cancel or wait for an existing scan";
+    private static final String SERVICE_STOPPING = "Hub activity service is stopping";
+    private static final String KEY_TOO_LONG =
+            "idempotency_key must contain at most " + ActivityLimits.MAX_IDEMPOTENCY_KEY_LENGTH + " characters";
 
     private final Map<String, Job> jobs = new LinkedHashMap<>();
     private final Semaphore slots = new Semaphore(MAX_CONCURRENT_SCANS);
@@ -93,15 +99,65 @@ public final class HubActivityService implements AutoCloseable {
      * that occupies one of the retained slots only to report a failure on the first poll. It also
      * runs outside this instance's monitor: it reads a repository and lists a directory, and polls of
      * other scans must not queue behind it.</p>
+     *
+     * @throws ActivityCapacityException when every retained slot holds a running scan, or the service
+     *                                   is stopping — the only two refusals a caller should wait out
      */
     public String start(ActivityRequest request) {
-        requireOpen();
-        ReplayStreamSubscription subscription = source.apply(request);
-        return admit(request, subscription);
+        return start(request, null);
     }
 
-    private synchronized String admit(ActivityRequest request, ReplayStreamSubscription subscription) {
+    /**
+     * {@link #start(ActivityRequest)} under an idempotency key. A null or blank key means none.
+     *
+     * <p>When a scan started with the same key is still in flight in the same workspace, project and
+     * session scope, its ID is returned and nothing is resolved or admitted — a caller whose start
+     * response was lost learns the ID it missed instead of claiming a second slot. A finished scan is
+     * never adopted, so the same request repeated after completion starts a fresh scan as before.</p>
+     *
+     * @throws IllegalArgumentException when the key is longer than
+     *                                  {@link ActivityLimits#MAX_IDEMPOTENCY_KEY_LENGTH}
+     */
+    public String start(ActivityRequest request, String idempotencyKey) {
         requireOpen();
+        String key = normalizeKey(idempotencyKey);
+        Optional<String> adopted = adopt(request, key);
+        if (adopted.isPresent()) {
+            return adopted.get();
+        }
+        ReplayStreamSubscription subscription = source.apply(request);
+        return admit(request, key, subscription);
+    }
+
+    private static String normalizeKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return null;
+        }
+        if (idempotencyKey.length() > ActivityLimits.MAX_IDEMPOTENCY_KEY_LENGTH) {
+            throw new IllegalArgumentException(KEY_TOO_LONG);
+        }
+        return idempotencyKey;
+    }
+
+    /** The in-flight scan already admitted under this key in this scope, if there is one. */
+    private synchronized Optional<String> adopt(ActivityRequest request, String key) {
+        if (key == null) {
+            return Optional.empty();
+        }
+        return jobs.values().stream()
+                .filter(job -> job.finishedAt == null && key.equals(job.idempotencyKey) && job.sameRequest(request))
+                .map(job -> job.id)
+                .findFirst();
+    }
+
+    private synchronized String admit(ActivityRequest request, String key, ReplayStreamSubscription subscription) {
+        requireOpen();
+        // Two starts under one key can both miss the lookup above while the scope resolves; the
+        // second to reach the monitor adopts the first rather than admitting beside it.
+        Optional<String> adopted = adopt(request, key);
+        if (adopted.isPresent()) {
+            return adopted.get();
+        }
         Instant cutoff = clock.instant().minus(RESULT_RETENTION);
         jobs.values().removeIf(job -> job.finishedAt != null && job.finishedAt.isBefore(cutoff));
 
@@ -110,11 +166,11 @@ public final class HubActivityService implements AutoCloseable {
                     .filter(job -> job.finishedAt != null)
                     .min(Comparator.comparing(job -> job.finishedAt));
             if (oldest.isEmpty()) {
-                throw new IllegalStateException("Too many active scans; cancel or wait for an existing scan");
+                throw new ActivityCapacityException(TOO_MANY_ACTIVE_SCANS);
             }
             jobs.remove(oldest.get().id);
         }
-        Job job = new Job(request, subscription);
+        Job job = new Job(request, key, subscription);
         jobs.put(job.id, job);
         try {
             executor.execute(() -> run(job));
@@ -127,7 +183,7 @@ public final class HubActivityService implements AutoCloseable {
 
     private void requireOpen() {
         if (closed) {
-            throw new IllegalStateException("Hub activity service is stopping");
+            throw new ActivityServiceStoppingException(SERVICE_STOPPING);
         }
     }
 
@@ -240,6 +296,7 @@ public final class HubActivityService implements AutoCloseable {
 
         private final String id = UUID.randomUUID().toString();
         private final ActivityRequest request;
+        private final String idempotencyKey;
         private final ReplayStreamSubscription subscription;
         private final EventActivity activity;
         private final Instant startedAt = clock.instant();
@@ -253,11 +310,23 @@ public final class HubActivityService implements AutoCloseable {
         private boolean coverageKnown;
         private long sourceErrors;
 
-        Job(ActivityRequest request, ReplayStreamSubscription subscription) {
+        Job(ActivityRequest request, String idempotencyKey, ReplayStreamSubscription subscription) {
             this.request = request;
+            this.idempotencyKey = idempotencyKey;
             this.subscription = subscription;
             this.filesTotal = subscription.recordingFiles().size();
             this.activity = new EventActivity(request);
+        }
+
+        /**
+          * Whether an adopting caller would get the scan it actually asked for.
+          * <p>
+          * The whole request, not only the scope it runs in: a key is the caller's to choose, and one
+          * reused across two windows would otherwise be answered with counts for the wrong one. The
+          * server does not rely on a particular client deriving its keys carefully.
+          */
+        boolean sameRequest(ActivityRequest other) {
+            return request.equals(other);
         }
 
         synchronized void accept(EventBatch batch) {

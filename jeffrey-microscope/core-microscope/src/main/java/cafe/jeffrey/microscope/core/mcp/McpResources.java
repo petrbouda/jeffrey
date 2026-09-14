@@ -58,14 +58,17 @@ public class McpResources implements McpResourceProvider {
     private static final Set<String> CATALOGUE_ARGUMENTS = Set.of(CURSOR_ARGUMENT, LIMIT_ARGUMENT);
     private static final String PROFILE_PREFIX = SCHEME + "profile/";
 
-    private static final String SUMMARY_TEMPLATE = PROFILE_PREFIX + "{profileId}/summary";
-    private static final String FLAMEGRAPH_TEMPLATE = PROFILE_PREFIX + "{profileId}/flamegraph/{eventType}";
-
     private static final String SUMMARY_SEGMENT = "summary";
     private static final String FLAMEGRAPH_SEGMENT = "flamegraph";
+    private static final String EVIDENCE_SEGMENT = "evidence";
+
+    private static final String SUMMARY_TEMPLATE = PROFILE_PREFIX + "{profileId}/" + SUMMARY_SEGMENT;
+    private static final String FLAMEGRAPH_TEMPLATE = PROFILE_PREFIX + "{profileId}/" + FLAMEGRAPH_SEGMENT + "/{eventType}";
+    private static final String EVIDENCE_TEMPLATE = PROFILE_PREFIX + "{profileId}/" + EVIDENCE_SEGMENT;
 
     private static final String PROFILES_LIST_TOOL = "profiles_list";
     private static final String PROFILE_SUMMARY_TOOL = "profiles_summary";
+    private static final String PROFILE_EVIDENCE_TOOL = "profiles_evidence";
     private static final String FLAMEGRAPH_EXPORT_TOOL = "flamegraph_export";
 
     private static final String PROFILE_ID_ARGUMENT = "profileId";
@@ -149,8 +152,8 @@ public class McpResources implements McpResourceProvider {
                             + "jdk.ObjectAllocationSample for allocation.",
                     McpResource.TEXT_MARKDOWN));
         }
-        if (availableTools.contains("profiles_evidence")) {
-            templates.add(new McpResource(PROFILE_PREFIX + "{profileId}/evidence", "Profile evidence snapshot",
+        if (availableTools.contains(PROFILE_EVIDENCE_TOOL)) {
+            templates.add(new McpResource(EVIDENCE_TEMPLATE, "Profile evidence snapshot",
                     "Current profile/recording identity, filters, units, denominators, versioned findings and capability gaps. Save the response to preserve it.",
                     McpResource.APPLICATION_JSON));
         }
@@ -179,9 +182,9 @@ public class McpResources implements McpResourceProvider {
         String[] segments = uri.substring(PROFILE_PREFIX.length()).split("/");
         // A profile id followed by "summary", or by "flamegraph" and an event type. Anything else is
         // not a URI this server offers, and guessing which it meant would answer the wrong question.
-        if (segments.length == 2 && "evidence".equals(segments[1])) {
+        if (segments.length == 2 && EVIDENCE_SEGMENT.equals(segments[1])) {
             return new Contents(uri, McpResource.APPLICATION_JSON,
-                    call("profiles_evidence", Json.createObject().put(PROFILE_ID_ARGUMENT, decode(segments[0]))));
+                    call(PROFILE_EVIDENCE_TOOL, Json.createObject().put(PROFILE_ID_ARGUMENT, decode(segments[0]))));
         }
         if (segments.length == 2 && SUMMARY_SEGMENT.equals(segments[1])) {
             ObjectNode arguments = Json.createObject().put(PROFILE_ID_ARGUMENT, decode(segments[0]));
@@ -196,7 +199,7 @@ public class McpResources implements McpResourceProvider {
         throw new IllegalArgumentException(unknown(uri));
     }
 
-    private static ObjectNode catalogueArguments(String uri) {
+    private ObjectNode catalogueArguments(String uri) {
         ObjectNode arguments = Json.createObject();
         for (String parameter : uri.substring(PROFILES_QUERY_PREFIX.length()).split("&", -1)) {
             String[] pair = parameter.split("=", 2);
@@ -233,9 +236,16 @@ public class McpResources implements McpResourceProvider {
         return URLDecoder.decode(segment, StandardCharsets.UTF_8);
     }
 
-    private static String unknown(String uri) {
+    /**
+     * What a client is told about a URI this server does not serve, naming the ones it does. The
+     * diagnostics resource is named only when this instance actually has one: an endpoint built
+     * without diagnostics would otherwise advertise, in its refusal, a URI that same refusal is
+     * about to be sent for.
+     */
+    private String unknown(String uri) {
+        String diagnosticsUri = diagnostics == null ? "" : McpDiagnostics.URI + ", ";
         return "No resource at '" + uri + "'. This server serves " + PROFILES_URI + ", "
-                + PROFILES_TEMPLATE + ", " + McpServerInfo.URI + ", " + McpDiagnostics.URI + ", "
-                + PROFILE_PREFIX + "{profileId}/evidence, " + SUMMARY_TEMPLATE + " and " + FLAMEGRAPH_TEMPLATE + ".";
+                + PROFILES_TEMPLATE + ", " + McpServerInfo.URI + ", " + diagnosticsUri
+                + EVIDENCE_TEMPLATE + ", " + SUMMARY_TEMPLATE + " and " + FLAMEGRAPH_TEMPLATE + ".";
     }
 }

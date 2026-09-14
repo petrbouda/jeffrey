@@ -25,8 +25,10 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The one check the MCP specification asks of a local HTTP server. A page in the user's browser can
@@ -108,6 +110,32 @@ class McpRequestGuardTest {
         @Test
         void refusesARequestWithNoOriginWhenItsHostIsUntrusted() {
             assertNotNull(guard.refusalReason(request("http", "audit.invalid", SERVER_PORT, null)));
+        }
+
+        /**
+         * An agent reaching Jeffrey through {@code host.docker.internal} or a LAN address gets this
+         * refusal, and the fix is one property. The sentence has to name the property and the host
+         * that was refused, so it can be fixed without the docs.
+         */
+        @Test
+        void namesThePropertyAndTheHostWhenRefusingAnUntrustedHost() {
+            String reason = guard.refusalReason(request("http", "host.docker.internal", SERVER_PORT, null));
+
+            assertNotNull(reason);
+            assertTrue(reason.contains(McpRequestGuard.ALLOWED_HOSTS_PROPERTY), reason);
+            assertTrue(reason.contains("host.docker.internal"), reason);
+        }
+
+        /**
+         * The origin refusal is a different finding — a browser page Jeffrey did not serve — and
+         * pointing its reader at the host allow-list would send them to widen the wrong thing.
+         */
+        @Test
+        void keepsTheOriginRefusalApartFromTheHostOne() {
+            String reason = guard.refusalReason(request("https://evil.example"));
+
+            assertNotNull(reason);
+            assertFalse(reason.contains(McpRequestGuard.ALLOWED_HOSTS_PROPERTY), reason);
         }
 
         @Test

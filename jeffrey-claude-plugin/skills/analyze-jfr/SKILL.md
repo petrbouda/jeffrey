@@ -6,8 +6,11 @@ allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 
 # Analysing a Jeffrey profile
 
-Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. Every tool reads; the one
-family that writes is `recordings_`, which turns a recording *file* into a profile.
+Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. Nearly every tool reads.
+The few that do not create a profile or a cache, start work on a hub or in your editor, or stop
+work that was started — `recordings_` turns a recording *file* into a profile, and
+`operations_cancel` stops an import that was a mistake — and none of them changes an analysed
+profile.
 
 Tool names below omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
@@ -17,15 +20,23 @@ The part after it is exact and camelCase:
 
 ## 1. Get a `profileId`
 
-Every tool except `profiles_list` and the `recordings_` family takes one.
+Every tool takes one, except `profiles_list` and the `recordings_`, `hubs_` and `operations_`
+families, which are how a `profileId` comes to exist. `profiles_list` pages: a hundred profiles per
+call, with `nextCursor` and `hasMore` in the answer, so a catalogue past that size needs a second
+call carrying the cursor before "it is not there" is true.
 
 **The user named a file** (`target/app.jfr`, anything with a recording extension) — it may not be
 in Jeffrey yet. Check `recordings_list` or `profiles_list` for it first, because every
 `recordings_analyzeFile` call imports the file again and creates another profile. If it is absent,
 call `recordings_analyzeFile` with the **absolute** path. The Jeffrey process opens that path, so
 the file has to be on the machine Jeffrey runs on — a container or a remote Jeffrey cannot see your
-working directory. The call returns once the profile is built, which takes a while for a large
-recording; that is the analysis running, not a hang.
+working directory. A small recording is analysed inside the call and comes back with its
+`profileId`. A large one comes back with a status of `running` and an `operationId` — and no
+`recordingId`, because the copy may not have finished — and `operations_status(operationId)`
+follows the copy and the analysis until the `profileId` appears. Poll that, and never call
+`recordings_analyzeFile` a second time to see whether it is done: every call imports the file again
+and builds a second profile of it. `operations_cancel(operationId)` stops an import started by
+mistake. Operation ids live for an hour in Jeffrey's memory and do not survive a restart.
 
 **The recording is on a hub** — the user asked about an environment rather than a file
 ("production", "staging", "what recorded in the last hour"), and nothing local matches. Switch to

@@ -67,7 +67,12 @@ final class ToolInvocation {
                     throw new IllegalStateException("Failed to invoke tool: " + toolName, e);
                 } catch (InvocationTargetException e) {
                     Throwable cause = e.getCause() != null ? e.getCause() : e;
-                    throw new IllegalStateException("Tool execution failed: " + cause.getMessage(), cause);
+                    if (cause instanceof ToolExecutionException failure) {
+                        // The tool wrote this for the model. Wrapping it would put the prefix in
+                        // front of the sentence and the sentence itself in the cause, doubled.
+                        throw failure;
+                    }
+                    throw new ToolInvocationException(cause);
                 }
             });
             // A tool that returned a result did its job; the outcome is observed, not assumed.

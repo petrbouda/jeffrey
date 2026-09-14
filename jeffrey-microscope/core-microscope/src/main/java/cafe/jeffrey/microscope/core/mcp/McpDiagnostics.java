@@ -35,6 +35,15 @@ import java.util.List;
 /** Safe current-state diagnostics. No tool arguments, payloads or deployment secrets are retained. */
 public final class McpDiagnostics {
     public static final String URI = "jeffrey://diagnostics";
+
+    /** The application property bounding how long each hub is given to answer the reachability probe. */
+    public static final String PROBE_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.diagnostics.probe-timeout";
+
+    /** The probe budget when the property is not set, spelt as the ISO-8601 text the property takes. */
+    public static final String DEFAULT_PROBE_TIMEOUT_TEXT = "PT2S";
+
+    public static final Duration DEFAULT_PROBE_TIMEOUT = Duration.parse(DEFAULT_PROBE_TIMEOUT_TEXT);
+
     private final MicroscopeCoreRepositories repositories;
     private final HubsManager hubs;
     private final ExternalMcpProperties properties;
@@ -67,8 +76,8 @@ public final class McpDiagnostics {
         if (enabled) {
             var managers = hubs.findAll();
             HubSessionScan.ProbeResult probe = scan.probeDetails(managers);
-            long deadlines = probe.failures().stream().filter(f -> f.reason().startsWith("deadline exceeded")).count();
-            long unreachable = probe.failures().stream().filter(f -> f.reason().equals("unreachable")).count();
+            long deadlines = countOf(probe, HubSessionScan.Failure.Kind.DEADLINE_EXCEEDED);
+            long unreachable = countOf(probe, HubSessionScan.Failure.Kind.UNREACHABLE);
             hubStatus.put("total", managers.size()).put("reachable", probe.versions().size())
                     .put("unreachable", unreachable).put("deadlineExceeded", deadlines)
                     .put("otherFailures", probe.failures().size() - deadlines - unreachable)
@@ -78,5 +87,10 @@ public final class McpDiagnostics {
         result.put("metricsCapped", omittedMetricCalls > 0).put("omittedMetricCalls", omittedMetricCalls);
         result.put("metricsScope", "This endpoint process; completed dispatched calls only, aggregated per advertised tool. Duration is nanoseconds; output size is UTF-8 bytes of the MCP result envelope. At most 256 tool names are retained.");
         return McpToolOutput.json(result);
+    }
+
+    /** How many probes failed the given way, classified by the scan itself rather than by its wording. */
+    private static long countOf(HubSessionScan.ProbeResult probe, HubSessionScan.Failure.Kind kind) {
+        return probe.failures().stream().filter(failure -> failure.kind() == kind).count();
     }
 }

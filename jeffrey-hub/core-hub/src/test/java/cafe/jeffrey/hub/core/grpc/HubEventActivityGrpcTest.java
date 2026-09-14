@@ -20,13 +20,20 @@ package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
+import cafe.jeffrey.hub.core.activity.ActivityRequest;
+import cafe.jeffrey.hub.core.activity.ActivityServiceFixtures;
+import cafe.jeffrey.hub.core.activity.HubActivityService;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.streaming.ReplayStreamSubscription;
+import cafe.jeffrey.hub.core.streaming.StreamingWindow;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import io.grpc.BindableService;
+import io.grpc.ManagedChannel;
+import io.grpc.Server;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.inprocess.InProcessChannelBuilder;
@@ -34,17 +41,21 @@ import io.grpc.inprocess.InProcessServerBuilder;
 import jdk.jfr.Event;
 import jdk.jfr.Name;
 import jdk.jfr.Recording;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
@@ -170,6 +181,192 @@ class HubEventActivityGrpcTest {
                 channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
                 server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
             }
+        }
+    }
+
+    /**
+     * What a refused {@code StartActivity} tells the caller to do next. {@code RESOURCE_EXHAUSTED}
+     * means "wait or cancel a scan and try again", so it must be reserved for the two refusals where
+     * that is true — a full retained-slot table and a stopping service — and never cover a failure
+     * underneath the scope resolution, which no amount of waiting will clear.
+     */
+    @Nested
+    class StartRefusals {
+
+        private static final int MAX_RETAINED_SCANS = 16;
+
+        private final ActivityScope scope = ActivityScope.newBuilder()
+                .setWorkspaceId("workspace")
+                .setProjectId("project")
+                .setSessionId("session")
+                .build();
+
+        private StartActivityRequest start() {
+            long now = Clock.systemUTC().millis();
+            return StartActivityRequest.newBuilder()
+                    .setScope(scope)
+                    .setStartTime(now - 60_000)
+                    .setEndTime(now + 1)
+                    .build();
+        }
+
+        private ReplayStreamSubscription subscription(ActivityRequest request, Path temp) {
+            return new ReplayStreamSubscription(
+                    request.sessionId(),
+                    List.of(),
+                    Set.of(),
+                    new StreamingWindow(Instant.ofEpochMilli(request.startTime()), Instant.ofEpochMilli(request.endTime())),
+                    temp.resolve("scratch"),
+                    request.workspaceId(),
+                    request.projectId());
+        }
+
+        @Test
+        void aBrokenScopeSourceIsNotReportedAsExhaustedCapacity() {
+            Function<ActivityRequest, ReplayStreamSubscription> broken = _ -> {
+                throw new IllegalStateException("storage broken");
+            };
+            try (var service = new HubActivityService(broken, Clock.systemUTC());
+                 var grpc = InProcessGrpc.serving(new EventActivityGrpcService(service))) {
+                var stub = EventActivityServiceGrpc.newBlockingStub(grpc.channel());
+
+                StatusRuntimeException refusal =
+                        assertThrows(StatusRuntimeException.class, () -> stub.startActivity(start()));
+
+                assertNotEquals(Status.Code.RESOURCE_EXHAUSTED, refusal.getStatus().getCode(),
+                        "a caller told to wait for a slot would wait forever");
+                assertEquals(Status.Code.INTERNAL, refusal.getStatus().getCode(),
+                        "an IllegalStateException that is not about capacity takes the generic mapping");
+            }
+        }
+
+        @Test
+        void aFullRetainedSlotTableIsReportedAsExhaustedCapacity(@TempDir Path temp) {
+            try (var service = ActivityServiceFixtures.neverRunning(
+                    request -> subscription(request, temp), Clock.systemUTC());
+                 var grpc = InProcessGrpc.serving(new EventActivityGrpcService(service))) {
+                var stub = EventActivityServiceGrpc.newBlockingStub(grpc.channel());
+                for (int i = 0; i < MAX_RETAINED_SCANS; i++) {
+                    assertFalse(stub.startActivity(start()).getScanId().isEmpty());
+                }
+
+                assertCode(Status.Code.RESOURCE_EXHAUSTED, () -> stub.startActivity(start()));
+            }
+        }
+    }
+
+    /**
+     * A {@code StartActivity} whose response was lost on the way back can be repeated under the same
+     * {@code idempotency_key} and answered with the scan already in flight, rather than admitting a
+     * second one beside a first that nobody can poll.
+     */
+    @Nested
+    class IdempotencyKeys {
+
+        private static final String KEY = "microscope-request-hash";
+
+        private final ActivityScope scope = ActivityScope.newBuilder()
+                .setWorkspaceId("workspace")
+                .setProjectId("project")
+                .setSessionId("session")
+                .build();
+
+        private StartActivityRequest start(String key) {
+            long now = Clock.systemUTC().millis();
+            return StartActivityRequest.newBuilder()
+                    .setScope(scope)
+                    .setStartTime(now - 60_000)
+                    .setEndTime(now + 1)
+                    .setIdempotencyKey(key)
+                    .build();
+        }
+
+        private ReplayStreamSubscription subscription(ActivityRequest request, Path temp) {
+            return new ReplayStreamSubscription(
+                    request.sessionId(),
+                    List.of(),
+                    Set.of(),
+                    new StreamingWindow(Instant.ofEpochMilli(request.startTime()), Instant.ofEpochMilli(request.endTime())),
+                    temp.resolve("scratch"),
+                    request.workspaceId(),
+                    request.projectId());
+        }
+
+        @Test
+        void theSameKeyReturnsTheScanStillInFlight(@TempDir Path temp) {
+            try (var service = ActivityServiceFixtures.neverRunning(
+                    request -> subscription(request, temp), Clock.systemUTC());
+                 var grpc = InProcessGrpc.serving(new EventActivityGrpcService(service))) {
+                var stub = EventActivityServiceGrpc.newBlockingStub(grpc.channel());
+
+                // One request sent twice, not two requests built a few milliseconds apart: the second
+                // is a retry of the first, and the windows have to match for it to be one.
+                StartActivityRequest request = start(KEY);
+                var first = stub.startActivity(request);
+                var repeated = stub.startActivity(request);
+
+                assertFalse(first.getScanId().isEmpty());
+                assertEquals(first.getScanId(), repeated.getScanId());
+                assertEquals(scope, repeated.getScope());
+                assertNotEquals(first.getScanId(), stub.startActivity(start("another-request")).getScanId());
+                assertNotEquals(first.getScanId(), stub.startActivity(start("")).getScanId());
+                assertNotEquals(first.getScanId(), stub.startActivity(start(KEY).toBuilder()
+                        .setScope(scope.toBuilder().setSessionId("other-session"))
+                        .build()).getScanId());
+                // The key is the caller's to choose, so it cannot be the whole of the question: a key
+                // reused for a different window must not be answered with counts for this one.
+                assertNotEquals(first.getScanId(), stub.startActivity(request.toBuilder()
+                        .setStartTime(request.getStartTime() - 1)
+                        .build()).getScanId());
+            }
+        }
+
+        @Test
+        void anOversizedKeyIsInvalid(@TempDir Path temp) {
+            try (var service = ActivityServiceFixtures.neverRunning(
+                    request -> subscription(request, temp), Clock.systemUTC());
+                 var grpc = InProcessGrpc.serving(new EventActivityGrpcService(service))) {
+                var stub = EventActivityServiceGrpc.newBlockingStub(grpc.channel());
+
+                assertCode(Status.Code.INVALID_ARGUMENT, () -> stub.startActivity(start("k".repeat(129))));
+            }
+        }
+    }
+
+    /** One service on an in-process server, torn down with the test. */
+    private static final class InProcessGrpc implements AutoCloseable {
+
+        private final Server server;
+        private final ManagedChannel channel;
+
+        private InProcessGrpc(Server server, ManagedChannel channel) {
+            this.server = server;
+            this.channel = channel;
+        }
+
+        static InProcessGrpc serving(BindableService service) {
+            String name = InProcessServerBuilder.generateName();
+            try {
+                Server server = InProcessServerBuilder.forName(name)
+                        .directExecutor()
+                        .addService(service)
+                        .build()
+                        .start();
+                ManagedChannel channel = InProcessChannelBuilder.forName(name).directExecutor().build();
+                return new InProcessGrpc(server, channel);
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not start the in-process gRPC server", e);
+            }
+        }
+
+        ManagedChannel channel() {
+            return channel;
+        }
+
+        @Override
+        public void close() {
+            channel.shutdownNow();
+            server.shutdownNow();
         }
     }
 

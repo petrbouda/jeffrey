@@ -6,7 +6,7 @@
 # master breaks every install and update the moment it lands. This job is that missing
 # gate - the Claude Code half through the validator the docs tell plugin authors to run,
 # the portable Agent Plugins half through the checks in build/scripts.
-name: Validate Plugin
+name: Validate MCP Plugin
 
 on:
   push:

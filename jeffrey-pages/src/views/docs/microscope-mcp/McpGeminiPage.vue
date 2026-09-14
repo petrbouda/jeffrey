@@ -89,7 +89,8 @@ const excludeWriters = `{
       "httpUrl": "http://localhost:8585/api/mcp",
       "excludeTools": [
         "recordings_analyzeFile", "recordings_analyzeRecording",
-        "hubs_download", "ide_link", "ide_open"
+        "hubs_download", "hubs_eventActivity", "hubs_activityCancel",
+        "operations_cancel", "ide_link", "ide_open"
       ]
     }
   }
@@ -192,15 +193,15 @@ const update = `gemini extensions update microscope`;
       <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Every Jeffrey tool reads except the six named on the <router-link to="/docs/microscope-mcp/tools">tool reference</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
       <DocsCodeBlock :code="trustServer" language="json" />
 
-      <p><code>trust</code> covers every tool on the server, <code>hubs_download</code> and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
+      <p><code>trust</code> covers every tool on the server, the three <code>hubs_</code> writers, <code>operations_cancel</code> and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
 
       <h2 id="timeouts">Timeouts on Long Calls</h2>
       <p>Most of Jeffrey's tools answer in well under a second, but three do real work: importing a recording parses every event in it, and pulling a session off a hub moves however many gigabytes it holds. The extension asks for <strong>fifteen minutes</strong> (<code>timeout</code> is milliseconds) rather than leaving them on Gemini's ten.</p>
 
-      <p>Those three are built for the wait either way. <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code> wait about forty-five seconds and then hand back a status of <code>running</code>, and <code>recordings_status</code> reports when the profile is ready. <strong>What matters is not retrying the analyze call:</strong> a second one imports the file again and builds a second profile of it.</p>
+      <p>Those three are built for the wait either way. <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code> wait about forty-five seconds and then hand back a status of <code>running</code> with an <code>operationId</code>, and <code>operations_status</code> reports when the profile is ready. <strong>What matters is not retrying the analyze call:</strong> a second one imports the file again and builds a second profile of it.</p>
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
-      <p>Jeffrey advertises a hundred-odd tools across eighteen families, and Gemini declares every enabled tool to the model on each turn. On its own that is comfortably inside the API's ceiling on function declarations; stacked with several other MCP servers it stops being comfortable, and the symptom is a request rejected for declaring too many functions rather than anything that looks like Jeffrey.</p>
+      <p>Jeffrey advertises a hundred-odd tools across nineteen families, and Gemini declares every enabled tool to the model on each turn. On its own that is comfortably inside the API's ceiling on function declarations; stacked with several other MCP servers it stops being comfortable, and the symptom is a request rejected for declaring too many functions rather than anything that looks like Jeffrey.</p>
 
       <p>There are two ways to narrow it, and they compose. On the Jeffrey side, advertise fewer families:</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />

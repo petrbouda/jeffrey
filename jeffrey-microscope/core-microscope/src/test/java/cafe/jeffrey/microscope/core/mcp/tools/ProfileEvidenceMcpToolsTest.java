@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +48,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ProfileEvidenceMcpToolsTest {
+
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     @Test
     void snapshotCarriesIdentityUnitsDenominatorsAndReplayArguments() {
@@ -79,7 +83,7 @@ class ProfileEvidenceMcpToolsTest {
         ProfileManager primary = manager("primary");
         ProfileManager baseline = manager("baseline");
         when(primary.flamegraphManager().allEventSummaries()).thenReturn(List.of(event("jeffrey.HttpServerExchange", 9, 0)));
-        JsonNode result = new CompareMcpTools(primary, id -> baseline).quality("baseline").structuredContent();
+        JsonNode result = new CompareMcpTools(primary, id -> baseline, CLOCK).quality("baseline").structuredContent();
         assertFalse(result.get("workloadNormalization").get("available").asBoolean());
         assertEquals("unavailable", result.get("primary").get("samplerHealth").get("status").asString());
         assertEquals(9, result.get("primary").get("observedWorkloadEvents").get(0).get("count").asLong());
@@ -118,7 +122,7 @@ class ProfileEvidenceMcpToolsTest {
         when(primary.flamegraphManager().allEventSummaries()).thenReturn(List.of(configured("10 ms")));
         when(baseline.flamegraphManager().allEventSummaries()).thenReturn(List.of(configured("20 ms")));
         when(primary.samplerHealthManager().cpuTimeSampleLoss()).thenReturn(new CpuTimeSampleLoss(80, 20, 2));
-        JsonNode result = new CompareMcpTools(primary, id -> baseline).quality("baseline").structuredContent();
+        JsonNode result = new CompareMcpTools(primary, id -> baseline, CLOCK).quality("baseline").structuredContent();
         assertEquals("mismatch", result.get("samplingConfiguration").get(0).get("status").asString());
         assertEquals(100, result.get("primary").get("samplerHealth").get("denominator").asLong());
         assertEquals(20.0, result.get("primary").get("samplerHealth").get("lostSharePct").asDouble());
@@ -149,6 +153,6 @@ class ProfileEvidenceMcpToolsTest {
 
     private static ProfileEvidenceMcpTools tools(ProfileManager manager, RecordingCommitResolver commits) {
         return new ProfileEvidenceMcpTools(manager, commits, mock(JfrFlamegraphPanelProvider.class),
-                mock(StackSampleFlamegraphPanelProvider.class));
+                mock(StackSampleFlamegraphPanelProvider.class), CLOCK);
     }
 }

@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.profile.mcp.CompositeToolset;
 import cafe.jeffrey.profile.mcp.McpToolProvider;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +32,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -432,6 +434,53 @@ class ExternalMcpControllerTest {
                     .bodyJson()
                     .extractingPath("$.error.code").isEqualTo(-32602);
         }
+
+        @Test
+        void readsTheSummaryOfAProfileItHas() {
+            when(assembler.toolset()).thenReturn(toolset());
+            String read = """
+                    {"jsonrpc":"2.0","id":13,"method":"resources/read",
+                     "params":{"uri":"jeffrey://profile/p-1/summary"}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(read))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.contents[0].text").asString().contains("p-1");
+        }
+
+        /**
+         * The summary is read by running {@code profiles_summary}, whose not-found arrives wrapped in
+         * the tool-execution failure. The client must still get the code the specification reserves
+         * for a missing resource, and the tool's own sentence — not "-32603 Internal error", which
+         * tells it the server broke.
+         */
+        @Test
+        void answersAnUnknownProfileWithResourceNotFound() {
+            when(assembler.toolset()).thenReturn(toolset());
+            String read = """
+                    {"jsonrpc":"2.0","id":14,"method":"resources/read",
+                     "params":{"uri":"jeffrey://profile/p-404/summary"}}""";
+
+            MvcTestResult result = mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(read).exchange();
+
+            assertThat(result).hasStatusOk().bodyJson().extractingPath("$.error.code").isEqualTo(-32002);
+            assertThat(result).bodyJson().extractingPath("$.error.message").asString()
+                    .isEqualTo("Profile not found: p-404");
+        }
+
+        @Test
+        void answersACursorTheCatalogueCannotReadAsInvalidParams() {
+            when(assembler.toolset()).thenReturn(toolset());
+            String read = """
+                    {"jsonrpc":"2.0","id":15,"method":"resources/read",
+                     "params":{"uri":"jeffrey://profiles?cursor=garbage"}}""";
+
+            MvcTestResult result = mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(read).exchange();
+
+            assertThat(result).hasStatusOk().bodyJson().extractingPath("$.error.code").isEqualTo(-32602);
+            assertThat(result).bodyJson().extractingPath("$.error.message").asString()
+                    .isEqualTo("Invalid cursor: garbage");
+        }
     }
 
     /**
@@ -444,14 +493,23 @@ class ExternalMcpControllerTest {
      */
     public static class ProfilesTools {
 
+        private static final String KNOWN_PROFILE = "p-1";
+
         @Tool(description = "Every analysed profile")
-        public String list() {
+        public String list(
+                @ToolParam(required = false, description = "continuation") String cursor) {
+            if (cursor != null && !cursor.isEmpty()) {
+                throw new IllegalArgumentException("Invalid cursor: " + cursor);
+            }
             return "| id |\n| -- |\n| p-1 |";
         }
 
         @Tool(description = "What one profile holds")
         public String summary(
                 @ToolParam(required = false, description = "profile") String profileId) {
+            if (!KNOWN_PROFILE.equals(profileId)) {
+                throw Exceptions.profileNotFound(profileId);
+            }
             return "{\"profileId\":\"" + profileId + "\"}";
         }
     }

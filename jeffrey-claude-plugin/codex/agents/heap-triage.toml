@@ -7,7 +7,7 @@
 #
 # As with profile-analyst, the tool restriction here is instruction-level rather than enforced: Codex
 # has no per-agent tool deny-list, so the "never write" rules below are the only thing keeping this
-# agent off recordings_ and hubs_. Read-only sandboxing keeps it out of your files.
+# agent off recordings_, hubs_ and operations_cancel. Read-only sandboxing keeps it out of your files.
 
 name = "heap-triage"
 
@@ -77,6 +77,8 @@ about how these numbers were obtained.
 
 - **No source.** Name the class and the field, never a file or a line.
 - **No recommendations.** What to change belongs to the caller.
-- **No writing.** Never call the `recordings_` or `hubs_` families. `heap_prepare` is the one
-  exception and it writes only a cache — use it when a report or a retained size is missing.
+- **No writing.** Never call the `recordings_` or `hubs_` families, and never `operations_cancel` —
+  the work it stops was started by the caller. `heap_prepare` is the one exception and it writes only
+  a cache — use it when a report or a retained size is missing, and follow it with `heap_status`, or
+  `operations_status` with the `operationId` it returned.
 """

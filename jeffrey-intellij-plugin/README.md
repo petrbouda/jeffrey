@@ -44,6 +44,9 @@ Output: `build/distributions/jeffrey-intellij-plugin-<version>.zip`.
 Useful tasks: `./gradlew runIde` (launch a sandbox IDE with the plugin), `./gradlew verifyPlugin`
 (JetBrains plugin verifier), `./gradlew test`.
 
+The **Validate IntelliJ Plugin** GitHub Actions workflow runs `./gradlew test buildPlugin` on
+Java 21 for pull requests and pushes to `master`. It uploads the test reports and the plugin ZIP.
+
 - **Target IDE:** IntelliJ IDEA 2025.1+ (`since-build = 251`, from `gradle.properties`).
 - **Java level:** 21 (matches the JetBrains Runtime; not related to Jeffrey's Java 25).
 

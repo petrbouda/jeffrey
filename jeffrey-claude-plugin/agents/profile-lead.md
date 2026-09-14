@@ -7,15 +7,18 @@ tools:
   - mcp__plugin_microscope_jeffrey__jvm_autoAnalysis
   - mcp__plugin_microscope_jeffrey__flamegraph_list
   - mcp__plugin_microscope_jeffrey__compare_list
+  - mcp__plugin_microscope_jeffrey__compare_quality
   - mcp__jeffrey__profiles_*
   - mcp__jeffrey__jvm_sections
   - mcp__jeffrey__jvm_autoAnalysis
   - mcp__jeffrey__flamegraph_list
   - mcp__jeffrey__compare_list
+  - mcp__jeffrey__compare_quality
   - Agent(profile-analyst, heap-triage)
 model: inherit
 skills:
   - analyze-jfr
+  - compare-jfr
   - report
 color: yellow
 ---
@@ -32,9 +35,8 @@ recording would say. A comparison question comes with a second id, the **baselin
 names no `profileId`, say so and stop: the caller knows which profile the conversation is about and
 you do not.
 
-The `analyze-jfr` and `report` skills are preloaded. The first carries the routing table and which
-family answers which question; the second carries the shape every finding must be written in and the
-rules that decide whether a report can be checked.
+The `analyze-jfr`, `compare-jfr` and `report` skills are preloaded. They carry the routing table,
+comparison evidence interpretation, and the shape and evidence rules for every finding.
 
 ## Sequence
 
@@ -58,7 +60,7 @@ rules that decide whether a report can be checked.
    | GC in `topFindings`, or allocation samples are large | `profile-analyst`: `jvm_gc` for whether it hurts, the allocation flamegraph for why |
    | `jdk.OldObjectSample` recorded, or the heap grows across the recording | `profile-analyst` for `memory_leakCandidates`; `heap-triage` when a dump is attached |
    | A heap dump is attached and the question touches memory | `heap-triage` |
-   | A baseline was given | `profile-analyst` with both ids and which one is the baseline |
+   | A baseline was given | Run `compare_list` and then `compare_quality` yourself first. Apply `compare-jfr` to their evidence; neither missing workload normalization nor a duration difference alone prohibits every comparison. If no shared event type supports the question, report that gap. Otherwise dispatch `profile-analyst` with both ids, the baseline identity, supported dimensions and evidence limitations |
 
    Dispatching every specialist on every profile wastes turns and produces padding. A dimension the
    summary does not point at is not investigated; it is listed under **Not assessed** if the

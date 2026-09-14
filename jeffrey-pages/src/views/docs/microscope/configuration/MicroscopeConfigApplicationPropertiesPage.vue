@@ -271,7 +271,9 @@ onMounted(() => {
               of the origin comparison: rebind a name you control to <code>127.0.0.1</code> and the
               <code>Host</code> and <code>Origin</code> it sends match each other perfectly. The list
               replaces the default rather than adding to it, so keep the loopback names any client still
-              uses. Behind a reverse proxy, name the hostname clients dial and set Spring Boot's
+              uses. It has to be widened whenever a client dials anything but loopback: an agent in a
+              devcontainer reaching the host as <code>host.docker.internal</code>, or a machine on the LAN
+              dialling this one by name. Behind a reverse proxy, name the hostname clients dial and set Spring Boot's
               <code>server.forward-headers-strategy</code> so the request carries the public scheme, host
               and port &mdash; the check reads the servlet request, never <code>X-Forwarded-*</code>
               directly. Read at startup. See
@@ -324,6 +326,26 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.mcp.recordings.max-concurrent-imports</code></td>
+            <td><code>2</code></td>
+            <td>
+              How many <code>recordings_analyzeFile</code> imports run at once. A call beyond that
+              number is not refused: it is reported as <code>queued</code> by
+              <code>operations_status</code> and starts when a slot frees, and
+              <code>operations_cancel</code> on a queued attempt means it never starts. A positive
+              integer. Read at startup.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.diagnostics.probe-timeout</code></td>
+            <td><code>PT2S</code></td>
+            <td>
+              How long the <code>jeffrey://diagnostics</code> resource waits for each configured hub
+              when it probes reachability. A short budget is the point: the resource answers whether a
+              hub responds, not what it holds. A positive ISO-8601 duration. Read at startup.
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.mcp.ide.enabled</code></td>
             <td><code>true</code></td>
             <td>
@@ -337,15 +359,29 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.mcp.preset</code></td>
+            <td><code>all</code></td>
+            <td>
+              A named selection of tool families: <code>all</code>, <code>jfr</code>, <code>heap</code> or
+              <code>hub</code>. Each focused preset keeps <code>profiles</code>, <code>recordings</code>
+              and <code>operations</code> beside the families it is named for, so a profile can still be
+              found, created and followed. A non-empty <code>families</code> list wins over it; an unknown
+              preset name rejects startup. Read at startup.
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.mcp.families</code></td>
             <td><em>empty</em></td>
             <td>
-              Which tool families to advertise, comma-separated; empty means all of them. Families are
-              named by their tool prefix: <code>profiles</code>, <code>jfr</code>,
+              Which tool families to advertise, comma-separated; empty means whatever the preset selects,
+              all of them by default. Families are
+              named by their tool prefix: <code>profiles</code>, <code>operations</code>, <code>jfr</code>,
               <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
               <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
               <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
-              <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>. Worth setting
+              <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>. Keep
+              <code>operations</code> in any list that keeps <code>recordings</code>, <code>heap</code> or
+              <code>hubs</code>: it is how a client follows and cancels the work those start. Worth setting
               only for a
               client that pays for the whole tool list on every turn &mdash; Codex loads every schema
               each time, where Claude Code fetches them on demand. A family named here but not built

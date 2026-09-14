@@ -23,10 +23,11 @@ one depends on facts the deltas do not show: that both runs did the same kind of
 comparable length of time, with the same profiler settings. Nothing inside a JFR file proves any of
 that.
 
-So `compare_list` is not a warm-up call. It is the step that decides whether the rest means
-anything, and its answer is a finding in its own right — "these two runs are not comparable" is a
-real, reportable result, and a far better one than a confident regression that was really a
-recording twice as long.
+So `compare_list` is not a warm-up call, and `compare_quality` after it is not one either. Between
+them they decide whether the rest means anything, and their answer is a finding in its own right —
+"these two runs are not comparable" is a real, reportable result, and a far better one than a
+confident regression that was really a recording twice as long, or a sampler that dropped a third
+of its samples on one side.
 
 ## 1. Get two `profileId`s
 
@@ -54,11 +55,33 @@ Read its `notes`, and stop to think when:
   baseline onto the primary's length automatically, which is right for a steady workload and wrong
   for a fixed-size benchmark (N requests replayed in both runs). On a benchmark, read the **share**
   column rather than the delta.
-- **An event type appears on one side only.** That is a difference between the two *profiler
-  configurations*, not a change in the application. Report it as such; do not report the work as
-  having appeared or vanished.
+- **An event type appears on one side only.** That may reflect instrumentation or observed
+  activity; presence alone cannot distinguish them. Report the evidence gap rather than claiming
+  that the work appeared or vanished.
 - **`comparable` is empty.** There is nothing to compare — different formats, one is a heap dump,
   or wholly different profiler settings. Say so and stop.
+
+Then call `compare_quality` with the same two ids before quoting a delta. It returns evidence,
+not a single comparability verdict. Assess the question using these fields:
+
+- `samplingConfiguration` and `findings`: matching snapshots support comparison of that event type;
+  `mismatch` or `unknown` means its event volumes need qualification. Check each side's
+  `samplerHealth` for sample loss too. A matching snapshot does not prove unchanged settings
+  throughout either recording.
+- `commonEventTypes`, `onlyInPrimary` and `onlyInBaseline`: compare shared evidence. A type absent
+  on one side is not evidence that the application stopped doing that work.
+- `durationNormalization.available`: recording-exposure scaling is possible when true. It does
+  not establish equal workload or request rate; filtered graph exports use the selected window,
+  while this tool describes whole recordings.
+- `workloadNormalization.available`: currently false because observed server events do not
+  establish complete operation counts. This prevents per-request efficiency or speed claims from
+  these counts alone. It does **not** prevent comparing observed hotspot shares or qualified
+  duration-normalized movements. State the denominator and the limitation.
+- `truncation`: omitted evidence is unknown, not a clean bill of health.
+
+Open the report with your assessment of what can be compared and its limitations. If no shared
+event type supports the requested comparison, report that gap and stop. Otherwise compare the
+supported dimensions, and keep a workload regression claim separate from an observed movement.
 
 If the two runs came from different machines, different load levels or different JVM flags, say so
 before anything else. No amount of arithmetic recovers that, and the numbers will look just as

@@ -41,6 +41,12 @@ public final class ActivityLimits {
     /** Workspace, project, session and scan identifiers. */
     public static final int MAX_ID_LENGTH = 512;
 
+    /**
+     * The caller-chosen key under which a repeated {@code StartActivity} adopts the scan still in
+     * flight instead of admitting a second one. Long enough for a hex SHA-256 with room to spare.
+     */
+    public static final int MAX_IDEMPOTENCY_KEY_LENGTH = 128;
+
     /** Buckets returned by one poll. Totals still account for the ones left out. */
     public static final int MAX_RESULT_BUCKETS = 20;
 

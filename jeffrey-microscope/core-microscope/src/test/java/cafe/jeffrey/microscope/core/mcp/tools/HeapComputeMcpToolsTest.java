@@ -39,6 +39,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZoneId;
 import java.util.concurrent.CountDownLatch;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import cafe.jeffrey.shared.common.Json;
@@ -133,6 +134,51 @@ class HeapComputeMcpToolsTest {
         String retry = Json.mapper().readTree(tools.prepare("leaks", true)).path("operationId").asString();
         assertFalse(firstId.equals(retry));
         assertEquals("cancelled", operations.cancel(firstId, kind -> true).status());
+    }
+
+    /**
+     * "Omit to inspect it without restarting" has to hold for a preparation that completed, not only
+     * for one that failed: the registry used to keep a failed run and replace a completed one, so an
+     * inspection call rebuilt a dominator tree that was already there.
+     */
+    @Test
+    void omittingRetryDoesNotRestartACompletedPreparation() throws Exception {
+        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, initService, () -> () -> {}, operations);
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        String first = Json.mapper().readTree(tools.prepare("leaks", false)).path("operationId").asString();
+        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status().equals("completed"));
+
+        var inspected = Json.mapper().readTree(tools.prepare("leaks", null));
+
+        assertFalse(inspected.path("started").asBoolean());
+        assertEquals(first, inspected.path("operationId").asString());
+        assertTrue(inspected.path("nextSteps").get(0).asString().contains("already completed"), inspected.toString());
+        verify(heapDumpManager, times(1)).initialize(eq(null), any());
+
+        String retried = Json.mapper().readTree(tools.prepare("leaks", true)).path("operationId").asString();
+        assertFalse(first.equals(retried), "an explicit retry is what restarts a finished run");
+    }
+
+    /**
+     * The registry is keyed by profile, not by report, so "the preparation already completed" must
+     * mean the report the caller asked for. Read the other way, one finished report answered for
+     * every other one and the reader was told a report was ready that had never been computed.
+     */
+    @Test
+    void aReportTheLastRunNeverComputedStartsItsOwnPreparation() throws Exception {
+        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
+        HeapComputeMcpTools tools = new HeapComputeMcpTools(profileManager, initService, () -> () -> {}, operations);
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        String first = Json.mapper().readTree(tools.prepare("leaks", false)).path("operationId").asString();
+        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status().equals("completed"));
+
+        var other = Json.mapper().readTree(tools.prepare("strings", null));
+
+        assertTrue(other.path("started").asBoolean(), other.toString());
+        assertFalse(first.equals(other.path("operationId").asString()));
+        assertEquals(List.of("strings"), Json.mapper().convertValue(other.path("computing"), List.class),
+                other.toString());
     }
 
     @Test

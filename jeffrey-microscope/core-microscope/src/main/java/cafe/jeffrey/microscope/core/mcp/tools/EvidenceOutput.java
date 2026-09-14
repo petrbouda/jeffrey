@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.McpToolResult;
 import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -30,6 +31,10 @@ import java.util.List;
 final class EvidenceOutput {
 
     private static final int METADATA_RESERVE = 8_192;
+
+    /** The comma a further row costs on top of its own JSON. */
+    private static final int ROW_SEPARATOR_CHARS = 1;
+
     private final ObjectNode root;
     private final ObjectNode truncation;
     private final int rowLimit;
@@ -45,16 +50,27 @@ final class EvidenceOutput {
         rows(root, name, name, values);
     }
 
+    /**
+     * The document is measured once here and each row then costs what it serialises to, rather than
+     * the whole document being re-serialised per row: nine collections of up to five hundred rows
+     * made that check the most expensive thing the tool did. Measuring at every collection keeps the
+     * running figure honest about whatever the caller added to the root in between, and a row is
+     * charged its separator too, so the estimate can only stop early, never overrun.
+     */
     void rows(ObjectNode owner, String name, String path, List<?> values) {
         ArrayNode rows = owner.putArray(name);
         ObjectNode counts = truncation.putObject(path).put("total", values.size());
         int count = Math.min(rowLimit, values.size());
+        int budget = McpToolOutput.MAX_CHARS - METADATA_RESERVE;
+        int used = Json.toString(root).length();
         for (int index = 0; index < count; index++) {
-            rows.add(Json.toTree(values.get(index)));
-            if (Json.toString(root).length() > McpToolOutput.MAX_CHARS - METADATA_RESERVE) {
-                rows.remove(rows.size() - 1);
+            JsonNode row = Json.toTree(values.get(index));
+            int cost = Json.toString(row).length() + ROW_SEPARATOR_CHARS;
+            if (used + cost > budget) {
                 break;
             }
+            rows.add(row);
+            used += cost;
         }
         counts.put("returned", rows.size()).put("omitted", values.size() - rows.size());
         counts.put("reason", rows.size() == values.size() ? "complete"

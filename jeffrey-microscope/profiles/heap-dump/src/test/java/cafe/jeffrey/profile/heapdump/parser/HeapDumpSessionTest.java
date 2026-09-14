@@ -23,7 +23,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -77,6 +80,32 @@ class HeapDumpSessionTest {
             session.buildDominatorTreeIfNeeded();
             assertTrue(session.view().hasDominatorTree());
             // Second call with the same session is a no-op.
+            session.buildDominatorTreeIfNeeded();
+            assertTrue(session.view().hasDominatorTree());
+        }
+    }
+
+    /**
+     * The tree is two tables loaded one after the other. A process that died between them used to
+     * leave a dominator table that counted as a finished tree, and every later build stage skipped
+     * the work; the presence check now wants both, and the next build fills them in again.
+     */
+    @Test
+    void aDominatorTableWithoutRetainedSizesDoesNotReadAsATree(@TempDir Path tmp) throws IOException, SQLException {
+        Path hprof = simpleDump(tmp, "half.hprof");
+        Path indexPath = HeapDumpIndexPaths.indexFor(hprof);
+        try (HeapDumpSession session = HeapDumpSession.openOrBuild(hprof, CLOCK)) {
+            session.buildDominatorTreeIfNeeded();
+            assertTrue(session.view().hasDominatorTree());
+        }
+
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexPath.toAbsolutePath());
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM retained_size");
+        }
+
+        try (HeapDumpSession session = HeapDumpSession.openOrBuild(hprof, CLOCK)) {
+            assertFalse(session.view().hasDominatorTree(), "half a load is not a tree");
             session.buildDominatorTreeIfNeeded();
             assertTrue(session.view().hasDominatorTree());
         }

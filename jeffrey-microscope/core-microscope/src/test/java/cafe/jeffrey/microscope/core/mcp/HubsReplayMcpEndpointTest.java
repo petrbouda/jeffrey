@@ -42,6 +42,10 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.util.Set;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,6 +55,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class HubsReplayMcpEndpointTest {
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
     private static final String HUB_ID = "hub";
     private static final String WORKSPACE_ID = "workspace";
     private static final String PROJECT_ID = "project";
@@ -154,7 +159,7 @@ class HubsReplayMcpEndpointTest {
             });
 
             var assembler = mock(McpToolsetAssembler.class);
-            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry()), "hubs"));
+            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new HubsReplayMcpTools(resolver, new McpOperationRegistry(CLOCK), CLOCK), "hubs"));
             var mvc = mockMvcTesterFor(new ExternalMcpController(
                     assembler,
                     new ExternalMcpProperties(true, true, true, Set.of()),

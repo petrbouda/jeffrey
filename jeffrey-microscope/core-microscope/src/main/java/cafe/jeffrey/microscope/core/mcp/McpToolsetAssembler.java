@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
@@ -62,6 +63,7 @@ import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -132,19 +134,16 @@ public class McpToolsetAssembler {
             IdeBridge ideBridge,
             ExternalMcpProperties properties,
             HubsReplayMcpTools replayMcpTools,
-            McpOperationRegistry operations) {
+            McpOperationRegistry operations,
+            Clock clock) {
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
-                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> switch (kind) {
-                    case "recording_import", "recording_analysis" -> properties.advertises(PREFIX_RECORDINGS);
-                    case "hub_download", "hub_activity" -> properties.hubsEnabled() && properties.advertises(PREFIX_HUBS);
-                    case "heap_prepare" -> properties.advertises(PREFIX_HEAP);
-                    default -> false;
-                }), "operations"),
+                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> reachable(kind, properties)), "operations"),
                 ProfileScopedToolset.leased(ProfileEvidenceMcpTools.class, PREFIX_PROFILES,
                         profileId -> scoped(contextCache, profileId, scope -> new ProfileEvidenceMcpTools(
-                                scope.profileManager(), recordingCommitResolver, jfrPanelProvider, stackSamplePanelProvider))),
+                                scope.profileManager(), recordingCommitResolver, jfrPanelProvider,
+                                stackSamplePanelProvider, clock))),
                 ProfileScopedToolset.leased(ProfileMcpTools.class, PREFIX_PROFILES,
                         profileId -> scoped(contextCache, profileId, scope -> new ProfileMcpTools(
                                 scope.profileManager(),
@@ -164,7 +163,7 @@ public class McpToolsetAssembler {
                                 stackSamplePanelProvider))),
                 ProfileScopedToolset.leased(CompareMcpTools.class, PREFIX_COMPARE,
                         profileId -> scoped(contextCache, profileId, scope -> new CompareMcpTools(
-                                scope.profileManager(), scope::profileManager))),
+                                scope.profileManager(), scope::profileManager, clock))),
                 ProfileScopedToolset.leased(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> scoped(contextCache, profileId,
                                 scope -> new TracesMcpTools(scope.profileManager()))),
@@ -241,6 +240,18 @@ public class McpToolsetAssembler {
 
     public McpToolProvider toolset() {
         return toolset;
+    }
+
+    /**
+     * Whether {@code operations_status} and {@code operations_cancel} may reach an operation of this
+     * kind: only when the family that started it is served, and -- for the two hub kinds -- only when
+     * the hub switch is on, since the family filter alone does not know about that switch.
+     */
+    private static boolean reachable(OperationKind kind, ExternalMcpProperties properties) {
+        if (kind.reachesHub() && !properties.hubsEnabled()) {
+            return false;
+        }
+        return properties.advertises(kind.family());
     }
 
     /**

@@ -26,6 +26,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -63,7 +64,7 @@ class McpWorkflowIntegrationTest {
 
     @Test
     void operationResultAndMetricsAreAvailableThroughTheRealEndpoint() {
-        String id = completed("recording_analysis");
+        String id = completed(OperationKind.RECORDING_ANALYSIS);
         var controller = controller(new ExternalMcpProperties(true, false, false,
                 Set.of("operations", "recordings")));
         JsonNode response = call(controller, "operations_status", id);
@@ -81,15 +82,16 @@ class McpWorkflowIntegrationTest {
 
     @Test
     void operationToolsCannotReachAnExcludedOriginatingFamily() {
-        String id = completed("hub_download");
+        String id = completed(OperationKind.HUB_DOWNLOAD);
         var controller = controller(new ExternalMcpProperties(true, false, false,
                 Set.of("operations", "recordings")));
         assertTrue(call(controller, "operations_status", id).path("result").path("isError").asBoolean());
         assertTrue(call(controller, "operations_cancel", id).path("result").path("isError").asBoolean());
     }
 
-    private String completed(String kind) {
-        BoundedJobs<String, String> jobs = new BoundedJobs<>();
+    private String completed(OperationKind kind) {
+        BoundedJobs<String, String> jobs =
+                new BoundedJobs<>(BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, clock);
         var handle = jobs.startOrJoin("key", false, value -> true, () -> "profile-1");
         String id = operations.register(kind, handle, value -> Map.of("profileId", value));
         assertEquals("profile-1", jobs.awaitWithin(handle, Duration.ofSeconds(5)).orElseThrow());
@@ -103,12 +105,12 @@ class McpWorkflowIntegrationTest {
         McpToolsetAssembler assembler = new McpToolsetAssembler(
                 new ProfilesMcpTools(repositories),
                 new RecordingsMcpTools(recordings, new PipelineRunRegistry<>(ProfileInitStages.DEFINITION,
-                        PipelineRunOptions.unbounded(), clock), operations),
+                        PipelineRunOptions.unbounded(), clock), operations, clock),
                 new HubsMcpTools(hubs, resolver, recordings, clock, operations),
                 mock(McpProfileContextCache.class), mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
-                new HubsReplayMcpTools(resolver, new McpOperationRegistry()), operations);
+                new HubsReplayMcpTools(resolver, new McpOperationRegistry(clock), clock), operations, clock);
         return new ExternalMcpController(assembler, properties, new McpRequestGuard(), new McpPromptRegistry(),
                 new McpDiagnostics(repositories, hubs, properties, clock, Duration.ofSeconds(1)));
     }
