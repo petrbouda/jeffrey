@@ -63,7 +63,15 @@ public final class McpServerInfo {
                 .put("listChangedNotifications", false)
                 .put("structuredToolResults", true)
                 .put("structuredToolResultsFromProtocol",
-                        AbstractMcpStreamableHttpController.STRUCTURED_RESULTS_VERSION);
+                        AbstractMcpStreamableHttpController.STRUCTURED_RESULTS_VERSION)
+                .put("completions", true)
+                .put("instructions", true)
+                .put("resourceLinks", true)
+                // POST-only and stateless on purpose: no SSE stream, no session id, and therefore no
+                // server-initiated notifications. Work a writer starts is polled through operations_.
+                .put("streaming", false)
+                .put("sessions", false)
+                .put("progressNotifications", false);
         // Derived from the schemas rather than named: a tool pages when it takes a cursor, and a list
         // written here by hand would go stale the day a third tool learned to.
         capabilities.set("paginatedTools", Json.toTree(specs.stream()

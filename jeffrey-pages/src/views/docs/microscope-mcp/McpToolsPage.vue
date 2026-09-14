@@ -43,6 +43,7 @@ const headings = [
   { id: 'hubs', text: 'hubs_ — recordings that are not on this machine', level: 2 },
   { id: 'ide', text: 'ide_ — where the code actually is', level: 2 },
   { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
+  { id: 'operations', text: 'operations_ — the work the writers start', level: 2 },
   { id: 'links', text: 'Links Back to the UI', level: 2 },
   { id: 'what-is-not-here', text: 'What Is Not Here', level: 2 }
 ];
@@ -159,7 +160,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Output is capped at 120,000 characters, and says so when it cuts.</strong> A silently shortened flamegraph would be read as a complete one, so nothing is trimmed quietly. A Markdown answer &mdash; the exports, the listings &mdash; ends with an explicit <code>TRUNCATED</code> line naming the cap and suggesting a narrower query. A JSON answer is trimmed <em>in the tree</em> instead of at a character count: the largest array is shortened until the document fits, so what comes back is still parseable rather than ending mid-token, and it carries a <code>_truncated</code> object saying how many elements each shortened array kept out of how many it had. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
 
-      <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>source</code>, <code>operator</code>, <code>scope</code>, <code>sort</code>, <code>sortBy</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. A value outside the list is refused by name, with the alternatives spelled out, before the tool runs &mdash; as is a required argument the call left out, rather than being bound to an empty value the tool then reads as an answer. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
+      <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>source</code>, <code>operator</code>, <code>scope</code>, <code>sort</code>, <code>sortBy</code>, <code>order</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. A value outside the list is refused by name, with the alternatives spelled out, before the tool runs &mdash; as is a required argument the call left out, rather than being bound to an empty value the tool then reads as an answer. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
 
       <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. The tools that change state are: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, <code>hubs_eventActivity</code>, which claims one of a Hub&rsquo;s retained scan slots and runs a reader there, <code>operations_cancel</code> and <code>hubs_activityCancel</code>, which request cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code>, <code>heap_status</code> and <code>hubs_activityStatus</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families and the <code>operations_</code> pair, which can poll or cancel work on a Hub. These tools can reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
 
@@ -189,7 +190,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><a href="#recordings"><code>recordings_</code></a></td>
             <td class="map-count">4</td>
-            <td>A recording Jeffrey has never seen, as a file on this machine. Creates a profile rather than reading one, and an installation can switch it off on its own.</td>
+            <td>A recording Jeffrey has never seen, as a file on this machine. Creates a profile rather than reading one; an installation withholds it by leaving <code>recordings</code> out of <code>families</code>.</td>
           </tr>
           <tr>
             <td><a href="#hubs"><code>hubs_</code></a></td>
@@ -294,7 +295,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         </tbody>
       </table>
 
-      <p><strong>Structured discovery results.</strong> <code>profiles_list</code> and <code>hubs_sessions</code> keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
+      <p><strong>Structured discovery results.</strong> Eight tools &mdash; <code>profiles_list</code>, <code>profiles_evidence</code>, <code>compare_quality</code>, <code>hubs_sessions</code>, <code>hubs_queryEvents</code>, <code>hubs_eventActivity</code>, <code>hubs_activityStatus</code> and <code>hubs_activityCancel</code> &mdash; keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
 
       <p><strong>Evidence snapshots.</strong> <code>profiles_evidence(profileId, limit?)</code>, also available at <code>jeffrey://profile/{profileId}/evidence</code>, exports the current profile and recording identity, filters, units, denominators, existing findings, sampling evidence and capability gaps. The snapshot is versioned and explicitly reports omitted rows. Save the response to preserve that evidence: reading the URI again reflects the current profile state.</p>
 
@@ -1217,7 +1218,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p>Discovery shares a twenty-second deadline across remote calls and cancels outstanding RPCs when it expires. Completed project results remain available even if another hub or workspace stalls. Incomplete scopes and their reasons appear under the table, including when no rows returned. Unavailable hubs, expired deadlines and missing sessions produce distinct explanations.</p>
 
-      <p>The family is advertised only while both hub access and ingestion are enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the properties and why the two are linked.</p>
+      <p>The family is advertised only while <code>jeffrey.microscope.mcp.hubs.enabled</code> is on, and only while <code>hubs</code> is among the families the <code>families</code> list or the active <code>preset</code> selects; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>. Keep <code>operations</code> selected alongside it &mdash; that is how a download is polled and cancelled.</p>
 
       <p><strong>Example.</strong></p>
       <DocsCodeBlock :code="exHubs" language="json" />
@@ -1237,27 +1238,27 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         <tbody>
           <tr>
             <td><code>ide_resolve</code></td>
-            <td><code>className</code>, <code>methodName?</code>, <code>line?</code></td>
+            <td><code>profileId</code>, <code>className</code>, <code>methodName?</code>, <code>line?</code></td>
             <td>The absolute file and line, plus whether the position is <code>decompiled</code>, <code>imprecise</code> or <code>stale</code>, and what to do about each. Does <strong>not</strong> move the editor</td>
           </tr>
           <tr>
             <td><code>ide_source</code></td>
-            <td><code>className</code></td>
+            <td><code>profileId</code>, <code>className</code></td>
             <td>The source text as the IDE has it &mdash; attached sources for a library when they exist, a decompiled reconstruction when they do not</td>
           </tr>
           <tr>
             <td><code>ide_windows</code></td>
-            <td><code>className?</code></td>
+            <td><code>profileId</code>, <code>className?</code></td>
             <td>Every open window, its branch and HEAD commit, whether it holds the class, and whether it is on the commit the recording was built from</td>
           </tr>
           <tr>
             <td><code>ide_link</code></td>
-            <td><code>projectId</code></td>
+            <td><code>profileId</code>, <code>projectId</code></td>
             <td>Binds one window to this profile for every later lookup. Only needed when the choice is ambiguous</td>
           </tr>
           <tr>
             <td><code>ide_open</code></td>
-            <td><code>className</code>, <code>methodName?</code>, <code>line?</code></td>
+            <td><code>profileId</code>, <code>className</code>, <code>methodName?</code>, <code>line?</code></td>
             <td>Opens the location and brings the window to the front. The one tool here with a visible side effect</td>
           </tr>
         </tbody>
@@ -1326,7 +1327,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p>One more thing worth knowing: each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
 
-      <p>The family is advertised only while ingestion is enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the property and for why a shared installation might turn it off.</p>
+      <p>The family is always built, and is advertised whenever <code>recordings</code> is among the families the <code>families</code> list or the active <code>preset</code> selects &mdash; every preset keeps it. Drop it from <code>families</code> to refuse imports on a shared installation; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>. Keep <code>operations</code> selected alongside it, which is how an import is polled and cancelled.</p>
 
       <p><strong>Example.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exRecordings" language="json" />
@@ -1371,7 +1372,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>No charts.</strong> The <code>jvm_</code> family carries the numbers behind each UI dashboard, not the timeseries they are drawn from: pause and throttling timelines, the G1 and ZGC deep dives, tenuring and reference processing, the thread timeline and the sub-second view stay in the UI, where a reader can scrub them. <code>profiles_link</code> opens the profile there.</p>
 
-      <p><strong>No shell.</strong> The server answers questions about profiles and, with ingestion on, opens the one recording path it is handed. It runs nothing.</p>
+      <p><strong>No shell.</strong> The server answers questions about profiles and, when the <code>recordings</code> family is advertised, opens the one recording path it is handed. It runs nothing.</p>
     </div>
 
     <DocsNavFooter />

@@ -19,8 +19,11 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.CompositeToolset;
 import cafe.jeffrey.profile.mcp.McpResource;
+import cafe.jeffrey.profile.mcp.McpResourceLink;
+import cafe.jeffrey.profile.mcp.McpResourceNotFoundException;
 import cafe.jeffrey.profile.mcp.McpResourceProvider;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
@@ -143,6 +146,10 @@ class McpResourcesTest {
     /**
      * Guessing which resource a near-miss meant would answer a question nobody asked, so every shape
      * this server does not serve is refused with the ones it does.
+     * <p>
+     * A URI that is not served is a <em>missing subject</em>, which the envelope answers with
+     * {@code -32002}, not the {@code -32602} an unparseable argument gets. A client can then tell a URI
+     * it should stop asking for from one it merely spelled wrong.
      */
     @Nested
     class Refusals {
@@ -173,10 +180,66 @@ class McpResourcesTest {
         }
 
         private void assertRefused(String uri) {
-            IllegalArgumentException thrown =
-                    assertThrows(IllegalArgumentException.class, () -> resources.read(uri));
+            McpResourceNotFoundException thrown =
+                    assertThrows(McpResourceNotFoundException.class, () -> resources.read(uri));
 
             assertTrue(thrown.getMessage().contains("jeffrey://profiles"), thrown.getMessage());
+        }
+    }
+
+    /**
+     * The tool-to-resource mapping, which lives here because this is the only class that knows which
+     * URIs exist. A link naming a URI {@code read} would refuse is the failure worth testing for.
+     */
+    @Nested
+    class Links {
+
+        @Test
+        void linksASummaryToItsResource() {
+            List<McpResourceLink> links = resources.linksFor(
+                    "profiles_summary", Json.createObject().put("profileId", "p-1"));
+
+            assertEquals(1, links.size());
+            assertEquals("jeffrey://profile/p-1/summary", links.getFirst().uri());
+            resources.read(links.getFirst().uri());
+        }
+
+        @Test
+        void linksAnUnnarrowedFlamegraphToItsResource() {
+            List<McpResourceLink> links = resources.linksFor("flamegraph_export",
+                    Json.createObject().put("profileId", "p-1").put("eventType", "jdk.ExecutionSample"));
+
+            assertEquals("jeffrey://profile/p-1/flamegraph/jdk.ExecutionSample", links.getFirst().uri());
+            resources.read(links.getFirst().uri());
+        }
+
+        /**
+         * The template takes an event type and nothing else, so it cannot stand for a filtered export.
+         * Offering it anyway would put a different call tree behind the same name.
+         */
+        @Test
+        void doesNotLinkAFlamegraphThatWasNarrowed() {
+            assertTrue(resources.linksFor("flamegraph_export", Json.createObject()
+                    .put("profileId", "p-1")
+                    .put("eventType", "jdk.ExecutionSample")
+                    .put("thresholdPct", 5)).isEmpty());
+        }
+
+        @Test
+        void encodesASegmentSoTheLinkCanBeReadBack() {
+            List<McpResourceLink> links = resources.linksFor(
+                    "profiles_summary", Json.createObject().put("profileId", "p/1"));
+
+            assertEquals("jeffrey://profile/p%2F1/summary", links.getFirst().uri());
+            resources.read(links.getFirst().uri());
+            assertEquals("p/1", profileTools.summarisedProfileId);
+        }
+
+        @Test
+        void linksNothingForAToolWithNoResourceCounterpart() {
+            assertTrue(resources.linksFor("jvm_gc", Json.createObject().put("profileId", "p-1")).isEmpty());
+            assertTrue(resources.linksFor("profiles_summary", null).isEmpty());
+            assertTrue(resources.linksFor("profiles_summary", Json.createObject()).isEmpty());
         }
     }
 

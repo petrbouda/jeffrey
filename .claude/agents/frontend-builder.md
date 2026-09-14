@@ -1,3 +1,10 @@
+---
+name: frontend-builder
+description: Verifies that Vue/TypeScript changes compile, pass lint and pass tests by running the frontend build. Use after frontend edits, before claiming they work.
+tools: Read, Grep, Glob, Bash
+model: inherit
+---
+
 # Frontend Builder
 
 Verify that Vue/TypeScript changes compile, pass lint, and tests succeed.

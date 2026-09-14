@@ -189,8 +189,11 @@ class ExternalMcpControllerTest {
 
         @Test
         void rejectsAnUnknownMethod() {
+            // A real protocol method this server does not implement, and does not advertise: it
+            // declares no logging capability, so a client asking to set a level is asking for
+            // something that is not here. completion/complete used to stand here and no longer can.
             String unknown = """
-                    {"jsonrpc":"2.0","id":5,"method":"completion/complete"}""";
+                    {"jsonrpc":"2.0","id":5,"method":"logging/setLevel"}""";
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(unknown))
                     .hasStatusOk()
@@ -422,6 +425,11 @@ class ExternalMcpControllerTest {
                     .containsExactly("jeffrey://server", "jeffrey://diagnostics");
         }
 
+        /**
+         * A URI this server does not serve is a missing subject, which the specification gives its own
+         * code. Answered as invalid-params, a client could not tell a resource it should stop asking
+         * for from an argument it merely spelled wrong.
+         */
         @Test
         void refusesAUriItDoesNotServe() {
             when(assembler.toolset()).thenReturn(toolset());
@@ -432,7 +440,7 @@ class ExternalMcpControllerTest {
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(read))
                     .hasStatusOk()
                     .bodyJson()
-                    .extractingPath("$.error.code").isEqualTo(-32602);
+                    .extractingPath("$.error.code").isEqualTo(-32002);
         }
 
         @Test

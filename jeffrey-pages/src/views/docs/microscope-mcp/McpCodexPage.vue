@@ -142,7 +142,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
 
       <p><code>~/.codex/agents/</code> makes them available in every repository; <code>.codex/agents/</code> inside a checkout scopes them to that one. The skills look for an agent by name and delegate to it when one exists, and read the exports themselves when none does &mdash; so this step is optional, and skipping it costs context rather than correctness.</p>
 
-      <p>One difference worth knowing: the Claude Code subagents are denied the writing tools one by one in their own definitions &mdash; the <code>recordings_</code> and <code>hubs_</code> families, <code>operations_cancel</code> and the two <code>ide_</code> tools that act on the editor, everything that writes except the cache <code>heap_prepare</code> builds &mdash; so they cannot create a profile even if they tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the family at the server instead:</p>
+      <p>One difference worth knowing: the Claude Code subagents are denied the writing tools one by one in their own definitions &mdash; the <code>recordings_</code> and <code>hubs_</code> families, <code>operations_cancel</code> and the two <code>ide_</code> tools that act on the editor, everything that writes including <code>heap_prepare</code> for the analyst, which only <code>heap-triage</code> keeps &mdash; so they cannot create a profile even if they tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the family at the server instead:</p>
       <DocsCodeBlock :code="ingestDenyRule" language="toml" />
 
       <h2 id="approvals">Approvals</h2>
@@ -160,7 +160,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <DocsCodeBlock :code="timeoutConfig" language="toml" />
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
-      <p>This is the one place Codex and Claude Code differ in cost rather than capability. Claude Code fetches a tool&rsquo;s schema when it needs it; Codex loads every schema into the model&rsquo;s context on every turn, and Jeffrey advertises a hundred-odd tools across eighteen families.</p>
+      <p>This is the one place Codex and Claude Code differ in cost rather than capability. Claude Code fetches a tool&rsquo;s schema when it needs it; Codex loads every schema into the model&rsquo;s context on every turn, and Jeffrey advertises a hundred-odd tools across nineteen families.</p>
 
       <p>That is usually fine and occasionally not. If it matters for your work, the Jeffrey side can advertise fewer:</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />

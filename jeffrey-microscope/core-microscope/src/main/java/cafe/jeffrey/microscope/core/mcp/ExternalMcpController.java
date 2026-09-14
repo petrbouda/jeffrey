@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.profile.mcp.McpCompletionProvider;
 import cafe.jeffrey.profile.mcp.McpServerFeatures;
 import cafe.jeffrey.shared.common.Json;
 import jakarta.servlet.http.HttpServletRequest;
@@ -115,11 +116,25 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
         // diagnostics they serve go through a supplier and are read afresh on every read. Deferred
         // rather than built here because the toolset is asked for lazily everywhere else, so that a
         // failure assembling it cannot stop the endpoint answering initialize.
+        // One McpResources instance answers three of the six: it serves the resources, and because it
+        // is the only thing that knows which tool stands behind which URI, it is also what turns a
+        // tool call into a resource link.
+        Supplier<McpResources> resources = once(() -> new McpResources(assembler.toolset(), properties,
+                () -> diagnostics.json(assembler.toolset(), toolMetrics().snapshot(), toolMetrics().droppedCalls())));
+        // Built here rather than lazily: its constructor touches nothing, and whether it can complete
+        // anything is a question about configuration. initialize asks that question, and initialize
+        // must answer even when assembling the toolset would fail -- which is why the toolset reaches
+        // it as a supplier rather than as a resolved provider.
+        McpCompletions completions = new McpCompletions(assembler::toolset, properties);
         this.features = new McpServerFeatures(
                 assembler::toolset,
                 () -> prompts,
-                once(() -> new McpResources(assembler.toolset(), properties,
-                        () -> diagnostics.json(assembler.toolset(), toolMetrics().snapshot(), toolMetrics().droppedCalls()))));
+                resources::get,
+                () -> McpInstructions.TEXT,
+                // NONE when the catalogue is not advertised, so the capability is not declared at all
+                // rather than declared and then unable to complete the one argument it exists for.
+                () -> completions.isAvailable() ? completions : McpCompletionProvider.NONE,
+                resources::get);
     }
 
     /** A supplier that builds its value on the first call and answers every later one with it. */

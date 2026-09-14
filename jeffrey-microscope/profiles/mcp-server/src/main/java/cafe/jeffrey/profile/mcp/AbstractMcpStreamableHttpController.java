@@ -79,6 +79,7 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final String METHOD_RESOURCES_LIST = "resources/list";
     private static final String METHOD_RESOURCES_TEMPLATES_LIST = "resources/templates/list";
     private static final String METHOD_RESOURCES_READ = "resources/read";
+    private static final String METHOD_COMPLETION_COMPLETE = "completion/complete";
 
     private static final String FIELD_JSONRPC = "jsonrpc";
     private static final String FIELD_ID = "id";
@@ -121,6 +122,24 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final String FIELD_OPEN_WORLD_HINT = "openWorldHint";
 
     private static final String FIELD_CURSOR = "cursor";
+    private static final String FIELD_INSTRUCTIONS = "instructions";
+    private static final String FIELD_COMPLETIONS = "completions";
+    private static final String FIELD_COMPLETION = "completion";
+    private static final String FIELD_VALUES = "values";
+    private static final String FIELD_TOTAL = "total";
+    private static final String FIELD_HAS_MORE = "hasMore";
+    private static final String FIELD_REF = "ref";
+    private static final String FIELD_ARGUMENT = "argument";
+    private static final String FIELD_VALUE = "value";
+
+    private static final String CONTENT_TYPE_RESOURCE_LINK = "resource_link";
+
+    /**
+     * The first revision that removed JSON-RPC batching. A client that negotiated this or anything
+     * newer is not entitled to send a batch, and accepting one would let it keep a habit the
+     * specification dropped.
+     */
+    private static final String BATCHING_REMOVED_VERSION = "2025-06-18";
 
     /**
      * The methods that take a pagination {@code cursor}. This server answers each of them in one page
@@ -221,6 +240,11 @@ public abstract class AbstractMcpStreamableHttpController {
                     .body(error(null, ERROR_INVALID_REQUEST, "A JSON-RPC request must be an object or a batch"));
         }
         if (request.isArray()) {
+            if (atLeast(protocolVersionHeader, BATCHING_REMOVED_VERSION)) {
+                return ResponseEntity.badRequest().body(error(null, ERROR_INVALID_REQUEST,
+                        "JSON-RPC batching was removed in MCP " + BATCHING_REMOVED_VERSION
+                                + "; send one request per POST"));
+            }
             return dispatchBatch(request, features, supportsStructured(protocolVersionHeader));
         }
         JsonNode response = dispatchOne(request, features, supportsStructured(protocolVersionHeader));
@@ -289,16 +313,19 @@ public abstract class AbstractMcpStreamableHttpController {
                 refuseCursor(method, params);
             }
             return switch (method) {
-                case METHOD_INITIALIZE -> initializeResult(id, request);
+                case METHOD_INITIALIZE -> initializeResult(id, request, features);
                 case METHOD_PING -> success(id, Json.createObject());
                 case METHOD_TOOLS_LIST -> toolsList(id, features.tools().get(), structured);
-                case METHOD_TOOLS_CALL -> toolsCall(id, features.tools().get(), request.path(FIELD_PARAMS), structured);
+                case METHOD_TOOLS_CALL -> toolsCall(id, features.tools().get(), request.path(FIELD_PARAMS),
+                        structured, features.resourceLinks().get());
                 case METHOD_PROMPTS_LIST -> promptsList(id, features.prompts().get());
                 case METHOD_PROMPTS_GET -> promptsGet(id, features.prompts().get(), request.path(FIELD_PARAMS));
                 case METHOD_RESOURCES_LIST -> resourcesList(id, features.resources().get());
                 case METHOD_RESOURCES_TEMPLATES_LIST -> resourceTemplatesList(id, features.resources().get());
                 case METHOD_RESOURCES_READ ->
                         resourcesRead(id, features.resources().get(), request.path(FIELD_PARAMS));
+                case METHOD_COMPLETION_COMPLETE ->
+                        completionComplete(id, features.completions().get(), request.path(FIELD_PARAMS));
                 default -> error(id, ERROR_METHOD_NOT_FOUND, "Method not found: " + method);
             };
         } catch (McpResourceNotFoundException e) {
@@ -329,13 +356,24 @@ public abstract class AbstractMcpStreamableHttpController {
     }
 
     private static boolean supportsStructured(String protocolVersionHeader) {
-        // No session state is kept here. Without a header, the HTTP compatibility default is
-        // 2025-03-26, which predates structured results.
-        return protocolVersionHeader != null && !protocolVersionHeader.isBlank()
-                && protocolVersionHeader.compareTo(STRUCTURED_RESULTS_VERSION) >= 0;
+        return atLeast(protocolVersionHeader, STRUCTURED_RESULTS_VERSION);
     }
 
-    private JsonNode initializeResult(JsonNode id, JsonNode request) {
+    /**
+     * Whether the revision the client declared is the given one or newer.
+     * <p>
+     * No session state is kept here, so the header is all there is. Without one, the HTTP compatibility
+     * default is {@code 2025-03-26}, which predates every revision this asks about — so an absent
+     * header reads as "older", which is the conservative answer for both callers: no structured
+     * results, and batching still allowed. The comparison is lexical, which is sound because every
+     * revision is an ISO date and anything this server does not implement was already refused above.
+     */
+    private static boolean atLeast(String protocolVersionHeader, String revision) {
+        return protocolVersionHeader != null && !protocolVersionHeader.isBlank()
+                && protocolVersionHeader.compareTo(revision) >= 0;
+    }
+
+    private JsonNode initializeResult(JsonNode id, JsonNode request, McpServerFeatures features) {
         String requestedProtocol = request.path(FIELD_PARAMS).path(FIELD_PROTOCOL_VERSION).asString();
         // Agreeing to whatever the client names is not negotiation — it promises a version this server
         // may not speak. An unrecognised one is answered with what it does speak, and the client decides.
@@ -348,9 +386,20 @@ public abstract class AbstractMcpStreamableHttpController {
         capabilities.putObject(FIELD_TOOLS).put(FIELD_LIST_CHANGED, false);
         capabilities.putObject(FIELD_PROMPTS).put(FIELD_LIST_CHANGED, false);
         capabilities.putObject(FIELD_RESOURCES).put(FIELD_SUBSCRIBE, false).put(FIELD_LIST_CHANGED, false);
+        // Declared only when this endpoint actually has a provider. A capability that is advertised and
+        // then answers nothing is worse than one that was never offered: a client builds a picker on it.
+        if (features.completions().get() != McpCompletionProvider.NONE) {
+            capabilities.putObject(FIELD_COMPLETIONS);
+        }
         ObjectNode serverInfo = result.putObject(FIELD_SERVER_INFO);
         serverInfo.put(FIELD_NAME, SERVER_NAME);
         serverInfo.put(FIELD_VERSION, SERVER_VERSION);
+        // How to use a server with a hundred-odd tools, handed over before the first call rather than
+        // left for the client to infer from a tool list.
+        String instructions = features.instructions().get();
+        if (instructions != null && !instructions.isBlank()) {
+            result.put(FIELD_INSTRUCTIONS, instructions);
+        }
         return success(id, result);
     }
 
@@ -360,6 +409,9 @@ public abstract class AbstractMcpStreamableHttpController {
         for (McpToolSpec spec : toolset.specs()) {
             ObjectNode tool = tools.addObject();
             tool.put(FIELD_NAME, spec.name());
+            if (spec.title() != null && !spec.title().isBlank()) {
+                tool.put(FIELD_TITLE, spec.title());
+            }
             tool.put(FIELD_DESCRIPTION, spec.description());
             tool.set(FIELD_INPUT_SCHEMA, spec.inputSchema());
             if (structured && spec.outputSchema() != null) {
@@ -383,18 +435,23 @@ public abstract class AbstractMcpStreamableHttpController {
      * JSON-RPC error channel instead, so a client can tell "your analysis found nothing" apart from
      * "that tool does not exist".
      */
-    private JsonNode toolsCall(JsonNode id, McpToolProvider toolset, JsonNode params, boolean structured) {
+    private JsonNode toolsCall(
+            JsonNode id, McpToolProvider toolset, JsonNode params, boolean structured, McpResourceLinker linker) {
+
         String toolName = params.path(FIELD_NAME).asString();
         JsonNode arguments = params.get(FIELD_ARGUMENTS);
 
         boolean advertised = toolset.specs().stream().anyMatch(spec -> spec.name().equals(toolName));
         boolean dispatched = true;
+        // Not Measuring: the duration has to be recorded in the finally even when the call threw, and
+        // Measuring.s hands back an Elapsed only on the success path.
         long started = System.nanoTime();
         ObjectNode result = Json.createObject();
         ArrayNode content = result.putArray(FIELD_CONTENT);
         try {
             McpToolResult output = toolset.callResult(toolName, arguments);
             content.addObject().put(FIELD_TYPE, CONTENT_TYPE_TEXT).put(FIELD_TEXT, output.text());
+            appendResourceLinks(content, linker, toolName, arguments);
             if (structured && output.hasStructuredContent()) {
                 result.set(FIELD_STRUCTURED_CONTENT, output.structuredContent());
             }
@@ -422,6 +479,78 @@ public abstract class AbstractMcpStreamableHttpController {
             }
         }
         return success(id, result);
+    }
+
+    /**
+     * Answers {@code completion/complete} for one argument of a resource template or a prompt.
+     * <p>
+     * A reference this server does not recognise is {@code -32602} rather than an empty list: an empty
+     * completion means "nothing matches what you typed", and a client cannot tell that apart from
+     * "you asked about something that is not here" unless the second one is an error.
+     */
+    private JsonNode completionComplete(JsonNode id, McpCompletionProvider provider, JsonNode params) {
+        JsonNode reference = params.path(FIELD_REF);
+        String type = reference.path(FIELD_TYPE).asString();
+        String name = reference.has(FIELD_URI)
+                ? reference.path(FIELD_URI).asString()
+                : reference.path(FIELD_NAME).asString();
+        if (type.isBlank() || name.isBlank()) {
+            throw new IllegalArgumentException(
+                    "A completion reference must carry a type and either a uri or a name");
+        }
+        if (!McpCompletionRef.TYPE_RESOURCE.equals(type) && !McpCompletionRef.TYPE_PROMPT.equals(type)) {
+            throw new IllegalArgumentException("Unknown completion reference type: " + type);
+        }
+        JsonNode argument = params.path(FIELD_ARGUMENT);
+        String argumentName = argument.path(FIELD_NAME).asString();
+        if (argumentName.isBlank()) {
+            throw new IllegalArgumentException("A completion request must name the argument it completes");
+        }
+        McpCompletion completion = provider.complete(
+                new McpCompletionRef(type, name), argumentName, argument.path(FIELD_VALUE).asString());
+
+        ObjectNode result = Json.createObject();
+        ObjectNode node = result.putObject(FIELD_COMPLETION);
+        ArrayNode values = node.putArray(FIELD_VALUES);
+        for (String value : completion.values()) {
+            values.add(value);
+        }
+        node.put(FIELD_TOTAL, completion.total());
+        node.put(FIELD_HAS_MORE, completion.hasMore());
+        return success(id, result);
+    }
+
+    /**
+     * Adds the links for a call that has just succeeded.
+     * <p>
+     * After the text, never instead of it: a client that ignores resource links must still get the
+     * whole answer. A failure building them is swallowed for the same reason — the tool ran and
+     * answered, and turning that into {@code isError} because a convenience could not be produced
+     * would lose a result the model was waiting for.
+     */
+    private void appendResourceLinks(
+            ArrayNode content, McpResourceLinker linker, String toolName, JsonNode arguments) {
+
+        List<McpResourceLink> links;
+        try {
+            links = linker.linksFor(toolName, arguments);
+        } catch (RuntimeException e) {
+            log.warn("Could not build resource links for a successful call: tool={} message={}",
+                    toolName, describe(e));
+            return;
+        }
+        for (McpResourceLink link : links) {
+            ObjectNode block = content.addObject();
+            block.put(FIELD_TYPE, CONTENT_TYPE_RESOURCE_LINK);
+            block.put(FIELD_URI, link.uri());
+            block.put(FIELD_NAME, link.name());
+            if (link.description() != null) {
+                block.put(FIELD_DESCRIPTION, link.description());
+            }
+            if (link.mimeType() != null) {
+                block.put(FIELD_MIME_TYPE, link.mimeType());
+            }
+        }
     }
 
     private JsonNode promptsList(JsonNode id, McpPromptProvider provider) {

@@ -18,13 +18,18 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.McpResource;
+import cafe.jeffrey.profile.mcp.McpResourceLink;
+import cafe.jeffrey.profile.mcp.McpResourceLinker;
+import cafe.jeffrey.profile.mcp.McpResourceNotFoundException;
 import cafe.jeffrey.profile.mcp.McpResourceProvider;
 import cafe.jeffrey.profile.mcp.McpToolProvider;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +52,7 @@ import java.util.stream.Collectors;
  * Reading one runs the same tool that would have answered the call, so a resource and a tool never
  * disagree about what a profile holds.
  */
-public class McpResources implements McpResourceProvider {
+public class McpResources implements McpResourceProvider, McpResourceLinker {
 
     private static final String SCHEME = "jeffrey://";
     private static final String PROFILES_URI = SCHEME + "profiles";
@@ -73,6 +78,10 @@ public class McpResources implements McpResourceProvider {
 
     private static final String PROFILE_ID_ARGUMENT = "profileId";
     private static final String EVENT_TYPE_ARGUMENT = "eventType";
+
+    /** Everything {@code flamegraph_export} accepts that changes the tree the template would return. */
+    private static final Set<String> FLAMEGRAPH_NARROWING_ARGUMENTS = Set.of(
+            "thresholdPct", "startMs", "endMs", "threadMode", "useWeight", "search", "excludeIdle", "excludeNonJava");
 
     private final McpToolProvider toolset;
     private final Set<String> availableTools;
@@ -176,7 +185,7 @@ public class McpResources implements McpResourceProvider {
             return new Contents(uri, McpResource.TEXT_MARKDOWN, call(PROFILES_LIST_TOOL, Json.createObject()));
         }
         if (uri == null || !uri.startsWith(PROFILE_PREFIX)) {
-            throw new IllegalArgumentException(unknown(uri));
+            throw new McpResourceNotFoundException(unknown(uri));
         }
 
         String[] segments = uri.substring(PROFILE_PREFIX.length()).split("/");
@@ -196,7 +205,7 @@ public class McpResources implements McpResourceProvider {
                     .put(EVENT_TYPE_ARGUMENT, decode(segments[2]));
             return new Contents(uri, McpResource.TEXT_MARKDOWN, call(FLAMEGRAPH_EXPORT_TOOL, arguments));
         }
-        throw new IllegalArgumentException(unknown(uri));
+        throw new McpResourceNotFoundException(unknown(uri));
     }
 
     private ObjectNode catalogueArguments(String uri) {
@@ -204,11 +213,15 @@ public class McpResources implements McpResourceProvider {
         for (String parameter : uri.substring(PROFILES_QUERY_PREFIX.length()).split("&", -1)) {
             String[] pair = parameter.split("=", 2);
             if (pair.length != 2) {
-                throw new IllegalArgumentException(unknown(uri));
+                throw new IllegalArgumentException(
+                        "Each profile catalogue parameter must be name=value: " + uri);
             }
             String key = decode(pair[0]);
             if (!CATALOGUE_ARGUMENTS.contains(key) || arguments.has(key)) {
-                throw new IllegalArgumentException(unknown(uri));
+                // The catalogue resource exists; it was the query string that was wrong, which is an
+                // argument the caller can fix rather than a subject that is not there.
+                throw new IllegalArgumentException("The profile catalogue accepts only "
+                        + CURSOR_ARGUMENT + " and " + LIMIT_ARGUMENT + ", each at most once: " + uri);
             }
             String value = decode(pair[1]);
             if (key.equals(LIMIT_ARGUMENT)) {
@@ -237,7 +250,73 @@ public class McpResources implements McpResourceProvider {
     }
 
     /**
-     * What a client is told about a URI this server does not serve, naming the ones it does. The
+     * The resource that holds the same answer as the tool that just ran.
+     * <p>
+     * Three tools have an exact template counterpart, and this is the one place that knows which, so a
+     * link can never name a URI {@link #read} would refuse. A tool result scrolls out of the
+     * conversation; a resource a client has attached stays, which is the whole reason the templates
+     * exist. Anything else links to nothing rather than to something approximate.
+     */
+    @Override
+    public List<McpResourceLink> linksFor(String toolName, JsonNode arguments) {
+        if (arguments == null || !availableTools.contains(toolName)) {
+            return List.of();
+        }
+        String profileId = arguments.path(PROFILE_ID_ARGUMENT).asString();
+        if (profileId.isEmpty()) {
+            return List.of();
+        }
+        String encodedProfile = encode(profileId);
+        if (PROFILE_SUMMARY_TOOL.equals(toolName)) {
+            return List.of(new McpResourceLink(
+                    PROFILE_PREFIX + encodedProfile + "/" + SUMMARY_SEGMENT,
+                    "Profile summary",
+                    "The same summary as a resource, so it can be attached rather than re-read.",
+                    McpResource.APPLICATION_JSON));
+        }
+        if (PROFILE_EVIDENCE_TOOL.equals(toolName)) {
+            return List.of(new McpResourceLink(
+                    PROFILE_PREFIX + encodedProfile + "/" + EVIDENCE_SEGMENT,
+                    "Profile evidence snapshot",
+                    "The same evidence snapshot as a resource; attach it to keep these figures.",
+                    McpResource.APPLICATION_JSON));
+        }
+        if (FLAMEGRAPH_EXPORT_TOOL.equals(toolName)) {
+            String eventType = arguments.path(EVENT_TYPE_ARGUMENT).asString();
+            // The template takes an event type and nothing else, so it can only stand for an unnarrowed
+            // export. Linking a filtered one would offer a different call tree under the same name,
+            // which is worse than offering no link at all.
+            if (eventType.isEmpty() || narrowed(arguments)) {
+                return List.of();
+            }
+            return List.of(new McpResourceLink(
+                    PROFILE_PREFIX + encodedProfile + "/" + FLAMEGRAPH_SEGMENT + "/" + encode(eventType),
+                    "Flamegraph export: " + eventType,
+                    "The same call tree as a resource, at this event type's default settings.",
+                    McpResource.TEXT_MARKDOWN));
+        }
+        return List.of();
+    }
+
+    /** Whether a flamegraph call asked for anything the bare template cannot express. */
+    private static boolean narrowed(JsonNode arguments) {
+        return FLAMEGRAPH_NARROWING_ARGUMENTS.stream()
+                .anyMatch(argument -> arguments.has(argument) && !arguments.path(argument).isNull());
+    }
+
+    /**
+     * A path segment as a URI carries it. {@link #decode} is the other half; an event type carries dots
+     * and a profile id could carry anything, so a link that did not encode could not be read back.
+     */
+    private static String encode(String segment) {
+        return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    /**
+     * What a client is told about a URI this server does not serve, naming the ones it does. Thrown as
+     * {@link McpResourceNotFoundException} so the envelope answers {@code -32002}: the specification
+     * reserves that code for a {@code resources/read} whose subject is not there, and a client can then
+     * tell a URI it should stop asking for from an argument it merely spelled wrong. The
      * diagnostics resource is named only when this instance actually has one: an endpoint built
      * without diagnostics would otherwise advertise, in its refusal, a URI that same refusal is
      * about to be sent for.

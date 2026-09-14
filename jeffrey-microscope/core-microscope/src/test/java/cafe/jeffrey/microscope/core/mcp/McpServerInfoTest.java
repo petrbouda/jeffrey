@@ -60,6 +60,8 @@ class McpServerInfoTest {
                 {"tools":true,"resources":true,"prompts":true,
                  "resourceSubscriptions":false,"listChangedNotifications":false,
                  "structuredToolResults":true,"structuredToolResultsFromProtocol":"2025-06-18",
+                 "completions":true,"instructions":true,"resourceLinks":true,
+                 "streaming":false,"sessions":false,"progressNotifications":false,
                  "paginatedTools":["profiles_list"]}
                 """), json.path("capabilities"));
     }
