@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.microscope.grpc.client.*;
 
+import io.grpc.Context;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ import cafe.jeffrey.hub.api.v1.*;
 
 import java.io.*;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Streams a recording session's files from a hub, one file per call. The hub serves every file
@@ -58,10 +60,35 @@ public class FileDownloadClient {
     /**
      * Streams one file straight into the consumer. The consumer decides where the bytes go; the
      * client itself never touches the disk.
+     *
+     * <p>The RPC runs under a cancellable context of its own, a child of the caller's, so that a
+     * consumer giving up part-way (a cancelled download, a full disk) cuts the stream off rather
+     * than leaving the hub sending chunks nobody reads. The caller's own deadline and cancellation
+     * still reach the call through the parent.
      */
     public void streamFile(String sessionId, String fileId, InputStreamConsumer consumer) {
-        Iterator<DataChunk> chunks = stub.downloadFile(request(sessionId, fileId));
-        streamChunksToConsumer(chunks, consumer);
+        Context.CancellableContext call = Context.current().withCancellation();
+        try {
+            Iterator<DataChunk> chunks = start(call, sessionId, fileId);
+            streamChunksToConsumer(chunks, consumer, call);
+        } finally {
+            // A finished call ignores this; an abandoned one is released here rather than held
+            // until the hub notices that nobody is reading.
+            call.cancel(null);
+        }
+    }
+
+    /**
+     * Opens the call under the given context: a gRPC call is bound to the context that is current
+     * when it is created, and that binding is what lets the context cancel it later.
+     */
+    private Iterator<DataChunk> start(Context.CancellableContext call, String sessionId, String fileId) {
+        Context previous = call.attach();
+        try {
+            return stub.downloadFile(request(sessionId, fileId));
+        } finally {
+            call.detach(previous);
+        }
     }
 
     private static DownloadFileRequest request(String sessionId, String fileId) {
@@ -77,8 +104,16 @@ public class FileDownloadClient {
      * the total size only on the first chunk, so this guarantees the consumer receives the
      * real content length instead of racing against the writer thread.
      * A virtual thread writes the remaining chunks to the pipe concurrently.
+     *
+     * <p>When the consumer fails, the read end of the pipe is closed <em>before</em> the writer is
+     * joined, and the call is cancelled: a writer parked on a full pipe only wakes when the read
+     * end goes away, and one parked on the hub only wakes when the call does. Joining first, as
+     * this once did, left both threads waiting on each other for as long as the file was larger
+     * than the pipe.
      */
-    private static void streamChunksToConsumer(Iterator<DataChunk> chunks, InputStreamConsumer consumer) {
+    private static void streamChunksToConsumer(
+            Iterator<DataChunk> chunks, InputStreamConsumer consumer, Context.CancellableContext call) {
+
         DataChunk firstChunk;
         try {
             firstChunk = chunks.hasNext() ? chunks.next() : null;
@@ -90,41 +125,66 @@ public class FileDownloadClient {
                 ? firstChunk.getTotalSize()
                 : UNKNOWN_CONTENT_LENGTH;
 
-        try {
-            PipedOutputStream pipeOut = new PipedOutputStream();
-            PipedInputStream pipeIn = new PipedInputStream(pipeOut, PIPE_BUFFER_SIZE);
+        PipedOutputStream pipeOut = new PipedOutputStream();
+        PipedInputStream pipeIn = connect(pipeOut);
+        AtomicReference<Throwable> writerError = new AtomicReference<>();
 
-            Throwable[] writerError = {null};
-
-            Thread writer = Thread.ofVirtual().start(() -> {
-                try (pipeOut) {
-                    if (firstChunk != null) {
-                        firstChunk.getData().writeTo(pipeOut);
-                    }
-                    while (chunks.hasNext()) {
-                        chunks.next().getData().writeTo(pipeOut);
-                    }
-                } catch (Exception e) {
-                    writerError[0] = e;
-                    LOG.error("Error writing gRPC chunks to pipe", e);
+        Thread writer = Thread.ofVirtual().start(() -> {
+            try (pipeOut) {
+                if (firstChunk != null) {
+                    firstChunk.getData().writeTo(pipeOut);
                 }
-            });
+                while (chunks.hasNext()) {
+                    chunks.next().getData().writeTo(pipeOut);
+                }
+            } catch (Exception e) {
+                writerError.set(e);
+            }
+        });
 
-            try {
-                consumer.accept(pipeIn, contentLength);
-            } finally {
-                writer.join();
-                pipeIn.close();
-            }
-
-            if (writerError[0] != null) {
-                throw toRuntimeException(writerError[0]);
-            }
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+        try {
+            consumer.accept(pipeIn, contentLength);
+        } catch (IOException e) {
+            call.cancel(e);
             throw new RuntimeException("Failed to stream gRPC data chunks", e);
+        } catch (RuntimeException e) {
+            // The consumer's own reason, unwrapped: a cancellation must arrive as one.
+            call.cancel(e);
+            throw e;
+        } finally {
+            closeQuietly(pipeIn);
+            join(writer);
+        }
+
+        Throwable failure = writerError.get();
+        if (failure != null) {
+            LOG.error("Error writing gRPC chunks to pipe", failure);
+            throw toRuntimeException(failure);
+        }
+    }
+
+    private static PipedInputStream connect(PipedOutputStream pipeOut) {
+        try {
+            return new PipedInputStream(pipeOut, PIPE_BUFFER_SIZE);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to connect the download pipe", e);
+        }
+    }
+
+    private static void closeQuietly(InputStream stream) {
+        try {
+            stream.close();
+        } catch (IOException e) {
+            LOG.debug("Closing the download pipe failed: reason={}", e.getMessage());
+        }
+    }
+
+    private static void join(Thread writer) {
+        try {
+            writer.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for the download to stop", e);
         }
     }
 

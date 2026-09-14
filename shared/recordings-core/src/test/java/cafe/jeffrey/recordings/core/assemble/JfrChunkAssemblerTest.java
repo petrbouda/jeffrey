@@ -19,6 +19,7 @@
 package cafe.jeffrey.recordings.core.assemble;
 
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -31,6 +32,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,7 +60,7 @@ class JfrChunkAssemblerTest {
         Path plain = dir.resolve("plain.jfr");
         Lz4Compressor.decompress(recording, plain);
         assertArrayEquals("first-second-third".getBytes(StandardCharsets.UTF_8), Files.readAllBytes(plain));
-        assertFalse(Files.exists(work.resolve("session.jfr")), "the intermediate raw file is removed");
+        assertFalse(Files.exists(work.resolve("session.jfr")), "the recording is written compressed in one pass, with no raw intermediate");
     }
 
     /**
@@ -86,6 +88,26 @@ class JfrChunkAssemblerTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> JfrChunkAssembler.assemble(List.of(empty), work, "session"));
+        assertFalse(Files.exists(work.resolve("session.jfr.lz4")), "an empty recording is not left behind");
+    }
+
+    /**
+     * A chunk that claims to be an LZ4 frame and is not one — cut short, or corrupted on the
+     * way — fails the assembly with the reason attached, and leaves no half-written recording
+     * that a later attempt would take for a whole one.
+     */
+    @Test
+    void aCorruptChunkFailsTheAssemblyAndLeavesNothingBehind() throws IOException {
+        Path good = Files.writeString(dir.resolve("profile-1.jfr"), "first-");
+        byte[] corrupt = {0x04, 0x22, 0x4D, 0x18, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f};
+        Path bad = Files.write(dir.resolve("profile-2.jfr.lz4"), corrupt);
+        Path work = Files.createDirectory(dir.resolve("work"));
+
+        JeffreyInternalException failure = assertThrows(JeffreyInternalException.class,
+                () -> JfrChunkAssembler.assemble(List.of(good, bad), work, "session"));
+
+        assertNotNull(failure.getCause(), "the decoder's own reason travels with the failure");
+        assertFalse(Files.exists(work.resolve("session.jfr.lz4")));
         assertFalse(Files.exists(work.resolve("session.jfr")));
     }
 

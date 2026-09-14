@@ -27,6 +27,8 @@ import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
@@ -42,6 +44,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -242,6 +245,86 @@ class AsprofFileRepositoryStorageTest {
             storage.compressSession(SESSION_ID);
 
             assertEquals(before, idOf("profile-20260101-120000.jfr.lz4"));
+        }
+
+        /**
+         * Compression renames a chunk, and the date the listing reports for it must not move
+         * with the rename: dated by the file system, a compressed chunk would be dated by the
+         * compression — after every chunk still raw — and a recording assembled oldest-first
+         * would put its oldest chunk last.
+         */
+        @Test
+        void aChunkKeepsItsDateAcrossCompression() throws IOException {
+            write("profile-20260101-120000.jfr");
+            Instant before = createdAtOf("profile-20260101-120000.jfr");
+
+            storage.compressSession(SESSION_ID);
+
+            assertEquals(Instant.parse("2026-01-01T12:00:00Z"), before);
+            assertEquals(before, createdAtOf("profile-20260101-120000.jfr.lz4"));
+        }
+
+        @Test
+        void listsAnOlderCompressedChunkBeforeANewerRawOne() throws IOException {
+            write("profile-20260101-120000.jfr");
+            storage.compressSession(SESSION_ID);
+            Path newer = write("profile-20260101-130000.jfr");
+
+            assertEquals(List.of(session.resolve("profile-20260101-120000.jfr.lz4"), newer),
+                    storage.finishedChunks(SESSION_ID));
+        }
+
+        /**
+         * The raw chunk and its archive lie side by side for a moment; a listing taken then
+         * still speaks of one chunk, and of the archive, which is the complete one.
+         */
+        @Test
+        void aChunkListedInBothFormsIsOneChunk() throws IOException {
+            Path raw = write("profile-20260101-120000.jfr");
+            Lz4Compressor.compress(raw, session.resolve("profile-20260101-120000.jfr.lz4"));
+
+            List<Path> chunks = storage.finishedChunks(SESSION_ID);
+
+            assertEquals(List.of(session.resolve("profile-20260101-120000.jfr.lz4")), chunks);
+            assertEquals(2, storage.singleSession(SESSION_ID, true).orElseThrow().files().size(),
+                    "the listing itself still reports both files");
+        }
+
+        @Test
+        void compressesThroughAHiddenPartialFileAndLeavesNoneBehind() throws IOException {
+            write("profile-20260101-120000.jfr");
+
+            storage.compressSession(SESSION_ID);
+
+            try (Stream<Path> files = Files.list(session)) {
+                assertEquals(List.of(session.resolve("profile-20260101-120000.jfr.lz4")), files.toList());
+            }
+        }
+
+        /**
+         * A link in a session directory is not one of the session's files: the producer side of
+         * a shared volume could otherwise name any file on this host as one.
+         */
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void leavesOutALinkWhateverItPointsAt() throws IOException {
+            Path outside = Files.write(workspace.resolve("outside.log"), CHUNK);
+            Files.createSymbolicLink(session.resolve("app.log"), outside);
+            write("gc.jvm-log");
+
+            List<String> names = storage.singleSession(SESSION_ID, true).orElseThrow().files().stream()
+                    .map(RepositoryFile::name)
+                    .toList();
+
+            assertEquals(List.of("gc.jvm-log"), names);
+        }
+
+        private Instant createdAtOf(String name) {
+            return storage.singleSession(SESSION_ID, true).orElseThrow().files().stream()
+                    .filter(file -> file.name().equals(name))
+                    .map(RepositoryFile::createdAt)
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("not listed: " + name));
         }
 
         @Test

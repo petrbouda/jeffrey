@@ -139,6 +139,42 @@ class Lz4CompressorTest {
     }
 
     @Nested
+    class StartsWithLz4Frame {
+
+        @TempDir
+        Path dir;
+
+        @Test
+        void recognisesAFrameByItsMagic() throws IOException {
+            Path raw = Files.writeString(dir.resolve("raw.jfr"), "content");
+            Path compressed = Lz4Compressor.compress(raw, dir.resolve("under-any-name.bin"));
+
+            assertTrue(Lz4Compressor.startsWithLz4Frame(compressed));
+        }
+
+        @Test
+        void aRawFileIsNotAFrameWhateverItsName() throws IOException {
+            Path raw = Files.writeString(dir.resolve("raw.jfr.lz4"), "not compressed at all");
+
+            assertFalse(Lz4Compressor.startsWithLz4Frame(raw));
+        }
+
+        @Test
+        void aFileShorterThanTheMagicIsNotAFrame() throws IOException {
+            Path empty = Files.createFile(dir.resolve("empty.jfr.lz4"));
+            Path short3 = Files.write(dir.resolve("short.jfr.lz4"), new byte[] {0x04, 0x22, 0x4D});
+
+            assertFalse(Lz4Compressor.startsWithLz4Frame(empty));
+            assertFalse(Lz4Compressor.startsWithLz4Frame(short3));
+        }
+
+        @Test
+        void aFileThatCannotBeReadIsNotAFrame() {
+            assertFalse(Lz4Compressor.startsWithLz4Frame(dir.resolve("missing.jfr.lz4")));
+        }
+    }
+
+    @Nested
     class IsLz4Compressed {
 
         @Test

@@ -24,7 +24,9 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
+import cafe.jeffrey.shared.common.model.repository.RecordingChunks;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
 import cafe.jeffrey.shared.common.model.repository.StatsCategory;
@@ -41,6 +43,7 @@ import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import org.springframework.transaction.support.TransactionOperations;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -83,14 +86,38 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public StreamedFile streamFile(String sessionId, String fileId) {
-        RepositoryFile file = findAndValidateFile(sessionId, fileId);
+        RecordingSession session = repositoryStorage.singleSession(sessionId, true)
+                .orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));
+        RepositoryFile file = findAndValidateFile(session, fileId);
 
         Path filePath = file.filePath();
         if (filePath == null || !Files.isRegularFile(filePath)) {
-            throw new IllegalArgumentException("File is no longer on disk: fileId=" + fileId);
+            throw Exceptions.resourceNotFound("File is no longer on disk: fileId=" + fileId);
+        }
+        if (!liesInside(filePath, session.absolutePath())) {
+            // The listing already skips links; this is the same rule at the moment of serving,
+            // for a path that stopped being what the listing saw.
+            throw new IllegalArgumentException("File is not inside its session directory: fileId=" + fileId);
         }
 
         return new StreamedFile(filePath.getFileName().toString(), filePath);
+    }
+
+    /**
+     * Whether the file, with every link on its path resolved, is under the session directory
+     * resolved the same way. Nothing the hub serves may lie anywhere else, whatever a name in the
+     * session directory points at.
+     */
+    private static boolean liesInside(Path file, Path sessionDir) {
+        if (sessionDir == null) {
+            return false;
+        }
+        try {
+            return file.toRealPath().startsWith(sessionDir.toRealPath());
+        } catch (IOException e) {
+            LOG.debug("Cannot resolve a session file against its directory: file={} reason={}", file, e.getMessage());
+            return false;
+        }
     }
 
     @Override
@@ -261,14 +288,16 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 recordingSessionId, projectInfo.id(), retained);
     }
 
-    private RepositoryFile findAndValidateFile(String sessionId, String fileId) {
-        RecordingSession session = repositoryStorage.singleSession(sessionId, true)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-
+    /**
+     * The session's file with the given id, checked to be servable. A chunk being compressed is
+     * listed twice under one id, raw and compressed; the compressed form is the one that is
+     * complete whenever it exists, and the one served — see {@link RecordingChunks#preferred}.
+     */
+    private static RepositoryFile findAndValidateFile(RecordingSession session, String fileId) {
         RepositoryFile file = session.files().stream()
                 .filter(f -> f.id().equals(fileId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("File not found: fileId=" + fileId));
+                .reduce(RecordingChunks::preferred)
+                .orElseThrow(() -> Exceptions.resourceNotFound("File not found: fileId=" + fileId));
 
         if (!file.isFinished()) {
             throw new IllegalArgumentException("Cannot download a file that is still being written: fileId=" + fileId);

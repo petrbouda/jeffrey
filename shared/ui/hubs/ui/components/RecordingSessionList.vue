@@ -370,12 +370,14 @@ const toggleGroupSelection = (sessionId: string, panel: TypeGroupPanel) => {
 // file attributes reports every growing file as zero bytes — while the download reads the
 // file's actual content. Refusing on a zero would block exactly the files this goes wrong on,
 // and an empty download is the honest answer for a file that really is empty.
-const isCheckboxDisabled = (source: RepositoryFile): boolean => {
-  return source.status === RecordingStatus.ACTIVE || source.fileType === SupportedFileType.ASPROF;
+// The rule is the hub's own: it serves a file that is FINISHED and not transient, and nothing
+// else — a file whose status is unknown is refused there, so it is not offered here.
+const isDownloadAllowed = (file: RepositoryFile): boolean => {
+  return file.status === RecordingStatus.FINISHED && file.fileType !== SupportedFileType.ASPROF;
 };
 
-const isDownloadAllowed = (file: RepositoryFile): boolean => {
-  return file.status !== RecordingStatus.ACTIVE && file.fileType !== SupportedFileType.ASPROF;
+const isCheckboxDisabled = (source: RepositoryFile): boolean => {
+  return !isDownloadAllowed(source);
 };
 
 const hasDownloadableRecordings = (session: RecordingSession): boolean => {

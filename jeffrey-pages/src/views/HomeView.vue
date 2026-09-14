@@ -140,7 +140,7 @@ const productTabs: ProductTab[] = [
     features: [
       { icon: 'bi-arrow-repeat', title: 'Application Lifecycle Events', desc: 'Tracks workspaces, instances and sessions across your application\'s lifecycle.' },
       { icon: 'bi-cloud-arrow-down', title: 'Collecting Recordings and Artifacts', desc: 'Captures JFR recordings, heap dumps and logs from your running services.' },
-      { icon: 'bi-cloud-arrow-up', title: 'Providing Merged Recordings and Artifacts', desc: 'Serves merged recordings and artifacts over gRPC, ready to download or analyze.' },
+      { icon: 'bi-cloud-arrow-up', title: 'Serving Session Files', desc: 'Serves every file a session holds over gRPC — JFR chunks, heap dumps, logs — for Microscope to download and assemble.' },
       { icon: 'bi-broadcast-pin', title: 'Replay JFR Events', desc: 'Read JFR events from recorded sessions over gRPC.' },
       { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'Straightforward and cheap integration among the components.' },
       { icon: 'bi-puzzle', title: 'Custom consumers', desc: 'Microscope is one client — build your own.' }

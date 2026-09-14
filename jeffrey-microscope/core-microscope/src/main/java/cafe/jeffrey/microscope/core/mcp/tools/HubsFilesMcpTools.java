@@ -429,7 +429,7 @@ public class HubsFilesMcpTools {
 
     /**
      * Reads the session and finds the file before anything is transferred, so a stale ref, a wrong
-     * id, a file still being written and a recording chunk each fail in a sentence.
+     * id, a file still being written and a transient file each fail in a sentence.
      */
     private Preflight preflightWithin(HubSessionRef ref, String fileId, Deadline deadline) {
         return withinDeadline(deadline, Context.current(), () -> {

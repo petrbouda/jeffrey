@@ -29,6 +29,7 @@ import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 
@@ -119,6 +120,25 @@ class FileDownloadGrpcServiceTest {
 
             assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
             assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
+        }
+
+        /**
+         * A file the session does not list, or no longer holds, is not there — which is what a
+         * client wants to know, as opposed to having asked wrongly.
+         */
+        @Test
+        void aMissingFileAnswersNotFound() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.streamFile(SESSION_ID, FILE_ID))
+                    .thenThrow(Exceptions.resourceNotFound("File not found: fileId=" + FILE_ID));
+
+            var stub = startServer(serviceWithSession(repoManager));
+            var observer = new TestStreamObserver();
+
+            stub.downloadFile(request(SESSION_ID, FILE_ID), observer);
+
+            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
+            assertStatus(Status.Code.NOT_FOUND, observer.error);
         }
 
         private void assertStreams(Path tempDir, String name, byte[] content) throws Exception {

@@ -47,6 +47,13 @@ public interface RecordingsCoreManager {
 
     String importRecordingFromPath(Path path);
 
+    /**
+     * Stores a recording downloaded from a hub, with the files that came beside it, under the
+     * given origin tags. The files are <em>moved</em> into the store: the caller hands over a
+     * temp directory's contents and must not expect them at their old paths afterwards.
+     *
+     * @return id of the newly created recording
+     */
     String createDownloadedRecording(
             String recordingName,
             Path recordingFile,

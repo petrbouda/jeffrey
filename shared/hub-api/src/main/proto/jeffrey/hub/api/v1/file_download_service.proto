@@ -31,6 +31,7 @@ message DownloadFileRequest {
 message DataChunk {
   // Binary content of this chunk (up to 64KB).
   bytes data = 1;
-  // Total size of the complete file in bytes (same value in every chunk).
+  // Total size of the complete file in bytes, set on the first chunk of the stream only; zero
+  // on every later one. A client reads it before it starts consuming.
   int64 total_size = 2;
 }

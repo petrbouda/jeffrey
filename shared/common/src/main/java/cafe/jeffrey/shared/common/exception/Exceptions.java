@@ -73,4 +73,8 @@ public abstract class Exceptions {
     public static JeffreyInternalException compressionError(String message) {
         return new JeffreyInternalException(ErrorCode.COMPRESSION_ERROR, message);
     }
+
+    public static JeffreyInternalException compressionError(String message, Throwable cause) {
+        return new JeffreyInternalException(ErrorCode.COMPRESSION_ERROR, message, cause);
+    }
 }

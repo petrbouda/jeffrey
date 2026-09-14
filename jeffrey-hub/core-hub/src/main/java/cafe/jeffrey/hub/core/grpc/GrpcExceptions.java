@@ -22,6 +22,7 @@ import cafe.jeffrey.hub.core.activity.ActivityCapacityException;
 import cafe.jeffrey.hub.core.activity.ActivityServiceStoppingException;
 import cafe.jeffrey.hub.core.activity.ActivityScanNotFoundException;
 import cafe.jeffrey.hub.core.streaming.ReplayScopeNotFoundException;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
@@ -82,6 +83,9 @@ public abstract class GrpcExceptions {
             case ActivityCapacityException e -> resourceExhausted(e.getMessage());
             case ActivityScanNotFoundException e -> notFound(e.getMessage());
             case ReplayScopeNotFoundException e -> notFound(e.getMessage());
+            case JeffreyClientException e -> e.getCode().isNotFound()
+                    ? notFound(e.getMessage())
+                    : invalidArgument(e.getMessage());
             case IllegalArgumentException e ->
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException();
             default -> {

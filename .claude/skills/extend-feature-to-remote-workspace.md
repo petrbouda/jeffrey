@@ -288,9 +288,8 @@ Add the new client to the `HubClients` record in `jeffrey-microscope/core-micros
 public record HubClients(
         DiscoveryClient discovery,
         RepositoryClient repository,
-        RecordingStreamClient recordings,
+        FileDownloadClient files,
         ProfilerClient profiler,
-        RemoteMessagesClient messages,
         InstancesClient instances,
         ProjectsClient projects,
         RemoteYourFeatureClient yourFeature      // ADD THIS

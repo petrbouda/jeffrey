@@ -26,8 +26,21 @@ public record TempDirectory(Path path) implements AutoCloseable {
         FileSystemUtils.createDirectories(path);
     }
 
+    /**
+     * A file directly inside this directory, by name. The name is taken as one path element and
+     * nothing else: what lands here is often named by another machine — a hub's listing of a
+     * session's files — and a name with a separator or a parent reference in it would place the
+     * file wherever that machine chose. Such a name is refused rather than reduced, because a hub
+     * that sends one is not sending what it listed.
+     *
+     * @throws IllegalArgumentException when the name is not a single path element
+     */
     public Path resolve(String other) {
-        return path.resolve(other);
+        Path resolved = path.resolve(other).normalize();
+        if (!path.normalize().equals(resolved.getParent())) {
+            throw new IllegalArgumentException("Not a plain file name: " + other);
+        }
+        return resolved;
     }
 
     @Override

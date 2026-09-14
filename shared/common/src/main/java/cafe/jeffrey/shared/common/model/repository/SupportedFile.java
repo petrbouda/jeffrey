@@ -28,9 +28,12 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Every file type Jeffrey knows, and everything Jeffrey knows about it.
@@ -120,6 +123,9 @@ public enum SupportedFile {
             .filter(SupportedFile::isProfileRecording)
             .toList();
 
+    private static final Map<String, SupportedFile> BY_NAME = Arrays.stream(values())
+            .collect(Collectors.toUnmodifiableMap(Enum::name, Function.identity()));
+
     private final String description;
     private final String fileExtension;
     private final Predicate<String> matcher;
@@ -132,6 +138,7 @@ public enum SupportedFile {
     private final StatsCategory statsCategory;
 
     SupportedFile(Spec spec) {
+        spec.validate();
         this.description = spec.description;
         this.fileExtension = spec.fileExtension;
         this.matcher = spec.matcher;
@@ -167,12 +174,7 @@ public enum SupportedFile {
      * sends the name, and an unknown one must not surface as an exception.
      */
     public static SupportedFile ofType(String type) {
-        for (SupportedFile file : values()) {
-            if (file.name().equals(type)) {
-                return file;
-            }
-        }
-        return UNKNOWN;
+        return type == null ? UNKNOWN : BY_NAME.getOrDefault(type, UNKNOWN);
     }
 
     /**
@@ -331,13 +333,18 @@ public enum SupportedFile {
         /**
          * Excludes every other capability: a file that is never served cannot be replayed
          * or parsed either, and declaring both would be a contradiction the constant cannot honour.
+         * Checked once the whole declaration is in, so that the order the traits were written in
+         * cannot slip one past the rule.
          */
         private Spec transientFile() {
-            if (recordingChunk || profileRecording || eventSource != null) {
-                throw new IllegalStateException("A transient file declares no other capability: " + description);
-            }
             this.transientFile = true;
             return this;
+        }
+
+        private void validate() {
+            if (transientFile && (recordingChunk || profileRecording || eventSource != null || compressedByHub)) {
+                throw new IllegalStateException("A transient file declares no other capability: " + description);
+            }
         }
 
         private Spec compressedByHub() {

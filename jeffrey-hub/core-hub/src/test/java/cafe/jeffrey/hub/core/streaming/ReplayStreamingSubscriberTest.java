@@ -125,6 +125,46 @@ class ReplayStreamingSubscriberTest {
     @Nested
     class CorruptedFileHandling {
 
+        /**
+         * An empty chunk is what a profiler killed before its first flush leaves behind. There is
+         * nothing in it to replay, and it is not an error either: the replay completes with the
+         * other files' events and reports no source error for it.
+         */
+        @Test
+        void skipsAnEmptyFileWithoutCountingItAsAnError(@TempDir Path tempDir) throws Exception {
+            Path empty = Files.createFile(tempDir.resolve("profile-empty.jfr"));
+            List<Path> files = List.of(JfrTestFiles.resolve(JfrTestFiles.PROFILE_1), empty);
+
+            var latch = new CountDownLatch(1);
+            List<EventBatch> batches = new ArrayList<>();
+            AtomicInteger errorCount = new AtomicInteger(0);
+
+            var subscription = new ReplayStreamSubscription(
+                    SESSION_ID, files, Set.of("jdk.CPULoad"),
+                    StreamingWindow.UNBOUNDED, tempDir, "workspace", "project");
+
+            var callbacks = new StreamingCallbacks(
+                    batch -> {
+                        synchronized (batches) {
+                            batches.add(batch);
+                        }
+                    },
+                    latch::countDown,
+                    t -> errorCount.incrementAndGet());
+
+            var reader = new ReplayStreamingSubscriber(subscription, callbacks);
+            reader.start();
+
+            assertTrue(latch.await(30, TimeUnit.SECONDS), "Replay should complete within 30 seconds");
+            assertEquals(0, errorCount.get());
+            EventBatch terminal;
+            synchronized (batches) {
+                terminal = batches.getLast();
+            }
+            assertTrue(terminal.getReplayStatus().getTerminal());
+            assertEquals(0, terminal.getReplayStatus().getSourceErrors(), "an empty chunk is not a corrupted one");
+        }
+
         @Test
         void skipsCorruptedFileAndContinues(@TempDir Path tempDir) throws Exception {
             Path corrupted = JfrTestFiles.createCorruptedFile(tempDir);

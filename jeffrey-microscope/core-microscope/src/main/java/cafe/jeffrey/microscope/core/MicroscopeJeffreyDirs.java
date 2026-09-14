@@ -21,16 +21,31 @@ package cafe.jeffrey.microscope.core;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 
 public class MicroscopeJeffreyDirs implements TempDirFactory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MicroscopeJeffreyDirs.class);
 
     private static final String JEFFREY_DB_FILE = "jeffrey.db";
     private static final String WORKSPACES_DIR = "workspaces";
     private static final String PROFILES_DIR = "profiles";
     private static final String RECORDINGS_DIR = "recordings";
     private static final String FILES_DIR = "files";
+
+    /**
+     * What {@link #FILES_DIR} was called before fetched files were files rather than artifacts.
+     * The path of a fetched file is its only record — there is no catalogue — so a directory
+     * left under the old name would hold files nothing could find again, and every one of them
+     * would be fetched a second time. Renamed on start-up, once, home-wide and under each profile.
+     */
+    private static final String LEGACY_FILES_DIR = "artifacts";
     public static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump";
     private static final String TMP_DIR = "tmp";
     private final Path homeDir;
@@ -49,9 +64,41 @@ public class MicroscopeJeffreyDirs implements TempDirFactory {
         FileSystemUtils.createDirectories(homeDir);
         FileSystemUtils.createDirectories(profiles());
         FileSystemUtils.createDirectories(recordings());
+        adoptLegacyFilesDirectories();
         FileSystemUtils.createDirectories(files());
         FileSystemUtils.removeAndCreateDirectories(tempDir);
         return homeDir;
+    }
+
+    /**
+     * Moves every {@code artifacts} directory an earlier build left — the home-wide one and one
+     * under each profile — to its {@code files} name, so what was fetched before stays found.
+     * A {@code files} directory already there wins: the old one is left as it is rather than
+     * merged, and a later start-up finds nothing to do.
+     */
+    private void adoptLegacyFilesDirectories() {
+        adoptLegacyFilesDirectory(homeDir);
+        try (Stream<Path> profileDirs = Files.list(profiles())) {
+            profileDirs.filter(Files::isDirectory).forEach(this::adoptLegacyFilesDirectory);
+        } catch (IOException e) {
+            LOG.warn("Cannot look for fetched-file directories under an earlier name: profiles_dir={} reason={}",
+                    profiles(), e.getMessage());
+        }
+    }
+
+    private void adoptLegacyFilesDirectory(Path parent) {
+        Path legacy = parent.resolve(LEGACY_FILES_DIR);
+        Path current = parent.resolve(FILES_DIR);
+        if (!Files.isDirectory(legacy) || Files.exists(current)) {
+            return;
+        }
+        try {
+            Files.move(legacy, current);
+            LOG.info("Adopted a fetched-file directory under its earlier name: from={} to={}", legacy, current);
+        } catch (IOException e) {
+            LOG.warn("Cannot adopt a fetched-file directory under its earlier name: from={} to={} reason={}",
+                    legacy, current, e.getMessage());
+        }
     }
 
     public Path database() {

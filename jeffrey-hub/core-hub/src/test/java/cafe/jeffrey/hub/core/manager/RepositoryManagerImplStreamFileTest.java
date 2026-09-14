@@ -22,6 +22,7 @@ import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -30,6 +31,8 @@ import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -125,9 +128,10 @@ class RepositoryManagerImplStreamFileTest {
         sessionHolds(gone);
         Files.delete(gone.filePath());
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+        JeffreyClientException refused = assertThrows(JeffreyClientException.class,
                 () -> manager.streamFile(SESSION_ID, "f-gone"));
 
+        assertTrue(refused.getCode().isNotFound());
         assertTrue(refused.getMessage().contains("no longer on disk"), refused.getMessage());
     }
 
@@ -135,6 +139,55 @@ class RepositoryManagerImplStreamFileTest {
     void refusesAnUnknownFileId() throws IOException {
         sessionHolds(onDisk("f-log", "gc.jvm-log", RecordingStatus.FINISHED));
 
-        assertThrows(IllegalArgumentException.class, () -> manager.streamFile(SESSION_ID, "f-nope"));
+        JeffreyClientException refused = assertThrows(JeffreyClientException.class,
+                () -> manager.streamFile(SESSION_ID, "f-nope"));
+
+        assertTrue(refused.getCode().isNotFound());
+    }
+
+    @Test
+    void refusesAnUnknownSession() {
+        when(storage.singleSession("elsewhere", true)).thenReturn(Optional.empty());
+
+        JeffreyClientException refused = assertThrows(JeffreyClientException.class,
+                () -> manager.streamFile("elsewhere", "f-log"));
+
+        assertTrue(refused.getCode().isNotFound());
+    }
+
+    /**
+     * A name in the session directory that points outside it is not one of the session's files,
+     * whatever the listing came to say about it: the hub serves nothing that does not lie under
+     * the session directory once every link is resolved.
+     */
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void refusesAFileThatLiesOutsideTheSessionDirectory(@TempDir Path elsewhere) throws IOException {
+        Path secret = Files.writeString(elsewhere.resolve("secret.txt"), "not the session's");
+        Path link = Files.createSymbolicLink(sessionDir.resolve("notes.txt"), secret);
+        sessionHolds(new RepositoryFile("f-link", "notes.txt", Instant.EPOCH, 5L, SupportedFile.UNKNOWN,
+                RecordingStatus.FINISHED, link));
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> manager.streamFile(SESSION_ID, "f-link"));
+
+        assertTrue(refused.getMessage().contains("not inside its session directory"), refused.getMessage());
+    }
+
+    /**
+     * While a chunk is being compressed its raw and compressed forms share one id; the
+     * compressed one is complete whenever it exists, and is the one served.
+     */
+    @Test
+    void servesTheCompressedFormOfAChunkListedInBothForms() throws IOException {
+        RepositoryFile raw = onDisk("chunk-1", "profile-1.jfr", RecordingStatus.FINISHED);
+        RepositoryFile compressed = onDisk("chunk-1", "profile-1.jfr.lz4", RecordingStatus.FINISHED);
+        sessionHolds(raw, compressed);
+
+        assertEquals(compressed.filePath(), manager.streamFile(SESSION_ID, "chunk-1").path());
+
+        sessionHolds(compressed, raw);
+
+        assertEquals(compressed.filePath(), manager.streamFile(SESSION_ID, "chunk-1").path());
     }
 }

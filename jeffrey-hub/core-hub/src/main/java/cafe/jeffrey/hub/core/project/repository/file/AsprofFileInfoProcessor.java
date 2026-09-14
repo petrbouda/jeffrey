@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.project.repository.file;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.nio.file.Path;
@@ -34,9 +35,6 @@ public class AsprofFileInfoProcessor implements FileInfoProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileInfoProcessor.class);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final String DEFAULT_PREFIX = "profile-";
-
-    private static final SupportedFile DEFAULT_FILE = SupportedFile.JFR;
-    private static final int EXTENSION_LENGTH = DEFAULT_FILE.fileExtension().length() + 1;
 
     private final FileInfoProcessor fallbackProcessor;
     private final String filePrefix;
@@ -60,12 +58,18 @@ public class AsprofFileInfoProcessor implements FileInfoProcessor {
         return Comparator.comparing((Path f) -> f.getFileName().toString()).reversed();
     }
 
+    /**
+     * A chunk is dated by the timestamp in its name, whichever form it is in: the hub renames a
+     * chunk to {@code .jfr.lz4} when it compresses it, and dating that by the file system would
+     * date it by the compression rather than the recording — after every chunk still raw, which
+     * turns the order a recording is assembled in upside down.
+     */
     @Override
     public Instant createdAt(Path file) {
         Path filename = file.getFileName();
         String filenameStr = filename.toString();
 
-        if (DEFAULT_FILE.matches(filename)) {
+        if (SupportedFile.of(filename).isRecordingChunk()) {
             if (filenameStr.startsWith(filePrefix)) {
                 String timestamp = extractTimestamp(filename);
                 return parseToInstant(timestamp);
@@ -79,8 +83,8 @@ public class AsprofFileInfoProcessor implements FileInfoProcessor {
     }
 
     private String extractTimestamp(Path filename) {
-        String name = filename.toString();
-        return name.substring(filePrefix.length(), name.length() - EXTENSION_LENGTH);
+        String name = FileSystemUtils.removeExtension(filename, SupportedFile.recordingChunkExtensions());
+        return name.substring(filePrefix.length());
     }
 
     private static Instant parseToInstant(String timestamp) {

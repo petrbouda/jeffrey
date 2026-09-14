@@ -184,9 +184,11 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         Path targetPath = recordingsDir.resolve(recordingId + "-" + filename);
 
         try {
-            Files.copy(recordingFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            // Moved rather than copied: the caller hands over files it is about to discard, and
+            // a recording the size of a session is not worth writing a fourth time.
+            Files.move(recordingFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to copy downloaded recording into QA storage", e);
+            throw new UncheckedIOException("Failed to move downloaded recording into QA storage", e);
         }
 
         long sizeInBytes;
@@ -259,10 +261,10 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         String additionalFilename = additionalFilePath.getFileName().toString();
         Path targetPath = recordingsDir.resolve(recordingId + "-" + additionalFilename);
         try {
-            Files.copy(additionalFilePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(additionalFilePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new UncheckedIOException(
-                    "Failed to copy additional file into QA storage: " + additionalFilename, e);
+                    "Failed to move additional file into QA storage: " + additionalFilename, e);
         }
 
         long sizeInBytes;

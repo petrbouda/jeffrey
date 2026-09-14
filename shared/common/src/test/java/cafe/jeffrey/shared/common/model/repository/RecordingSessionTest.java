@@ -21,6 +21,7 @@ package cafe.jeffrey.shared.common.model.repository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
@@ -78,6 +79,46 @@ class RecordingSessionTest {
         @Test
         void activeSessionWithZeroBytesIsNotFailed() {
             assertFalse(session(null).isFailedEmpty());
+        }
+    }
+    @Nested
+    class FinishedChunks {
+
+        private static RepositoryFile chunk(String id, String name, SupportedFile type, Instant createdAt) {
+            return new RepositoryFile(id, name, createdAt, 10L, type, RecordingStatus.FINISHED, Path.of(name));
+        }
+
+        @Test
+        void listsOnlyTheFinishedChunksOldestFirst() {
+            RepositoryFile later = chunk("c-2", "profile-2.jfr", SupportedFile.JFR, CREATED_AT.plusSeconds(30));
+            RepositoryFile earlier = chunk("c-1", "profile-1.jfr.lz4", SupportedFile.JFR_LZ4, CREATED_AT);
+            RepositoryFile live = new RepositoryFile(
+                    "c-3", "profile-3.jfr", CREATED_AT.plusSeconds(60), 10L, SupportedFile.JFR, RecordingStatus.ACTIVE, null);
+            RepositoryFile dump = chunk("d-1", "heap.hprof", SupportedFile.HEAP_DUMP, CREATED_AT);
+
+            assertEquals(List.of(earlier, later), session(FINISHED_AT, later, dump, live, earlier).finishedChunks());
+        }
+
+        /**
+         * While the hub compresses a chunk its raw and compressed forms lie side by side under
+         * one id; the compressed one is written whole and moved into place, so it is the one
+         * that is complete.
+         */
+        @Test
+        void keepsOneFilePerIdPreferringTheHubsCompressedForm() {
+            RepositoryFile raw = chunk("c-1", "profile-1.jfr", SupportedFile.JFR, CREATED_AT);
+            RepositoryFile compressed = chunk("c-1", "profile-1.jfr.lz4", SupportedFile.JFR_LZ4, CREATED_AT.plusSeconds(600));
+
+            assertEquals(List.of(compressed), session(FINISHED_AT, raw, compressed).finishedChunks());
+            assertEquals(List.of(compressed), session(FINISHED_AT, compressed, raw).finishedChunks());
+        }
+
+        @Test
+        void aChunkWithoutATimeGoesLastRatherThanFailingTheSort() {
+            RepositoryFile timed = chunk("c-2", "profile-2.jfr", SupportedFile.JFR, CREATED_AT);
+            RepositoryFile untimed = chunk("c-1", "profile-1.jfr", SupportedFile.JFR, null);
+
+            assertEquals(List.of(timed, untimed), session(FINISHED_AT, untimed, timed).finishedChunks());
         }
     }
 }

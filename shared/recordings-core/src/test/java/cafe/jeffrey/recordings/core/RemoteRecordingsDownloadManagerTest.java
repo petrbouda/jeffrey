@@ -37,6 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -44,9 +45,14 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -334,8 +340,95 @@ class RemoteRecordingsDownloadManagerTest {
                     file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED),
                     file("f-2", "gc.jvm-log", SupportedFile.JVM_LOG, RecordingStatus.FINISHED)));
             streams("f-1", "profile-1.jfr");
+            fails("f-2", new IllegalStateException("gone"));
+            List<String> additionalFiles = capturedAdditionalFileNames();
+            ProgressCallback progress = mock(ProgressCallback.class);
+
+            manager.downloadFiles(SESSION_ID, List.of("f-1", "f-2"), progress);
+
+            assertTrue(additionalFiles.isEmpty());
+            verify(progress).onFileError("gc.jvm-log", "gone");
+            verify(progress).onComplete();
+
+            fails("f-1", new IllegalStateException("gone"));
+            ProgressCallback failing = mock(ProgressCallback.class);
+
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> manager.downloadFiles(SESSION_ID, List.of("f-1"), failing));
+
+            // The chunk's own failure, not the CompletionException a future wraps it in: the
+            // message the listener shows is the hub's, and the type is what a notification names.
+            assertEquals("gone", failure.getMessage());
+            verify(failing).onFileError("profile-1.jfr", "gone");
+            verify(failing).onError("gone");
+            verify(failing, never()).onComplete();
+        }
+
+        /**
+         * A cancellation that lands while a chunk is being copied is still a cancellation. The
+         * copy runs on another thread, whose exception a future hands back wrapped; unwrapped
+         * here, so that a listener that cancelled is not told the download failed.
+         */
+        @Test
+        void aCancellationDuringAChunkCopyIsReportedAsACancellationNotAFailure() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED)));
+            streams("f-1", "profile-1.jfr");
+            ProgressCallback progress = cancellingOnceAFileStarted();
+
+            assertThrows(CancellationException.class,
+                    () -> manager.downloadFiles(SESSION_ID, List.of("f-1"), progress));
+
+            verify(progress, never()).onError(any());
+            verify(progress, never()).onComplete();
+            verify(recordingsManager, never()).createDownloadedRecording(any(), any(), anyList(), any());
+        }
+
+        /**
+         * Once a chunk has failed there is no recording to be had, so the transfers still in
+         * flight are stopped rather than run to an end nobody will use.
+         */
+        @Test
+        void aChunkFailureStopsTheTransfersStillInFlight() throws Exception {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED),
+                    file("f-2", "profile-2.jfr", SupportedFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(30))));
+            ProgressCallback progress = mock(ProgressCallback.class);
+            CountDownLatch firstChunkFailed = new CountDownLatch(1);
             doAnswer(invocation -> {
-                throw new IllegalStateException("gone");
+                firstChunkFailed.countDown();
+                return null;
+            }).when(progress).onFileError(eq("profile-1.jfr"), any());
+            fails("f-1", new IllegalStateException("gone"));
+            // The second chunk's bytes arrive only after the first has failed, so its copy loop
+            // sees the stop rather than racing it.
+            streamsAfter("f-2", "profile-2.jfr", firstChunkFailed);
+
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> manager.downloadFiles(SESSION_ID, List.of("f-1", "f-2"), progress));
+
+            assertEquals("gone", failure.getMessage());
+            verify(progress).onFileError(eq("profile-2.jfr"), any());
+            verify(progress, never()).onFileComplete("profile-2.jfr");
+            verify(progress).onError("gone");
+        }
+
+        /**
+         * A hub that streams more than it announced for a file is not sending what it listed;
+         * the file is refused rather than written for as long as the hub cares to send.
+         */
+        @Test
+        void aFileThatRunsPastItsAnnouncedSizeIsRefused() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED),
+                    file("f-2", "gc.jvm-log", SupportedFile.JVM_LOG, RecordingStatus.FINISHED)));
+            streams("f-1", "profile-1.jfr");
+            doAnswer(invocation -> {
+                FileDownloadClient.InputStreamConsumer consumer = invocation.getArgument(2);
+                try (InputStream in = resource("a much longer log than announced").getInputStream()) {
+                    consumer.accept(in, 3);
+                }
+                return null;
             }).when(downloadClient).streamFile(eq(SESSION_ID), eq("f-2"), any());
             List<String> additionalFiles = capturedAdditionalFileNames();
             ProgressCallback progress = mock(ProgressCallback.class);
@@ -344,16 +437,93 @@ class RemoteRecordingsDownloadManagerTest {
 
             assertTrue(additionalFiles.isEmpty());
             verify(progress).onFileError(eq("gc.jvm-log"), any());
-            verify(progress).onComplete();
+        }
 
+        /**
+         * A name off the wire is one path element or nothing: a hub listing a file as
+         * {@code ../escape.log} does not get to say where on this disk it lands.
+         */
+        @Test
+        void aFileNameThatIsNotAPlainNameIsRefused() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED),
+                    file("f-2", "../escape.log", SupportedFile.APP_LOG, RecordingStatus.FINISHED)));
+            streams("f-1", "profile-1.jfr");
+            streams("f-2", "../escape.log");
+            List<String> additionalFiles = capturedAdditionalFileNames();
+            ProgressCallback progress = mock(ProgressCallback.class);
+
+            manager.downloadFiles(SESSION_ID, List.of("f-1", "f-2"), progress);
+
+            assertTrue(additionalFiles.isEmpty());
+            assertFalse(Files.exists(tempRoot.resolve("escape.log")));
+            verify(progress).onFileError(eq("../escape.log"), any());
+
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    file("f-3", "../escape.jfr", SupportedFile.JFR, RecordingStatus.FINISHED)));
+            streams("f-3", "../escape.jfr");
+
+            assertThrows(IllegalArgumentException.class, () -> manager.downloadFiles(SESSION_ID, List.of("f-3")));
+            assertFalse(Files.exists(tempRoot.resolve("escape.jfr")));
+        }
+
+        private void fails(String fileId, RuntimeException failure) {
             doAnswer(invocation -> {
-                throw new IllegalStateException("gone");
-            }).when(downloadClient).streamFile(eq(SESSION_ID), eq("f-1"), any());
-            ProgressCallback failing = mock(ProgressCallback.class);
+                throw failure;
+            }).when(downloadClient).streamFile(eq(SESSION_ID), eq(fileId), any());
+        }
 
-            assertThrows(Exception.class,
-                    () -> manager.downloadFiles(SESSION_ID, List.of("f-1"), failing));
-            verify(failing, never()).onComplete();
+        /**
+         * Streams the file's bytes once the latch is released, holding the consumer until then.
+         */
+        private void streamsAfter(String fileId, String filename, CountDownLatch gate) {
+            doAnswer(invocation -> {
+                FileDownloadClient.InputStreamConsumer consumer = invocation.getArgument(2);
+                InputStream bytes = resource(filename).getInputStream();
+                InputStream gated = new InputStream() {
+                    @Override
+                    public int read() throws IOException {
+                        awaitGate();
+                        return bytes.read();
+                    }
+
+                    @Override
+                    public int read(byte[] b, int off, int len) throws IOException {
+                        awaitGate();
+                        return bytes.read(b, off, len);
+                    }
+
+                    private void awaitGate() throws IOException {
+                        try {
+                            if (!gate.await(5, TimeUnit.SECONDS)) {
+                                throw new IOException("the first chunk never failed");
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IOException(e);
+                        }
+                    }
+                };
+                try (bytes) {
+                    consumer.accept(gated, filename.length());
+                }
+                return null;
+            }).when(downloadClient).streamFile(eq(SESSION_ID), eq(fileId), any());
+        }
+
+        /**
+         * A listener that cancels as soon as the first file starts, the way a user does who
+         * clicked Cancel while the bytes were coming in.
+         */
+        private static ProgressCallback cancellingOnceAFileStarted() {
+            AtomicBoolean cancelled = new AtomicBoolean(false);
+            ProgressCallback progress = mock(ProgressCallback.class);
+            doAnswer(invocation -> {
+                cancelled.set(true);
+                return null;
+            }).when(progress).onFileStart(any(), org.mockito.ArgumentMatchers.anyLong());
+            doAnswer(invocation -> cancelled.get()).when(progress).isCancelled();
+            return progress;
         }
     }
 }

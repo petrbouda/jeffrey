@@ -89,7 +89,7 @@ public final class RepositoryFile {
 
     /**
      * Whether the hub serves this file: it is finished and not transient. The one rule every
-     * download, fetch and merge applies; a file's type decides nothing else about access.
+     * download and fetch applies; a file's type decides nothing else about access.
      */
     public boolean isDownloadable() {
         return isFinished() && !isTransient();

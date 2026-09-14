@@ -39,7 +39,9 @@ import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -55,6 +57,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
 
     private static final String LZ4_SUFFIX = "." + FileExtensions.LZ4;
+
+    /**
+     * Prefix of the file a chunk is compressed into before it is moved to its final name. Hidden,
+     * so the listing does not report a half-written archive; moved atomically, so the archive
+     * that appears under the chunk's name is complete from the first moment it is there.
+     */
+    private static final String PARTIAL_PREFIX = ".";
+    private static final String PARTIAL_SUFFIX = ".part";
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
@@ -375,8 +385,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         return RepositoryType.ASYNC_PROFILER;
     }
 
-    // ========== Recording Files ==========
-
     // ========== Session Compression ==========
 
     @Override
@@ -414,8 +422,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     /**
      * Ensures the chunk is compressed (the hub's own compressed form).
      * <p>
-     * If already compressed, returns the original path. Otherwise, compresses the file
-     * and stores the compressed version persistently in the same directory.
+     * If already compressed, returns the original path. Otherwise, compresses the file into a
+     * hidden partial file beside it and moves that atomically to the compressed name, so that a
+     * listing taken meanwhile never reports a half-written archive as a finished chunk under the
+     * chunk's own id — and once the raw file is gone, what carries the id is complete.
      * Uses double-check locking pattern for thread safety.
      * </p>
      */
@@ -455,15 +465,20 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 return null;
             }
 
-            // Compress, verify, and delete original
-            Lz4Compressor.compress(sourcePath, compressedPath);
-            long compressedSize = Files.size(compressedPath);
-            if (Files.exists(compressedPath) && compressedSize > 0) {
-                FileSystemUtils.removeFile(sourcePath);
+            // Compress into the partial file, move it into place, and only then delete the original
+            Path partialPath = sourcePath.resolveSibling(PARTIAL_PREFIX + file.name() + LZ4_SUFFIX + PARTIAL_SUFFIX);
+            try {
+                Lz4Compressor.compress(sourcePath, partialPath);
+                if (Files.size(partialPath) == 0) {
+                    throw new IOException("Compressed file is empty: " + partialPath);
+                }
+                Files.move(partialPath, compressedPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException | RuntimeException e) {
+                FileSystemUtils.removeFile(partialPath);
+                throw new RuntimeException("Failed to compress recording file: " + sourcePath, e);
             }
+            FileSystemUtils.removeFile(sourcePath);
             return compressedPath;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to verify compressed file: " + compressedPath, e);
         } finally {
             compressionLock.unlock();
         }
@@ -480,9 +495,12 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return List.of();
         }
 
+        // Without following links: a session directory is written by the producer side of a
+        // shared volume, and a link there would let that side name any file on this host as one
+        // of the session's, to be listed and served as such.
         List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
                         sessionPath, fileInfoProcessor.comparator()).stream()
-                .filter(Files::isRegularFile)
+                .filter(file -> Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS))
                 .filter(FileSystemUtils::isNotHidden)
                 .map(file -> describe(file, recordingStatus, workspacePath, sessionPath))
                 .filter(Objects::nonNull)

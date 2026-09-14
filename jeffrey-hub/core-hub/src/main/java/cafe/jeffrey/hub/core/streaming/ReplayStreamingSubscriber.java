@@ -22,6 +22,7 @@ import cafe.jeffrey.hub.api.v1.EventBatch;
 import cafe.jeffrey.hub.api.v1.ReplayStatus;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,6 +126,12 @@ public class ReplayStreamingSubscriber implements Closeable {
                 if (closed.get()) {
                     break;
                 }
+                if (isEmpty(file)) {
+                    // A profiler stopped before its first flush leaves an empty chunk; there is
+                    // nothing in it to replay, and nothing wrong with it either.
+                    LOG.debug("Skipping empty recording file: file={} subscription={}", file.getFileName(), subscription);
+                    continue;
+                }
                 try {
                     fileReader.read(file);
                 } catch (Exception e) {
@@ -153,6 +160,20 @@ public class ReplayStreamingSubscriber implements Closeable {
             closed.set(true);
             fileReader.close();
             cleanup();
+        }
+    }
+
+    /**
+     * Measured through an open handle rather than the listing: on a network mount the listing
+     * can still report a file at the size it last saw, and a real chunk must not be skipped on
+     * the strength of a stale zero. A file that cannot be measured is left to the reader, which
+     * reports it.
+     */
+    private static boolean isEmpty(Path file) {
+        try {
+            return FileSizeReader.OPEN_HANDLE.size(file) == 0;
+        } catch (RuntimeException e) {
+            return false;
         }
     }
 

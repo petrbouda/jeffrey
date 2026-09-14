@@ -156,6 +156,11 @@ message RecordingSession {
 
 // A single file within a recording session.
 message RepositoryFile {
+  // Once `bool is_recording`, dropped when what a type implies moved onto the type itself; the
+  // tag stays reserved so no later field can be read as it by an older peer.
+  reserved 7;
+  reserved "is_recording";
+
   // Unique identifier for the file.
   string id = 1;
   // Filename (e.g., "recording-2025-01-15.jfr").
@@ -164,10 +169,11 @@ message RepositoryFile {
   int64 created_at = 3;
   // File size in bytes.
   int64 size = 4;
-  // File type identifier: a SupportedFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
-  // JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, UNKNOWN). Everything a type implies -
-  // whether it is a chunk of the session's recording, whether it can be merged, whether it is
-  // transient - is declared on that type; the file carries nothing beyond its name.
+  // File type identifier: a SupportedFile name (JFR, JFR_LZ4, ASPROF_TEMP, HEAP_DUMP, HEAP_DUMP_GZ,
+  // PERF_COUNTERS, JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, UNKNOWN). Everything a
+  // type implies - whether it is a chunk of the session's recording, whether the hub serves it,
+  // whether it is transient - is declared on that type; the file carries nothing beyond its name.
+  // A name this peer does not know reads as UNKNOWN.
   string file_type = 5;
   // File status.
   RecordingStatus status = 6;

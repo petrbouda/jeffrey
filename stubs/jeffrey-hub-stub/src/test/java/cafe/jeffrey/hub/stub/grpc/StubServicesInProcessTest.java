@@ -172,7 +172,8 @@ class StubServicesInProcessTest {
     }
 
     // Mirrors cafe.jeffrey.shared.common.model.repository.SupportedFile names. The client
-    // resolves file_type via SupportedFile.valueOf(), so an unknown name = null fileType = NPE.
+    // resolves file_type via SupportedFile.ofType(), so a name it does not know reads as UNKNOWN
+    // rather than failing; the stub still only emits names both sides know.
     private static final Set<String> VALID_FILE_TYPES = Set.of(
             "JFR", "JFR_LZ4", "ASPROF_TEMP", "HEAP_DUMP_GZ", "HEAP_DUMP", "PERF_COUNTERS",
             "JVM_LOG", "HS_JVM_ERROR_LOG", "APP_LOG", "UNKNOWN");
