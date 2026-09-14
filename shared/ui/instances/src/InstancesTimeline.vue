@@ -1227,8 +1227,8 @@ function downloadableSummary(sessionId: string): string | null {
 }
 
 /**
- * Downloads the whole session — its chunks assembled into one recording plus every other file — the same flow as
- * the Download button in the sessions list: the Download Assistant fetches every file
+ * Downloads the whole session — its chunks stored as the files of one recording plus every other file — the
+ * same flow as the Download button in the sessions list: the Download Assistant fetches every file
  * of the session from the remote workspace.
  */
 async function downloadSession(sessionId: string): Promise<void> {

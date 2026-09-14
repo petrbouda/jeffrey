@@ -28,7 +28,7 @@ import java.io.InputStream;
 
 /**
  * An InputStream wrapper that invokes a cleanup action when the stream is closed.
- * Used to delete temporary files (e.g., merged recordings) after they have been
+ * Used to delete temporary files (e.g., a file fetched from a hub) after they have been
  * fully streamed to the client.
  */
 public class CleanupInputStream extends FilterInputStream {

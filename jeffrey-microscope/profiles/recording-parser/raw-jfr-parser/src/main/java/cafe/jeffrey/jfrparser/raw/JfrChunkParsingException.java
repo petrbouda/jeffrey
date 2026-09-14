@@ -22,7 +22,7 @@ import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
 
 /**
- * Signals a failure while parsing, disassembling, or merging raw binary JFR chunks.
+ * Signals a failure while parsing or disassembling raw binary JFR chunks.
  */
 public class JfrChunkParsingException extends JeffreyInternalException {
 
