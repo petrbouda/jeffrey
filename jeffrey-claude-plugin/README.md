@@ -142,7 +142,7 @@ prefix is built from the server's name.
 | `jfr_` | The profile's DuckDB tables — schema, the fields of one event type, and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL, OQL, and the one pair that builds rather than reads: `heap_prepare` and `heap_status` |
 | `recordings_` | One of the five families with a writer in it: imports a recording file and builds a profile from it |
-| `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub, reads a bounded sample of events or a time-bucketed activity summary from one where it lies, pulls one in — and lists the files a session holds beside its recording (application logs, `gc.jvm-log`, the crash file, perf counters, a heap dump) and fetches one of them on its own, as a path the agent reads with its own tools |
+| `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub, reads a bounded sample of events or a time-bucketed activity summary from one where it lies, pulls one in — and lists the files a session holds beside its recording (application logs, `gc-jvm.log`, the crash file, perf counters, a heap dump) and fetches one of them on its own, as a path the agent reads with its own tools |
 | `ide_` | Where a frame actually lives, answered by the developer's running IntelliJ: the file and line for a class and method, a class's source, which checkouts are open and on what commit, and — the one tool here with a visible side effect — opening a location in the editor |
 
 `recordings_analyzeFile` takes an **absolute path**, and the file has to be on the machine Jeffrey

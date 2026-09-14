@@ -26,6 +26,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionLocator;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.ToolExecutionException;
@@ -60,8 +61,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -88,9 +87,12 @@ public class HubsArtifactsMcpTools {
 
     private static final String FETCH_FAILED = "Hub file fetch failed: ";
     private static final String PROFILE_ARTIFACTS_DIR = "artifacts";
+    /**
+     * Only the default of the short constructor, which is the one the tests use. Production wiring
+     * passes {@code jeffrey.microscope.mcp.hubs.download-timeout}, shared with {@code hubs_download}
+     * because it measures the same thing: a transfer off the same hub over the same link.
+     */
     private static final Duration FETCH_DEADLINE = Duration.ofHours(1);
-
-    private static final ScheduledExecutorService DEADLINE_SCHEDULER = deadlineScheduler();
 
     private static final String FETCH_STILL_RUNNING =
             "The transfer is still running. Call hubs_fetchFile again with the same session_ref and "
@@ -191,7 +193,7 @@ public class HubsArtifactsMcpTools {
     }
 
     @Tool(description = "Every file one hub recording session holds - the JFR chunks, and beside them "
-            + "the artifacts the JVM left: application logs, the unified-logging file (gc.jvm-log), "
+            + "the artifacts the JVM left: application logs, the unified-logging file (gc-jvm.log), "
             + "the crash file (hs-jvm-err.log or hs_err_pid*.log), the perf-counters file, a heap dump. "
             + "Call it when the question is about what a JVM wrote rather than what it recorded: an "
             + "exception in the application log, why the JVM died, what a GC log says for a session "
@@ -210,7 +212,7 @@ public class HubsArtifactsMcpTools {
         // Bounded like the fetch preflight: an unresponsive hub must fail in a sentence rather than
         // hold the MCP request open for as long as the channel lets it.
         Listing listing = withinDeadline(
-                Deadline.after(responseBudget.toNanos(), TimeUnit.NANOSECONDS),
+                McpDeadlines.after(responseBudget),
                 Context.current(),
                 () -> {
                     HubInfo hub = locator.hubInfo(ref);
@@ -266,7 +268,8 @@ public class HubsArtifactsMcpTools {
             + "the machine Jeffrey runs on: open, grep or parse it there with your own tools - Jeffrey "
             + "hands the file over rather than parsing it. A heap dump's path goes to "
             + "recordings_analyzeFile. A file already fetched is returned as it is rather than "
-            + "transferred twice. A large file may take longer than a client waits, in which case "
+            + "transferred twice, and without asking the hub, so it stays readable while the hub is "
+            + "down. A large file may take longer than a client waits, in which case "
             + "the answer says the transfer continues and calling again with the same arguments reports "
             + "the path once it lands; every started transfer carries an operationId for "
             + "operations_status and operations_cancel. A transfer that failed or was cancelled is "
@@ -283,7 +286,17 @@ public class HubsArtifactsMcpTools {
         }
         HubFileRef key = new HubFileRef(ref, fileId);
 
-        Deadline responseDeadline = Deadline.after(responseBudget.toNanos(), TimeUnit.NANOSECONDS);
+        // Before the hub is touched at all: a file this call already fetched is a file on this disk,
+        // and a disk does not need a round trip to be read. It also means an artifact stays reachable
+        // while the hub that held it is down or its session has been retired - the answer is the path,
+        // and the path is still good.
+        Optional<RetainedFetch> retained = retainedLocally(key, ref);
+        if (retained.isPresent()) {
+            return operations.decorate(McpToolOutput.json(retained.get().answer()),
+                    register(key, retained.get().operation()));
+        }
+
+        Deadline responseDeadline = McpDeadlines.after(responseBudget);
         Preflight preflight = preflightWithin(ref, fileId, responseDeadline);
         RepositoryFile file = preflight.file();
         LocalSession local = localSession(ref);
@@ -329,7 +342,7 @@ public class HubsArtifactsMcpTools {
      * Where a session's file lives once fetched: in the profile's own directory when the session has
      * been analysed, else under the artifacts directory. Deterministic on purpose, and the hub's
      * session ids are unique only within a project, so the project is part of the second path. The
-     * file's own name is kept because it is what the reader will recognise ({@code gc.jvm-log.1},
+     * file's own name is kept because it is what the reader will recognise ({@code gc-jvm.log.1},
      * {@code hs-jvm-err.log}).
      */
     private Path targetOf(HubSessionRef ref, String filename, LocalSession local) {
@@ -430,7 +443,7 @@ public class HubsArtifactsMcpTools {
      * thing between an unresponsive hub and an MCP request that never answers.
      */
     private static <T> T withinDeadline(Deadline deadline, Context parent, Callable<T> work) {
-        Context.CancellableContext context = parent.withDeadline(deadline, DEADLINE_SCHEDULER);
+        Context.CancellableContext context = McpDeadlines.withDeadline(parent, deadline);
         try {
             return context.call(work);
         } catch (StatusRuntimeException e) {
@@ -475,8 +488,7 @@ public class HubsArtifactsMcpTools {
 
     private Path transferWithinDeadline(
             ProjectManager project, HubSessionRef ref, String fileId, Path target, BoundedJobs.JobControl control) {
-        Context.CancellableContext context = Context.ROOT.withDeadlineAfter(
-                fetchDeadline.toNanos(), TimeUnit.NANOSECONDS, DEADLINE_SCHEDULER);
+        Context.CancellableContext context = McpDeadlines.withDeadlineAfter(Context.ROOT, fetchDeadline);
         control.onCancellation(() -> context.cancel(null));
         try {
             control.checkCancellation();
@@ -581,9 +593,62 @@ public class HubsArtifactsMcpTools {
         return "";
     }
 
+    /**
+     * The answer for a file this instance fetched before and which is still where it put it, built
+     * without asking the hub anything.
+     * <p>
+     * The retained operation is the only thing that maps a {@code fileId} back to a file name, which
+     * is why this reaches no further back than {@link BoundedJobs#COMPLETED_RETENTION}: past that the
+     * name has to come from {@code hubs_files} again. It is deliberately not a catalogue — nothing is
+     * written down, and an empty answer here simply costs the round trip it would have saved.
+     * <p>
+     * A retained path that is no longer the path this session resolves to means the recording has
+     * been analysed since, so the fetch proper runs and moves the file beside its profile.
+     */
+    private Optional<RetainedFetch> retainedLocally(HubFileRef key, HubSessionRef ref) {
+        Optional<OperationHandle<Path>> retained = fetches.current(key)
+                .filter(handle -> handle.snapshot().state() == OperationState.COMPLETED);
+        if (retained.isEmpty()) {
+            return Optional.empty();
+        }
+        OperationHandle<Path> operation = retained.get();
+        Path path = operation.snapshot().result();
+        if (path == null || !Files.isRegularFile(path)) {
+            return Optional.empty();
+        }
+
+        String filename = path.getFileName().toString();
+        LocalSession local = localSession(ref);
+        if (!path.equals(targetOf(ref, filename, local))) {
+            return Optional.empty();
+        }
+        Long size;
+        try {
+            size = Files.size(path);
+        } catch (IOException e) {
+            // It was a regular file a moment ago. Whatever changed, the hub knows more than we do.
+            LOG.debug("A retained hub artifact could not be sized: path={} reason={}", path, e.getMessage());
+            return Optional.empty();
+        }
+        LOG.debug("Answering a hub artifact fetch from this disk: session_id={} file_id={} path={}",
+                ref.sessionId(), key.fileId(), path);
+        return Optional.of(new RetainedFetch(
+                operation, fetched(filename, SupportedRecordingFile.of(filename), size, path, true, local)));
+    }
+
+    /** A fetch answered off this disk: the operation it was, and the answer built from the file. */
+    private record RetainedFetch(OperationHandle<Path> operation, FetchedFile answer) {
+    }
+
     private static FetchedFile fetched(RepositoryFile file, Path path, boolean alreadyHere, LocalSession local) {
-        boolean heapDump = file.fileType() == SupportedRecordingFile.HEAP_DUMP
-                || file.fileType() == SupportedRecordingFile.HEAP_DUMP_GZ;
+        return fetched(file.name(), file.fileType(), file.size(), path, alreadyHere, local);
+    }
+
+    private static FetchedFile fetched(
+            String filename, SupportedRecordingFile type, Long sizeBytes, Path path,
+            boolean alreadyHere, LocalSession local) {
+        boolean heapDump = type == SupportedRecordingFile.HEAP_DUMP
+                || type == SupportedRecordingFile.HEAP_DUMP_GZ;
         String nextStep = heapDump
                 ? "Pass path to recordings_analyzeFile to build the heap profile the heap_ tools take."
                 : "Open, grep or parse the file at path with your own tools; it is on the machine Jeffrey runs on."
@@ -591,9 +656,9 @@ public class HubsArtifactsMcpTools {
                 + (local.profilingStartedAt() == null ? "." : ", whose zero point is "
                 + local.profilingStartedAt() + "."));
         return new FetchedFile(
-                file.name(),
-                file.fileType().name(),
-                file.size(),
+                filename,
+                type.name(),
+                sizeBytes,
                 path.toString(),
                 alreadyHere,
                 local.recording() == null ? null : local.recording().id(),
@@ -620,13 +685,6 @@ public class HubsArtifactsMcpTools {
             cause = cause.getCause();
         }
         return exception;
-    }
-
-    private static ScheduledExecutorService deadlineScheduler() {
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(
-                1, Thread.ofPlatform().daemon().name("hub-mcp-fetch-deadline-", 0).factory());
-        executor.setRemoveOnCancelPolicy(true);
-        return executor;
     }
 
     /**

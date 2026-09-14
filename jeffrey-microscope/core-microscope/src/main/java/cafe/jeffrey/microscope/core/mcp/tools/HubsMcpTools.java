@@ -62,8 +62,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -115,8 +113,6 @@ public class HubsMcpTools {
     private static final Duration SCAN_BUDGET = Duration.ofSeconds(20);
     private static final Duration DOWNLOAD_RESPONSE_BUDGET = BoundedJobs.WAIT_BUDGET;
     private static final Duration DOWNLOAD_DEADLINE = Duration.ofHours(1);
-
-    private static final ScheduledExecutorService DEADLINE_SCHEDULER = deadlineScheduler();
 
     private static final String NO_HUBS =
             "No Jeffrey Hub is connected to this installation. Recordings can still be analysed from "
@@ -506,7 +502,7 @@ public class HubsMcpTools {
             }
         }
 
-        Deadline responseDeadline = Deadline.after(downloadResponseBudget.toNanos(), TimeUnit.NANOSECONDS);
+        Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
         DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
         HubInfo hubInfo = preflight.hubInfo();
         ProjectManager project = preflight.project();
@@ -663,7 +659,7 @@ public class HubsMcpTools {
     }
 
     private DownloadPreflight preflightWithin(HubSessionRef ref, Deadline deadline) {
-        Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINE_SCHEDULER);
+        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
             return context.call(() -> {
                 HubInfo hubInfo = hubInfo(ref);
@@ -683,8 +679,7 @@ public class HubsMcpTools {
     }
 
     private String transferWithinDeadline(ProjectManager project, HubSessionRef ref, BoundedJobs.JobControl control) {
-        Context.CancellableContext context = Context.ROOT.withDeadlineAfter(
-                downloadDeadline.toNanos(), TimeUnit.NANOSECONDS, DEADLINE_SCHEDULER);
+        Context.CancellableContext context = McpDeadlines.withDeadlineAfter(Context.ROOT, downloadDeadline);
         control.onCancellation(() -> context.cancel(null));
         try {
             control.checkCancellation();
@@ -723,14 +718,6 @@ public class HubsMcpTools {
             throw new IllegalArgumentException(name + " must be positive: " + value);
         }
         return value;
-    }
-
-    private static ScheduledExecutorService deadlineScheduler() {
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(
-                1,
-                Thread.ofPlatform().daemon().name("hub-mcp-download-deadline-", 0).factory());
-        executor.setRemoveOnCancelPolicy(true);
-        return executor;
     }
 
     private static RuntimeException mapRemoteFailure(RuntimeException exception) {

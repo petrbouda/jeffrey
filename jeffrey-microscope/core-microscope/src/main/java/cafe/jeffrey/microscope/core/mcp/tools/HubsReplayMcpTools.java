@@ -43,15 +43,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /** A finite read-only query over finished Hub recording files. */
 public final class HubsReplayMcpTools {
-    private static final ScheduledExecutorService DEADLINES = deadlineScheduler();
-
     /** Seconds rather than a Duration, because the tool description quotes the number and must be a constant expression. */
     private static final long DEFAULT_TIMEOUT_SECONDS = 15;
     private static final long MAX_TIMEOUT_SECONDS = 30;
@@ -99,7 +95,7 @@ public final class HubsReplayMcpTools {
         }
         this.resolver = resolver;
         this.timeout = timeout;
-        this.activity = new HubActivityMcpSupport(resolver, operations, timeout, DEADLINES, clock);
+        this.activity = new HubActivityMcpSupport(resolver, operations, timeout, clock);
     }
 
     @McpToolHints(readOnly = true, openWorld = true)
@@ -163,8 +159,8 @@ public final class HubsReplayMcpTools {
         }
         HubReplayCollector collector = new HubReplayCollector(ref, rows, bytes);
         collector.filters(types, startTime, endTime);
-        Deadline deadline = Deadline.after(timeout.toNanos(), TimeUnit.NANOSECONDS);
-        Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINES);
+        Deadline deadline = McpDeadlines.after(timeout);
+        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
             context.call(() -> {
                 // Workspace and project discovery use blocking gRPC calls and must share this budget.
@@ -274,13 +270,4 @@ public final class HubsReplayMcpTools {
         return status.getCode().name();
     }
 
-    private static ScheduledExecutorService deadlineScheduler() {
-        var factory = Thread.ofPlatform()
-                .daemon()
-                .name("hub-mcp-replay-deadline-", 0)
-                .factory();
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, factory);
-        executor.setRemoveOnCancelPolicy(true);
-        return executor;
-    }
 }

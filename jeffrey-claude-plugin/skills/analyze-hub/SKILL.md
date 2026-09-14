@@ -143,7 +143,7 @@ in step 1 instead of relying on that.
 
 ## 4b. The files beside the recording — when the question is about what the JVM *wrote*
 
-A session holds more than its JFR chunks. A JVM provisioned by Jeffrey leaves `gc.jvm-log` (the
+A session holds more than its JFR chunks. A JVM provisioned by Jeffrey leaves `gc-jvm.log` (the
 `-Xlog` output, rotated as `.0`, `.1`…), `perf-counters.hsperfdata`, the application's own `.log`
 if it was pointed at the session directory, and — when it died — `hs-jvm-err.log`, often with
 **nothing else beside it**, because the first chunk never rolled. `hubs_sessions` shows only a file
