@@ -56,6 +56,11 @@ package-lock.json
 
 **/.claude/settings.local.json
 .claude/**
+# The project subagents are shared with the repository: a new one dropped into the
+# directory must not be silently left out of a commit the way an untracked file under
+# .claude/** otherwise is. The directory has to be re-included before its contents can be.
+!.claude/agents/
+!.claude/agents/**
 **/dependency-reduced-pom.xml
 profile.jfr
 
