@@ -107,12 +107,12 @@ class AsprofFileRepositoryStorageTest {
         @Test
         void reportsAFileThatIsThere() throws IOException {
             Path session = sessionDir();
-            Path file = Files.write(session.resolve("gc-jvm.log"), CONTENT);
+            Path file = Files.write(session.resolve("gc.jvm-log"), CONTENT);
 
             RepositoryFile described = storage().describe(file, RecordingStatus.ACTIVE, workspace, session);
 
             assertNotNull(described);
-            assertEquals("gc-jvm.log", described.name());
+            assertEquals("gc.jvm-log", described.name());
             assertEquals(CONTENT.length, described.size());
             assertEquals(SupportedRecordingFile.JVM_LOG, described.fileType());
         }

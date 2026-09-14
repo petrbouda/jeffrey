@@ -173,7 +173,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
               <h4>JVM Logs</h4>
             </div>
             <div class="docs-card-body">
-              <code>jfr-jvm.log</code>
+              <code>jfr.jvm-log</code>
               <p>Structured JVM diagnostic logs including GC events, JIT compilation activity, and JFR-related messages.</p>
             </div>
           </div>

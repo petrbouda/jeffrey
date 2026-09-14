@@ -50,7 +50,7 @@ JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUI
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
-JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
+JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
 # Everything after -XX:+AlwaysPreTouch is application configuration the provisioner just forwards:
@@ -96,7 +96,7 @@ perf-counters { enabled = true }
 tracing { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jdk-java-options { enabled = true }
-additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
+additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 </script>
 
 <template>
@@ -383,8 +383,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-plus-circle"></i></div>
             <h4>Additional JVM Options</h4>
-            <p>Extra JVM flags added to the argfile and profiler settings, independent of <code>JDK_JAVA_OPTIONS</code> export. This is also where JVM unified logging goes: pass any number of <code>-Xlog:…</code> commands, use <a href="#placeholders">placeholders</a> such as <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> to write into the session directory, and end the file name with <code>-jvm.log</code> so Jeffrey recognizes it as a JVM log artifact.</p>
-            <code>additional-jvm-options = "-Xmx2g -Xlog:gc*=debug:file=…/gc-jvm.log"</code>
+            <p>Extra JVM flags added to the argfile and profiler settings, independent of <code>JDK_JAVA_OPTIONS</code> export. This is also where JVM unified logging goes: pass any number of <code>-Xlog:…</code> commands, use <a href="#placeholders">placeholders</a> such as <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> to write into the session directory, and give the file the <code>.jvm-log</code> extension so Jeffrey recognizes it as a JVM log artifact rather than an application log. Any other <code>.log</code> file written into the session directory is picked up as an application log, including its roll-overs — an index or date after the extension (<code>.log.1</code>, <code>.log.2026-09-13</code>) or before it (<code>service.2026-09-13.log</code>, <code>service-2026-09-13.1.log</code>), optionally compressed as <code>.gz</code>, <code>.zip</code>, <code>.zst</code>, <code>.xz</code>, <code>.bz2</code> or <code>.lz4</code>.</p>
+            <code>additional-jvm-options = "-Xmx2g -Xlog:gc*=debug:file=…/gc.jvm-log"</code>
           </div>
         </div>
 

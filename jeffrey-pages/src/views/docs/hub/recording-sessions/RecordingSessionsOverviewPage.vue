@@ -104,7 +104,7 @@ onMounted(() => {
               <h4>Application Logs</h4>
             </div>
             <div class="card-body">
-              <p>Application-level log files captured during the session (e.g., trace logs).</p>
+              <p>Application-level log files captured during the session — any <code>.log</code> file in the session directory. Rotated and compressed roll-overs (<code>.1</code>, a date before or after <code>.log</code>, <code>.gz</code>/<code>.zip</code>/<code>.zst</code>/<code>.xz</code>/<code>.bz2</code>/<code>.lz4</code>) are grouped with them.</p>
             </div>
           </div>
           <div class="session-content-card perf">

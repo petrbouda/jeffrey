@@ -82,7 +82,7 @@ onMounted(() => {
 │   ├── heartbeat                # Epoch millis, rewritten every 5 seconds
 │   └── finished                 # Clean-exit marker (written on JVM shutdown)
 ├── heap-dump.hprof.gz           # Heap dump (if captured)
-├── jfr-jvm.log                  # JVM log (if enabled)
+├── jfr.jvm-log                  # JVM log (if enabled)
 ├── perf-counters.hsperfdata     # Performance counters (if enabled)
 ├── hs-jvm-err.log               # HotSpot error log (written on JVM crash)
 └── .session-info.json           # Session metadata</code></pre>

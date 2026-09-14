@@ -136,7 +136,7 @@ class StorageManagerImplTest {
                             file("heapdump.hprof.gz", SupportedRecordingFile.HEAP_DUMP_GZ, 200L, CREATED_AT))),
                     session("session-2", List.of(
                             file("recording-3.jfr", SupportedRecordingFile.JFR, 500L, LAST_ACTIVITY),
-                            file("service-jvm.log", SupportedRecordingFile.JVM_LOG, 40L, CREATED_AT),
+                            file("service.jvm-log", SupportedRecordingFile.JVM_LOG, 40L, CREATED_AT),
                             file("service-app.log", SupportedRecordingFile.APP_LOG, 30L, CREATED_AT),
                             file("cpu.pprof", SupportedRecordingFile.PPROF, 10L, CREATED_AT)))));
 

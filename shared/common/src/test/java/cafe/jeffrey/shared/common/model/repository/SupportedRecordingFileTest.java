@@ -43,6 +43,29 @@ class SupportedRecordingFileTest {
             assertEquals(SupportedRecordingFile.OTLP_PROFILE, SupportedRecordingFile.of("profiles.otlp"));
         }
 
+        @Test
+        void applicationLogsInTheirRotatedAndCompressedForms() {
+            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service.log"));
+            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service.log.1.gz"));
+            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service.2026-09-13.log.gz"));
+            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service-2026-09-13.1.log.zip"));
+        }
+
+        @Test
+        void jvmLogsAndTheirRotatedForms() {
+            assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("gc.jvm-log"));
+            assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("gc.jvm-log.0"));
+        }
+
+        /**
+         * The crash log ends in {@code .log} like an application log; it is the one name that relies on
+         * being declared before {@code APP_LOG}, so the order is pinned here rather than left to reordering.
+         */
+        @Test
+        void theCrashLogIsNotAnApplicationLog() {
+            assertEquals(SupportedRecordingFile.HS_JVM_ERROR_LOG, SupportedRecordingFile.of("hs-jvm-err.log"));
+        }
+
         /**
          * A compressed recording must not be read as an uncompressed one: the two are stored and
          * decoded differently, and {@code run.jfr.lz4} ends with neither {@code .jfr} nor anything
@@ -98,7 +121,7 @@ class SupportedRecordingFileTest {
         @Test
         void holdsForThePatternMatchersToo() {
             assertEquals(SupportedRecordingFile.ASPROF_TEMP, SupportedRecordingFile.of("RUN.JFR.1~"));
-            assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("SERVICE-JVM.LOG"));
+            assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("GC.JVM-LOG"));
         }
     }
 

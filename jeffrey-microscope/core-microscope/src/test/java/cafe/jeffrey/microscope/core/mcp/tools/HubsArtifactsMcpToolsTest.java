@@ -160,15 +160,16 @@ class HubsArtifactsMcpToolsTest {
     /**
      * The hub types a file with {@link SupportedRecordingFile#of(String)}, and hubs_fetchFile derives
      * the type the same way when it answers off this disk. A fixture whose name does not classify to
-     * the type it is handed is a file Jeffrey could never produce - which is how a GC log the
-     * provisioner writes as gc-jvm.log came to be documented as gc.jvm-log, a name that classifies
-     * as UNKNOWN and so could not be fetched at all.
+     * the type it is handed is a file Jeffrey could never produce, and a test over it proves nothing
+     * about the real path - which is how a GC log once came to be documented under a name that
+     * classified as UNKNOWN. The names here are the ones the provisioner writes ({@code gc.jvm-log},
+     * {@code hs-jvm-err.log}) and the ones a rolling appender leaves ({@code service-app.log}).
      */
     @Test
     void everyFixtureNameClassifiesAsTheTypeItIsGiven() {
         assertEquals(SupportedRecordingFile.JFR, SupportedRecordingFile.of("profile-1.jfr"));
         assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service-app.log"));
-        assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("gc-jvm.log"));
+        assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("gc.jvm-log"));
         assertEquals(SupportedRecordingFile.HS_JVM_ERROR_LOG, SupportedRecordingFile.of("hs-jvm-err.log"));
         assertEquals(SupportedRecordingFile.HEAP_DUMP_GZ, SupportedRecordingFile.of("heap-dump.hprof.gz"));
         assertEquals(SupportedRecordingFile.UNKNOWN, SupportedRecordingFile.of("notes.txt"));
@@ -190,13 +191,13 @@ class HubsArtifactsMcpToolsTest {
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
                     finished("f-log", "service-app.log", SupportedRecordingFile.APP_LOG),
                     finished("f-crash", "hs-jvm-err.log", SupportedRecordingFile.HS_JVM_ERROR_LOG),
-                    file("f-gc", "gc-jvm.log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
+                    file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
 
             String text = tools.files(REF.encode());
 
             assertTrue(text.contains("| f-log | service-app.log | APP_LOG | artifact | FINISHED |"), text);
             assertTrue(text.contains("| f-crash | hs-jvm-err.log | HS_JVM_ERROR_LOG | artifact |"), text);
-            assertTrue(text.contains("| f-gc | gc-jvm.log | JVM_LOG | artifact | ACTIVE |"), text);
+            assertTrue(text.contains("| f-gc | gc.jvm-log | JVM_LOG | artifact | ACTIVE |"), text);
             assertTrue(text.contains("| f-jfr | profile-1.jfr | JFR | recording |"), text);
             assertTrue(text.contains("hubs_fetchFile"), text);
         }
@@ -253,7 +254,7 @@ class HubsArtifactsMcpToolsTest {
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
                     finished("f-log", "service-app.log", SupportedRecordingFile.APP_LOG),
                     finished("f-odd", "notes.txt", SupportedRecordingFile.UNKNOWN),
-                    file("f-gc", "gc-jvm.log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
+                    file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
 
             String text = tools.files(REF.encode());
 
@@ -269,8 +270,8 @@ class HubsArtifactsMcpToolsTest {
         void aFileFetchedBeforeAnalysisIsStillReportedAsLocal() throws IOException {
             hubHolds(session(
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
-                    finished("f-gc", "gc-jvm.log", SupportedRecordingFile.JVM_LOG)));
-            Path fetched = unlinkedTarget("gc-jvm.log");
+                    finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
+            Path fetched = unlinkedTarget("gc.jvm-log");
             Files.createDirectories(fetched.getParent());
             Files.writeString(fetched, "x");
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
@@ -321,14 +322,14 @@ class HubsArtifactsMcpToolsTest {
         void anAnalysedSessionsFileLandsBesideItsProfile() throws IOException {
             hubHolds(session(
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
-                    finished("f-gc", "gc-jvm.log", SupportedRecordingFile.JVM_LOG)));
+                    finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
-            StreamedRecordingFile streamed = streamed("gc-jvm.log");
+            StreamedRecordingFile streamed = streamed("gc.jvm-log");
             when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed);
 
             JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-gc"));
 
-            Path expected = home.resolve("profiles").resolve("prof-1").resolve("artifacts").resolve("gc-jvm.log");
+            Path expected = home.resolve("profiles").resolve("prof-1").resolve("artifacts").resolve("gc.jvm-log");
             assertEquals(expected.toString(), answer.path("path").asText());
             assertTrue(Files.isRegularFile(expected));
             assertEquals("rec-1", answer.path("recordingId").asText());
@@ -372,7 +373,7 @@ class HubsArtifactsMcpToolsTest {
 
         @Test
         void aFileStillBeingWrittenIsRefused() {
-            hubHolds(session(file("f-gc", "gc-jvm.log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
+            hubHolds(session(file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
 
             IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                     () -> tools.fetchFile(REF.encode(), "f-gc"));
@@ -398,16 +399,16 @@ class HubsArtifactsMcpToolsTest {
         void aFileFetchedBeforeAnalysisIsMovedBesideTheProfileRatherThanTransferredAgain() throws IOException {
             hubHolds(session(
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
-                    finished("f-gc", "gc-jvm.log", SupportedRecordingFile.JVM_LOG)));
-            when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed("gc-jvm.log"));
-            Path unlinked = unlinkedTarget("gc-jvm.log");
+                    finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
+            when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed("gc.jvm-log"));
+            Path unlinked = unlinkedTarget("gc.jvm-log");
             assertEquals(unlinked.toString(),
                     Json.readTree(tools.fetchFile(REF.encode(), "f-gc")).path("path").asText());
 
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
             JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-gc"));
 
-            Path beside = profileTarget("prof-1", "gc-jvm.log");
+            Path beside = profileTarget("prof-1", "gc.jvm-log");
             assertEquals(beside.toString(), answer.path("path").asText());
             assertTrue(answer.path("alreadyHere").asBoolean());
             assertTrue(Files.isRegularFile(beside));
@@ -437,15 +438,15 @@ class HubsArtifactsMcpToolsTest {
         void aRetainedPathIsNotAnsweredOnceTheSessionHasBeenAnalysed() throws IOException {
             hubHolds(session(
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
-                    finished("f-gc", "gc-jvm.log", SupportedRecordingFile.JVM_LOG)));
-            when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed("gc-jvm.log"));
+                    finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
+            when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed("gc.jvm-log"));
             tools.fetchFile(REF.encode(), "f-gc");
 
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
             JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-gc"));
 
             // The retained path is stale, so the hub path runs and moves the file beside the profile.
-            assertEquals(profileTarget("prof-1", "gc-jvm.log").toString(), answer.path("path").asText());
+            assertEquals(profileTarget("prof-1", "gc.jvm-log").toString(), answer.path("path").asText());
         }
 
         @Test

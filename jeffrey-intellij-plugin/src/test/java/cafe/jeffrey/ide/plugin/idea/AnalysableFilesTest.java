@@ -59,7 +59,7 @@ public class AnalysableFilesTest {
      */
     @Test
     public void staysOutOfTheWayForCompanionArtifacts() {
-        assertFalse(AnalysableFiles.analysableName("app-jvm.log"));
+        assertFalse(AnalysableFiles.analysableName("app.jvm-log"));
         assertFalse(AnalysableFiles.analysableName("service-app.log"));
         assertFalse(AnalysableFiles.analysableName("hsperfdata"));
         assertFalse(AnalysableFiles.analysableName("run.jfr.1~"));

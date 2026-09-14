@@ -94,7 +94,7 @@ heap-dump {
     type = "crash"
 }
 
-additional-jvm-options = "-Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc-jvm.log:time,uptime,level,tags:filecount=3,filesize=20m"`;
+additional-jvm-options = "-Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const projectBlock = `project {
     name  = \${JEFFREY_TESTAPP_MODE}"-jeffrey-testapp-server"
@@ -259,7 +259,7 @@ volumes:
         <code>&lt;&lt;ENV:NAME&gt;&gt;</code>, etc. — see the
         <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>),
         so each <code>-Xlog</code> file lands in the per-cycle session directory. End the file name
-        with <code>-jvm.log</code> and Jeffrey picks it up as a JVM log artifact.
+        with <code>.jvm-log</code> and Jeffrey picks it up as a JVM log artifact.
       </p>
 
       <p>

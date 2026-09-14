@@ -42,7 +42,7 @@ class FileSizeReaderTest {
 
         @Test
         void reportsTheLengthOfAFileWithContent() throws IOException {
-            Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
+            Path file = Files.write(dir.resolve("gc.jvm-log"), CONTENT);
 
             assertEquals(CONTENT.length, FileSizeReader.OPEN_HANDLE.size(file));
         }
@@ -65,7 +65,7 @@ class FileSizeReaderTest {
 
         @Test
         void reportsTheLengthOfAFileWithContent() throws IOException {
-            Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
+            Path file = Files.write(dir.resolve("gc.jvm-log"), CONTENT);
 
             assertEquals(CONTENT.length, FileSizeReader.FILE_ATTRIBUTES.size(file));
         }
@@ -89,14 +89,14 @@ class FileSizeReaderTest {
 
         @Test
         void reportsTheLengthOfAFileWithContent() throws IOException {
-            Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
+            Path file = Files.write(dir.resolve("gc.jvm-log"), CONTENT);
 
             assertEquals(CONTENT.length, FileSizeReader.LIVE_FILE.size(file));
         }
 
         @Test
         void takesTheListingsFigureWhenTheShareRefusesAHandle() throws IOException {
-            Path file = Files.write(dir.resolve("gc-jvm.log"), CONTENT);
+            Path file = Files.write(dir.resolve("gc.jvm-log"), CONTENT);
             FileSizeReader refused = _ -> {
                 throw new RuntimeException("no handle for you");
             };

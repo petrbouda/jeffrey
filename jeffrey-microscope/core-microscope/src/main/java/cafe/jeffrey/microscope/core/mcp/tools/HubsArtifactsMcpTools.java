@@ -193,7 +193,7 @@ public class HubsArtifactsMcpTools {
     }
 
     @Tool(description = "Every file one hub recording session holds - the JFR chunks, and beside them "
-            + "the artifacts the JVM left: application logs, the unified-logging file (gc-jvm.log), "
+            + "the artifacts the JVM left: application logs, the unified-logging file (gc.jvm-log), "
             + "the crash file (hs-jvm-err.log or hs_err_pid*.log), the perf-counters file, a heap dump. "
             + "Call it when the question is about what a JVM wrote rather than what it recorded: an "
             + "exception in the application log, why the JVM died, what a GC log says for a session "
@@ -342,7 +342,7 @@ public class HubsArtifactsMcpTools {
      * Where a session's file lives once fetched: in the profile's own directory when the session has
      * been analysed, else under the artifacts directory. Deterministic on purpose, and the hub's
      * session ids are unique only within a project, so the project is part of the second path. The
-     * file's own name is kept because it is what the reader will recognise ({@code gc-jvm.log.1},
+     * file's own name is kept because it is what the reader will recognise ({@code gc.jvm-log.1},
      * {@code hs-jvm-err.log}).
      */
     private Path targetOf(HubSessionRef ref, String filename, LocalSession local) {

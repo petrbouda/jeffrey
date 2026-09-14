@@ -55,8 +55,8 @@ export const STORAGE_FILE_TYPES: Record<string, StorageFileTypeMeta> = {
     OTLP_PROFILE: { label: 'OpenTelemetry Profiles', extension: '.otlp', group: 'profiles' },
     HEAP_DUMP: { label: 'Heap Dump', extension: '.hprof', group: 'heapDumps' },
     HEAP_DUMP_GZ: { label: 'GZ Compressed Heap Dump', extension: '.hprof.gz', group: 'heapDumps' },
-    JVM_LOG: { label: 'JVM Log', extension: '*-jvm.log', group: 'logs' },
-    APP_LOG: { label: 'Application Log', extension: '*-app.log', group: 'logs' },
+    JVM_LOG: { label: 'JVM Log', extension: '.jvm-log', group: 'logs' },
+    APP_LOG: { label: 'Application Log', extension: '.log (+ rotated, compressed)', group: 'logs' },
     HS_JVM_ERROR_LOG: { label: 'HotSpot JVM Error Log', extension: 'hs-jvm-err.log', group: 'logs' },
     PERF_COUNTERS: { label: 'HotSpot Performance Counters', extension: '.hsperfdata', group: 'diagnostics' },
     ASPROF_TEMP: { label: 'Async Profiler Cache', extension: '.jfr.*~', group: 'temporary' }

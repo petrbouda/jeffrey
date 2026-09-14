@@ -21,9 +21,14 @@ package cafe.jeffrey.shared.common.model.repository.matcher;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+/**
+ * Recognises a JVM unified-logging file by the {@code .jvm-log} extension — Jeffrey's own convention,
+ * chosen so the file does not end in {@code .log} and is never mistaken for an application log. The JVM
+ * rotates by appending a number ({@code gc.jvm-log.0}, {@code gc.jvm-log.1}) and never compresses.
+ */
 public class JvmLogFileMatcher implements Predicate<String> {
 
-    private static final Pattern JVM_LOG_PATTERN = Pattern.compile(".*-jvm\\.log(\\.[0-9]+)?$");
+    private static final Pattern JVM_LOG_PATTERN = Pattern.compile(".*\\.jvm-log(\\.[0-9]+)?$");
 
     @Override
     public boolean test(String filename) {

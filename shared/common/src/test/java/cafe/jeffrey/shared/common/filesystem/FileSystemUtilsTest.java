@@ -41,7 +41,7 @@ class FileSystemUtilsTest {
         @Test
         void fileWithContentReportsItsLength() throws IOException {
             byte[] content = "gc log line\n".repeat(100).getBytes(StandardCharsets.UTF_8);
-            Path file = Files.write(dir.resolve("gc-jvm.log"), content);
+            Path file = Files.write(dir.resolve("gc.jvm-log"), content);
 
             assertEquals(content.length, FileSystemUtils.size(file));
         }
