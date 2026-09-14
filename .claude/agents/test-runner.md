@@ -1,3 +1,10 @@
+---
+name: test-runner
+description: Determines which Maven modules and frontend packages a change affects and runs only their tests. Use to verify a change without running the whole reactor.
+tools: Read, Grep, Glob, Bash
+model: inherit
+---
+
 # Targeted Test Runner
 
 Analyze changed files to determine affected modules and run only the relevant tests.

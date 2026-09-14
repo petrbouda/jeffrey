@@ -1,3 +1,10 @@
+---
+name: design-token-compliance
+description: Reviews changed Vue files for design-system violations — hardcoded colours, literal shadows/radii, raw badges, hand-rolled tables — and missed reuse of shared components. Use after editing or adding Vue components.
+tools: Read, Grep, Glob, Bash
+model: inherit
+---
+
 # Design Token Compliance Checker
 
 Review changed Vue files for design system violations and component reuse.

@@ -1,3 +1,10 @@
+---
+name: java-compiler
+description: Verifies that Java changes compile by running the Maven build for the affected modules. Use after backend edits, before claiming they compile.
+tools: Read, Grep, Glob, Bash
+model: inherit
+---
+
 # Java Compilation Verifier
 
 Verify that Java changes compile successfully by running Maven compilation.
