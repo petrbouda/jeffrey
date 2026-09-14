@@ -160,7 +160,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Output is capped at 120,000 characters, and says so when it cuts.</strong> A silently shortened flamegraph would be read as a complete one, so nothing is trimmed quietly. A Markdown answer &mdash; the exports, the listings &mdash; ends with an explicit <code>TRUNCATED</code> line naming the cap and suggesting a narrower query. A JSON answer is trimmed <em>in the tree</em> instead of at a character count: the largest array is shortened until the document fits, so what comes back is still parseable rather than ending mid-token, and it carries a <code>_truncated</code> object saying how many elements each shortened array kept out of how many it had. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
 
-      <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>source</code>, <code>operator</code>, <code>scope</code>, <code>sort</code>, <code>sortBy</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. A value outside the list is refused by name, with the alternatives spelled out, before the tool runs &mdash; as is a required argument the call left out, rather than being bound to an empty value the tool then reads as an answer. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
+      <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>source</code>, <code>operator</code>, <code>scope</code>, <code>sort</code>, <code>sortBy</code>, <code>order</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. A value outside the list is refused by name, with the alternatives spelled out, before the tool runs &mdash; as is a required argument the call left out, rather than being bound to an empty value the tool then reads as an answer. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
 
       <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. The tools that change state are: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, <code>hubs_eventActivity</code>, which claims one of a Hub&rsquo;s retained scan slots and runs a reader there, <code>operations_cancel</code> and <code>hubs_activityCancel</code>, which request cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code>, <code>heap_status</code> and <code>hubs_activityStatus</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families and the <code>operations_</code> pair, which can poll or cancel work on a Hub. These tools can reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
 
@@ -190,7 +190,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><a href="#recordings"><code>recordings_</code></a></td>
             <td class="map-count">4</td>
-            <td>A recording Jeffrey has never seen, as a file on this machine. Creates a profile rather than reading one, and an installation can switch it off on its own.</td>
+            <td>A recording Jeffrey has never seen, as a file on this machine. Creates a profile rather than reading one; an installation withholds it by leaving <code>recordings</code> out of <code>families</code>.</td>
           </tr>
           <tr>
             <td><a href="#hubs"><code>hubs_</code></a></td>
@@ -295,7 +295,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         </tbody>
       </table>
 
-      <p><strong>Structured discovery results.</strong> <code>profiles_list</code> and <code>hubs_sessions</code> keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
+      <p><strong>Structured discovery results.</strong> Eight tools &mdash; <code>profiles_list</code>, <code>profiles_evidence</code>, <code>compare_quality</code>, <code>hubs_sessions</code>, <code>hubs_queryEvents</code>, <code>hubs_eventActivity</code>, <code>hubs_activityStatus</code> and <code>hubs_activityCancel</code> &mdash; keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
 
       <p><strong>Evidence snapshots.</strong> <code>profiles_evidence(profileId, limit?)</code>, also available at <code>jeffrey://profile/{profileId}/evidence</code>, exports the current profile and recording identity, filters, units, denominators, existing findings, sampling evidence and capability gaps. The snapshot is versioned and explicitly reports omitted rows. Save the response to preserve that evidence: reading the URI again reflects the current profile state.</p>
 
@@ -1238,27 +1238,27 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         <tbody>
           <tr>
             <td><code>ide_resolve</code></td>
-            <td><code>className</code>, <code>methodName?</code>, <code>line?</code></td>
+            <td><code>profileId</code>, <code>className</code>, <code>methodName?</code>, <code>line?</code></td>
             <td>The absolute file and line, plus whether the position is <code>decompiled</code>, <code>imprecise</code> or <code>stale</code>, and what to do about each. Does <strong>not</strong> move the editor</td>
           </tr>
           <tr>
             <td><code>ide_source</code></td>
-            <td><code>className</code></td>
+            <td><code>profileId</code>, <code>className</code></td>
             <td>The source text as the IDE has it &mdash; attached sources for a library when they exist, a decompiled reconstruction when they do not</td>
           </tr>
           <tr>
             <td><code>ide_windows</code></td>
-            <td><code>className?</code></td>
+            <td><code>profileId</code>, <code>className?</code></td>
             <td>Every open window, its branch and HEAD commit, whether it holds the class, and whether it is on the commit the recording was built from</td>
           </tr>
           <tr>
             <td><code>ide_link</code></td>
-            <td><code>projectId</code></td>
+            <td><code>profileId</code>, <code>projectId</code></td>
             <td>Binds one window to this profile for every later lookup. Only needed when the choice is ambiguous</td>
           </tr>
           <tr>
             <td><code>ide_open</code></td>
-            <td><code>className</code>, <code>methodName?</code>, <code>line?</code></td>
+            <td><code>profileId</code>, <code>className</code>, <code>methodName?</code>, <code>line?</code></td>
             <td>Opens the location and brings the window to the front. The one tool here with a visible side effect</td>
           </tr>
         </tbody>

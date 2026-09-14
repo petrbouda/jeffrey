@@ -98,9 +98,11 @@ const initializeResult = `{
     "capabilities": {
       "tools": { "listChanged": false },
       "prompts": { "listChanged": false },
-      "resources": { "subscribe": false, "listChanged": false }
+      "resources": { "subscribe": false, "listChanged": false },
+      "completions": {}
     },
-    "serverInfo": { "name": "jeffrey", "version": "<application-build-version>" }
+    "serverInfo": { "name": "jeffrey", "version": "<application-build-version>" },
+    "instructions": "Jeffrey Microscope analyses JVM recordings ... Start here. Call profiles_list ..."
   }
 }`;
 
@@ -201,7 +203,7 @@ const protocolError = `{
 
       <DocsCodeBlock :code="resourcesCall" language="bash" />
       <p><code>jeffrey://profiles</code> returns the first catalogue page and provides a continuation URI when more profiles match. The <code>jeffrey://profiles{?cursor,limit}</code> template continues it. <code>jeffrey://server</code> reports the build version, effective tool families and count, and supported protocol capabilities. It contains no raw configuration, local paths or Hub addresses.</p>
-      <p>For <code>profiles_list</code> and <code>hubs_sessions</code>, clients using protocol <code>2025-06-18</code> or newer can consume <code>structuredContent</code> and the advertised <code>outputSchema</code>. Readable text remains present. Send the negotiated <code>MCP-Protocol-Version</code> header on each request. Requests without that header receive the older text-only format. Other tools keep their existing text contract.</p>
+      <p>For the eight tools that declare an <code>outputSchema</code> &mdash; <code>profiles_list</code>, <code>profiles_evidence</code>, <code>compare_quality</code>, <code>hubs_sessions</code>, <code>hubs_queryEvents</code>, <code>hubs_eventActivity</code>, <code>hubs_activityStatus</code>, <code>hubs_activityCancel</code> &mdash; clients using protocol <code>2025-06-18</code> or newer can consume <code>structuredContent</code> and the advertised <code>outputSchema</code>. Readable text remains present. Send the negotiated <code>MCP-Protocol-Version</code> header on each request. Requests without that header receive the older text-only format. Other tools keep their existing text contract.</p>
 
       <h2 id="the-wire-protocol">The Wire Protocol</h2>
       <p>Whatever the client, the endpoint is plain <strong>JSON-RPC 2.0 over HTTP POST</strong>. No SSE stream, no session header, no handshake beyond what the protocol requires. A <code>GET</code> on the endpoint answers <code>405</code>, which is what the MCP specification prescribes for a server that does not offer the optional server-to-client stream &mdash; a client that treats that as fatal rather than as the documented refusal is at fault. A client that sends its negotiated <code>MCP-Protocol-Version</code> header on later requests is held to it: a revision this server does not implement is refused with <code>400</code> rather than half-served.</p>

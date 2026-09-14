@@ -31,6 +31,7 @@ const headings = [
   { id: 'what-are-profiles', text: 'What are Profiles?', level: 2 },
   { id: 'profile-storage', text: 'Profile Storage', level: 2 },
   { id: 'summary-dashboard', text: 'Summary Dashboard', level: 2 },
+  { id: 'insights', text: 'Insights', level: 2 },
   { id: 'visualization', text: 'Visualization', level: 2 },
   { id: 'jvm-internals', text: 'JVM Internals', level: 2 },
   { id: 'traces', text: 'Traces', level: 2 },
@@ -85,6 +86,21 @@ const folderStructure = `$JEFFREY_HOME/
         <li><strong>Container panel</strong> — cgroup configuration, CPU throttling verdict, and memory limits; collapses when the JVM did not run in a container.</li>
         <li><strong>Top event types</strong> — the largest event types in the recording by samples, linking to flamegraphs and the event-type browser.</li>
       </ul>
+
+      <h2 id="insights">Insights</h2>
+      <p>What the recording says about itself before you open a single chart.</p>
+
+      <div class="docs-grid docs-grid-2">
+        <DocsFeatureCard
+          icon="bi bi-robot"
+          title="Auto Analysis"
+          description="The JDK Mission Control rule set run over the recording during import — every rule with its severity, score, subsystem and JMC's own explanation and suggested fix. Filter by severity or subsystem; the same findings feed the Summary dashboard, the IntelliJ panel and the MCP server."
+        />
+      </div>
+
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/auto-analysis">Read the Auto Analysis reference &rarr;</router-link>
+      </p>
 
       <h2 id="visualization">Visualization</h2>
       <p>Profiling graphs for deep performance analysis — flamegraphs and sub-second analysis tools.</p>
@@ -174,7 +190,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-speedometer2"
           title="Performance Counters"
-          description="Hardware performance metrics — CPU cycles, cache misses, and other low-level counters when available."
+          description="HotSpot performance counters from an hsperfdata artifact — JIT compilation time, loaded classes, GC generations and the rest of what jstat reads, each with its description."
         />
         <DocsFeatureCard
           icon="bi bi-box"
