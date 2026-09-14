@@ -36,7 +36,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -181,8 +181,8 @@ public class IdeRecordingLookup {
      * the recording's figures rather than the dump's.
      */
     private static boolean isHeapDump(String filename) {
-        SupportedRecordingFile type = SupportedRecordingFile.of(filename);
-        return type == SupportedRecordingFile.HEAP_DUMP || type == SupportedRecordingFile.HEAP_DUMP_GZ;
+        SupportedFile type = SupportedFile.of(filename);
+        return type == SupportedFile.HEAP_DUMP || type == SupportedFile.HEAP_DUMP_GZ;
     }
 
     private static RecordingFigures recordingFigures(ProfileManager profileManager, ProfileInfo info) {

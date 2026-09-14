@@ -19,7 +19,6 @@
 package cafe.jeffrey.storage.recording.filesystem;
 
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -29,11 +28,9 @@ import java.util.List;
 public class FilesystemRecordingStorage implements RecordingStorage {
 
     private final Path recordingStoragePath;
-    private final List<SupportedRecordingFile> recordingTypes;
 
-    public FilesystemRecordingStorage(Path recordingStoragePath, List<SupportedRecordingFile> recordingTypes) {
+    public FilesystemRecordingStorage(Path recordingStoragePath) {
         this.recordingStoragePath = recordingStoragePath;
-        this.recordingTypes = recordingTypes;
     }
 
     @Override
@@ -46,6 +43,6 @@ public class FilesystemRecordingStorage implements RecordingStorage {
     @Override
     public ProjectRecordingStorage projectRecordingStorage(String projectId) {
         Path projectRecordingStoragePath = recordingStoragePath.resolve(projectId);
-        return new FilesystemProjectRecordingStorage(projectRecordingStoragePath, recordingTypes);
+        return new FilesystemProjectRecordingStorage(projectRecordingStoragePath);
     }
 }

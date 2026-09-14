@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+// Provides the one server-streaming RPC that hands a recording session's files to a client.
+// Every file is streamed in 64KB chunks so a large one (a JFR chunk, a heap dump) is never loaded
+// into memory whole.
+//
+// A session's files are all served the same way: a JFR chunk, a heap dump, a log or a file the
+// hub does not classify are each one DownloadFile call. What a type implies is declared on the
+// type itself (SupportedFile), not on the wire. The hub never merges: a recording is assembled
+// by the caller from the chunks it downloaded.
+service FileDownloadService {
+  // Streams a single file from a session as it lies on the hub: a JFR chunk that the hub has
+  // already compressed arrives as .jfr.lz4. The file must exist, be FINISHED and not be transient.
+  rpc DownloadFile(DownloadFileRequest) returns (stream DataChunk);
+}
+
+message DownloadFileRequest {
+  string session_id = 1;
+  // The ID of the file to download, as listed by RepositoryService.GetSession.
+  string file_id = 2;
+}
+
+// A chunk of binary data for streaming file transfers.
+// The stream consists of sequential chunks that, when concatenated,
+// form the complete file.
+message DataChunk {
+  // Binary content of this chunk (up to 64KB).
+  bytes data = 1;
+  // Total size of the complete file in bytes (same value in every chunk).
+  int64 total_size = 2;
+}

@@ -21,7 +21,7 @@ package cafe.jeffrey.hub.client.manager;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 
 import java.util.List;
 
@@ -64,5 +64,5 @@ public interface RepositoryManager {
      */
     void setSessionRetained(String recordingSessionId, boolean retained);
 
-    StreamedRecordingFile streamFile(String sessionId, String fileId);
+    StreamedFile streamFile(String sessionId, String fileId);
 }

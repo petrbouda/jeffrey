@@ -260,7 +260,7 @@
                       v-if="downloadableSummary(session.id)"
                       type="button"
                       class="drawer-action drawer-action--download"
-                      title="Download all recordings (merged) and artifacts"
+                      title="Download the whole session: its recording and every other file"
                       @click.stop="downloadSession(session.id)"
                     >
                       <i class="bi bi-download"></i> Download
@@ -566,6 +566,7 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
 import RecordingSession from '@hubs/services/api/model/RecordingSession';
+import { isRecordingChunk } from '@hubs/services/api/model/SupportedFileType';
 import { downloadAssistantStore } from '@hubs/stores/assistants/downloadAssistantStore';
 import { ToastService } from '@shared/services/ToastService';
 import ProjectInstance, { type ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
@@ -1215,7 +1216,7 @@ function downloadableSummary(sessionId: string): string | null {
   if (!repositorySession) {
     return null;
   }
-  const hasRecordingData = repositorySession.files.some(file => file.isRecording && file.size > 0);
+  const hasRecordingData = repositorySession.files.some(file => isRecordingChunk(file) && file.size > 0);
   if (!hasRecordingData) {
     return null;
   }
@@ -1226,7 +1227,7 @@ function downloadableSummary(sessionId: string): string | null {
 }
 
 /**
- * Downloads all recordings (merged) and artifacts of the session — the same flow as
+ * Downloads the whole session — its chunks assembled into one recording plus every other file — the same flow as
  * the Download button in the sessions list: the Download Assistant fetches every file
  * of the session from the remote workspace.
  */

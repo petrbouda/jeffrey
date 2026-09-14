@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsFilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
@@ -113,7 +113,7 @@ class McpWorkflowIntegrationTest {
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
                 new HubsReplayMcpTools(resolver, new McpOperationRegistry(clock), clock),
-                new HubsArtifactsMcpTools(resolver, recordings, Path.of("artifacts"), Path.of("profiles"), operations, clock),
+                new HubsFilesMcpTools(resolver, recordings, Path.of("artifacts"), Path.of("profiles"), operations, clock),
                 operations, clock);
         return new ExternalMcpController(assembler, properties, new McpRequestGuard(), new McpPromptRegistry(),
                 new McpDiagnostics(repositories, hubs, properties, clock, Duration.ofSeconds(1)));

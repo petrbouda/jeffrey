@@ -22,7 +22,7 @@ import cafe.jeffrey.otlpparser.OtlpRecordingInformationParser;
 import cafe.jeffrey.pprofparser.PprofRecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.nio.file.Path;
 
@@ -54,11 +54,11 @@ public class FileTypeDispatchingRecordingInformationParser implements RecordingI
 
     @Override
     public RecordingInformation provide(Path recordingPath) {
-        SupportedRecordingFile fileType = SupportedRecordingFile.of(recordingPath);
-        if (fileType == SupportedRecordingFile.PPROF) {
+        SupportedFile fileType = SupportedFile.of(recordingPath);
+        if (fileType == SupportedFile.PPROF) {
             return pprofParser.provide(recordingPath);
         }
-        if (fileType == SupportedRecordingFile.OTLP_PROFILE) {
+        if (fileType == SupportedFile.OTLP_PROFILE) {
             return otlpParser.provide(recordingPath);
         }
         return jfrParser.provide(recordingPath);

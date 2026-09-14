@@ -130,8 +130,8 @@ public enum NotificationType {
     DOWNLOAD_FAILED(NotificationCategory.RECORDING, Severity.MEDIUM,
             "Downloading a recording session failed"),
 
-    DOWNLOAD_ARTIFACT_MISSING(NotificationCategory.RECORDING, Severity.HIGH,
-            "An artifact could not be downloaded; the rest of the download still succeeded"),
+    DOWNLOAD_FILE_MISSING(NotificationCategory.RECORDING, Severity.HIGH,
+            "A session file could not be downloaded; the rest of the download still succeeded"),
 
     // ---------- Hub operations that only half happened ----------
 

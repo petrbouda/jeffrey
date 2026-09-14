@@ -69,19 +69,4 @@ public record RepositoryStatistics(
     public record FileTypeStats(int count, long size) {
         public static final FileTypeStats EMPTY = new FileTypeStats(0, 0L);
     }
-
-    public enum StatsCategory {
-        JFR, HEAP_DUMP, LOG, APP_LOG, ERROR_LOG, OTHER;
-
-        public static StatsCategory of(SupportedRecordingFile fileType) {
-            return switch (fileType) {
-                case JFR, JFR_LZ4 -> JFR;
-                case HEAP_DUMP, HEAP_DUMP_GZ -> HEAP_DUMP;
-                case JVM_LOG -> LOG;
-                case APP_LOG -> APP_LOG;
-                case HS_JVM_ERROR_LOG -> ERROR_LOG;
-                default -> OTHER;
-            };
-        }
-    }
 }

@@ -211,8 +211,8 @@ onMounted(() => {
 │       └── profile-data.db
 └── recordings/                           # JFR files (uploaded or downloaded)
     └── {recording-id}/
-        ├── recording.jfr                 # or recording.jfr.lz4
-        └── artifacts/                    # heap dumps, JVM logs, perf-counters</code></pre>
+        ├── recording.jfr                 # or recording.jfr.lz4 - one recording per folder
+        └── heap-dump.hprof.gz            # additional files beside it: heap dumps, JVM logs, perf-counters</code></pre>
       </div>
 
       <DocsCallout type="tip">

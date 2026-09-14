@@ -178,7 +178,7 @@ import RecordingsClient from '@hubs/services/api/RecordingsClient';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
 import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource';
-import RecordingFileType from '@hubs/services/api/model/RecordingFileType';
+import SupportedFileType from '@hubs/services/api/model/SupportedFileType';
 
 const recordingsClient = new RecordingsClient();
 import FormattingService from '@shared/services/FormattingService';
@@ -217,9 +217,9 @@ const RECORDINGS_WORKSPACE_ID = 'recordings';
 const RECORDINGS_WORKSPACE_NAME = 'Recordings';
 const ALL_GROUP_KEY = 'all';
 const UNGROUPED_KEY = '__ungrouped__';
-const HEAP_DUMP_FILE_TYPES = new Set<RecordingFileType>([
-  RecordingFileType.HEAP_DUMP,
-  RecordingFileType.HEAP_DUMP_GZ
+const HEAP_DUMP_FILE_TYPES = new Set<SupportedFileType>([
+  SupportedFileType.HEAP_DUMP,
+  SupportedFileType.HEAP_DUMP_GZ
 ]);
 
 const props = defineProps<Props>();

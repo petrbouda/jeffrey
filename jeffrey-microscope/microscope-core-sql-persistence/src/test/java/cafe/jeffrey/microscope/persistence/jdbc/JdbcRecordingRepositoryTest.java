@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -143,7 +143,7 @@ class JdbcRecordingRepositoryTest {
                     false, null, null, List.of());
             RecordingFile recordingFile = new RecordingFile(
                     "new-file-001", "new-rec-001", "new-recording.jfr",
-                    SupportedRecordingFile.JFR, Instant.parse("2025-01-15T12:00:00Z"), 1024);
+                    SupportedFile.JFR, Instant.parse("2025-01-15T12:00:00Z"), 1024);
 
             repository.insertRecording(recording, recordingFile);
 
@@ -164,7 +164,7 @@ class JdbcRecordingRepositoryTest {
 
             RecordingFile additionalFile = new RecordingFile(
                     "file-003", "rec-001", "recording1-extra.jfr",
-                    SupportedRecordingFile.JFR, Instant.parse("2025-01-15T14:00:00Z"), 512);
+                    SupportedFile.JFR, Instant.parse("2025-01-15T14:00:00Z"), 512);
 
             repository.insertRecordingFile(additionalFile);
 

@@ -24,7 +24,7 @@ import {
 } from '@hubs/services/sessionGrouping.ts';
 import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
-import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
+import SupportedFileType from '@hubs/services/api/model/SupportedFileType.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
 
 const BASE_CREATED_AT = 1_750_000_000_000;
@@ -36,8 +36,7 @@ function file(size: number): RepositoryFile {
     BASE_CREATED_AT,
     RecordingStatus.FINISHED,
     size,
-    RecordingFileType.JFR,
-    true
+    SupportedFileType.JFR
   );
 }
 

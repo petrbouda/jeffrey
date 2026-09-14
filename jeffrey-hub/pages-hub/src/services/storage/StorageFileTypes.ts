@@ -1,7 +1,7 @@
 import type { FileTypeUsage } from '@/services/api/model/StorageOverview';
 
 /**
- * Visual grouping of the backend's SupportedRecordingFile types for the
+ * Visual grouping of the backend's SupportedFile types for the
  * storage breakdown (category bars, legend, drawer sections).
  */
 export type StorageGroupKey =
@@ -47,7 +47,7 @@ export const STORAGE_GROUPS: StorageGroup[] = [
     { key: 'unrecognized', label: 'Unrecognized', fill: UNRECOGNIZED_FILL }
 ];
 
-/** Keyed by the SupportedRecordingFile enum name sent by the backend. */
+/** Keyed by the SupportedFile enum name sent by the backend. */
 export const STORAGE_FILE_TYPES: Record<string, StorageFileTypeMeta> = {
     JFR: { label: 'JDK Flight Recording', extension: '.jfr', group: 'recordings' },
     JFR_LZ4: { label: 'LZ4 Compressed JFR', extension: '.jfr.lz4', group: 'recordings' },
@@ -65,7 +65,7 @@ export const STORAGE_FILE_TYPES: Record<string, StorageFileTypeMeta> = {
 /**
  * The backend's UNKNOWN bucket, and any type name this catalogue has not caught
  * up with yet. It belongs to no real group: the hub already keeps it apart in
- * its own FileCategory.UNRECOGNIZED, and the breakdown does the same.
+ * its own SupportedFile.UNKNOWN, and the breakdown does the same.
  */
 const UNKNOWN_FILE_TYPE: StorageFileTypeMeta = {
     label: 'Unrecognized files',

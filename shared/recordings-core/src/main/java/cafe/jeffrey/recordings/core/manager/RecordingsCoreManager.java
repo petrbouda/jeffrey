@@ -49,8 +49,8 @@ public interface RecordingsCoreManager {
 
     String createDownloadedRecording(
             String recordingName,
-            Path mergedRecordingFile,
-            List<Path> artifactFiles,
+            Path recordingFile,
+            List<Path> additionalFiles,
             Map<String, String> originTags);
 
     void moveRecordingToGroup(String recordingId, String groupId);

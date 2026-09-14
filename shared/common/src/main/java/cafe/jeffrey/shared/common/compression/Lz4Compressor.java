@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 
 /**
@@ -36,6 +37,9 @@ import java.nio.file.Path;
 public class Lz4Compressor {
 
     private static final String LZ4_EXTENSION = "." + FileExtensions.LZ4;
+
+    /** The LZ4 frame format's magic number, 0x184D2204, as it lies in the file: little-endian. */
+    private static final byte[] LZ4_FRAME_MAGIC = {0x04, 0x22, 0x4D, 0x18};
 
     private final TempDirFactory tempDirFactory;
 
@@ -148,5 +152,23 @@ public class Lz4Compressor {
      */
     public static boolean isLz4Compressed(Path path) {
         return path.toString().endsWith(LZ4_EXTENSION);
+    }
+
+    /**
+     * Checks if a file is LZ4 compressed based on its content: whether it starts with the LZ4
+     * frame magic. For a file whose name cannot be trusted — one copied under another name, or
+     * served by something that names it after what it should be rather than what it is.
+     *
+     * @param path the file path to check
+     * @return true if the file starts with an LZ4 frame; false for a shorter or different file
+     */
+    public static boolean startsWithLz4Frame(Path path) {
+        byte[] head = new byte[LZ4_FRAME_MAGIC.length];
+        try (InputStream in = Files.newInputStream(path)) {
+            int read = in.readNBytes(head, 0, head.length);
+            return read == head.length && Arrays.equals(head, LZ4_FRAME_MAGIC);
+        } catch (IOException e) {
+            return false;
+        }
     }
 }

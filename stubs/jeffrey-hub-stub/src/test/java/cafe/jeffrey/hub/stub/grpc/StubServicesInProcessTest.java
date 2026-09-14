@@ -19,8 +19,7 @@
 package cafe.jeffrey.hub.stub.grpc;
 
 import cafe.jeffrey.hub.api.v1.DataChunk;
-import cafe.jeffrey.hub.api.v1.DownloadArtifactFileRequest;
-import cafe.jeffrey.hub.api.v1.DownloadMergedRecordingsRequest;
+import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
 import cafe.jeffrey.hub.api.v1.GetInstanceSessionDetailRequest;
@@ -40,7 +39,7 @@ import cafe.jeffrey.hub.api.v1.ListWorkspacesRequest;
 import cafe.jeffrey.hub.api.v1.ListWorkspacesResponse;
 import cafe.jeffrey.hub.api.v1.ProjectInfo;
 import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
-import cafe.jeffrey.hub.api.v1.RecordingDownloadServiceGrpc;
+import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
@@ -88,7 +87,7 @@ class StubServicesInProcessTest {
                 .addService(new StubProjectService(dataset))
                 .addService(new StubInstanceService(dataset))
                 .addService(new StubRepositoryService(dataset))
-                .addService(new StubRecordingDownloadService(dataset))
+                .addService(new StubFileDownloadService(dataset))
                 .addService(new StubProfilerSettingsService())
                 .build()
                 .start();
@@ -172,14 +171,14 @@ class StubServicesInProcessTest {
         assertFalse(first.getId().isEmpty());
     }
 
-    // Mirrors cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile names. The client
-    // resolves file_type via SupportedRecordingFile.valueOf(), so an unknown name = null fileType = NPE.
+    // Mirrors cafe.jeffrey.shared.common.model.repository.SupportedFile names. The client
+    // resolves file_type via SupportedFile.valueOf(), so an unknown name = null fileType = NPE.
     private static final Set<String> VALID_FILE_TYPES = Set.of(
-            "JFR", "ASPROF_TEMP", "HEAP_DUMP_GZ", "HEAP_DUMP", "PERF_COUNTERS",
+            "JFR", "JFR_LZ4", "ASPROF_TEMP", "HEAP_DUMP_GZ", "HEAP_DUMP", "PERF_COUNTERS",
             "JVM_LOG", "HS_JVM_ERROR_LOG", "APP_LOG", "UNKNOWN");
 
     @Test
-    void repositoryFileTypesAreValidSupportedRecordingFileNames() {
+    void repositoryFileTypesAreValidSupportedFileNames() {
         String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
         ListSessionsResponse sessions = RepositoryServiceGrpc.newBlockingStub(channel)
                 .listSessions(ListSessionsRequest.newBuilder().setProjectId(projectId).build());
@@ -196,13 +195,15 @@ class StubServicesInProcessTest {
     }
 
     @Test
-    void downloadMergedRecordingsStreamsTheBundledJfrForAKnownSession() {
+    void downloadFileStreamsTheBundledRecordingForACompressedChunkRow() {
         String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
-        String sessionId = dataset.sessionsForProject(projectId).getFirst().id();
+        StubDataset.Session session = dataset.sessionsForProject(projectId).getFirst();
+        StubDataset.File jfr = fileOfKind(session, StubDataset.FileKind.JFR_LZ4);
 
-        Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
-                        .setSessionId(sessionId)
+        Iterator<DataChunk> chunks = FileDownloadServiceGrpc.newBlockingStub(channel)
+                .downloadFile(DownloadFileRequest.newBuilder()
+                        .setSessionId(session.id())
+                        .setFileId(jfr.id())
                         .build());
 
         ByteArrayOutputStream collected = new ByteArrayOutputStream();
@@ -218,7 +219,7 @@ class StubServicesInProcessTest {
         }
 
         byte[] bytes = collected.toByteArray();
-        assertTrue(bytes.length > 0, "expected a non-empty merged recording");
+        assertTrue(bytes.length > 0, "expected a non-empty recording");
         assertEquals(bytes.length, totalSizeFromFirstChunk, "total_size must match the streamed byte count");
         // LZ4 frame magic (0x04 0x22 0x4D 0x18) — confirms the bundled .jfr.lz4 streamed intact.
         assertEquals(0x04, bytes[0] & 0xFF);
@@ -228,40 +229,44 @@ class StubServicesInProcessTest {
     }
 
     @Test
-    void downloadMergedRecordingsAlwaysReturnsTheSameBytesAcrossSessions() {
-        RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub =
-                RecordingDownloadServiceGrpc.newBlockingStub(channel);
+    void downloadFileAlwaysReturnsTheSameRecordingAcrossSessions() {
+        FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub = FileDownloadServiceGrpc.newBlockingStub(channel);
 
-        long first = countBytes(stub, "sess-inst-checkout-blue-1");
-        long second = countBytes(stub, "sess-inst-inventory-1-1");
+        long first = countBytes(stub, dataset.session("sess-inst-checkout-blue-1").orElseThrow());
+        long second = countBytes(stub, dataset.session("sess-inst-inventory-1-1").orElseThrow());
 
         assertTrue(first > 0);
-        assertEquals(first, second, "the merged download must be the same fixed file for every session");
+        assertEquals(first, second, "the recording is the same fixed file for every session");
     }
 
     @Test
-    void downloadArtifactFileReturnsAnEmptyFileForAKnownSession() {
+    void downloadFileReturnsAnEmptyFileForEveryOtherRow() {
         String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
-        String sessionId = dataset.sessionsForProject(projectId).getFirst().id();
+        StubDataset.Session session = dataset.sessionsForProject(projectId).getFirst();
+        StubDataset.File other = session.files().stream()
+                .filter(file -> file.kind() != StubDataset.FileKind.JFR_LZ4)
+                .findFirst()
+                .orElseThrow();
 
-        Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadArtifactFile(DownloadArtifactFileRequest.newBuilder()
-                        .setSessionId(sessionId)
-                        .setFileId("any-artifact")
+        Iterator<DataChunk> chunks = FileDownloadServiceGrpc.newBlockingStub(channel)
+                .downloadFile(DownloadFileRequest.newBuilder()
+                        .setSessionId(session.id())
+                        .setFileId(other.id())
                         .build());
 
         long total = 0;
         while (chunks.hasNext()) {
             total += chunks.next().getData().size();
         }
-        assertEquals(0, total, "artifacts are served as empty files");
+        assertEquals(0, total, "files other than the recording are served empty");
     }
 
     @Test
-    void downloadMergedRecordingsForUnknownSessionReturnsNotFound() {
-        Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
+    void downloadFileForUnknownSessionReturnsNotFound() {
+        Iterator<DataChunk> chunks = FileDownloadServiceGrpc.newBlockingStub(channel)
+                .downloadFile(DownloadFileRequest.newBuilder()
                         .setSessionId("does-not-exist")
+                        .setFileId("any")
                         .build());
 
         StatusRuntimeException error = assertThrows(StatusRuntimeException.class, () -> {
@@ -272,10 +277,17 @@ class StubServicesInProcessTest {
         assertEquals(Status.Code.NOT_FOUND, error.getStatus().getCode());
     }
 
-    private static long countBytes(
-            RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub, String sessionId) {
-        Iterator<DataChunk> chunks = stub.downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
-                .setSessionId(sessionId)
+    private static StubDataset.File fileOfKind(StubDataset.Session session, StubDataset.FileKind kind) {
+        return session.files().stream()
+                .filter(file -> file.kind() == kind)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no " + kind + " file in session " + session.id()));
+    }
+
+    private static long countBytes(FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub, StubDataset.Session session) {
+        Iterator<DataChunk> chunks = stub.downloadFile(DownloadFileRequest.newBuilder()
+                .setSessionId(session.id())
+                .setFileId(fileOfKind(session, StubDataset.FileKind.JFR_LZ4).id())
                 .build());
         long total = 0;
         while (chunks.hasNext()) {

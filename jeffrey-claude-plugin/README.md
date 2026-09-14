@@ -14,7 +14,7 @@ are the same files for all three.
 Every analysis tool is **read-only**, and every tool says so in its MCP annotations rather than
 leaving a client to infer it. Ten do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
 rather than changing them, `heap_prepare`, which writes only a cache, `hubs_download`, which pulls one
-off another machine, `hubs_fetchFile`, which pulls one of a session's artifacts off it the same way,
+off another machine, `hubs_fetchFile`, which pulls one of a session's files off it the same way,
 `hubs_eventActivity`, which starts a scan on a hub, `hubs_activityCancel` and
 `operations_cancel`, which ask background work to stop, and `ide_link` and `ide_open`, which act on the
 editor running beside Jeffrey rather than on any profile. Each declares itself, so the reading members

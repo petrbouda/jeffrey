@@ -18,18 +18,17 @@
 
 package cafe.jeffrey.hub.client.manager;
 
-import cafe.jeffrey.hub.client.RecordingStreamClient;
+import cafe.jeffrey.hub.client.FileDownloadClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,18 +40,18 @@ public class RemoteRepositoryManager implements RepositoryManager {
     private final TempDirProvider tempDirProvider;
     private final ProjectInfo projectInfo;
     private final RepositoryClient repositoryClient;
-    private final RecordingStreamClient recordingStreamClient;
+    private final FileDownloadClient fileDownloadClient;
 
     public RemoteRepositoryManager(
             TempDirProvider tempDirProvider,
             ProjectInfo projectInfo,
             RepositoryClient repositoryClient,
-            RecordingStreamClient recordingStreamClient) {
+            FileDownloadClient fileDownloadClient) {
 
         this.tempDirProvider = tempDirProvider;
         this.projectInfo = projectInfo;
         this.repositoryClient = repositoryClient;
-        this.recordingStreamClient = recordingStreamClient;
+        this.fileDownloadClient = fileDownloadClient;
     }
 
     @Override
@@ -75,7 +74,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public StreamedRecordingFile streamFile(String sessionId, String fileId) {
+    public StreamedFile streamFile(String sessionId, String fileId) {
         RecordingSessionResponse session = repositoryClient.recordingSession(sessionId);
 
         RepositoryFileResponse fileResponse = session.files().stream()
@@ -87,21 +86,15 @@ public class RemoteRepositoryManager implements RepositoryManager {
         Path tempFile = tempDir.resolve(fileResponse.name());
 
         try {
-            RecordingStreamClient.InputStreamConsumer consumer = (inputStream, _) -> {
+            fileDownloadClient.streamFile(sessionId, fileId, (inputStream, _) -> {
                 Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-            };
-
-            if (fileResponse.fileType().fileCategory() == FileCategory.RECORDING) {
-                recordingStreamClient.streamRecordingFile(sessionId, fileId, consumer);
-            } else {
-                recordingStreamClient.streamArtifactFile(sessionId, fileId, consumer);
-            }
+            });
         } catch (Exception e) {
             tempDir.close();
             throw e;
         }
 
-        return new StreamedRecordingFile(fileResponse.name(), tempFile, tempDir::close);
+        return new StreamedFile(fileResponse.name(), tempFile, tempDir::close);
     }
 
     @Override

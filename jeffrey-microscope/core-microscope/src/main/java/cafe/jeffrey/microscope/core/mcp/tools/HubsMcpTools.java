@@ -431,9 +431,10 @@ public class HubsMcpTools {
      * which is exactly the case a client's read-only hint is there to let a reader approve knowingly.
      */
     @McpToolHints(readOnly = false, openWorld = true)
-    @Tool(description = "Download one recording session from its hub into this Jeffrey, merging the "
-            + "session's finished recording files into a single local recording and bringing its "
-            + "artifacts - heap dumps, JVM and application logs - with it. Takes the session_ref from "
+    @Tool(description = "Download one recording session from its hub into this Jeffrey, bringing every "
+            + "finished file it holds and assembling the JFR chunks among them into a single local "
+            + "recording, with every other file - heap dumps, JVM and application logs - stored beside "
+            + "it. Takes the session_ref from "
             + "a hubs_sessions row and nothing else. Returns a recording id: pass it to "
             + "recordings_analyzeRecording to build the profile the analysis tools take. A small "
             + "session transfers inside this call; a large one takes longer than a client waits, so "
@@ -545,8 +546,8 @@ public class HubsMcpTools {
                 hubInfo.name(),
                 project.info().name(),
                 ref.sessionId(),
-                (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
-                (int) finished.stream().filter(RepositoryFile::isArtifactFile).count(),
+                (int) finished.stream().filter(RepositoryFile::isRecordingChunk).count(),
+                (int) finished.stream().filter(file -> file.isDownloadable() && !file.isRecordingChunk()).count(),
                 session.totalSizeBytes(),
                 "Call recordings_analyzeRecording with recordingId=" + recordingId
                         + " to build the profile every analysis tool takes.")), operationId);
@@ -631,11 +632,11 @@ public class HubsMcpTools {
 
     /**
      * Reads the session before pulling it, so a ref that has gone stale and a session with nothing
-     * to merge both fail in a sentence rather than partway through a multi-gigabyte transfer.
+     * to assemble both fail in a sentence rather than partway through a multi-gigabyte transfer.
      */
     private RecordingSession preflight(ProjectManager project, HubSessionRef ref, HubInfo hubInfo) {
         RecordingSession session = locator.session(project, ref, hubInfo);
-        if (finishedFiles(session).stream().noneMatch(RepositoryFile::isRecordingFile)) {
+        if (finishedFiles(session).stream().noneMatch(RepositoryFile::isRecordingChunk)) {
             throw new IllegalArgumentException(
                     "Session " + ref.sessionId() + " has no finished recording file to download"
                             + (session.status() == RecordingStatus.ACTIVE
@@ -684,7 +685,7 @@ public class HubsMcpTools {
         try {
             control.checkCancellation();
             return context.call(() ->
-                    project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId()));
+                    project.recordingsDownloadManager().downloadSession(ref.sessionId()));
         } catch (StatusRuntimeException e) {
             if (e.getStatus().getCode() == Status.Code.CANCELLED) {
                 control.checkCancellation();
@@ -804,8 +805,8 @@ public class HubsMcpTools {
             String hub,
             String project,
             String sessionId,
-            int recordingFiles,
-            int artifactFiles,
+            int chunkFiles,
+            int otherFiles,
             long sizeBytes,
             String nextStep) {
     }

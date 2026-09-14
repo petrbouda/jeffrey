@@ -289,7 +289,7 @@ class EventStreamingGrpcServiceTest {
         RepositoryStorage.Factory storageFactory = mock(RepositoryStorage.Factory.class);
         if (recordingFiles != null) {
             var storage = mock(RepositoryStorage.class);
-            when(storage.recordings(SESSION_ID, null)).thenReturn(recordingFiles);
+            when(storage.finishedChunks(SESSION_ID)).thenReturn(recordingFiles);
             when(storageFactory.apply(any())).thenReturn(storage);
         }
 

@@ -106,7 +106,7 @@ jdk-java-options {
 }
 
 # Extra JVM flags appended to the generated arguments — JVM unified logging goes here too.
-# Use a '.jvm-log' extension so Jeffrey recognizes the file as a JVM log artifact.
+# Use a '.jvm-log' extension so Jeffrey recognizes the file as a JVM log.
 additional-jvm-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"
 
 # Attributes (key-value map)

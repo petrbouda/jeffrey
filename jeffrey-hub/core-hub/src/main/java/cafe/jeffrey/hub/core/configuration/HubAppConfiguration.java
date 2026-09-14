@@ -146,7 +146,6 @@ public class HubAppConfiguration {
         return projectInfo -> new AsprofFileRepositoryStorage(
                 projectInfo,
                 jeffreyDirs.workspaces(),
-                jeffreyDirs.temp(),
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 new AsprofFileInfoProcessor());
     }

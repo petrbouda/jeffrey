@@ -265,7 +265,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             <div class="step-number">2</div>
             <div class="step-content">
               <strong>Profiler Records Data</strong>
-              <p>JFR files and artifacts are written to the session directory</p>
+              <p>JFR chunks, logs and every other file are written to the session directory</p>
             </div>
           </div>
           <div class="workflow-step">
@@ -278,8 +278,8 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <div class="workflow-step">
             <div class="step-number">4</div>
             <div class="step-content">
-              <strong>Merge and Copy</strong>
-              <p>Select specific JFR files from the session to merge into a Recording (+ download artifacts)</p>
+              <strong>Download and Assemble</strong>
+              <p>Select the JFR chunks of the session; Microscope downloads them and every other file and assembles the chunks into a Recording</p>
             </div>
           </div>
           <div class="workflow-step">

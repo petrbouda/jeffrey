@@ -44,7 +44,7 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Recording Sessions represent <strong>profiling periods</strong> from running Java applications, containing JFR recordings and associated artifacts collected during application execution.</p>
+        <p>Recording Sessions represent <strong>profiling periods</strong> from running Java applications, containing the JFR recording chunks and every other file the JVM wrote during application execution.</p>
 
         <DocsCallout type="info">
           <strong>Remote Workspaces:</strong> In Microscope, recording sessions show up under each project's <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab — that's where you browse the JVM instances and their sessions collected by the connected Jeffrey Hub.
@@ -54,7 +54,7 @@ onMounted(() => {
         <p>A recording session is created when you start profiling a Java application using Async-Profiler configured through <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>. Each session represents a continuous profiling period and collects:</p>
         <ul>
           <li><strong>JFR recording chunks</strong> - Profiling data split into time-based files</li>
-          <li><strong>Artifacts</strong> - Additional diagnostic files (heap dumps, logs, perf counters)</li>
+          <li><strong>Other files</strong> - Diagnostic files beside the recording (heap dumps, logs, perf counters, anything else the JVM was told to write there)</li>
           <li><strong>Metadata</strong> - Session timing, status, and file counts</li>
         </ul>
 
@@ -64,7 +64,7 @@ onMounted(() => {
         </figure>
 
         <DocsCallout type="info">
-          <strong>Chunked recordings:</strong> Async-Profiler creates JFR files in chunks (e.g., every 15 minutes) to prevent data loss and enable rolling analysis. This means a single session typically contains multiple JFR files that can be selectively merged for analysis.
+          <strong>Chunked recordings:</strong> Async-Profiler creates JFR files in chunks (e.g., every 15 minutes) to prevent data loss and enable rolling analysis. This means a single session typically contains multiple JFR files; Microscope downloads the chunks you select and assembles them into one recording for analysis - the hub never merges.
         </DocsCallout>
 
         <h2 id="session-contents">Session Contents</h2>
@@ -126,12 +126,12 @@ onMounted(() => {
           <li><strong>Start time</strong> - When profiling began</li>
           <li><strong>Duration</strong> - How long the session has been running</li>
           <li><strong>Status</strong> - Active (still recording) or Finished</li>
-          <li><strong>File counts</strong> - Number of JFR chunks and artifacts</li>
+          <li><strong>File counts</strong> - Number of JFR chunks and other files</li>
         </ul>
 
         <figure class="docs-figure">
           <img src="/images/docs/recording-sessions/recording-session-files.png" alt="Single recording session with files" />
-          <figcaption>Expanded recording session showing JFR files, JVM logs, and other artifacts</figcaption>
+          <figcaption>Expanded recording session showing JFR files, JVM logs, and other files</figcaption>
         </figure>
 
         <h2 id="workspace-availability">Workspace Availability</h2>

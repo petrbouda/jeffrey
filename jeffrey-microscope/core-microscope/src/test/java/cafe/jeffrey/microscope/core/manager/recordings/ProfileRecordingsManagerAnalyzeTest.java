@@ -43,7 +43,7 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -137,7 +137,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
     private static Recording recording() {
         RecordingFile file = new RecordingFile(
-                "file-1", RECORDING_ID, FILENAME, SupportedRecordingFile.JFR, NOW, 1024L);
+                "file-1", RECORDING_ID, FILENAME, SupportedFile.JFR, NOW, 1024L);
 
         return new Recording(
                 RECORDING_ID, FILENAME, null, null,

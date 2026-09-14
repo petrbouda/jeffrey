@@ -7,7 +7,7 @@ import Utils from '@/services/Utils';
 import { ToastService } from '@shared/services/ToastService';
 import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
-import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
+import SupportedFileType, { isRecordingChunk } from '@hubs/services/api/model/SupportedFileType.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import Badge from '@shared/components/Badge.vue';
@@ -92,7 +92,7 @@ interface FileGroupEntry {
   totalSize: number;
 }
 
-type ArtifactTypeGroup =
+type FileTypeGroup =
   | 'JFR_RECORDING'
   | 'HEAP_DUMP'
   | 'PERF_COUNTERS'
@@ -101,7 +101,7 @@ type ArtifactTypeGroup =
   | 'HS_JVM_ERROR_LOG'
   | 'UNKNOWN';
 
-const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
+const TYPE_GROUP_ORDER: FileTypeGroup[] = [
   'JFR_RECORDING',
   'HEAP_DUMP',
   'PERF_COUNTERS',
@@ -111,21 +111,21 @@ const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
   'UNKNOWN'
 ];
 
-const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
-  [RecordingFileType.JFR]: 'JFR_RECORDING',
-  [RecordingFileType.JFR_LZ4]: 'JFR_RECORDING',
-  [RecordingFileType.ASPROF]: 'JFR_RECORDING',
-  [RecordingFileType.HEAP_DUMP]: 'HEAP_DUMP',
-  [RecordingFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
-  [RecordingFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
-  [RecordingFileType.JVM_LOG]: 'JVM_LOG',
-  [RecordingFileType.APP_LOG]: 'APP_LOG',
-  [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
-  [RecordingFileType.UNKNOWN]: 'UNKNOWN'
+const FILE_TYPE_TO_GROUP: Record<string, FileTypeGroup> = {
+  [SupportedFileType.JFR]: 'JFR_RECORDING',
+  [SupportedFileType.JFR_LZ4]: 'JFR_RECORDING',
+  [SupportedFileType.ASPROF]: 'JFR_RECORDING',
+  [SupportedFileType.HEAP_DUMP]: 'HEAP_DUMP',
+  [SupportedFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
+  [SupportedFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
+  [SupportedFileType.JVM_LOG]: 'JVM_LOG',
+  [SupportedFileType.APP_LOG]: 'APP_LOG',
+  [SupportedFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
+  [SupportedFileType.UNKNOWN]: 'UNKNOWN'
 };
 
 const TYPE_GROUP_DISPLAY: Record<
-  ArtifactTypeGroup,
+  FileTypeGroup,
   { name: string; variant: Variant; fileType: string }
 > = {
   JFR_RECORDING: { name: 'JFR Recordings', variant: 'primary', fileType: 'JFR' },
@@ -138,7 +138,7 @@ const TYPE_GROUP_DISPLAY: Record<
 };
 
 interface TypeGroupPanel {
-  groupKey: ArtifactTypeGroup;
+  groupKey: FileTypeGroup;
   display: { name: string; variant: string; fileType: string };
   files: RepositoryFile[];
   fileCount: number;
@@ -191,7 +191,7 @@ const failedGroupSummary = (group: FailedSessionGroup): string => {
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
-    if (file.isRecording || file.fileType === RecordingFileType.ASPROF) {return 1;}
+    if (isRecordingChunk(file) || file.fileType === SupportedFileType.ASPROF) {return 1;}
     return 0;
   };
 
@@ -371,15 +371,15 @@ const toggleGroupSelection = (sessionId: string, panel: TypeGroupPanel) => {
 // file's actual content. Refusing on a zero would block exactly the files this goes wrong on,
 // and an empty download is the honest answer for a file that really is empty.
 const isCheckboxDisabled = (source: RepositoryFile): boolean => {
-  return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
+  return source.status === RecordingStatus.ACTIVE || source.fileType === SupportedFileType.ASPROF;
 };
 
 const isDownloadAllowed = (file: RepositoryFile): boolean => {
-  return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
+  return file.status !== RecordingStatus.ACTIVE && file.fileType !== SupportedFileType.ASPROF;
 };
 
 const hasDownloadableRecordings = (session: RecordingSession): boolean => {
-  return session.files.some(f => f.isRecording);
+  return session.files.some(f => isRecordingChunk(f));
 };
 
 const downloadFile = async (sessionId: string, fileId: string) => {
@@ -631,7 +631,7 @@ const groupRotatedFiles = (sortedFiles: RepositoryFile[]): FileGroupEntry[] => {
 };
 
 const isRecordingOrTempFile = (file: RepositoryFile): boolean => {
-  return file.isRecording || file.fileType === RecordingFileType.ASPROF;
+  return isRecordingChunk(file) || file.fileType === SupportedFileType.ASPROF;
 };
 
 const getRecordingGroupedFiles = (session: RecordingSession): FileGroupEntry[] => {
@@ -662,11 +662,11 @@ const getRemainingRecordingGroupCount = (session: RecordingSession): number => {
   return getRecordingGroupedFiles(session).length - limit;
 };
 
-const getArtifactGroupMap = (
+const getFileGroupMap = (
   session: RecordingSession
-): Map<ArtifactTypeGroup, RepositoryFile[]> => {
+): Map<FileTypeGroup, RepositoryFile[]> => {
   const sortedFiles = getSortedRecordings(session);
-  const groupMap = new Map<ArtifactTypeGroup, RepositoryFile[]>();
+  const groupMap = new Map<FileTypeGroup, RepositoryFile[]>();
   for (const file of sortedFiles) {
     if (isRecordingOrTempFile(file)) {continue;}
     const groupKey = FILE_TYPE_TO_GROUP[file.fileType] || 'UNKNOWN';
@@ -677,10 +677,10 @@ const getArtifactGroupMap = (
 };
 
 // Groups that always show as a panel, even with a single file
-const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
+const ALWAYS_GROUPED: Set<FileTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
 
 const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
-  const groupMap = getArtifactGroupMap(session);
+  const groupMap = getFileGroupMap(session);
   const panels: TypeGroupPanel[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
     if (groupKey === 'JFR_RECORDING') {continue;}
@@ -698,8 +698,8 @@ const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
   return panels;
 };
 
-const getStandaloneArtifactFiles = (session: RecordingSession): RepositoryFile[] => {
-  const groupMap = getArtifactGroupMap(session);
+const getStandaloneFiles = (session: RecordingSession): RepositoryFile[] => {
+  const groupMap = getFileGroupMap(session);
   const standalone: RepositoryFile[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
     if (groupKey === 'JFR_RECORDING') {continue;}
@@ -711,12 +711,12 @@ const getStandaloneArtifactFiles = (session: RecordingSession): RepositoryFile[]
   return standalone;
 };
 
-const toggleTypePanel = (sessionId: string, groupKey: ArtifactTypeGroup) => {
+const toggleTypePanel = (sessionId: string, groupKey: FileTypeGroup) => {
   const key = `${sessionId}:${groupKey}`;
   expandedTypePanels.value[key] = !expandedTypePanels.value[key];
 };
 
-const isTypePanelExpanded = (sessionId: string, groupKey: ArtifactTypeGroup): boolean => {
+const isTypePanelExpanded = (sessionId: string, groupKey: FileTypeGroup): boolean => {
   return !!expandedTypePanels.value[`${sessionId}:${groupKey}`];
 };
 
@@ -732,7 +732,7 @@ const hasMoreInPanel = (panel: TypeGroupPanel, sessionId: string): boolean => {
   return panel.files.length > limit;
 };
 
-const showMoreInPanel = (sessionId: string, groupKey: ArtifactTypeGroup, total: number) => {
+const showMoreInPanel = (sessionId: string, groupKey: FileTypeGroup, total: number) => {
   visibleFilesCount.value[`${sessionId}:${groupKey}`] = total;
 };
 
@@ -1026,7 +1026,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           </div>
         </div>
 
-        <!-- Artifact type panels (non-recording types with > 1 file) -->
+        <!-- File type panels (non-chunk types with > 1 file) -->
         <div
           v-for="panel in getTypeGroupPanels(session)"
           :key="panel.groupKey"
@@ -1140,8 +1140,8 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           </div>
         </div>
 
-        <!-- Standalone artifact files (non-recording types with exactly 1 file) -->
-        <template v-for="file in getStandaloneArtifactFiles(session)" :key="file.id">
+        <!-- Standalone files (non-chunk types with exactly 1 file) -->
+        <template v-for="file in getStandaloneFiles(session)" :key="file.id">
           <div
             class="source-status-wrapper mb-2 rounded"
             :class="getSourceStatusWrapperClass(file, session.id)"
@@ -1838,7 +1838,7 @@ code {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Artifact type panel styles */
+/* File type panel styles */
 .type-panel-header-wrapper {
   cursor: pointer;
   user-select: none;

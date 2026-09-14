@@ -30,6 +30,7 @@ import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import io.grpc.BindableService;
 import io.grpc.ManagedChannel;
@@ -88,13 +89,13 @@ class HubEventActivityGrpcTest {
             when(projects.find()).thenReturn(Optional.of(project));
             RepositoryStorage storage = mock(RepositoryStorage.class);
             when(context.getBean(RepositoryStorage.Factory.class).apply(project)).thenReturn(storage);
-            RecordingSession session = mock(RecordingSession.class);
             RepositoryFile source = mock(RepositoryFile.class);
-            when(source.isRecordingFile()).thenReturn(true);
+            when(source.isRecordingChunk()).thenReturn(true);
             when(source.isFinished()).thenReturn(true);
             when(source.createdAt()).thenReturn(Instant.EPOCH);
             when(source.filePath()).thenReturn(file);
-            when(session.files()).thenReturn(List.of(source));
+            RecordingSession session = new RecordingSession(
+                    "session", "session", null, Instant.EPOCH, null, RecordingStatus.FINISHED, null, List.of(source), false);
             when(storage.singleSession("session", true)).thenReturn(Optional.of(session));
             String name = InProcessServerBuilder.generateName();
             var builder = InProcessServerBuilder.forName(name).directExecutor();
@@ -175,7 +176,7 @@ class HubEventActivityGrpcTest {
                         .setScope(scope.toBuilder().setSessionId("absent"))
                         .build()));
 
-                verify(storage, never()).recordings(any(), any());
+                verify(storage, never()).finishedChunks(any());
                 verify(repositories, never()).findSessionWithRepositoryById(any());
             } finally {
                 channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);

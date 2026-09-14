@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.manager.additional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.manager.additional.PerfCounter;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -86,9 +86,9 @@ public class NoOpAdditionalFilesManager implements AdditionalFilesManager {
             try (var files = Files.list(heapDumpAnalysisPath)) {
                 Optional<Path> found = files
                         .filter(file -> {
-                            SupportedRecordingFile fileType = SupportedRecordingFile.of(file);
-                            return fileType == SupportedRecordingFile.HEAP_DUMP ||
-                                    fileType == SupportedRecordingFile.HEAP_DUMP_GZ;
+                            SupportedFile fileType = SupportedFile.of(file);
+                            return fileType == SupportedFile.HEAP_DUMP ||
+                                    fileType == SupportedFile.HEAP_DUMP_GZ;
                         })
                         .findFirst();
                 if (found.isPresent()) {

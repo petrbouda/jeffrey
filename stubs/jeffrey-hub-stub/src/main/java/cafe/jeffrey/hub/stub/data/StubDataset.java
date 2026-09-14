@@ -149,33 +149,29 @@ public record StubDataset(List<Workspace> workspaces) {
     }
 
     /**
-     * File classification. {@code fileType} is the wire string the hub sends — it MUST be a
-     * {@code SupportedRecordingFile} enum name, because the client resolves it with
-     * {@code SupportedRecordingFile.valueOf(...)} (an unknown name yields a null fileType and
-     * a downstream NPE). {@code recording} distinguishes JFR recordings from artifacts.
+     * File classification. {@code fileType} is the wire string the hub sends and should be a
+     * {@code SupportedFile} enum name: the client resolves it with {@code SupportedFile.ofType},
+     * and a name it does not know lands the file in {@code UNKNOWN} rather than the kind the
+     * stub meant.
      */
     public enum FileKind {
-        JFR("JFR", true),
-        HEAP_DUMP("HEAP_DUMP", false),
-        GC_LOG("JVM_LOG", false),
-        HS_ERR_LOG("HS_JVM_ERROR_LOG", false),
-        APP_LOG("APP_LOG", false),
-        OTHER("UNKNOWN", false);
+        JFR("JFR"),
+        /** A finished chunk the hub has already compressed - what the bundled recording actually is. */
+        JFR_LZ4("JFR_LZ4"),
+        HEAP_DUMP("HEAP_DUMP"),
+        GC_LOG("JVM_LOG"),
+        HS_ERR_LOG("HS_JVM_ERROR_LOG"),
+        APP_LOG("APP_LOG"),
+        OTHER("UNKNOWN");
 
         private final String fileType;
-        private final boolean recording;
 
-        FileKind(String fileType, boolean recording) {
+        FileKind(String fileType) {
             this.fileType = fileType;
-            this.recording = recording;
         }
 
         public String fileType() {
             return fileType;
-        }
-
-        public boolean recording() {
-            return recording;
         }
     }
 }

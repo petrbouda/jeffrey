@@ -27,7 +27,7 @@ import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.util.List;
 
@@ -164,18 +164,14 @@ public class RepositoryClient {
                 proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
                 parseFileType(proto.getFileType()),
-                ClientProtoMappers.recordingStatus(proto.getStatus()),
-                proto.getIsRecording());
+                ClientProtoMappers.recordingStatus(proto.getStatus()));
     }
 
-    private static SupportedRecordingFile parseFileType(String fileType) {
-        if (fileType == null || fileType.isEmpty()) {
-            return null;
-        }
-        try {
-            return SupportedRecordingFile.valueOf(fileType);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+    /**
+     * A name this build does not know — a hub ahead of this Microscope, or an empty field — is
+     * {@link SupportedFile#UNKNOWN}, never {@code null}: every consumer asks the type what it is.
+     */
+    private static SupportedFile parseFileType(String fileType) {
+        return SupportedFile.ofType(fileType);
     }
 }

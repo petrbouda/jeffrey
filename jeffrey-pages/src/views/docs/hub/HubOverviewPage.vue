@@ -102,7 +102,7 @@ onMounted(() => {
         <DocsFeatureCard
           color="red"
           icon="bi bi-archive"
-          title="All Artifacts in One Place"
+          title="Every File in One Place"
           description="Heap dumps, JVM logs, application logs, and hotspot crash dumps — collected next to JFR recordings so you have everything in one place when something breaks."
         />
         <DocsFeatureCard

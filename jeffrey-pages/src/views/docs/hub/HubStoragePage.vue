@@ -110,19 +110,25 @@ onMounted(() => {
       </DocsCallout>
 
       <h2 id="recording-storage">Recording Storage</h2>
-      <p>The JFR files themselves don't go into the database. Each recording session writes its files into a path derived from its catalog row:</p>
+      <p>The files themselves don't go into the database. Each recording session is one directory, laid out by the Provisioner and filled by the JVM, at a path derived from its catalog row:</p>
 
       <div class="directory-structure">
         <pre><code>workspaces/
 └── {workspace-id}/
     └── {project-id}/
-        └── recordings/
+        └── {instance-id}/
             └── {session-id}/
-                ├── recording.jfr           # JFR (or recording.jfr.lz4)
-                └── artifacts/              # heap dumps, JVM logs, perf-counters</code></pre>
+                ├── .session-info.json          # the session's declaration
+                ├── .heartbeat/                 # liveness markers written by the Agent
+                ├── profile-20260912-121559.jfr # rotated JFR chunks, .jfr.lz4 once the hub compressed them
+                ├── profile-20260912-123059.jfr
+                ├── gc.jvm-log                  # unified logging, if configured
+                ├── perf-counters.hsperfdata
+                ├── application.log             # whatever else the JVM was told to write here
+                └── heap-dump.hprof.gz          # on OOM or crash</code></pre>
       </div>
 
-      <p>Each session ends up with one main JFR file and a directory of optional artifacts (heap dumps, JVM logs, perf-counters). The path makes it cheap to enumerate everything for a workspace, project, or session without touching the database.</p>
+      <p>Every file sits side by side; nothing is grouped into subdirectories and no file is catalogued in the database. The hub classifies each by name (<code>SupportedFile</code>) and serves every finished one the same way — a JFR chunk is a file like a log is. The hub never merges: Microscope downloads the chunks it wants and assembles the recording itself. The path makes it cheap to enumerate everything for a workspace, project, or session without touching the database.</p>
 
       <h2 id="shared-filesystem">Shared Filesystem</h2>
       <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner plus Jeffrey Agent — also mounts. The producers write JFR files; Server discovers and serves them.</p>
@@ -142,7 +148,7 @@ onMounted(() => {
           <h5>Written by Jeffrey Agent:</h5>
           <ul>
             <li>JFR recordings (chunked)</li>
-            <li>Heap dumps and JVM artifacts</li>
+            <li>Heap dumps, JVM logs and any other file the JVM writes beside its recording</li>
           </ul>
           <h5>Read by Jeffrey Hub:</h5>
           <ul>

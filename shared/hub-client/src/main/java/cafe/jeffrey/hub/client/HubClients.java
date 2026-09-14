@@ -27,7 +27,7 @@ import java.util.function.Function;
 public record HubClients(
         DiscoveryClient discovery,
         RepositoryClient repository,
-        RecordingStreamClient recordings,
+        FileDownloadClient files,
         ProfilerClient profiler,
         InstancesClient instances,
         ProjectsClient projects,

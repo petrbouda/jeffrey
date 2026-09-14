@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
+import SupportedFileType from '@hubs/services/api/model/SupportedFileType.ts';
 
 export default class RecordingFile {
   constructor(
     public id: string,
     public filename: string,
     public sizeInBytes: number,
-    public type: RecordingFileType,
+    public type: SupportedFileType,
     public description: string
   ) {}
 }

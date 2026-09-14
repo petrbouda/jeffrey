@@ -21,7 +21,7 @@ package cafe.jeffrey.storage.recording.filesystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.io.IOException;
@@ -35,11 +35,9 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemProjectRecordingStorage.class);
 
     private final Path projectFolder;
-    private final List<SupportedRecordingFile> recordingTypes;
 
-    public FilesystemProjectRecordingStorage(Path projectFolder, List<SupportedRecordingFile> recordingTypes) {
+    public FilesystemProjectRecordingStorage(Path projectFolder) {
         this.projectFolder = projectFolder;
-        this.recordingTypes = recordingTypes;
     }
 
     @Override
@@ -64,24 +62,22 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
-    public List<Path> findArtifacts(String recordingId) {
+    public List<Path> findAdditionalFiles(String recordingId) {
         return findAllFiles(recordingId).stream()
-                .filter(this::isArtifact)
+                .filter(path -> !isProfileRecording(path))
                 .toList();
     }
 
-    private boolean isArtifact(Path path) {
-        return recordingTypes.stream()
-                .noneMatch(type -> type.matches(path));
+    /**
+     * The one file of a recording folder Microscope parses as the recording; every other file
+     * there is an additional file. Decided by {@link SupportedFile#isProfileRecording()}.
+     */
+    private static boolean isProfileRecording(Path path) {
+        return SupportedFile.of(path).isProfileRecording();
     }
 
-    private boolean isRecordingFile(Path path) {
-        return recordingTypes.stream()
-                .anyMatch(type -> type.matches(path));
-    }
-
-    private Optional<Path> findRecordingFile(Path recordingFolder) {
-        for (SupportedRecordingFile recordingType : recordingTypes) {
+    private static Optional<Path> findRecordingFile(Path recordingFolder) {
+        for (SupportedFile recordingType : SupportedFile.profileRecordings()) {
             Optional<Path> recordingOpt = FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingType);
             if (recordingOpt.isPresent()) {
                 return recordingOpt;
@@ -115,19 +111,19 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
-    public void deleteArtifact(String recordingId, String artifactId) {
+    public void deleteAdditionalFile(String recordingId, String additionalFileId) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        Path artifactFile = recordingFolder.resolve(artifactId);
+        Path additionalFile = recordingFolder.resolve(additionalFileId);
 
         // An additional file can be removed only if it is not a main recording file.
-        if (Files.exists(artifactFile)) {
-            if (isRecordingFile(artifactFile)) {
+        if (Files.exists(additionalFile)) {
+            if (isProfileRecording(additionalFile)) {
                 LOG.warn("Cannot delete main recording file: recording_id={} additional_file={}",
-                        recordingId, artifactFile);
+                        recordingId, additionalFile);
                 return;
             }
 
-            FileSystemUtils.removeFile(artifactFile);
+            FileSystemUtils.removeFile(additionalFile);
         }
     }
 
@@ -160,9 +156,9 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
-    public void addArtifacts(String recordingId, List<Path> artifacts) {
+    public void addAdditionalFiles(String recordingId, List<Path> additionalFiles) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        for (Path file : artifacts) {
+        for (Path file : additionalFiles) {
             try {
                 Files.copy(file, recordingFolder.resolve(file.getFileName()));
             } catch (IOException e) {

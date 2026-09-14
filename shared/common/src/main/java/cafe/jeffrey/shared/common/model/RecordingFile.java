@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.shared.common.model;
 
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.time.Instant;
 
@@ -26,7 +26,7 @@ public record RecordingFile(
         String id,
         String recordingId,
         String filename,
-        SupportedRecordingFile recordingFileType,
+        SupportedFile recordingFileType,
         Instant uploadedAt,
         long sizeInBytes) {
 }

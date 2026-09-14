@@ -31,6 +31,7 @@ import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -71,13 +72,12 @@ class ScopedReplayGrpcServiceTest {
         when(repositories.newProjectRepository("project")).thenReturn(projects);
         when(projects.find()).thenReturn(Optional.of(project));
         RepositoryStorage storage = mock(RepositoryStorage.class);
-        RecordingSession session = mock(RecordingSession.class);
         RepositoryFile file = mock(RepositoryFile.class);
-        when(file.isRecordingFile()).thenReturn(true);
+        when(file.isRecordingChunk()).thenReturn(true);
         when(file.isFinished()).thenReturn(true);
         when(file.filePath()).thenReturn(recording);
         when(file.createdAt()).thenReturn(Instant.EPOCH);
-        when(session.files()).thenReturn(List.of(file));
+        RecordingSession session = sessionOf("shared-session", List.of(file));
         when(storage.singleSession("shared-session", true)).thenReturn(Optional.of(session));
         HubJeffreyDirs dirs = mock(HubJeffreyDirs.class);
         when(dirs.temp()).thenReturn(temp.resolve("scratch"));
@@ -96,7 +96,7 @@ class ScopedReplayGrpcServiceTest {
         assertEquals("invalid recording", Files.readString(recording));
         assertFalse(Files.exists(temp.resolve("raw.jfr.lz4")));
         verify(repositories, never()).findSessionWithRepositoryById(any());
-        verify(storage, never()).recordings(any(), any());
+        verify(storage, never()).finishedChunks(any());
     }
 
     @Test
@@ -170,7 +170,7 @@ class ScopedReplayGrpcServiceTest {
             // The session exists but is still writing its first file: the activity scan admits this
             // scope and counts zero events, and replay must say the same rather than NOT_FOUND.
             RepositoryFile unfinished = mock(RepositoryFile.class);
-            when(unfinished.isRecordingFile()).thenReturn(true);
+            when(unfinished.isRecordingChunk()).thenReturn(true);
             when(unfinished.isFinished()).thenReturn(false);
             var stub = start(scopedService(temp, storageWithSession(List.of(unfinished))));
             var observer = new TestStreamObserver<EventBatch>();
@@ -188,7 +188,7 @@ class ScopedReplayGrpcServiceTest {
         @Test
         void replaysEventsFromFinishedFile(@TempDir Path temp) throws Exception {
             RepositoryFile finished = mock(RepositoryFile.class);
-            when(finished.isRecordingFile()).thenReturn(true);
+            when(finished.isRecordingChunk()).thenReturn(true);
             when(finished.isFinished()).thenReturn(true);
             when(finished.createdAt()).thenReturn(Instant.EPOCH);
             when(finished.filePath()).thenReturn(FileSystemUtils.classpathPath("jfrs/profile-1.jfr"));
@@ -224,8 +224,7 @@ class ScopedReplayGrpcServiceTest {
         }
 
         private static RepositoryStorage storageWithSession(List<RepositoryFile> files) {
-            RecordingSession session = mock(RecordingSession.class);
-            when(session.files()).thenReturn(files);
+            RecordingSession session = sessionOf(SESSION_ID, files);
             RepositoryStorage storage = mock(RepositoryStorage.class);
             when(storage.singleSession(SESSION_ID, true)).thenReturn(Optional.of(session));
             return storage;
@@ -278,5 +277,13 @@ class ScopedReplayGrpcServiceTest {
             return null;
         }).when(observer).onError(any());
         return observer;
+    }
+
+    /**
+     * A real session over mocked files, so {@code finishedChunks()} — the one place the replay
+     * reads "the session's recording" from — runs for real.
+     */
+    private static RecordingSession sessionOf(String id, List<RepositoryFile> files) {
+        return new RecordingSession(id, id, null, Instant.EPOCH, null, RecordingStatus.FINISHED, null, files, false);
     }
 }

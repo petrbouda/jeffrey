@@ -109,7 +109,7 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
 
     private static void accumulate(GetRepositoryStatisticsResponse.Builder builder, StubDataset.File file) {
         switch (file.kind()) {
-            case JFR -> {
+            case JFR, JFR_LZ4 -> {
                 builder.setJfrFiles(builder.getJfrFiles() + 1);
                 builder.setJfrSize(builder.getJfrSize() + file.size());
             }

@@ -19,6 +19,7 @@
 package cafe.jeffrey.shared.common.model.repository;
 
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -55,6 +56,19 @@ public record RecordingSession(
      */
     public boolean isFailedEmpty() {
         return finishedAt != null && totalSizeBytes() == 0L;
+    }
+
+    /**
+     * The finished chunks of this session's recording, oldest first — the files the hub
+     * compresses, replays, and merges into the recording a profile is built from. Every consumer
+     * of "the session's JFR" goes through here rather than filtering the file list itself.
+     */
+    public List<RepositoryFile> finishedChunks() {
+        return files.stream()
+                .filter(RepositoryFile::isRecordingChunk)
+                .filter(RepositoryFile::isFinished)
+                .sorted(Comparator.comparing(RepositoryFile::createdAt))
+                .toList();
     }
 }
 

@@ -47,7 +47,7 @@ the same line:
 
 > The JVM died of `SIGSEGV` in `libzip.so` while `main` was inside `Inflater.inflateBytes`.
 > Evidence: `hs-jvm-err.log`, fetched from session `instance-1` by `hubs_fetchFile` to
-> `~/.jeffrey-microscope/artifacts/…/hs-jvm-err.log`, lines 1–12 and the `Java frames:` block
+> `~/.jeffrey-microscope/files/…/hs-jvm-err.log`, lines 1–12 and the `Java frames:` block
 > at lines 38–46.
 
 Tool names above omit the prefix your client puts in front of them —

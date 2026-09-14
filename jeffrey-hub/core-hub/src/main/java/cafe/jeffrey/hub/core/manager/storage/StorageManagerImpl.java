@@ -32,7 +32,7 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.io.IOException;
@@ -118,7 +118,7 @@ public class StorageManagerImpl implements StorageManager {
     }
 
     private static List<FileTypeUsage> fileTypeUsages(List<RepositoryFile> files) {
-        Map<SupportedRecordingFile, List<RepositoryFile>> byType = files.stream()
+        Map<SupportedFile, List<RepositoryFile>> byType = files.stream()
                 .collect(Collectors.groupingBy(RepositoryFile::fileType));
 
         return byType.entrySet().stream()

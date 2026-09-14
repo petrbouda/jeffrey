@@ -21,7 +21,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -124,7 +124,7 @@ class InstanceSessionUnitsTest {
         Instant createdAt = NOW.minus(Duration.ofHours(hoursOld));
         RepositoryFile file = new RepositoryFile(
                 id + "-file", id + "-file", createdAt, 10 * MB,
-                SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                SupportedFile.JFR, RecordingStatus.FINISHED, null);
         return session(id, createdAt, createdAt.plusSeconds(60), file);
     }
 

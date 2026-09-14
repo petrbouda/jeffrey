@@ -35,9 +35,8 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -95,7 +94,7 @@ class InstanceGrpcServiceTest {
                 ? List.of()
                 : List.of(new RepositoryFile(
                         id + "-file", id + "-file", FIXED_TIME, 1024L,
-                        SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null));
+                        SupportedFile.JFR, RecordingStatus.FINISHED, null));
 
         return new RecordingSession(
                 id, id, INSTANCE_ID, FIXED_TIME, FIXED_TIME.plusSeconds(60),

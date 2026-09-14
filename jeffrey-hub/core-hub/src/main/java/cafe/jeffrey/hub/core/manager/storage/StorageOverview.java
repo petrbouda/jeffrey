@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.core.manager.storage;
 
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.util.List;
 
@@ -47,7 +47,7 @@ public record StorageOverview(
 
     /**
      * Storage used by a single project's recording repository, broken down by every
-     * {@link SupportedRecordingFile} type present in it. Types with no stored files
+     * {@link SupportedFile} type present in it. Types with no stored files
      * are omitted from {@code fileTypes}.
      */
     public record ProjectStorage(
@@ -66,7 +66,7 @@ public record StorageOverview(
     /**
      * Aggregated usage of a single supported file type within one project repository.
      */
-    public record FileTypeUsage(SupportedRecordingFile fileType, long sizeBytes, int fileCount) {
+    public record FileTypeUsage(SupportedFile fileType, long sizeBytes, int fileCount) {
     }
 
     /**

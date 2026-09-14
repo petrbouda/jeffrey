@@ -63,8 +63,8 @@ onMounted(() => {
           <div class="purpose-card">
             <div class="card-icon"><i class="bi bi-cloud-download"></i></div>
             <div class="card-content">
-              <h4>Recording Streaming</h4>
-              <p>Stream JFR recordings and artifacts in 64KB chunks for efficient transfer</p>
+              <h4>File Streaming</h4>
+              <p>Stream every file a session holds - JFR chunks, heap dumps, logs - in 64KB chunks; the hub never merges</p>
             </div>
           </div>
           <div class="purpose-card">
@@ -311,33 +311,19 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- RecordingDownloadService -->
+          <!-- FileDownloadService -->
           <div class="endpoint-group">
             <div class="group-header">
               <i class="bi bi-cloud-download"></i>
-              <h4>RecordingDownloadService</h4>
+              <h4>FileDownloadService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>DownloadMergedRecordings</code>
+                  <code>DownloadFile</code>
                 </div>
-                <p>Stream merged recordings in 64KB chunks</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DownloadArtifactFile</code>
-                </div>
-                <p>Stream artifact file - heap dump, logs</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DownloadRecordingFile</code>
-                </div>
-                <p>Stream single recording file</p>
+                <p>Stream one file of a session as it lies on the hub - a JFR chunk (raw or already <code>.jfr.lz4</code>), a heap dump, a log, an unclassified file. Any finished, non-transient file; there is no merge RPC, a client assembles a recording from the chunks it downloads</p>
               </div>
             </div>
           </div>

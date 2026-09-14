@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.core.project.repository.file;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -35,7 +35,7 @@ public class AsprofFileInfoProcessor implements FileInfoProcessor {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final String DEFAULT_PREFIX = "profile-";
 
-    private static final SupportedRecordingFile DEFAULT_FILE = SupportedRecordingFile.JFR;
+    private static final SupportedFile DEFAULT_FILE = SupportedFile.JFR;
     private static final int EXTENSION_LENGTH = DEFAULT_FILE.fileExtension().length() + 1;
 
     private final FileInfoProcessor fallbackProcessor;

@@ -30,7 +30,7 @@ import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -533,7 +533,7 @@ public class RecordingsMcpTools {
                     "No such recording file: " + resolved + ". The path is opened by the Jeffrey "
                             + "process, so the file has to be on the machine Jeffrey runs on.");
         }
-        if (SupportedRecordingFile.of(resolved.getFileName().toString()) == SupportedRecordingFile.UNKNOWN) {
+        if (SupportedFile.of(resolved.getFileName().toString()) == SupportedFile.UNKNOWN) {
             throw new IllegalArgumentException(
                     "Unsupported recording file: " + resolved.getFileName()
                             + ". Jeffrey analyses .jfr, .jfr.lz4, .hprof, .hprof.gz, .pprof and .otlp files.");

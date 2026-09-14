@@ -40,7 +40,7 @@ import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.hub.request.SelectedRecordingsRequest;
 import cafe.jeffrey.shared.ui.hub.request.SessionRetainedRequest;
@@ -115,7 +115,7 @@ public class ProjectRepositoryController {
             @RequestBody SelectedRecordingsRequest request) {
         LOG.debug("Downloading session recordings: sessionId={}", request.sessionId());
         RecordingsDownloadManager mgr = projectAccess.recordingsDownloadManager(hubId, workspaceId, projectId);
-        mgr.mergeAndDownloadSession(request.sessionId());
+        mgr.downloadSession(request.sessionId());
     }
 
     @DeleteMapping("/sessions/{sessionId}")
@@ -150,7 +150,7 @@ public class ProjectRepositoryController {
         LOG.debug("Downloading selected recordings: fileCount={}",
                 request.recordingIds() != null ? request.recordingIds().size() : 0);
         RecordingsDownloadManager mgr = projectAccess.recordingsDownloadManager(hubId, workspaceId, projectId);
-        mgr.mergeAndDownloadRecordings(request.sessionId(), request.recordingIds());
+        mgr.downloadFiles(request.sessionId(), request.recordingIds());
     }
 
     @PostMapping("/recordings/delete")
@@ -175,7 +175,7 @@ public class ProjectRepositoryController {
 
         LOG.debug("Downloading session file: sessionId={} fileId={}", sessionId, fileId);
         RepositoryManager mgr = projectAccess.repositoryManager(hubId, workspaceId, projectId);
-        StreamedRecordingFile file = mgr.streamFile(sessionId, fileId);
+        StreamedFile file = mgr.streamFile(sessionId, fileId);
 
         StreamingResponseBody body = output -> {
             try (InputStream input = file.openStream()) {

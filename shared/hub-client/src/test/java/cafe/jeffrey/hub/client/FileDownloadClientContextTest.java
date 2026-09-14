@@ -19,11 +19,9 @@
 package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.hub.api.v1.DataChunk;
-import cafe.jeffrey.hub.api.v1.DownloadArtifactFileRequest;
-import cafe.jeffrey.hub.api.v1.DownloadMergedRecordingsRequest;
-import cafe.jeffrey.hub.api.v1.RecordingDownloadServiceGrpc;
+import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
+import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
@@ -34,14 +32,9 @@ import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.core.io.Resource;
+import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
+import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -51,28 +44,24 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class RecordingStreamClientContextTest {
+class FileDownloadClientContextTest {
 
-    @TempDir
-    Path directory;
     private Server server;
     private ManagedChannel channel;
-    private RecordingStreamClient client;
+    private FileDownloadClient client;
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
     private final CountDownLatch arrived = new CountDownLatch(1);
     private final CountDownLatch cancelled = new CountDownLatch(1);
-    private final CountDownLatch tempOpened = new CountDownLatch(1);
     private final AtomicReference<Deadline> serverDeadline = new AtomicReference<>();
 
     @BeforeEach
     void start() throws Exception {
         String name = InProcessServerBuilder.generateName();
-        var service = new RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase() {
+        var service = new FileDownloadServiceGrpc.FileDownloadServiceImplBase() {
             private void hold(StreamObserver<DataChunk> observer) {
                 Context context = Context.current();
                 serverDeadline.set(context.getDeadline());
@@ -81,22 +70,13 @@ class RecordingStreamClientContextTest {
             }
 
             @Override
-            public void downloadMergedRecordings(DownloadMergedRecordingsRequest request, StreamObserver<DataChunk> observer) {
-                hold(observer);
-            }
-
-            @Override
-            public void downloadArtifactFile(DownloadArtifactFileRequest request, StreamObserver<DataChunk> observer) {
+            public void downloadFile(DownloadFileRequest request, StreamObserver<DataChunk> observer) {
                 hold(observer);
             }
         };
         server = InProcessServerBuilder.forName(name).directExecutor().addService(service).build().start();
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
-        client = new RecordingStreamClient(new GrpcHubConnection(channel) {}, () -> {
-            TempDirectory temp = new TempDirectory(directory.resolve("download"));
-            tempOpened.countDown();
-            return temp;
-        });
+        client = new FileDownloadClient(new GrpcHubConnection(channel) {});
     }
 
     @AfterEach
@@ -106,16 +86,21 @@ class RecordingStreamClientContextTest {
         timer.shutdownNow();
     }
 
-    private CompletableFuture<Resource> download(boolean artifact) {
-        return artifact ? client.downloadArtifactFile("session", "file")
-                : client.downloadRecordings("session", List.of("file"));
+    /**
+     * {@code streamFile} blocks its caller, so it runs on its own thread while the test drives the
+     * context it was started under; the returned future is that thread's outcome.
+     */
+    private CompletableFuture<Void> download() {
+        Context callerContext = Context.current();
+        return CompletableFuture.runAsync(
+                () -> callerContext.run(() -> client.streamFile("session", "file", (in, length) -> in.transferTo(OutputStream.nullOutputStream()))),
+                Executors.newVirtualThreadPerTaskExecutor());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void propagatesDeadlineToTheServerAcrossTheAsyncDownload(boolean artifact) throws Exception {
+    @Test
+    void propagatesDeadlineToTheServerAcrossTheAsyncDownload() throws Exception {
         try (Context.CancellableContext context = Context.current().withDeadlineAfter(2, TimeUnit.SECONDS, timer)) {
-            CompletableFuture<Resource> future = context.call(() -> download(artifact));
+            CompletableFuture<Void> future = context.call(this::download);
             assertTrue(arrived.await(5, TimeUnit.SECONDS));
             assertNotNull(serverDeadline.get(), "the asynchronous RPC must carry the caller's deadline");
             ExecutionException failure = assertThrows(ExecutionException.class,
@@ -125,19 +110,16 @@ class RecordingStreamClientContextTest {
         }
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void cancelsTheRpcAndRemovesPartialTemporaryFiles(boolean artifact) throws Exception {
+    @Test
+    void cancellationReachesTheServer() throws Exception {
         try (Context.CancellableContext context = Context.current().withCancellation()) {
-            CompletableFuture<Resource> future = context.call(() -> download(artifact));
+            CompletableFuture<Void> future = context.call(this::download);
             assertTrue(arrived.await(5, TimeUnit.SECONDS));
-            assertTrue(tempOpened.await(5, TimeUnit.SECONDS));
             context.cancel(null);
             ExecutionException failure = assertThrows(ExecutionException.class,
                     () -> future.get(2, TimeUnit.SECONDS));
             assertEquals(Status.Code.CANCELLED, Status.fromThrowable(failure.getCause()).getCode());
             assertTrue(cancelled.await(5, TimeUnit.SECONDS));
-            assertFalse(Files.exists(directory.resolve("download")), "failed downloads must remove partial files");
         }
     }
 }

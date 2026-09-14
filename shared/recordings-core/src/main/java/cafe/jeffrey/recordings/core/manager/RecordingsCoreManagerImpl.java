@@ -30,11 +30,9 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -162,7 +160,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         }
 
         String filename = path.getFileName().toString();
-        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.UNKNOWN) {
+        if (SupportedFile.of(filename) == SupportedFile.UNKNOWN) {
             throw new IllegalArgumentException("Unsupported recording file type: " + filename);
         }
 
@@ -177,16 +175,16 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     @Override
     public String createDownloadedRecording(
             String recordingName,
-            Path mergedRecordingFile,
-            List<Path> artifactFiles,
+            Path recordingFile,
+            List<Path> additionalFiles,
             Map<String, String> originTags) {
 
         String recordingId = IDGenerator.generate();
-        String filename = mergedRecordingFile.getFileName().toString();
+        String filename = recordingFile.getFileName().toString();
         Path targetPath = recordingsDir.resolve(recordingId + "-" + filename);
 
         try {
-            Files.copy(mergedRecordingFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(recordingFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to copy downloaded recording into QA storage", e);
         }
@@ -198,16 +196,16 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
             throw new UncheckedIOException("Failed to get file size", e);
         }
 
-        persistRecording(recordingId, filename, targetPath, sizeInBytes, null, artifactFiles, originTags);
+        persistRecording(recordingId, filename, targetPath, sizeInBytes, null, additionalFiles, originTags);
 
-        LOG.info("Quick analysis recording downloaded from project: recordingId={} filename={} artifactCount={} tagCount={} sourceName={}",
-                recordingId, filename, artifactFiles.size(), originTags.size(), recordingName);
+        LOG.info("Quick analysis recording downloaded from project: recordingId={} filename={} additionalFileCount={} tagCount={} sourceName={}",
+                recordingId, filename, additionalFiles.size(), originTags.size(), recordingName);
         return recordingId;
     }
 
     /**
      * Shared persistence path for both manual uploads and downloaded recordings.
-     * Parses recording info, inserts the primary file, copies and inserts any artifact files,
+     * Parses recording info, inserts the primary file, copies and inserts any additional files,
      * then writes the supplied origin/system tags.
      */
     private void persistRecording(
@@ -216,7 +214,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
             Path targetPath,
             long sizeInBytes,
             String groupId,
-            List<Path> artifactFiles,
+            List<Path> additionalFiles,
             Map<String, String> originTags) {
 
         RecordingEventSource eventSource = detectEventSource(filename);
@@ -243,13 +241,13 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         String recordingFileId = IDGenerator.generate();
         RecordingFile recordingFile = new RecordingFile(
                 recordingFileId, recordingId, filename,
-                SupportedRecordingFile.of(filename),
+                SupportedFile.of(filename),
                 uploadedAt, sizeInBytes);
 
         recordingRepository.insertRecording(recording, recordingFile);
 
-        for (Path artifact : artifactFiles) {
-            persistArtifact(recordingId, artifact, uploadedAt);
+        for (Path additionalFile : additionalFiles) {
+            persistAdditionalFile(recordingId, additionalFile, uploadedAt);
         }
 
         if (originTags != null && !originTags.isEmpty()) {
@@ -257,14 +255,14 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         }
     }
 
-    private void persistArtifact(String recordingId, Path artifactPath, Instant uploadedAt) {
-        String artifactFilename = artifactPath.getFileName().toString();
-        Path targetPath = recordingsDir.resolve(recordingId + "-" + artifactFilename);
+    private void persistAdditionalFile(String recordingId, Path additionalFilePath, Instant uploadedAt) {
+        String additionalFilename = additionalFilePath.getFileName().toString();
+        Path targetPath = recordingsDir.resolve(recordingId + "-" + additionalFilename);
         try {
-            Files.copy(artifactPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(additionalFilePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new UncheckedIOException(
-                    "Failed to copy artifact into QA storage: " + artifactFilename, e);
+                    "Failed to copy additional file into QA storage: " + additionalFilename, e);
         }
 
         long sizeInBytes;
@@ -272,15 +270,15 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
             sizeInBytes = Files.size(targetPath);
         } catch (IOException e) {
             throw new UncheckedIOException(
-                    "Failed to get artifact file size: " + artifactFilename, e);
+                    "Failed to get additional file size: " + additionalFilename, e);
         }
 
-        RecordingFile artifactFile = new RecordingFile(
-                IDGenerator.generate(), recordingId, artifactFilename,
-                SupportedRecordingFile.of(artifactFilename),
+        RecordingFile additionalFile = new RecordingFile(
+                IDGenerator.generate(), recordingId, additionalFilename,
+                SupportedFile.of(additionalFilename),
                 uploadedAt, sizeInBytes);
 
-        recordingRepository.insertRecordingFile(artifactFile);
+        recordingRepository.insertRecordingFile(additionalFile);
     }
 
     @Override
@@ -347,16 +345,11 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     /**
      * What kind of events a file holds, from its name.
      *
-     * <p>Decided by {@link SupportedRecordingFile} rather than by suffix tests of its own: the heap
+     * <p>Decided by {@link SupportedFile} rather than by suffix tests of its own: the heap
      * dump branch used to carry its own copy of {@code .hprof} and {@code .hprof.gz}, which is one
      * more place to update when a format is added and one more place to disagree about case.
      */
     private static RecordingEventSource detectEventSource(String filename) {
-        return switch (SupportedRecordingFile.of(filename)) {
-            case HEAP_DUMP, HEAP_DUMP_GZ -> RecordingEventSource.HEAP_DUMP;
-            case PPROF -> RecordingEventSource.PPROF;
-            case OTLP_PROFILE -> RecordingEventSource.OPEN_TELEMETRY;
-            default -> RecordingEventSource.UNKNOWN;
-        };
+        return SupportedFile.of(filename).eventSource().orElse(RecordingEventSource.UNKNOWN);
     }
 }

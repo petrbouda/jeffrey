@@ -26,7 +26,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,24 +39,17 @@ public interface RepositoryManager {
     }
 
     /**
-     * Downloads an artifact file (heap dump, log, etc.) from the repository with validation.
-     * Only FINISHED, non-TEMPORARY artifact files can be streamed.
+     * Serves one of a session's files as it lies on the hub — a JFR chunk (raw or already
+     * compressed), a heap dump, a log, a file the hub does not classify — after checking that it
+     * exists, is finished and is not transient. The hub never merges; a client assembles a
+     * recording from the chunks it downloads one by one.
      *
-     * @param sessionId id of the session to download from
-     * @param fileId    id of the artifact file to download
+     * @param sessionId the session containing the file
+     * @param fileId    the unique file ID
      * @return entity for file information and streaming to output stream
-     * @throws IllegalArgumentException if the file is not found, not finished, or not an artifact
+     * @throws IllegalArgumentException if the file is not found, not finished, or transient
      */
-    StreamedRecordingFile streamArtifactFile(String sessionId, String fileId);
-
-    /**
-     * Downloads recordings from the repository and merge them into a single file.
-     *
-     * @param sessionId        id of the session to download from
-     * @param recordingFileIds ids of recordings to merge and download
-     * @return entity for file information and streaming to output stream
-     */
-    StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds);
+    StreamedFile streamFile(String sessionId, String fileId);
 
     /**
      * Finds a recording session by its ID.
@@ -145,17 +138,6 @@ public interface RepositoryManager {
      * @param retained           true to exempt the session from retention, false to release it
      */
     void setSessionRetained(String recordingSessionId, boolean retained);
-
-    /**
-     * Downloads a recording file (JFR) from the repository with validation.
-     * Only FINISHED, non-TEMPORARY recording files can be streamed.
-     *
-     * @param sessionId the session containing the file
-     * @param fileId    the unique file ID
-     * @return entity for file information and streaming
-     * @throws IllegalArgumentException if the file is not found, not finished, or not a recording
-     */
-    StreamedRecordingFile streamRecordingFile(String sessionId, String fileId);
 
     void delete();
 }

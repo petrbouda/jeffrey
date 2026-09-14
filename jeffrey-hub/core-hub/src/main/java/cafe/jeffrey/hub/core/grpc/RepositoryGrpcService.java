@@ -175,7 +175,6 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
                 .setSize(file.size() != null ? file.size() : 0)
                 .setFileType(file.fileType() != null ? file.fileType().name() : "")
                 .setStatus(ProtoMappers.recordingStatus(file.status()))
-                .setIsRecording(file.isRecordingFile())
                 .build();
     }
 }

@@ -34,13 +34,12 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.FileExtensions;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -50,21 +49,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR;
-import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR_LZ4;
 
 public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
 
-    // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
-    private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES = List.of(JFR_LZ4, JFR);
-
-    private static final List<String> RECORDING_EXTENSIONS = RECORDING_FILE_TYPES.stream()
-            .map(SupportedRecordingFile::fileExtension)
-            .toList();
-
-    private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = JFR_LZ4;
+    private static final String LZ4_SUFFIX = "." + FileExtensions.LZ4;
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
@@ -73,7 +63,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private final Lock compressionLock = new ReentrantLock();
     private final ProjectInfo projectInfo;
     private final Path workspacesDir;
-    private final Path tempDir;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
 
@@ -82,13 +71,11 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     public AsprofFileRepositoryStorage(
             ProjectInfo projectInfo,
             Path workspacesDir,
-            Path tempDir,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor) {
 
         this.projectInfo = projectInfo;
         this.workspacesDir = workspacesDir;
-        this.tempDir = tempDir;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
     }
@@ -150,15 +137,19 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     @Override
-    public Optional<Path> latestFinishedRecordingForSession(String sessionId) {
+    public List<Path> finishedChunks(String sessionId) {
+        return resolveSession(sessionId).finishedChunks().stream()
+                .map(RepositoryFile::filePath)
+                .filter(Files::isRegularFile)
+                .toList();
+    }
+
+    @Override
+    public Optional<Path> latestFinishedChunk(String sessionId) {
         return singleSession(sessionId, true)
-                .stream()
-                .flatMap(session -> session.files().stream())
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .max(Comparator.comparing(
-                        RepositoryFile::createdAt,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(RecordingSession::finishedChunks)
+                .filter(chunks -> !chunks.isEmpty())
+                .map(List::getLast)
                 .map(RepositoryFile::filePath);
     }
 
@@ -231,10 +222,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      */
     RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path workspacePath, Path sessionPath) {
         String sourceName = sessionPath.relativize(file).toString();
-        SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
+        SupportedFile fileType = SupportedFile.of(sourceName);
         try {
             return new RepositoryFile(
-                    FileSystemUtils.removeExtension(workspacePath.relativize(file), RECORDING_EXTENSIONS),
+                    FileSystemUtils.removeExtension(workspacePath.relativize(file), SupportedFile.recordingChunkExtensions()),
                     sourceName,
                     fileInfoProcessor.createdAt(file),
                     sizeReader(sessionStatus, fileType).size(file),
@@ -258,8 +249,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * old the listing is. That matters because a listing covers every session of a project, and
      * an open apiece would be hundreds of round trips on one page load.
      */
-    static FileSizeReader sizeReader(RecordingStatus sessionStatus, SupportedRecordingFile fileType) {
-        if (sessionStatus == RecordingStatus.FINISHED || fileType == SupportedRecordingFile.JFR_LZ4) {
+    static FileSizeReader sizeReader(RecordingStatus sessionStatus, SupportedFile fileType) {
+        if (sessionStatus == RecordingStatus.FINISHED || fileType.isCompressedByHub()) {
             return FileSizeReader.FILE_ATTRIBUTES;
         }
         return FileSizeReader.LIVE_FILE;
@@ -300,31 +291,24 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
-        RepositoryInfo repositoryInfo = repositoryInfo();
-
-        Optional<ProjectInstanceSessionInfo> workspaceSessionOpt =
-                projectRepositoryRepository.findSessionById(sessionId);
-
-        if (workspaceSessionOpt.isEmpty()) {
+        // Through the listing rather than sessionPath.resolve(id): a chunk's id is its name with
+        // the extension stripped, so resolving the id would name a file that is not there.
+        Optional<RecordingSession> sessionOpt = singleSession(sessionId, true);
+        if (sessionOpt.isEmpty()) {
             LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);
             return;
         }
-        ProjectInstanceSessionInfo sessionInfo = workspaceSessionOpt.get();
-
-        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
-        if (!Files.isDirectory(sessionPath)) {
-            LOG.warn("Session directory does not exist: {}", sessionPath);
+        RecordingSession session = sessionOpt.get();
+        if (!Files.isDirectory(session.absolutePath())) {
+            LOG.warn("Session directory does not exist: {}", session.absolutePath());
             return;
         }
 
-        for (String sessionFileId : sessionFileIds) {
-            // Repository file ID is relative to the workspace path
-            // e.g. "projectId/sessionId/recording.jfr"
-            Path repositoryFile = sessionPath.resolve(sessionFileId);
-            FileSystemUtils.removeFile(repositoryFile);
+        for (RepositoryFile file : resolveFiles(session, sessionFileIds)) {
+            FileSystemUtils.removeFile(file.filePath());
         }
 
-        LOG.info("Deleted files in repository session: session={} file_ids={}", sessionPath, sessionFileIds);
+        LOG.info("Deleted files in repository session: session={} file_ids={}", session.absolutePath(), sessionFileIds);
     }
 
     @Override
@@ -393,91 +377,13 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     // ========== Recording Files ==========
 
-    @Override
-    public List<Path> recordings(String sessionId, List<String> recordingIds) {
-        RecordingSession session = resolveSession(sessionId);
-
-        return session.files().stream()
-                .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .filter(file -> recordingIds == null || recordingIds.contains(file.id()))
-                .sorted(Comparator.comparing(RepositoryFile::createdAt))
-                .map(file -> ensureCompressed(sessionId, file))
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-    }
-
-    // ========== Merge Recordings ==========
-
-    @Override
-    public MergedRecording mergeRecordings(String sessionId, List<String> recordingIds) {
-        List<Path> compressedPaths = recordings(sessionId, recordingIds);
-
-        if (compressedPaths.isEmpty()) {
-            throw Exceptions.emptyRecordingSession(sessionId);
-        }
-
-        LOG.info("Merging recordings: sessionId={} sourceFiles={} paths={}",
-                sessionId, compressedPaths.size(), compressedPaths);
-
-        // Create intermediate merged file with .jfr extension.
-        // We decompress LZ4 files, concatenate raw JFR content (JFR supports multiple chunks),
-        // then compress the result back to .jfr.lz4 before returning.
-        Path tempFile = tempDir.resolve(JFR.appendExtension(sessionId));
-
-        // Decompress each LZ4 file and merge the raw JFR content
-        try (OutputStream out = Files.newOutputStream(tempFile,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-            for (Path compressed : compressedPaths) {
-                if (Lz4Compressor.isLz4Compressed(compressed)) {
-                    Lz4Compressor.decompressTo(compressed, out);
-                } else {
-                    Files.copy(compressed, out);
-                }
-            }
-        } catch (IOException e) {
-            FileSystemUtils.removeFile(tempFile);
-            throw Exceptions.compressionError(
-                    "Failed to merge recordings: sessionId=" + sessionId + " sourceFiles=" + compressedPaths);
-        }
-
-        if (FileSystemUtils.size(tempFile) <= 0) {
-            FileSystemUtils.removeFile(tempFile);
-            throw Exceptions.emptyRecordingSession(sessionId);
-        }
-
-        Path compressedFile = tempDir.resolve(JFR_LZ4.appendExtension(sessionId));
-        Lz4Compressor.compress(tempFile, compressedFile);
-        FileSystemUtils.removeFile(tempFile);
-
-        return new MergedRecording(compressedFile);
-    }
-
-    // ========== Artifact Files ==========
-
-    @Override
-    public List<Path> artifacts(String sessionId, List<String> artifactIds) {
-        RecordingSession session = resolveSession(sessionId);
-
-        return session.files().stream()
-                .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(RepositoryFile::isArtifactFile)
-                .filter(file -> artifactIds == null || artifactIds.contains(file.id()))
-                .map(RepositoryFile::filePath)
-                .toList();
-    }
-
     // ========== Session Compression ==========
 
     @Override
     public int compressSession(String sessionId) {
         RecordingSession session = resolveSession(sessionId);
 
-        return (int) session.files().stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
+        return (int) session.finishedChunks().stream()
                 .map(file -> ensureCompressed(sessionId, file))
                 .filter(Objects::nonNull)
                 .distinct()
@@ -495,7 +401,18 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * Ensures the recording file is compressed (JFR_LZ4 format).
+     * The session's files with the given ids, in listing order. The listing is the only place an
+     * id maps to a path: a chunk's id has no extension, so it cannot be resolved against the
+     * directory directly.
+     */
+    private static List<RepositoryFile> resolveFiles(RecordingSession session, List<String> fileIds) {
+        return session.files().stream()
+                .filter(file -> fileIds.contains(file.id()))
+                .toList();
+    }
+
+    /**
+     * Ensures the chunk is compressed (the hub's own compressed form).
      * <p>
      * If already compressed, returns the original path. Otherwise, compresses the file
      * and stores the compressed version persistently in the same directory.
@@ -503,12 +420,12 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * </p>
      */
     private Path ensureCompressed(String sessionId, RepositoryFile file) {
-        if (file.fileType() == TARGET_COMPRESSED_TYPE) {
+        if (file.fileType().isCompressedByHub()) {
             return file.filePath();
         }
 
         Path sourcePath = file.filePath();
-        Path compressedPath = sourcePath.resolveSibling(file.name() + ".lz4");
+        Path compressedPath = sourcePath.resolveSibling(file.name() + LZ4_SUFFIX);
 
         // Fast path: check if already compressed by another thread
         if (Files.exists(compressedPath)) {
@@ -571,13 +488,13 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .filter(Objects::nonNull)
                 .toList();
 
-        Optional<RepositoryFile> latestRecordingFile = repositoryFiles.stream()
-                .filter(RepositoryFile::isRecordingFile)
+        Optional<RepositoryFile> latestChunk = repositoryFiles.stream()
+                .filter(RepositoryFile::isRecordingChunk)
                 .findFirst();
 
-        // Updates the status of the latest recording according to the status of the session.
-        if (recordingStatus != RecordingStatus.FINISHED && latestRecordingFile.isPresent()) {
-            latestRecordingFile.get().withNonFinishedStatus(recordingStatus);
+        // The newest chunk of a session that is still recording is the one being written to.
+        if (recordingStatus != RecordingStatus.FINISHED && latestChunk.isPresent()) {
+            latestChunk.get().withNonFinishedStatus(recordingStatus);
         }
 
         return repositoryFiles;

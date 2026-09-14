@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsFilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
@@ -122,7 +122,7 @@ class McpToolsetAssemblerTest {
                 new HeapDumpInitService(CLOCK),
                 ideBridge,
                 properties, new HubsReplayMcpTools(projectManagerResolver, new McpOperationRegistry(CLOCK), CLOCK),
-                new HubsArtifactsMcpTools(projectManagerResolver, recordingsManager, Path.of("artifacts"),
+                new HubsFilesMcpTools(projectManagerResolver, recordingsManager, Path.of("artifacts"),
                         Path.of("profiles"), new McpOperationRegistry(CLOCK), CLOCK),
                 new McpOperationRegistry(CLOCK), CLOCK);
     }

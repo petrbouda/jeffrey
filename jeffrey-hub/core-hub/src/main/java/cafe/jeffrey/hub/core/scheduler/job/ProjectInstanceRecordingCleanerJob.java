@@ -92,7 +92,7 @@ public class ProjectInstanceRecordingCleanerJob extends RepositoryProjectJob<Pro
 
         // Find recording files older than the retention period that are finished
         List<String> filesToDelete = sessionWithFiles.get().files().stream()
-                .filter(RepositoryFile::isRecordingFile)
+                .filter(RepositoryFile::isRecordingChunk)
                 .filter(RepositoryFile::isFinished)
                 .filter(file -> currentTime.isAfter(file.createdAt().plus(duration)))
                 .map(RepositoryFile::id)

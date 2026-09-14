@@ -22,7 +22,7 @@ import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -129,7 +129,7 @@ public abstract class FileSystemUtils {
         }
     }
 
-    public static Optional<Path> findSupportedFileInDir(Path dir, SupportedRecordingFile recordingFileType) {
+    public static Optional<Path> findSupportedFileInDir(Path dir, SupportedFile recordingFileType) {
         BiPredicate<Path, BasicFileAttributes> matcher = (path, _) -> recordingFileType.matches(path.getFileName());
         try (var stream = Files.find(dir, 1, matcher)) {
             return stream.findFirst();

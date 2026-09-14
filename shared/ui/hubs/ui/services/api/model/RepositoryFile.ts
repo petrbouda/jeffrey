@@ -17,7 +17,7 @@
  */
 
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
-import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
+import SupportedFileType from '@hubs/services/api/model/SupportedFileType.ts';
 
 export default class RepositoryFile {
   constructor(
@@ -26,7 +26,6 @@ export default class RepositoryFile {
     public createdAt: number,
     public status: RecordingStatus,
     public size: number,
-    public fileType: RecordingFileType,
-    public isRecording: boolean
+    public fileType: SupportedFileType
   ) {}
 }

@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.manager.additional.PerfCounter;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -83,7 +83,7 @@ public class PerfCountersAdditionalFileProcessor implements AdditionalFileProces
     }
 
     @Override
-    public SupportedRecordingFile supportedRecordingFile() {
-        return SupportedRecordingFile.PERF_COUNTERS;
+    public SupportedFile supportedRecordingFile() {
+        return SupportedFile.PERF_COUNTERS;
     }
 }

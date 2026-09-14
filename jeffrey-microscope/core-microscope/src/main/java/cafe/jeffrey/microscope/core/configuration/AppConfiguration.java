@@ -47,7 +47,6 @@ import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.PortRange;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 import cafe.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
@@ -57,7 +56,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.List;
 
 
 @Configuration
@@ -222,9 +220,6 @@ public class AppConfiguration {
 
     @Bean
     public RecordingStorage projectRecordingStorage(MicroscopeJeffreyDirs jeffreyDirs) {
-        return new FilesystemRecordingStorage(
-                jeffreyDirs.recordings(),
-                List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR,
-                        SupportedRecordingFile.PPROF, SupportedRecordingFile.OTLP_PROFILE));
+        return new FilesystemRecordingStorage(jeffreyDirs.recordings());
     }
 }

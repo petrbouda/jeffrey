@@ -22,30 +22,26 @@ import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
-import cafe.jeffrey.hub.core.project.repository.MergedRecording;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.StatsCategory;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StatsCategory;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
 import org.springframework.transaction.support.TransactionOperations;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -86,29 +82,15 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public StreamedRecordingFile streamArtifactFile(String sessionId, String fileId) {
+    public StreamedFile streamFile(String sessionId, String fileId) {
         RepositoryFile file = findAndValidateFile(sessionId, fileId);
 
-        if (!file.isArtifactFile()) {
-            throw new IllegalArgumentException("File is not an artifact: fileId=" + fileId);
+        Path filePath = file.filePath();
+        if (filePath == null || !Files.isRegularFile(filePath)) {
+            throw new IllegalArgumentException("File is no longer on disk: fileId=" + fileId);
         }
 
-        List<Path> paths = repositoryStorage.artifacts(sessionId, List.of(fileId));
-        if (paths.isEmpty()) {
-            throw new IllegalArgumentException("Artifact file path not found: fileId=" + fileId);
-        }
-
-        Path filePath = paths.getFirst();
-        return new StreamedRecordingFile(filePath.getFileName().toString(), filePath);
-    }
-
-    @Override
-    public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
-        LOG.debug("Merging and streaming recordings: sessionId={} fileCount={}", sessionId, recordingFileIds.size());
-        Elapsed<MergedRecording> merged = Measuring.s(() -> repositoryStorage.mergeRecordings(sessionId, recordingFileIds));
-        LOG.debug("Merging and streaming recordings completed: sessionId={} durationMs={}",
-                sessionId, merged.duration().toMillis());
-        return new StreamedRecordingFile(merged.entity().filename(), merged.entity().path(), merged.entity()::close);
+        return new StreamedFile(filePath.getFileName().toString(), filePath);
     }
 
     @Override
@@ -134,7 +116,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         Map<StatsCategory, FileTypeStats> byCategory = allFiles.stream()
                 .collect(Collectors.groupingBy(
-                        f -> StatsCategory.of(f.fileType()),
+                        f -> f.fileType().statsCategory(),
                         Collectors.teeing(
                                 Collectors.counting(),
                                 Collectors.summingLong(f -> fileSize(f)),
@@ -189,7 +171,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public Optional<ObjectNode> sessionEnvironment(String sessionId, boolean expectShutdown) {
-        return repositoryStorage.latestFinishedRecordingForSession(sessionId)
+        return repositoryStorage.latestFinishedChunk(sessionId)
                 .map(path -> environmentParser.parse(path, expectShutdown));
     }
 
@@ -279,23 +261,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 recordingSessionId, projectInfo.id(), retained);
     }
 
-    @Override
-    public StreamedRecordingFile streamRecordingFile(String sessionId, String fileId) {
-        RepositoryFile file = findAndValidateFile(sessionId, fileId);
-
-        if (!file.isRecordingFile()) {
-            throw new IllegalArgumentException("File is not a recording: fileId=" + fileId);
-        }
-
-        List<Path> paths = repositoryStorage.recordings(sessionId, List.of(fileId));
-        if (paths.isEmpty()) {
-            throw new IllegalArgumentException("Recording file path not found: fileId=" + fileId);
-        }
-
-        Path filePath = paths.getFirst();
-        return new StreamedRecordingFile(filePath.getFileName().toString(), filePath);
-    }
-
     private RepositoryFile findAndValidateFile(String sessionId, String fileId) {
         RecordingSession session = repositoryStorage.singleSession(sessionId, true)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
@@ -305,12 +270,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("File not found: fileId=" + fileId));
 
-        if (file.status() == RecordingStatus.ACTIVE) {
-            throw new IllegalArgumentException("Cannot download ACTIVE file: fileId=" + fileId);
+        if (!file.isFinished()) {
+            throw new IllegalArgumentException("Cannot download a file that is still being written: fileId=" + fileId);
         }
 
-        if (file.fileType().fileCategory() == FileCategory.TEMPORARY) {
-            throw new IllegalArgumentException("Cannot download temporary file: fileId=" + fileId);
+        if (file.isTransient()) {
+            throw new IllegalArgumentException("Cannot download a transient file: fileId=" + fileId);
         }
 
         return file;

@@ -27,7 +27,7 @@ public final class RepositoryFile {
     private final String name;
     private final Instant createdAt;
     private final Long size;
-    private final SupportedRecordingFile fileType;
+    private final SupportedFile fileType;
     private final Path filePath;
     private RecordingStatus status;
 
@@ -36,7 +36,7 @@ public final class RepositoryFile {
             String name,
             Instant createdAt,
             Long size,
-            SupportedRecordingFile fileType,
+            SupportedFile fileType,
             RecordingStatus status,
             Path filePath) {
         this.id = id;
@@ -69,16 +69,30 @@ public final class RepositoryFile {
         return size;
     }
 
-    public SupportedRecordingFile fileType() {
+    public SupportedFile fileType() {
         return fileType;
     }
 
-    public boolean isRecordingFile() {
-        return fileType.fileCategory() == FileCategory.RECORDING;
+    /**
+     * A chunk of the session's recording — see {@link SupportedFile#isRecordingChunk()}.
+     */
+    public boolean isRecordingChunk() {
+        return fileType.isRecordingChunk();
     }
 
-    public boolean isArtifactFile() {
-        return fileType.fileCategory() == FileCategory.ARTIFACT;
+    /**
+     * A file the hub never serves — see {@link SupportedFile#isTransient()}.
+     */
+    public boolean isTransient() {
+        return fileType.isTransient();
+    }
+
+    /**
+     * Whether the hub serves this file: it is finished and not transient. The one rule every
+     * download, fetch and merge applies; a file's type decides nothing else about access.
+     */
+    public boolean isDownloadable() {
+        return isFinished() && !isTransient();
     }
 
     public boolean isFinished() {

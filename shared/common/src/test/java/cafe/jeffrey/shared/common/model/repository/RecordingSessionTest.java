@@ -36,7 +36,7 @@ class RecordingSessionTest {
     private static RepositoryFile file(Long size) {
         return new RepositoryFile(
                 "file-1", "file-1", CREATED_AT, size,
-                SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                SupportedFile.JFR, RecordingStatus.FINISHED, null);
     }
 
     private static RecordingSession session(Instant finishedAt, RepositoryFile... files) {

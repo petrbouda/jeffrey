@@ -75,7 +75,7 @@ public class RemoteProjectManager implements ProjectManager {
     public RecordingsDownloadManager recordingsDownloadManager() {
         return new RemoteRecordingsDownloadManager(
                 jeffreyDirs::newTempDir,
-                remoteClients.recordings(),
+                remoteClients.files(),
                 remoteClients.repository(),
                 recordingsManager,
                 originContext,
@@ -88,7 +88,7 @@ public class RemoteProjectManager implements ProjectManager {
                 jeffreyDirs::newTempDir,
                 detailedProjectInfo.projectInfo(),
                 remoteClients.repository(),
-                remoteClients.recordings());
+                remoteClients.files());
     }
 
     @Override

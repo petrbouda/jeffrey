@@ -36,9 +36,10 @@ import java.util.Locale;
  * and {@code gz} for {@code heap.hprof.gz}, so an extension test hides the action on exactly the
  * files somebody compressed to keep.
  *
- * <p>The list mirrors {@code SupportedRecordingFile} on the Microscope side, minus the companion
- * artifacts — JVM and application logs, performance counters, async-profiler temp files. Those
- * import, but they describe a run rather than being one, and analysing one alone produces nothing.
+ * <p>The list mirrors the types {@code SupportedFile} marks as a profile's recording on the
+ * Microscope side, leaving out the files beside it — JVM and application logs, performance
+ * counters, async-profiler temp files. Those import, but they describe a run rather than being
+ * one, and analysing one alone produces nothing.
  * The duplication is unavoidable: this plugin is a separate build and cannot see that enum.
  */
 public final class AnalysableFiles {

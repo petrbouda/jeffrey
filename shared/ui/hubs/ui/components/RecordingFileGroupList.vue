@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import RecordingFileRow from '@hubs/components/RecordingFileRow.vue';
-import RecordingFileType from '@hubs/services/api/model/RecordingFileType';
+import SupportedFileType from '@hubs/services/api/model/SupportedFileType';
 import type { Variant } from '@shared/types/ui';
 import RecordingFile from '@hubs/services/api/model/RecordingFile';
 
@@ -17,7 +17,7 @@ const emit = defineEmits<{
 }>();
 
 // --- Type grouping constants ---
-type ArtifactTypeGroup =
+type FileTypeGroup =
   | 'JFR_RECORDING'
   | 'HEAP_DUMP'
   | 'PERF_COUNTERS'
@@ -26,7 +26,7 @@ type ArtifactTypeGroup =
   | 'HS_JVM_ERROR_LOG'
   | 'UNKNOWN';
 
-const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
+const TYPE_GROUP_ORDER: FileTypeGroup[] = [
   'JFR_RECORDING',
   'HEAP_DUMP',
   'PERF_COUNTERS',
@@ -36,21 +36,21 @@ const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
   'UNKNOWN'
 ];
 
-const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
-  [RecordingFileType.JFR]: 'JFR_RECORDING',
-  [RecordingFileType.JFR_LZ4]: 'JFR_RECORDING',
-  [RecordingFileType.ASPROF]: 'JFR_RECORDING',
-  [RecordingFileType.HEAP_DUMP]: 'HEAP_DUMP',
-  [RecordingFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
-  [RecordingFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
-  [RecordingFileType.JVM_LOG]: 'JVM_LOG',
-  [RecordingFileType.APP_LOG]: 'APP_LOG',
-  [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
-  [RecordingFileType.UNKNOWN]: 'UNKNOWN'
+const FILE_TYPE_TO_GROUP: Record<string, FileTypeGroup> = {
+  [SupportedFileType.JFR]: 'JFR_RECORDING',
+  [SupportedFileType.JFR_LZ4]: 'JFR_RECORDING',
+  [SupportedFileType.ASPROF]: 'JFR_RECORDING',
+  [SupportedFileType.HEAP_DUMP]: 'HEAP_DUMP',
+  [SupportedFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
+  [SupportedFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
+  [SupportedFileType.JVM_LOG]: 'JVM_LOG',
+  [SupportedFileType.APP_LOG]: 'APP_LOG',
+  [SupportedFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
+  [SupportedFileType.UNKNOWN]: 'UNKNOWN'
 };
 
 const TYPE_GROUP_DISPLAY: Record<
-  ArtifactTypeGroup,
+  FileTypeGroup,
   { name: string; variant: Variant; fileType: string }
 > = {
   JFR_RECORDING: { name: 'JFR Recordings', variant: 'primary', fileType: 'JFR' },
@@ -63,7 +63,7 @@ const TYPE_GROUP_DISPLAY: Record<
 };
 
 interface TypeGroupPanel {
-  groupKey: ArtifactTypeGroup;
+  groupKey: FileTypeGroup;
   display: { name: string; variant: string; fileType: string };
   files: RecordingFile[];
   fileCount: number;
@@ -73,21 +73,21 @@ interface TypeGroupPanel {
 // --- Expansion state ---
 const expandedTypePanels = ref<{ [key: string]: boolean }>({});
 
-const toggleTypePanel = (groupKey: ArtifactTypeGroup) => {
+const toggleTypePanel = (groupKey: FileTypeGroup) => {
   const key = `${props.recordingId}:${groupKey}`;
   expandedTypePanels.value[key] = !expandedTypePanels.value[key];
 };
 
-const isTypePanelExpanded = (groupKey: ArtifactTypeGroup): boolean => {
+const isTypePanelExpanded = (groupKey: FileTypeGroup): boolean => {
   return !!expandedTypePanels.value[`${props.recordingId}:${groupKey}`];
 };
 
 // Groups that always show as a panel, even with a single file
-const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
+const ALWAYS_GROUPED: Set<FileTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
 
 // --- Grouping logic ---
-const getGroupMap = (files: RecordingFile[]): Map<ArtifactTypeGroup, RecordingFile[]> => {
-  const groupMap = new Map<ArtifactTypeGroup, RecordingFile[]>();
+const getGroupMap = (files: RecordingFile[]): Map<FileTypeGroup, RecordingFile[]> => {
+  const groupMap = new Map<FileTypeGroup, RecordingFile[]>();
   for (const file of files) {
     const groupKey = FILE_TYPE_TO_GROUP[file.type] || 'UNKNOWN';
     if (!groupMap.has(groupKey)) {groupMap.set(groupKey, []);}

@@ -196,12 +196,6 @@ class ConfiguredHubsReconcilerTest {
 
         private final List<HubAddress> evicted = new ArrayList<>();
 
-        private RecordingClientsFactory() {
-            super(() -> {
-                throw new UnsupportedOperationException("No temp directory is needed in this test");
-            });
-        }
-
         @Override
         public void evict(HubAddress address) {
             evicted.add(address);

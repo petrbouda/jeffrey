@@ -21,16 +21,15 @@ package cafe.jeffrey.hub.client.dto;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 public record RepositoryFileResponse(
         String id,
         String name,
         Long createdAt,
         Long size,
-        SupportedRecordingFile fileType,
-        RecordingStatus status,
-        boolean isRecording) {
+        SupportedFile fileType,
+        RecordingStatus status) {
 
     public static RepositoryFileResponse from(RepositoryFile file) {
         return new RepositoryFileResponse(
@@ -39,8 +38,7 @@ public record RepositoryFileResponse(
                 InstantUtils.toEpochMilli(file.createdAt()),
                 file.size(),
                 file.fileType(),
-                file.status(),
-                file.isRecordingFile());
+                file.status());
     }
 
     public static RepositoryFile from(RepositoryFileResponse response) {

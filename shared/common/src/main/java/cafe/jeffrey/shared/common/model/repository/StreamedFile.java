@@ -24,9 +24,14 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public record StreamedRecordingFile(String fileName, Path path, Closeable cleanup) {
+/**
+ * A file ready to be streamed to a caller — any file a session holds, as it lies on disk — with
+ * an optional cleanup to run once the stream is closed, for a copy that lives only for the
+ * transfer.
+ */
+public record StreamedFile(String fileName, Path path, Closeable cleanup) {
 
-    public StreamedRecordingFile(String fileName, Path path) {
+    public StreamedFile(String fileName, Path path) {
         this(fileName, path, null);
     }
 

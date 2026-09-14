@@ -35,7 +35,7 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -371,7 +371,7 @@ class IdeRecordingLookupTest {
                 Instant.parse("2026-09-04T18:01:00Z"),
                 Instant.parse("2026-09-04T18:01:42Z"),
                 true, PROFILE_ID, "profile",
-                List.of(new RecordingFile("file-1", "rec-1", filename, SupportedRecordingFile.JFR,
+                List.of(new RecordingFile("file-1", "rec-1", filename, SupportedFile.JFR,
                         Instant.parse("2026-09-04T18:02:00Z"), SIZE)));
     }
 
@@ -429,7 +429,7 @@ class IdeRecordingLookupTest {
                 hasProfile ? PROFILE_ID : null,
                 hasProfile ? "jeffrey-20260904-180108" : null,
                 List.of(new RecordingFile(
-                        "file-1", id, FILENAME, SupportedRecordingFile.JFR,
+                        "file-1", id, FILENAME, SupportedFile.JFR,
                         Instant.parse("2026-09-04T18:02:00Z"), sizeInBytes)));
     }
 }

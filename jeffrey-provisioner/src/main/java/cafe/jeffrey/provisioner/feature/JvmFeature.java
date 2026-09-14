@@ -56,7 +56,7 @@ public sealed interface JvmFeature {
         }
     }
 
-    /** The hsperfdata file Jeffrey reads to detect that a session has finished. */
+    /** The hsperfdata file the JVM keeps beside its recording; Microscope reads it as the Performance Counters page. */
     record PerfCounters(boolean enabled) implements JvmFeature {
 
         public static final String FILE = "perf-counters.hsperfdata";

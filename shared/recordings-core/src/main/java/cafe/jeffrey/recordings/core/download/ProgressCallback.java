@@ -27,6 +27,53 @@ import java.util.List;
 public interface ProgressCallback {
 
     /**
+     * A caller with nothing listening. The download runs the same way, it just tells nobody —
+     * one pipeline for every caller rather than a second one for the callers without a screen.
+     */
+    ProgressCallback NONE = new ProgressCallback() {
+        @Override
+        public void onStart(int totalFiles, long totalBytes) {
+        }
+
+        @Override
+        public void onFilesDiscovered(List<FileProgress> pendingFiles) {
+        }
+
+        @Override
+        public void onFileStart(String fileName, long fileSize) {
+        }
+
+        @Override
+        public void onFileProgress(String fileName, long bytesDownloaded) {
+        }
+
+        @Override
+        public void onFileComplete(String fileName) {
+        }
+
+        @Override
+        public void onFileError(String fileName, String errorMessage) {
+        }
+
+        @Override
+        public void onProcessing() {
+        }
+
+        @Override
+        public void onComplete() {
+        }
+
+        @Override
+        public void onError(String errorMessage) {
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+    };
+
+    /**
      * Called when the download starts.
      *
      * @param totalFiles total number of files to download

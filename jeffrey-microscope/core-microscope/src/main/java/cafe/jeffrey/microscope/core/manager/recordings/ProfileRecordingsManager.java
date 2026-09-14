@@ -57,10 +57,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import cafe.jeffrey.shared.notification.NotificationCategory;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
 
 /**
  * Microscope's profile-aware {@link RecordingsManager}. Delegates all deployment-agnostic recording
@@ -139,10 +137,10 @@ public class ProfileRecordingsManager implements RecordingsManager {
     @Override
     public String createDownloadedRecording(
             String recordingName,
-            Path mergedRecordingFile,
-            List<Path> artifactFiles,
+            Path recordingFile,
+            List<Path> additionalFiles,
             Map<String, String> originTags) {
-        return core.createDownloadedRecording(recordingName, mergedRecordingFile, artifactFiles, originTags);
+        return core.createDownloadedRecording(recordingName, recordingFile, additionalFiles, originTags);
     }
 
     @Override

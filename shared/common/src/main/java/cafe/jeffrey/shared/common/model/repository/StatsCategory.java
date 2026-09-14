@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-enum RecordingFileType {
-  JFR_LZ4 = 'JFR_LZ4',
-  JFR = 'JFR',
-  HEAP_DUMP_GZ = 'HEAP_DUMP_GZ',
-  HEAP_DUMP = 'HEAP_DUMP',
-  ASPROF = 'ASPROF_TEMP',
-  PERF_COUNTERS = 'PERF_COUNTERS',
-  JVM_LOG = 'JVM_LOG',
-  HS_JVM_ERROR_LOG = 'HS_JVM_ERROR_LOG',
-  APP_LOG = 'APP_LOG',
-  PPROF = 'PPROF',
-  OTLP_PROFILE = 'OTLP_PROFILE',
-  UNKNOWN = 'UNKNOWN'
-}
+package cafe.jeffrey.shared.common.model.repository;
 
-export default RecordingFileType;
+/**
+ * The bucket a file type is counted under in repository statistics. Declared per type on
+ * {@link SupportedFile}; the statistics only group by it.
+ */
+public enum StatsCategory {
+    JFR, HEAP_DUMP, LOG, APP_LOG, ERROR_LOG, OTHER
+}

@@ -160,7 +160,7 @@ public class StubDataFactory {
     private Session finishedSession(String instanceId, String sessionId, Instant createdAt, Duration length) {
         Instant finishedAt = createdAt.plus(length);
         List<File> files = new ArrayList<>();
-        files.add(file(sessionId, "recording.jfr", createdAt, 42 * MEGABYTE, FileKind.JFR, RecState.FINISHED));
+        files.add(file(sessionId, "recording.jfr.lz4", createdAt, 42 * MEGABYTE, FileKind.JFR_LZ4, RecState.FINISHED));
         files.add(file(sessionId, "gc.jvm-log", createdAt, 768 * 1024L, FileKind.GC_LOG, RecState.FINISHED));
         files.add(file(sessionId, "application-app.log", createdAt, 1280 * 1024L, FileKind.APP_LOG, RecState.FINISHED));
         if (sessionId.endsWith("-1")) {

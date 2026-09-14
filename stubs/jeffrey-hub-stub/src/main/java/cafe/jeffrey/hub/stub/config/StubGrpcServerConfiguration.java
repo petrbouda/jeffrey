@@ -22,7 +22,7 @@ import cafe.jeffrey.hub.stub.data.StubDataset;
 import cafe.jeffrey.hub.stub.grpc.StubInstanceService;
 import cafe.jeffrey.hub.stub.grpc.StubProfilerSettingsService;
 import cafe.jeffrey.hub.stub.grpc.StubProjectService;
-import cafe.jeffrey.hub.stub.grpc.StubRecordingDownloadService;
+import cafe.jeffrey.hub.stub.grpc.StubFileDownloadService;
 import cafe.jeffrey.hub.stub.grpc.StubRepositoryService;
 import cafe.jeffrey.hub.stub.grpc.StubWorkspaceService;
 import io.grpc.Server;
@@ -65,7 +65,7 @@ public class StubGrpcServerConfiguration {
                 .addService(new StubProjectService(dataset))
                 .addService(new StubInstanceService(dataset))
                 .addService(new StubRepositoryService(dataset))
-                .addService(new StubRecordingDownloadService(dataset))
+                .addService(new StubFileDownloadService(dataset))
                 .addService(new StubProfilerSettingsService())
                 .build();
     }

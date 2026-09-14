@@ -34,12 +34,12 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.repository.FileCategory;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -57,36 +57,37 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The files of a hub session one at a time: what a session holds beside its recording, and how to
- * pull one of them down without pulling the recording.
+ * The files of a hub session one at a time: everything a session holds, and how to pull any one
+ * of them down as it lies on the hub.
  * <p>
- * {@code hubs_download} brings every artifact along with the merged recording, and for a session
- * whose recording is wanted that is the right shape. This family is for the other case — a JVM that
- * crashed before its first chunk rolled and left only {@code hs-jvm-err.log}, an application log a
- * reader wants to grep before deciding whether the recording is worth the transfer.
+ * {@code hubs_download} brings every file of a session and assembles the JFR chunks into the
+ * recording a profile is built from, and for a session whose recording is wanted that is the right
+ * shape. This family is for the other case — a JVM that crashed before its first chunk rolled and
+ * left only {@code hs-jvm-err.log}, an application log a reader wants to grep before deciding
+ * whether the recording is worth the transfer, one chunk of a long session. The hub serves every
+ * finished file the same way; only a transient file is never served.
  * <p>
  * <strong>A fetched file is a path, and nothing else.</strong> It lands beside the profile of the
- * session's recording when there is one — {@code profiles/<profileId>/artifacts/<name>}, so it sits
+ * session's recording when there is one — {@code profiles/<profileId>/files/<name>}, so it sits
  * with the data it lines up with and goes when the profile goes — and otherwise, for a session that
  * never rolled a chunk and left only a crash file, under
- * {@code artifacts/<hub>/<project>/<session>/<name>}. The answer is that path: the reader is a
+ * {@code files/<hub>/<project>/<session>/<name>}. The answer is that path: the reader is a
  * coding agent on the same machine (the endpoint accepts loopback hosts only) with better tools for
  * a text file than anything a tool result could carry. Nothing is parsed, catalogued or indexed
  * here; both paths are deterministic, so whether a file was fetched before is whether it is there.
  */
-public class HubsArtifactsMcpTools {
+public class HubsFilesMcpTools {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HubsArtifactsMcpTools.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HubsFilesMcpTools.class);
 
     private static final String FETCH_FAILED = "Hub file fetch failed: ";
-    private static final String PROFILE_ARTIFACTS_DIR = "artifacts";
+    private static final String PROFILE_FILES_DIR = "files";
     /**
      * Only the default of the short constructor, which is the one the tests use. Production wiring
      * passes {@code jeffrey.microscope.mcp.hubs.download-timeout}, shared with {@code hubs_download}
@@ -100,27 +101,27 @@ public class HubsArtifactsMcpTools {
 
     private final HubSessionLocator locator;
     private final RecordingsManager recordings;
-    private final Path artifactsDir;
+    private final Path filesDir;
     private final Path profilesDir;
     private final McpOperationRegistry operations;
     private final Duration responseBudget;
     private final Duration fetchDeadline;
     private final BoundedJobs<HubFileRef, Path> fetches;
 
-    public HubsArtifactsMcpTools(
+    public HubsFilesMcpTools(
             ProjectManagerResolver resolver,
             RecordingsManager recordings,
-            Path artifactsDir,
+            Path filesDir,
             Path profilesDir,
             McpOperationRegistry operations,
             Clock clock) {
-        this(resolver, recordings, artifactsDir, profilesDir, operations, clock, BoundedJobs.WAIT_BUDGET, FETCH_DEADLINE);
+        this(resolver, recordings, filesDir, profilesDir, operations, clock, BoundedJobs.WAIT_BUDGET, FETCH_DEADLINE);
     }
 
-    public HubsArtifactsMcpTools(
+    public HubsFilesMcpTools(
             ProjectManagerResolver resolver,
             RecordingsManager recordings,
-            Path artifactsDir,
+            Path filesDir,
             Path profilesDir,
             McpOperationRegistry operations,
             Clock clock,
@@ -128,7 +129,7 @@ public class HubsArtifactsMcpTools {
             Duration fetchDeadline) {
         this.locator = new HubSessionLocator(resolver);
         this.recordings = recordings;
-        this.artifactsDir = artifactsDir.toAbsolutePath();
+        this.filesDir = filesDir.toAbsolutePath();
         this.profilesDir = profilesDir.toAbsolutePath();
         this.operations = operations;
         this.responseBudget = responseBudget;
@@ -148,12 +149,12 @@ public class HubsArtifactsMcpTools {
 
     /**
      * How a row is reached, said in the table rather than left to the reader to infer from the
-     * category. A listing that invites a fetch the fetch tool refuses is worse than no column.
+     * type. A listing that invites a fetch the fetch tool refuses is worse than no column.
      */
     private enum Fetchability {
 
         FETCH("fetch"),
-        DOWNLOAD("hubs_download"),
+        CHUNK("hubs_download"),
         WHEN_FINISHED("when finished"),
         NEVER("no");
 
@@ -169,13 +170,13 @@ public class HubsArtifactsMcpTools {
     }
 
     private static String fetchColumn(RepositoryFile file) {
-        if (file.isRecordingFile()) {
-            return Fetchability.DOWNLOAD.label();
-        }
-        if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {
+        if (file.isTransient()) {
             return Fetchability.NEVER.label();
         }
-        return file.isFinished() ? Fetchability.FETCH.label() : Fetchability.WHEN_FINISHED.label();
+        if (!file.isFinished()) {
+            return Fetchability.WHEN_FINISHED.label();
+        }
+        return file.isRecordingChunk() ? Fetchability.CHUNK.label() : Fetchability.FETCH.label();
     }
 
     private static String zeroPointNote(LocalSession local) {
@@ -193,18 +194,19 @@ public class HubsArtifactsMcpTools {
     }
 
     @Tool(description = "Every file one hub recording session holds - the JFR chunks, and beside them "
-            + "the artifacts the JVM left: application logs, the unified-logging file (gc.jvm-log), "
-            + "the crash file (hs-jvm-err.log or hs_err_pid*.log), the perf-counters file, a heap dump. "
-            + "Call it when the question is about what a JVM wrote rather than what it recorded: an "
-            + "exception in the application log, why the JVM died, what a GC log says for a session "
-            + "that has no recording. Takes the session_ref from a hubs_sessions row. The `local` "
-            + "column says a file is already on this machine: the absolute path of an artifact that was "
-            + "fetched or came along with hubs_download - open it with your own tools - or "
-            + "recording:<id> / profile:<id> for a recording hubs_download already merged. The `fetch` "
-            + "column says how each row is reached: `fetch` means pass its file_id to hubs_fetchFile, "
-            + "`hubs_download` means it is a recording chunk taken with the whole session, `when "
-            + "finished` means it is still being written, and `no` means the hub does not serve that "
-            + "file on its own - only hubs_download brings it.")
+            + "whatever else the JVM left: application logs, the unified-logging file (gc.jvm-log), "
+            + "the crash file (hs-jvm-err.log or hs_err_pid*.log), the perf-counters file, a heap dump, "
+            + "a file Jeffrey does not classify. Call it when the question is about what a JVM wrote "
+            + "rather than what it recorded: an exception in the application log, why the JVM died, "
+            + "what a GC log says for a session that has no recording. Takes the session_ref from a "
+            + "hubs_sessions row. The `local` column says a file is already on this machine: the "
+            + "absolute path of a file that was fetched or came along with hubs_download - open it with "
+            + "your own tools - or recording:<id> / profile:<id> for a chunk hubs_download already "
+            + "assembled into a recording. The `fetch` column says how each row is reached: `fetch` "
+            + "means pass its file_id to hubs_fetchFile, `hubs_download` means it is a recording chunk "
+            + "best taken with the whole session (hubs_fetchFile takes it alone too, as it lies on the "
+            + "hub), `when finished` means it is still being written, and `no` means it is a transient "
+            + "file the hub never serves.")
     public String files(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef) {
@@ -232,13 +234,12 @@ public class HubsArtifactsMcpTools {
 
         LocalSession local = localSession(ref);
         MarkdownTable table = MarkdownTable.withColumns(
-                "file_id", "name", "type", "category", "status", "size", "created", "local", "fetch");
+                "file_id", "name", "type", "status", "size", "created", "local", "fetch");
         for (RepositoryFile file : files) {
             table.row(
                     file.id(),
                     file.name(),
                     file.fileType().name(),
-                    file.fileType().fileCategory().name().toLowerCase(Locale.ROOT),
                     file.status(),
                     ByteSizes.format(file.size()),
                     file.createdAt(),
@@ -249,24 +250,26 @@ public class HubsArtifactsMcpTools {
                 .note("Session " + session.name() + " on hub " + hubInfo.name() + ", project "
                         + project.info().name() + ". The `fetch` column says how a row is reached: `"
                         + Fetchability.FETCH.label() + "` means pass its file_id to hubs_fetchFile, `"
-                        + Fetchability.DOWNLOAD.label()
-                        + "` is a recording chunk merged with the rest by hubs_download rather than fetched on "
-                        + "its own, `" + Fetchability.WHEN_FINISHED.label() + "` is still being written, and `"
-                        + Fetchability.NEVER.label() + "` is a file the hub does not serve one at a time - a "
-                        + "type Jeffrey does not classify, or a transient one. A `local` path is on the "
-                        + "machine Jeffrey runs on; read it with your own tools. A `local` cell that is empty "
-                        + "means the file is not here yet."
+                        + Fetchability.CHUNK.label()
+                        + "` is a recording chunk: hubs_download brings every chunk and assembles them into one "
+                        + "recording, which is what the analysis tools want, and hubs_fetchFile also takes a "
+                        + "single chunk as it lies on the hub, .jfr or .jfr.lz4. `"
+                        + Fetchability.WHEN_FINISHED.label() + "` is still being written, and `"
+                        + Fetchability.NEVER.label() + "` is a transient file the hub never serves. A `local` "
+                        + "path is on the machine Jeffrey runs on; read it with your own tools. A `local` cell "
+                        + "that is empty means the file is not here yet."
                         + zeroPointNote(local))
                 .render();
     }
 
     @McpToolHints(readOnly = false, openWorld = true)
-    @Tool(description = "Pull one artifact of a hub recording session onto this machine - an application "
-            + "log, a JVM unified-logging file, a crash file, a perf-counters file or a heap dump - "
-            + "without downloading the session's recording. Takes the session_ref of a hubs_sessions "
+    @Tool(description = "Pull one file of a hub recording session onto this machine - an application "
+            + "log, a JVM unified-logging file, a crash file, a perf-counters file, a heap dump, a "
+            + "file Jeffrey does not classify, or a single JFR chunk as it lies on the hub - without "
+            + "downloading the whole session. Takes the session_ref of a hubs_sessions "
             + "row and the file_id of a hubs_files row. Returns the absolute path the file now has on "
             + "the machine Jeffrey runs on: open, grep or parse it there with your own tools - Jeffrey "
-            + "hands the file over rather than parsing it. A heap dump's path goes to "
+            + "hands the file over rather than parsing it. A heap dump's or a chunk's path goes to "
             + "recordings_analyzeFile. A file already fetched is returned as it is rather than "
             + "transferred twice, and without asking the hub, so it stays readable while the hub is "
             + "down. A large file may take longer than a client waits, in which case "
@@ -274,7 +277,7 @@ public class HubsArtifactsMcpTools {
             + "the path once it lands; every started transfer carries an operationId for "
             + "operations_status and operations_cancel. A transfer that failed or was cancelled is "
             + "started again by calling this tool with the same arguments - there is no retry flag. "
-            + "Only a row whose `fetch` column reads `fetch` can be fetched.")
+            + "Any finished row can be fetched; only a transient file (`fetch` reads `no`) cannot.")
     public String fetchFile(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef,
@@ -287,7 +290,7 @@ public class HubsArtifactsMcpTools {
         HubFileRef key = new HubFileRef(ref, fileId);
 
         // Before the hub is touched at all: a file this call already fetched is a file on this disk,
-        // and a disk does not need a round trip to be read. It also means an artifact stays reachable
+        // and a disk does not need a round trip to be read. It also means a fetched file stays reachable
         // while the hub that held it is down or its session has been retired - the answer is the path,
         // and the path is still good.
         Optional<RetainedFetch> retained = retainedLocally(key, ref);
@@ -309,12 +312,12 @@ public class HubsArtifactsMcpTools {
                     McpToolOutput.json(fetched(file, here.get(), true, local)), register(key, operation));
         }
 
-        LOG.info("Fetching a hub artifact over MCP: hub_id={} project_id={} session_id={} file_id={} name={}",
+        LOG.info("Fetching a hub file over MCP: hub_id={} project_id={} session_id={} file_id={} name={}",
                 ref.hubId(), ref.projectId(), ref.sessionId(), fileId, file.name());
         // retryFailure is true: a fetch is one file, and a transfer that failed on a blip must be
         // startable again by calling this tool - which is what OperationKind.HUB_FETCH tells the
         // caller to do. reuseSuccess pins the retained path to the one this call resolved, so a
-        // session analysed since the last fetch is not answered with the copy under artifacts/.
+        // session analysed since the last fetch is not answered with the copy under files/.
         OperationHandle<Path> operation = fetches.startOrJoin(key, true,
                 previous -> previous.equals(target) && Files.isRegularFile(previous),
                 control -> {
@@ -340,14 +343,14 @@ public class HubsArtifactsMcpTools {
 
     /**
      * Where a session's file lives once fetched: in the profile's own directory when the session has
-     * been analysed, else under the artifacts directory. Deterministic on purpose, and the hub's
+     * been analysed, else under the files directory. Deterministic on purpose, and the hub's
      * session ids are unique only within a project, so the project is part of the second path. The
      * file's own name is kept because it is what the reader will recognise ({@code gc.jvm-log.1},
      * {@code hs-jvm-err.log}).
      */
     private Path targetOf(HubSessionRef ref, String filename, LocalSession local) {
         if (local.profileId() != null) {
-            return under(profilesDir.resolve(local.profileId()).resolve(PROFILE_ARTIFACTS_DIR), filename, profilesDir);
+            return under(profilesDir.resolve(local.profileId()).resolve(PROFILE_FILES_DIR), filename, profilesDir);
         }
         return unlinkedTargetOf(ref, filename);
     }
@@ -358,10 +361,10 @@ public class HubsArtifactsMcpTools {
      * down a second time.
      */
     private Path unlinkedTargetOf(HubSessionRef ref, String filename) {
-        Path sessionDir = artifactsDir.resolve(segment(ref.hubId()))
+        Path sessionDir = filesDir.resolve(segment(ref.hubId()))
                 .resolve(segment(ref.projectId()))
                 .resolve(segment(ref.sessionId()));
-        return under(sessionDir, filename, artifactsDir);
+        return under(sessionDir, filename, filesDir);
     }
 
     /**
@@ -384,11 +387,11 @@ public class HubsArtifactsMcpTools {
         try {
             FileSystemUtils.createDirectories(target.getParent());
             Files.move(unlinked, target, StandardCopyOption.REPLACE_EXISTING);
-            LOG.info("Moved a hub artifact beside its profile: from={} to={}", unlinked, target);
+            LOG.info("Moved a hub file beside its profile: from={} to={}", unlinked, target);
             return Optional.of(target);
         } catch (IOException e) {
             // The copy is still readable where it is; saying so beats refusing or transferring again.
-            LOG.warn("Could not move a fetched hub artifact beside its profile: from={} to={} reason={}",
+            LOG.warn("Could not move a fetched hub file beside its profile: from={} to={} reason={}",
                     unlinked, target, e.getMessage());
             return Optional.of(unlinked);
         }
@@ -465,19 +468,12 @@ public class HubsArtifactsMcpTools {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Session " + ref.sessionId()
                         + " has no file with id " + fileId + ". Call hubs_files for its current files."));
-        if (file.isRecordingFile()) {
-            throw new IllegalArgumentException("File " + file.name() + " is a recording, and recordings are "
-                    + "merged by hubs_download rather than fetched one chunk at a time. Call hubs_download "
-                    + "with the same session_ref.");
-        }
-        if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {
-            // The hub's own streamArtifactFile refuses anything outside this category, so refusing it
-            // here keeps the sentence useful rather than turning it into a remote INVALID_ARGUMENT.
+        if (file.isTransient()) {
+            // The hub's own streamFile refuses a transient file, so refusing it here keeps the
+            // sentence useful rather than turning it into a remote INVALID_ARGUMENT.
             throw new IllegalArgumentException("File " + file.name() + " is " + file.fileType().description()
-                    + " (" + file.fileType().fileCategory().name().toLowerCase(Locale.ROOT)
-                    + "), and a hub serves only classified artifacts one at a time. Its `fetch` column in "
-                    + "hubs_files reads `" + Fetchability.NEVER.label() + "`; hubs_download brings the whole "
-                    + "session, this file included.");
+                    + ", a transient file the profiler leaves behind while working, and a hub never serves "
+                    + "one. Its `fetch` column in hubs_files reads `" + Fetchability.NEVER.label() + "`.");
         }
         if (!file.isFinished()) {
             throw new IllegalArgumentException("File " + file.name() + " is still being written (status "
@@ -515,11 +511,11 @@ public class HubsArtifactsMcpTools {
      * Moves the streamed file to its place and lets the hub client's temporary directory go, whether
      * or not the move succeeded — a failed move must not leave a copy behind in the temp area.
      */
-    private static Path place(StreamedRecordingFile streamed, Path target) {
+    private static Path place(StreamedFile streamed, Path target) {
         try {
             FileSystemUtils.createDirectories(target.getParent());
             Files.move(streamed.path(), target, StandardCopyOption.REPLACE_EXISTING);
-            LOG.info("Stored a fetched hub artifact: path={}", target);
+            LOG.info("Stored a fetched hub file: path={}", target);
             return target;
         } catch (IOException e) {
             throw new IllegalStateException("Cannot store the fetched file " + streamed.fileName() + ": " + e.getMessage(), e);
@@ -557,16 +553,18 @@ public class HubsArtifactsMcpTools {
     }
 
     private String localColumn(RepositoryFile file, HubSessionRef ref, LocalSession local) {
-        if (file.isRecordingFile()) {
-            if (local.profileId() != null) {
-                return "profile:" + local.profileId();
-            }
-            return local.recording() == null ? "" : "recording:" + local.recording().id();
-        }
         try {
             Path fetched = targetOf(ref, file.name(), local);
             if (Files.isRegularFile(fetched)) {
                 return fetched.toString();
+            }
+            if (file.isRecordingChunk()) {
+                // A chunk not fetched on its own is here once hubs_download assembled it into the
+                // recording, which is where the analysis tools read it from.
+                if (local.profileId() != null) {
+                    return "profile:" + local.profileId();
+                }
+                return local.recording() == null ? "" : "recording:" + local.recording().id();
             }
             // A file fetched before the session was analysed is still here, under the unlinked path;
             // the next fetchFile moves it beside the profile rather than pulling it down again.
@@ -627,13 +625,13 @@ public class HubsArtifactsMcpTools {
             size = Files.size(path);
         } catch (IOException e) {
             // It was a regular file a moment ago. Whatever changed, the hub knows more than we do.
-            LOG.debug("A retained hub artifact could not be sized: path={} reason={}", path, e.getMessage());
+            LOG.debug("A retained hub file could not be sized: path={} reason={}", path, e.getMessage());
             return Optional.empty();
         }
-        LOG.debug("Answering a hub artifact fetch from this disk: session_id={} file_id={} path={}",
+        LOG.debug("Answering a hub file fetch from this disk: session_id={} file_id={} path={}",
                 ref.sessionId(), key.fileId(), path);
         return Optional.of(new RetainedFetch(
-                operation, fetched(filename, SupportedRecordingFile.of(filename), size, path, true, local)));
+                operation, fetched(filename, SupportedFile.of(filename), size, path, true, local)));
     }
 
     /** A fetch answered off this disk: the operation it was, and the answer built from the file. */
@@ -645,16 +643,22 @@ public class HubsArtifactsMcpTools {
     }
 
     private static FetchedFile fetched(
-            String filename, SupportedRecordingFile type, Long sizeBytes, Path path,
+            String filename, SupportedFile type, Long sizeBytes, Path path,
             boolean alreadyHere, LocalSession local) {
-        boolean heapDump = type == SupportedRecordingFile.HEAP_DUMP
-                || type == SupportedRecordingFile.HEAP_DUMP_GZ;
-        String nextStep = heapDump
-                ? "Pass path to recordings_analyzeFile to build the heap profile the heap_ tools take."
-                : "Open, grep or parse the file at path with your own tools; it is on the machine Jeffrey runs on."
-                + (local.profileId() == null ? "" : " Its timestamps line up with profile " + local.profileId()
-                + (local.profilingStartedAt() == null ? "." : ", whose zero point is "
-                + local.profilingStartedAt() + "."));
+        String nextStep;
+        if (type.eventSource().filter(source -> source == RecordingEventSource.HEAP_DUMP).isPresent()) {
+            nextStep = "Pass path to recordings_analyzeFile to build the heap profile the heap_ tools take.";
+        } else if (type.isRecordingChunk()) {
+            nextStep = "This is one chunk of the session's recording as the hub holds it"
+                    + (type.isCompressedByHub() ? ", LZ4-compressed" : "")
+                    + ". Pass path to recordings_analyzeFile to analyse this chunk alone, or call hubs_download "
+                    + "with the same session_ref for the whole recording.";
+        } else {
+            nextStep = "Open, grep or parse the file at path with your own tools; it is on the machine Jeffrey runs on."
+                    + (local.profileId() == null ? "" : " Its timestamps line up with profile " + local.profileId()
+                    + (local.profilingStartedAt() == null ? "." : ", whose zero point is "
+                    + local.profilingStartedAt() + "."));
+        }
         return new FetchedFile(
                 filename,
                 type.name(),

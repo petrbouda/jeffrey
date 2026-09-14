@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Which file names offer "Analyze in Microscope" and carry the flame icon. The rule has to agree
- * with Microscope's own {@code SupportedRecordingFile}: an action that appears and then fails on
+ * with Microscope's own {@code SupportedFile}: an action that appears and then fails on
  * import is worse than one that never appeared.
  */
 public class AnalysableFilesTest {

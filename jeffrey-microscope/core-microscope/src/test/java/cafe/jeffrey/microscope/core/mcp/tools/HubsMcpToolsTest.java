@@ -50,7 +50,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import io.grpc.Context;
@@ -115,7 +115,7 @@ class HubsMcpToolsTest {
         return new HubInfo(id, name, new HubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG);
     }
 
-    private static RepositoryFile file(String id, String name, SupportedRecordingFile type) {
+    private static RepositoryFile file(String id, String name, SupportedFile type) {
         return new RepositoryFile(id, name, NOW, 1024L, type, RecordingStatus.FINISHED, null);
     }
 
@@ -125,7 +125,7 @@ class HubsMcpToolsTest {
     }
 
     private static RecordingSession jfrSession(String id, Instant createdAt) {
-        return session(id, createdAt, file("f-1", "recording.jfr", SupportedRecordingFile.JFR));
+        return session(id, createdAt, file("f-1", "recording.jfr", SupportedFile.JFR));
     }
 
     private RepositoryManager repositoryWith(RecordingSession... sessions) {
@@ -594,20 +594,20 @@ class HubsMcpToolsTest {
         @Test
         void downloadsTheSessionTheRefNamesAndReturnsTheRecordingId() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenReturn("rec-new");
+            when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
             String result = tools.download(REF.encode());
 
             assertTrue(result.contains("\"recordingId\":\"rec-new\""), result);
-            verify(downloads).mergeAndDownloadSession(SESSION_ID);
+            verify(downloads).downloadSession(SESSION_ID);
         }
 
         @Test
         void pointsAtRecordingsAnalyzeRecordingAsTheNextStep() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenReturn("rec-new");
+            when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
@@ -615,19 +615,19 @@ class HubsMcpToolsTest {
         }
 
         @Test
-        void countsTheRecordingAndArtifactFilesItBrought() {
+        void countsTheChunksAndOtherFilesItBrought() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenReturn("rec-new");
+            when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
             RecordingSession withHeapDump = session(SESSION_ID, NOW,
-                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR),
-                    file("f-2", "heap.hprof", SupportedRecordingFile.HEAP_DUMP));
+                    file("f-1", "recording.jfr", SupportedFile.JFR),
+                    file("f-2", "heap.hprof", SupportedFile.HEAP_DUMP));
             resolvesTo(projectWith(withHeapDump, downloads));
             noLocalRecordings();
 
             String result = tools.download(REF.encode());
 
-            assertTrue(result.contains("\"recordingFiles\":1"), result);
-            assertTrue(result.contains("\"artifactFiles\":1"), result);
+            assertTrue(result.contains("\"chunkFiles\":1"), result);
+            assertTrue(result.contains("\"otherFiles\":1"), result);
         }
 
         @Test
@@ -689,7 +689,7 @@ class HubsMcpToolsTest {
         void refusesASessionWithNothingFinishedToDownload() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             RecordingSession logsOnly = session(SESSION_ID, NOW,
-                    file("f-1", "gc.log", SupportedRecordingFile.JVM_LOG));
+                    file("f-1", "gc.log", SupportedFile.JVM_LOG));
             resolvesTo(projectWith(logsOnly, downloads));
             noLocalRecordings();
 
@@ -697,7 +697,7 @@ class HubsMcpToolsTest {
                     IllegalArgumentException.class, () -> tools.download(REF.encode()));
 
             assertTrue(e.getMessage().contains("no finished recording file"), e.getMessage());
-            verify(downloads, never()).mergeAndDownloadSession(any());
+            verify(downloads, never()).downloadSession(any());
         }
 
         @Test
@@ -747,7 +747,7 @@ class HubsMcpToolsTest {
                 return jfrSession(SESSION_ID, NOW);
             });
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
                 transfers.incrementAndGet();
                 transferStarted.countDown();
                 release.await(2, TimeUnit.SECONDS);
@@ -796,7 +796,7 @@ class HubsMcpToolsTest {
                 return jfrSession(SESSION_ID, NOW);
             });
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
                 transfers.incrementAndGet();
                 transferStarted.countDown();
                 assertTrue(secondPreflight.await(5, TimeUnit.SECONDS));
@@ -823,7 +823,7 @@ class HubsMcpToolsTest {
         @Test
         void retryPreflightFailureIsNotReplacedByThePreviousAttemptFailure() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenThrow(new IllegalStateException("old failure"));
+            when(downloads.downloadSession(SESSION_ID)).thenThrow(new IllegalStateException("old failure"));
             ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
             when(project.repositoryManager().recordingSession(SESSION_ID))
                     .thenReturn(jfrSession(SESSION_ID, NOW))
@@ -834,13 +834,13 @@ class HubsMcpToolsTest {
             JeffreyException failure = assertThrows(JeffreyException.class, () -> tools.download(REF.encode(), true));
             assertEquals(ErrorCode.HUB_UNAVAILABLE, failure.getCode());
             assertTrue(failure.getMessage().contains("UNAVAILABLE"), failure.getMessage());
-            verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+            verify(downloads, times(1)).downloadSession(SESSION_ID);
         }
 
         @Test
         void mcpFailuresReturnAnOperationIdAndRequireAnExplicitRetry() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID))
+            when(downloads.downloadSession(SESSION_ID))
                     .thenThrow(new IllegalStateException("connection lost"))
                     .thenReturn("rec-retried");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
@@ -851,7 +851,7 @@ class HubsMcpToolsTest {
             assertEquals("failed", first.path("status").asString());
             var retained = Json.mapper().readTree(tools.download(REF.encode(), false));
             assertEquals(operationId, retained.path("operationId").asString());
-            verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+            verify(downloads, times(1)).downloadSession(SESSION_ID);
             var retry = Json.mapper().readTree(tools.download(REF.encode(), true));
             assertFalse(operationId.equals(retry.path("operationId").asString()));
             assertEquals("completed", retry.path("operation").path("status").asString());
@@ -860,7 +860,7 @@ class HubsMcpToolsTest {
         @Test
         void failedTransferCanBeRetriedWithTheSameFullRef() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID))
+            when(downloads.downloadSession(SESSION_ID))
                     .thenThrow(new IllegalStateException("connection lost"))
                     .thenReturn("rec-retried");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
@@ -879,7 +879,7 @@ class HubsMcpToolsTest {
             CountDownLatch failed = new CountDownLatch(1);
             AtomicInteger attempts = new AtomicInteger();
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
                 int attempt = attempts.incrementAndGet();
                 if (attempt == 1) {
                     transferStarted.countDown();
@@ -901,16 +901,16 @@ class HubsMcpToolsTest {
 
             assertThrows(IllegalStateException.class, () -> shortBudgetTools.download(REF.encode()));
             assertThrows(IllegalStateException.class, () -> shortBudgetTools.download(REF.encode()));
-            verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+            verify(downloads, times(1)).downloadSession(SESSION_ID);
 
             assertTrue(shortBudgetTools.download(REF.encode(), true).contains("rec-retried"));
-            verify(downloads, times(2)).mergeAndDownloadSession(SESSION_ID);
+            verify(downloads, times(2)).downloadSession(SESSION_ID);
         }
 
         @Test
         void refetchesACompletedSessionWhenItsRetainedRecordingWasDeleted() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID))
+            when(downloads.downloadSession(SESSION_ID))
                     .thenReturn("rec-deleted")
                     .thenReturn("rec-refetched");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
@@ -920,7 +920,7 @@ class HubsMcpToolsTest {
             assertTrue(tools.download(REF.encode()).contains("rec-deleted"));
             assertTrue(tools.download(REF.encode()).contains("rec-refetched"));
 
-            verify(downloads, times(2)).mergeAndDownloadSession(SESSION_ID);
+            verify(downloads, times(2)).downloadSession(SESSION_ID);
         }
 
         @Test
@@ -941,7 +941,7 @@ class HubsMcpToolsTest {
                 return jfrSession(SESSION_ID, NOW);
             });
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
                 transferStarted.countDown();
                 releaseTransfer.await(2, TimeUnit.SECONDS);
                 throw new PublishedFailure(failurePublished);
@@ -963,7 +963,7 @@ class HubsMcpToolsTest {
 
                 assertThrows(ExecutionException.class,
                         () -> poll.get(1, TimeUnit.SECONDS));
-                verify(downloads, times(1)).mergeAndDownloadSession(SESSION_ID);
+                verify(downloads, times(1)).downloadSession(SESSION_ID);
             } finally {
                 releaseTransfer.countDown();
                 releasePreflight.countDown();
@@ -1016,7 +1016,7 @@ class HubsMcpToolsTest {
                 CountDownLatch release) {
 
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.mergeAndDownloadSession(SESSION_ID)).thenAnswer(_ -> {
+            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
                 started.countDown();
                 release.await(2, TimeUnit.SECONDS);
                 return recordingId;

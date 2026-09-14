@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.HeapDiffMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsFilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
@@ -128,7 +128,7 @@ class SpringAiToolConformanceTest {
             HeapComputeMcpTools.class,
             RecordingsMcpTools.class,
             HubsMcpTools.class,
-            HubsArtifactsMcpTools.class,
+            HubsFilesMcpTools.class,
             IdeMcpTools.class);
 
     /** Where a {@code @Tool} class may live and still be reachable over MCP. */

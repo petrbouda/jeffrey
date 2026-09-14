@@ -23,7 +23,6 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 
-import java.util.Comparator;
 import java.util.Set;
 
 /** The same read-only, project-scoped file selection for gRPC replay and event-activity aggregation. */
@@ -58,10 +57,7 @@ public final class ScopedReplaySource {
                 .singleSession(sessionId, true)
                 .orElseThrow(() -> new ReplayScopeNotFoundException("Session not found in requested project"));
 
-        var files = session.files().stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(RepositoryFile::isFinished)
-                .sorted(Comparator.comparing(RepositoryFile::createdAt))
+        var files = session.finishedChunks().stream()
                 .map(RepositoryFile::filePath)
                 .distinct()
                 .toList();

@@ -124,9 +124,9 @@ about.
 
 ## 4. Pull it in
 
-`hubs_download(sessionRef)` merges the session's finished recording files into one local recording
-and brings its artifacts — heap dumps, JVM and application logs — with it. It returns a
-`recordingId`.
+`hubs_download(sessionRef)` brings every finished file of the session over and assembles the JFR
+chunks among them into one local recording; everything else — heap dumps, JVM and application
+logs — is stored beside it. The hub never merges; Jeffrey does, here. It returns a `recordingId`.
 
 It does **not** build the profile; `recordings_analyzeRecording(recordingId)` does that and returns
 the `profileId` every analysis tool takes. The two are separate on purpose: a large session is a
@@ -153,10 +153,11 @@ When the question is "what exceptions did the service log", "why did the JVM cra
 the GC log say" — or the session has no finished recording at all — do not download the session:
 
 1. `hubs_files(sessionRef)` — read the `type` column: `APP_LOG`, `JVM_LOG`, `HS_JVM_ERROR_LOG`,
-   `PERF_COUNTERS`, `HEAP_DUMP`, `HEAP_DUMP_GZ`. The `fetch` column decides the row: only one
-   reading `fetch` can be fetched. `hubs_download` means a recording chunk, `when finished` means
-   still being written, and `no` means a type Jeffrey does not classify, which a hub will not
-   serve on its own — `hubs_download` is the only way to that one.
+   `PERF_COUNTERS`, `HEAP_DUMP`, `HEAP_DUMP_GZ`, `UNKNOWN` for a file Jeffrey does not classify.
+   The `fetch` column says how the row is reached: `fetch` means pass its `file_id` to
+   `hubs_fetchFile`; `hubs_download` means a recording chunk, best taken with the whole session,
+   though `hubs_fetchFile` takes a single chunk too, as it lies on the hub (`.jfr` or `.jfr.lz4`);
+   `when finished` means still being written; `no` means a transient file the hub never serves.
 2. `hubs_fetchFile(sessionRef, fileId)` — returns the **absolute path** the file now has on this
    machine, with its `filename`. A file already fetched comes back as it is; one whose transfer
    failed or was cancelled is started again by calling the tool again.
@@ -171,11 +172,11 @@ the GC log say" — or the session has no finished recording at all — do not d
 4. A fetched heap dump is a profile's input, not a text: pass its path to `recordings_analyzeFile`
    and hand off to **analyze-heap**.
 
-The path is where the file stays: beside the profile (`profiles/<id>/artifacts/`) when the
-session is analysed, under `artifacts/<hub>/<project>/<session>/` otherwise. A file fetched
+The path is where the file stays: beside the profile (`profiles/<id>/files/`) when the
+session is analysed, under `files/<hub>/<project>/<session>/` otherwise. A file fetched
 *before* the session was analysed is moved beside the profile by the next `hubs_fetchFile` rather
 than pulled down twice, so the path in an older answer can be stale — take the current one from
-`hubs_files`, which prints it in the `local` column once it is there, and for an artifact
+`hubs_files`, which prints it in the `local` column once it is there, and for a file
 `hubs_download` brought along with the recording.
 
 Cite a log the way `report` asks: the file name from `hubs_files` and the line number of what you
@@ -189,8 +190,8 @@ You now have a `profileId` and the hub is out of the picture.
   can answer, then the family that matches the question.
 - A session whose recording is a heap dump → the **analyze-heap** skill instead.
 
-A session often carries both a JFR recording and a heap dump; the dump arrives as an artifact
-alongside the recording. `profiles_features` on the resulting profile says which of the two you
+A session often carries both a JFR recording and a heap dump; the dump arrives as a file beside
+the recording. `profiles_features` on the resulting profile says which of the two you
 actually have.
 
 ## What this skill will not do

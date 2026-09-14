@@ -24,21 +24,33 @@ import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.shared.common.model.RepositoryInfo;
+import cafe.jeffrey.shared.common.model.RepositoryType;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AsprofFileRepositoryStorageTest {
 
@@ -53,15 +65,15 @@ class AsprofFileRepositoryStorageTest {
         @Test
         void opensTheRecordingOfASessionThatIsStillRecording() {
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JFR));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedFile.JFR));
         }
 
         @Test
         void opensTheLogsAndCachesOfASessionThatIsStillRecording() {
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JVM_LOG));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedFile.JVM_LOG));
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.ASPROF_TEMP));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedFile.ASPROF_TEMP));
         }
 
         @Test
@@ -70,12 +82,12 @@ class AsprofFileRepositoryStorageTest {
             // final. A long session accumulates one of these every chunk, and opening each would
             // grow the cost of a listing without bound.
             assertSame(FileSizeReader.FILE_ATTRIBUTES,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JFR_LZ4));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedFile.JFR_LZ4));
         }
 
         @Test
         void readsEveryFileOfAFinishedSessionFromTheListing() {
-            for (SupportedRecordingFile fileType : SupportedRecordingFile.values()) {
+            for (SupportedFile fileType : SupportedFile.values()) {
                 assertSame(FileSizeReader.FILE_ATTRIBUTES,
                         AsprofFileRepositoryStorage.sizeReader(RecordingStatus.FINISHED, fileType),
                         "file type: " + fileType);
@@ -95,7 +107,6 @@ class AsprofFileRepositoryStorageTest {
             return new AsprofFileRepositoryStorage(
                     mock(ProjectInfo.class),
                     workspace,
-                    workspace.resolve("temp"),
                     mock(ProjectRepositoryRepository.class),
                     new AsprofFileInfoProcessor());
         }
@@ -114,7 +125,7 @@ class AsprofFileRepositoryStorageTest {
             assertNotNull(described);
             assertEquals("gc.jvm-log", described.name());
             assertEquals(CONTENT.length, described.size());
-            assertEquals(SupportedRecordingFile.JVM_LOG, described.fileType());
+            assertEquals(SupportedFile.JVM_LOG, described.fileType());
         }
 
         @Test
@@ -134,6 +145,114 @@ class AsprofFileRepositoryStorageTest {
             Path vanished = session.resolve("profile-20260912-121559.jfr");
 
             assertNull(storage().describe(vanished, RecordingStatus.FINISHED, workspace, session));
+        }
+    }
+
+    /**
+     * The storage over a real session directory, listed through the database rows the
+     * repository would hold. Every method here resolves a file id through that listing rather
+     * than against the directory — a chunk's id is its name without the extension, so a path
+     * built from the id names nothing.
+     */
+    @Nested
+    class OverASession {
+
+        private static final String SESSION_ID = "session";
+        private static final byte[] CHUNK = "chunk-bytes".getBytes(StandardCharsets.UTF_8);
+
+        @TempDir
+        Path workspace;
+
+        private Path session;
+        private AsprofFileRepositoryStorage storage;
+
+        @BeforeEach
+        void setUp() throws IOException {
+            session = Files.createDirectories(workspace.resolve("project/instance/session"));
+            ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
+            when(repository.getAll()).thenReturn(List.of(
+                    new RepositoryInfo("repo", RepositoryType.ASYNC_PROFILER, null, "", "project")));
+            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
+                    SESSION_ID, "repo", "instance", 0, Path.of("instance/session"),
+                    Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, false, false)));
+            when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
+            ProjectInfo project = mock(ProjectInfo.class);
+            when(project.id()).thenReturn("project");
+            storage = new AsprofFileRepositoryStorage(project, workspace, repository, new AsprofFileInfoProcessor());
+        }
+
+        private Path write(String name) throws IOException {
+            return Files.write(session.resolve(name), CHUNK);
+        }
+
+        private String idOf(String name) {
+            return storage.singleSession(SESSION_ID, true).orElseThrow().files().stream()
+                    .filter(file -> file.name().equals(name))
+                    .map(RepositoryFile::id)
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("not listed: " + name));
+        }
+
+        @Test
+        void listsEveryFileAndSaysWhichAreDownloadable() throws IOException {
+            write("profile-20260101-120000.jfr");
+            write("gc.jvm-log");
+            write("notes.txt");
+            write("profile-20260101-120000.jfr.1~");
+
+            List<RepositoryFile> files = storage.singleSession(SESSION_ID, true).orElseThrow().files();
+
+            assertEquals(4, files.size());
+            for (RepositoryFile file : files) {
+                boolean transientFile = file.fileType() == SupportedFile.ASPROF_TEMP;
+                assertEquals(!transientFile, file.isDownloadable(), file.name());
+            }
+        }
+
+        @Test
+        void listsTheChunksOldestFirstAndNothingElse() throws IOException {
+            Path later = write("profile-20260101-130000.jfr");
+            Path earlier = write("profile-20260101-120000.jfr");
+            write("heap-dump.hprof");
+            write("gc.jvm-log");
+
+            assertEquals(List.of(earlier, later), storage.finishedChunks(SESSION_ID));
+            assertEquals(Optional.of(later), storage.latestFinishedChunk(SESSION_ID));
+        }
+
+        @Test
+        void compressesOnlyTheChunks() throws IOException {
+            Path chunk = write("profile-20260101-120000.jfr");
+            Path dump = write("heap-dump.hprof");
+
+            assertEquals(1, storage.compressSession(SESSION_ID));
+
+            assertFalse(Files.exists(chunk), "the raw chunk is replaced by its archive");
+            assertTrue(Lz4Compressor.isLz4Compressed(session.resolve("profile-20260101-120000.jfr.lz4")));
+            assertTrue(Files.exists(dump), "a heap dump is left alone");
+            assertEquals(1, storage.compressSession(SESSION_ID), "a second pass finds the chunk compressed and leaves it");
+            assertEquals(List.of(session.resolve("profile-20260101-120000.jfr.lz4")), storage.finishedChunks(SESSION_ID));
+        }
+
+        @Test
+        void aChunkKeepsItsIdAcrossCompression() throws IOException {
+            write("profile-20260101-120000.jfr");
+            String before = idOf("profile-20260101-120000.jfr");
+
+            storage.compressSession(SESSION_ID);
+
+            assertEquals(before, idOf("profile-20260101-120000.jfr.lz4"));
+        }
+
+        @Test
+        void deletesAChunkByItsId() throws IOException {
+            Path chunk = write("profile-20260101-120000.jfr");
+            Path log = write("gc.jvm-log");
+
+            storage.deleteRepositoryFiles(SESSION_ID, List.of(idOf("profile-20260101-120000.jfr")));
+
+            assertFalse(Files.exists(chunk), "the chunk named by its extension-less id is gone");
+            assertTrue(Files.exists(log));
         }
     }
 }

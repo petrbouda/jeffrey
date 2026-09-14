@@ -160,7 +160,7 @@ public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob<ProjectS
         }
 
         List<RepositoryFile> trimmable = active.files().stream()
-                .filter(RepositoryFile::isRecordingFile)
+                .filter(RepositoryFile::isRecordingChunk)
                 .filter(RepositoryFile::isFinished)
                 .sorted(Comparator.comparing(
                         RepositoryFile::createdAt,

@@ -35,7 +35,7 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.job.JobType;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -144,7 +144,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             return false;
         }
         try (Stream<Path> files = Files.list(sessionPath)) {
-            return files.anyMatch(SupportedRecordingFile.HS_JVM_ERROR_LOG::matches);
+            return files.anyMatch(file -> SupportedFile.of(file).isCrashSignal());
         } catch (IOException e) {
             // The crash-log check is best-effort: an unreadable/vanished session directory
             // must not abort the detector for the remaining sessions and projects.

@@ -28,56 +28,37 @@ import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Supplier;
 
-public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase {
+/**
+ * The hub's one download path. Every file a session holds is served the same way — a JFR chunk,
+ * a heap dump, a log, a file the hub does not classify — as it lies on disk. There is no merge
+ * here: a recording is assembled by the client from the chunks it downloads.
+ */
+public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloadServiceImplBase {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RecordingDownloadGrpcService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FileDownloadGrpcService.class);
     private static final int CHUNK_SIZE = 64 * 1024; // 64KB
 
     private final GrpcLookups lookups;
 
-    public RecordingDownloadGrpcService(GrpcLookups lookups) {
+    public FileDownloadGrpcService(GrpcLookups lookups) {
         this.lookups = lookups;
     }
 
     @Override
-    public void downloadMergedRecordings(DownloadMergedRecordingsRequest request, StreamObserver<DataChunk> responseObserver) {
-        streamDownload(responseObserver, "merged recordings: sessionId=" + request.getSessionId(), () -> {
+    public void downloadFile(DownloadFileRequest request, StreamObserver<DataChunk> responseObserver) {
+        streamDownload(responseObserver, "file: sessionId=" + request.getSessionId() + " fileId=" + request.getFileId(), () -> {
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
 
-            LOG.debug("Streaming merged recordings via gRPC: sessionId={} fileCount={}",
-                    request.getSessionId(), request.getFileIdsList().size());
-
-            return repoManager.mergeAndStreamRecordings(request.getSessionId(), request.getFileIdsList());
-        });
-    }
-
-    @Override
-    public void downloadArtifactFile(DownloadArtifactFileRequest request, StreamObserver<DataChunk> responseObserver) {
-        streamDownload(responseObserver, "artifact file: sessionId=" + request.getSessionId() + " fileId=" + request.getFileId(), () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
-
-            LOG.debug("Streaming artifact file via gRPC: sessionId={} fileId={}",
+            LOG.debug("Streaming file via gRPC: sessionId={} fileId={}",
                     request.getSessionId(), request.getFileId());
 
-            return repoManager.streamArtifactFile(request.getSessionId(), request.getFileId());
-        });
-    }
-
-    @Override
-    public void downloadRecordingFile(DownloadRecordingFileRequest request, StreamObserver<DataChunk> responseObserver) {
-        streamDownload(responseObserver, "recording file: sessionId=" + request.getSessionId() + " fileId=" + request.getFileId(), () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
-
-            LOG.debug("Streaming recording file via gRPC: sessionId={} fileId={}",
-                    request.getSessionId(), request.getFileId());
-
-            return repoManager.streamRecordingFile(request.getSessionId(), request.getFileId());
+            return repoManager.streamFile(request.getSessionId(), request.getFileId());
         });
     }
 
@@ -85,13 +66,14 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
      * Runs a server-streaming download: attaches the backpressure gate on the gRPC handler thread,
      * then on the streaming executor resolves the file via {@code producer} and pumps it with
      * backpressure. A {@link StatusRuntimeException} from the producer (e.g. a NOT_FOUND lookup)
-     * passes through unchanged; any other failure is logged with {@code errorContext} and reported
-     * as {@code INTERNAL}.
+     * passes through unchanged; any other failure is logged with {@code errorContext} and mapped
+     * through {@link GrpcExceptions#toStatus}, so a refused file answers {@code INVALID_ARGUMENT}
+     * rather than hiding behind {@code INTERNAL}.
      */
     private static void streamDownload(
             StreamObserver<DataChunk> responseObserver,
             String errorContext,
-            Supplier<StreamedRecordingFile> producer) {
+            Supplier<StreamedFile> producer) {
 
         // ReadyGate.attach must run in the gRPC handler thread (before this method returns) — gRPC rejects
         // setOnReadyHandler / setOnCancelHandler once the StreamObserver has been handed back.
@@ -105,13 +87,13 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
                 observer.onError(e);
             } catch (Exception e) {
                 LOG.error("Failed to stream {}", errorContext, e);
-                observer.onError(GrpcExceptions.internal(e));
+                observer.onError(GrpcExceptions.toStatus(e));
             }
         });
     }
 
     private static void streamWithBackpressure(
-            StreamedRecordingFile recordingFile,
+            StreamedFile recordingFile,
             ServerCallStreamObserver<DataChunk> observer,
             ReadyGate gate) throws IOException, InterruptedException {
 

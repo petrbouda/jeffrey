@@ -71,17 +71,22 @@ public interface RepositoryStorage {
     List<RecordingSession> listSessionsByInstanceId(String instanceId, boolean withFiles);
 
     /**
-     * Returns the path to the newest FINISHED recording chunk in a single
-     * session. Used by the session-detail endpoint to parse JVM-side
-     * configuration events from that session's most recently rotated chunk.
-     * May point at a raw {@code .jfr} or an LZ4-compressed {@code .jfr.lz4}
-     * file — the caller is responsible for decompression.
+     * The finished chunks of the session's recording, oldest first, as they lie on disk — raw
+     * {@code .jfr} or LZ4-compressed {@code .jfr.lz4}; the reader handles either. These are what
+     * the hub replays and what a client assembles into one recording.
      *
-     * @param sessionId the session whose recordings should be searched
-     * @return path to the newest finished recording file, or empty if no
-     *         finished chunk exists yet
+     * @param sessionId the session whose chunks are wanted
      */
-    Optional<Path> latestFinishedRecordingForSession(String sessionId);
+    List<Path> finishedChunks(String sessionId);
+
+    /**
+     * The newest finished chunk of the session's recording, from which the session-detail
+     * endpoint parses the JVM-side configuration events. Raw or compressed, as
+     * {@link #finishedChunks}. Empty until a chunk has finished.
+     *
+     * @param sessionId the session whose newest chunk is wanted
+     */
+    Optional<Path> latestFinishedChunk(String sessionId);
 
     /**
      * Deletes specific repository files from the repository.
@@ -137,58 +142,14 @@ public interface RepositoryStorage {
      */
     RepositoryType type();
 
-    // ========== Recording Files ==========
-
-    /**
-     * Get specific recordings from a session as compressed files.
-     * <p>
-     * Compresses JFR → JFR_LZ4 if needed, stores persistently to avoid re-compression.
-     * Only returns recordings with FINISHED status.
-     * </p>
-     *
-     * @param sessionId    the session ID
-     * @param recordingIds list of recording IDs to retrieve
-     * @return list of paths to compressed recording files
-     */
-    List<Path> recordings(String sessionId, List<String> recordingIds);
-
-    // ========== Merge Recordings ==========
-
-    /**
-     * Merge specific recordings from a session into a single compressed file.
-     * <p>
-     * Compresses if needed, then merges to temp file.
-     * The returned MergedRecording auto-deletes the temp file on close.
-     * </p>
-     *
-     * @param sessionId    the session ID
-     * @param recordingIds list of recording IDs to merge
-     * @return MergedRecording wrapper (auto-deletes temp file on close)
-     */
-    MergedRecording mergeRecordings(String sessionId, List<String> recordingIds);
-
-    // ========== Artifact Files ==========
-
-    /**
-     * Get specific artifacts from a session.
-     *
-     * @param sessionId   the session ID
-     * @param artifactIds list of artifact IDs to retrieve
-     * @return list of paths to artifact files
-     */
-    List<Path> artifacts(String sessionId, List<String> artifactIds);
-
     // ========== Session Compression ==========
 
     /**
-     * Compresses FINISHED JFR recordings in the session and deletes originals.
+     * Compresses the session's finished chunks and deletes the originals.
      * <p>
-     * This is used by the scheduler job to save disk space. Files that are already
-     * compressed (JFR_LZ4) are skipped. The original JFR files are deleted after
-     * successful compression.
-     * <p>
-     * For ACTIVE sessions, the latest few recording files are skipped because
-     * async-profiler may still be flushing data into them.
+     * This is used by the scheduler job to save disk space. Chunks the hub already
+     * compressed are skipped. The chunk a running session is still writing is not
+     * finished and is therefore left alone.
      * </p>
      *
      * @param sessionId the session ID to compress

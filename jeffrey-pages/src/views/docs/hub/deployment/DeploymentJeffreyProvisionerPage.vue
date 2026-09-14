@@ -259,7 +259,7 @@ volumes:
         <code>&lt;&lt;ENV:NAME&gt;&gt;</code>, etc. — see the
         <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>),
         so each <code>-Xlog</code> file lands in the per-cycle session directory. End the file name
-        with <code>.jvm-log</code> and Jeffrey picks it up as a JVM log artifact.
+        with <code>.jvm-log</code> and Jeffrey picks it up as a JVM log.
       </p>
 
       <p>

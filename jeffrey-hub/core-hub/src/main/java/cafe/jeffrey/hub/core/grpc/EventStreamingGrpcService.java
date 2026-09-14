@@ -158,7 +158,7 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
         SessionWithRepository session = platformRepositories.findSessionWithRepositoryById(sessionId)
                 .orElseThrow(() -> new ReplayScopeNotFoundException(SESSION_NOT_FOUND + sessionId));
         RepositoryStorage storage = repositoryStorageFactory.apply(session.projectInfo());
-        List<Path> recordingFiles = storage.recordings(sessionId, null);
+        List<Path> recordingFiles = storage.finishedChunks(sessionId);
         if (recordingFiles.isEmpty()) {
             throw new ReplayScopeNotFoundException(NO_RECORDING_FILES + sessionId);
         }

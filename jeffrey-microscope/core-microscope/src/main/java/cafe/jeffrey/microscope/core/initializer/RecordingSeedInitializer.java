@@ -24,7 +24,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,11 +38,11 @@ public class RecordingSeedInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingSeedInitializer.class);
 
-    private static final Set<SupportedRecordingFile> SEED_FILE_TYPES = Set.of(
-            SupportedRecordingFile.JFR,
-            SupportedRecordingFile.JFR_LZ4,
-            SupportedRecordingFile.HEAP_DUMP,
-            SupportedRecordingFile.HEAP_DUMP_GZ
+    private static final Set<SupportedFile> SEED_FILE_TYPES = Set.of(
+            SupportedFile.JFR,
+            SupportedFile.JFR_LZ4,
+            SupportedFile.HEAP_DUMP,
+            SupportedFile.HEAP_DUMP_GZ
     );
 
     private final RecordingsManager recordingsManager;
@@ -68,7 +68,7 @@ public class RecordingSeedInitializer implements ApplicationRunner {
 
         int imported = 0;
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(seedPath, RecordingSeedInitializer::isRecordingFile)) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(seedPath, RecordingSeedInitializer::isSeedFile)) {
             for (Path file : stream) {
                 String filename = file.getFileName().toString();
                 if (existingFilenames.contains(filename)) {
@@ -93,7 +93,7 @@ public class RecordingSeedInitializer implements ApplicationRunner {
         }
     }
 
-    private static boolean isRecordingFile(Path path) {
-        return SEED_FILE_TYPES.contains(SupportedRecordingFile.of(path));
+    private static boolean isSeedFile(Path path) {
+        return SEED_FILE_TYPES.contains(SupportedFile.of(path));
     }
 }

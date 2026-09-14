@@ -319,7 +319,7 @@ onMounted(() => {
             <td><code>PT1H</code></td>
             <td>
               How long a transfer itself may take, once it is running in the background &mdash; a whole
-              session under <code>hubs_download</code> or one artifact under <code>hubs_fetchFile</code>,
+              session under <code>hubs_download</code> or one file under <code>hubs_fetchFile</code>,
               which is the same bytes off the same link. Its own setting because it measures something
               else entirely from the response deadline above: gigabytes over whatever link the hub is on.
               This is the one to raise for large recordings on a slow connection. A positive ISO-8601 duration. Read at startup. See
