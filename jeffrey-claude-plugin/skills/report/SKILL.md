@@ -41,6 +41,15 @@ that shaped the result:
 
 If you cannot name the call, you cannot make the claim. Delete it, or go and measure it.
 
+A claim drawn from a file rather than a tool — an application log, a GC log or a crash file that
+`hubs_fetchFile` put on this machine — names the file and the line instead, so the reader can open
+the same line:
+
+> The JVM died of `SIGSEGV` in `libzip.so` while `main` was inside `Inflater.inflateBytes`.
+> Evidence: `hs-jvm-err.log`, fetched from session `instance-1` by `hubs_fetchFile` to
+> `~/.jeffrey-microscope/artifacts/…/hs-jvm-err.log`, lines 1–12 and the `Java frames:` block
+> at lines 38–46.
+
 Tool names above omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
 hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.

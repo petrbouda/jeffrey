@@ -186,7 +186,7 @@ const protocolError = `{
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>
-      <p>The same hundred and twelve tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
+      <p>The same hundred and fourteen tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
 
       <p>What does not come along as <em>skills</em> is the guidance: the entry sequence and the two database schemas. But it is not lost. The server offers the same files over the protocol as <strong>prompts</strong>, so a client that speaks <code>prompts/list</code> can load any of them without a plugin at all &mdash; see below. What is genuinely missing is the <router-link to="/docs/microscope-mcp/agent">agents</router-link>, which no MCP server can provide, and the automatic loading: a plugin client picks a skill up when a question calls for it, where here somebody has to ask for the prompt.</p>
 
@@ -268,7 +268,7 @@ const protocolError = `{
       <h2 id="instructions-and-completions">Instructions and Completions</h2>
       <p>Two things the server hands a client that has no plugin behind it.</p>
 
-      <p><strong><code>initialize</code> returns an <code>instructions</code> field.</strong> A hundred-odd tools in nineteen families is a lot to meet with nothing but a tool list, so the handshake carries the short version: start at <code>profiles_list</code>, then <code>profiles_summary</code> and read <code>topFindings</code> and <code>capabilityGaps</code> before choosing a family; every tool outside <code>profiles_list</code> and the <code>recordings_</code>, <code>hubs_</code> and <code>operations_</code> families needs a <code>profileId</code>; what each family is for; that the nine writers return an <code>operationId</code> to poll; and that output is capped and always says when it cut. Most clients put it in front of the model automatically. The longer guidance stays where it was &mdash; one prompt per workflow.</p>
+      <p><strong><code>initialize</code> returns an <code>instructions</code> field.</strong> A hundred-odd tools in nineteen families is a lot to meet with nothing but a tool list, so the handshake carries the short version: start at <code>profiles_list</code>, then <code>profiles_summary</code> and read <code>topFindings</code> and <code>capabilityGaps</code> before choosing a family; every tool outside <code>profiles_list</code> and the <code>recordings_</code>, <code>hubs_</code> and <code>operations_</code> families needs a <code>profileId</code>; what each family is for; that the ten writers return an <code>operationId</code> to poll; and that output is capped and always says when it cut. Most clients put it in front of the model automatically. The longer guidance stays where it was &mdash; one prompt per workflow.</p>
 
       <p id="completions"><strong><code>completion/complete</code> completes <code>profileId</code>.</strong> A profile id is a UUIDv7, and there is no way to produce one except by reading it out of the catalogue first, which is exactly what this method exists for. It answers for both reference types &mdash; a <code>ref/prompt</code>, since every prompt takes the argument, and a <code>ref/resource</code> naming one of the per-profile templates &mdash; matching on what has been typed so far, case-insensitively, and capping the response at the hundred values the protocol allows while reporting the true <code>total</code>. No other argument is completed: an event type is <code>jdk.ExecutionSample</code>, a name a model already knows. The capability is declared only when the <code>profiles</code> family is advertised, so a narrowed server does not offer a picker it cannot fill.</p>
 
@@ -285,7 +285,7 @@ const protocolError = `{
       <DocsCodeBlock :code="initialize" language="bash" />
       <DocsCodeBlock :code="initializeResult" language="json" />
 
-      <p>Then <code>tools/list</code> with the same envelope returns all hundred and twelve specs. To run one:</p>
+      <p>Then <code>tools/list</code> with the same envelope returns all hundred and fourteen specs. To run one:</p>
       <DocsCodeBlock :code="toolsCall" language="bash" />
 
       <p>The result arrives as MCP text content &mdash; for the export tools, the same Markdown document the plugin would hand to Claude, preamble included.</p>

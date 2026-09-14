@@ -25,6 +25,7 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadedSessionIndex;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubScanFilter;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionLocator;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionCursor;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
@@ -39,8 +40,6 @@ import cafe.jeffrey.profile.mcp.McpOutputSchema;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.ArrayNode;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
@@ -63,8 +62,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -117,8 +114,6 @@ public class HubsMcpTools {
     private static final Duration DOWNLOAD_RESPONSE_BUDGET = BoundedJobs.WAIT_BUDGET;
     private static final Duration DOWNLOAD_DEADLINE = Duration.ofHours(1);
 
-    private static final ScheduledExecutorService DEADLINE_SCHEDULER = deadlineScheduler();
-
     private static final String NO_HUBS =
             "No Jeffrey Hub is connected to this installation. Recordings can still be analysed from "
                     + "a local file with recordings_analyzeFile.";
@@ -146,6 +141,7 @@ public class HubsMcpTools {
      */
     private final BoundedJobs<HubSessionRef, String> downloads;
     private final HubSessionScan scan;
+    private final HubSessionLocator locator;
     private final McpOperationRegistry operations;
 
     public HubsMcpTools(
@@ -195,6 +191,7 @@ public class HubsMcpTools {
         this.downloadDeadline = requirePositive(downloadDeadline, "downloadDeadline");
         this.downloads = new BoundedJobs<>(downloadResponseBudget, BoundedJobs.COMPLETED_RETENTION, clock);
         this.scan = new HubSessionScan(hubsManager, scanBudget);
+        this.locator = new HubSessionLocator(resolver);
     }
 
     @Tool(description = "Every Jeffrey Hub this installation is connected to, and whether it answers "
@@ -373,7 +370,7 @@ public class HubsMcpTools {
             String workspace = bounded(row.workspaceName(), DISPLAY_CHARS);
             String project = bounded(row.projectName(), DISPLAY_CHARS);
             String duration = duration(session);
-            String size = size(session.totalSizeBytes());
+            String size = ByteSizes.format(session.totalSizeBytes());
             String localCopy = localColumn(local, row.ref());
             String ref = row.ref().encode();
             int files = session.files() == null ? 0 : session.files().size();
@@ -505,7 +502,7 @@ public class HubsMcpTools {
             }
         }
 
-        Deadline responseDeadline = Deadline.after(downloadResponseBudget.toNanos(), TimeUnit.NANOSECONDS);
+        Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
         DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
         HubInfo hubInfo = preflight.hubInfo();
         ProjectManager project = preflight.project();
@@ -625,36 +622,11 @@ public class HubsMcpTools {
     }
 
     private HubInfo hubInfo(HubSessionRef ref) {
-        try {
-            return resolver.resolveHub(ref.hubId()).info();
-        } catch (JeffreyException e) {
-            // The model is told the ref went stale, which is what it can act on. The failure that
-            // actually happened is kept here: without it a hub that is merely unreachable is
-            // indistinguishable, in the logs, from one that was disconnected on purpose.
-            LOG.debug("Hub lookup failed for a session_ref: hub_id={} reason={}",
-                    ref.hubId(), e.getMessage(), e);
-            throw staleRef(ref, "its hub is no longer connected to this Jeffrey");
-        }
+        return locator.hubInfo(ref);
     }
 
     private ProjectManager projectFor(HubSessionRef ref) {
-        try {
-            return resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId()).projectManager();
-        } catch (StatusRuntimeException e) {
-            LOG.debug("Workspace or project lookup failed for a session_ref: hub_id={} reason={}",
-                    ref.hubId(), e.getMessage(), e);
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                throw staleRef(ref, "its workspace or project is no longer there");
-            }
-            throw GrpcClientErrors.toJeffreyException(e);
-        } catch (JeffreyException e) {
-            LOG.debug("Workspace or project lookup failed for a session_ref: hub_id={} reason={}",
-                    ref.hubId(), e.getMessage(), e);
-            if (e.getCode().isNotFound()) {
-                throw staleRef(ref, "its workspace or project is no longer there");
-            }
-            throw e;
-        }
+        return locator.project(ref);
     }
 
     /**
@@ -662,28 +634,7 @@ public class HubsMcpTools {
      * to merge both fail in a sentence rather than partway through a multi-gigabyte transfer.
      */
     private RecordingSession preflight(ProjectManager project, HubSessionRef ref, HubInfo hubInfo) {
-        RecordingSession session;
-        try {
-            session = project.repositoryManager().recordingSession(ref.sessionId());
-        } catch (StatusRuntimeException e) {
-            LOG.debug("Session lookup failed on the hub: hub_id={} session_id={} reason={}",
-                    ref.hubId(), ref.sessionId(), e.getMessage(), e);
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                throw staleRef(ref, "hub " + hubInfo.name() + " no longer has it, "
-                        + "which usually means retention removed it");
-            }
-            throw GrpcClientErrors.toJeffreyException(e);
-        } catch (JeffreyException e) {
-            LOG.debug("Session lookup failed on the hub: hub_id={} session_id={} reason={}",
-                    ref.hubId(), ref.sessionId(), e.getMessage(), e);
-            if (e.getCode() == ErrorCode.HUB_UNAVAILABLE
-                    || e.getCode() == ErrorCode.REMOTE_OPERATION_FAILED) {
-                throw e;
-            }
-            throw staleRef(ref, "hub " + hubInfo.name() + " no longer has it, "
-                    + "which usually means retention removed it");
-        }
-
+        RecordingSession session = locator.session(project, ref, hubInfo);
         if (finishedFiles(session).stream().noneMatch(RepositoryFile::isRecordingFile)) {
             throw new IllegalArgumentException(
                     "Session " + ref.sessionId() + " has no finished recording file to download"
@@ -707,14 +658,8 @@ public class HubsMcpTools {
         return finished;
     }
 
-    private static IllegalArgumentException staleRef(HubSessionRef ref, String why) {
-        return new IllegalArgumentException(
-                "Session " + ref.sessionId() + " cannot be downloaded: " + why
-                        + ". Call hubs_sessions again for a current session_ref.");
-    }
-
     private DownloadPreflight preflightWithin(HubSessionRef ref, Deadline deadline) {
-        Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINE_SCHEDULER);
+        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
             return context.call(() -> {
                 HubInfo hubInfo = hubInfo(ref);
@@ -734,8 +679,7 @@ public class HubsMcpTools {
     }
 
     private String transferWithinDeadline(ProjectManager project, HubSessionRef ref, BoundedJobs.JobControl control) {
-        Context.CancellableContext context = Context.ROOT.withDeadlineAfter(
-                downloadDeadline.toNanos(), TimeUnit.NANOSECONDS, DEADLINE_SCHEDULER);
+        Context.CancellableContext context = McpDeadlines.withDeadlineAfter(Context.ROOT, downloadDeadline);
         control.onCancellation(() -> context.cancel(null));
         try {
             control.checkCancellation();
@@ -774,14 +718,6 @@ public class HubsMcpTools {
             throw new IllegalArgumentException(name + " must be positive: " + value);
         }
         return value;
-    }
-
-    private static ScheduledExecutorService deadlineScheduler() {
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(
-                1,
-                Thread.ofPlatform().daemon().name("hub-mcp-download-deadline-", 0).factory());
-        executor.setRemoveOnCancelPolicy(true);
-        return executor;
     }
 
     private static RuntimeException mapRemoteFailure(RuntimeException exception) {
@@ -848,19 +784,6 @@ public class HubsMcpTools {
             return elapsed.toMinutes() + "m" + elapsed.toSecondsPart() + "s";
         }
         return elapsed.toSeconds() + "s";
-    }
-
-    private static String size(long bytes) {
-        if (bytes < 1024) {
-            return bytes + "B";
-        }
-        if (bytes < 1024 * 1024) {
-            return Math.round(bytes / 1024.0) + "KB";
-        }
-        if (bytes < 1024L * 1024 * 1024) {
-            return Math.round(bytes / (1024.0 * 1024)) + "MB";
-        }
-        return String.format(Locale.ROOT, "%.1fGB", bytes / (1024.0 * 1024 * 1024));
     }
 
     /**

@@ -29,6 +29,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'analyse-a-recording-you-just-made', text: 'Analyse a Recording You Just Made', level: 2 },
   { id: 'analyse-what-production-recorded', text: 'Analyse What Production Recorded', level: 2 },
+  { id: 'read-what-the-jvm-wrote', text: 'Read What the JVM Wrote', level: 2 },
   { id: 'where-does-the-time-go', text: 'Where Does the Time Go', level: 2 },
   { id: 'explain-a-slow-endpoint', text: 'Explain a Slow Endpoint', level: 2 },
   { id: 'find-when-it-happened', text: 'Find When It Happened', level: 2 },
@@ -53,6 +54,11 @@ methods dominate the CPU profile`;
 
 const promptFromHub = `analyse what production recorded in the last hour and tell me where the time
 went`;
+
+const promptCrash = `the checkout pod in production restarted twice this morning - find out why the JVM died`;
+
+const promptLogs = `find the exceptions in the checkout service's application log from the last
+session on the hub, and show me what was logged just before the first one`;
 
 const promptHotPaths = `list the Jeffrey profiles, then show me where the CPU time goes in the most recent one`;
 
@@ -144,6 +150,20 @@ LIMIT 20`;
       </DocsCallout>
 
       <p>A heap dump in the session arrives with it, so <em>&ldquo;pull the dump from the pod that OOMed and tell me what was holding memory&rdquo;</em> is the same recipe ending in the <code>heap_</code> family instead.</p>
+
+      <h2 id="read-what-the-jvm-wrote">Read What the JVM Wrote</h2>
+      <DocsCodeBlock :code="promptCrash" language="bash" />
+      <DocsCodeBlock :code="promptLogs" language="bash" />
+
+      <p>Drives <code>hubs_sessions</code> &rarr; <code>hubs_files</code> &rarr; <code>hubs_fetchFile</code> &rarr; the agent&rsquo;s own <code>grep</code>, <code>sed</code> and file reader.</p>
+
+      <p>A session holds more than its recording. A JVM provisioned by Jeffrey leaves its <code>-Xlog</code> output beside the JFR chunks, the perf-counters file, the application&rsquo;s own log if it was pointed at the session directory, and &mdash; when it died &mdash; the HotSpot crash file, often with nothing else next to it because the first chunk never rolled. <code>hubs_files</code> says what a session holds; <code>hubs_fetchFile</code> pulls one file down and answers with the absolute path it now has on the machine Jeffrey runs on.</p>
+
+      <p>From there Jeffrey steps aside. It does not parse the log, group the exceptions or summarise the crash: the agent runs on the same machine (the endpoint accepts loopback hosts only), and its own tools are better at a text file than anything a tool result could carry. A crash file reads top-down &mdash; the <code>#</code> header names the signal, <code>Current thread</code> and the <code>Java frames:</code> block say where &mdash; and a GC log&rsquo;s <code>[12.345s]</code> is an uptime, and when the session&rsquo;s recording has been analysed too, <code>hubs_files</code> names the profile and the instant that uptime counts from.</p>
+
+      <DocsCallout type="tip" title="The crash file's two names">
+        A JVM Jeffrey provisioned writes <code>hs-jvm-err.log</code>; one it did not writes the JVM&rsquo;s default <code>hs_err_pid&lt;pid&gt;.log</code>. Both are classified as a crash file, so the hub&rsquo;s crash notification and <code>hubs_files</code> see either.
+      </DocsCallout>
 
       <h2 id="where-does-the-time-go">Where Does the Time Go</h2>
       <DocsCodeBlock :code="promptHotPaths" language="bash" />

@@ -14,6 +14,8 @@ disallowedTools:
   - mcp__plugin_microscope_jeffrey__hubs_sessions
   - mcp__plugin_microscope_jeffrey__hubs_queryEvents
   - mcp__plugin_microscope_jeffrey__hubs_download
+  - mcp__plugin_microscope_jeffrey__hubs_files
+  - mcp__plugin_microscope_jeffrey__hubs_fetchFile
   - mcp__plugin_microscope_jeffrey__hubs_eventActivity
   - mcp__plugin_microscope_jeffrey__hubs_activityStatus
   - mcp__plugin_microscope_jeffrey__hubs_activityCancel
@@ -27,6 +29,8 @@ disallowedTools:
   - mcp__jeffrey__hubs_sessions
   - mcp__jeffrey__hubs_queryEvents
   - mcp__jeffrey__hubs_download
+  - mcp__jeffrey__hubs_files
+  - mcp__jeffrey__hubs_fetchFile
   - mcp__jeffrey__hubs_eventActivity
   - mcp__jeffrey__hubs_activityStatus
   - mcp__jeffrey__hubs_activityCancel

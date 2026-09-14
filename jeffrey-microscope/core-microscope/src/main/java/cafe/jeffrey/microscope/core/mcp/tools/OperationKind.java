@@ -46,6 +46,11 @@ public enum OperationKind {
             OperationKind.FAMILY_HUBS,
             "Call hubs_download with the same sessionRef and retry=true to start a new attempt."),
 
+    HUB_FETCH(
+            "hub_fetch",
+            OperationKind.FAMILY_HUBS,
+            "Call hubs_fetchFile with the same sessionRef and fileId to start a new attempt."),
+
     HUB_ACTIVITY(
             "hub_activity",
             OperationKind.FAMILY_HUBS,

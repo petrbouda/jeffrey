@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
@@ -49,6 +50,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import tools.jackson.databind.JsonNode;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -120,6 +122,8 @@ class McpToolsetAssemblerTest {
                 new HeapDumpInitService(CLOCK),
                 ideBridge,
                 properties, new HubsReplayMcpTools(projectManagerResolver, new McpOperationRegistry(CLOCK), CLOCK),
+                new HubsArtifactsMcpTools(projectManagerResolver, recordingsManager, Path.of("artifacts"),
+                        Path.of("profiles"), new McpOperationRegistry(CLOCK), CLOCK),
                 new McpOperationRegistry(CLOCK), CLOCK);
     }
 
@@ -246,6 +250,16 @@ class McpToolsetAssemblerTest {
             assertTrue(names.contains("hubs_eventActivity"));
             assertTrue(names.contains("hubs_activityStatus"));
             assertTrue(names.contains("hubs_activityCancel"));
+            assertTrue(names.contains("hubs_files"));
+            assertTrue(names.contains("hubs_fetchFile"));
+        }
+
+        @Test
+        void theFileToolsGoWithTheHubSwitch() {
+            List<String> names = toolNames(false);
+
+            assertFalse(names.contains("hubs_files"));
+            assertFalse(names.contains("hubs_fetchFile"));
         }
 
         @Test
@@ -387,6 +401,7 @@ class McpToolsetAssemblerTest {
                 "recordings_analyzeRecording",
                 "heap_prepare",
                 "hubs_download",
+                "hubs_fetchFile",
                 "hubs_eventActivity",
                 "hubs_activityCancel",
                 "operations_cancel",
@@ -411,7 +426,7 @@ class McpToolsetAssemblerTest {
          * and those numbers silently stopped being true. Adding a tool should fail here, with this
          * list in front of whoever added it.
          */
-        private static final int ADVERTISED_TOOLS = 112;
+        private static final int ADVERTISED_TOOLS = 114;
 
         @Test
         void advertisesTheDocumentedNumberOfTools() {

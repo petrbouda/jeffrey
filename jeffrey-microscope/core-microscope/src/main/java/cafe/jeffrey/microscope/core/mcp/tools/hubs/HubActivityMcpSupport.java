@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
+import cafe.jeffrey.microscope.core.mcp.tools.McpDeadlines;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -50,8 +51,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -127,19 +126,16 @@ public final class HubActivityMcpSupport {
     private final ProjectManagerResolver resolver;
     private final McpOperationRegistry operations;
     private final Duration timeout;
-    private final ScheduledExecutorService deadlines;
     private final Clock clock;
 
     public HubActivityMcpSupport(
             ProjectManagerResolver resolver,
             McpOperationRegistry operations,
             Duration timeout,
-            ScheduledExecutorService deadlines,
             Clock clock) {
         this.resolver = resolver;
         this.operations = operations;
         this.timeout = timeout;
-        this.deadlines = deadlines;
         this.clock = clock;
     }
 
@@ -267,8 +263,8 @@ public final class HubActivityMcpSupport {
 
         // The only deadline on these calls. The client sets none of its own, so this is the timeout
         // that applies rather than the shorter of two.
-        Deadline deadline = Deadline.after(timeout.toNanos(), TimeUnit.NANOSECONDS);
-        Context.CancellableContext context = Context.current().withDeadline(deadline, deadlines);
+        Deadline deadline = McpDeadlines.after(timeout);
+        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
             Callable<ActivityScanSnapshot> call = () -> operation.apply(resolver
                     .resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())

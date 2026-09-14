@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.mcp.tools.McpDeadlines;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
@@ -52,8 +53,6 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -94,8 +93,6 @@ public final class HubSessionScan {
             new LinkedBlockingQueue<>(),
             Thread.ofVirtual().name("hub-mcp-scan-", 0).factory(),
             new ThreadPoolExecutor.AbortPolicy());
-
-    private static final ScheduledExecutorService DEADLINE_SCHEDULER = deadlineScheduler();
 
     private final HubsManager hubsManager;
     private final Duration budget;
@@ -198,8 +195,8 @@ public final class HubSessionScan {
             return new Result(List.of(), List.of());
         }
 
-        Deadline deadline = Deadline.after(budget.toNanos(), TimeUnit.NANOSECONDS);
-        Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINE_SCHEDULER);
+        Deadline deadline = McpDeadlines.after(budget);
+        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
             return context.call(() -> scanWithin(hubs, filter, limit, context, deadline));
         } catch (Exception e) {
@@ -225,8 +222,8 @@ public final class HubSessionScan {
     }
 
     public ProbeResult probeDetails(List<HubManager> hubs) {
-        Deadline deadline = Deadline.after(budget.toNanos(), TimeUnit.NANOSECONDS);
-        Context.CancellableContext context = Context.current().withDeadline(deadline, DEADLINE_SCHEDULER);
+        Deadline deadline = McpDeadlines.after(budget);
+        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
             return context.call(() -> {
                 StageResult<Map.Entry<String, Optional<String>>> probes = await(hubs.stream()
@@ -558,14 +555,6 @@ public final class HubSessionScan {
         String message = exception.getMessage();
         return new Failure(hubName, scope, Failure.Kind.OTHER,
                 message == null ? exception.getClass().getSimpleName() : message);
-    }
-
-    private static ScheduledExecutorService deadlineScheduler() {
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(
-                1,
-                Thread.ofPlatform().daemon().name("hub-mcp-deadline-", 0).factory());
-        executor.setRemoveOnCancelPolicy(true);
-        return executor;
     }
 
     private static String hubName(HubInfo info) {

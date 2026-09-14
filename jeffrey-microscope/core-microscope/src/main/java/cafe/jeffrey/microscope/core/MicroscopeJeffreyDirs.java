@@ -30,6 +30,7 @@ public class MicroscopeJeffreyDirs implements TempDirFactory {
     private static final String WORKSPACES_DIR = "workspaces";
     private static final String PROFILES_DIR = "profiles";
     private static final String RECORDINGS_DIR = "recordings";
+    private static final String ARTIFACTS_DIR = "artifacts";
     public static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump";
     private static final String TMP_DIR = "tmp";
     private final Path homeDir;
@@ -48,6 +49,7 @@ public class MicroscopeJeffreyDirs implements TempDirFactory {
         FileSystemUtils.createDirectories(homeDir);
         FileSystemUtils.createDirectories(profiles());
         FileSystemUtils.createDirectories(recordings());
+        FileSystemUtils.createDirectories(artifacts());
         FileSystemUtils.removeAndCreateDirectories(tempDir);
         return homeDir;
     }
@@ -66,6 +68,15 @@ public class MicroscopeJeffreyDirs implements TempDirFactory {
 
     public Path recordings() {
         return homeDir.resolve(RECORDINGS_DIR);
+    }
+
+    /**
+     * Where artifacts fetched one at a time from a hub land — the logs and crash files a reader asks
+     * for without pulling the whole session — as {@code <hub>/<project>/<session>/<name>}. Plain files
+     * at a deterministic path, catalogued nowhere: whether one was fetched is whether it is there.
+     */
+    public Path artifacts() {
+        return homeDir.resolve(ARTIFACTS_DIR);
     }
 
     public Path profileDir(String profileId) {

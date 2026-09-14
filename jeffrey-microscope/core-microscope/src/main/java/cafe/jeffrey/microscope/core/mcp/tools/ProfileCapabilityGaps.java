@@ -173,7 +173,9 @@ final class ProfileCapabilityGaps {
                     REMEDY_ENABLE_EVENTS)),
             entry(FeatureType.PERF_COUNTERS_DASHBOARD, new FeatureGap(
                     "No perf-counters file accompanied the recording, so the perf-counter dashboard is empty.",
-                    "Upload the recording together with its perf-counters file next time.")),
+                    "If the session is on a hub, hubs_files shows whether it holds one and hubs_fetchFile "
+                            + "pulls it down as a file. Otherwise upload the recording together with its "
+                            + "perf-counters file next time.")),
             entry(FeatureType.SUBSECOND, new FeatureGap(
                     "This profile carries no per-sample timestamps, so timeline_zoom cannot resolve below a second.",
                     "Record a JFR or OTLP profile when the shape over time matters.")),
