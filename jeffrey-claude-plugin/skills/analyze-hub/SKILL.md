@@ -153,9 +153,13 @@ When the question is "what exceptions did the service log", "why did the JVM cra
 the GC log say" — or the session has no finished recording at all — do not download the session:
 
 1. `hubs_files(sessionRef)` — read the `type` column: `APP_LOG`, `JVM_LOG`, `HS_JVM_ERROR_LOG`,
-   `PERF_COUNTERS`, `HEAP_DUMP`. Only a `FINISHED` file can be fetched.
-2. `hubs_fetchFile(sessionRef, fileId)` — returns an `artifactId` and the **absolute path** the
-   file now has on this machine. A file already fetched comes back as it is.
+   `PERF_COUNTERS`, `HEAP_DUMP`, `HEAP_DUMP_GZ`. The `fetch` column decides the row: only one
+   reading `fetch` can be fetched. `hubs_download` means a recording chunk, `when finished` means
+   still being written, and `no` means a type Jeffrey does not classify, which a hub will not
+   serve on its own — `hubs_download` is the only way to that one.
+2. `hubs_fetchFile(sessionRef, fileId)` — returns the **absolute path** the file now has on this
+   machine, with its `filename`. A file already fetched comes back as it is; one whose transfer
+   failed or was cancelled is started again by calling the tool again.
 3. **Read the file with your own tools.** Jeffrey runs on this machine and hands you the path
    rather than parsing the log for you: `grep -n 'Exception' <path>`, `sed -n '1200,1260p' <path>`,
    `tail -200 <path>`, your file reader. A crash file reads top-down — the `#` header names the
@@ -168,12 +172,14 @@ the GC log say" — or the session has no finished recording at all — do not d
    and hand off to **analyze-heap**.
 
 The path is where the file stays: beside the profile (`profiles/<id>/artifacts/`) when the
-session is analysed, under `artifacts/<hub>/<project>/<session>/` otherwise. `hubs_files` prints
-it in the `local` column once it is there, and for an artifact `hubs_download` brought along with
-the recording.
+session is analysed, under `artifacts/<hub>/<project>/<session>/` otherwise. A file fetched
+*before* the session was analysed is moved beside the profile by the next `hubs_fetchFile` rather
+than pulled down twice, so the path in an older answer can be stale — take the current one from
+`hubs_files`, which prints it in the `local` column once it is there, and for an artifact
+`hubs_download` brought along with the recording.
 
-Cite a log the way `report` asks: the artifact's file name and the line number of what you quote,
-so the reader can open the same line.
+Cite a log the way `report` asks: the file name from `hubs_files` and the line number of what you
+quote, so the reader can open the same line.
 
 ## 5. Analyse
 

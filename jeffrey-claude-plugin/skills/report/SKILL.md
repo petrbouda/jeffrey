@@ -46,8 +46,9 @@ A claim drawn from a file rather than a tool — an application log, a GC log or
 the same line:
 
 > The JVM died of `SIGSEGV` in `libzip.so` while `main` was inside `Inflater.inflateBytes`.
-> Evidence: `hs-jvm-err.log` (artifact `a-41f2`, fetched from session `instance-1`), lines 1–12
-> and the `Java frames:` block at lines 38–46.
+> Evidence: `hs-jvm-err.log`, fetched from session `instance-1` by `hubs_fetchFile` to
+> `~/.jeffrey-microscope/artifacts/…/hs-jvm-err.log`, lines 1–12 and the `Java frames:` block
+> at lines 38–46.
 
 Tool names above omit the prefix your client puts in front of them —
 `mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any

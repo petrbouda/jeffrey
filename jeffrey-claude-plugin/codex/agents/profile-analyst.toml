@@ -7,7 +7,7 @@
 #
 # Unlike the Claude Code subagent, the tool restriction here is instruction-level rather than
 # enforced: Codex has no per-agent tool deny-list, so the "never write" rules below are the only
-# thing keeping the analyst off `recordings_`, the three `hubs_` tools that write (`hubs_download`,
+# thing keeping the analyst off `recordings_`, the four `hubs_` tools that write (`hubs_download`, `hubs_fetchFile`,
 # `hubs_eventActivity`, `hubs_activityCancel`), `heap_prepare`, `operations_cancel`, and the two `ide_` tools that act
 # on your editor. Read-only sandboxing keeps it out of your files.
 

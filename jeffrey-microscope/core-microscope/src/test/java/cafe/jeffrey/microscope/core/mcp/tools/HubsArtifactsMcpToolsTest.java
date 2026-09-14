@@ -67,6 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -149,6 +150,10 @@ class HubsArtifactsMcpToolsTest {
         return home.resolve("artifacts").resolve(HUB_ID).resolve(PROJECT_ID).resolve(SESSION_ID).resolve(name);
     }
 
+    private Path profileTarget(String profileId, String name) {
+        return home.resolve("profiles").resolve(profileId).resolve("artifacts").resolve(name);
+    }
+
     private StreamedRecordingFile streamed(String name) throws IOException {
         Path dir = Files.createDirectories(home.resolve("stream"));
         Path file = Files.writeString(dir.resolve(name), "2026-09-14 12:00:00 ERROR boom\n");
@@ -220,6 +225,55 @@ class HubsArtifactsMcpToolsTest {
             hubHolds(session());
 
             assertTrue(tools.files(REF.encode()).contains("holds no files"));
+        }
+
+        @Test
+        void theFetchColumnSaysWhichRowsFetchFileWillTake() {
+            hubHolds(session(
+                    finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
+                    finished("f-log", "service-app.log", SupportedRecordingFile.APP_LOG),
+                    finished("f-odd", "notes.txt", SupportedRecordingFile.UNKNOWN),
+                    file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
+
+            String text = tools.files(REF.encode());
+
+            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | artifact | FINISHED |"), text);
+            // the last two cells of each row: an empty `local`, then `fetch`
+            assertTrue(text.contains("|  | fetch |"), text);
+            assertTrue(text.contains("|  | hubs_download |"), text);
+            assertTrue(text.contains("|  | when finished |"), text);
+            assertTrue(text.contains("|  | no |"), text);
+        }
+
+        @Test
+        void aFileFetchedBeforeAnalysisIsStillReportedAsLocal() throws IOException {
+            hubHolds(session(
+                    finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
+                    finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
+            Path fetched = unlinkedTarget("gc.jvm-log");
+            Files.createDirectories(fetched.getParent());
+            Files.writeString(fetched, "x");
+            sessionAlreadyDownloadedAs("rec-1", "prof-1");
+
+            String text = tools.files(REF.encode());
+
+            assertTrue(text.contains("| " + fetched + " |"), text);
+        }
+
+        @Test
+        void aProfileWithNoStartInstantDoesNotPrintANullZeroPoint() {
+            hubHolds(session(finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR)));
+            sessionAlreadyDownloadedAs("rec-1", "prof-1");
+            ProfileInfo noStart = new ProfileInfo("prof-1", null, null, "prof-1", RecordingEventSource.JDK,
+                    null, null, NOW, true, false, "rec-1");
+            ProfileManager profile = mock(ProfileManager.class);
+            when(profile.info()).thenReturn(noStart);
+            when(recordingsManager.profile("prof-1")).thenReturn(Optional.of(profile));
+
+            String text = tools.files(REF.encode());
+
+            assertFalse(text.contains("zero point is null"), text);
+            assertTrue(text.contains("carries no start instant"), text);
         }
     }
 
@@ -304,6 +358,63 @@ class HubsArtifactsMcpToolsTest {
                     () -> tools.fetchFile(REF.encode(), "f-gc"));
 
             assertTrue(refused.getMessage().contains("still being written"), refused.getMessage());
+        }
+
+        @Test
+        void aTransferThatFailedIsStartedAgainByCallingAgain() throws IOException {
+            hubHolds(session(finished("f-log", "service.log", SupportedRecordingFile.APP_LOG)));
+            when(repository.streamFile(SESSION_ID, "f-log"))
+                    .thenThrow(new IllegalStateException("hub went away"))
+                    .thenReturn(streamed("service.log"));
+
+            assertThrows(RuntimeException.class, () -> tools.fetchFile(REF.encode(), "f-log"));
+
+            JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-log"));
+            assertEquals(unlinkedTarget("service.log").toString(), answer.path("path").asText());
+            verify(repository, times(2)).streamFile(SESSION_ID, "f-log");
+        }
+
+        @Test
+        void aFileFetchedBeforeAnalysisIsMovedBesideTheProfileRatherThanTransferredAgain() throws IOException {
+            hubHolds(session(
+                    finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
+                    finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
+            when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed("gc.jvm-log"));
+            Path unlinked = unlinkedTarget("gc.jvm-log");
+            assertEquals(unlinked.toString(),
+                    Json.readTree(tools.fetchFile(REF.encode(), "f-gc")).path("path").asText());
+
+            sessionAlreadyDownloadedAs("rec-1", "prof-1");
+            JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-gc"));
+
+            Path beside = profileTarget("prof-1", "gc.jvm-log");
+            assertEquals(beside.toString(), answer.path("path").asText());
+            assertTrue(answer.path("alreadyHere").asBoolean());
+            assertTrue(Files.isRegularFile(beside));
+            assertFalse(Files.exists(unlinked));
+            verify(repository, times(1)).streamFile(SESSION_ID, "f-gc");
+        }
+
+        @Test
+        void anUnclassifiedFileIsRefusedWithTheReasonAHubWillNotServeIt() {
+            hubHolds(session(finished("f-odd", "notes.txt", SupportedRecordingFile.UNKNOWN)));
+
+            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                    () -> tools.fetchFile(REF.encode(), "f-odd"));
+
+            assertTrue(refused.getMessage().contains("hubs_download"), refused.getMessage());
+        }
+
+        @Test
+        void aFileNameThatWouldClimbOutOfTheArtifactsDirectoryIsReducedToItsLastElement() throws IOException {
+            hubHolds(session(finished("f-evil", "../../../../escaped.log", SupportedRecordingFile.APP_LOG)));
+            when(repository.streamFile(SESSION_ID, "f-evil")).thenReturn(streamed("escaped.log"));
+
+            JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-evil"));
+
+            Path landed = Path.of(answer.path("path").asText());
+            assertEquals(unlinkedTarget("escaped.log"), landed);
+            assertTrue(landed.startsWith(home.resolve("artifacts")), landed.toString());
         }
 
         @Test

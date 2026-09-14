@@ -10,7 +10,7 @@
 # The tool restriction is instruction-level rather than enforced, as it is in Codex: a Gemini subagent
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
 # every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off
-# recordings_, the three hubs_ tools that write (hubs_download, hubs_eventActivity,
+# recordings_, the four hubs_ tools that write (hubs_download, hubs_fetchFile, hubs_eventActivity,
 # hubs_activityCancel), heap_prepare, operations_cancel and the two ide_ tools. To make it a wall, name those tools
 # in excludeTools on the server entry in settings.json.
 name: profile-analyst

@@ -12,12 +12,13 @@ the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plu
 are the same files for all three.
 
 Every analysis tool is **read-only**, and every tool says so in its MCP annotations rather than
-leaving a client to infer it. Nine do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
+leaving a client to infer it. Ten do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
 rather than changing them, `heap_prepare`, which writes only a cache, `hubs_download`, which pulls one
-off another machine, `hubs_eventActivity`, which starts a scan on a hub, `hubs_activityCancel` and
+off another machine, `hubs_fetchFile`, which pulls one of a session's artifacts off it the same way,
+`hubs_eventActivity`, which starts a scan on a hub, `hubs_activityCancel` and
 `operations_cancel`, which ask background work to stop, and `ide_link` and `ide_open`, which act on the
 editor running beside Jeffrey rather than on any profile. Each declares itself, so the reading members
-of those same families - `recordings_list`, `recordings_status`, `heap_status`, `hubs_activityStatus`,
+of those same families - `recordings_list`, `recordings_status`, `heap_status`, `hubs_files`, `hubs_activityStatus`,
 `operations_status` - are not swept up with them. Two families
 reach outside this server and have switches of their own —
 `jeffrey.microscope.mcp.hubs.enabled=false` for the one that leaves the machine, and
@@ -235,7 +236,7 @@ with the three per-family switches above.
 
 ## Permissions
 
-Every client asks before each tool the first time. Every Jeffrey tool reads except the nine named
+Every client asks before each tool the first time. Every Jeffrey tool reads except the ten named
 above, so approving a family once is usually what you want — `hubs_` and `ide_` are the two worth
 reading twice, since one moves data off another machine and the other acts on your editor.
 
