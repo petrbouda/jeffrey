@@ -56,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -72,6 +73,7 @@ class RemoteRecordingsDownloadManagerTest {
 
     private static final String SESSION_ID = "session-1";
     private static final String RECORDING_ID = "local-recording-1";
+    private static final long GATE_TIMEOUT_SECONDS = 5;
     private static final Instant CREATED_AT = Instant.parse("2026-03-01T12:00:00Z");
 
     private final RepositoryClient repositoryClient = mock(RepositoryClient.class);
@@ -396,14 +398,20 @@ class RemoteRecordingsDownloadManagerTest {
                     file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED),
                     file("f-2", "profile-2.jfr", SupportedFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(30))));
             ProgressCallback progress = mock(ProgressCallback.class);
+            CountDownLatch secondChunkStarted = new CountDownLatch(1);
             CountDownLatch firstChunkFailed = new CountDownLatch(1);
+            doAnswer(invocation -> {
+                secondChunkStarted.countDown();
+                return null;
+            }).when(progress).onFileStart(eq("profile-2.jfr"), anyLong());
             doAnswer(invocation -> {
                 firstChunkFailed.countDown();
                 return null;
             }).when(progress).onFileError(eq("profile-1.jfr"), any());
-            fails("f-1", new IllegalStateException("gone"));
-            // The second chunk's bytes arrive only after the first has failed, so its copy loop
-            // sees the stop rather than racing it.
+            // The first chunk fails only once the second is mid-copy, and the second's bytes
+            // arrive only after the first has failed: the copy loop is what sees the stop, not
+            // the check before the transfer, which would skip the file without reporting it.
+            failsAfter("f-1", new IllegalStateException("gone"), secondChunkStarted);
             streamsAfter("f-2", "profile-2.jfr", firstChunkFailed);
 
             IllegalStateException failure = assertThrows(IllegalStateException.class,
@@ -476,6 +484,27 @@ class RemoteRecordingsDownloadManagerTest {
         }
 
         /**
+         * Fails the file's transfer once the latch is released, holding the call until then.
+         */
+        private void failsAfter(String fileId, RuntimeException failure, CountDownLatch gate) {
+            doAnswer(invocation -> {
+                await(gate, "the other chunk never started");
+                throw failure;
+            }).when(downloadClient).streamFile(eq(SESSION_ID), eq(fileId), any());
+        }
+
+        private static void await(CountDownLatch gate, String neverReleased) throws IOException {
+            try {
+                if (!gate.await(GATE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    throw new IOException(neverReleased);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            }
+        }
+
+        /**
          * Streams the file's bytes once the latch is released, holding the consumer until then.
          */
         private void streamsAfter(String fileId, String filename, CountDownLatch gate) {
@@ -496,14 +525,7 @@ class RemoteRecordingsDownloadManagerTest {
                     }
 
                     private void awaitGate() throws IOException {
-                        try {
-                            if (!gate.await(5, TimeUnit.SECONDS)) {
-                                throw new IOException("the first chunk never failed");
-                            }
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new IOException(e);
-                        }
+                        await(gate, "the first chunk never failed");
                     }
                 };
                 try (bytes) {
@@ -523,7 +545,7 @@ class RemoteRecordingsDownloadManagerTest {
             doAnswer(invocation -> {
                 cancelled.set(true);
                 return null;
-            }).when(progress).onFileStart(any(), org.mockito.ArgumentMatchers.anyLong());
+            }).when(progress).onFileStart(any(), anyLong());
             doAnswer(invocation -> cancelled.get()).when(progress).isCancelled();
             return progress;
         }

@@ -265,9 +265,12 @@ class HubActivityServiceTest {
                     },
                     queued::add,
                     Clock.systemUTC())) {
-                String first = service.start(request(), KEY);
+                // One request, sent twice: a request built anew reads the clock again, and a
+                // window that moved by a millisecond is a different request under the same key.
+                ActivityRequest request = request();
+                String first = service.start(request, KEY);
 
-                assertEquals(first, service.start(request(), KEY));
+                assertEquals(first, service.start(request, KEY));
                 assertEquals(1, resolutions.get(), "an adopted scan resolves no scope");
                 assertEquals(1, queued.size(), "an adopted scan takes no retained slot");
                 // The table still has room for fifteen more, so nothing was claimed twice.
