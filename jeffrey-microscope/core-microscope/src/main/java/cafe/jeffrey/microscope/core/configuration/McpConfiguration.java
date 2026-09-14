@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
+import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
@@ -28,6 +29,7 @@ import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
@@ -160,6 +162,24 @@ public class McpConfiguration {
                 localCorePersistenceProvider.localCoreRepositories().recordingTagsRepository());
     }
 
+    /**
+     * Lists a hub session's files and fetches one artifact at a time. Built unconditionally like the
+     * other hub tools; the assembler decides whether the family is advertised.
+     */
+    @Bean
+    public HubsArtifactsMcpTools hubsArtifactsMcpTools(
+            ProjectManagerResolver projectManagerResolver,
+            RecordingsManager recordingsManager,
+            MicroscopeJeffreyDirs jeffreyDirs,
+            McpOperationRegistry operations,
+            Clock applicationClock,
+            @Value("${jeffrey.microscope.mcp.hubs.download-response-timeout:PT45S}") Duration responseTimeout,
+            @Value("${jeffrey.microscope.mcp.hubs.download-timeout:PT1H}") Duration downloadTimeout) {
+        return new HubsArtifactsMcpTools(
+                projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(), operations, applicationClock,
+                responseTimeout, downloadTimeout);
+    }
+
     @Bean
     public McpToolsetAssembler mcpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
@@ -171,12 +191,13 @@ public class McpConfiguration {
             RecordingCommitResolver recordingCommitResolver,
             HeapDumpInitService heapDumpInitService,
             IdeBridge ideBridge,
-            ExternalMcpProperties properties, HubsReplayMcpTools replayMcpTools, McpOperationRegistry operations,
-            Clock applicationClock) {
+            ExternalMcpProperties properties, HubsReplayMcpTools replayMcpTools,
+            HubsArtifactsMcpTools hubsArtifactsMcpTools,
+            McpOperationRegistry operations, Clock applicationClock) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
-                properties, replayMcpTools, operations, applicationClock);
+                properties, replayMcpTools, hubsArtifactsMcpTools, operations, applicationClock);
     }
 
     /**

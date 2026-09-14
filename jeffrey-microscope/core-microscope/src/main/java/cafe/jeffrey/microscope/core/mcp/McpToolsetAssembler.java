@@ -43,6 +43,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
@@ -134,6 +135,7 @@ public class McpToolsetAssembler {
             IdeBridge ideBridge,
             ExternalMcpProperties properties,
             HubsReplayMcpTools replayMcpTools,
+            HubsArtifactsMcpTools hubsArtifactsMcpTools,
             McpOperationRegistry operations,
             Clock clock) {
 
@@ -233,6 +235,10 @@ public class McpToolsetAssembler {
             families.add(new ReflectiveToolset(replayMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
             families.add(new ReflectiveToolset(
                     hubsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
+            // Read-only as a family: hubs_files observes. hubs_fetchFile puts a file on this disk and
+            // says so itself with @McpToolHints, the way hubs_download does.
+            families.add(new ReflectiveToolset(
+                    hubsArtifactsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
         }
 
         this.toolset = new CompositeToolset(retained(families, properties));

@@ -68,7 +68,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and twelve tools in nineteen families:</p>
+      <p>A hundred and fourteen tools in nineteen families:</p>
       <table>
         <thead>
           <tr>
@@ -160,8 +160,8 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>hubs_</code></td>
-            <td>7</td>
-            <td>The recordings still on a connected Jeffrey Hub: lists the sessions across every hub, reads a bounded sample of events or a time-bucketed activity summary from one where it lies, and pulls one in to be analysed</td>
+            <td>9</td>
+            <td>The recordings still on a connected Jeffrey Hub: lists the sessions across every hub, reads a bounded sample of events or a time-bucketed activity summary from one where it lies, pulls one in to be analysed &mdash; and, for the files a JVM writes beside its recording, lists what a session holds and fetches one of them on its own, as a path the agent reads with its own tools</td>
           </tr>
           <tr>
             <td><code>operations_</code></td>

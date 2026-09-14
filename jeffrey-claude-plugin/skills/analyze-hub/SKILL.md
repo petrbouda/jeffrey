@@ -1,6 +1,6 @@
 ---
 name: analyze-hub
-description: Finds and analyses JVM recordings that live on a Jeffrey Hub rather than on this machine — the JFR recordings and heap dumps a deployed application produced. Use whenever the user asks about what an environment recorded rather than about a file they have: production, staging, a named service or pod, "the last hour", "since the deploy", "what the hub has", "why was prod slow this morning". It locates the session, pulls it into Jeffrey and hands off to analyze-jfr or analyze-heap. For a recording file already on this machine, analyze-jfr applies directly.
+description: Finds and analyses JVM recordings that live on a Jeffrey Hub rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service or pod, "the last hour", "since the deploy", "what the hub has", "why was prod slow this morning", "why did the pod's JVM die", "the exceptions in the service log". It locates the session, pulls in the recording or the one file that matters, and hands off to analyze-jfr or analyze-heap — or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
@@ -29,6 +29,9 @@ hubs_download(sessionRef="h1…")          → recordingId, or a running operati
 recordings_analyzeRecording(recordingId) → profileId, or a running operationId
 operations_status(operationId)           → where either of the last two has got to
 … then analyze-jfr (or analyze-heap for a dump)
+
+hubs_files(sessionRef)                   → the files beside the recording: logs, crash file, perf counters
+hubs_fetchFile(sessionRef, fileId)       → one of them, as a path on this machine — read it yourself
 ```
 
 Three calls on the main path, and the third is a tool you already know; the look in between is
@@ -137,6 +140,40 @@ one.
 Downloading the same session twice is wasteful and never necessary — `hubs_download` returns the
 recording it already has rather than fetching it again, but you should have read the `local` column
 in step 1 instead of relying on that.
+
+## 4b. The files beside the recording — when the question is about what the JVM *wrote*
+
+A session holds more than its JFR chunks. A JVM provisioned by Jeffrey leaves `gc.jvm-log` (the
+`-Xlog` output, rotated as `.0`, `.1`…), `perf-counters.hsperfdata`, the application's own `.log`
+if it was pointed at the session directory, and — when it died — `hs-jvm-err.log`, often with
+**nothing else beside it**, because the first chunk never rolled. `hubs_sessions` shows only a file
+count; `hubs_files(sessionRef)` shows what they are.
+
+When the question is "what exceptions did the service log", "why did the JVM crash", "what does
+the GC log say" — or the session has no finished recording at all — do not download the session:
+
+1. `hubs_files(sessionRef)` — read the `type` column: `APP_LOG`, `JVM_LOG`, `HS_JVM_ERROR_LOG`,
+   `PERF_COUNTERS`, `HEAP_DUMP`. Only a `FINISHED` file can be fetched.
+2. `hubs_fetchFile(sessionRef, fileId)` — returns an `artifactId` and the **absolute path** the
+   file now has on this machine. A file already fetched comes back as it is.
+3. **Read the file with your own tools.** Jeffrey runs on this machine and hands you the path
+   rather than parsing the log for you: `grep -n 'Exception' <path>`, `sed -n '1200,1260p' <path>`,
+   `tail -200 <path>`, your file reader. A crash file reads top-down — the `#` header names the
+   signal or the `fatal error`, `Current thread` and the `Java frames:` block under it say where,
+   `VM state` and the `Heap:` block under `P R O C E S S` say what the JVM was doing. A GC log's
+   `[12.345s]` decoration is uptime; when the session's recording has been analysed, `hubs_files`
+   and `hubs_fetchFile` name the profile and its zero point, so that uptime is `zero point + 12.345s`
+   on the JFR timeline and `jvm_gc` on the profile can be read against it.
+4. A fetched heap dump is a profile's input, not a text: pass its path to `recordings_analyzeFile`
+   and hand off to **analyze-heap**.
+
+The path is where the file stays: beside the profile (`profiles/<id>/artifacts/`) when the
+session is analysed, under `artifacts/<hub>/<project>/<session>/` otherwise. `hubs_files` prints
+it in the `local` column once it is there, and for an artifact `hubs_download` brought along with
+the recording.
+
+Cite a log the way `report` asks: the artifact's file name and the line number of what you quote,
+so the reader can open the same line.
 
 ## 5. Analyse
 

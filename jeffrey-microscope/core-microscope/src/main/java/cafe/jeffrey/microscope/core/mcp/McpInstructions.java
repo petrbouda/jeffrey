@@ -57,12 +57,18 @@ final class McpInstructions {
             when rather than where; memory_ allocation and leak candidates without a heap dump; heap_ \
             heap dumps, their dominator tree and GC-root paths; jfr_ DuckDB SQL over the profile \
             database when no dashboard answers; recordings_ turning a file into a profile; hubs_ \
-            recordings held on another machine; ide_ where a frame lives in the developer's editor; \
-            operations_ the work the writers start.
+            recordings and the files beside them held on another machine; ide_ where a frame lives \
+            in the developer's editor; operations_ the work the writers start.
 
-            Nine tools are not read-only: recordings_analyzeFile, recordings_analyzeRecording, \
-            heap_prepare, hubs_download, hubs_eventActivity, hubs_activityCancel, operations_cancel, \
-            ide_link and ide_open. None of them alters an analysed profile. Each returns an \
+            A JVM writes more than it records. When the question is about an application log, a GC \
+            log or why a JVM died, call hubs_files on the session, hubs_fetchFile on the file, and \
+            then open the path it returns with your own tools - Jeffrey runs on this machine and \
+            hands you the file rather than parsing it for you. hubs_files also shows the path of a \
+            file already here, and the profile whose timeline its timestamps line up with.
+
+            Ten tools are not read-only: recordings_analyzeFile, recordings_analyzeRecording, \
+            heap_prepare, hubs_download, hubs_fetchFile, hubs_eventActivity, hubs_activityCancel, \
+            operations_cancel, ide_link and ide_open. None of them alters an analysed profile. Each returns an \
             operationId rather than blocking; poll operations_status until it completes, and \
             operations_cancel to stop it.
 

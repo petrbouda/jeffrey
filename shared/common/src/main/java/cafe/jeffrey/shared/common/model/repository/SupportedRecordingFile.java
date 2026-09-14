@@ -20,6 +20,7 @@ package cafe.jeffrey.shared.common.model.repository;
 
 import cafe.jeffrey.shared.common.model.repository.matcher.AppLogFileMatcher;
 import cafe.jeffrey.shared.common.model.repository.matcher.AsprofCacheFileMatcher;
+import cafe.jeffrey.shared.common.model.repository.matcher.HsJvmErrorLogFileMatcher;
 import cafe.jeffrey.shared.common.model.repository.matcher.JvmLogFileMatcher;
 
 import java.nio.file.Path;
@@ -73,10 +74,11 @@ public enum SupportedRecordingFile {
             new JvmLogFileMatcher(),
             FileCategory.ARTIFACT
     ),
+    // Both crash-log spellings end in .log, so this must stay before APP_LOG
     HS_JVM_ERROR_LOG(
             "HotSpot JVM Error Log",
             FileExtensions.HS_JVM_ERROR_LOG,
-            filename -> filename.endsWith(FileExtensions.HS_JVM_ERROR_LOG),
+            new HsJvmErrorLogFileMatcher(),
             FileCategory.ARTIFACT
     ),
     APP_LOG(

@@ -137,7 +137,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <td>A heap dump</td>
           </tr>
           <tr>
-            <td>&ldquo;What did production record in the last hour?&rdquo; &middot; &ldquo;Why was staging slow this morning?&rdquo;</td>
+            <td>&ldquo;What did production record in the last hour?&rdquo; &middot; &ldquo;Why was staging slow this morning?&rdquo; &middot; &ldquo;Why did the pod&rsquo;s JVM die?&rdquo;</td>
             <td><a href="#analyze-hub"><code>analyze-hub</code></a></td>
             <td>A connected Jeffrey Hub</td>
           </tr>
@@ -284,6 +284,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <ul>
             <li><code>hubs_sessions</code> with a window &mdash; one call, across every connected hub &mdash; then <code>hubs_download</code> on the row&rsquo;s <code>session_ref</code>, then <code>recordings_analyzeRecording</code> for the <code>profileId</code>.</li>
             <li>From there it hands off: <code>analyze-jfr</code> for a recording, <code>analyze-heap</code> for a dump. There is no hub-specific analysis, because a downloaded session is an ordinary profile.</li>
+            <li>When the question is about what the JVM <em>wrote</em> &mdash; the application log, the GC log, the crash file &mdash; it takes the other branch: <code>hubs_files</code> to see what the session holds, <code>hubs_fetchFile</code> on the one file that matters, and then the agent&rsquo;s own <code>grep</code> and file reader at the path it returns. Jeffrey hands the file over rather than parsing it.</li>
             <li>No <code>hubs_</code> tool advertised means hub access is off or no hub is connected &mdash; a fact to report, not a path to guess at.</li>
           </ul>
         </section>
