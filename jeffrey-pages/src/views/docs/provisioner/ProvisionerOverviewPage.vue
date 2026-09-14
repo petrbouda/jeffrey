@@ -278,8 +278,8 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <div class="workflow-step">
             <div class="step-number">4</div>
             <div class="step-content">
-              <strong>Download and Assemble</strong>
-              <p>Select the JFR chunks of the session; Microscope downloads them and every other file and assembles the chunks into a Recording</p>
+              <strong>Download</strong>
+              <p>Select the JFR chunks of the session; Microscope downloads them and every other file and stores the chunks as one Recording, chunk by chunk</p>
             </div>
           </div>
           <div class="workflow-step">

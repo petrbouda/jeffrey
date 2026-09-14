@@ -96,7 +96,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     }
 
     @Override
-    public ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath) {
+    public ProfileManager initialize(ProfileInfo profileInfo, String recordingId, List<Path> recordingFiles) {
         LOG.debug("Initializing profile: profileId={} recordingId={}", profileInfo.id(), recordingId);
         Instant startedAt = clock.instant();
 
@@ -119,7 +119,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             // by profile id while it happens.
             AtomicReference<ProfileManager> initialized = new AtomicReference<>();
             runRegistry.runInline(PipelineRunRequest.of(profileInfo.id(),
-                    run -> initialized.set(runStages(run, profileInfo, recordingId, recordingPath, lease))));
+                    run -> initialized.set(runStages(run, profileInfo, recordingId, recordingFiles, lease))));
 
             long elapsedMs = clock.instant().toEpochMilli() - startedAt.toEpochMilli();
             LOG.info("Profile parsed and initialized: profile_id={} profile_name={} elapsed_ms={}",
@@ -133,7 +133,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             PipelineRun run,
             ProfileInfo profileInfo,
             String recordingId,
-            Path recordingPath,
+            List<Path> recordingFiles,
             DatabaseLease lease) {
 
         DataSource dataSource = lease.dataSource();
@@ -143,7 +143,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         // the import cost the longer of them instead of both. It is joined in the warming stage at
         // the end, which is also where the findings it produced are written.
         CompletableFuture<List<AutoAnalysisResult>> autoAnalysis =
-                profileDataInitializer.startAutoAnalysis(profileInfo, recordingPath);
+                profileDataInitializer.startAutoAnalysis(profileInfo, recordingFiles);
 
         // Store profile context (workspace_id, project_id) in the profile database.
         // Skipped for Recordings profiles, where workspace and project are null.
@@ -165,7 +165,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         EventWriter eventWriter = eventWriterFactory.create(dataSource, profileInfo.profilingStartedAt());
         RecordingEventParser recordingEventParser =
                 recordingEventParserResolver.resolve(profileInfo.eventSource());
-        run.runStage(ProfileInitStages.PARSE, () -> recordingEventParser.start(eventWriter, recordingPath));
+        run.runStage(ProfileInitStages.PARSE, () -> recordingEventParser.start(eventWriter, recordingFiles));
         run.runStage(ProfileInitStages.FLUSH, eventWriter::onComplete);
 
         DatabaseClient infrastructureClient = profileRepositories.databaseClientProvider(dataSource)

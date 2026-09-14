@@ -48,20 +48,20 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
     private final DatabaseManager databaseManager;
     private final Executor executor;
-    private final Function<Path, List<AutoAnalysisResult>> ruleSet;
+    private final Function<List<Path>, List<AutoAnalysisResult>> ruleSet;
 
     /**
      * @param executor where the warming runs. In production this is the bulk pool, never the
      *                 interactive one: a profile that has just been imported must not push a
      *                 flamegraph someone is waiting on out of the way.
-     * @param ruleSet  what evaluates the JMC rules over a recording file. Taken as a collaborator
+     * @param ruleSet  what evaluates the JMC rules over a recording's files. Taken as a collaborator
      *                 rather than reached for statically, because this is the one warm that starts
      *                 before there is a {@link ProfileManager} to ask for it.
      */
     public ProfileDataInitializerImpl(
             DatabaseManager databaseManager,
             Executor executor,
-            Function<Path, List<AutoAnalysisResult>> ruleSet) {
+            Function<List<Path>, List<AutoAnalysisResult>> ruleSet) {
 
         this.databaseManager = databaseManager;
         this.executor = executor;
@@ -81,7 +81,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
      */
     @Override
     public CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(
-            ProfileInfo profileInfo, Path recordingPath) {
+            ProfileInfo profileInfo, List<Path> recordingFiles) {
 
         // pprof/OTLP imports are stack samples with no JFR events behind them, and the rule set only
         // understands JFR. A recording whose file is not there cannot be read a second time either.
@@ -91,18 +91,18 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
                     profileInfo.id(), profileInfo.name(), profileInfo.eventSource());
             return CompletableFuture.completedFuture(null);
         }
-        if (recordingPath == null || !Files.exists(recordingPath)) {
-            LOG.info("Skipping auto analysis, the recording file is not available: "
+        if (recordingFiles == null || recordingFiles.isEmpty() || !recordingFiles.stream().allMatch(Files::exists)) {
+            LOG.info("Skipping auto analysis, the recording files are not available: "
                             + "profile_id={} profile_name={}",
                     profileInfo.id(), profileInfo.name());
             return CompletableFuture.completedFuture(null);
         }
 
-        LOG.info("Starting auto analysis alongside the parse: profile_id={} recording={}",
-                profileInfo.id(), recordingPath);
+        LOG.info("Starting auto analysis alongside the parse: profile_id={} recording_files={}",
+                profileInfo.id(), recordingFiles);
 
         return CompletableFuture
-                .supplyAsync(Tracer.fork(SPAN_AUTO_ANALYSIS, () -> ruleSet.apply(recordingPath)), executor)
+                .supplyAsync(Tracer.fork(SPAN_AUTO_ANALYSIS, () -> ruleSet.apply(recordingFiles)), executor)
                 .exceptionally(throwable -> {
                     warmFailed(COMPONENT_AUTO_ANALYSIS, profileInfo, throwable);
                     return null;

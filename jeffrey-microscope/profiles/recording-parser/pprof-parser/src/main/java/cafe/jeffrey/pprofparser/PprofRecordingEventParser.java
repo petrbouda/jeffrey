@@ -26,6 +26,7 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Ingests a pprof recording ({@code .pprof} / {@code .pb.gz}, gzip-compressed protobuf) into a
@@ -43,7 +44,14 @@ public class PprofRecordingEventParser implements RecordingEventParser {
     }
 
     @Override
-    public void start(EventWriter eventWriter, Path recording) {
+    public void start(EventWriter eventWriter, List<Path> recordingFiles) {
+        // One profile is one file here; the chunked form is a JFR session's.
+        for (Path recording : recordingFiles) {
+            start(eventWriter, recording);
+        }
+    }
+
+    private void start(EventWriter eventWriter, Path recording) {
         Profile profile = streamReader.read(recording);
         LOG.info("Parsing pprof recording: recording={} sample_types={} samples={}",
                 recording, profile.getSampleTypeCount(), profile.getSampleCount());

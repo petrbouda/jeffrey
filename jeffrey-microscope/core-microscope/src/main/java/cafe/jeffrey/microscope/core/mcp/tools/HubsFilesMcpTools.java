@@ -66,9 +66,9 @@ import java.util.concurrent.TimeUnit;
  * The files of a hub session one at a time: everything a session holds, and how to pull any one
  * of them down as it lies on the hub.
  * <p>
- * {@code hubs_download} brings every file of a session and assembles the JFR chunks into the
- * recording a profile is built from, and for a session whose recording is wanted that is the right
- * shape. This family is for the other case — a JVM that crashed before its first chunk rolled and
+ * {@code hubs_download} brings every file of a session and stores the JFR chunks as the files of
+ * one recording, which a profile is parsed from, and for a session whose recording is wanted that
+ * is the right shape. This family is for the other case — a JVM that crashed before its first chunk rolled and
  * left only {@code hs-jvm-err.log}, an application log a reader wants to grep before deciding
  * whether the recording is worth the transfer, one chunk of a long session. The hub serves every
  * finished file the same way; only a transient file is never served.
@@ -201,8 +201,8 @@ public class HubsFilesMcpTools {
             + "what a GC log says for a session that has no recording. Takes the session_ref from a "
             + "hubs_sessions row. The `local` column says a file is already on this machine: the "
             + "absolute path of a file that was fetched or came along with hubs_download - open it with "
-            + "your own tools - or recording:<id> / profile:<id> for a chunk hubs_download already "
-            + "assembled into a recording. The `fetch` column says how each row is reached: `fetch` "
+            + "your own tools - or recording:<id> / profile:<id> for a chunk of a recording an earlier "
+            + "hubs_download joined into one file. The `fetch` column says how each row is reached: `fetch` "
             + "means pass its file_id to hubs_fetchFile, `hubs_download` means it is a recording chunk "
             + "best taken with the whole session (hubs_fetchFile takes it alone too, as it lies on the "
             + "hub), `when finished` means it is still being written, and `no` means it is a transient "
@@ -251,8 +251,8 @@ public class HubsFilesMcpTools {
                         + project.info().name() + ". The `fetch` column says how a row is reached: `"
                         + Fetchability.FETCH.label() + "` means pass its file_id to hubs_fetchFile, `"
                         + Fetchability.CHUNK.label()
-                        + "` is a recording chunk: hubs_download brings every chunk and assembles them into one "
-                        + "recording, which is what the analysis tools want, and hubs_fetchFile also takes a "
+                        + "` is a recording chunk: hubs_download brings every chunk as one recording's files, "
+                        + "which is what the analysis tools want, and hubs_fetchFile also takes a "
                         + "single chunk as it lies on the hub, .jfr or .jfr.lz4. `"
                         + Fetchability.WHEN_FINISHED.label() + "` is still being written, and `"
                         + Fetchability.NEVER.label() + "` is a transient file the hub never serves. A `local` "
@@ -558,9 +558,15 @@ public class HubsFilesMcpTools {
             if (Files.isRegularFile(fetched)) {
                 return fetched.toString();
             }
+            // A file that came along with hubs_download - a chunk among them - is a file of the
+            // local recording, under its own name.
+            Optional<String> stored = storedLocally(file, local);
+            if (stored.isPresent()) {
+                return stored.get();
+            }
             if (file.isRecordingChunk()) {
-                // A chunk not fetched on its own is here once hubs_download assembled it into the
-                // recording, which is where the analysis tools read it from.
+                // A chunk of a recording an earlier build joined into one file is in that file,
+                // which is where the analysis tools read it from.
                 if (local.profileId() != null) {
                     return "profile:" + local.profileId();
                 }
@@ -579,16 +585,20 @@ public class HubsFilesMcpTools {
                     ref.sessionId(), file.name(), e.getMessage());
             return "";
         }
-        if (local.recording() != null) {
-            for (RecordingFile recordingFile : local.recording().files()) {
-                if (recordingFile.filename().equals(file.name())) {
-                    return recordings.findRecordingFile(local.recording().id(), recordingFile.id())
-                            .map(path -> path.toAbsolutePath().toString())
-                            .orElse("");
-                }
+        return "";
+    }
+
+    private Optional<String> storedLocally(RepositoryFile file, LocalSession local) {
+        if (local.recording() == null) {
+            return Optional.empty();
+        }
+        for (RecordingFile recordingFile : local.recording().files()) {
+            if (recordingFile.filename().equals(file.name())) {
+                return recordings.findRecordingFile(local.recording().id(), recordingFile.id())
+                        .map(path -> path.toAbsolutePath().toString());
             }
         }
-        return "";
+        return Optional.empty();
     }
 
     /**

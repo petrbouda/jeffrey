@@ -25,7 +25,6 @@ import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -93,7 +92,7 @@ class RemoteRecordingsDownloadManagerTest {
         manager = new RemoteRecordingsDownloadManager(
                 tempDirProvider, downloadClient, repositoryClient, recordingsManager, originContext, "checkout");
 
-        when(recordingsManager.createDownloadedRecording(any(), any(), anyList(), any()))
+        when(recordingsManager.createDownloadedRecording(any(), anyList(), anyList(), any()))
                 .thenReturn(RECORDING_ID);
     }
 
@@ -116,7 +115,7 @@ class RemoteRecordingsDownloadManagerTest {
 
     /**
      * A downloaded file as the download client hands it over, holding its own name as content so
-     * an assembled recording says which chunks went into it and in what order. It reports no
+     * a stored recording says which chunks went into it and in what order. It reports no
      * filename of its own — the client's resource is a temp file whose name means nothing, and
      * the stored file must be named from the hub's listing instead.
      */
@@ -126,7 +125,7 @@ class RemoteRecordingsDownloadManagerTest {
 
     /**
      * The hub streams the file's bytes into whatever the download hands it; here, the file's own
-     * name, so an assembled recording says which chunks went into it and in what order.
+     * name, so a stored recording says which chunks went into it and in what order.
      */
     private void streams(String fileId, String filename) {
         doAnswer(invocation -> {
@@ -139,24 +138,27 @@ class RemoteRecordingsDownloadManagerTest {
     }
 
     /**
-     * Captures what was persisted as the recording, decompressed, before the temp directory
-     * that held it is gone.
+     * Captures what was persisted as the recording's files — each chunk's content, which is its
+     * own name — in the order they were handed over, before the temp directory that held them
+     * is gone.
      */
-    private AtomicReference<String> capturedRecording() {
-        AtomicReference<String> content = new AtomicReference<>();
-        when(recordingsManager.createDownloadedRecording(any(), any(), anyList(), any())).thenAnswer(invocation -> {
-            Path recording = invocation.getArgument(1);
-            Path plain = tempRoot.resolve("plain.jfr");
-            Lz4Compressor.decompress(recording, plain);
-            content.set(Files.readString(plain));
+    private AtomicReference<List<String>> capturedRecording() {
+        AtomicReference<List<String>> chunks = new AtomicReference<>();
+        when(recordingsManager.createDownloadedRecording(any(), anyList(), anyList(), any())).thenAnswer(invocation -> {
+            List<Path> recordingFiles = invocation.getArgument(1);
+            List<String> contents = new java.util.ArrayList<>();
+            for (Path recordingFile : recordingFiles) {
+                contents.add(Files.readString(recordingFile));
+            }
+            chunks.set(contents);
             return RECORDING_ID;
         });
-        return content;
+        return chunks;
     }
 
     private List<String> capturedAdditionalFileNames() {
         List<String> names = new java.util.ArrayList<>();
-        when(recordingsManager.createDownloadedRecording(any(), any(), anyList(), any())).thenAnswer(invocation -> {
+        when(recordingsManager.createDownloadedRecording(any(), anyList(), anyList(), any())).thenAnswer(invocation -> {
             List<Path> files = invocation.getArgument(2);
             files.forEach(file -> names.add(file.getFileName().toString()));
             return RECORDING_ID;
@@ -188,25 +190,25 @@ class RemoteRecordingsDownloadManagerTest {
 
             Map<String, String> expectedTags = originContext.toTagMap(SESSION_ID);
             verify(recordingsManager).createDownloadedRecording(
-                    eq(SESSION_ID), any(), anyList(), eq(expectedTags));
+                    eq("checkout_2026-03-01T12-00-00Z"), anyList(), anyList(), eq(expectedTags));
         }
 
         /**
-         * The hub serves chunks one by one and never merges; the recording is assembled here,
-         * oldest chunk first, whatever order the listing had them in.
+         * The hub serves chunks one by one and never merges; they are stored as the recording's
+         * files, oldest chunk first, whatever order the listing had them in, and nothing is joined.
          */
         @Test
-        void assemblesTheChunksIntoOneRecordingOldestFirst() {
+        void storesTheChunksAsTheRecordingsFilesOldestFirst() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
                     file("f-2", "profile-2.jfr", SupportedFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(30)),
                     file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED, CREATED_AT)));
             streams("f-1", "profile-1.jfr");
             streams("f-2", "profile-2.jfr");
-            AtomicReference<String> recording = capturedRecording();
+            AtomicReference<List<String>> recording = capturedRecording();
 
             manager.downloadSession(SESSION_ID);
 
-            assertEquals("profile-1.jfrprofile-2.jfr", recording.get());
+            assertEquals(List.of("profile-1.jfr", "profile-2.jfr"), recording.get());
         }
 
         @Test
@@ -281,11 +283,11 @@ class RemoteRecordingsDownloadManagerTest {
                     file("f-2", "profile-2.jfr", SupportedFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(30)),
                     file("f-3", "heap.hprof", SupportedFile.HEAP_DUMP, RecordingStatus.FINISHED)));
             streams("f-1", "profile-1.jfr");
-            AtomicReference<String> recording = capturedRecording();
+            AtomicReference<List<String>> recording = capturedRecording();
 
             manager.downloadFiles(SESSION_ID, List.of("f-1"));
 
-            assertEquals("profile-1.jfr", recording.get());
+            assertEquals(List.of("profile-1.jfr"), recording.get());
             verify(downloadClient, never()).streamFile(eq(SESSION_ID), eq("f-2"), any());
             verify(downloadClient, never()).streamFile(eq(SESSION_ID), eq("f-3"), any());
         }
@@ -310,7 +312,7 @@ class RemoteRecordingsDownloadManagerTest {
         }
 
         @Test
-        void reportsEveryFileItBringsAndAssemblesTheChunks() {
+        void reportsEveryFileItBringsAndStoresTheChunks() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
                     file("f-1", "profile-1.jfr", SupportedFile.JFR, RecordingStatus.FINISHED),
                     file("f-2", "profile-2.jfr", SupportedFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(30)),
@@ -318,12 +320,12 @@ class RemoteRecordingsDownloadManagerTest {
             streams("f-1", "profile-1.jfr");
             streams("f-2", "profile-2.jfr");
             streams("f-3", "gc.jvm-log");
-            AtomicReference<String> recording = capturedRecording();
+            AtomicReference<List<String>> recording = capturedRecording();
 
             ProgressCallback progress = mock(ProgressCallback.class);
             manager.downloadFiles(SESSION_ID, List.of("f-1", "f-2", "f-3"), progress);
 
-            assertEquals("profile-1.jfrprofile-2.jfr", recording.get());
+            assertEquals(List.of("profile-1.jfr", "profile-2.jfr"), recording.get());
             verify(progress).onStart(3, 3 * 1024L);
             verify(progress).onFileComplete("profile-1.jfr");
             verify(progress).onFileComplete("profile-2.jfr");
@@ -381,7 +383,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             verify(progress, never()).onError(any());
             verify(progress, never()).onComplete();
-            verify(recordingsManager, never()).createDownloadedRecording(any(), any(), anyList(), any());
+            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
         }
 
         /**

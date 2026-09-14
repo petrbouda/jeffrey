@@ -26,7 +26,7 @@ public interface RecordingsDownloadManager {
 
     /**
      * Downloads every finished file of the session and stores them as one local recording: the
-     * JFR chunks assembled into the recording, everything else beside it.
+     * JFR chunks as its recording files, oldest first, everything else beside them.
      *
      * @param sessionId the upstream session to download
      * @return id of the recording created in the local store, so the caller can go on to

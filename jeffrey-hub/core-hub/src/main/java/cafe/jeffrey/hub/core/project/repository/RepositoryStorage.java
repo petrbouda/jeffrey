@@ -73,7 +73,7 @@ public interface RepositoryStorage {
     /**
      * The finished chunks of the session's recording, oldest first, as they lie on disk — raw
      * {@code .jfr} or LZ4-compressed {@code .jfr.lz4}; the reader handles either. These are what
-     * the hub replays and what a client assembles into one recording.
+     * the hub replays and what a client keeps as the files of one recording.
      *
      * @param sessionId the session whose chunks are wanted
      */

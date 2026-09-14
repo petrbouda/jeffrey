@@ -59,8 +59,8 @@ public record RecordingSession(
 
     /**
      * The finished chunks of this session's recording, oldest first and one per id — the files
-     * the hub compresses, replays and trims, and a client assembles into the recording a profile
-     * is built from. Every consumer of "the session's JFR" goes through here rather than
+     * the hub compresses, replays and trims, and a client stores as the files of the recording a
+     * profile is built from. Every consumer of "the session's JFR" goes through here rather than
      * filtering the file list itself; the rules are {@link RecordingChunks}'.
      */
     public List<RepositoryFile> finishedChunks() {

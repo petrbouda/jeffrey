@@ -22,9 +22,14 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public interface ProfileInitializer {
 
-    ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath);
+    /**
+     * @param recordingFiles the files the profile is parsed from, in reading order — one for an
+     *                       upload, one per chunk for a session downloaded from a hub
+     */
+    ProfileManager initialize(ProfileInfo profileInfo, String recordingId, List<Path> recordingFiles);
 
 }

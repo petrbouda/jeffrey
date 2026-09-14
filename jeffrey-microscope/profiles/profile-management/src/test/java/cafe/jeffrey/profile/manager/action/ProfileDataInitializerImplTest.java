@@ -70,7 +70,7 @@ class ProfileDataInitializerImplTest {
 
     /** Stands in for the JMC rule set, which the initializer now runs itself rather than through a manager. */
     @SuppressWarnings("unchecked")
-    private final Function<Path, List<AutoAnalysisResult>> ruleSet = mock(Function.class);
+    private final Function<List<Path>, List<AutoAnalysisResult>> ruleSet = mock(Function.class);
 
     /** Records whether the lease taken for the warming was handed back. */
     private final AtomicBoolean leaseReleased = new AtomicBoolean();
@@ -124,10 +124,10 @@ class ProfileDataInitializerImplTest {
         @DisplayName("runs the rule set over the recording file")
         void runsTheRuleSet(@TempDir Path directory) throws Exception {
             Path recording = recording(directory);
-            when(ruleSet.apply(recording)).thenReturn(FINDINGS);
+            when(ruleSet.apply(List.of(recording))).thenReturn(FINDINGS);
 
             List<AutoAnalysisResult> results = initializer()
-                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), recording)
+                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), List.of(recording))
                     .get(5, TimeUnit.SECONDS);
 
             assertEquals(FINDINGS, results);
@@ -143,7 +143,7 @@ class ProfileDataInitializerImplTest {
             Path missing = directory.resolve("gone.jfr");
 
             List<AutoAnalysisResult> results = initializer()
-                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), missing)
+                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), List.of(missing))
                     .get(5, TimeUnit.SECONDS);
 
             assertNull(results);
@@ -158,7 +158,7 @@ class ProfileDataInitializerImplTest {
         @DisplayName("is skipped for a flamegraph-only import")
         void skippedForAFlamegraphOnlyImport(@TempDir Path directory) throws Exception {
             List<AutoAnalysisResult> results = initializer()
-                    .startAutoAnalysis(profileInfo(RecordingEventSource.PPROF), recording(directory))
+                    .startAutoAnalysis(profileInfo(RecordingEventSource.PPROF), List.of(recording(directory)))
                     .get(5, TimeUnit.SECONDS);
 
             assertNull(results);
@@ -173,10 +173,10 @@ class ProfileDataInitializerImplTest {
         @DisplayName("reports a failure as no findings, never as a failed future")
         void failureComesBackAsNoFindings(@TempDir Path directory) throws Exception {
             Path recording = recording(directory);
-            when(ruleSet.apply(recording)).thenThrow(new IllegalStateException("rules blew up"));
+            when(ruleSet.apply(List.of(recording))).thenThrow(new IllegalStateException("rules blew up"));
 
             List<AutoAnalysisResult> results = initializer()
-                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), recording)
+                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), List.of(recording))
                     .get(5, TimeUnit.SECONDS);
 
             assertNull(results);

@@ -105,7 +105,7 @@ class OtlpRecordingRoundTripTest {
                         Schedulers.sharedDbWriter(), dataSource, BATCH_SIZE, profilingStartedAt,
                         BatchFlushLimit.ofSlots(Schedulers.DB_WRITER_THREADS)));
 
-        new OtlpRecordingEventParser().start(eventWriter, recording);
+        new OtlpRecordingEventParser().start(eventWriter, List.of(recording));
         eventWriter.onComplete();
 
         assertEquals(2, count(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'cpu'"));

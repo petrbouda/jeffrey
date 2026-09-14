@@ -27,7 +27,7 @@ import java.util.Map;
 /**
  * The chunks of a session's recording, as every consumer of "the session's JFR" reads them off
  * a file listing: the hub when it compresses, replays or trims them, and Microscope when it
- * assembles them into the recording a profile is built from.
+ * reads them as the recording a profile is built from.
  *
  * <p>Two rules live here and nowhere else. <strong>One file per id.</strong> A chunk keeps its id
  * across compression — the id is the name with the chunk extension stripped — and for a moment

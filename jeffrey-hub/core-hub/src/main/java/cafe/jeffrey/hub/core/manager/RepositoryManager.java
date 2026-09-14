@@ -41,7 +41,7 @@ public interface RepositoryManager {
     /**
      * Serves one of a session's files as it lies on the hub — a JFR chunk (raw or already
      * compressed), a heap dump, a log, a file the hub does not classify — after checking that it
-     * exists, is finished and is not transient. The hub never merges; a client assembles a
+     * exists, is finished and is not transient. The hub never merges; a client keeps a
      * recording from the chunks it downloads one by one.
      *
      * @param sessionId the session containing the file

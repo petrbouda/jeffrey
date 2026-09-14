@@ -20,6 +20,7 @@ package cafe.jeffrey.provider.profile.api;
 
 
 import java.nio.file.Path;
+import java.util.List;
 
 public interface RecordingInformationParser {
 
@@ -30,4 +31,13 @@ public interface RecordingInformationParser {
      * @return the recording information
      */
     RecordingInformation provide(Path recordingPath);
+
+    /**
+     * The information of a recording held as several files — the chunks of a downloaded session,
+     * in reading order — read from each and merged: sizes add up, the window spans from the first
+     * start to the last end, and the event source is the first file's.
+     */
+    default RecordingInformation provide(List<Path> recordingFiles) {
+        return RecordingInformation.merge(recordingFiles.stream().map(this::provide).toList());
+    }
 }

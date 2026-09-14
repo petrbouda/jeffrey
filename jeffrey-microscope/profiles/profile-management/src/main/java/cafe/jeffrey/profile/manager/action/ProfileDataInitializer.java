@@ -37,13 +37,13 @@ import java.util.concurrent.CompletableFuture;
 public interface ProfileDataInitializer {
 
     /**
-     * Starts the JMC rule set over the recording file, before it has been parsed.
+     * Starts the JMC rule set over the recording's files, before they have been parsed.
      *
      * @return the findings, or {@code null} when the rules were skipped or failed. Never completes
      * exceptionally: the analysis is a cache, and a profile without it is a poorer profile rather
      * than a failed import.
      */
-    CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(ProfileInfo profileInfo, Path recordingPath);
+    CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(ProfileInfo profileInfo, List<Path> recordingFiles);
 
     /**
      * Warms the remaining views and stores whatever {@link #startAutoAnalysis} produced.
@@ -64,7 +64,7 @@ public interface ProfileDataInitializer {
 
             @Override
             public CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(
-                    ProfileInfo profileInfo, Path recordingPath) {
+                    ProfileInfo profileInfo, List<Path> recordingFiles) {
 
                 return CompletableFuture.completedFuture(null);
             }

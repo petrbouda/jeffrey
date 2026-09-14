@@ -217,7 +217,7 @@ public enum SupportedFile {
 
     /**
      * A chunk of a session's recording: one of the rotated files the profiler writes, which the hub
-     * compresses, trims by age and replays, and which Microscope assembles into the recording a
+     * compresses, trims by age and replays, and which Microscope keeps as the files of the recording a
      * profile is built from. The newest chunk of a running session is the one still being written.
      */
     public boolean isRecordingChunk() {

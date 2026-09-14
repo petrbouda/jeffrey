@@ -39,17 +39,23 @@ import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class ProfileAnalysisConfiguration {
+
+    /** What separates a recording's id from a file's name in the flat recordings store. */
+    private static final String RECORDING_FILE_SEPARATOR = "-";
 
     private final ProfileRepositories profileRepositories;
     private final DatabaseManagerResolver databaseManagerResolver;
@@ -84,30 +90,38 @@ public class ProfileAnalysisConfiguration {
             var profileDb = databaseManagerResolver.open(profileInfo);
             ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
 
-            Supplier<Optional<Path>> recordingPathResolver;
+            Supplier<List<Path>> recordingFilesResolver;
             if (profileInfo.projectId() != null) {
-                recordingPathResolver = () -> recordingStorage
+                recordingFilesResolver = () -> recordingStorage
                         .projectRecordingStorage(profileInfo.projectId())
-                        .findRecording(profileInfo.recordingId());
+                        .findRecordingFiles(profileInfo.recordingId());
             } else {
-                recordingPathResolver = () -> findRecording(recordingsPath, profileInfo.recordingId());
+                recordingFilesResolver = () -> findRecordingFiles(recordingsPath, profileInfo.recordingId());
             }
 
             return new AutoAnalysisManagerImpl(
-                    cacheRepository, recordingPathResolver, AutoAnalysisDataProvider::generate);
+                    cacheRepository, recordingFilesResolver, AutoAnalysisDataProvider::generate);
         };
     }
 
-    private static Optional<Path> findRecording(Path recordingsPath, String recordingId) {
+    /**
+     * The recording's files in the flat recordings store, where every file of a recording is
+     * named {@code <recordingId>-<name>}: the ones a profile is parsed from, in reading order —
+     * by name with the chunk extension stripped, the order the chunks of a session were written.
+     */
+    private static List<Path> findRecordingFiles(Path recordingsPath, String recordingId) {
         if (recordingId == null || !Files.exists(recordingsPath)) {
-            return Optional.empty();
+            return List.of();
         }
+        String prefix = recordingId + RECORDING_FILE_SEPARATOR;
         try (var stream = Files.list(recordingsPath)) {
             return stream
-                    .filter(p -> p.getFileName().toString().startsWith(recordingId + "-"))
-                    .findFirst();
+                    .filter(p -> p.getFileName().toString().startsWith(prefix))
+                    .filter(p -> SupportedFile.of(p).isProfileRecording())
+                    .sorted(Comparator.comparing(p -> FileSystemUtils.removeExtension(p, SupportedFile.recordingChunkExtensions())))
+                    .toList();
         } catch (IOException e) {
-            return Optional.empty();
+            return List.of();
         }
     }
 

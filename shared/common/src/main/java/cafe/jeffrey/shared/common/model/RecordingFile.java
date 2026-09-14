@@ -18,8 +18,10 @@
 
 package cafe.jeffrey.shared.common.model;
 
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedFile;
 
+import java.nio.file.Path;
 import java.time.Instant;
 
 public record RecordingFile(
@@ -29,4 +31,19 @@ public record RecordingFile(
         SupportedFile recordingFileType,
         Instant uploadedAt,
         long sizeInBytes) {
+
+    /**
+     * Whether a profile is parsed from this file — see {@link SupportedFile#isProfileRecording()}.
+     */
+    public boolean isRecordingFile() {
+        return recordingFileType.isProfileRecording();
+    }
+
+    /**
+     * The name a chunk keeps across compression: {@code profile-1.jfr} and {@code profile-1.jfr.lz4}
+     * read the same, so a set of chunks orders the same way whichever form each is in.
+     */
+    public String nameWithoutChunkExtension() {
+        return FileSystemUtils.removeExtension(Path.of(filename), SupportedFile.recordingChunkExtensions());
+    }
 }

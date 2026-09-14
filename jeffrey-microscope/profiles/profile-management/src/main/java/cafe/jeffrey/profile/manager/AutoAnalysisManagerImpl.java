@@ -28,7 +28,6 @@ import cafe.jeffrey.shared.common.CacheKey;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -42,8 +41,8 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
             };
 
     private final ProfileCacheRepository cacheRepository;
-    private final Supplier<Optional<Path>> recordingPathResolver;
-    private final Function<Path, List<AutoAnalysisResult>> ruleSet;
+    private final Supplier<List<Path>> recordingFilesResolver;
+    private final Function<List<Path>, List<AutoAnalysisResult>> ruleSet;
 
     /**
      * Guards the single in-flight run. Held only while a run is being handed out or cleared, never
@@ -53,17 +52,19 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
     private CompletableFuture<List<AutoAnalysisResult>> inFlight;
 
     /**
-     * @param ruleSet what actually evaluates the rules over a recording file. A collaborator rather
+     * @param recordingFilesResolver the recording's files in reading order, or none when the
+     *                               recording is no longer there
+     * @param ruleSet what actually evaluates the rules over a recording's files. A collaborator rather
      *                than a static call so the single-flight behaviour below can be tested without a
      *                recording on disk.
      */
     public AutoAnalysisManagerImpl(
             ProfileCacheRepository cacheRepository,
-            Supplier<Optional<Path>> recordingPathResolver,
-            Function<Path, List<AutoAnalysisResult>> ruleSet) {
+            Supplier<List<Path>> recordingFilesResolver,
+            Function<List<Path>, List<AutoAnalysisResult>> ruleSet) {
 
         this.cacheRepository = cacheRepository;
-        this.recordingPathResolver = recordingPathResolver;
+        this.recordingFilesResolver = recordingFilesResolver;
         this.ruleSet = ruleSet;
     }
 
@@ -80,7 +81,7 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
 
     @Override
     public boolean canGenerate() {
-        return recordingPathResolver.get().isPresent();
+        return !recordingFilesResolver.get().isEmpty();
     }
 
     /**
@@ -130,12 +131,14 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
     }
 
     private List<AutoAnalysisResult> runRuleSet() {
-        Path recordingPath = recordingPathResolver.get()
-                .orElseThrow(() -> new IllegalStateException("Recording file not found"));
+        List<Path> recordingFiles = recordingFilesResolver.get();
+        if (recordingFiles.isEmpty()) {
+            throw new IllegalStateException("Recording file not found");
+        }
 
-        LOG.info("Generating auto analysis: recording={}", recordingPath);
+        LOG.info("Generating auto analysis: recording_files={}", recordingFiles);
 
-        return cache(ruleSet.apply(recordingPath));
+        return cache(ruleSet.apply(recordingFiles));
     }
 
     /**

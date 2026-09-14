@@ -65,13 +65,13 @@ class AutoAnalysisManagerImplTest {
     }
 
     private AutoAnalysisManagerImpl manager(
-            Supplier<Optional<Path>> resolver, Function<Path, List<AutoAnalysisResult>> ruleSet) {
+            Supplier<List<Path>> resolver, Function<List<Path>, List<AutoAnalysisResult>> ruleSet) {
 
         return new AutoAnalysisManagerImpl(cacheRepository, resolver, ruleSet);
     }
 
-    private AutoAnalysisManagerImpl manager(Function<Path, List<AutoAnalysisResult>> ruleSet) {
-        return manager(() -> Optional.of(RECORDING), ruleSet);
+    private AutoAnalysisManagerImpl manager(Function<List<Path>, List<AutoAnalysisResult>> ruleSet) {
+        return manager(() -> List.of(RECORDING), ruleSet);
     }
 
     @Nested
@@ -82,13 +82,13 @@ class AutoAnalysisManagerImplTest {
         @DisplayName("follows whether the recording file resolves")
         void followsTheResolver() {
             assertTrue(manager(_ -> List.of()).canGenerate());
-            assertFalse(manager(Optional::empty, _ -> List.of()).canGenerate());
+            assertFalse(manager(List::of, _ -> List.of()).canGenerate());
         }
 
         @Test
         @DisplayName("generating without a recording fails rather than caching an empty analysis")
         void generatingWithoutARecordingFails() {
-            AutoAnalysisManagerImpl manager = manager(Optional::empty, _ -> List.of());
+            AutoAnalysisManagerImpl manager = manager(List::of, _ -> List.of());
 
             assertThrows(IllegalStateException.class, manager::generate);
             verify(cacheRepository, never()).put(any(), any());
@@ -108,8 +108,8 @@ class AutoAnalysisManagerImplTest {
                     result("warned", Severity.WARNING),
                     result("informed", Severity.INFO));
 
-            List<AutoAnalysisResult> results = manager(recording -> {
-                assertEquals(RECORDING, recording);
+            List<AutoAnalysisResult> results = manager(recordingFiles -> {
+                assertEquals(List.of(RECORDING), recordingFiles);
                 return unordered;
             }).generate();
 

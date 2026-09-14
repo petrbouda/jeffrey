@@ -38,5 +38,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>recording-storage-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

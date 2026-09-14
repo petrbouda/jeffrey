@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Streams a recording session's files from a hub, one file per call. The hub serves every file
- * the same way and never merges; {@code RemoteRecordingsDownloadManager} assembles a recording from
+ * the same way and never merges; {@code RemoteRecordingsDownloadManager} stores a recording from
  * the chunks it streams through here.
  */
 public class FileDownloadClient {

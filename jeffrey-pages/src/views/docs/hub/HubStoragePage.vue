@@ -128,7 +128,7 @@ onMounted(() => {
                 └── heap-dump.hprof.gz          # on OOM or crash</code></pre>
       </div>
 
-      <p>Every file sits side by side; nothing is grouped into subdirectories and no file is catalogued in the database. The hub classifies each by name (<code>SupportedFile</code>) and serves every finished one the same way — a JFR chunk is a file like a log is. The hub never merges: Microscope downloads the chunks it wants and assembles the recording itself. The path makes it cheap to enumerate everything for a workspace, project, or session without touching the database.</p>
+      <p>Every file sits side by side; nothing is grouped into subdirectories and no file is catalogued in the database. The hub classifies each by name (<code>SupportedFile</code>) and serves every finished one the same way — a JFR chunk is a file like a log is. The hub never merges: Microscope downloads the chunks it wants and keeps them as the files of one recording, which its parser reads chunk by chunk. The path makes it cheap to enumerate everything for a workspace, project, or session without touching the database.</p>
 
       <h2 id="shared-filesystem">Shared Filesystem</h2>
       <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner plus Jeffrey Agent — also mounts. The producers write JFR files; Server discovers and serves them.</p>

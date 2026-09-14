@@ -20,7 +20,6 @@ package cafe.jeffrey.shared.ui.hub.dto;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.ui.hub.bridge.ProfileInitProgress;
 import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider.ProfileInfo;
 
@@ -54,8 +53,6 @@ public record RecordingResponse(
             ProfileInfo profileInfo,
             List<RecordingTag> tags) {
 
-        RecordingFile primary = recording.files().isEmpty() ? null : recording.files().getFirst();
-
         List<RecordingFileResponse> fileResponses = recording.files().stream()
                 .map(f -> new RecordingFileResponse(
                         f.id(),
@@ -67,10 +64,10 @@ public record RecordingResponse(
 
         return new RecordingResponse(
                 recording.id(),
-                primary != null ? primary.filename() : recording.recordingName(),
+                recording.recordingName(),
                 recording.groupId(),
                 recording.eventSource().name(),
-                primary != null ? primary.sizeInBytes() : 0,
+                recording.recordingSizeInBytes(),
                 recording.createdAt().toEpochMilli(),
                 recording.recordingDuration().toMillis(),
                 recording.profileId(),

@@ -22,7 +22,6 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 public interface ProjectRecordingStorage {
@@ -39,13 +38,12 @@ public interface ProjectRecordingStorage {
     List<String> findAllRecordingIds();
 
     /**
-     * Searches for a recording by its unique identifier and returns the file the recording exists.
+     * The files a profile is parsed from, in reading order: one for an uploaded recording, one
+     * per chunk for a session downloaded from a hub. Empty when the recording folder holds none.
      *
-     * @param recordingId the unique identifier of the recording to be found
-     * @return an {@code Optional} containing the file to the recording if it exists,
-     * or an empty {@code Optional} if the recording is not found
+     * @param recordingId the unique identifier of the recording
      */
-    Optional<Path> findRecording(String recordingId);
+    List<Path> findRecordingFiles(String recordingId);
 
     /**
      * Retrieves a list of additional files associated with a specific recording ID.

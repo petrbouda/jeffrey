@@ -73,7 +73,7 @@ onMounted(() => {
               <h4>Finished</h4>
               <p>Profiling has completed. All JFR files are finalised and ready for analysis from the project's <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab.</p>
               <ul class="lifecycle-details">
-                <li>Select specific JFR chunks to download; Microscope assembles them into one recording</li>
+                <li>Select specific JFR chunks to download; Microscope keeps them as the files of one recording</li>
                 <li>Download every file of the session</li>
                 <li>Create recordings for profile analysis</li>
               </ul>

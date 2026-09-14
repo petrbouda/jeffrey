@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 /**
  * The hub's one download path. Every file a session holds is served the same way — a JFR chunk,
  * a heap dump, a log, a file the hub does not classify — as it lies on disk. There is no merge
- * here: a recording is assembled by the client from the chunks it downloads.
+ * here: a client keeps the chunks it downloads as the files of one recording.
  */
 public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloadServiceImplBase {
 

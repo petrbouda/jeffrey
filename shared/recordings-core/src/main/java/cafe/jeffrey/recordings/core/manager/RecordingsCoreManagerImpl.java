@@ -43,6 +43,9 @@ import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Objects;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -175,40 +178,102 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     @Override
     public String createDownloadedRecording(
             String recordingName,
-            Path recordingFile,
+            List<Path> recordingFiles,
             List<Path> additionalFiles,
             Map<String, String> originTags) {
 
-        String recordingId = IDGenerator.generate();
-        String filename = recordingFile.getFileName().toString();
-        Path targetPath = recordingsDir.resolve(recordingId + "-" + filename);
+        if (recordingFiles.isEmpty()) {
+            throw new IllegalArgumentException("A downloaded recording has at least one recording file: " + recordingName);
+        }
 
+        String recordingId = IDGenerator.generate();
+        Instant uploadedAt = clock.instant();
+
+        // Every chunk lands as its own file of the recording, as the hub served it: the parser
+        // reads a recording chunk by chunk anyway, so joining them here would only be a copy.
+        List<RecordingFile> chunks = new ArrayList<>();
+        for (Path recordingFile : recordingFiles) {
+            chunks.add(storeFile(recordingId, recordingFile, uploadedAt));
+        }
+
+        RecordingMetadata metadata = metadataOf(chunks);
+        Recording recording = new Recording(
+                recordingId, recordingName, null, null, metadata.eventSource(), uploadedAt,
+                metadata.recordingStartedAt(), metadata.recordingFinishedAt(),
+                false, null, null, List.of());
+
+        recordingRepository.insertRecording(recording, chunks.getFirst());
+        for (RecordingFile chunk : chunks.subList(1, chunks.size())) {
+            recordingRepository.insertRecordingFile(chunk);
+        }
+        for (Path additionalFile : additionalFiles) {
+            persistAdditionalFile(recordingId, additionalFile, uploadedAt);
+        }
+        if (originTags != null && !originTags.isEmpty()) {
+            recordingTagsRepository.insert(recordingId, originTags);
+        }
+
+        LOG.info("Quick analysis recording downloaded from project: recordingId={} name={} chunkCount={} additionalFileCount={} tagCount={}",
+                recordingId, recordingName, chunks.size(), additionalFiles.size(), originTags.size());
+        return recordingId;
+    }
+
+    /**
+     * The recording's metadata read off its chunks and merged: the window spans from the first
+     * chunk's start to the last chunk's end, and the event source is whichever a chunk reports.
+     * A chunk whose metadata cannot be read does not narrow the window.
+     */
+    private RecordingMetadata metadataOf(List<RecordingFile> chunks) {
+        List<RecordingMetadata> parts = chunks.stream()
+                .map(chunk -> metadataParser.parse(resolveRecordingFilePath(chunk)))
+                .flatMap(Optional::stream)
+                .toList();
+        if (parts.isEmpty()) {
+            return new RecordingMetadata(detectEventSource(chunks.getFirst().filename()), null, null);
+        }
+        Instant startedAt = parts.stream()
+                .map(RecordingMetadata::recordingStartedAt)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
+        Instant finishedAt = parts.stream()
+                .map(RecordingMetadata::recordingFinishedAt)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        return new RecordingMetadata(parts.getFirst().eventSource(), startedAt, finishedAt);
+    }
+
+    /**
+     * Moves a file into the store under the recording's id and describes it as one of the
+     * recording's files. Moved rather than copied: the caller hands over files it is about to
+     * discard, and a recording the size of a session is not worth writing again.
+     */
+    private RecordingFile storeFile(String recordingId, Path source, Instant uploadedAt) {
+        String filename = source.getFileName().toString();
+        Path targetPath = recordingsDir.resolve(recordingId + "-" + filename);
         try {
-            // Moved rather than copied: the caller hands over files it is about to discard, and
-            // a recording the size of a session is not worth writing a fourth time.
-            Files.move(recordingFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(source, targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to move downloaded recording into QA storage", e);
+            throw new UncheckedIOException("Failed to move a downloaded file into QA storage: " + filename, e);
         }
 
         long sizeInBytes;
         try {
             sizeInBytes = Files.size(targetPath);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to get file size", e);
+            throw new UncheckedIOException("Failed to get file size: " + filename, e);
         }
 
-        persistRecording(recordingId, filename, targetPath, sizeInBytes, null, additionalFiles, originTags);
-
-        LOG.info("Quick analysis recording downloaded from project: recordingId={} filename={} additionalFileCount={} tagCount={} sourceName={}",
-                recordingId, filename, additionalFiles.size(), originTags.size(), recordingName);
-        return recordingId;
+        return new RecordingFile(
+                IDGenerator.generate(), recordingId, filename,
+                SupportedFile.of(filename),
+                uploadedAt, sizeInBytes);
     }
 
     /**
-     * Shared persistence path for both manual uploads and downloaded recordings.
-     * Parses recording info, inserts the primary file, copies and inserts any additional files,
-     * then writes the supplied origin/system tags.
+     * Persistence path for an uploaded recording: parses its metadata, inserts the recording with
+     * its one file, moves and inserts any additional files, then writes the supplied tags.
      */
     private void persistRecording(
             String recordingId,
@@ -258,29 +323,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     }
 
     private void persistAdditionalFile(String recordingId, Path additionalFilePath, Instant uploadedAt) {
-        String additionalFilename = additionalFilePath.getFileName().toString();
-        Path targetPath = recordingsDir.resolve(recordingId + "-" + additionalFilename);
-        try {
-            Files.move(additionalFilePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new UncheckedIOException(
-                    "Failed to move additional file into QA storage: " + additionalFilename, e);
-        }
-
-        long sizeInBytes;
-        try {
-            sizeInBytes = Files.size(targetPath);
-        } catch (IOException e) {
-            throw new UncheckedIOException(
-                    "Failed to get additional file size: " + additionalFilename, e);
-        }
-
-        RecordingFile additionalFile = new RecordingFile(
-                IDGenerator.generate(), recordingId, additionalFilename,
-                SupportedFile.of(additionalFilename),
-                uploadedAt, sizeInBytes);
-
-        recordingRepository.insertRecordingFile(additionalFile);
+        recordingRepository.insertRecordingFile(storeFile(recordingId, additionalFilePath, uploadedAt));
     }
 
     @Override

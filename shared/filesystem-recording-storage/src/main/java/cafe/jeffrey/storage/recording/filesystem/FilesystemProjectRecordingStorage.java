@@ -27,12 +27,20 @@ import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 public class FilesystemProjectRecordingStorage implements ProjectRecordingStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemProjectRecordingStorage.class);
+
+    /**
+     * Reading order of a recording's files: by name with the chunk extension stripped, which for
+     * the chunks of a session is the order they were written, whichever of them the hub has
+     * since compressed.
+     */
+    private static final Comparator<Path> RECORDING_FILE_ORDER = Comparator.comparing(
+            path -> FileSystemUtils.removeExtension(path, SupportedFile.recordingChunkExtensions()));
 
     private final Path projectFolder;
 
@@ -51,14 +59,11 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
-    public Optional<Path> findRecording(String recordingId) {
-        Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        if (Files.exists(recordingFolder)) {
-            return findRecordingFile(recordingFolder);
-        } else {
-            LOG.warn("Main recording folder does not exist: {}", recordingFolder);
-            return Optional.empty();
-        }
+    public List<Path> findRecordingFiles(String recordingId) {
+        return findAllFiles(recordingId).stream()
+                .filter(FilesystemProjectRecordingStorage::isProfileRecording)
+                .sorted(RECORDING_FILE_ORDER)
+                .toList();
     }
 
     @Override
@@ -74,16 +79,6 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
      */
     private static boolean isProfileRecording(Path path) {
         return SupportedFile.of(path).isProfileRecording();
-    }
-
-    private static Optional<Path> findRecordingFile(Path recordingFolder) {
-        for (SupportedFile recordingType : SupportedFile.profileRecordings()) {
-            Optional<Path> recordingOpt = FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingType);
-            if (recordingOpt.isPresent()) {
-                return recordingOpt;
-            }
-        }
-        return Optional.empty();
     }
 
     @Override
@@ -129,17 +124,8 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
 
     @Override
     public Path uploadTarget(String recordingId, String filename) {
+        // A recording folder may hold several recording files: the chunks of one session.
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-
-        // Only one recording file is allowed in the recording folder.
-        // Multiple additional files are allowed.
-        Optional<Path> recordingFileOpt = findRecordingFile(recordingFolder);
-        if (recordingFileOpt.isPresent()) {
-            throw new RuntimeException(
-                    "Recording file already exists: recording_id=" + recordingId
-                    + " recording_file=" + recordingFileOpt.get().getFileName());
-        }
-
         return recordingFolder.resolve(filename);
     }
 

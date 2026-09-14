@@ -25,6 +25,7 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.shared.common.measure.Measuring;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.time.Duration;
 
 /**
@@ -38,7 +39,14 @@ public class OtlpRecordingEventParser implements RecordingEventParser {
     private static final Logger LOG = LoggerFactory.getLogger(OtlpRecordingEventParser.class);
 
     @Override
-    public void start(EventWriter eventWriter, Path recording) {
+    public void start(EventWriter eventWriter, List<Path> recordingFiles) {
+        // One profile is one file here; the chunked form is a JFR session's.
+        for (Path recording : recordingFiles) {
+            start(eventWriter, recording);
+        }
+    }
+
+    private void start(EventWriter eventWriter, Path recording) {
         OtlpProfileReader reader = new OtlpProfileReader(eventWriter.newSingleThreadedWriter());
         Duration elapsed = Measuring.r(() -> reader.read(recording));
         LOG.info("OTLP recording parsed: recording={} duration_in_ms={}", recording, elapsed.toMillis());

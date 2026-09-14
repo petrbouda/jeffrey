@@ -124,9 +124,10 @@ about.
 
 ## 4. Pull it in
 
-`hubs_download(sessionRef)` brings every finished file of the session over and assembles the JFR
-chunks among them into one local recording; everything else — heap dumps, JVM and application
-logs — is stored beside it. The hub never merges; Jeffrey does, here. It returns a `recordingId`.
+`hubs_download(sessionRef)` brings every finished file of the session over: the JFR chunks become
+the files of one local recording, kept as the hub served them, and everything else — heap dumps,
+JVM and application logs — is stored beside them. Nothing is merged, on either side; the parser
+reads a recording chunk by chunk anyway. It returns a `recordingId`.
 
 It does **not** build the profile; `recordings_analyzeRecording(recordingId)` does that and returns
 the `profileId` every analysis tool takes. The two are separate on purpose: a large session is a

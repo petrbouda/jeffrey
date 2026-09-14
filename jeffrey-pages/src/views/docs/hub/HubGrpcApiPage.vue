@@ -323,7 +323,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>DownloadFile</code>
                 </div>
-                <p>Stream one file of a session as it lies on the hub - a JFR chunk (raw or already <code>.jfr.lz4</code>), a heap dump, a log, an unclassified file. Any finished, non-transient file; there is no merge RPC, a client assembles a recording from the chunks it downloads</p>
+                <p>Stream one file of a session as it lies on the hub - a JFR chunk (raw or already <code>.jfr.lz4</code>), a heap dump, a log, an unclassified file. Any finished, non-transient file; there is no merge RPC, a client keeps the chunks it downloads as the files of one recording</p>
               </div>
             </div>
           </div>

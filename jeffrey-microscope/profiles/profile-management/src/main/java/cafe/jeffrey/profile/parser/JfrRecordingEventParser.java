@@ -54,51 +54,57 @@ public class JfrRecordingEventParser implements RecordingEventParser {
         this.lz4Compressor = lz4Compressor;
     }
 
+    /**
+     * Parses the recording's files as one recording: every file is split into its chunks, each
+     * chunk is parsed on the shared pool as soon as it has been written, and the whole is joined
+     * once at the end. A session downloaded from a hub arrives as one file per rotated chunk, and
+     * joining per file would parse such a session one chunk at a time.
+     * <p>
+     * Splitting reads the whole file and writes the same bytes back out beside it, and none of
+     * that used to overlap with the parse it exists to feed: the first chunk sat finished on disk
+     * until the last one had been copied. Parsing on the callback puts the copy and the parse on
+     * top of each other, so the split costs roughly its first chunk rather than all of them.
+     * <p>
+     * A compressed file is split in full before any of its chunks is handed to a writer: its
+     * streaming split may fail partway through and be retried from scratch (see
+     * {@link #disassembleCompressed}), and chunks already parsed by the failed attempt would
+     * then be ingested twice.
+     */
     @Override
-    public void start(EventWriter eventWriter, Path recording) {
+    public void start(EventWriter eventWriter, List<Path> recordingFiles) {
         try (TempDirectory tempDir = tempDirFactory.newTempDir()) {
             LOG.info("Created the profile's temporary folder: {}", tempDir.path());
 
             Supplier<EventProcessor<Void>> eventProcessor =
                     () -> new JfrEventReader(eventWriter.newSingleThreadedWriter());
 
-            if (Lz4Compressor.isLz4Compressed(recording)) {
-                JdkRecordingIterators.parallelAndWait(
-                        disassembleCompressed(recording, tempDir), eventProcessor);
-            } else {
-                parseWhileDisassembling(recording, tempDir, eventProcessor);
+            List<CompletableFuture<Void>> parsing = new ArrayList<>();
+            try {
+                for (int index = 0; index < recordingFiles.size(); index++) {
+                    Path recording = recordingFiles.get(index);
+                    // A directory per file: two files split into chunks named alike.
+                    String fileDir = Integer.toString(index);
+                    Path chunksDir = tempDir.path().resolve(CHUNKS_DIR).resolve(fileDir);
+                    if (Lz4Compressor.isLz4Compressed(recording)) {
+                        Path fallbackDir = tempDir.path().resolve(CHUNKS_FALLBACK_DIR).resolve(fileDir);
+                        for (Path chunk : disassembleCompressed(recording, chunksDir, fallbackDir, tempDir)) {
+                            parsing.add(JdkRecordingIterators.parseAsync(chunk, eventProcessor.get()));
+                        }
+                    } else {
+                        JfrParser.disassemble(recording, chunksDir,
+                                chunk -> parsing.add(JdkRecordingIterators.parseAsync(chunk, eventProcessor.get())));
+                    }
+                }
+            } catch (RuntimeException e) {
+                // The chunks already submitted are still writing into this profile's database. Let
+                // them finish before the failure unwinds, so nothing is still appending to it while
+                // the temp directory is deleted and the initialization is torn down.
+                awaitQuietly(parsing);
+                throw e;
             }
+
+            CompletableFuture.allOf(parsing.toArray(CompletableFuture[]::new)).join();
         }
-    }
-
-    /**
-     * Splits the recording and parses each chunk as soon as it has been written.
-     * <p>
-     * Splitting reads the whole recording and writes the same bytes back out beside it, and none of
-     * that overlapped with the parse it exists to feed: the first chunk sat finished on disk until
-     * the last one had been copied. Parsing on the callback puts the copy and the parse on top of
-     * each other, so the split costs roughly its first chunk rather than all of them.
-     * <p>
-     * Only for recordings that are not LZ4 compressed. A compressed one may fail partway through
-     * and be retried from scratch (see {@link #disassembleCompressed}), and chunks already handed
-     * to the writers by the failed attempt would then be ingested twice.
-     */
-    private void parseWhileDisassembling(
-            Path recording, TempDirectory tempDir, Supplier<EventProcessor<Void>> eventProcessor) {
-
-        List<CompletableFuture<Void>> parsing = new ArrayList<>();
-        try {
-            JfrParser.disassemble(recording, tempDir.path().resolve(CHUNKS_DIR),
-                    chunk -> parsing.add(JdkRecordingIterators.parseAsync(chunk, eventProcessor.get())));
-        } catch (RuntimeException e) {
-            // The chunks already submitted are still writing into this profile's database. Let them
-            // finish before the failure unwinds, so nothing is still appending to it while the
-            // temp directory is deleted and the initialization is torn down.
-            awaitQuietly(parsing);
-            throw e;
-        }
-
-        CompletableFuture.allOf(parsing.toArray(CompletableFuture[]::new)).join();
     }
 
     private static void awaitQuietly(List<CompletableFuture<Void>> parsing) {
@@ -122,9 +128,9 @@ public class JfrRecordingEventParser implements RecordingEventParser {
      * streaming fails, it falls back to the eager decompress-to-dir path, mirroring
      * {@link JfrRecordingInformationParser}.
      */
-    private List<Path> disassembleCompressed(Path recording, TempDirectory tempDir) {
+    private List<Path> disassembleCompressed(Path recording, Path chunksDir, Path fallbackDir, TempDirectory tempDir) {
         try {
-            return JfrParser.disassemble(recording, tempDir.path().resolve(CHUNKS_DIR));
+            return JfrParser.disassemble(recording, chunksDir);
         } catch (Exception e) {
             // Defensive fallback: decompress the whole recording to disk first and disassemble
             // the plain file. A fresh output directory is used so partially written chunk files
@@ -140,7 +146,7 @@ public class JfrRecordingEventParser implements RecordingEventParser {
                     .errorType(e)
                     .emit();
             Path decompressed = lz4Compressor.decompressToDir(recording, tempDir.path());
-            return JfrParser.disassemble(decompressed, tempDir.path().resolve(CHUNKS_FALLBACK_DIR));
+            return JfrParser.disassemble(decompressed, fallbackDir);
         }
     }
 }

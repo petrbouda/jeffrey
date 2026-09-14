@@ -101,23 +101,6 @@ public class Lz4Compressor {
     }
 
     /**
-     * Opens an LZ4 frame being written to the target: whatever is written to the returned
-     * stream is compressed into it, and closing the stream finishes the frame. For a file put
-     * together from several sources, which would otherwise be written raw first and compressed
-     * as a second pass.
-     *
-     * @param target the file the frame is written to
-     * @return an OutputStream that compresses what is written to it
-     */
-    public static OutputStream compressStream(Path target) {
-        try {
-            return new LZ4FrameOutputStream(Files.newOutputStream(target));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to create compress stream: file=" + target, e);
-        }
-    }
-
-    /**
      * Decompresses an LZ4 compressed file to a specific target path.
      *
      * @param source the source LZ4 compressed file

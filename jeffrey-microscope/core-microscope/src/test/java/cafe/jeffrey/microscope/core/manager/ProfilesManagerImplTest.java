@@ -152,7 +152,7 @@ class ProfilesManagerImplTest {
                     RecordingEventSource.JDK, NOW, NOW, NOW, false, null, null, List.of());
 
             when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));
-            when(projectRecordingStorage.findRecording("rec-1")).thenReturn(Optional.empty());
+            when(projectRecordingStorage.findRecordingFiles("rec-1")).thenReturn(List.of());
 
             assertThrows(IllegalArgumentException.class, () -> manager.createProfile("rec-1"));
         }
@@ -165,7 +165,7 @@ class ProfilesManagerImplTest {
             java.nio.file.Path recordingPath = java.nio.file.Path.of("/recordings/rec-1/recording.jfr");
 
             when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));
-            when(projectRecordingStorage.findRecording("rec-1")).thenReturn(Optional.of(recordingPath));
+            when(projectRecordingStorage.findRecordingFiles("rec-1")).thenReturn(List.of(recordingPath));
 
             CompletableFuture<ProfileManager> future = manager.createProfile("rec-1");
 

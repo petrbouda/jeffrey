@@ -41,12 +41,16 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -123,6 +127,60 @@ class RecordingsCoreManagerImplTest {
             // Ungrouped quick-analysis recording: no project, no group.
             assertEquals(null, persisted.projectId());
             assertEquals(null, persisted.groupId());
+        }
+    }
+
+    /**
+     * A session downloaded from a hub is stored as it came: every chunk a file of the recording,
+     * nothing joined, and the recording's window read off the chunks together.
+     */
+    @Nested
+    class CreateDownloadedRecording {
+
+        @Test
+        void storesEveryChunkAsARecordingFileAndSpansTheirWindows() throws Exception {
+            Path first = Files.writeString(sourceDir.resolve("profile-20260523-100000.jfr.lz4"), "one");
+            Path second = Files.writeString(sourceDir.resolve("profile-20260523-101500.jfr"), "two");
+            Path log = Files.writeString(sourceDir.resolve("gc.jvm-log"), "gc");
+            when(recordingMetadataParser.parse(any(Path.class))).thenAnswer(invocation -> {
+                Path stored = invocation.getArgument(0);
+                if (stored.getFileName().toString().endsWith("profile-20260523-100000.jfr.lz4")) {
+                    return Optional.of(new RecordingMetadata(RecordingEventSource.ASYNC_PROFILER, NOW, NOW.plusSeconds(900)));
+                }
+                return Optional.of(new RecordingMetadata(RecordingEventSource.ASYNC_PROFILER, NOW.plusSeconds(900), NOW.plusSeconds(1500)));
+            });
+
+            String recordingId = manager.createDownloadedRecording(
+                    "checkout_2026-05-23", List.of(first, second), List.of(log), Map.of("origin.hubId", "hub-1"));
+
+            ArgumentCaptor<Recording> recordingCaptor = ArgumentCaptor.forClass(Recording.class);
+            ArgumentCaptor<RecordingFile> firstFile = ArgumentCaptor.forClass(RecordingFile.class);
+            verify(recordingRepository).insertRecording(recordingCaptor.capture(), firstFile.capture());
+            ArgumentCaptor<RecordingFile> otherFiles = ArgumentCaptor.forClass(RecordingFile.class);
+            verify(recordingRepository, times(2)).insertRecordingFile(otherFiles.capture());
+
+            Recording persisted = recordingCaptor.getValue();
+            assertEquals(recordingId, persisted.id());
+            assertEquals("checkout_2026-05-23", persisted.recordingName());
+            assertEquals(RecordingEventSource.ASYNC_PROFILER, persisted.eventSource());
+            assertEquals(NOW, persisted.recordingStartedAt());
+            assertEquals(NOW.plusSeconds(1500), persisted.recordingFinishedAt());
+
+            assertEquals("profile-20260523-100000.jfr.lz4", firstFile.getValue().filename());
+            assertEquals(
+                    List.of("profile-20260523-101500.jfr", "gc.jvm-log"),
+                    otherFiles.getAllValues().stream().map(RecordingFile::filename).toList());
+            assertEquals("one", Files.readString(recordingsDir.resolve(recordingId + "-profile-20260523-100000.jfr.lz4")));
+            assertEquals("two", Files.readString(recordingsDir.resolve(recordingId + "-profile-20260523-101500.jfr")));
+            assertEquals("gc", Files.readString(recordingsDir.resolve(recordingId + "-gc.jvm-log")));
+            assertFalse(Files.exists(first), "the chunk is moved, not copied");
+            verify(recordingTagsRepository).insert(recordingId, Map.of("origin.hubId", "hub-1"));
+        }
+
+        @Test
+        void refusesASessionWithoutAChunk() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> manager.createDownloadedRecording("empty", List.of(), List.of(), Map.of()));
         }
     }
 

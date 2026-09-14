@@ -48,15 +48,19 @@ public interface RecordingsCoreManager {
     String importRecordingFromPath(Path path);
 
     /**
-     * Stores a recording downloaded from a hub, with the files that came beside it, under the
-     * given origin tags. The files are <em>moved</em> into the store: the caller hands over a
-     * temp directory's contents and must not expect them at their old paths afterwards.
+     * Stores a session downloaded from a hub as one recording: its JFR chunks as they were served,
+     * in reading order, and the files that came beside them, under the given origin tags. The
+     * files are <em>moved</em> into the store: the caller hands over a temp directory's contents
+     * and must not expect them at their old paths afterwards.
      *
+     * @param recordingName  what the recording is called; a session has no single file to be
+     *                       named after
+     * @param recordingFiles the chunks of the session's recording, oldest first; at least one
      * @return id of the newly created recording
      */
     String createDownloadedRecording(
             String recordingName,
-            Path recordingFile,
+            List<Path> recordingFiles,
             List<Path> additionalFiles,
             Map<String, String> originTags);
 

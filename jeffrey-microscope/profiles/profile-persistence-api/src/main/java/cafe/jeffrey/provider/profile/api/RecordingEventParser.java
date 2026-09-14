@@ -19,9 +19,15 @@
 package cafe.jeffrey.provider.profile.api;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public interface RecordingEventParser {
 
-    void start(EventWriter eventWriter, Path recording);
+    /**
+     * Parses the recording's files into the writer, in the order given. A recording is one file
+     * for an upload and one file per chunk for a session downloaded from a hub; the parser reads
+     * them as one recording.
+     */
+    void start(EventWriter eventWriter, List<Path> recordingFiles);
 
 }

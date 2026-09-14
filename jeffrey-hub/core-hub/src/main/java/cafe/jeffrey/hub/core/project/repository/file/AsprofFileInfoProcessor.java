@@ -62,7 +62,7 @@ public class AsprofFileInfoProcessor implements FileInfoProcessor {
      * A chunk is dated by the timestamp in its name, whichever form it is in: the hub renames a
      * chunk to {@code .jfr.lz4} when it compresses it, and dating that by the file system would
      * date it by the compression rather than the recording — after every chunk still raw, which
-     * turns the order a recording is assembled in upside down.
+     * turns the order a recording is read in upside down.
      */
     @Override
     public Instant createdAt(Path file) {

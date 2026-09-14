@@ -432,9 +432,9 @@ public class HubsMcpTools {
      */
     @McpToolHints(readOnly = false, openWorld = true)
     @Tool(description = "Download one recording session from its hub into this Jeffrey, bringing every "
-            + "finished file it holds and assembling the JFR chunks among them into a single local "
-            + "recording, with every other file - heap dumps, JVM and application logs - stored beside "
-            + "it. Takes the session_ref from "
+            + "finished file it holds: the JFR chunks become the files of one local recording, as the "
+            + "hub served them, with every other file - heap dumps, JVM and application logs - stored "
+            + "beside them. Takes the session_ref from "
             + "a hubs_sessions row and nothing else. Returns a recording id: pass it to "
             + "recordings_analyzeRecording to build the profile the analysis tools take. A small "
             + "session transfers inside this call; a large one takes longer than a client waits, so "
@@ -631,8 +631,8 @@ public class HubsMcpTools {
     }
 
     /**
-     * Reads the session before pulling it, so a ref that has gone stale and a session with nothing
-     * to assemble both fail in a sentence rather than partway through a multi-gigabyte transfer.
+     * Reads the session before pulling it, so a ref that has gone stale and a session with no chunk
+     * both fail in a sentence rather than partway through a multi-gigabyte transfer.
      */
     private RecordingSession preflight(ProjectManager project, HubSessionRef ref, HubInfo hubInfo) {
         RecordingSession session = locator.session(project, ref, hubInfo);

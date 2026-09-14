@@ -183,7 +183,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <ul>
         <li><strong>Catalog</strong> — <code>RepositoryService</code> lists sessions and their files, so you can see what a project recorded without downloading anything.</li>
-        <li><strong>Bytes</strong> — <code>FileDownloadService</code> streams any one of a session's files - a JFR chunk, a heap dump, a log - back in 64&nbsp;KB chunks; Microscope assembles a recording from the chunks.</li>
+        <li><strong>Bytes</strong> — <code>FileDownloadService</code> streams any one of a session's files - a JFR chunk, a heap dump, a log - back in 64&nbsp;KB chunks; Microscope keeps the chunks as the files of one recording.</li>
         <li><strong>Replay</strong> — <code>EventStreamingService</code> reads dumped recording files for a selected session and time window.</li>
       </ul>
 

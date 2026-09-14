@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.hub.client.FileDownloadClient;
-import cafe.jeffrey.recordings.core.assemble.JfrChunkAssembler;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
@@ -31,7 +30,6 @@ import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.repository.RecordingChunks;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -64,11 +62,12 @@ import cafe.jeffrey.shared.notification.Notifications;
 /**
  * Brings a hub session's files onto this machine and stores them as one local recording.
  * <p>
- * The hub only serves files, one download each; this is where the recording is put together.
- * Every finished, non-transient file is downloaded the same way, under a concurrency cap and with
- * per-file progress, and then the JFR chunks are assembled into the recording the profile is built
- * from while everything else is stored beside it. There is one pipeline: a caller without a screen
- * passes {@link ProgressCallback#NONE} rather than taking a different path.
+ * The hub only serves files, one download each, and they are stored as they came. Every finished,
+ * non-transient file is downloaded the same way, under a concurrency cap and with per-file
+ * progress; the JFR chunks become the recording's files, oldest first, and everything else is
+ * stored beside them. Nothing is joined: a profile is parsed chunk by chunk anyway, so a joined
+ * file would only be a copy. There is one pipeline: a caller without a screen passes
+ * {@link ProgressCallback#NONE} rather than taking a different path.
  * <p>
  * A chunk that fails to arrive fails the download, because a recording with a chunk missing is
  * not that recording; the other transfers still in flight are stopped rather than run to an end
@@ -143,8 +142,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     /**
      * The files a session download brings over, split by the one thing that differs between
-     * them: chunks are assembled into the recording, everything else is stored beside it.
-     * {@link #all()} lists the chunks first.
+     * them: chunks are the recording, everything else is stored beside it. {@link #all()} lists
+     * the chunks first.
      */
     private record SessionFiles(List<RepositoryFile> chunks, List<RepositoryFile> others) {
 
@@ -233,16 +232,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 throw new CancellationException(CANCELLED_MESSAGE);
             }
 
-            // Processing phase: assemble the chunks into the recording, then store it
+            // Processing phase: store the chunks as the recording, the other files beside them
             progressCallback.onProcessing();
 
-            Path recordingPath = JfrChunkAssembler.assemble(
-                    chunkPaths, tempDir.path(), buildRecordingBaseName(recordingSession));
-            LOG.info("Recording assembled: sessionId={} chunks={} size={}",
-                    recordingSessionId, chunkPaths.size(), FileSystemUtils.size(recordingPath));
-
-            // Persist into Recordings storage with origin tags
-            String recordingId = persistToRecordings(recordingSessionId, recordingPath, otherPaths);
+            String recordingId = persistToRecordings(
+                    recordingSession, recordingSessionId, chunkPaths, otherPaths);
 
             // Completed successfully
             progressCallback.onComplete();
@@ -512,7 +506,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static final DateTimeFormatter RECORDING_FILE_TIMESTAMP =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss'Z'").withZone(ZoneOffset.UTC);
 
-    private String buildRecordingBaseName(RecordingSessionResponse session) {
+    /**
+     * What the recording is called: the project and the session's start, since a session has no
+     * one file to be named after.
+     */
+    private String buildRecordingName(RecordingSessionResponse session) {
         String name = sanitizeForFilename(projectName);
         String timestamp = RECORDING_FILE_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
         return name + "_" + timestamp;
@@ -527,17 +525,17 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     }
 
     /**
-     * Persist the assembled recording + the session's other files into Recordings storage,
-     * tagged with the {@code origin.*} system tags from {@link #originContext}. The files are
-     * moved out of the temp directory, which is discarded right after.
+     * Persist the session's chunks as the recording's files + the session's other files into
+     * Recordings storage, tagged with the {@code origin.*} system tags from {@link #originContext}.
+     * The files are moved out of the temp directory, which is discarded right after.
      *
      * @return id of the newly created local recording
      */
     private String persistToRecordings(
-            String recordingSessionId, Path recordingPath, List<Path> additionalFiles) {
+            RecordingSessionResponse session, String recordingSessionId, List<Path> chunks, List<Path> additionalFiles) {
 
         Map<String, String> originTags = originContext.toTagMap(recordingSessionId);
         return recordingsManager.createDownloadedRecording(
-                recordingSessionId, recordingPath, additionalFiles, originTags);
+                buildRecordingName(session), chunks, additionalFiles, originTags);
     }
 }

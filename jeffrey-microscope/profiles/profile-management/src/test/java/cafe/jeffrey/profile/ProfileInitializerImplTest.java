@@ -170,7 +170,7 @@ class ProfileInitializerImplTest {
         when(profileInfo.id()).thenReturn(PROFILE_ID);
         when(traceRepository.hasSpanEventTypes()).thenReturn(true);
 
-        initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
+        initializer(profileInfo).initialize(profileInfo, null, List.of(Path.of("recording.jfr")));
 
         // Before the writer completes there is nothing to derive from; after the data initializer
         // the pre-computed views would have been built against tables that were still empty.
@@ -195,10 +195,10 @@ class ProfileInitializerImplTest {
         when(profileInfo.id()).thenReturn(PROFILE_ID);
         Path recording = Path.of("recording.jfr");
 
-        initializer(profileInfo).initialize(profileInfo, null, recording);
+        initializer(profileInfo).initialize(profileInfo, null, List.of(recording));
 
         InOrder inOrder = inOrder(profileDataInitializer, recordingEventParser);
-        inOrder.verify(profileDataInitializer).startAutoAnalysis(profileInfo, recording);
+        inOrder.verify(profileDataInitializer).startAutoAnalysis(profileInfo, List.of(recording));
         inOrder.verify(recordingEventParser).start(any(), any());
         inOrder.verify(profileDataInitializer).initialize(any(), any());
     }
@@ -219,7 +219,7 @@ class ProfileInitializerImplTest {
         ProfileInitializerImpl initializer = initializer(profileInfo);
         when(profileDataInitializer.startAutoAnalysis(any(), any())).thenReturn(started);
 
-        initializer.initialize(profileInfo, null, Path.of("recording.jfr"));
+        initializer.initialize(profileInfo, null, List.of(Path.of("recording.jfr")));
 
         verify(profileDataInitializer).initialize(any(), eq(started));
     }
@@ -239,7 +239,7 @@ class ProfileInitializerImplTest {
         when(profileDataInitializer.initialize(any(), any())).thenReturn(warming);
 
         CompletableFuture<Void> pipeline = CompletableFuture.runAsync(
-                () -> initializer.initialize(profileInfo, null, Path.of("recording.jfr")));
+                () -> initializer.initialize(profileInfo, null, List.of(Path.of("recording.jfr"))));
 
         await().during(200, MILLISECONDS).atMost(2, SECONDS)
                 .untilAsserted(() -> assertFalse(pipeline.isDone(), "the pipeline did not wait for the warming"));
@@ -255,7 +255,7 @@ class ProfileInitializerImplTest {
         when(profileInfo.id()).thenReturn(PROFILE_ID);
         when(traceRepository.hasSpanEventTypes()).thenReturn(false);
 
-        initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
+        initializer(profileInfo).initialize(profileInfo, null, List.of(Path.of("recording.jfr")));
 
         // Both derivations read every event of the blocking types before they can conclude there is
         // nothing to attach them to, so an ordinary profiling recording pays a full scan for an
@@ -285,7 +285,7 @@ class ProfileInitializerImplTest {
             when(profileInfo.id()).thenReturn(PROFILE_ID);
             when(traceRepository.hasSpanEventTypes()).thenReturn(true);
 
-            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+            initializer(profileInfo).initialize(profileInfo, "recording-1", List.of(Path.of("recording.jfr")));
 
             PipelineProgress progress = runRegistry.progress(PROFILE_ID);
             assertEquals(PipelineState.COMPLETED, progress.state());
@@ -306,7 +306,7 @@ class ProfileInitializerImplTest {
             when(profileInfo.id()).thenReturn(PROFILE_ID);
             when(traceRepository.hasSpanEventTypes()).thenReturn(false);
 
-            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+            initializer(profileInfo).initialize(profileInfo, "recording-1", List.of(Path.of("recording.jfr")));
 
             assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.TRACES).status());
             assertEquals(PipelineState.COMPLETED, runRegistry.progress(PROFILE_ID).state());
@@ -324,7 +324,7 @@ class ProfileInitializerImplTest {
             when(profileInfo.id()).thenReturn(PROFILE_ID);
             when(methodTraceWeightRepository.hasMethodTraces()).thenReturn(false);
 
-            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+            initializer(profileInfo).initialize(profileInfo, "recording-1", List.of(Path.of("recording.jfr")));
 
             assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.METHOD_TRACE_WEIGHTS).status());
             verify(methodTraceWeightRepository, never()).deriveSelfWeights();
@@ -337,7 +337,7 @@ class ProfileInitializerImplTest {
             when(profileInfo.id()).thenReturn(PROFILE_ID);
             when(methodTraceWeightRepository.hasMethodTraces()).thenReturn(true);
 
-            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+            initializer(profileInfo).initialize(profileInfo, "recording-1", List.of(Path.of("recording.jfr")));
 
             assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.METHOD_TRACE_WEIGHTS).status());
             verify(methodTraceWeightRepository).deriveSelfWeights();
@@ -349,7 +349,7 @@ class ProfileInitializerImplTest {
             ProfileInfo profileInfo = mock(ProfileInfo.class);
             when(profileInfo.id()).thenReturn(PROFILE_ID);
 
-            initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
+            initializer(profileInfo).initialize(profileInfo, null, List.of(Path.of("recording.jfr")));
 
             assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.PROFILE_INFO).status());
             assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.ADDITIONAL_FILES).status());
@@ -370,7 +370,7 @@ class ProfileInitializerImplTest {
             ProfileInitializerImpl initializer = initializer(profileInfo);
 
             IllegalStateException thrown = assertThrows(IllegalStateException.class,
-                    () -> initializer.initialize(profileInfo, "recording-1", Path.of("recording.jfr")));
+                    () -> initializer.initialize(profileInfo, "recording-1", List.of(Path.of("recording.jfr"))));
             assertEquals("recording is corrupt", thrown.getMessage());
 
             PipelineProgress progress = runRegistry.progress(PROFILE_ID);
