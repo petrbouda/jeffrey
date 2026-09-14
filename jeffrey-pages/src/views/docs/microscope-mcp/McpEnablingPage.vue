@@ -51,6 +51,12 @@ jeffrey.microscope.mcp.hubs.scan-timeout=PT20S
 jeffrey.microscope.mcp.hubs.download-response-timeout=PT45S
 jeffrey.microscope.mcp.hubs.download-timeout=PT1H`;
 
+const otherLimits = `# How many recordings_analyzeFile imports may run at once; the rest queue
+jeffrey.microscope.mcp.recordings.max-concurrent-imports=2
+
+# How long the jeffrey://diagnostics resource waits on each hub before calling it unreachable
+jeffrey.microscope.mcp.diagnostics.probe-timeout=PT2S`;
+
 const ideToggle = `jeffrey.microscope.mcp.ide.enabled=false`;
 
 const presetProperty = `# all (default), jfr, heap, or hub
@@ -135,6 +141,9 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <DocsCallout type="info" title="The expensive tools have no switch">
         <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.
       </DocsCallout>
+
+      <p>Two further bounds have properties of their own. An import is a file copy followed by a full parse, so a client that points at several recordings in one turn would otherwise start all of them together; the ones beyond the limit are queued rather than refused, and <code>operations_status</code> shows them so. The diagnostics probe is short on purpose &mdash; <code>jeffrey://diagnostics</code> is a health check rather than a scan, and a hub that cannot answer within it is exactly what the reachability figure reports.</p>
+      <DocsCodeBlock :code="otherLimits" language="properties" />
 
       <h2 id="turning-ide-access-off">Turning IDE Access Off</h2>
       <p>The <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code></router-link> family lets a session ask the developer&rsquo;s running IntelliJ where a frame lives, read a class through it, and open a file in it. It needs the <router-link to="/docs/intellij-plugin">Jeffrey IntelliJ plugin</router-link>, is on by default with the endpoint, and has its own switch:</p>

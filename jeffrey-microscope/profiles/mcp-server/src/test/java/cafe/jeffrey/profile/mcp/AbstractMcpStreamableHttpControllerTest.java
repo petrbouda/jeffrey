@@ -69,6 +69,30 @@ class AbstractMcpStreamableHttpControllerTest {
         return envelope.dispatch(Json.readTree(body), null, features);
     }
 
+    private ResponseEntity<JsonNode> respond(String body, String protocolVersionHeader) {
+        return envelope.dispatch(Json.readTree(body), protocolVersionHeader, features);
+    }
+
+    private JsonNode dispatch(String body, String protocolVersionHeader) {
+        return respond(body, protocolVersionHeader).getBody();
+    }
+
+    /** The same envelope, told what this endpoint offers beyond tools, prompts and resources. */
+    private JsonNode dispatchRich(String body) {
+        return envelope.dispatch(Json.readTree(body), PROTOCOL_VERSION, new McpServerFeatures(
+                () -> new ReflectiveToolset(new SampleTools(), "test"),
+                Prompts::new,
+                Resources::new,
+                () -> "Start at test_echo.",
+                () -> (ref, argumentName, value) -> McpCompletion.of(List.of("alpha", "alpaca", "beta").stream()
+                        .filter(candidate -> candidate.startsWith(value))
+                        .toList()),
+                () -> (toolName, arguments) -> "test_echo".equals(toolName)
+                        ? List.of(new McpResourceLink("test://echo", "Echo", "The echoed text", "text/plain"))
+                        : List.of()))
+                .getBody();
+    }
+
     @Nested
     class Batches {
 
@@ -483,6 +507,214 @@ class AbstractMcpStreamableHttpControllerTest {
                     {"jsonrpc":"2.0","id":1,"method":"tools/invent"}""");
 
             assertEquals(-32601, response.get("error").get("code").asInt());
+        }
+    }
+
+    /**
+     * Batching was removed from the protocol in 2025-06-18. A client that declared that revision or a
+     * newer one is refused; the two older ones, which require batching, keep it.
+     */
+    @Nested
+    class BatchingByRevision {
+
+        @Test
+        void refusesABatchOnTheRevisionThatRemovedIt() {
+            ResponseEntity<JsonNode> response = respond("""
+                    [{"jsonrpc":"2.0","id":1,"method":"ping"}]""", "2025-06-18");
+
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+            assertEquals(-32600, response.getBody().get("error").get("code").asInt());
+            assertTrue(response.getBody().get("error").get("message").asString().contains("batching"));
+        }
+
+        @Test
+        void refusesABatchOnEveryNewerRevision() {
+            ResponseEntity<JsonNode> response = respond("""
+                    [{"jsonrpc":"2.0","id":1,"method":"ping"}]""", "2025-11-25");
+
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        }
+
+        @Test
+        void stillAnswersABatchOnTheRevisionsThatRequireIt() {
+            JsonNode response = dispatch("""
+                    [{"jsonrpc":"2.0","id":1,"method":"ping"}]""", "2025-03-26");
+
+            assertTrue(response.isArray());
+            assertEquals(1, response.size());
+        }
+
+        /** No header means the 2025-03-26 compatibility default, which still batches. */
+        @Test
+        void stillAnswersABatchWithoutAProtocolHeader() {
+            JsonNode response = dispatch("""
+                    [{"jsonrpc":"2.0","id":1,"method":"ping"}]""");
+
+            assertTrue(response.isArray());
+        }
+
+        @Test
+        void aSingleRequestIsUnaffectedOnEveryRevision() {
+            for (String version : SUPPORTED_VERSIONS) {
+                JsonNode response = dispatch(PING, version);
+                assertTrue(response.has("result"), "ping refused on " + version);
+            }
+        }
+    }
+
+    @Nested
+    class Instructions {
+
+        @Test
+        void handsTheClientItsInstructionsAtInitialize() {
+            JsonNode result = dispatchRich("""
+                    {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}""")
+                    .get("result");
+
+            assertEquals("Start at test_echo.", result.get("instructions").asString());
+        }
+
+        /** An endpoint with nothing to say sends no empty field for a client to render. */
+        @Test
+        void omitsInstructionsWhenTheEndpointHasNone() {
+            JsonNode result = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}""")
+                    .get("result");
+
+            assertFalse(result.has("instructions"));
+        }
+    }
+
+    @Nested
+    class ToolTitles {
+
+        @Test
+        void everyToolCarriesADisplayTitle() {
+            JsonNode tools = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/list"}""").get("result").get("tools");
+
+            for (JsonNode tool : tools) {
+                assertTrue(tool.has("title"), tool.get("name").asString() + " has no title");
+                assertFalse(tool.get("title").asString().isBlank());
+            }
+        }
+
+        @Test
+        void theTitleIsTheToolNameMadeReadable() {
+            JsonNode tools = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/list"}""").get("result").get("tools");
+
+            for (JsonNode tool : tools) {
+                if ("test_echo".equals(tool.get("name").asString())) {
+                    assertEquals("Test: Echo", tool.get("title").asString());
+                    return;
+                }
+            }
+            throw new AssertionError("test_echo was not advertised");
+        }
+    }
+
+    @Nested
+    class Completions {
+
+        /** Declared only by an endpoint that has a provider, so a client's picker is never a dead end. */
+        @Test
+        void advertisesCompletionsOnlyWhenTheEndpointOffersThem() {
+            JsonNode withProvider = dispatchRich("""
+                    {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}""")
+                    .get("result");
+            JsonNode without = dispatch("""
+                    {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}""")
+                    .get("result");
+
+            assertTrue(withProvider.get("capabilities").has("completions"));
+            assertFalse(without.get("capabilities").has("completions"));
+        }
+
+        @Test
+        void completesAnArgumentByPrefix() {
+            JsonNode completion = dispatchRich("""
+                    {"jsonrpc":"2.0","id":1,"method":"completion/complete","params":{
+                      "ref":{"type":"ref/resource","uri":"test://{profileId}"},
+                      "argument":{"name":"profileId","value":"alp"}}}""")
+                    .get("result").get("completion");
+
+            assertEquals(2, completion.get("values").size());
+            assertEquals("alpha", completion.get("values").get(0).asString());
+            assertEquals(2, completion.get("total").asInt());
+            assertFalse(completion.get("hasMore").asBoolean());
+        }
+
+        @Test
+        void refusesACompletionWithoutAnArgumentName() {
+            JsonNode response = dispatchRich("""
+                    {"jsonrpc":"2.0","id":1,"method":"completion/complete","params":{
+                      "ref":{"type":"ref/resource","uri":"test://x"},"argument":{"value":"a"}}}""");
+
+            assertEquals(-32602, response.get("error").get("code").asInt());
+        }
+
+        @Test
+        void refusesAReferenceTypeTheProtocolDoesNotHave() {
+            JsonNode response = dispatchRich("""
+                    {"jsonrpc":"2.0","id":1,"method":"completion/complete","params":{
+                      "ref":{"type":"ref/invented","name":"x"},"argument":{"name":"profileId","value":""}}}""");
+
+            assertEquals(-32602, response.get("error").get("code").asInt());
+        }
+    }
+
+    @Nested
+    class ResourceLinks {
+
+        @Test
+        void attachesTheResourceThatHoldsTheSameAnswer() {
+            JsonNode content = dispatchRich("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
+                      "name":"test_echo","arguments":{"message":"hi"}}}""")
+                    .get("result").get("content");
+
+            assertEquals(2, content.size());
+            assertEquals("text", content.get(0).get("type").asString());
+            assertEquals("resource_link", content.get(1).get("type").asString());
+            assertEquals("test://echo", content.get(1).get("uri").asString());
+            assertEquals("text/plain", content.get(1).get("mimeType").asString());
+        }
+
+        /**
+         * The tool ran and answered. A convenience that could not be produced must not turn that into
+         * an error and lose the result the model was waiting for.
+         */
+        @Test
+        void keepsTheAnswerWhenBuildingALinkFails() {
+            JsonNode result = envelope.dispatch(Json.readTree("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
+                      "name":"test_echo","arguments":{"message":"hi"}}}"""), PROTOCOL_VERSION,
+                    new McpServerFeatures(
+                            () -> new ReflectiveToolset(new SampleTools(), "test"),
+                            Prompts::new,
+                            Resources::new,
+                            () -> null,
+                            () -> McpCompletionProvider.NONE,
+                            () -> (toolName, arguments) -> {
+                                throw new IllegalStateException("the linker is broken");
+                            }))
+                    .getBody().get("result");
+
+            assertFalse(result.get("isError").asBoolean());
+            assertEquals(1, result.get("content").size());
+            assertEquals("echo:hi", result.get("content").get(0).get("text").asString());
+        }
+
+        /** The text block is the answer; a link is an extra, never a replacement. */
+        @Test
+        void leavesAToolWithNoResourceCounterpartWithJustItsText() {
+            JsonNode content = dispatchRich("""
+                    {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"test_fail"}}""")
+                    .get("result").get("content");
+
+            assertEquals(1, content.size());
+            assertEquals("text", content.get(0).get("type").asString());
         }
     }
 

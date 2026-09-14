@@ -22,8 +22,10 @@ package cafe.jeffrey.profile.mcp;
  * <p>
  * MCP calls these {@code annotations} on a tool. They exist so a reader can tell a tool that only looks
  * at a profile from one that imports a file or pulls a recording off a hub, without having to read
- * every description. Jeffrey has six writers among a hundred-odd tools, so the honest default is
- * read-only and the exceptions declare themselves with {@link McpToolHints}.
+ * every description. Jeffrey has nine writers among a hundred-odd tools, so the honest default is
+ * read-only and the exceptions declare themselves with {@link McpToolHints}. The set is pinned by
+ * {@code McpToolsetAssemblerTest}, so a new writer that forgets its hint fails a test rather than
+ * quietly claiming to read.
  * <p>
  * {@code destructive} is false throughout: nothing Jeffrey exposes deletes a profile or a recording.
  * {@code openWorld} marks the tools that reach past this installation — the hub family talks to
@@ -48,7 +50,7 @@ public record McpToolAnnotations(
 
     /**
      * A tool that creates something — a profile from a recording file, a local copy of a hub session.
-     * Not destructive: it adds rather than replaces, and both of Jeffrey's writers return what already
+     * Not destructive: it adds rather than replaces, and Jeffrey's creating tools return what already
      * exists rather than building it twice, which is what makes them idempotent.
      */
     public static final McpToolAnnotations CREATES = new McpToolAnnotations(false, false, true, false);

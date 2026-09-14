@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -397,6 +398,41 @@ class McpToolsetAssemblerTest {
 
         private List<McpToolSpec> specs() {
             return assembler(true).toolset().specs();
+        }
+
+        /**
+         * How many tools this server advertises, and how they split.
+         *
+         * <p>Pinned because the figures are repeated in prose that no compiler reads: the MCP
+         * documentation states them on {@code McpOverviewPage.vue}, {@code McpToolsPage.vue},
+         * {@code McpClaudeCodePage.vue}, {@code McpCodexPage.vue}, {@code McpGeminiPage.vue},
+         * {@code McpOtherClientsPage.vue} and {@code DocsIndexPage.vue}, and {@code CLAUDE.md} and
+         * {@code McpInstructions} repeat the writer count again. Twice in two weeks a family was added
+         * and those numbers silently stopped being true. Adding a tool should fail here, with this
+         * list in front of whoever added it.
+         */
+        private static final int ADVERTISED_TOOLS = 112;
+
+        @Test
+        void advertisesTheDocumentedNumberOfTools() {
+            List<McpToolSpec> specs = specs();
+            long readOnly = specs.stream().filter(spec -> spec.annotations().readOnly()).count();
+
+            assertEquals(ADVERTISED_TOOLS, specs.size(),
+                    "The tool count changed. Update the figure in the MCP documentation pages named on "
+                            + "ADVERTISED_TOOLS, and in the family map on McpToolsPage.vue.");
+            assertEquals(WRITES.size(), specs.size() - readOnly);
+            assertEquals(ADVERTISED_TOOLS - WRITES.size(), readOnly,
+                    "The read-only count changed; DocsIndexPage.vue states it.");
+        }
+
+        /** A display name for every tool, so a client has something to show that is not the raw name. */
+        @Test
+        void everyToolCarriesATitle() {
+            for (McpToolSpec spec : specs()) {
+                assertNotNull(spec.title(), spec.name() + " has no title");
+                assertFalse(spec.title().isBlank(), spec.name() + " has a blank title");
+            }
         }
 
         @Test

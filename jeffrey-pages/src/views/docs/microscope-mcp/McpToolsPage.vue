@@ -43,6 +43,7 @@ const headings = [
   { id: 'hubs', text: 'hubs_ — recordings that are not on this machine', level: 2 },
   { id: 'ide', text: 'ide_ — where the code actually is', level: 2 },
   { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
+  { id: 'operations', text: 'operations_ — the work the writers start', level: 2 },
   { id: 'links', text: 'Links Back to the UI', level: 2 },
   { id: 'what-is-not-here', text: 'What Is Not Here', level: 2 }
 ];
@@ -1217,7 +1218,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p>Discovery shares a twenty-second deadline across remote calls and cancels outstanding RPCs when it expires. Completed project results remain available even if another hub or workspace stalls. Incomplete scopes and their reasons appear under the table, including when no rows returned. Unavailable hubs, expired deadlines and missing sessions produce distinct explanations.</p>
 
-      <p>The family is advertised only while both hub access and ingestion are enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the properties and why the two are linked.</p>
+      <p>The family is advertised only while <code>jeffrey.microscope.mcp.hubs.enabled</code> is on, and only while <code>hubs</code> is among the families the <code>families</code> list or the active <code>preset</code> selects; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>. Keep <code>operations</code> selected alongside it &mdash; that is how a download is polled and cancelled.</p>
 
       <p><strong>Example.</strong></p>
       <DocsCodeBlock :code="exHubs" language="json" />
@@ -1326,7 +1327,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p>One more thing worth knowing: each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
 
-      <p>The family is advertised only while ingestion is enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the property and for why a shared installation might turn it off.</p>
+      <p>The family is always built, and is advertised whenever <code>recordings</code> is among the families the <code>families</code> list or the active <code>preset</code> selects &mdash; every preset keeps it. Drop it from <code>families</code> to refuse imports on a shared installation; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>. Keep <code>operations</code> selected alongside it, which is how an import is polled and cancelled.</p>
 
       <p><strong>Example.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exRecordings" language="json" />
@@ -1371,7 +1372,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>No charts.</strong> The <code>jvm_</code> family carries the numbers behind each UI dashboard, not the timeseries they are drawn from: pause and throttling timelines, the G1 and ZGC deep dives, tenuring and reference processing, the thread timeline and the sub-second view stay in the UI, where a reader can scrub them. <code>profiles_link</code> opens the profile there.</p>
 
-      <p><strong>No shell.</strong> The server answers questions about profiles and, with ingestion on, opens the one recording path it is handed. It runs nothing.</p>
+      <p><strong>No shell.</strong> The server answers questions about profiles and, when the <code>recordings</code> family is advertised, opens the one recording path it is handed. It runs nothing.</p>
     </div>
 
     <DocsNavFooter />

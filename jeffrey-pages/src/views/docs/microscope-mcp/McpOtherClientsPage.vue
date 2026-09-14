@@ -43,6 +43,7 @@ const headings = [
   { id: 'what-you-give-up', text: 'What You Give Up', level: 2 },
   { id: 'prompts-and-resources', text: 'Prompts and Resources', level: 2 },
   { id: 'the-wire-protocol', text: 'The Wire Protocol', level: 2 },
+  { id: 'instructions-and-completions', text: 'Instructions and Completions', level: 2 },
   { id: 'a-session-by-hand', text: 'A Session by Hand', level: 2 },
   { id: 'errors', text: 'Errors', level: 2 }
 ];
@@ -183,14 +184,14 @@ const protocolError = `{
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>
-      <p>The same hundred and four tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
+      <p>The same hundred and twelve tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
 
       <p>What does not come along as <em>skills</em> is the guidance: the entry sequence and the two database schemas. But it is not lost. The server offers the same files over the protocol as <strong>prompts</strong>, so a client that speaks <code>prompts/list</code> can load any of them without a plugin at all &mdash; see below. What is genuinely missing is the <router-link to="/docs/microscope-mcp/agent">agents</router-link>, which no MCP server can provide, and the automatic loading: a plugin client picks a skill up when a question calls for it, where here somebody has to ask for the prompt.</p>
 
       <h2 id="prompts-and-resources">Prompts and Resources</h2>
       <p>Two capabilities beyond the tools, and they exist for exactly this page&rsquo;s readers.</p>
 
-      <p><strong>Prompts</strong> are the plugin&rsquo;s skills, served over the protocol. <code>prompts/list</code> names them &mdash; <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>advise-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>jfr-sql</code>, <code>heap-sql</code> &mdash; and <code>prompts/get</code> returns one as a message to insert. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so they cannot drift from what a Claude Code or Codex user gets.</p>
+      <p><strong>Prompts</strong> are the plugin&rsquo;s skills, served over the protocol. <code>prompts/list</code> names them &mdash; <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>advise-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code> &mdash; and <code>prompts/get</code> returns one as a message to insert. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so they cannot drift from what a Claude Code or Codex user gets.</p>
 
       <DocsCodeBlock :code="promptsCall" language="bash" />
 
@@ -234,6 +235,10 @@ const protocolError = `{
             <td>The catalogue, the per-profile templates, and the content behind a <code>jeffrey://</code> URI</td>
           </tr>
           <tr>
+            <td><code>completion/complete</code></td>
+            <td>Completes <code>profileId</code> for a prompt argument or a per-profile template, from the live catalogue &mdash; see <a href="#completions">below</a></td>
+          </tr>
+          <tr>
             <td><code>ping</code></td>
             <td>Liveness</td>
           </tr>
@@ -243,7 +248,7 @@ const protocolError = `{
           </tr>
           <tr>
             <td>A batch (a JSON array of requests)</td>
-            <td>Answered with an array holding one response per request that carried an <code>id</code>, in order; <code>202</code> with no body when every element was a notification</td>
+            <td>Accepted only on <code>2024-11-05</code> and <code>2025-03-26</code>, which require it: an array holding one response per request that carried an <code>id</code>, in order; <code>202</code> with no body when every element was a notification. MCP removed batching in <code>2025-06-18</code>, so a client that declared that revision or newer is refused with <code>-32600</code></td>
           </tr>
         </tbody>
       </table>
@@ -258,6 +263,19 @@ const protocolError = `{
         Each spec in <code>tools/list</code> carries MCP <code>annotations</code>: <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code> and <code>openWorldHint</code>. Almost everything Jeffrey exposes only reads a profile, and declares it. Tools that change state include: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which pulls a recording off another machine and creates one here, <code>hubs_eventActivity</code>, which claims one of a Hub&rsquo;s retained scan slots and runs a reader there, <code>operations_cancel</code> and <code>hubs_activityCancel</code>, which request cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor running beside Jeffrey. Every tool answers for itself, not for its family: <code>recordings_list</code>, <code>recordings_status</code> and <code>heap_status</code> only read, and say so. <code>destructiveHint</code> is false throughout &mdash; nothing here deletes a profile, a recording or a dump &mdash; and <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families, and the <code>operations_</code> pair, which can poll or cancel a remote Hub transfer. A client that gates approval on those hints does not need a hand-written deny-list.
       </DocsCallout>
 
+      <h2 id="instructions-and-completions">Instructions and Completions</h2>
+      <p>Two things the server hands a client that has no plugin behind it.</p>
+
+      <p><strong><code>initialize</code> returns an <code>instructions</code> field.</strong> A hundred-odd tools in nineteen families is a lot to meet with nothing but a tool list, so the handshake carries the short version: start at <code>profiles_list</code>, then <code>profiles_summary</code> and read <code>topFindings</code> and <code>capabilityGaps</code> before choosing a family; every tool outside <code>profiles_list</code> and the <code>recordings_</code>, <code>hubs_</code> and <code>operations_</code> families needs a <code>profileId</code>; what each family is for; that the nine writers return an <code>operationId</code> to poll; and that output is capped and always says when it cut. Most clients put it in front of the model automatically. The longer guidance stays where it was &mdash; one prompt per workflow.</p>
+
+      <p id="completions"><strong><code>completion/complete</code> completes <code>profileId</code>.</strong> A profile id is a UUIDv7, and there is no way to produce one except by reading it out of the catalogue first, which is exactly what this method exists for. It answers for both reference types &mdash; a <code>ref/prompt</code>, since every prompt takes the argument, and a <code>ref/resource</code> naming one of the per-profile templates &mdash; matching on what has been typed so far, case-insensitively, and capping the response at the hundred values the protocol allows while reporting the true <code>total</code>. No other argument is completed: an event type is <code>jdk.ExecutionSample</code>, a name a model already knows. The capability is declared only when the <code>profiles</code> family is advertised, so a narrowed server does not offer a picker it cannot fill.</p>
+
+      <p><strong>Tool results can carry a resource link.</strong> Where a tool has an exact resource counterpart &mdash; <code>profiles_summary</code>, <code>profiles_evidence</code>, and an unnarrowed <code>flamegraph_export</code> &mdash; the result carries a <code>resource_link</code> block after its text, so a client can attach the answer instead of letting it scroll away. The text block is always there; the link is an extra, never a replacement. A filtered flamegraph gets no link, because the template takes an event type and nothing else and would return a different call tree under the same name.</p>
+
+      <DocsCallout type="info" title="POST-only, and stateless on purpose">
+        The endpoint answers <code>POST</code> and nothing else. <code>GET</code> and <code>DELETE</code> return <code>405</code>: there is no server-to-client SSE stream, no <code>Mcp-Session-Id</code>, and therefore no server-initiated notifications &mdash; no <code>notifications/progress</code>, and no <code>listChanged</code> or <code>resources/updated</code>, each of which the handshake declares as absent rather than leaving a client to discover. Long-running work is polled instead: every writer returns an <code>operationId</code> and <code>operations_status</code> reports on it. That survives a dropped connection, which a progress stream does not, and it keeps the server a plain request-response service that any HTTP client can drive. <code>MCP-Protocol-Version</code> is honoured when sent; without it the server assumes the <code>2025-03-26</code> compatibility default, which means no structured results.
+      </DocsCallout>
+
       <h2 id="a-session-by-hand">A Session by Hand</h2>
       <p>Everything below works with <code>curl</code>, which makes it a good way to check that the server is up before blaming a client.</p>
 
@@ -265,7 +283,7 @@ const protocolError = `{
       <DocsCodeBlock :code="initialize" language="bash" />
       <DocsCodeBlock :code="initializeResult" language="json" />
 
-      <p>Then <code>tools/list</code> with the same envelope returns all hundred and four specs. To run one:</p>
+      <p>Then <code>tools/list</code> with the same envelope returns all hundred and twelve specs. To run one:</p>
       <DocsCodeBlock :code="toolsCall" language="bash" />
 
       <p>The result arrives as MCP text content &mdash; for the export tools, the same Markdown document the plugin would hand to Claude, preamble included.</p>
@@ -287,6 +305,8 @@ const protocolError = `{
         <li><code>-32601</code> &mdash; unknown method</li>
         <li><code>-32600</code> &mdash; the body is not a JSON-RPC request: not an object, an empty batch, or no method named</li>
         <li><code>-32602</code> &mdash; invalid params, rejected before the tool ran: an unknown tool name, a missing required argument, or a value outside what the schema allows</li>
+        <li><code>-32602</code> &mdash; also a pagination <code>cursor</code> on a list method, which this server never issues, and a malformed completion request</li>
+        <li><code>-32002</code> &mdash; a <code>resources/read</code> whose subject is not there: a <code>jeffrey://</code> URI this server does not serve, or a profile that does not exist. Distinct from <code>-32602</code> on purpose, so a client can tell a URI it should stop asking for from one it merely spelled wrong</li>
         <li><code>-32603</code> &mdash; an internal failure outside the tool call</li>
       </ul>
 

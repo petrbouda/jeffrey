@@ -100,7 +100,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       </DocsCallout>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you all hundred and four tools. The plugin adds three things on top.</p>
+      <p>Registering the server by hand gives you all hundred and twelve tools. The plugin adds three things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 
@@ -122,7 +122,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p>It exists because the commonest way a session goes wrong is the dullest: Jeffrey is not running, or is running somewhere else. Without the check the model discovers that by calling a tool and reading a connection error &mdash; usually several turns in, often after telling you what it is about to do. With it, the session opens knowing, and tells you rather than retrying.</p>
 
-      <p>It also mentions the switches that would otherwise be invisible: a Jeffrey with ingestion off cannot analyse a <code>.jfr</code> you point at, and one with compute off cannot build a heap report. Both are things the model would otherwise learn from a tool refusing halfway through a plan.</p>
+      <p>It reports only reachability, and it is deliberately quiet when all is well: it says nothing on success, says so when nothing answers at the endpoint, and distinguishes the case where something answers but is not a Jeffrey MCP server. That is the failure the model would otherwise discover by calling a tool and getting a connection error halfway through a plan.</p>
 
       <DocsCallout type="info" title="Claude Code only">
         Hooks are not part of the <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> format, which defines exactly two component types: skills and MCP servers. A Codex install gets the skills and the server, and finds out that Jeffrey is down the way it always did.
