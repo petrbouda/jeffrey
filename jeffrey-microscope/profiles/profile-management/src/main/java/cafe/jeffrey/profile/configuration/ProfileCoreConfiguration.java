@@ -67,7 +67,6 @@ import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
-import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.util.Map;
 

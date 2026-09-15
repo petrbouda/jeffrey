@@ -20,7 +20,6 @@ module cafe.jeffrey.recordings.core {
     requires cafe.jeffrey.shared.notifications;
     requires transitive cafe.jeffrey.microscope.persistence.api;
     requires transitive cafe.jeffrey.shared.common;
-    requires spring.core;
     requires org.slf4j;
 
     exports cafe.jeffrey.recordings.core;
