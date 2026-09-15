@@ -41,11 +41,41 @@ class EnvFileBuilderTest {
     }
 
     @Nested
+    class Heartbeat {
+
+        @Test
+        void namesTheDirectoryInsideTheSession() {
+            // Named outright so the jeffrey-heartbeat library needs no opinion about where inside
+            // a session directory the liveness files belong
+            String result = builder.build(new EnvFileBuilder.Context(layout(null), null, false, false));
+
+            assertTrue(result.contains("export JEFFREY_HEARTBEAT_DIR=" + SESSION_PATH.resolve(".heartbeat")),
+                    result);
+        }
+
+        @Test
+        void isEnabledWhenNoAgentIsAttached() {
+            String result = builder.build(new EnvFileBuilder.Context(layout(null), null, false, false));
+
+            assertTrue(result.contains("export JEFFREY_HEARTBEAT_ENABLED=true"), result);
+        }
+
+        @Test
+        void isDisabledWhenTheAgentIsAttached() {
+            // The agent beats for this session already; a second writer of the same file is
+            // redundant work rather than redundancy
+            String result = builder.build(new EnvFileBuilder.Context(layout(null), null, false, true));
+
+            assertTrue(result.contains("export JEFFREY_HEARTBEAT_ENABLED=false"), result);
+        }
+    }
+
+    @Nested
     class RequiredExports {
 
         @Test
         void includesWorkspacesExport() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
@@ -54,7 +84,7 @@ class EnvFileBuilderTest {
 
         @Test
         void includesWorkspaceExport() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
@@ -63,7 +93,7 @@ class EnvFileBuilderTest {
 
         @Test
         void includesProjectExport() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
@@ -72,7 +102,7 @@ class EnvFileBuilderTest {
 
         @Test
         void includesSessionExport() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
@@ -81,7 +111,7 @@ class EnvFileBuilderTest {
 
         @Test
         void includesFilePatternExport() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
@@ -94,7 +124,7 @@ class EnvFileBuilderTest {
 
         @Test
         void includesJeffreyHomeWhenTheRunHasOne() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), null, false, false);
 
             String result = builder.build(context);
 
@@ -107,7 +137,7 @@ class EnvFileBuilderTest {
          */
         @Test
         void excludesJeffreyHomeWhenTheRunHasNone() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
@@ -116,7 +146,7 @@ class EnvFileBuilderTest {
 
         @Test
         void jeffreyHomeIsFirstExportWhenPresent() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), null, false, false);
 
             String result = builder.build(context);
 
@@ -129,7 +159,7 @@ class EnvFileBuilderTest {
 
         @Test
         void includesProfilerConfigWhenSettingsNotNull() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false, false);
 
             String result = builder.build(context);
 
@@ -139,7 +169,7 @@ class EnvFileBuilderTest {
 
         @Test
         void excludesProfilerConfigWhenSettingsNull() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
@@ -148,7 +178,7 @@ class EnvFileBuilderTest {
 
         @Test
         void excludesProfilerConfigWhenSettingsEmpty() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), "", false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), "", false, false);
 
             String result = builder.build(context);
 
@@ -157,7 +187,7 @@ class EnvFileBuilderTest {
 
         @Test
         void wrapsProfilerSettingsInSingleQuotes() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false, false);
 
             String result = builder.build(context);
 
@@ -170,7 +200,7 @@ class EnvFileBuilderTest {
 
         @Test
         void includesJdkJavaOptionsWhenExportEnabledAndProfilerSettingsPresent() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, true);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, true, false);
 
             String result = builder.build(context);
 
@@ -180,7 +210,7 @@ class EnvFileBuilderTest {
 
         @Test
         void excludesJdkJavaOptionsWhenExportDisabled() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false, false);
 
             String result = builder.build(context);
 
@@ -189,7 +219,7 @@ class EnvFileBuilderTest {
 
         @Test
         void excludesJdkJavaOptionsWhenProfilerSettingsNull() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, true);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, true, false);
 
             String result = builder.build(context);
 
@@ -198,7 +228,7 @@ class EnvFileBuilderTest {
 
         @Test
         void jdkJavaOptionsIsLastExport() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, true);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, true, false);
 
             String result = builder.build(context);
 
@@ -213,13 +243,14 @@ class EnvFileBuilderTest {
 
         @Test
         void eachExportOnSeparateLine() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), null, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), null, false, false);
 
             String result = builder.build(context);
             String[] lines = result.split("\n");
 
-            // JEFFREY_HOME, WORKSPACES, WORKSPACE, PROJECT, SESSION, FILE_PATTERN = 6 exports
-            assertEquals(6, lines.length);
+            // JEFFREY_HOME, WORKSPACES, WORKSPACE, PROJECT, SESSION, FILE_PATTERN,
+            // HEARTBEAT_DIR, HEARTBEAT_ENABLED = 8 exports
+            assertEquals(8, lines.length);
             for (String line : lines) {
                 assertTrue(line.startsWith("export "));
             }
@@ -227,7 +258,7 @@ class EnvFileBuilderTest {
 
         @Test
         void fullOutputWithAllOptions() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), PROFILER_SETTINGS, true);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(JEFFREY_HOME), PROFILER_SETTINGS, true, false);
 
             String result = builder.build(context);
 

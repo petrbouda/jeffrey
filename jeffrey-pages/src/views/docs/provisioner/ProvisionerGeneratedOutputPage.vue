@@ -123,6 +123,8 @@ export JEFFREY_CURRENT_WORKSPACE=/tmp/jeffrey/workspaces/uat
 export JEFFREY_CURRENT_PROJECT=/tmp/jeffrey/workspaces/uat/jeffrey
 export JEFFREY_CURRENT_SESSION=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94
 export JEFFREY_FILE_PATTERN=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/profile-%t.jfr
+export JEFFREY_HEARTBEAT_DIR=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/.heartbeat
+export JEFFREY_HEARTBEAT_ENABLED=false
 export JEFFREY_PROFILER_CONFIG='-agentpath:/tmp/jeffrey/libs/current/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/profile-%t.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/hs-jvm-err.log -javaagent:/tmp/jeffrey/libs/current/jeffrey-agent.jar=heartbeat.dir=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/.heartbeat,app.workspaceId=uat,app.projectId=019f885e-8d7c-76b9-9dd2-e5d9488da956,app.projectName=jeffrey,app.projectLabel=SmVmZnJleQ==,app.instanceId=instance-1,app.sessionId=019f885e-8e69-7d65-8ac7-32a70b92cb94,app.sessionOrder=1,app.attributes=Y2x1c3Rlcj1ibHVlO25hbWVzcGFjZT1rbGluZ29u,app.provisionedAt=1784699326066 -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Xlog:gc*=debug:file=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m'
 export JDK_JAVA_OPTIONS='...same value as JEFFREY_PROFILER_CONFIG, exported only when jdk-java-options.enabled = true...'`;
 </script>
@@ -203,6 +205,14 @@ export JDK_JAVA_OPTIONS='...same value as JEFFREY_PROFILER_CONFIG, exported only
             <tr>
               <td><code>JEFFREY_FILE_PATTERN</code></td>
               <td>JFR output file pattern with <code>%t</code> timestamp placeholder</td>
+            </tr>
+            <tr>
+              <td><code>JEFFREY_HEARTBEAT_DIR</code></td>
+              <td>Where the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes liveness files — the session's <code>.heartbeat</code> folder</td>
+            </tr>
+            <tr>
+              <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
+              <td><code>false</code> when the Jeffrey Agent was attached, because it already beats for this session; <code>true</code> otherwise, so the library reports instead. Exactly one of the two should</td>
             </tr>
             <tr>
               <td><code>JEFFREY_PROFILER_CONFIG</code></td>

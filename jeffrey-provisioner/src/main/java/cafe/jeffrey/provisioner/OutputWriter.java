@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.provisioner.feature.JvmFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,8 @@ public class OutputWriter {
         }
 
         String content = envFileBuilder.build(new EnvFileBuilder.Context(
-                layout, profilerSettings, config.isJdkJavaOptionsEnabled()));
+                layout, profilerSettings, config.isJdkJavaOptionsEnabled(),
+                JvmFeature.Agent.isAttachable(config.getAgentPath())));
 
         if (envFilePath != null) {
             Files.writeString(envFilePath, content);

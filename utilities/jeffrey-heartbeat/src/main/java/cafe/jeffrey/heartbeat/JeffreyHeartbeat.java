@@ -1,0 +1,171 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.heartbeat;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.INFO;
+import static java.lang.System.Logger.Level.WARNING;
+
+/**
+ * Reports to a Jeffrey Hub that this JVM is alive, and tells it when the JVM stopped.
+ *
+ * <p>This is the library half of a job the {@code jeffrey-agent} also does. An agent is attached
+ * with {@code -javaagent} and therefore works on a JVM nobody rebuilt, which is why it exists and
+ * why it stays; this is for an application that would rather add a dependency than a JVM flag. They
+ * write the same two files, so the hub cannot tell — and must not need to tell — which one ran.
+ * Exactly one of them should: see {@link HeartbeatSettings#ENABLED_ENV}.</p>
+ *
+ * <p>Typical use in a provisioned application is a single call at startup:</p>
+ *
+ * <pre>{@code
+ * JeffreyHeartbeat.startFromEnvironment();
+ * }</pre>
+ *
+ * <p>which reads what the Provisioner exported, begins beating, and writes the clean-exit marker
+ * from a JVM shutdown hook. A container that manages its own lifecycle — Spring Boot, through
+ * {@code jeffrey-heartbeat-spring-boot-starter} — calls {@link #start(HeartbeatSettings)} instead
+ * and closes the instance itself, so the marker is written when the context shuts down rather than
+ * when the JVM does.</p>
+ *
+ * <p><b>Nothing here fails an application.</b> A missing directory, an unreadable setting, a full
+ * disk: each is logged once and leaves an inert instance behind. Liveness reporting is Jeffrey's
+ * concern, and an application that cannot report it should still run.</p>
+ */
+public final class JeffreyHeartbeat implements AutoCloseable {
+
+    private static final System.Logger LOG = System.getLogger(JeffreyHeartbeat.class.getName());
+
+    private static final String THREAD_NAME = "jeffrey-heartbeat";
+    private static final String SHUTDOWN_THREAD_NAME = "jeffrey-heartbeat-shutdown";
+
+    private final HeartbeatWriter writer;
+    private final Clock clock;
+    private final ScheduledExecutorService scheduler;
+
+    private JeffreyHeartbeat(HeartbeatWriter writer, Clock clock, ScheduledExecutorService scheduler) {
+        this.writer = writer;
+        this.clock = clock;
+        this.scheduler = scheduler;
+    }
+
+    /**
+     * Starts beating with settings read from the environment and registers a JVM shutdown hook to
+     * write the clean-exit marker. The call for an application with no lifecycle of its own.
+     *
+     * @return the running instance, so a caller that does have a lifecycle can still close it early
+     */
+    public static JeffreyHeartbeat startFromEnvironment() {
+        JeffreyHeartbeat heartbeat = start(HeartbeatSettings.fromEnvironment());
+        Runtime.getRuntime().addShutdownHook(new Thread(heartbeat::close, SHUTDOWN_THREAD_NAME));
+        return heartbeat;
+    }
+
+    /**
+     * Starts beating with the given settings. The caller owns the returned instance and is
+     * responsible for closing it, which is what writes the clean-exit marker.
+     *
+     * @return a running instance, or an inert one when the settings name nowhere to write, say not
+     * to, or name a directory that cannot be created — never {@code null}
+     */
+    public static JeffreyHeartbeat start(HeartbeatSettings settings) {
+        return start(settings, Clock.systemUTC());
+    }
+
+    /** As {@link #start(HeartbeatSettings)}, with the clock the timestamps come from. */
+    public static JeffreyHeartbeat start(HeartbeatSettings settings, Clock clock) {
+        if (!settings.writable()) {
+            LOG.log(DEBUG, () -> "Jeffrey heartbeat not started: enabled=" + settings.enabled()
+                    + " directory=" + settings.directory());
+            return inert();
+        }
+
+        Path directory = settings.directory();
+        try {
+            Files.createDirectories(directory);
+        } catch (IOException e) {
+            LOG.log(WARNING, "Jeffrey heartbeat directory cannot be created, liveness will not be "
+                    + "reported: directory=" + directory, e);
+            return inert();
+        }
+
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, THREAD_NAME);
+            // Daemon: reporting liveness must never be the reason a JVM stays up
+            thread.setDaemon(true);
+            return thread;
+        });
+
+        JeffreyHeartbeat heartbeat =
+                new JeffreyHeartbeat(new HeartbeatWriter(directory), clock, scheduler);
+        long intervalMillis = settings.interval().toMillis();
+        // Zero initial delay: the first beat is what tells the hub this session ever started, and
+        // a hub that sees a declared producer write nothing eventually calls the session finished
+        scheduler.scheduleAtFixedRate(heartbeat::beat, 0, intervalMillis, TimeUnit.MILLISECONDS);
+
+        LOG.log(INFO, "Jeffrey heartbeat started: directory=" + directory
+                + " interval=" + settings.interval());
+        return heartbeat;
+    }
+
+    /** Whether this instance is actually reporting. */
+    public boolean running() {
+        return scheduler != null;
+    }
+
+    /**
+     * Stops beating and writes the clean-exit marker, which is what lets the hub finish the session
+     * at once instead of waiting for the heartbeat to go stale. Closing twice is harmless.
+     */
+    @Override
+    public void close() {
+        if (!running()) {
+            return;
+        }
+        scheduler.shutdownNow();
+        try {
+            writer.finish(clock.millis());
+        } catch (IOException | RuntimeException e) {
+            // The session still finishes, from the last heartbeat, a threshold later
+            LOG.log(WARNING, "Jeffrey clean-exit marker could not be written", e);
+        }
+        writer.discardTemporaryFiles();
+    }
+
+    private void beat() {
+        try {
+            writer.beat(clock.millis());
+        } catch (IOException | RuntimeException e) {
+            // Logged at debug: a volume that is briefly unwritable would otherwise fill the
+            // application's log at the heartbeat interval, and the next beat recovers on its own
+            LOG.log(DEBUG, () -> "Jeffrey heartbeat could not be written: " + e);
+        }
+    }
+
+    private static JeffreyHeartbeat inert() {
+        return new JeffreyHeartbeat(null, null, null);
+    }
+}

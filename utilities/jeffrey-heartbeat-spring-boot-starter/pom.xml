@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cafe.jeffrey-analyst</groupId>
+        <artifactId>jeffrey-events-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../jeffrey-events-parent/pom.xml</relativePath>
+    </parent>
+
+    <!--
+      The one dependency a Spring Boot application adds to report liveness to a Jeffrey Hub. It
+      brings the library and contributes the auto-configuration that starts it from the values the
+      Provisioner exported.
+    -->
+    <artifactId>jeffrey-heartbeat-spring-boot-starter</artifactId>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Spring Boot starter that reports JVM liveness to a Jeffrey Hub: one dependency, no code</description>
+    <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
+    <url>https://github.com/petrbouda/jeffrey</url>
+
+    <properties>
+        <!-- Matches jeffrey-heartbeat: the starter must not narrow what the library it wraps runs on. -->
+        <maven.compiler.release>21</maven.compiler.release>
+    </properties>
+
+    <dependencies>
+        <!-- Compile scope: a starter exists to bring what it configures. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-heartbeat</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -503,6 +503,7 @@ export const tracingNavigation: DocSection[] = [
         ]
       },
       { title: 'Jeffrey Agent', to: '/docs/agent/overview' },
+      { title: 'Heartbeat Library', to: '/docs/agent/heartbeat-library' },
       { title: 'JFR Method Tracing', to: '/docs/tracing/method-tracing' },
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },
       { title: 'gRPC Events', to: '/docs/tracing/grpc-events' },

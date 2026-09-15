@@ -433,6 +433,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsAgentOverview',
         component: () => import('@/views/docs/agent/AgentOverviewPage.vue')
       },
+      {
+        path: 'agent/heartbeat-library',
+        name: 'DocsAgentHeartbeatLibrary',
+        component: () => import('@/views/docs/agent/HeartbeatLibraryPage.vue')
+      },
 
       // The MCP integration moved to its own top-level product at /docs/microscope-mcp.
       { path: 'ai/claude-code-plugin', redirect: '/docs/microscope-mcp/claude-code' },

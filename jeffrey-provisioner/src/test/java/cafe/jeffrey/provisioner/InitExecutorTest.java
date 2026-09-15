@@ -173,7 +173,11 @@ class InitExecutorTest {
                     "export JEFFREY_CURRENT_PROJECT="
                             + workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME),
                     "export JEFFREY_CURRENT_SESSION=" + session,
-                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr"),
+                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr",
+                    "export JEFFREY_HEARTBEAT_DIR=" + session + "/.heartbeat",
+                    // No agent jar in this fixture, so the jeffrey-heartbeat library is the one
+                    // expected to report liveness for the session
+                    "export JEFFREY_HEARTBEAT_ENABLED=true"),
                     layoutExports);
             assertTrue(Files.readString(envFile).endsWith("\n"), "env file must be newline-terminated");
         }
