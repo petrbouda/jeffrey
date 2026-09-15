@@ -33,14 +33,14 @@ onMounted(() => {
         <p>That is the whole of it. It emits no events, instruments nothing, and has no dependencies.</p>
 
         <DocsCallout type="info">
-          A provisioned application configures itself. Jeffrey Provisioner exports <code>JEFFREY_HEARTBEAT_DIR</code> and <code>JEFFREY_HEARTBEAT_ENABLED</code> into its <code>.env</code> file, and the library reads them — so on Spring Boot the whole integration is one dependency and no code.
+          A provisioned application configures itself. Jeffrey Provisioner passes <code>-Djeffrey.heartbeat.dir</code> and <code>-Djeffrey.heartbeat.enabled</code> in the argfile the JVM starts with, and exports the matching <code>JEFFREY_HEARTBEAT_*</code> variables into its <code>.env</code> for a deployment that sources one — so on Spring Boot the whole integration is one dependency and no code.
         </DocsCallout>
 
         <h2 id="declaring-it">Declaring That a Session Reports</h2>
-        <p>Whether this library is on an application's class path is a <strong>build-time fact</strong>, and the Provisioner only writes JVM arguments — it cannot detect it. So the session declares it, and the declaration travels two ways: into the <code>.env</code> the library reads, and into the session marker the Hub reconciles.</p>
-        <p>It is on by default, because a provisioned JVM is one being profiled on purpose. For an application that does not carry the dependency, say so:</p>
-        <pre class="doc-code"><code>heartbeat { enabled = false }</code></pre>
-        <p>The Hub then stops holding that session to a heartbeat deadline it could never meet, and finishes it when the instance's next session appears instead. Declaring it wrongly is the one way to get a misleading result: an application that reports nothing but claims it will is marked finished shortly after it starts. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>.</p>
+        <p>Whether this library is on an application's class path is a <strong>build-time fact</strong>, and the Provisioner only writes JVM arguments — it cannot detect it. So the session declares it, and the declaration travels three ways: into the argfile as <code>-Djeffrey.heartbeat.enabled</code>, into the <code>.env</code> for a deployment that sources one, and into the session marker the Hub reconciles.</p>
+        <p><strong>It is off by default</strong>, and the asymmetry is deliberate. A session that declares nothing is simply finished later — when the instance's next session appears. A session that declares liveness and then reports none is held to a deadline it cannot meet, and the Hub marks it finished at its own start timestamp seconds after the JVM came up, while the profiler is still writing into it. Once the dependency is actually there, turn it on:</p>
+        <pre class="doc-code"><code>heartbeat { enabled = true }</code></pre>
+        <p>See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does with each answer.</p>
 
         <h2 id="spring-boot">Spring Boot</h2>
         <p>One dependency, no code:</p>
@@ -80,13 +80,13 @@ onMounted(() => {
                 <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
                 <td><code>jeffrey.heartbeat.enabled</code></td>
                 <td><code>true</code></td>
-                <td>Whether liveness is reported at all. The Provisioner exports <code>false</code> when it attached the agent</td>
+                <td>Whether liveness is reported at all. The library's own default is <code>true</code>, so an application that sets the directory reports; the Provisioner passes what the session declared, which is <code>false</code> unless the deployment said otherwise</td>
               </tr>
               <tr>
                 <td><code>JEFFREY_HEARTBEAT_DIR</code></td>
                 <td><code>jeffrey.heartbeat.dir</code></td>
                 <td>—</td>
-                <td>Where the liveness files go. Exported by the Provisioner</td>
+                <td>Where the liveness files go. Passed by the Provisioner in the argfile, and exported into the <code>.env</code> too</td>
               </tr>
               <tr>
                 <td><code>JEFFREY_CURRENT_SESSION</code></td>

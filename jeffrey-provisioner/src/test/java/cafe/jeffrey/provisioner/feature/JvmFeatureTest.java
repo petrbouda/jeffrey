@@ -18,9 +18,11 @@
 
 package cafe.jeffrey.provisioner.feature;
 
+import cafe.jeffrey.provisioner.JvmOptions;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
+import cafe.jeffrey.shared.common.HeartbeatConstants;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -205,6 +207,68 @@ class JvmFeatureTest {
                     new JvmFeature.TracingEventThresholds(true, "none").render(SESSION, PLACEHOLDERS));
             assertEquals(Optional.empty(),
                     new JvmFeature.TracingEventThresholds(true, " NONE ").render(SESSION, PLACEHOLDERS));
+        }
+    }
+
+    @Nested
+    class Heartbeat {
+
+        @Test
+        void namesTheHeartbeatDirectoryInsideTheSession() {
+            assertEquals(
+                    "-Djeffrey.heartbeat.dir=\"/tmp/sessions/session-123/.heartbeat\" "
+                            + "-Djeffrey.heartbeat.enabled=true",
+                    render(new JvmFeature.Heartbeat(true)));
+        }
+
+        /**
+         * The argfile is the only channel that reaches a JVM the container entrypoint execs: the
+         * generated {@code .env} is opt-in and nothing sources it there. Carried only in the
+         * environment, the library would sit inert while the session declared that it reports,
+         * and the hub would finish that session at its own start timestamp.
+         */
+        @Test
+        void carriesTheSettingsAsSystemProperties() {
+            String rendered = render(new JvmFeature.Heartbeat(true));
+
+            assertTrue(rendered.contains("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="));
+            assertTrue(rendered.contains("-D" + HeartbeatConstants.ENABLED_PROPERTY + "="));
+        }
+
+        /**
+         * Unlike every other feature here, being switched off is not the same as having nothing to
+         * say: a session that declared no liveness has to stand a library that is present down.
+         */
+        @Test
+        void saysSoExplicitlyWhenTheSessionDeclaredNothing() {
+            assertEquals("-Djeffrey.heartbeat.enabled=false", render(new JvmFeature.Heartbeat(false)));
+        }
+
+        @Test
+        void namesNoDirectoryWhenTheSessionDeclaredNothing() {
+            assertFalse(render(new JvmFeature.Heartbeat(false))
+                    .contains(HeartbeatConstants.DIRECTORY_PROPERTY));
+        }
+
+        @Test
+        void quotesTheDirectorySoASessionPathMayCarryASpace() {
+            Path spaced = Path.of("/tmp/my sessions/session-123");
+            JvmFeature.Heartbeat feature = new JvmFeature.Heartbeat(true);
+
+            String rendered = feature
+                    .render(spaced, Placeholders.of(JeffreyPlaceholderSource.ofSession(spaced)))
+                    .orElseThrow();
+
+            assertEquals(
+                    "-Djeffrey.heartbeat.dir=\"/tmp/my sessions/session-123/.heartbeat\" "
+                            + "-Djeffrey.heartbeat.enabled=true",
+                    rendered);
+            assertEquals(
+                    java.util.List.of(
+                            "-Djeffrey.heartbeat.dir=/tmp/my sessions/session-123/.heartbeat",
+                            "-Djeffrey.heartbeat.enabled=true"),
+                    JvmOptions.split(rendered),
+                    "the quotes must survive the split into individual argfile lines");
         }
     }
 

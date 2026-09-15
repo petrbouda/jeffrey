@@ -354,7 +354,11 @@ class InitConfigTest {
         Path tempDir;
 
         @Test
-        void defaultsToExpectingLiveness() throws IOException {
+        void defaultsToExpectingNothing() throws IOException {
+            // This switch is a claim about the application, not about the JVM: it says the
+            // jeffrey-heartbeat library is on its class path, which the provisioner cannot see.
+            // Claimed wrongly it is not inert — the hub finishes the session at its own start
+            // timestamp seconds after the JVM came up — so the default is the harmless side.
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
@@ -363,25 +367,22 @@ class InitConfigTest {
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
 
-            assertTrue(config.isHeartbeatEnabled(),
-                    "a provisioned JVM is one being profiled on purpose");
+            assertFalse(config.isHeartbeatEnabled(),
+                    "an application carrying the dependency is something only a deployment knows");
         }
 
         @Test
-        void canDeclareThatNothingWillReport() throws IOException {
-            // An application that does not carry the jeffrey-heartbeat dependency. The provisioner
-            // cannot detect that, so the deployment says so and the hub stops holding its sessions
-            // to a deadline they could never meet.
+        void canDeclareThatSomethingWillReport() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
-                    "heartbeat { enabled = false }",
+                    "heartbeat { enabled = true }",
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
 
-            assertFalse(config.isHeartbeatEnabled());
+            assertTrue(config.isHeartbeatEnabled());
         }
     }
 

@@ -122,7 +122,13 @@ public class InitConfig {
             # (TracingJfrEvents.DEFAULT_SETTINGS); "none" opts out while leaving tracing on.
             tracing { enabled = true, jfr-event-settings = "" }
             heap-dump { enabled = false, type = "exit" }
-            heartbeat { enabled = true }
+            # Off by default, and deliberately the opposite of the other switches here. This one
+            # is a claim about the application rather than about the JVM: it says the
+            # jeffrey-heartbeat library is on its class path, which this tool cannot see and
+            # cannot arrange. Declared wrongly it is not inert but actively misleading — the hub
+            # holds the session to a deadline nothing will meet and finishes it at its start
+            # timestamp, seconds after the JVM came up. Turn it on once the dependency is there.
+            heartbeat { enabled = false }
             jdk-java-options { enabled = false }
             additional-jvm-options = ""
             debug-non-safepoints { enabled = true }
@@ -395,11 +401,16 @@ public class InitConfig {
      * Whether this session expects the {@code jeffrey-heartbeat} library to report liveness.
      *
      * <p>Declared rather than detected: whether the library is on the application's class path is
-     * a build-time fact, and this tool only writes JVM arguments. It travels two ways — into the
-     * {@code .env} the library reads, and into the session marker, so the hub knows whether to hold
-     * this session to its heartbeat deadline. Set {@code heartbeat.enabled = false} for an
-     * application that does not carry the dependency; its sessions are then finished when the
-     * instance's next session appears rather than by a deadline they could never meet.</p>
+     * a build-time fact, and this tool only writes JVM arguments. It travels three ways — into the
+     * argfile as {@code -Djeffrey.heartbeat.enabled}, into the {@code .env} for a deployment that
+     * sources one, and into the session marker, so the hub knows whether to hold this session to
+     * its heartbeat deadline.</p>
+     *
+     * <p><b>Off unless a deployment says otherwise.</b> An application that does not carry the
+     * dependency reports nothing, and a session that claimed it would is finished at its own start
+     * timestamp seconds after the JVM came up — so the default has to be the side that is merely
+     * late rather than the side that is wrong. An undeclared session is closed when the instance's
+     * next session appears instead.</p>
      */
     public boolean isHeartbeatEnabled() {
         return heartbeatEnabled;

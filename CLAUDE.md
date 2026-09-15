@@ -193,11 +193,16 @@ jeffrey/
 │                                   #   agent: liveness is reported by utilities/jeffrey-heartbeat,
 │                                   #   a dependency of the profiled application. Whether it is on
 │                                   #   the class path is a build-time fact the provisioner cannot
-│                                   #   detect, so `heartbeat.enabled` DECLARES it and travels both
-│                                   #   into the .env the library reads and into the session marker
-│                                   #   the hub reconciles. Declaring it wrongly is the one way to
-│                                   #   get a wrong answer: a session that claims it will report and
-│                                   #   never does is finished shortly after it starts
+│                                   #   detect, so `heartbeat.enabled` DECLARES it. It travels three
+│                                   #   ways: into the argfile as -Djeffrey.heartbeat.dir/.enabled,
+│                                   #   which is the ONLY channel that reaches a JVM the container
+│                                   #   entrypoint execs (the .env is opt-in and nothing sources it
+│                                   #   there), into that .env for a deployment that does, and into
+│                                   #   the session marker the hub reconciles. It defaults to FALSE:
+│                                   #   declaring it wrongly is the one way to get a wrong answer,
+│                                   #   because a session that claims it will report and never does
+│                                   #   is finished at its own originCreatedAt shortly after it
+│                                   #   starts, while the profiler is still writing into it
 ├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, four manifests
 │   ├── .claude-plugin/plugin.json     # Claude Code manifest, with the configurable MCP endpoint inline
 │   ├── plugin.json + mcp.json         # Agent Plugins 1.0.0 — Codex, Cursor, Copilot, VS Code, Kiro

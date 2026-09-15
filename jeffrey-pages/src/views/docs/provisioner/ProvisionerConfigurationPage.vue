@@ -257,7 +257,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>heartbeat.enabled</code></td>
               <td>No</td>
               <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
-              <td><strong>On by default.</strong> Declares that this session will report liveness through the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library. Set <code>false</code> for an application that does not carry the dependency</td>
+              <td><strong>Off by default.</strong> Declares that this session will report liveness through the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library. Set <code>true</code> only once the application carries the dependency — a session that claims to report and then does not is finished at its own start timestamp seconds after the JVM comes up</td>
             </tr>
             <tr>
               <td><code>env-file</code></td>
@@ -370,7 +370,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <div class="feature-card heartbeat">
             <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
             <h4>Heartbeat &amp; Clean-Exit Marker</h4>
-            <p>The <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. The Provisioner exports the directory and the declaration; the application carries the dependency.</p>
+            <p>The <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. The Provisioner passes the directory and the declaration to the JVM as system properties, and exports them as environment variables too; the application carries the dependency, which is why this one is off until a deployment says otherwise.</p>
             <code>heartbeat { enabled = true }</code>
           </div>
           <div class="feature-card jdk-options">

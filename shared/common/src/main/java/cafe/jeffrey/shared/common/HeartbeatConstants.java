@@ -38,7 +38,7 @@ public abstract class HeartbeatConstants {
 
     /**
      * Name of the clean-exit marker file (contains epoch millis). Written into
-     * {@link #HEARTBEAT_DIR} by the agent's shutdown hook; its presence lets the
+     * {@link #HEARTBEAT_DIR} when the library is closed; its presence lets the
      * hub finish a session deterministically instead of waiting for the
      * heartbeat to go stale. Absent after a hard crash (kill -9, OOM kill).
      */
@@ -50,4 +50,22 @@ public abstract class HeartbeatConstants {
      * producer beating more slowly than the hub expects reads as dead while it is running.
      */
     public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
+
+    /**
+     * System property naming the directory the liveness files go in. The Provisioner writes it
+     * into the argfile, which is the one channel every deployment path delivers: the {@code .env}
+     * file is written only when a deployment asks for one, and the container entrypoint execs the
+     * JVM with the argfile without sourcing a shell file at all.
+     *
+     * <p>Must match {@code HeartbeatSettings.DIRECTORY_PROPERTY} in {@code jeffrey-heartbeat},
+     * which resolves it ahead of {@code JEFFREY_HEARTBEAT_DIR}.</p>
+     */
+    public static final String DIRECTORY_PROPERTY = "jeffrey.heartbeat.dir";
+
+    /**
+     * System property declaring whether anything will report liveness at all. Carried the same way
+     * and for the same reason as {@link #DIRECTORY_PROPERTY}, and must match
+     * {@code HeartbeatSettings.ENABLED_PROPERTY}.
+     */
+    public static final String ENABLED_PROPERTY = "jeffrey.heartbeat.enabled";
 }

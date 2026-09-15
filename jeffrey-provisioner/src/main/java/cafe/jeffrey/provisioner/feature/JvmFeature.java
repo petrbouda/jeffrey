@@ -21,6 +21,7 @@ package cafe.jeffrey.provisioner.feature;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.shared.common.HeartbeatConstants;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -130,6 +131,46 @@ public sealed interface JvmFeature {
                 return Optional.empty();
             }
             return Optional.of(OPTIONS_PREFIX + eventSettings.trim());
+        }
+    }
+
+    /**
+     * Where the {@code jeffrey-heartbeat} library writes this session's liveness files, and
+     * whether it writes them at all.
+     *
+     * <p>Carried as JVM system properties rather than left to the {@code .env} file, because the
+     * {@code .env} reaches almost nobody: it is written only when a deployment names an
+     * {@code env-file}, and the container entrypoint execs the JVM with the argfile without
+     * sourcing a shell file at all. The argfile is the one channel every deployment path
+     * delivers, and {@code HeartbeatSettings} already resolves a system property ahead of the
+     * matching environment variable. Without this the library would sit inert in a provisioned
+     * container while the session declared that it reports — and the hub would finish that
+     * session at its start timestamp, seconds after the JVM came up.
+     *
+     * <p>The switched-off case renders an explicit {@code false} rather than nothing, which is
+     * why this feature departs from the "off means empty" convention beside it: a session that
+     * declared no liveness has to stand the library down even where the application carries the
+     * dependency and an environment variable left over from another run says to report.
+     *
+     * <p>The directory is quoted because a session path may carry a space; {@code JvmOptions}
+     * consumes the quotes when it splits and puts them back when it writes the argfile.
+     */
+    record Heartbeat(boolean enabled) implements JvmFeature {
+
+        private static final String DIRECTORY_OPTION = "-D" + HeartbeatConstants.DIRECTORY_PROPERTY
+                + "=\"" + CURRENT_SESSION + "/" + HeartbeatConstants.HEARTBEAT_DIR + "\"";
+
+        private static final String ENABLED_OPTION = "-D" + HeartbeatConstants.ENABLED_PROPERTY + "=true";
+        private static final String DISABLED_OPTION = "-D" + HeartbeatConstants.ENABLED_PROPERTY + "=false";
+
+        private static final String OPTION_SEPARATOR = " ";
+
+        @Override
+        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
+            if (!enabled) {
+                return Optional.of(DISABLED_OPTION);
+            }
+            return Optional.of(placeholders.resolve(DIRECTORY_OPTION) + OPTION_SEPARATOR + ENABLED_OPTION);
         }
     }
 

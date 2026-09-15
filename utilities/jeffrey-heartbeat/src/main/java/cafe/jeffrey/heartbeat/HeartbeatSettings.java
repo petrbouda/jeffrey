@@ -27,8 +27,10 @@ import java.util.function.Function;
  * Where to write liveness files, how often, and whether to write them at all.
  *
  * <p>{@link #fromEnvironment()} resolves all three the way a provisioned application expects,
- * layering <b>explicit system property over environment variable</b> so a deployment can override
- * one value without rewriting the file the Provisioner generated.</p>
+ * layering <b>explicit system property over environment variable</b>. That order is what makes the
+ * library reachable at all in a container: the Provisioner writes the system properties into the
+ * argfile the entrypoint execs the JVM with, while the environment variables live in a
+ * {@code .env} file that is generated only on request and that nothing sources on that path.</p>
  *
  * <p>The directory is resolved from whichever of two variables is set. {@code JEFFREY_HEARTBEAT_DIR}
  * names it outright and is what the Provisioner writes; {@code JEFFREY_CURRENT_SESSION} names the
@@ -61,9 +63,24 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
     public static final String ENABLED_ENV = "JEFFREY_HEARTBEAT_ENABLED";
 
     private static final String PROPERTY_PREFIX = "jeffrey.heartbeat.";
-    private static final String DIRECTORY_PROPERTY = PROPERTY_PREFIX + "dir";
-    private static final String INTERVAL_PROPERTY = PROPERTY_PREFIX + "interval";
-    private static final String ENABLED_PROPERTY = PROPERTY_PREFIX + "enabled";
+
+    /**
+     * System property counterpart of {@link #DIRECTORY_ENV}, and the one the Provisioner actually
+     * uses: it writes this into the argfile, which is the only channel that reaches a JVM launched
+     * by the container entrypoint. Mirrored by {@code HeartbeatConstants.DIRECTORY_PROPERTY} on
+     * the hub side, and the two move together.
+     */
+    public static final String DIRECTORY_PROPERTY = PROPERTY_PREFIX + "dir";
+
+    /** System property counterpart of {@link #INTERVAL_ENV}, in milliseconds. */
+    public static final String INTERVAL_PROPERTY = PROPERTY_PREFIX + "interval";
+
+    /**
+     * System property counterpart of {@link #ENABLED_ENV}, carried in the argfile beside
+     * {@link #DIRECTORY_PROPERTY}. Mirrored by {@code HeartbeatConstants.ENABLED_PROPERTY}.
+     */
+    public static final String ENABLED_PROPERTY = PROPERTY_PREFIX + "enabled";
+
     private static final String SESSION_PROPERTY = "jeffrey.current.session";
 
     private static final System.Logger LOG = System.getLogger(HeartbeatSettings.class.getName());
