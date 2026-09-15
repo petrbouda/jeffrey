@@ -55,51 +55,9 @@ public class RecordingStreamClient {
     private static final long UNKNOWN_CONTENT_LENGTH = -1;
 
     private final RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub;
-    private final TempDirProvider tempDirProvider;
 
-    public RecordingStreamClient(GrpcHubConnection connection, TempDirProvider tempDirProvider) {
+    public RecordingStreamClient(GrpcHubConnection connection) {
         this.stub = RecordingDownloadServiceGrpc.newBlockingStub(connection.getChannel());
-        this.tempDirProvider = tempDirProvider;
-    }
-
-    public CompletableFuture<Resource> downloadRecordings(
-            String sessionId, List<String> recordingIds) {
-
-        return CompletableFuture.supplyAsync(() -> {
-            DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
-                    .setSessionId(sessionId)
-                    .addAllFileIds(recordingIds)
-                    .build();
-
-            Iterator<DataChunk> chunks = stub.downloadMergedRecordings(request);
-            return collectChunksToResource(chunks);
-        }, Context.current().fixedContextExecutor(Schedulers.sharedVirtual()));
-    }
-
-    public CompletableFuture<Resource> downloadArtifactFile(
-            String sessionId, String fileId) {
-
-        return CompletableFuture.supplyAsync(() -> {
-            DownloadArtifactFileRequest request = DownloadArtifactFileRequest.newBuilder()
-                    .setSessionId(sessionId)
-                    .setFileId(fileId)
-                    .build();
-
-            Iterator<DataChunk> chunks = stub.downloadArtifactFile(request);
-            return collectChunksToResource(chunks);
-        }, Context.current().fixedContextExecutor(Schedulers.sharedVirtual()));
-    }
-
-    public void streamRecordings(
-            String sessionId, List<String> recordingIds, InputStreamConsumer consumer) {
-
-        DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
-                .setSessionId(sessionId)
-                .addAllFileIds(recordingIds)
-                .build();
-
-        Iterator<DataChunk> chunks = stub.downloadMergedRecordings(request);
-        streamChunksToConsumer(chunks, consumer);
     }
 
     public void streamArtifactFile(
@@ -124,33 +82,6 @@ public class RecordingStreamClient {
 
         Iterator<DataChunk> chunks = stub.downloadRecordingFile(request);
         streamChunksToConsumer(chunks, consumer);
-    }
-
-    /**
-     * Collects gRPC data chunks into a temporary file and returns it as a Spring Resource.
-     * The temp directory is intentionally not closed on success — the returned Resource is backed
-     * by the file inside it, so ownership passes to the consumer and the application's temp-dir
-     * lifecycle removes the leftovers.
-     */
-    private Resource collectChunksToResource(Iterator<DataChunk> chunks) {
-        TempDirectory tempDir = tempDirProvider.newTempDir();
-        try {
-            Path tempFile = Files.createTempFile(tempDir.path(), "grpc-download-", ".tmp");
-
-            try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(tempFile))) {
-                while (chunks.hasNext()) {
-                    chunks.next().getData().writeTo(out);
-                }
-            }
-
-            return new FileSystemResource(tempFile);
-        } catch (IOException e) {
-            tempDir.close();
-            throw new UncheckedIOException("Failed to collect gRPC data chunks to temp file", e);
-        } catch (RuntimeException e) {
-            tempDir.close();
-            throw e;
-        }
     }
 
     /**

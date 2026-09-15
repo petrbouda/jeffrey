@@ -181,10 +181,6 @@ public enum SupportedRecordingFile {
         return matches(path.getFileName().toString());
     }
 
-    public String appendExtension(String filename) {
-        return fileExtension != null ? filename + "." + fileExtension : null;
-    }
-
     public String fileExtension() {
         return fileExtension;
     }

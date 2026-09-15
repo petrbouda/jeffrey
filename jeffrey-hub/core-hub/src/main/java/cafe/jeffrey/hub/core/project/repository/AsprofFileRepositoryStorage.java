@@ -73,7 +73,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private final Lock compressionLock = new ReentrantLock();
     private final ProjectInfo projectInfo;
     private final Path workspacesDir;
-    private final Path tempDir;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
 
@@ -82,13 +81,11 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     public AsprofFileRepositoryStorage(
             ProjectInfo projectInfo,
             Path workspacesDir,
-            Path tempDir,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor) {
 
         this.projectInfo = projectInfo;
         this.workspacesDir = workspacesDir;
-        this.tempDir = tempDir;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
     }
@@ -413,52 +410,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
-    }
-
-    // ========== Merge Recordings ==========
-
-    @Override
-    public MergedRecording mergeRecordings(String sessionId, List<String> recordingIds) {
-        List<Path> compressedPaths = recordings(sessionId, recordingIds);
-
-        if (compressedPaths.isEmpty()) {
-            throw Exceptions.emptyRecordingSession(sessionId);
-        }
-
-        LOG.info("Merging recordings: sessionId={} sourceFiles={} paths={}",
-                sessionId, compressedPaths.size(), compressedPaths);
-
-        // Create intermediate merged file with .jfr extension.
-        // We decompress LZ4 files, concatenate raw JFR content (JFR supports multiple chunks),
-        // then compress the result back to .jfr.lz4 before returning.
-        Path tempFile = tempDir.resolve(JFR.appendExtension(sessionId));
-
-        // Decompress each LZ4 file and merge the raw JFR content
-        try (OutputStream out = Files.newOutputStream(tempFile,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-            for (Path compressed : compressedPaths) {
-                if (Lz4Compressor.isLz4Compressed(compressed)) {
-                    Lz4Compressor.decompressTo(compressed, out);
-                } else {
-                    Files.copy(compressed, out);
-                }
-            }
-        } catch (IOException e) {
-            FileSystemUtils.removeFile(tempFile);
-            throw Exceptions.compressionError(
-                    "Failed to merge recordings: sessionId=" + sessionId + " sourceFiles=" + compressedPaths);
-        }
-
-        if (FileSystemUtils.size(tempFile) <= 0) {
-            FileSystemUtils.removeFile(tempFile);
-            throw Exceptions.emptyRecordingSession(sessionId);
-        }
-
-        Path compressedFile = tempDir.resolve(JFR_LZ4.appendExtension(sessionId));
-        Lz4Compressor.compress(tempFile, compressedFile);
-        FileSystemUtils.removeFile(tempFile);
-
-        return new MergedRecording(compressedFile);
     }
 
     // ========== Artifact Files ==========

@@ -19,12 +19,22 @@
 package cafe.jeffrey.profile;
 
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public interface ProfileInitializer {
 
-    ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath);
+    /**
+     * Builds the profile out of the recording's files.
+     *
+     * @param sources   the recording files to parse
+     * @param artifacts the recording's supplementary files — perf counters, heap dumps — or an
+     *                  empty list. Passed in rather than looked up by recording id: where they
+     *                  live depends on how the recording arrived, and the caller is what knows.
+     */
+    ProfileManager initialize(ProfileInfo profileInfo, RecordingSources sources, List<Path> artifacts);
 
 }

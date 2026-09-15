@@ -104,11 +104,24 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
     // --- Recording operations ---
 
+    /**
+     * A recording is several files, and nothing marks one of them as the important one. Without an
+     * order the rows come back however the storage feels like returning them, which made "the
+     * recording's first file" a different file from one read to the next.
+     * <p>
+     * Ordering changes nothing about the parse — the files are read independently and the events
+     * carry absolute timestamps — only about what a listing shows and which file a caller that
+     * wants one gets.
+     */
+    //language=sql
+    private static final String FILES_ORDER = " ORDER BY uploaded_at, filename";
+
     @Override
     public Optional<Recording> findRecording(String recordingId) {
         String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition + " AND r.id = :recording_id";
         //language=sql
-        String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition + " AND recording_id = :recording_id";
+        String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition
+                + " AND recording_id = :recording_id" + FILES_ORDER;
 
         MapSqlParameterSource params = projectParams()
                 .addValue("recording_id", recordingId);
@@ -142,7 +155,7 @@ public class JdbcRecordingRepository implements RecordingRepository {
     public List<Recording> findAllRecordings() {
         String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition;
         //language=sql
-        String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition;
+        String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition + FILES_ORDER;
 
         return findRecordingsWithFiles(
                 new LabeledQuery(StatementLabel.FIND_ALL_RECORDINGS, recordingsSql),

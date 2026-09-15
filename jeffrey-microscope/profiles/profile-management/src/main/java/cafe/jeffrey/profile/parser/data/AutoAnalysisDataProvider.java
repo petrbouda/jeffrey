@@ -40,9 +40,16 @@ public class AutoAnalysisDataProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisDataProvider.class);
 
-    public static List<AutoAnalysisResult> generate(Path recording) {
+    /**
+     * Runs the JMC rule set over every file of the recording at once. JMC takes the files as a
+     * list and builds one item collection from them, so the rules see the whole recording rather
+     * than one file of it — a rule that reasons about the run as a whole (GC pressure over the
+     * window, say) would otherwise fire on a fragment.
+     */
+    public static List<AutoAnalysisResult> generate(List<Path> recordings) {
         try {
-            IItemCollection events = JfrLoaderToolkit.loadEvents(recording.toFile());
+            IItemCollection events = JfrLoaderToolkit.loadEvents(
+                    recordings.stream().map(Path::toFile).toList());
             List<Map.Entry<IRule, Future<IResult>>> futures =
                     RulesToolkit.evaluateParallel(RuleRegistry.getRules(), events, null, 0)
                             .entrySet().stream()
@@ -70,7 +77,7 @@ public class AutoAnalysisDataProvider {
             if (t instanceof Error error) {
                 throw error;
             }
-            throw Exceptions.internal("Got exception when creating report for " + recording, (Exception) t);
+            throw Exceptions.internal("Got exception when creating report for " + recordings, (Exception) t);
         }
     }
 

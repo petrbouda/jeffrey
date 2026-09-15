@@ -47,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -108,7 +109,7 @@ class RecordingsCoreManagerImplTest {
         void ingestsJfrAsUngroupedRecording() throws Exception {
             Path jfr = Files.writeString(sourceDir.resolve("recording.jfr"), "jfr-bytes");
             RecordingMetadata info = new RecordingMetadata(RecordingEventSource.JDK, NOW, NOW.plusSeconds(60));
-            when(recordingMetadataParser.parse(any(Path.class))).thenReturn(Optional.of(info));
+            when(recordingMetadataParser.parse(anyList())).thenReturn(Optional.of(info));
 
             String recordingId = manager.importRecordingFromPath(jfr);
 

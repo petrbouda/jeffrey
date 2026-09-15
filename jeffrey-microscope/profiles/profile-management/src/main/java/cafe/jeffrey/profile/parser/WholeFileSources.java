@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.provider.profile.api;
+package cafe.jeffrey.profile.parser;
 
-public interface RecordingEventParser {
+import java.nio.file.Path;
+import java.util.function.Consumer;
 
-    /**
-     * Parses every recording file into {@code eventWriter}. The files are independent inputs, not
-     * pieces of one that has to be put back together, so an implementation is free to read them
-     * in whatever order and with whatever parallelism suits it.
-     */
-    void start(EventWriter eventWriter, RecordingSources sources);
+/**
+ * Parses each source file as it lies.
+ * <p>
+ * Nothing is read, written or created: the file the recording arrived as is the file handed to the
+ * parser. That is the whole point of this mode — with enough files there is no parallelism left to
+ * buy, so the split would be a full copy of the recording paid for nothing.
+ */
+record WholeFileSources() implements SourceParseMode {
 
+    @Override
+    public void expand(Path source, Path scratchDir, Consumer<Path> onUnit) {
+        onUnit.accept(source);
+    }
 }

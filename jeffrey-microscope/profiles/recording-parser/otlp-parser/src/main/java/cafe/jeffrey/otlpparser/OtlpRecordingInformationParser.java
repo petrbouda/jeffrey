@@ -25,6 +25,7 @@ import io.opentelemetry.proto.profiles.v1development.Sample;
 import io.opentelemetry.proto.profiles.v1development.ScopeProfiles;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
@@ -60,20 +61,28 @@ public class OtlpRecordingInformationParser implements RecordingInformationParse
         }
     }
 
+    /**
+     * One {@link TimeRange} over every file, so several rotated files report the span they cover
+     * together. The range already folds frame by frame, and a file is just more frames.
+     */
     @Override
-    public RecordingInformation provide(Path recordingPath) {
+    public RecordingInformation provide(RecordingSources sources) {
         TimeRange timeRange = new TimeRange();
+        long sizeInBytes = 0;
 
         OtlpStreamReader streamReader = new OtlpStreamReader();
-        streamReader.read(recordingPath, frame -> acceptFrame(frame, timeRange));
+        for (Path recordingPath : sources.files()) {
+            streamReader.read(recordingPath, frame -> acceptFrame(frame, timeRange));
+            sizeInBytes += FileSystemUtils.size(recordingPath);
+        }
 
         if (timeRange.isEmpty()) {
             throw new IllegalArgumentException(
-                    "OTLP recording contains no usable timestamps: " + recordingPath);
+                    "OTLP recording contains no usable timestamps: " + sources.files());
         }
 
         return new RecordingInformation(
-                FileSystemUtils.size(recordingPath),
+                sizeInBytes,
                 RecordingEventSource.OPEN_TELEMETRY,
                 Instant.ofEpochSecond(0, timeRange.minNanos),
                 Instant.ofEpochSecond(0, timeRange.maxNanos));

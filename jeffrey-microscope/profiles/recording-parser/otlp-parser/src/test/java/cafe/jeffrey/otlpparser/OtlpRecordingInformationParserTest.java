@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.otlpparser;
 
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import io.opentelemetry.proto.profiles.v1development.ProfilesData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -54,7 +55,7 @@ class OtlpRecordingInformationParserTest {
         Path file = tempDir.resolve("recording.otlp");
         OtlpTestFiles.writeFramed(file, List.of(fixtures.build()));
 
-        RecordingInformation information = parser.provide(file);
+        RecordingInformation information = parser.provide(RecordingSources.of(file));
 
         assertEquals(RecordingEventSource.OPEN_TELEMETRY, information.eventSource());
         assertEquals(Instant.ofEpochSecond(0, BASE_TIME_NANOS - 5_000_000_000L), information.recordingStartedAt());
@@ -78,7 +79,7 @@ class OtlpRecordingInformationParserTest {
         Path file = tempDir.resolve("recording.otlp");
         OtlpTestFiles.writeFramed(file, List.of(fixtures.build()));
 
-        RecordingInformation information = parser.provide(file);
+        RecordingInformation information = parser.provide(RecordingSources.of(file));
 
         assertEquals(Instant.ofEpochSecond(0, BASE_TIME_NANOS), information.recordingStartedAt());
         assertEquals(Instant.ofEpochSecond(0, BASE_TIME_NANOS + 90_000_000_000L), information.recordingFinishedAt());
@@ -89,6 +90,6 @@ class OtlpRecordingInformationParserTest {
         Path file = tempDir.resolve("empty.otlp");
         OtlpTestFiles.writeFramed(file, List.of(ProfilesData.getDefaultInstance()));
 
-        assertThrows(IllegalArgumentException.class, () -> parser.provide(file));
+        assertThrows(IllegalArgumentException.class, () -> parser.provide(RecordingSources.of(file)));
     }
 }

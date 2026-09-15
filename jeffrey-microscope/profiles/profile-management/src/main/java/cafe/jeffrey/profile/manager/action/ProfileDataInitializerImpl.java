@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
@@ -48,7 +49,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
     private final DatabaseManager databaseManager;
     private final Executor executor;
-    private final Function<Path, List<AutoAnalysisResult>> ruleSet;
+    private final Function<List<Path>, List<AutoAnalysisResult>> ruleSet;
 
     /**
      * @param executor where the warming runs. In production this is the bulk pool, never the
@@ -61,7 +62,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
     public ProfileDataInitializerImpl(
             DatabaseManager databaseManager,
             Executor executor,
-            Function<Path, List<AutoAnalysisResult>> ruleSet) {
+            Function<List<Path>, List<AutoAnalysisResult>> ruleSet) {
 
         this.databaseManager = databaseManager;
         this.executor = executor;
@@ -81,7 +82,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
      */
     @Override
     public CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(
-            ProfileInfo profileInfo, Path recordingPath) {
+            ProfileInfo profileInfo, RecordingSources sources) {
 
         // pprof/OTLP imports are stack samples with no JFR events behind them, and the rule set only
         // understands JFR. A recording whose file is not there cannot be read a second time either.
@@ -91,18 +92,23 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
                     profileInfo.id(), profileInfo.name(), profileInfo.eventSource());
             return CompletableFuture.completedFuture(null);
         }
-        if (recordingPath == null || !Files.exists(recordingPath)) {
-            LOG.info("Skipping auto analysis, the recording file is not available: "
+
+        // Every file has to be there. The rules reason about the run as a whole, so a missing one
+        // does not cost a fraction of the findings -- it makes the rest of them describe a
+        // recording that was never taken.
+        if (sources == null || !sources.files().stream().allMatch(Files::exists)) {
+            LOG.info("Skipping auto analysis, the recording files are not available: "
                             + "profile_id={} profile_name={}",
                     profileInfo.id(), profileInfo.name());
             return CompletableFuture.completedFuture(null);
         }
 
-        LOG.info("Starting auto analysis alongside the parse: profile_id={} recording={}",
-                profileInfo.id(), recordingPath);
+        List<Path> recordings = sources.files();
+        LOG.info("Starting auto analysis alongside the parse: profile_id={} recording_count={} recordings={}",
+                profileInfo.id(), recordings.size(), recordings);
 
         return CompletableFuture
-                .supplyAsync(Tracer.fork(SPAN_AUTO_ANALYSIS, () -> ruleSet.apply(recordingPath)), executor)
+                .supplyAsync(Tracer.fork(SPAN_AUTO_ANALYSIS, () -> ruleSet.apply(recordings)), executor)
                 .exceptionally(throwable -> {
                     warmFailed(COMPONENT_AUTO_ANALYSIS, profileInfo, throwable);
                     return null;

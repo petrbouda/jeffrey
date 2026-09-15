@@ -22,9 +22,8 @@ import cafe.jeffrey.otlpparser.OtlpRecordingInformationParser;
 import cafe.jeffrey.pprofparser.PprofRecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-
-import java.nio.file.Path;
 
 /**
  * Selects the {@link RecordingInformationParser} for an uploaded recording by its file type: pprof
@@ -52,15 +51,19 @@ public class FileTypeDispatchingRecordingInformationParser implements RecordingI
         this(jfrParser, new PprofRecordingInformationParser(), new OtlpRecordingInformationParser());
     }
 
+    /**
+     * Dispatches on the first file's type. A recording is one format throughout — the files of a
+     * session are all chunks of the same profiler run — so there is nothing to decide per file.
+     */
     @Override
-    public RecordingInformation provide(Path recordingPath) {
-        SupportedRecordingFile fileType = SupportedRecordingFile.of(recordingPath);
+    public RecordingInformation provide(RecordingSources sources) {
+        SupportedRecordingFile fileType = SupportedRecordingFile.of(sources.first());
         if (fileType == SupportedRecordingFile.PPROF) {
-            return pprofParser.provide(recordingPath);
+            return pprofParser.provide(sources);
         }
         if (fileType == SupportedRecordingFile.OTLP_PROFILE) {
-            return otlpParser.provide(recordingPath);
+            return otlpParser.provide(sources);
         }
-        return jfrParser.provide(recordingPath);
+        return jfrParser.provide(sources);
     }
 }

@@ -32,7 +32,18 @@ public interface AdditionalFilesManager {
     interface Factory extends Function<ProfileInfo, AdditionalFilesManager> {
     }
 
-    void processAdditionalFiles(String recordingId);
+    /**
+     * Takes in the recording's supplementary files — perf counters, heap dumps — and makes the
+     * profile able to answer about them.
+     * <p>
+     * The files are handed over rather than looked up. A project recording keeps them in its own
+     * directory, a downloaded one keeps them flat beside its recording files, and the caller is
+     * the one that knows which; the lookup that used to live here only ever found the first kind,
+     * so everything a hub download brought along was silently inert.
+     *
+     * @param artifacts the recording's artifact files; an empty list is a recording with none
+     */
+    void processAdditionalFiles(List<Path> artifacts);
 
     boolean performanceCountersExists();
 

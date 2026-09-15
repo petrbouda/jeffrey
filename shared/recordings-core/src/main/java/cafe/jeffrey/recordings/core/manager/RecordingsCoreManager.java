@@ -49,7 +49,7 @@ public interface RecordingsCoreManager {
 
     String createDownloadedRecording(
             String recordingName,
-            Path mergedRecordingFile,
+            List<Path> recordingFiles,
             List<Path> artifactFiles,
             Map<String, String> originTags);
 

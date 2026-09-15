@@ -67,7 +67,7 @@ import java.util.concurrent.TimeUnit;
  * The files of a hub session one at a time: what a session holds beside its recording, and how to
  * pull one of them down without pulling the recording.
  * <p>
- * {@code hubs_download} brings every artifact along with the merged recording, and for a session
+ * {@code hubs_download} brings every artifact along with the recording's files, and for a session
  * whose recording is wanted that is the right shape. This family is for the other case — a JVM that
  * crashed before its first chunk rolled and left only {@code hs-jvm-err.log}, an application log a
  * reader wants to grep before deciding whether the recording is worth the transfer.
@@ -200,7 +200,7 @@ public class HubsArtifactsMcpTools {
             + "that has no recording. Takes the session_ref from a hubs_sessions row. The `local` "
             + "column says a file is already on this machine: the absolute path of an artifact that was "
             + "fetched or came along with hubs_download - open it with your own tools - or "
-            + "recording:<id> / profile:<id> for a recording hubs_download already merged. The `fetch` "
+            + "recording:<id> / profile:<id> for a recording hubs_download already brought. The `fetch` "
             + "column says how each row is reached: `fetch` means pass its file_id to hubs_fetchFile, "
             + "`hubs_download` means it is a recording chunk taken with the whole session, `when "
             + "finished` means it is still being written, and `no` means the hub does not serve that "
@@ -250,7 +250,7 @@ public class HubsArtifactsMcpTools {
                         + project.info().name() + ". The `fetch` column says how a row is reached: `"
                         + Fetchability.FETCH.label() + "` means pass its file_id to hubs_fetchFile, `"
                         + Fetchability.DOWNLOAD.label()
-                        + "` is a recording chunk merged with the rest by hubs_download rather than fetched on "
+                        + "` is a recording chunk taken with the rest by hubs_download rather than fetched on "
                         + "its own, `" + Fetchability.WHEN_FINISHED.label() + "` is still being written, and `"
                         + Fetchability.NEVER.label() + "` is a file the hub does not serve one at a time - a "
                         + "type Jeffrey does not classify, or a transient one. A `local` path is on the "
@@ -467,7 +467,7 @@ public class HubsArtifactsMcpTools {
                         + " has no file with id " + fileId + ". Call hubs_files for its current files."));
         if (file.isRecordingFile()) {
             throw new IllegalArgumentException("File " + file.name() + " is a recording, and recordings are "
-                    + "merged by hubs_download rather than fetched one chunk at a time. Call hubs_download "
+                    + "taken by hubs_download rather than fetched one chunk at a time. Call hubs_download "
                     + "with the same session_ref.");
         }
         if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {

@@ -97,4 +97,57 @@ public interface ProgressCallback {
      * Implementations should check this periodically and abort if true.
      */
     boolean isCancelled();
+
+    /**
+     * Reports nothing and cancels nothing, for a download nobody is watching.
+     * <p>
+     * A download started from the MCP tools or from the REST endpoint has no progress channel, and
+     * before this it had a second implementation of the whole transfer instead of a callback that
+     * says nothing — which is how the two drifted into counting their files differently.
+     */
+    static ProgressCallback noop() {
+        return new ProgressCallback() {
+
+            @Override
+            public void onStart(int totalFiles, long totalBytes) {
+            }
+
+            @Override
+            public void onFilesDiscovered(List<FileProgress> pendingFiles) {
+            }
+
+            @Override
+            public void onFileStart(String fileName, long fileSize) {
+            }
+
+            @Override
+            public void onFileProgress(String fileName, long bytesDownloaded) {
+            }
+
+            @Override
+            public void onFileComplete(String fileName) {
+            }
+
+            @Override
+            public void onFileError(String fileName, String errorMessage) {
+            }
+
+            @Override
+            public void onProcessing() {
+            }
+
+            @Override
+            public void onComplete() {
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+        };
+    }
 }

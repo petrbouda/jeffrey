@@ -25,6 +25,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -136,7 +137,10 @@ public class ProfilesManagerImpl implements ProfilesManager {
         ProfileInfo profileInfo = localCoreRepositories.newProfileRepository(profileId).find()
                 .orElseThrow(() -> new RuntimeException("Could not find newly created profile: " + profileId));
 
-        ProfileManager profileManager = profileInitializer.initialize(profileInfo, recording.id(), recordingPath);
+        ProfileManager profileManager = profileInitializer.initialize(
+                profileInfo,
+                RecordingSources.of(recordingPath),
+                projectRecordingStorage.findArtifacts(recording.id()));
         profileRepository.enableProfile(clock.instant());
         return profileManager;
     }

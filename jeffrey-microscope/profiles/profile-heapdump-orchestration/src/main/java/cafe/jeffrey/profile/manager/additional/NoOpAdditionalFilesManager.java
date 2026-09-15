@@ -49,8 +49,8 @@ public class NoOpAdditionalFilesManager implements AdditionalFilesManager {
     }
 
     @Override
-    public void processAdditionalFiles(String recordingId) {
-        // No-op: Recordings doesn't have recording storage
+    public void processAdditionalFiles(List<Path> artifacts) {
+        // No-op
     }
 
     @Override

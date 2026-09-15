@@ -49,14 +49,6 @@ public interface RepositoryManager {
      */
     StreamedRecordingFile streamArtifactFile(String sessionId, String fileId);
 
-    /**
-     * Downloads recordings from the repository and merge them into a single file.
-     *
-     * @param sessionId        id of the session to download from
-     * @param recordingFileIds ids of recordings to merge and download
-     * @return entity for file information and streaming to output stream
-     */
-    StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds);
 
     /**
      * Finds a recording session by its ID.

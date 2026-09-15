@@ -22,7 +22,6 @@ import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
-import cafe.jeffrey.hub.core.project.repository.MergedRecording;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
@@ -100,15 +99,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         Path filePath = paths.getFirst();
         return new StreamedRecordingFile(filePath.getFileName().toString(), filePath);
-    }
-
-    @Override
-    public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
-        LOG.debug("Merging and streaming recordings: sessionId={} fileCount={}", sessionId, recordingFileIds.size());
-        Elapsed<MergedRecording> merged = Measuring.s(() -> repositoryStorage.mergeRecordings(sessionId, recordingFileIds));
-        LOG.debug("Merging and streaming recordings completed: sessionId={} durationMs={}",
-                sessionId, merged.duration().toMillis());
-        return new StreamedRecordingFile(merged.entity().filename(), merged.entity().path(), merged.entity()::close);
     }
 
     @Override

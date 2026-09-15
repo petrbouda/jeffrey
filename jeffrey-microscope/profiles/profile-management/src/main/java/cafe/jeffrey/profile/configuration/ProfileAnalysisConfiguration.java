@@ -46,6 +46,7 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -94,7 +95,7 @@ public class ProfileAnalysisConfiguration {
             }
 
             return new AutoAnalysisManagerImpl(
-                    cacheRepository, recordingPathResolver, AutoAnalysisDataProvider::generate);
+                    cacheRepository, recordingPathResolver, recording -> AutoAnalysisDataProvider.generate(List.of(recording)));
         };
     }
 

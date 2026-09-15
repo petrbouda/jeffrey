@@ -32,6 +32,8 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
+import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -139,10 +141,10 @@ public class ProfileRecordingsManager implements RecordingsManager {
     @Override
     public String createDownloadedRecording(
             String recordingName,
-            Path mergedRecordingFile,
+            List<Path> recordingFiles,
             List<Path> artifactFiles,
             Map<String, String> originTags) {
-        return core.createDownloadedRecording(recordingName, mergedRecordingFile, artifactFiles, originTags);
+        return core.createDownloadedRecording(recordingName, recordingFiles, artifactFiles, originTags);
     }
 
     @Override
@@ -226,12 +228,25 @@ public class ProfileRecordingsManager implements RecordingsManager {
             profileCleanup.deleteProfile(profileId);
         }
 
-        RecordingFile file = recording.files().getFirst();
+        // A heap dump is decided first, and deliberately: it is one file by nature and it is an
+        // ARTIFACT by category, so the recording-file filter below finds nothing for it.
         String profileId;
         if (recording.eventSource() == RecordingEventSource.HEAP_DUMP) {
-            profileId = analyzeHeapDump(recording, file);
+            profileId = analyzeHeapDump(recording, recording.files().getFirst());
         } else {
-            profileId = analyzeJfr(recording, file);
+            // The recording's own files, not its artifacts. A downloaded session holds both in the
+            // same table, told apart only by their type -- and it holds as many recording files as
+            // the session rolled chunks, so taking the first of them would analyse a few minutes of
+            // a run that lasted hours, with nothing anywhere saying the rest was dropped.
+            List<RecordingFile> recordingFiles = recording.files().stream()
+                    .filter(file -> file.recordingFileType().fileCategory() == FileCategory.RECORDING)
+                    .toList();
+
+            if (recordingFiles.isEmpty()) {
+                throw Exceptions.internal("Recording has no recording files: %s".formatted(recordingId));
+            }
+
+            profileId = analyzeJfr(recording, recordingFiles);
         }
 
         LOG.info("Quick analysis recording analyzed: recordingId={} profileId={}", recordingId, profileId);
@@ -253,19 +268,38 @@ public class ProfileRecordingsManager implements RecordingsManager {
         }
     }
 
-    private String analyzeJfr(Recording recording, RecordingFile file) {
-        Path filePath = resolveRecordingFilePath(file);
-        if (!Files.exists(filePath)) {
-            throw Exceptions.internal("Recording file does not exist: %s".formatted(filePath));
+    private String analyzeJfr(Recording recording, List<RecordingFile> recordingFiles) {
+        List<Path> filePaths = recordingFiles.stream()
+                .map(this::resolveRecordingFilePath)
+                .toList();
+
+        // A downloaded session brings its heap dumps, logs and perf counters along, stored beside
+        // the recording files rather than in a directory of their own. They are handed to the
+        // initializer because nothing downstream can find them from the recording id alone.
+        List<Path> artifactPaths = recording.files().stream()
+                .filter(file -> file.recordingFileType().fileCategory() == FileCategory.ARTIFACT)
+                .map(this::resolveRecordingFilePath)
+                .filter(Files::exists)
+                .toList();
+
+        for (Path filePath : filePaths) {
+            if (!Files.exists(filePath)) {
+                throw Exceptions.internal("Recording file does not exist: %s".formatted(filePath));
+            }
         }
 
+        RecordingSources sources = new RecordingSources(filePaths);
         String profileId = IDGenerator.generate();
         Instant createdAt = clock.instant();
 
-        RecordingInformation recordingInfo = resolveRecordingInformation(recording, filePath);
+        RecordingInformation recordingInfo = resolveRecordingInformation(recording, sources);
+
+        // Named after the recording rather than after one of its files: a session's files are
+        // chunk-<timestamp>.jfr.lz4 and naming the profile after the first of them says nothing.
+        String profileName = recording.recordingName();
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, file.filename(),
+                profileId, null, null, profileName,
                 recordingInfo.eventSource(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt(),
@@ -277,14 +311,14 @@ public class ProfileRecordingsManager implements RecordingsManager {
         // but "Initializing..." for as long as it takes.
         ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
         profileRepository.insert(ProfileRepository.InsertProfile.quickProfile(
-                file.filename(),
+                profileName,
                 recordingInfo.eventSource(), createdAt,
                 recording.id(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt()));
 
         try {
-            profileInitializer.initialize(profileInfo, null, filePath);
+            profileInitializer.initialize(profileInfo, sources, artifactPaths);
         } catch (RuntimeException e) {
             // Keep the disabled row. It is the durable recording-to-profile link through which the
             // in-memory pipeline can report the failed attempt, and after a restart it is the evidence
@@ -308,7 +342,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
      * and re-parses the JFR file only when any of them is missing — e.g. when the metadata parse
      * failed during the upload.
      */
-    private RecordingInformation resolveRecordingInformation(Recording recording, Path filePath) {
+    private RecordingInformation resolveRecordingInformation(Recording recording, RecordingSources sources) {
         boolean persistedInfoComplete = recording.eventSource() != null
                 && recording.eventSource() != RecordingEventSource.UNKNOWN
                 && recording.recordingStartedAt() != null
@@ -316,12 +350,12 @@ public class ProfileRecordingsManager implements RecordingsManager {
 
         if (persistedInfoComplete) {
             return new RecordingInformation(
-                    FileSystemUtils.size(filePath),
+                    sources.files().stream().mapToLong(FileSystemUtils::size).sum(),
                     recording.eventSource(),
                     recording.recordingStartedAt(),
                     recording.recordingFinishedAt());
         }
-        return recordingInformationParser.provide(filePath);
+        return recordingInformationParser.provide(sources);
     }
 
     private String analyzeHeapDump(Recording recording, RecordingFile file) {

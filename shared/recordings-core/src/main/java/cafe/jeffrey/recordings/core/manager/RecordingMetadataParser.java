@@ -22,6 +22,7 @@ import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -33,7 +34,12 @@ import java.util.Optional;
 @FunctionalInterface
 public interface RecordingMetadataParser {
 
-    Optional<RecordingMetadata> parse(Path recordingFile);
+    /**
+     * Reads one recording's metadata. A recording downloaded from a hub is several files, and the
+     * answer is one recording's worth across all of them — the earliest start and the latest end —
+     * because that window anchors the relative timeline every event is written against.
+     */
+    Optional<RecordingMetadata> parse(List<Path> recordingFiles);
 
     record RecordingMetadata(
             RecordingEventSource eventSource,
@@ -41,5 +47,5 @@ public interface RecordingMetadataParser {
             Instant recordingFinishedAt) {
     }
 
-    RecordingMetadataParser NOOP = file -> Optional.empty();
+    RecordingMetadataParser NOOP = files -> Optional.empty();
 }

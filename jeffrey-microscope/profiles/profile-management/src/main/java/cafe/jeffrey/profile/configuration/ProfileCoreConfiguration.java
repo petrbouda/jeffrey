@@ -28,7 +28,6 @@ import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.additional.AdditionalFilesManagerImpl;
-import cafe.jeffrey.profile.manager.additional.NoOpAdditionalFilesManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
 import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileCustomManagerImpl;
@@ -204,23 +203,24 @@ public class ProfileCoreConfiguration {
         };
     }
 
+    /**
+     * The manager is the same whichever kind of profile this is. It used to be a no-op for
+     * Recordings profiles because it resolved a project recording's artifacts itself and a
+     * Recordings profile has no project — so a downloaded session's heap dump and perf counters
+     * were stored, listed, and then ignored. The files are handed to it now, so there is nothing
+     * left for it to be unable to find.
+     */
     @Bean
     public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(
-            RecordingStorage recordingStorage,
             @Qualifier(ProfilesConfiguration.PROFILES_PATH) Path profilesPath) {
         return profileInfo -> {
             Path heapDumpAnalysisPath = profilesPath
                     .resolve(profileInfo.id())
                     .resolve("heap-dump");
 
-            // Recordings profiles don't have a project - return no-op implementation
-            if (profileInfo.projectId() == null) {
-                return new NoOpAdditionalFilesManager(heapDumpAnalysisPath);
-            }
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new AdditionalFilesManagerImpl(
                     profileRepositories.newProfileCacheRepository(profileDb),
-                    recordingStorage.projectRecordingStorage(profileInfo.projectId()),
                     heapDumpAnalysisPath);
         };
     }

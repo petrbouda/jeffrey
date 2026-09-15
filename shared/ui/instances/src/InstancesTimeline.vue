@@ -253,7 +253,7 @@
                       v-if="downloadableSummary(session.id)"
                       type="button"
                       class="drawer-action drawer-action--download"
-                      title="Download all recordings (merged) and artifacts"
+                      title="Download all recordings and artifacts"
                       @click.stop="downloadSession(session.id)"
                     >
                       <i class="bi bi-download"></i> Download
@@ -1218,7 +1218,7 @@ function downloadableSummary(sessionId: string): string | null {
 }
 
 /**
- * Downloads all recordings (merged) and artifacts of the session — the same flow as
+ * Downloads all recordings and artifacts of the session — the same flow as
  * the Download button in the sessions list: the Download Assistant fetches every file
  * of the session from the remote workspace.
  */

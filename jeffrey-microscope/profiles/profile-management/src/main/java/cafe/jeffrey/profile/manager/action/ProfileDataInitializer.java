@@ -20,9 +20,9 @@ package cafe.jeffrey.profile.manager.action;
 
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -43,7 +43,7 @@ public interface ProfileDataInitializer {
      * exceptionally: the analysis is a cache, and a profile without it is a poorer profile rather
      * than a failed import.
      */
-    CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(ProfileInfo profileInfo, Path recordingPath);
+    CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(ProfileInfo profileInfo, RecordingSources sources);
 
     /**
      * Warms the remaining views and stores whatever {@link #startAutoAnalysis} produced.
@@ -64,7 +64,7 @@ public interface ProfileDataInitializer {
 
             @Override
             public CompletableFuture<List<AutoAnalysisResult>> startAutoAnalysis(
-                    ProfileInfo profileInfo, Path recordingPath) {
+                    ProfileInfo profileInfo, RecordingSources sources) {
 
                 return CompletableFuture.completedFuture(null);
             }

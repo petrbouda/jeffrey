@@ -54,7 +54,7 @@ class TempDirectoryCleanerJobTest {
 
     @Test
     void removesExpiredFilesAndDirectories_keepsFreshOnes(@TempDir Path tempDir) throws IOException {
-        Path expiredFile = Files.createFile(tempDir.resolve("leaked-merge.jfr"));
+        Path expiredFile = Files.createFile(tempDir.resolve("leaked-compression.jfr"));
         setModified(expiredFile, NOW.minus(Duration.ofDays(2)));
 
         Path expiredDir = Files.createDirectories(tempDir.resolve("replay-session-xyz"));

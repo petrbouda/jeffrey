@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.stub.grpc;
 
 import cafe.jeffrey.hub.api.v1.DataChunk;
 import cafe.jeffrey.hub.api.v1.DownloadArtifactFileRequest;
-import cafe.jeffrey.hub.api.v1.DownloadMergedRecordingsRequest;
 import cafe.jeffrey.hub.api.v1.DownloadRecordingFileRequest;
 import cafe.jeffrey.hub.api.v1.RecordingDownloadServiceGrpc;
 import cafe.jeffrey.hub.stub.data.StubDataset;
@@ -32,12 +31,12 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 
 /**
- * Stub {@code RecordingDownloadService}. Recording downloads (merged and single-file) always
- * return the SAME bundled JFR regardless of the requested session or file ids — a session may
- * list several JFR chunks, but the downloaded recording is always this one file. Artifact
- * downloads (heap dumps, logs, …) are served as EMPTY files: the stub has no real artifacts,
- * but the Download Assistant fetches every source of a session (1 merged recording + N
- * artifacts), so the artifacts must complete instead of erroring.
+ * Stub {@code RecordingDownloadService}. Every recording download returns the SAME bundled JFR
+ * regardless of the requested session or file id — a session lists several JFR chunks and the
+ * client fetches each of them separately, so a session of three chunks arrives as three copies
+ * of this one file. Artifact downloads (heap dumps, logs, …) are served as EMPTY files: the stub
+ * has no real artifacts, but the Download Assistant fetches every file of a session, so they must
+ * complete rather than error.
  *
  * <p>Bytes are streamed in fixed-size {@link DataChunk}s, mirroring the real hub's wire
  * contract ({@code total_size} on the first chunk only; an empty file sends zero chunks). The
@@ -45,28 +44,22 @@ import java.io.UncheckedIOException;
  */
 public class StubRecordingDownloadService extends RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase {
 
-    private static final String MERGED_RECORDING_RESOURCE = "jeffrey-persons-direct-serde-cpu.jfr.lz4";
+    private static final String RECORDING_RESOURCE = "jeffrey-persons-direct-serde-cpu.jfr.lz4";
     private static final int CHUNK_SIZE = 64 * 1024;
     private static final byte[] EMPTY_ARTIFACT = new byte[0];
 
     private final StubDataset dataset;
-    private final byte[] mergedRecording;
+    private final byte[] recording;
 
     public StubRecordingDownloadService(StubDataset dataset) {
         this.dataset = dataset;
-        this.mergedRecording = loadMergedRecording();
-    }
-
-    @Override
-    public void downloadMergedRecordings(
-            DownloadMergedRecordingsRequest request, StreamObserver<DataChunk> responseObserver) {
-        streamForSession(request.getSessionId(), mergedRecording, responseObserver);
+        this.recording = loadRecording();
     }
 
     @Override
     public void downloadRecordingFile(
             DownloadRecordingFileRequest request, StreamObserver<DataChunk> responseObserver) {
-        streamForSession(request.getSessionId(), mergedRecording, responseObserver);
+        streamForSession(request.getSessionId(), recording, responseObserver);
     }
 
     @Override
@@ -98,15 +91,15 @@ public class StubRecordingDownloadService extends RecordingDownloadServiceGrpc.R
         responseObserver.onCompleted();
     }
 
-    private static byte[] loadMergedRecording() {
+    private static byte[] loadRecording() {
         try (InputStream in = StubRecordingDownloadService.class.getClassLoader()
-                .getResourceAsStream(MERGED_RECORDING_RESOURCE)) {
+                .getResourceAsStream(RECORDING_RESOURCE)) {
             if (in == null) {
-                throw new IllegalStateException("Stub merged recording not found on classpath: " + MERGED_RECORDING_RESOURCE);
+                throw new IllegalStateException("Stub recording not found on classpath: " + RECORDING_RESOURCE);
             }
             return in.readAllBytes();
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to load stub merged recording: " + MERGED_RECORDING_RESOURCE, e);
+            throw new UncheckedIOException("Failed to load stub recording: " + RECORDING_RESOURCE, e);
         }
     }
 }

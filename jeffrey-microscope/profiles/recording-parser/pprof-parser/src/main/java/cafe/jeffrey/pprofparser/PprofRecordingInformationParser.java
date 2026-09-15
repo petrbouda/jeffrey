@@ -21,6 +21,7 @@ package cafe.jeffrey.pprofparser;
 import com.google.perftools.profiles.ProfileProto.Profile;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.io.IOException;
@@ -43,12 +44,32 @@ public class PprofRecordingInformationParser implements RecordingInformationPars
         this.streamReader = new PprofStreamReader();
     }
 
+    /**
+     * The earliest collection timestamp and the latest window end across the files, with their
+     * sizes added up — so several rotated profiles describe one recording rather than whichever
+     * of them happened to be read.
+     */
     @Override
-    public RecordingInformation provide(Path recordingPath) {
-        Profile profile = streamReader.read(recordingPath);
-        Instant startedAt = Instant.ofEpochSecond(0, profile.getTimeNanos());
-        Instant finishedAt = startedAt.plusNanos(profile.getDurationNanos());
-        return new RecordingInformation(sizeInBytes(recordingPath), RecordingEventSource.PPROF, startedAt, finishedAt);
+    public RecordingInformation provide(RecordingSources sources) {
+        Instant startedAt = null;
+        Instant finishedAt = null;
+        long sizeInBytes = 0;
+
+        for (Path recordingPath : sources.files()) {
+            Profile profile = streamReader.read(recordingPath);
+            Instant fileStartedAt = Instant.ofEpochSecond(0, profile.getTimeNanos());
+            Instant fileFinishedAt = fileStartedAt.plusNanos(profile.getDurationNanos());
+
+            if (startedAt == null || fileStartedAt.isBefore(startedAt)) {
+                startedAt = fileStartedAt;
+            }
+            if (finishedAt == null || fileFinishedAt.isAfter(finishedAt)) {
+                finishedAt = fileFinishedAt;
+            }
+            sizeInBytes += sizeInBytes(recordingPath);
+        }
+
+        return new RecordingInformation(sizeInBytes, RecordingEventSource.PPROF, startedAt, finishedAt);
     }
 
     private static long sizeInBytes(Path recordingPath) {

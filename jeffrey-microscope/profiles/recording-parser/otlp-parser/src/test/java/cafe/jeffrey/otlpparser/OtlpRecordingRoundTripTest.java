@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.otlpparser;
 
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import io.opentelemetry.proto.profiles.v1development.ProfilesData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -105,7 +106,7 @@ class OtlpRecordingRoundTripTest {
                         Schedulers.sharedDbWriter(), dataSource, BATCH_SIZE, profilingStartedAt,
                         BatchFlushLimit.ofSlots(Schedulers.DB_WRITER_THREADS)));
 
-        new OtlpRecordingEventParser().start(eventWriter, recording);
+        new OtlpRecordingEventParser().start(eventWriter, RecordingSources.of(recording));
         eventWriter.onComplete();
 
         assertEquals(2, count(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'cpu'"));
