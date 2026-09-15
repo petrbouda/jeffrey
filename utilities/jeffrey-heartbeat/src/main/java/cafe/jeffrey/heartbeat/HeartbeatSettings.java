@@ -54,9 +54,9 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
     public static final String INTERVAL_ENV = "JEFFREY_HEARTBEAT_INTERVAL";
 
     /**
-     * Set to {@code false} to stand this library down. The Provisioner writes {@code false}
-     * whenever it attached the Jeffrey agent, because the agent already beats for that session and
-     * two writers of one file is redundant work, not redundancy.
+     * Set to {@code false} to stand this library down. The Provisioner writes what the session
+     * declared through {@code heartbeat.enabled}, and writes the same value into the session
+     * marker — so the hub knows not to hold a silent session to a deadline it will never meet.
      */
     public static final String ENABLED_ENV = "JEFFREY_HEARTBEAT_ENABLED";
 

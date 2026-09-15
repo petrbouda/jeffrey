@@ -171,9 +171,9 @@ class SessionFinisherIntegrationTest {
         @Mock
         FileHeartbeatReader fileHeartbeatReader;
 
-        /** The fixture session, declaring the agent that writes the liveness files. */
-        private static ProjectInstanceSessionInfo withAgent(JdbcProjectRepositoryRepository repository) {
-            return repository.findSessionById(SESSION_ID).orElseThrow().withAgentAttached(true);
+        /** The fixture session, promising that something will report liveness for it. */
+        private static ProjectInstanceSessionInfo expectingHeartbeat(JdbcProjectRepositoryRepository repository) {
+            return repository.findSessionById(SESSION_ID).orElseThrow().withHeartbeatExpected(true);
         }
 
         @Nested
@@ -193,7 +193,7 @@ class SessionFinisherIntegrationTest {
                         .thenReturn(Optional.of(markerTimestamp));
 
                 boolean result = finisher.tryFinishFromHeartbeat(
-                        repository, PROJECT_INFO, withAgent(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
+                        repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
 
                 assertTrue(result);
                 assertEquals(markerTimestamp, repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
@@ -216,7 +216,7 @@ class SessionFinisherIntegrationTest {
                         .thenReturn(Optional.of(staleHeartbeat));
 
                 boolean result = finisher.tryFinishFromHeartbeat(
-                        repository, PROJECT_INFO, withAgent(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
+                        repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
 
                 assertTrue(result);
 
@@ -237,7 +237,7 @@ class SessionFinisherIntegrationTest {
                         .thenReturn(Optional.of(freshHeartbeat));
 
                 boolean result = finisher.tryFinishFromHeartbeat(
-                        repository, PROJECT_INFO, withAgent(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
+                        repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
 
                 assertFalse(result);
 
@@ -250,19 +250,19 @@ class SessionFinisherIntegrationTest {
         class NoHeartbeatFile {
 
             @Test
-            void marksFinished_atSessionStart_whenAgentNeverReported(DataSource dataSource) throws SQLException {
+            void marksFinished_atSessionStart_whenNothingEverReported(DataSource dataSource) throws SQLException {
                 TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
                 var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
-                // Declared an agent, wrote nothing, and the startup window (5 min) is long gone:
+                // Promised liveness, wrote nothing, and the startup window (5 min) is long gone:
                 // the session is recorded as having ended when it began, which is a timestamp it
                 // really has — never the moment this sweep happened to run
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(Optional.empty());
 
-                ProjectInstanceSessionInfo sessionInfo = withAgent(repository);
+                ProjectInstanceSessionInfo sessionInfo = expectingHeartbeat(repository);
 
                 boolean result = finisher.tryFinishFromHeartbeat(
                         repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD);
@@ -287,7 +287,7 @@ class SessionFinisherIntegrationTest {
                         .thenReturn(Optional.empty());
 
                 boolean result = finisher.tryFinishFromHeartbeat(
-                        repository, PROJECT_INFO, withAgent(repository), SESSION_PATH, Duration.ofHours(5));
+                        repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, Duration.ofHours(5));
 
                 assertFalse(result);
 
@@ -297,7 +297,7 @@ class SessionFinisherIntegrationTest {
         }
 
         @Nested
-        class SessionWithoutAgent {
+        class SessionThatPromisedNothing {
 
             @Test
             void isNeverFinishedByTheDeadline_whenUndeclared(DataSource dataSource) throws SQLException {
@@ -306,10 +306,10 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
-                // Written by a provisioner too old to declare an agent: it may still be recording,
-                // so failing to report liveness it never promised must not finish it
+                // Written by a provisioner too old to declare anything: it may still be
+                // recording, so failing to report liveness it never promised must not finish it
                 ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
-                assertNull(sessionInfo.agentAttached());
+                assertNull(sessionInfo.heartbeatExpected());
 
                 boolean result = finisher.tryFinishFromHeartbeat(
                         repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD);
@@ -326,7 +326,7 @@ class SessionFinisherIntegrationTest {
                 var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
                 ProjectInstanceSessionInfo sessionInfo =
-                        repository.findSessionById(SESSION_ID).orElseThrow().withAgentAttached(false);
+                        repository.findSessionById(SESSION_ID).orElseThrow().withHeartbeatExpected(false);
 
                 boolean result = finisher.tryFinishFromHeartbeat(
                         repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD);

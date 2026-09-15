@@ -81,7 +81,7 @@ project {
 
 const fullConfig = `jeffrey-home = "/opt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
-agent-path = "/opt/jeffrey/libs/current/jeffrey-agent.jar"
+heartbeat { enabled = true }
 arg-file = "/tmp/jvm.args"
 project {
     workspace-ref-id = "production"
@@ -254,10 +254,10 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>Human-readable project label</td>
             </tr>
             <tr>
-              <td><code>agent-path</code></td>
+              <td><code>heartbeat.enabled</code></td>
               <td>No</td>
-              <td><code>JEFFREY_AGENT_PATH</code></td>
-              <td>Path to <code>jeffrey-agent.jar</code>. Auto-resolved from <code>libs/current/jeffrey-agent.jar</code> when <code>jeffrey-home</code> is set.</td>
+              <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
+              <td><strong>On by default.</strong> Declares that this session will report liveness through the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library. Set <code>false</code> for an application that does not carry the dependency</td>
             </tr>
             <tr>
               <td><code>env-file</code></td>
@@ -370,8 +370,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <div class="feature-card heartbeat">
             <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
             <h4>Heartbeat &amp; Clean-Exit Marker</h4>
-            <p>Automatic whenever <code>agent-path</code> resolves — not a configuration block. The Jeffrey Agent writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean JVM shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes.</p>
-            <code>agent-path = ".../jeffrey-agent.jar"</code>
+            <p>The <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. The Provisioner exports the directory and the declaration; the application carries the dependency.</p>
+            <code>heartbeat { enabled = true }</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>

@@ -51,7 +51,6 @@ tracing {
 }`;
 
 const generatedOptions = `# Written into the @argfile the entrypoint hands to the JVM
--javaagent:/opt/jeffrey/jeffrey-agent.jar=heartbeat.dir=<session>/.heartbeat,tracing.enabled=true,app...
 -XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,<event settings below>`;
 
 const thresholds = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
@@ -142,7 +141,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes the marker files, then appends a pointer file to <code>.pending/</code> — an index, not a queue, carrying a path rather than a copy of the state. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the Jeffrey Agent rewrites the heartbeat every 5&nbsp;seconds.</p>
+      <p>The Provisioner creates the tree and writes the marker files, then appends a pointer file to <code>.pending/</code> — an index, not a queue, carrying a path rather than a copy of the state. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the heartbeat library rewrites the liveness file every 5&nbsp;seconds.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 
@@ -221,7 +220,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           </tr>
           <tr>
             <td>The session never ends</td>
-            <td>No heartbeat file — the agent was not attached, or <code>heartbeat.dir</code> points elsewhere</td>
+            <td>No heartbeat file — the application does not carry the heartbeat library, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere</td>
             <td>The Provisioner sets <code>heartbeat.dir</code>; a hand-rolled agent argument has to match the session path</td>
           </tr>
         </tbody>

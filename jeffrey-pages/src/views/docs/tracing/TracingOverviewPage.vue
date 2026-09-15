@@ -119,9 +119,9 @@ const tasteSpans = [
             <td>Drop-in instrumentation for Servlet, Spring, Spring Boot (a starter: one dependency, no code), JDBC <code>DataSource</code>, HikariCP, MyBatis and gRPC. See the <router-link to="/docs/tracing/http-events">HTTP</router-link>, <router-link to="/docs/tracing/grpc-events">gRPC</router-link>, <router-link to="/docs/tracing/jdbc-events">JDBC</router-link> and <router-link to="/docs/tracing/mybatis-events">MyBatis</router-link> pages, and <router-link to="/docs/tracing/spring-support">Spring Support</router-link>.</td>
           </tr>
           <tr>
-            <td><strong>Jeffrey Agent</strong></td>
-            <td><code>jeffrey-agent.jar</code></td>
-            <td>A <code>-javaagent</code> that reports liveness to a Hub and stamps the recording with its workspace, project and session. It emits no spans and instruments nothing. See <router-link to="/docs/agent/overview">Jeffrey Agent</router-link>.</td>
+            <td><strong>jeffrey-heartbeat</strong></td>
+            <td><code>jeffrey-heartbeat</code></td>
+            <td>Reports to a Jeffrey Hub that the JVM is alive, and when it stopped. It emits no spans and instruments nothing — unrelated to tracing, and listed here only because it is the other library a profiled application carries. See <router-link to="/docs/agent/heartbeat-library">Heartbeat Library</router-link>.</td>
           </tr>
           <tr>
             <td><strong>Jeffrey Microscope</strong></td>

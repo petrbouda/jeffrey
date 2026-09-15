@@ -36,12 +36,11 @@ public record JvmFeatures(List<JvmFeature> features) {
 
     private static final String OPTION_SEPARATOR = " ";
 
-    public static JvmFeatures of(InitConfig config, AppIdentity identity) {
+    public static JvmFeatures of(InitConfig config) {
         return new JvmFeatures(List.of(
                 new JvmFeature.DebugNonSafepoints(config.isDebugNonSafepointsEnabled()),
                 new JvmFeature.PerfCounters(config.isPerfCountersEnabled()),
                 new JvmFeature.HeapDump(config.resolveHeapDumpType()),
-                new JvmFeature.Agent(config.getAgentPath(), identity),
                 new JvmFeature.TracingEventThresholds(
                         config.isSpanTracingEnabled(), config.getTracingJfrEventSettings()),
                 new JvmFeature.AdditionalOptions(config.getAdditionalJvmOptions())));

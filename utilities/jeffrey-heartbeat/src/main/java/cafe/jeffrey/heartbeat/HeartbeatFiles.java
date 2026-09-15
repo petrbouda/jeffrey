@@ -25,19 +25,13 @@ import java.time.Duration;
  * rewritten {@code heartbeat} file and, after a clean exit, a {@code finished} marker. Both contain
  * epoch millis as plain text.
  *
- * <p><b>This is the third copy of these values, and deliberately so.</b> The other two are
- * {@code cafe.jeffrey.shared.common.HeartbeatConstants}, which the hub reads them with, and a
- * private copy inside {@code jeffrey-agent}. None of the three may depend on another: the hub's
- * lives in a module no application should ever pull in, the agent's jar is appended to the
- * <em>system</em> class path of every JVM it attaches to — so anything it bundled would win
- * parent-first delegation over the application's own copy — and this one is an ordinary dependency
- * an application compiles against. A shared artifact would put the agent's copy and this one on the
- * same JVM at different versions, which is the exact collision the agent shed when it dropped its
- * bytecode engine.</p>
+ * <p><b>This is the second copy of these values, and deliberately so.</b> The other is
+ * {@code cafe.jeffrey.shared.common.HeartbeatConstants}, which the hub reads them with, and it
+ * lives in a module no profiled application should ever be made to pull in. This one is an
+ * ordinary dependency an application compiles against, so it must bring nothing with it.</p>
  *
- * <p>The values are four strings and a duration and have not changed since they were introduced.
- * If they ever do, all three copies move together, and {@code HeartbeatFilesContractTest} in the
- * hub is what fails when they do not.</p>
+ * <p>The values are three strings and a duration and have not changed since they were introduced.
+ * If they ever do, both copies move together.</p>
  */
 public final class HeartbeatFiles {
 

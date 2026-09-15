@@ -66,7 +66,7 @@ public class InitExecutor {
                 JeffreyPlaceholderSource.of(session.layout(), config.getProfilerPath(),
                         EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
 
-        String features = JvmFeatures.of(config, appIdentityFor(config, session))
+        String features = JvmFeatures.of(config)
                 .render(session.layout().session(), placeholders);
 
         ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = profilerSettingsResolver.resolve(
@@ -86,16 +86,4 @@ public class InitExecutor {
                 resolvedSettings.source(), config.getArgFilePath());
     }
 
-    private AppIdentity appIdentityFor(InitConfig config, ProvisionedSession session) {
-        return new AppIdentity(
-                config.getWorkspaceRefId(),
-                session.projectId(),
-                config.getProjectName(),
-                config.getProjectLabel(),
-                session.instanceId(),
-                session.sessionId(),
-                session.order(),
-                config.getAttributes(),
-                clock.millis());
-    }
 }

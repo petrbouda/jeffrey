@@ -21,11 +21,12 @@ package cafe.jeffrey.shared.common;
 import java.time.Duration;
 
 /**
- * Shared constants for the file-based heartbeat mechanism.
- * Used by both the CLI (producer wiring) and the platform (consumer).
+ * Shared constants for the file-based heartbeat mechanism, as the hub reads it.
  *
- * <p>The agent module duplicates the relevant subset of these constants
- * because it must remain zero-dependency for minimal JAR size.</p>
+ * <p>{@code utilities/jeffrey-heartbeat} — the library that writes these files from inside a
+ * profiled application — carries its own copy in {@code HeartbeatFiles} rather than depending on
+ * this module, which no application should ever be made to pull in. The two move together; there
+ * is no third reader.</p>
  */
 public abstract class HeartbeatConstants {
 
@@ -43,15 +44,10 @@ public abstract class HeartbeatConstants {
      */
     public static final String FINISHED_FILE = "finished";
 
-    /** Agent argument key for heartbeat directory path */
-    public static final String PARAM_DIR = "heartbeat.dir";
-
-    /** Agent argument key for heartbeat interval in milliseconds */
-    public static final String PARAM_INTERVAL = "heartbeat.interval";
-
-    /** Agent argument key to enable/disable heartbeat (optional, defaults to true) */
-    public static final String PARAM_ENABLED = "heartbeat.enabled";
-
-    /** Default heartbeat interval. Must match {@code AgentArgs.DEFAULT_INTERVAL} in jeffrey-agent. */
+    /**
+     * Default heartbeat interval. Must match {@code HeartbeatFiles.DEFAULT_INTERVAL} in
+     * {@code jeffrey-heartbeat}: the hub's staleness threshold is chosen as a multiple of it, so a
+     * producer beating more slowly than the hub expects reads as dead while it is running.
+     */
     public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
 }

@@ -63,8 +63,6 @@ public class InitConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(InitConfig.class);
 
-    private static final String DEFAULT_AGENT_RELATIVE_PATH = "libs/current/jeffrey-agent.jar";
-
     private static final String BUNDLED_PROFILER_DIR = "libs/current";
     private static final String BUNDLED_PROFILER_PREFIX = "libasyncProfiler-";
     private static final String BUNDLED_PROFILER_SUFFIX = ".so";
@@ -124,7 +122,7 @@ public class InitConfig {
             # (TracingJfrEvents.DEFAULT_SETTINGS); "none" opts out while leaving tracing on.
             tracing { enabled = true, jfr-event-settings = "" }
             heap-dump { enabled = false, type = "exit" }
-            agent-path = ""
+            heartbeat { enabled = true }
             jdk-java-options { enabled = false }
             additional-jvm-options = ""
             debug-non-safepoints { enabled = true }
@@ -217,7 +215,7 @@ public class InitConfig {
     private final String profilerPath;
     private final String profilerConfig;
     private final String repositoryType;
-    private final String agentPath;
+    private final boolean heartbeatEnabled;
     private final String additionalJvmOptions;
 
     private final String workspaceRefId;
@@ -263,8 +261,7 @@ public class InitConfig {
 
         this.profilerPath = resolveProfilerPath(
                 placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_PATH)), jeffreyHome);
-        this.agentPath = resolveAgentPath(
-                placeholders.resolve(resolved.getString(ConfigPaths.AGENT_PATH)), jeffreyHome);
+        this.heartbeatEnabled = resolved.getBoolean(ConfigPaths.HEARTBEAT_ENABLED);
 
         this.projectName = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_NAME)));
         this.projectLabel = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_LABEL)));
@@ -315,17 +312,6 @@ public class InitConfig {
      * The explicit path, or the agent JAR bundled under {@code jeffrey-home}. Null when neither is
      * available — agent-dependent features are skipped downstream.
      */
-    private static String resolveAgentPath(String explicitPath, String jeffreyHome) {
-        String explicit = nullIfBlank(explicitPath);
-        if (explicit != null) {
-            return explicit;
-        }
-        if (jeffreyHome == null) {
-            return null;
-        }
-        Path candidate = Path.of(jeffreyHome).resolve(DEFAULT_AGENT_RELATIVE_PATH);
-        return Files.exists(candidate) ? candidate.toString() : null;
-    }
 
     /**
      * Reference ID of the workspace on the target Jeffrey server. The workspace must already
@@ -405,8 +391,18 @@ public class InitConfig {
         return repositoryType;
     }
 
-    public String getAgentPath() {
-        return agentPath;
+    /**
+     * Whether this session expects the {@code jeffrey-heartbeat} library to report liveness.
+     *
+     * <p>Declared rather than detected: whether the library is on the application's class path is
+     * a build-time fact, and this tool only writes JVM arguments. It travels two ways — into the
+     * {@code .env} the library reads, and into the session marker, so the hub knows whether to hold
+     * this session to its heartbeat deadline. Set {@code heartbeat.enabled = false} for an
+     * application that does not carry the dependency; its sessions are then finished when the
+     * instance's next session appears rather than by a deadline they could never meet.</p>
+     */
+    public boolean isHeartbeatEnabled() {
+        return heartbeatEnabled;
     }
 
     public String getAdditionalJvmOptions() {

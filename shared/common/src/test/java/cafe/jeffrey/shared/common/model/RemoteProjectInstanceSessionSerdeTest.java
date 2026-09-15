@@ -53,14 +53,14 @@ class RemoteProjectInstanceSessionSerdeTest {
         assertEquals(1, session.order());
         assertNull(session.profilerSettingsSource());
         assertNull(session.profilerCommand());
-        // Not merely absent: null is what tells the hub this session never declared whether an
-        // agent would report liveness, so it must not be finished for failing to report it
-        assertNull(session.agentAttached());
+        // Not merely absent: null is what tells the hub this session never declared whether
+        // anything would report liveness, so it must not be finished for failing to report it
+        assertNull(session.heartbeatExpected());
     }
 
     @Test
-    void sessionInfo_withoutAgentDeclaration_isUnknownRatherThanFalse() {
-        String withoutAgentField = """
+    void sessionInfo_withoutHeartbeatDeclaration_isUnknownRatherThanFalse() {
+        String withoutHeartbeatField = """
                 {
                     "sessionId": "session-001",
                     "projectId": "proj-001",
@@ -75,13 +75,13 @@ class RemoteProjectInstanceSessionSerdeTest {
                 """;
 
         RemoteProjectInstanceSession session =
-                Json.read(withoutAgentField, RemoteProjectInstanceSession.class);
+                Json.read(withoutHeartbeatField, RemoteProjectInstanceSession.class);
 
-        assertNull(session.agentAttached());
+        assertNull(session.heartbeatExpected());
     }
 
     @Test
-    void sessionInfo_declaringNoAgent_roundTripsAsFalse() {
+    void sessionInfo_declaringNoHeartbeat_roundTripsAsFalse() {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                 "session-001", "proj-001", "ws-001", "inst-001",
                 1700000000000L, 1, "inst-001/session-001",
@@ -89,7 +89,7 @@ class RemoteProjectInstanceSessionSerdeTest {
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 
-        assertEquals(Boolean.FALSE, read.agentAttached());
+        assertEquals(Boolean.FALSE, read.heartbeatExpected());
         assertEquals(session, read);
     }
 

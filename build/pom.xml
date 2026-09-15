@@ -39,7 +39,6 @@
         <module>build-hub-jib</module>
         <module>build-provisioner</module>
         <module>build-provisioner-native</module>
-        <module>build-agent</module>
     </modules>
 
     <build>

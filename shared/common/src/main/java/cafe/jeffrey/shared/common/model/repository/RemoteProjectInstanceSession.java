@@ -25,13 +25,17 @@ package cafe.jeffrey.shared.common.model.repository;
  * name) and the resolved command itself; both are null in files written by
  * older provisioners.
  *
- * <p>{@code agentAttached} declares whether this run was provisioned with the
- * Jeffrey agent, which is the only thing that writes the liveness files the hub
- * finishes a session from. It is {@code null} in files written by older
- * provisioners, and null means <em>unknown</em> rather than false: the hub
- * never applies the heartbeat deadline to a session that did not declare an
- * agent, because a session nobody promised would report liveness must not be
- * finished for failing to report it.</p>
+ * <p>{@code heartbeatExpected} declares whether anything in this run will report
+ * liveness — the {@code jeffrey-heartbeat} library, which is an ordinary
+ * dependency of the application. The provisioner cannot detect that on its own:
+ * whether the library is on the class path is a build-time fact, invisible to the
+ * tool that writes the JVM arguments. So it is <em>declared</em>, from
+ * {@code heartbeat.enabled} in the provisioner's configuration.
+ *
+ * <p>It is {@code null} in files written by older provisioners, and null means
+ * <em>unknown</em> rather than false: the hub never applies the heartbeat deadline
+ * to a session that did not promise to report, because failing to report liveness
+ * it never promised is not evidence that it ended.</p>
  */
 public record RemoteProjectInstanceSession(
         String sessionId,
@@ -43,5 +47,5 @@ public record RemoteProjectInstanceSession(
         String relativeSessionPath,
         String profilerSettingsSource,
         String profilerCommand,
-        Boolean agentAttached) {
+        Boolean heartbeatExpected) {
 }

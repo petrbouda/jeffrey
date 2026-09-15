@@ -31,7 +31,7 @@ const headings = [
   { id: 'session-detection', text: 'Session Detection', level: 2 },
   { id: 'heartbeat-mechanism', text: 'Heartbeat Mechanism', level: 3 },
   { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
-  { id: 'sessions-without-the-agent', text: 'Sessions Without the Agent', level: 3 },
+  { id: 'sessions-without-the-agent', text: 'Sessions That Report Nothing', level: 3 },
   { id: 'jvm-crash-detection', text: 'JVM Crash Detection', level: 3 },
   { id: 'heartbeat-recovery', text: 'Hub Restart', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
@@ -118,17 +118,17 @@ onMounted(() => {
         <p>Downloading is never refused because of a reported size — the download reads the file's real content, whatever the directory claims. So the files of such a session stay listed and stay retrievable. Seeing that badge on a session you know is recording means the hub's mount is serving stale file metadata: compare <code>stat -c '%s' &lt;file&gt;</code> with <code>wc -c &lt; &lt;file&gt;</code> inside the hub container, and check the mount's attribute-cache settings (gcsfuse <code>metadata-cache:ttl-secs</code> / <code>stat-cache-ttl</code>, FUSE <code>attr_timeout</code>, NFS and SMB <code>actimeo</code>). Note that a <em>finished</em> session with zero bytes is still read as a failed session — a crash is the ordinary explanation there, and the badge does not second-guess it.</p>
 
         <h2 id="session-detection">Session Detection</h2>
-        <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The Jeffrey Agent emits periodic liveness signals that the platform monitors to determine session state.</p>
+        <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The profiled application emits periodic liveness signals that the platform monitors to determine session state.</p>
 
         <h3 id="heartbeat-mechanism">Heartbeat Mechanism</h3>
-        <p>The Jeffrey Agent writes liveness files into the session directory on shared storage:</p>
+        <p>The <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes liveness files into the session directory on shared storage:</p>
         <ul>
           <li><strong>Heartbeat</strong> — <code>.heartbeat/heartbeat</code> contains epoch milliseconds and is refreshed every 5 seconds by default.</li>
           <li><strong>Clean exit</strong> — the shutdown hook writes <code>.heartbeat/finished</code> with the exit timestamp. A hard crash can leave this marker absent.</li>
         </ul>
 
         <h3 id="finish-detection-logic">Finish Detection Logic</h3>
-        <p>A scheduled job periodically evaluates each active session and applies the following rules. They apply only to sessions provisioned <strong>with the Jeffrey Agent</strong>, which is the only writer of the liveness files — see <a href="#sessions-without-the-agent">Sessions Without the Agent</a> for the rest.</p>
+        <p>A scheduled job periodically evaluates each active session and applies the following rules. They apply only to sessions that declared they would report liveness — see <a href="#sessions-without-the-agent">Sessions That Report Nothing</a> for the rest.</p>
 
         <div class="detection-cases">
           <div class="detection-case finished-case">
@@ -156,22 +156,23 @@ onMounted(() => {
             <div class="case-indicator"><i class="bi bi-hourglass-split"></i></div>
             <div class="case-content">
               <h4>No heartbeat, session is young</h4>
-              <p>No heartbeat has been recorded yet, but the session was created recently. The check is <strong>skipped</strong> because the JVM may not have reached the agent's startup yet. The age is measured against the Hub's own clock, so it does not depend on the producing host's clock agreeing with the Hub's.</p>
+              <p>No heartbeat has been recorded yet, but the session was created recently. The check is <strong>skipped</strong> because the application may not have started the heartbeat yet. The age is measured against the Hub's own clock, so it does not depend on the producing host's clock agreeing with the Hub's.</p>
             </div>
           </div>
           <div class="detection-case recovery-case">
             <div class="case-indicator"><i class="bi bi-arrow-repeat"></i></div>
             <div class="case-content">
               <h4>No heartbeat, session is old</h4>
-              <p>The session declared an agent but no readable heartbeat or clean-exit marker ever appeared, and the session is older than the threshold — a JVM that crashed before the agent started, or a mount it could not write to. The detector marks it as <strong>Finished</strong> using the session's own start time, which is a timestamp the session really has, rather than the moment the sweep happened to run.</p>
+              <p>The session promised to report but no readable heartbeat or clean-exit marker ever appeared, and the session is older than the threshold — a JVM that crashed during startup, or a mount it could not write to. The detector marks it as <strong>Finished</strong> using the session's own start time, which is a timestamp the session really has, rather than the moment the sweep happened to run.</p>
             </div>
           </div>
         </div>
 
-        <h3 id="sessions-without-the-agent">Sessions Without the Agent</h3>
-        <p>The Jeffrey Agent is optional: the Provisioner attaches it only when <code>agent-path</code> resolves to a file. A session provisioned without it writes no <code>.heartbeat/</code> files at all, so there is no liveness signal to go stale, and the detector leaves such a session alone rather than finishing it for failing to report liveness it never promised.</p>
-        <p>Those sessions are finished instead when the instance's <strong>next session appears</strong> on shared storage: materializing a new session closes any unfinished predecessor of the same instance. The consequence is that the last session of an instance that never restarts stays Active until something else ends it, which is the honest answer — without the agent, nothing on disk distinguishes a JVM that stopped from one that is simply quiet.</p>
-        <p>Each session records which case it is in when the Provisioner declares it. Sessions declared by a Provisioner older than this field are treated as <em>unknown</em> rather than agent-attached, so an existing long-running session is never finished prematurely by an upgrade.</p>
+        <h3 id="sessions-without-the-agent">Sessions That Report Nothing</h3>
+        <p>Liveness comes from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, which is an ordinary dependency of the application. Whether it is on the class path is a build-time fact the Provisioner cannot detect, so it is <strong>declared</strong>: set <code>heartbeat.enabled = false</code> for an application that does not carry it.</p>
+        <p>Such a session writes no <code>.heartbeat/</code> files at all, so there is no signal to go stale, and the detector leaves it alone rather than finishing it for failing to report liveness it never promised. Those sessions are finished instead when the instance's <strong>next session appears</strong> on shared storage: materializing a new session closes any unfinished predecessor of the same instance.</p>
+        <p>The consequence is that the last session of an instance that never restarts stays Active until something else ends it, which is the honest answer — with nothing reporting, nothing on disk distinguishes a JVM that stopped from one that is simply quiet.</p>
+        <p>Sessions declared by a Provisioner older than this field are treated as <em>unknown</em> rather than as reporting nothing, so an existing long-running session is never finished prematurely by an upgrade.</p>
 
         <h3 id="jvm-crash-detection">JVM Crash Detection</h3>
         <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>) is generated in the session directory. After a session finishes, Jeffrey checks for the presence of this file and emits a JVM crash event, providing visibility into abnormal terminations.</p>

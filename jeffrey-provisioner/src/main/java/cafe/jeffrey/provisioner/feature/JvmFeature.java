@@ -18,11 +18,9 @@
 
 package cafe.jeffrey.provisioner.feature;
 
-import cafe.jeffrey.provisioner.AppIdentity;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -93,35 +91,6 @@ public sealed interface JvmFeature {
                 case EXIT -> EXIT_OPTIONS;
             };
             return Optional.of(placeholders.resolve(options));
-        }
-    }
-
-    /** The Jeffrey agent: file-based liveness, and the identity the recording carries. */
-    record Agent(String agentPath, AppIdentity identity) implements JvmFeature {
-
-        private static final String AGENT_OPTION_PREFIX = "-javaagent:";
-        private static final String AGENT_ARGS_SEPARATOR = "=";
-
-        /**
-         * Whether a configured path actually yields a {@code -javaagent} option. The session
-         * marker records the same answer, because the agent is what writes the liveness files
-         * the hub finishes a session from — so the two must never disagree.
-         */
-        public static boolean isAttachable(String agentPath) {
-            return agentPath != null && !agentPath.isBlank();
-        }
-
-        @Override
-        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
-            if (!isAttachable(agentPath)) {
-                return Optional.empty();
-            }
-
-            String heartbeatDir = sessionPath.resolve(HeartbeatConstants.HEARTBEAT_DIR).toString();
-            String agentOption = AGENT_OPTION_PREFIX + agentPath + AGENT_ARGS_SEPARATOR
-                    + AgentArguments.of(heartbeatDir, identity);
-
-            return Optional.of(agentOption);
         }
     }
 

@@ -125,7 +125,7 @@ onMounted(() => {
       <p>Each session ends up with one main JFR file and a directory of optional artifacts (heap dumps, JVM logs, perf-counters). The path makes it cheap to enumerate everything for a workspace, project, or session without touching the database.</p>
 
       <h2 id="shared-filesystem">Shared Filesystem</h2>
-      <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner plus Jeffrey Agent — also mounts. The producers write JFR files; Server discovers and serves them.</p>
+      <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner and the profiled application — also mounts. The producers write JFR files; Server discovers and serves them.</p>
 
       <div class="db-card profile">
         <div class="card-header">
@@ -139,7 +139,7 @@ onMounted(() => {
             <li>Instance and session directory structure</li>
             <li>Session metadata files</li>
           </ul>
-          <h5>Written by Jeffrey Agent:</h5>
+          <h5>Written by the profiled application:</h5>
           <ul>
             <li>JFR recordings (chunked)</li>
             <li>Heap dumps and JVM artifacts</li>

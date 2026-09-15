@@ -189,17 +189,15 @@ jeffrey/
 │   ├── pending-index/                 # CLI→hub discovery index
 │   ├── recording-storage-api/         # Storage interfaces
 │   └── filesystem-recording-storage/  # Filesystem storage implementation
-├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
-├── jeffrey-agent/                     # Agent module — liveness heartbeat + jeffrey.AppInformation only;
-│                                   #   pure JDK, no dependencies, transforms no bytecode.
-│                                   #   utilities/jeffrey-heartbeat does the heartbeat half as a
-│                                   #   library; the three copies of the heartbeat file constants
-│                                   #   (shared/common, agent, library) may never depend on each
-│                                   #   other — the agent sits on the system class path of every
-│                                   #   profiled JVM, so anything it bundled would shadow the
-│                                   #   application's own copy. Provisioner exports
-│                                   #   JEFFREY_HEARTBEAT_ENABLED=false when it attached the agent,
-│                                   #   so exactly one of the two ever beats
+├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image). There is no Java
+│                                   #   agent: liveness is reported by utilities/jeffrey-heartbeat,
+│                                   #   a dependency of the profiled application. Whether it is on
+│                                   #   the class path is a build-time fact the provisioner cannot
+│                                   #   detect, so `heartbeat.enabled` DECLARES it and travels both
+│                                   #   into the .env the library reads and into the session marker
+│                                   #   the hub reconciles. Declaring it wrongly is the one way to
+│                                   #   get a wrong answer: a session that claims it will report and
+│                                   #   never does is finished shortly after it starts
 ├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, four manifests
 │   ├── .claude-plugin/plugin.json     # Claude Code manifest, with the configurable MCP endpoint inline
 │   ├── plugin.json + mcp.json         # Agent Plugins 1.0.0 — Codex, Cursor, Copilot, VS Code, Kiro
@@ -671,7 +669,6 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, ...) |
 | `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
 | `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |
-| `jeffrey-agent/` | `docs/agent/` — overview (heartbeat + AppInformation) |
 | `utilities/jeffrey-heartbeat/` + its Spring Boot starter | `docs/agent/` — heartbeat library |
 | tracing instrumentation (`utilities/`) | `docs/tracing/` — concepts, getting started, configuration, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
 | `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |

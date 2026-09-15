@@ -8,7 +8,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'agent-or-library', text: 'Agent or Library?', level: 2 },
+  { id: 'declaring-it', text: 'Declaring That a Session Reports', level: 2 },
   { id: 'spring-boot', text: 'Spring Boot', level: 2 },
   { id: 'plain-java', text: 'Plain Java', level: 2 },
   { id: 'configuration', text: 'Configuration', level: 2 },
@@ -29,59 +29,18 @@ onMounted(() => {
 
       <div class="docs-content">
         <h2 id="overview">Overview</h2>
-        <p><strong>jeffrey-heartbeat</strong> reports to a Jeffrey Hub that your JVM is alive, and tells it when the JVM stopped — the same job the <router-link to="/docs/agent/overview">Jeffrey Agent</router-link> does, for an application that would rather add a dependency than a JVM flag.</p>
-        <p>Both write the same two files into the session directory, so the Hub cannot tell which one ran, and does not need to. What it needs is that <em>exactly one</em> of them does.</p>
+        <p><strong>jeffrey-heartbeat</strong> reports to a Jeffrey Hub that your JVM is alive, and tells it when the JVM stopped. It writes two files into the session directory: a timestamp it rewrites every few seconds, and a clean-exit marker on shutdown.</p>
+        <p>That is the whole of it. It emits no events, instruments nothing, and has no dependencies.</p>
 
         <DocsCallout type="info">
           A provisioned application configures itself. Jeffrey Provisioner exports <code>JEFFREY_HEARTBEAT_DIR</code> and <code>JEFFREY_HEARTBEAT_ENABLED</code> into its <code>.env</code> file, and the library reads them — so on Spring Boot the whole integration is one dependency and no code.
         </DocsCallout>
 
-        <h2 id="agent-or-library">Agent or Library?</h2>
-        <p>The Provisioner decides for you: it exports <code>JEFFREY_HEARTBEAT_ENABLED=false</code> whenever it attached the agent, which stands the library down. Leave both in place and the right one reports.</p>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Jeffrey Agent</th>
-                <th>jeffrey-heartbeat</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Added by</td>
-                <td><code>-javaagent</code> on the command line</td>
-                <td>A dependency in your build</td>
-              </tr>
-              <tr>
-                <td>Works on a JVM you did not build</td>
-                <td>Yes</td>
-                <td>No</td>
-              </tr>
-              <tr>
-                <td>Reports from</td>
-                <td><code>premain</code>, before the application starts</td>
-                <td>Whenever your application starts it</td>
-              </tr>
-              <tr>
-                <td>Clean exit written at</td>
-                <td>JVM shutdown</td>
-                <td>Context shutdown, or JVM shutdown</td>
-              </tr>
-              <tr>
-                <td>Also emits <code>jeffrey.AppInformation</code></td>
-                <td>Yes</td>
-                <td>No</td>
-              </tr>
-              <tr>
-                <td>Minimum Java</td>
-                <td>21</td>
-                <td>21</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p>Prefer the agent where you can attach one: it starts earlier, stops later, and carries the recording's identity event as well. Reach for the library where the command line is not yours to change — a platform that owns the JVM arguments, or a build where adding a dependency is simply the shorter path.</p>
+        <h2 id="declaring-it">Declaring That a Session Reports</h2>
+        <p>Whether this library is on an application's class path is a <strong>build-time fact</strong>, and the Provisioner only writes JVM arguments — it cannot detect it. So the session declares it, and the declaration travels two ways: into the <code>.env</code> the library reads, and into the session marker the Hub reconciles.</p>
+        <p>It is on by default, because a provisioned JVM is one being profiled on purpose. For an application that does not carry the dependency, say so:</p>
+        <pre class="doc-code"><code>heartbeat { enabled = false }</code></pre>
+        <p>The Hub then stops holding that session to a heartbeat deadline it could never meet, and finishes it when the instance's next session appears instead. Declaring it wrongly is the one way to get a misleading result: an application that reports nothing but claims it will is marked finished shortly after it starts. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>.</p>
 
         <h2 id="spring-boot">Spring Boot</h2>
         <p>One dependency, no code:</p>

@@ -337,7 +337,7 @@ public class WorkspaceReconciler {
                 originCreatedAt,
                 clock.instant(),
                 null)
-                .withAgentAttached(marker.agentAttached());
+                .withHeartbeatExpected(marker.heartbeatExpected());
 
         projectManager.repositoryManager().createSession(sessionInfo);
 

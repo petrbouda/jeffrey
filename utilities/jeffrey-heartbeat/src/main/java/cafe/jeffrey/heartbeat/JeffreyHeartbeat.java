@@ -33,11 +33,11 @@ import static java.lang.System.Logger.Level.WARNING;
 /**
  * Reports to a Jeffrey Hub that this JVM is alive, and tells it when the JVM stopped.
  *
- * <p>This is the library half of a job the {@code jeffrey-agent} also does. An agent is attached
- * with {@code -javaagent} and therefore works on a JVM nobody rebuilt, which is why it exists and
- * why it stays; this is for an application that would rather add a dependency than a JVM flag. They
- * write the same two files, so the hub cannot tell — and must not need to tell — which one ran.
- * Exactly one of them should: see {@link HeartbeatSettings#ENABLED_ENV}.</p>
+ * <p>This is the only writer of those files. Because it is an ordinary dependency, whether an
+ * application reports at all is a build-time fact the Provisioner cannot detect — so the session
+ * <em>declares</em> it, through {@code heartbeat.enabled}, and that declaration reaches both this
+ * library (as {@link HeartbeatSettings#ENABLED_ENV}) and the hub, which uses it to decide whether
+ * to hold the session to a heartbeat deadline at all.</p>
  *
  * <p>Typical use in a provisioned application is a single call at startup:</p>
  *

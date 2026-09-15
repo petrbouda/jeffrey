@@ -52,8 +52,8 @@ import java.util.stream.Stream;
  * has actually finished based on heartbeat data. When a session is detected as finished, it
  * also checks if the parent instance should be auto-finished.
  * <p>
- * Only sessions that declared the Jeffrey agent report liveness at all, so the rest are left
- * alone here and closed by the reconciler when the instance's next session appears.
+ * Only sessions that promised to report liveness are examined here; the rest are left alone and
+ * closed by the reconciler when the instance's next session appears.
  */
 public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<SessionFinishedDetectorProjectJobDescriptor> {
 

@@ -68,7 +68,7 @@ public abstract class HubMappers {
                     rs.getBoolean("retained"),
                     // Derived, not persisted: computed against repository storage where needed
                     false,
-                    rs.getObject("agent_attached", Boolean.class)
+                    rs.getObject("heartbeat_expected", Boolean.class)
             );
         };
     }

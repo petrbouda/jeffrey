@@ -54,17 +54,18 @@ class EnvFileBuilderTest {
         }
 
         @Test
-        void isEnabledWhenNoAgentIsAttached() {
-            String result = builder.build(new EnvFileBuilder.Context(layout(null), null, false, false));
+        void exportsWhatTheSessionDeclared() {
+            String result = builder.build(new EnvFileBuilder.Context(layout(null), null, false, true));
 
             assertTrue(result.contains("export JEFFREY_HEARTBEAT_ENABLED=true"), result);
         }
 
         @Test
-        void isDisabledWhenTheAgentIsAttached() {
-            // The agent beats for this session already; a second writer of the same file is
-            // redundant work rather than redundancy
-            String result = builder.build(new EnvFileBuilder.Context(layout(null), null, false, true));
+        void exportsFalseForAnApplicationThatWillNotReport() {
+            // An application without the jeffrey-heartbeat dependency. The library reads this and
+            // stands down; the same value in the session marker stops the hub holding the session
+            // to a deadline it could never meet.
+            String result = builder.build(new EnvFileBuilder.Context(layout(null), null, false, false));
 
             assertTrue(result.contains("export JEFFREY_HEARTBEAT_ENABLED=false"), result);
         }

@@ -24,12 +24,6 @@ jobs:
         name: provisioner-jar
         path: ./build/build-hub-jib/src/main/jib/jeffrey-libs
 
-    - name: Download jeffrey-agent.jar
-      uses: actions/download-artifact@v8
-      with:
-        name: jeffrey-agent-jar
-        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs
-
     - name: Download native provisioner (amd64)
       uses: actions/download-artifact@v8
       with:

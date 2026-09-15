@@ -57,8 +57,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     //language=SQL
     private static final String INSERT_REPOSITORY_SESSION = """
             INSERT INTO project_instance_sessions
-            (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, agent_attached)
-            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :origin_created_at, :created_at, :agent_attached)
+            (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, heartbeat_expected)
+            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :origin_created_at, :created_at, :heartbeat_expected)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -185,7 +185,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("relative_session_path", session.relativeSessionPath().toString())
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC))
-                .addValue("agent_attached", session.agentAttached());
+                .addValue("heartbeat_expected", session.heartbeatExpected());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_REPOSITORY_SESSION, paramSource);
     }

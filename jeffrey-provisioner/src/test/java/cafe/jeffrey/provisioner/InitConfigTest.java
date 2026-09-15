@@ -348,42 +348,13 @@ class InitConfigTest {
     }
 
     @Nested
-    class AgentPathResolution {
+    class HeartbeatDeclaration {
 
         @TempDir
         Path tempDir;
 
         @Test
-        void returnsExplicitAgentPathWhenSet() throws IOException {
-            Path configFile = tempDir.resolve("config.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"" + tempDir + "\"",
-                    "agent-path = \"/custom/path/jeffrey-agent.jar\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertEquals("/custom/path/jeffrey-agent.jar", config.getAgentPath());
-        }
-
-        @Test
-        void autoResolvesFromJeffreyHome() throws IOException {
-            Path configFile = tempDir.resolve("config.conf");
-            Path libsDir = tempDir.resolve("libs/current");
-            Files.createDirectories(libsDir);
-            Files.createFile(libsDir.resolve("jeffrey-agent.jar"));
-
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertEquals(libsDir.resolve("jeffrey-agent.jar").toString(), config.getAgentPath());
-        }
-
-        @Test
-        void returnsNullWhenAutoResolvePathDoesNotExist() throws IOException {
+        void defaultsToExpectingLiveness() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
@@ -391,23 +362,26 @@ class InitConfigTest {
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertNull(config.getAgentPath());
+
+            assertTrue(config.isHeartbeatEnabled(),
+                    "a provisioned JVM is one being profiled on purpose");
         }
 
         @Test
-        void returnsNullWhenUsingWorkspacesDir() throws IOException {
+        void canDeclareThatNothingWillReport() throws IOException {
+            // An application that does not carry the jeffrey-heartbeat dependency. The provisioner
+            // cannot detect that, so the deployment says so and the hub stops holding its sessions
+            // to a deadline they could never meet.
             Path configFile = tempDir.resolve("config.conf");
-            Path libsDir = tempDir.resolve("libs/current");
-            Files.createDirectories(libsDir);
-            Files.createFile(libsDir.resolve("jeffrey-agent.jar"));
-
             Files.writeString(configFile, configWithOverrides(
-                    "workspaces-dir = \"" + tempDir + "\"",
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "heartbeat { enabled = false }",
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertNull(config.getAgentPath());
+
+            assertFalse(config.isHeartbeatEnabled());
         }
     }
 

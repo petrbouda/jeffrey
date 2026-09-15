@@ -344,11 +344,11 @@ export const hubNavigation: DocSection[] = [
     children: [{ title: 'Provisioner docs', to: '/docs/provisioner' }]
   },
   {
-    title: 'Jeffrey Agent',
+    title: 'Heartbeat Library',
     path: 'agent',
     icon: 'bi-heart-pulse',
     children: [
-      { title: 'Overview', path: 'overview' }
+      { title: 'Overview', path: 'heartbeat-library' }
     ]
   },
   {
@@ -502,7 +502,6 @@ export const tracingNavigation: DocSection[] = [
           { title: 'propagating', to: '/docs/tracing/tracer-api/propagating' }
         ]
       },
-      { title: 'Jeffrey Agent', to: '/docs/agent/overview' },
       { title: 'Heartbeat Library', to: '/docs/agent/heartbeat-library' },
       { title: 'JFR Method Tracing', to: '/docs/tracing/method-tracing' },
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },

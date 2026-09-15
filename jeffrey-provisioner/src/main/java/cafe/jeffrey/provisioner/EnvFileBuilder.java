@@ -52,17 +52,16 @@ public class EnvFileBuilder {
     /**
      * @param exportJdkJavaOptions also export the profiler command as {@code JDK_JAVA_OPTIONS},
      *                             which the JVM picks up without an argfile
-     * @param agentAttached        whether this run got the Jeffrey agent. It decides the exported
-     *                             {@code JEFFREY_HEARTBEAT_ENABLED}, which is what stands the
-     *                             {@code jeffrey-heartbeat} library down: the agent already beats
-     *                             for this session, and two writers of one file is redundant work
-     *                             rather than redundancy
+     * @param heartbeatEnabled     whether this session expects the {@code jeffrey-heartbeat}
+     *                             library to report liveness. Exported so the library reads it,
+     *                             and recorded in the session marker so the hub knows whether to
+     *                             hold the session to its heartbeat deadline
      */
     public record Context(
             SessionLayout layout,
             String profilerSettings,
             boolean exportJdkJavaOptions,
-            boolean agentAttached
+            boolean heartbeatEnabled
     ) {}
 
     /**
@@ -89,7 +88,7 @@ public class EnvFileBuilder {
         // library still falls back to deriving it, for a session provisioned before this export.
         exports.add(export(JEFFREY_HEARTBEAT_DIR_PROP,
                 layout.session().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
-        exports.add(export(JEFFREY_HEARTBEAT_ENABLED_PROP, Boolean.toString(!context.agentAttached())));
+        exports.add(export(JEFFREY_HEARTBEAT_ENABLED_PROP, Boolean.toString(context.heartbeatEnabled())));
 
         if (context.profilerSettings() != null && !context.profilerSettings().isEmpty()) {
             String quoted = wrapQuotes(context.profilerSettings());

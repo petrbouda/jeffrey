@@ -18,11 +18,9 @@
 
 package cafe.jeffrey.provisioner.feature;
 
-import cafe.jeffrey.provisioner.AppIdentity;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -98,42 +96,6 @@ class JvmFeatureTest {
         @Test
         void rendersNothingWithoutAType() {
             assertEquals(Optional.empty(), new JvmFeature.HeapDump(null).render(SESSION, PLACEHOLDERS));
-        }
-    }
-
-    @Nested
-    class Agent {
-
-        private static final AppIdentity IDENTITY = new AppIdentity(
-                "workspace-1", "project-1", "my-service", "My Service",
-                "instance-1", "session-1", 3, Map.of("cluster", "blue"), 1700000000000L);
-
-        @Test
-        void loadsTheAgentWithoutOverridingTheJfrRepository() {
-            String options = render(new JvmFeature.Agent("/libs/jeffrey-agent.jar", IDENTITY));
-
-            assertTrue(options.startsWith("-javaagent:/libs/jeffrey-agent.jar="), options);
-            assertFalse(options.contains("-XX:FlightRecorderOptions="), options);
-        }
-
-        @Test
-        void passesTheHeartbeatDirectoryFirst() {
-            String options = render(new JvmFeature.Agent("/agent.jar", IDENTITY));
-
-            assertTrue(options.contains(HeartbeatConstants.PARAM_DIR + "="
-                    + SESSION.resolve(HeartbeatConstants.HEARTBEAT_DIR)), options);
-        }
-
-        @Test
-        void neverAsksTheAgentToTrace() {
-            // The agent transforms no bytecode; span thresholds are TracingEventThresholds' job
-            assertFalse(render(new JvmFeature.Agent("/agent.jar", IDENTITY)).contains("tracing.enabled"), "agent args");
-        }
-
-        @Test
-        void rendersNothingWithoutAnAgentPath() {
-            assertEquals(Optional.empty(), new JvmFeature.Agent(null, IDENTITY).render(SESSION, PLACEHOLDERS));
-            assertEquals(Optional.empty(), new JvmFeature.Agent("  ", IDENTITY).render(SESSION, PLACEHOLDERS));
         }
     }
 

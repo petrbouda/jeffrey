@@ -91,7 +91,7 @@ public class SessionFinisher {
      * or the provided fallback if no heartbeat is available. No staleness check is performed.
      * Used when closing previous sessions before creating a new one.
      *
-     * <p>This is the only way a session that never declared the Jeffrey agent is finished: it
+     * <p>This is the only way a session that never promised to report liveness is finished: it
      * writes no liveness files, so there is nothing for {@link #tryFinishFromHeartbeat} to
      * read, and the arrival of the instance's next session is the only evidence the hub has
      * that the previous one ended.</p>
@@ -113,12 +113,12 @@ public class SessionFinisher {
      * Applies the heartbeat deadline to one unfinished session and marks it finished when it
      * has stopped reporting. Used by the polling detector.
      *
-     * <p>Only a session that declared the Jeffrey agent is held to this deadline. The agent is
-     * the only writer of {@code .heartbeat/}, and it is not attached to every run
-     * ({@code agent-path} is empty unless the deployment ships one), so a session that never
-     * promised to report liveness must not be finished for failing to report it — those are
-     * closed instead when the instance's next session appears, by
-     * {@link #forceFinish}.</p>
+     * <p>Only a session that promised to report liveness is held to this deadline. The writer is
+     * the {@code jeffrey-heartbeat} library, an ordinary dependency of the profiled application,
+     * so whether anything will report is a build-time fact the provisioner cannot detect — it is
+     * declared, through {@code heartbeat.enabled}. A session that never made that promise must not
+     * be finished for failing to keep it; those are closed instead when the instance's next
+     * session appears, by {@link #forceFinish}.</p>
      *
      * <p>Three outcomes for a session that did declare one:</p>
      * <ol>
@@ -128,8 +128,8 @@ public class SessionFinisher {
      *   compared against the hub clock;</li>
      *   <li>the heartbeat has gone stale — finished at the last heartbeat, which is when the
      *   JVM was last known alive. This is the crash path, where no shutdown hook ran;</li>
-     *   <li>no liveness file at all past the deadline — the agent never got as far as writing
-     *   one (a crash before premain, or a mount the JVM could not write to). Finished at
+     *   <li>no liveness file at all past the deadline — the library never got as far as writing
+     *   one (a crash during startup, or a mount the JVM could not write to). Finished at
      *   {@code originCreatedAt}: a real timestamp the session actually has, rather than the
      *   moment this sweep happened to notice.</li>
      * </ol>
@@ -149,13 +149,13 @@ public class SessionFinisher {
             Path sessionPath,
             Duration heartbeatThreshold) {
 
-        if (!sessionInfo.declaresAgent()) {
-            LOG.trace("Session declares no agent, no heartbeat deadline applies: sessionId={}",
+        if (!sessionInfo.expectsHeartbeat()) {
+            LOG.trace("Session promised no liveness, no heartbeat deadline applies: sessionId={}",
                     sessionInfo.sessionId());
             return false;
         }
 
-        // Case 1: clean-exit marker written by the agent's shutdown hook
+        // Case 1: clean-exit marker, written when the application shut down cleanly
         Optional<Instant> finishedMarker = fileHeartbeatReader.readFinishedMarker(sessionPath);
         if (finishedMarker.isPresent()) {
             LOG.trace("Clean-exit marker found, marking finished: sessionId={}", sessionInfo.sessionId());
@@ -179,15 +179,15 @@ public class SessionFinisher {
             return false;
         }
 
-        // Case 3: the agent was declared but never wrote anything. Inside the deadline that is
-        // a JVM still starting up; past it, one that never got to premain.
+        // Case 3: liveness was promised but nothing was ever written. Inside the deadline that is
+        // a JVM still starting up; past it, one that never got far enough to report.
         if (sessionInfo.createdAt().isAfter(deadline)) {
             LOG.trace("No heartbeat yet, still within startup deadline: sessionId={} createdAt={}",
                     sessionInfo.sessionId(), sessionInfo.createdAt());
             return false;
         }
 
-        LOG.trace("Declared agent never reported, marking finished at session start: sessionId={}",
+        LOG.trace("Promised liveness never arrived, marking finished at session start: sessionId={}",
                 sessionInfo.sessionId());
         markFinished(repositoryRepository, projectInfo, sessionInfo, sessionInfo.originCreatedAt());
         return true;

@@ -21,10 +21,9 @@
     <properties>
         <!--
           Lower than its siblings, which need 25 for the Tracer API's ScopedValue. Nothing here
-          needs it — this is a scheduled file write — and the whole point of the library is to
-          reach JVMs the agent's -javaagent flag cannot be added to. Pinning it to 25 would
-          exclude exactly the Java 21 applications the agent already serves, which would make the
-          library useful only where it is least needed. Matches jeffrey-agent's own release.
+          needs it — this is a scheduled file write — and this library is the only way a JVM
+          reports liveness to a hub, so pinning it to 25 would put an application on Java 21
+          outside Jeffrey's session tracking entirely.
         -->
         <maven.compiler.release>21</maven.compiler.release>
     </properties>

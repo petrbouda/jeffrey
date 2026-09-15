@@ -46,12 +46,6 @@ jobs:
         name: provisioner-jar
         path: ./build/build-provisioner/target/provisioner.jar
 
-    - name: Upload jeffrey-agent.jar
-      uses: actions/upload-artifact@v7
-      with:
-        name: jeffrey-agent-jar
-        path: ./build/build-agent/target/jeffrey-agent.jar
-
   provisioner-native:
     uses: ./.github/workflows/release-provisioner.yml
 
@@ -90,12 +84,6 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: provisioner-jar
-        path: ./artifacts
-
-    - name: Download jeffrey-agent.jar
-      uses: actions/download-artifact@v8
-      with:
-        name: jeffrey-agent-jar
         path: ./artifacts
 
     - name: Download native provisioner (amd64)
