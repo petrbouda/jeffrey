@@ -115,8 +115,6 @@ function getErrorTitle(error: ApiError): string {
         return 'Heap Dump Needs Repair';
       case 'REPOSITORY_NOT_FOUND':
         return 'Repository Not Found';
-      case 'COMPRESSION_ERROR':
-        return 'Compression Error';
       case 'RESOURCE_NOT_FOUND':
         return 'Not Found';
       default:

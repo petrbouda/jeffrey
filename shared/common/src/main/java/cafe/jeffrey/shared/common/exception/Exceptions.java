@@ -69,8 +69,4 @@ public abstract class Exceptions {
     public static JeffreyClientException invalidRequest(String message) {
         return new JeffreyClientException(ErrorCode.INVALID_REQUEST, message);
     }
-
-    public static JeffreyInternalException compressionError(String message) {
-        return new JeffreyInternalException(ErrorCode.COMPRESSION_ERROR, message);
-    }
 }
