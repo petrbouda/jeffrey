@@ -29,6 +29,8 @@ import java.nio.channels.ClosedByInterruptException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,12 +66,25 @@ public class BoundedJobs<K, V> {
     /** No limit on attempts running together, which is what every instance had before permits existed. */
     public static final int UNBOUNDED_CONCURRENCY = Integer.MAX_VALUE;
 
+    /**
+     * How many finished attempts are kept before the oldest are dropped early.
+     *
+     * <p>Retention alone bounds the map only when the keys repeat. They do not always: an import
+     * keys on a fresh UUID per call, and a hub download keys on the session together with the
+     * window or the file ids asked for, so an agent working through a long session a window at a
+     * time makes a new entry every time. Each is small, but nothing removed them before their hour
+     * was up. Running attempts are never dropped — only results someone may still poll for, oldest
+     * first, and a caller that comes back for one that is gone starts the work again.
+     */
+    public static final int DEFAULT_MAX_RETAINED = 256;
+
     private final Map<K, Attempt<V>> jobs = new ConcurrentHashMap<>();
     private final Duration budget;
     private final Duration retention;
     private final Clock clock;
     private final Executor scheduler;
     private final int maxConcurrent;
+    private final int maxRetained;
     private final Semaphore permits;
 
     /**
@@ -99,7 +114,7 @@ public class BoundedJobs<K, V> {
 
     /**
      * @param scheduler what runs the work. Visible for the tests that need to decide what scheduling
-     *                  does -- refuse a job, or run it on the calling thread -- rather than wait on a
+     *                  does — refuse a job, or run it on the calling thread — rather than wait on a
      *                  shared executor to behave a particular way.
      */
     BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler) {
@@ -107,6 +122,11 @@ public class BoundedJobs<K, V> {
     }
 
     BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler, int maxConcurrent) {
+        this(budget, retention, clock, scheduler, maxConcurrent, DEFAULT_MAX_RETAINED);
+    }
+
+    BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler,
+            int maxConcurrent, int maxRetained) {
         validateBudget(budget);
         validateBudget(retention);
         if (clock == null) {
@@ -119,7 +139,11 @@ public class BoundedJobs<K, V> {
         this.budget = budget;
         this.retention = retention;
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
+        if (maxRetained < 1) {
+            throw new IllegalArgumentException("maxRetained must be at least 1: " + maxRetained);
+        }
         this.maxConcurrent = maxConcurrent;
+        this.maxRetained = maxRetained;
         this.permits = new Semaphore(maxConcurrent);
     }
 
@@ -150,7 +174,7 @@ public class BoundedJobs<K, V> {
      * their predicate checks that the local recording still exists. Other callers keep the original
      * restart-after-success policy through the overloads above.
      * <p>
-     * {@code reuseSuccess} runs inside the map's own update, holding the bin lock -- which is the point,
+     * {@code reuseSuccess} runs inside the map's own update, holding the bin lock — which is the point,
      * since deciding outside it is the race this overload exists to close. It must therefore be short
      * and must not reach back into this instance: a local lookup is what it is for, and a remote call
      * or anything that blocks belongs before the call, not in the predicate.
@@ -170,7 +194,7 @@ public class BoundedJobs<K, V> {
             Predicate<V> reuseSuccess, Function<JobControl, V> work) {
         Objects.requireNonNull(reuseSuccess, "reuseSuccess");
         Objects.requireNonNull(work, "work");
-        jobs.values().removeIf(this::expired);
+        sweep();
         AtomicBoolean started = new AtomicBoolean();
         Attempt<V> attempt = jobs.compute(key, (id, existing) -> {
             if (existing != null) {
@@ -244,7 +268,7 @@ public class BoundedJobs<K, V> {
 
     /** Records a durable result already present locally, without scheduling replacement work. */
     public OperationHandle<V> rememberCompleted(K key, V value) {
-        jobs.values().removeIf(this::expired);
+        sweep();
         return jobs.compute(key, (id, existing) -> {
             if (existing != null && !expired(existing)) {
                 OperationSnapshot<V> snapshot = existing.snapshot();
@@ -279,6 +303,29 @@ public class BoundedJobs<K, V> {
                         ? new Outcome<>(snapshot.result(), null)
                         : new Outcome<>(null, snapshot.failure() == null
                                 ? new CancellationException("Cancelled") : snapshot.failure()));
+    }
+
+    /**
+     * Drops what is past its retention, and then the oldest finished attempts beyond
+     * {@link #maxRetained}. Running attempts are never counted or dropped: they are the work
+     * itself, and there are at most {@link #maxConcurrent} of them.
+     */
+    private void sweep() {
+        jobs.values().removeIf(this::expired);
+        if (jobs.size() <= maxRetained) {
+            return;
+        }
+        List<Map.Entry<K, Attempt<V>>> finished = jobs.entrySet().stream()
+                .filter(entry -> entry.getValue().finishedAt != null)
+                .sorted(Comparator.comparing(entry -> entry.getValue().finishedAt))
+                .toList();
+        int excess = jobs.size() - maxRetained;
+        for (Map.Entry<K, Attempt<V>> entry : finished) {
+            if (excess-- <= 0) {
+                break;
+            }
+            jobs.remove(entry.getKey(), entry.getValue());
+        }
     }
 
     private boolean expired(Attempt<V> attempt) {

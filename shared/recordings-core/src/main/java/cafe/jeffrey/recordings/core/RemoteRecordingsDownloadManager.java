@@ -134,7 +134,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             throw new IllegalArgumentException(
                     "No finished recording file of session " + recordingSessionId + " covers the window");
         }
-        return processRecordingSession(recordingSession, selection.chunks());
+        return processRecordingSession(recordingSession, selection.files());
     }
 
     private static List<RepositoryFile> allFiles(RecordingSessionResponse session) {
@@ -150,13 +150,26 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * holds fewer — a window, or files picked from the listing — is a part of it, and is named and
      * tagged with the span its files cover so it is never mistaken for the whole.
      *
+     * <p>Refuses a part with a hole in it. A merge concatenates the chunks into one recording, so a
+     * skipped chunk leaves no trace in the result: the recording would claim a span half of which
+     * it does not hold, and every rate read off it would be wrong by the size of the hole. The hub
+     * refuses this too — this is the same answer without the round trip.
+     *
      * @return the covered span, or {@code null} for the whole session
      */
     private static ChunkWindow.Selection partOf(RecordingSessionResponse session, List<RepositoryFile> files) {
         List<RepositoryFile> all = allFiles(session);
         Set<String> chosen = files.stream().map(RepositoryFile::id).collect(Collectors.toSet());
         ChunkWindow.Selection selection = ChunkWindow.ofFiles(all, chosen, finishedAt(session));
-        return selection.isWholeSession(all) ? null : selection;
+        if (!selection.contiguous()) {
+            throw new IllegalArgumentException(
+                    "The recording files chosen from session " + session.id() + " are not next to each other: "
+                            + selection.describeGap(all) + " lies between them. A download merges the files into "
+                            + "one recording, so they have to be an unbroken run. Choose the files in between too, "
+                            + "or ask for a time window instead.");
+        }
+        // An empty selection is the whole session as far as naming goes: there is no span to name.
+        return selection.isEmpty() || selection.isWholeSession(all) ? null : selection;
     }
 
     // TODO: Simplify this behaviour
@@ -167,6 +180,10 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         if (files.stream().noneMatch(RepositoryFile::isRecordingFile)) {
             throw Exceptions.emptyRecordingSession(recordingSessionId);
         }
+
+        // Before anything is transferred: a pick with a hole in it is refused here rather than
+        // after the bytes have been paid for.
+        ChunkWindow.Selection part = partOf(recordingSession, files);
 
         List<String> onlyRecordingFileIds = files.stream()
                 .filter(RepositoryFile::isRecordingFile)
@@ -195,7 +212,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                     .toList();
 
             // Persist into Recordings storage with origin tags
-            return persistToRecordings(recordingSession, recordingPath, artifactPaths, partOf(recordingSession, files));
+            return persistToRecordings(recordingSession, recordingPath, artifactPaths, part);
         }
     }
 
@@ -254,6 +271,9 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         if (files.stream().noneMatch(RepositoryFile::isRecordingFile)) {
             throw Exceptions.emptyRecordingSession(recordingSessionId);
         }
+
+        // Refused before the progress bar starts, so a gapped pick never looks like it is working.
+        ChunkWindow.Selection part = partOf(recordingSession, files);
 
         List<RepositoryFile> recordingFiles = files.stream()
                 .filter(RepositoryFile::isRecordingFile)
@@ -387,7 +407,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
             // Persist into Recordings storage with origin tags
             String recordingId = persistToRecordings(
-                    recordingSession, recordingPath, artifactPaths, partOf(recordingSession, files));
+                    recordingSession, recordingPath, artifactPaths, part);
 
             // Completed successfully
             progressCallback.onComplete();
@@ -438,10 +458,23 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static final DateTimeFormatter MERGED_FILE_TIMESTAMP =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss'Z'").withZone(ZoneOffset.UTC);
 
+    /**
+     * {@code <project>_<session start>.jfr.lz4} for the whole session, and the same with the
+     * covered span appended for a part of one.
+     *
+     * <p>The extension is written from {@link #MERGED_FILE_EXTENSION} rather than taken from the
+     * file the transfer produced, because that file is a temp file the gRPC client named
+     * {@code grpc-download-<n>.tmp} — carrying its suffix through put a {@code .tmp} recording in
+     * the Recordings list. A project name may itself contain a dot ({@link #sanitizeForFilename}
+     * keeps them), so there is no suffix to find by searching either.
+     */
     private String buildMergedFileName(RecordingSessionResponse session) {
-        String name = sanitizeForFilename(projectName);
-        String timestamp = MERGED_FILE_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
-        return name + "_" + timestamp + ".jfr.lz4";
+        return mergedBaseName(session) + MERGED_FILE_EXTENSION;
+    }
+
+    private String mergedBaseName(RecordingSessionResponse session) {
+        return sanitizeForFilename(projectName) + WINDOW_NAME_SEPARATOR
+                + MERGED_FILE_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
     }
 
     private static String sanitizeForFilename(String value) {
@@ -466,11 +499,10 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         String recordingSessionId = session.id();
         Map<String, String> originTags = originContext.toTagMap(recordingSessionId);
-        Path recording = recordingPath;
         if (window != null) {
             originTags.put(OriginContext.TAG_WINDOW, windowTag(window));
-            recording = renameToWindow(recordingPath, session, window);
         }
+        Path recording = nameMergedRecording(recordingPath, session, window);
         return recordingsManager.createDownloadedRecording(
                 recordingSessionId, recording, artifactPaths, originTags);
     }
@@ -478,24 +510,37 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static final String WINDOW_NAME_SEPARATOR = "_";
     private static final String OPEN_WINDOW_END = "open";
     private static final String WINDOW_TAG_SEPARATOR = "-";
+    private static final String MERGED_FILE_EXTENSION = ".jfr.lz4";
 
     /**
-     * {@code <project>_<session start>_<window start>_<window end>.jfr.lz4}: two windows of one
-     * session read apart in the Recordings list, and neither reads as the session.
+     * Gives the merged recording its name on disk before it is persisted, because the transfer
+     * hands back a temp file called {@code grpc-download-<n>.tmp} and that name is what the
+     * Recordings list would show.
+     *
+     * <p>A part of a session is named {@code <project>_<session start>_<window start>_<window end>}
+     * so two windows of one session read apart in the list and neither reads as the session.
+     *
+     * @param window the covered span, or {@code null} for the whole session
      */
-    private Path renameToWindow(Path recordingPath, RecordingSessionResponse session, ChunkWindow.Selection window) {
-        String fileName = recordingPath.getFileName().toString();
-        int dot = fileName.indexOf('.');
-        String extension = dot < 0 ? "" : fileName.substring(dot);
-        String base = sanitizeForFilename(projectName) + WINDOW_NAME_SEPARATOR
-                + MERGED_FILE_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
-        String end = window.coverageEnd() == null ? OPEN_WINDOW_END : MERGED_FILE_TIMESTAMP.format(window.coverageEnd());
-        Path renamed = recordingPath.resolveSibling(base + WINDOW_NAME_SEPARATOR
-                + MERGED_FILE_TIMESTAMP.format(window.coverageStart()) + WINDOW_NAME_SEPARATOR + end + extension);
+    private Path nameMergedRecording(
+            Path recordingPath, RecordingSessionResponse session, ChunkWindow.Selection window) {
+
+        String name = mergedBaseName(session);
+        if (window != null) {
+            String end = window.coverageEnd() == null
+                    ? OPEN_WINDOW_END
+                    : MERGED_FILE_TIMESTAMP.format(window.coverageEnd());
+            name += WINDOW_NAME_SEPARATOR + MERGED_FILE_TIMESTAMP.format(window.coverageStart())
+                    + WINDOW_NAME_SEPARATOR + end;
+        }
+        Path renamed = recordingPath.resolveSibling(name + MERGED_FILE_EXTENSION);
+        if (renamed.equals(recordingPath)) {
+            return recordingPath;
+        }
         try {
             return Files.move(recordingPath, renamed, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new UncheckedIOException("Cannot rename the window recording: " + recordingPath, e);
+            throw new UncheckedIOException("Cannot name the merged recording: " + recordingPath, e);
         }
     }
 

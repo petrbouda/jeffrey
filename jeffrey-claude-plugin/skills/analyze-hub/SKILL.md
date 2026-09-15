@@ -126,6 +126,13 @@ and the tool does the mapping. `hubs_files` is for choosing by *name*: when the 
 points at particular files — the chunk rolled right after the deploy, a chunk and the heap dump
 taken beside it — pass their `file_id` values as a comma-separated `fileIds` instead of a window.
 
+Chunks named that way have to be **next to each other**. A download merges them into one recording
+by writing them end to end, so a skipped chunk leaves no hole to see: the recording would claim the
+span from the first to the last while holding only part of it. Naming a gapped pair is refused, and
+names the chunk in between. Artifacts beside the run — a heap dump, a log — are free to pick, and if
+what you actually want is a span rather than particular files, `startTime`/`endTime` picks the
+chunks for you and cannot come out gapped.
+
 **A partial look.** To learn whether a session is worth a wider window at all — does it throw,
 does it record `jdk.ObjectAllocationSample`, when is it busy — take a narrow window first, one or
 two chunks, and answer it with the ordinary tools: `profiles_summary`, the timeline, `jfr_*`. Then

@@ -710,6 +710,14 @@ class HubsMcpToolsTest {
                     file("log", "app.log", SupportedRecordingFile.APP_LOG));
         }
 
+        /** The same four chunks, but the session has not finished: its last chunk is open-ended. */
+        private RecordingSession activeFourChunks() {
+            RecordingSession finished = fourChunks();
+            return new RecordingSession(finished.id(), finished.name(), finished.instanceId(),
+                    finished.createdAt(), null, RecordingStatus.ACTIVE, finished.absolutePath(),
+                    finished.files(), finished.retained());
+        }
+
         @Test
         void aWindowBringsTheCoveringChunksAndReportsTheirSpan() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
@@ -743,6 +751,45 @@ class HubsMcpToolsTest {
 
             assertTrue(result.contains("rec-window"), result);
             assertFalse(result.contains("rec-existing"), result);
+        }
+
+        /**
+         * "Everything since 14:00" on a session that is still recording means something later
+         * every time it is asked. Handing back the recording made an hour ago would answer a
+         * shorter question than the one that was put.
+         */
+        @Test
+        void anOpenEndedWindowOnALiveSessionIsFetchedAgainRatherThanReplayed() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadWindow(eq(SESSION_ID), any()))
+                    .thenReturn("rec-first", "rec-second");
+            resolvesTo(projectWith(activeFourChunks(), downloads));
+            noLocalRecordings();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(mock(Recording.class)));
+
+            long start = NOW.plusSeconds(200).toEpochMilli();
+            assertTrue(tools.download(REF.encode(), null, start, null, null).contains("rec-first"));
+            String second = tools.download(REF.encode(), null, start, null, null);
+
+            assertTrue(second.contains("rec-second"), second);
+            verify(downloads, times(2)).mergeAndDownloadWindow(eq(SESSION_ID), any());
+        }
+
+        /** A closed window is settled, so asking twice costs one transfer. */
+        @Test
+        void aClosedWindowIsAnsweredFromTheRecordingItAlreadyMade() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(mock(Recording.class)));
+
+            long start = NOW.plusSeconds(200).toEpochMilli();
+            long end = NOW.plusSeconds(320).toEpochMilli();
+            tools.download(REF.encode(), null, start, end, null);
+            tools.download(REF.encode(), null, start, end, null);
+
+            verify(downloads, times(1)).mergeAndDownloadWindow(eq(SESSION_ID), any());
         }
 
         @Test
@@ -793,6 +840,37 @@ class HubsMcpToolsTest {
 
             assertTrue(e.getMessage().contains("[nope]"), e.getMessage());
             verifyNoInteractions(downloads);
+        }
+
+        /**
+         * The chunks are merged into one recording, so a skipped one would be invisible in the
+         * result: the profile would claim c1's start to c3's end while holding two thirds of it.
+         */
+        @Test
+        void namedChunksWithOneSkippedAreRefused() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> tools.download(REF.encode(), null, null, null, "c1,c3"));
+
+            assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
+            assertTrue(e.getMessage().contains("startTime"), e.getMessage());
+            verifyNoInteractions(downloads);
+        }
+
+        @Test
+        void namedChunksNextToEachOtherAreAccepted() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-run");
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+
+            String result = tools.download(REF.encode(), null, null, null, "c1,c2,log");
+
+            assertTrue(result.contains("\"recordingFiles\":2"), result);
+            verify(downloads).mergeAndDownloadRecordings(SESSION_ID, List.of("c1", "c2", "log"));
         }
 
         @Test

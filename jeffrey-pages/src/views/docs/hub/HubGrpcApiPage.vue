@@ -272,7 +272,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>DownloadMergedRecordings</code>
                 </div>
-                <p>Stream merged recordings in 64KB chunks</p>
+                <p>Stream merged recordings in 64KB chunks. Naming no file merges every finished chunk; naming some requires them to be an unbroken run, since merging writes them end to end &mdash; a gapped selection, or an id the session does not hold, is refused with <code>INVALID_ARGUMENT</code></p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">

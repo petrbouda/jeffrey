@@ -12,6 +12,11 @@ service RecordingDownloadService {
   // Merges selected JFR recording files from a session into a single file
   // and streams the result. If no file_ids are specified, all finished recordings
   // in the session are merged.
+  //
+  // The chosen files must be an unbroken run of the session's chunks: merging
+  // concatenates them, so a skipped chunk leaves no trace in the result and the
+  // recording would claim a span it does not hold. A gapped selection, and an id
+  // the session does not have, are both refused with INVALID_ARGUMENT.
   rpc DownloadMergedRecordings(DownloadMergedRecordingsRequest) returns (stream DataChunk);
 
   // Streams a single artifact file (heap dump, log, error log, etc.) from a session.
@@ -26,7 +31,8 @@ service RecordingDownloadService {
 message DownloadMergedRecordingsRequest {
   // The recording session containing the files to merge.
   string session_id = 1;
-  // Specific file IDs to merge. If empty, all finished recordings are merged.
+  // Specific file IDs to merge, which must be adjacent chunks of the session.
+  // If empty, all finished recordings are merged.
   repeated string file_ids = 2;
 }
 

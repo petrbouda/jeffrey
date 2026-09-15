@@ -134,12 +134,66 @@ class ChunkWindowTest {
 
         @Test
         void namedChunksCoverTheSpanBetweenTheirStartsAndTheNextOne() {
-            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c1", "c3", "log"), minutes(40));
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c1", "c2", "log"), minutes(40));
+
+            assertEquals(List.of("c1", "c2"), selection.fileIds());
+            assertEquals(minutes(10), selection.coverageStart());
+            assertEquals(minutes(30), selection.coverageEnd());
+            assertTrue(selection.contiguous());
+            assertFalse(selection.isWholeSession(CHUNKS));
+        }
+
+        /**
+         * The bounds of a gapped pick say nothing about how much of it is there. Merging
+         * concatenates the chunks, so the hole would be invisible in the result and every rate
+         * drawn from the span would be wrong by its size. Refusing is the callers' job; saying so
+         * is this one's.
+         */
+        @Test
+        void namedChunksWithOneSkippedAreNotContiguous() {
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c1", "c3"), minutes(40));
 
             assertEquals(List.of("c1", "c3"), selection.fileIds());
-            assertEquals(minutes(10), selection.coverageStart());
-            assertEquals(minutes(40), selection.coverageEnd());
-            assertFalse(selection.isWholeSession(CHUNKS));
+            assertFalse(selection.contiguous());
+            assertEquals(List.of("c2"), selection.gaps(CHUNKS).stream().map(RepositoryFile::id).toList());
+            assertEquals("profile-c2.jfr", selection.describeGap(CHUNKS));
+        }
+
+        @Test
+        void aSingleChunkIsContiguousAndSoIsTheWholeSession() {
+            assertTrue(ChunkWindow.ofFiles(CHUNKS, Set.of("c2"), minutes(40)).contiguous());
+            assertTrue(ChunkWindow.ofFiles(CHUNKS, Set.of("c0", "c1", "c2", "c3"), minutes(40)).contiguous());
+        }
+
+        @Test
+        void artifactsBesideARunDoNotBreakIt() {
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c0", "c1", "log"), minutes(40));
+
+            assertEquals(List.of("c0", "c1"), selection.fileIds());
+            assertTrue(selection.contiguous());
+        }
+
+        /** A window takes every chunk it touches, so it can never come back with a hole. */
+        @Test
+        void aWindowIsAlwaysContiguous() {
+            assertTrue(new ChunkWindow(minutes(5), minutes(35)).select(CHUNKS, minutes(40)).contiguous());
+        }
+
+        /**
+         * A finished chunk with no timestamp is left out of the selection, so it must be left out
+         * of the count too — otherwise a whole-session download reports itself as a part, is
+         * tagged and renamed as a window, and stops being recognised as the session's local copy.
+         */
+        @Test
+        void aChunkWithNoTimestampIsIgnoredByBothTheSelectionAndTheCount() {
+            RepositoryFile undated = new RepositoryFile("c4", "profile-c4.jfr", null, 10L,
+                    SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+            List<RepositoryFile> files = List.of(chunk("c0", 0), chunk("c1", 10), undated);
+
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(files, Set.of("c0", "c1"), minutes(20));
+
+            assertEquals(List.of("c0", "c1"), selection.fileIds());
+            assertTrue(selection.isWholeSession(files));
         }
 
         @Test

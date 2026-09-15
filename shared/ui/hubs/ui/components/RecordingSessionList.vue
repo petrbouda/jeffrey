@@ -22,6 +22,10 @@ import {
   isFailedSession,
   type FailedSessionGroup
 } from '@hubs/services/sessionGrouping.ts';
+import {
+  chunkSelectionGapMessage,
+  isContiguousChunkSelection
+} from '@hubs/services/chunkSelection.ts';
 
 interface Props {
   sessions: RecordingSession[];
@@ -316,6 +320,28 @@ const clearAllSelections = (sessionId: string) => {
       selectedRepositoryFile.value[sessionId][source.id] = false;
     });
   }
+};
+
+/**
+ * Whether the ticked recordings may be downloaded together. Downloading merges them into one
+ * recording, so a skipped chunk would leave a hole the result cannot show — the Hub refuses such a
+ * selection and this says so first. Ticking itself stays free, because Delete Selected shares this
+ * map and has no reason to want an unbroken run.
+ */
+const isDownloadableSelection = (sessionId: string): boolean => {
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (!session) {
+    return true;
+  }
+  return isContiguousChunkSelection(session, selectedRepositoryFile.value[sessionId]);
+};
+
+const selectionGapMessage = (sessionId: string): string => {
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (!session) {
+    return '';
+  }
+  return chunkSelectionGapMessage(session, selectedRepositoryFile.value[sessionId]);
 };
 
 const getSelectedCount = (sessionId: string): number => {
@@ -1009,8 +1035,12 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               v-if="!isCollectorOnly"
               class="btn btn-sm btn-outline-primary"
               @click.stop="downloadSelectedSources(session.id)"
-              :disabled="getSelectedCount(session.id) === 0"
-              title="Download selected recordings"
+              :disabled="getSelectedCount(session.id) === 0 || !isDownloadableSelection(session.id)"
+              :title="
+                isDownloadableSelection(session.id)
+                  ? 'Download selected recordings'
+                  : selectionGapMessage(session.id)
+              "
             >
               <i class="bi bi-folder-symlink me-1"></i>Download
             </button>
@@ -1024,6 +1054,19 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               <i class="bi bi-trash me-1"></i>Delete Selected
             </button>
           </div>
+        </div>
+
+        <!--
+          Why Download is greyed out. Deleting a gapped selection is fine, so the checkboxes stay
+          free and only the merge is refused.
+        -->
+        <div
+          v-if="showMultiSelectActions[session.id] && !isDownloadableSelection(session.id)"
+          class="field-alert field-alert-warning mb-2"
+          role="alert"
+        >
+          <i class="bi bi-exclamation-triangle"></i>
+          <span>{{ selectionGapMessage(session.id) }}</span>
         </div>
 
         <!-- Artifact type panels (non-recording types with > 1 file) -->

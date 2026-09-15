@@ -49,9 +49,12 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -190,9 +193,14 @@ class RemoteRecordingsDownloadManagerTest {
                     file("f-4", "heap.hprof", SupportedRecordingFile.HEAP_DUMP, RecordingStatus.FINISHED));
         }
 
+        /**
+         * Named the way {@code RecordingStreamClient} really names it: the merged stream is
+         * collected into {@code Files.createTempFile(dir, "grpc-download-", ".tmp")}, so the
+         * manager is handed a temp file and has to name the recording itself.
+         */
         private void merges() {
             when(streamClient.downloadRecordings(eq(SESSION_ID), anyList()))
-                    .thenReturn(CompletableFuture.completedFuture(resource("checkout_2026-03-01T12-00-00Z.jfr.lz4")));
+                    .thenReturn(CompletableFuture.completedFuture(resource("grpc-download-12345.tmp")));
         }
 
         @Test
@@ -232,6 +240,58 @@ class RemoteRecordingsDownloadManagerTest {
             assertThrows(IllegalArgumentException.class, () -> manager.mergeAndDownloadWindow(SESSION_ID,
                     new ChunkWindow(SESSION_END.plusSeconds(600), SESSION_END.plusSeconds(1200))));
             verify(recordingsManager, never()).createDownloadedRecording(any(), any(), anyList(), any());
+        }
+
+        @Test
+        void aWholeSessionIsNamedAfterTheProjectAndTheSessionStart() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+            merges();
+            when(streamClient.downloadArtifactFile(SESSION_ID, "f-4"))
+                    .thenReturn(CompletableFuture.completedFuture(resource("heap.hprof")));
+            ArgumentCaptor<Path> recordingPath = ArgumentCaptor.forClass(Path.class);
+
+            manager.mergeAndDownloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedRecording(
+                    eq(SESSION_ID), recordingPath.capture(), anyList(), any());
+            assertEquals("checkout_2026-03-01T12-00-00Z.jfr.lz4",
+                    recordingPath.getValue().getFileName().toString());
+        }
+
+        /**
+         * A merge concatenates the chunks, so a skipped one leaves no trace in the result. Refused
+         * before the transfer rather than after it.
+         */
+        @Test
+        void aPickWithAChunkSkippedIsRefusedBeforeAnythingIsTransferred() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> manager.mergeAndDownloadRecordings(SESSION_ID, List.of("f-1", "f-3")));
+
+            assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
+            verify(streamClient, never()).downloadRecordings(any(), anyList());
+            verify(recordingsManager, never()).createDownloadedRecording(any(), any(), anyList(), any());
+        }
+
+        @Test
+        void aPickWithAChunkSkippedIsRefusedOnTheProgressPathToo() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+            ProgressCallback progress = mock(ProgressCallback.class);
+
+            assertThrows(IllegalArgumentException.class, () -> manager.mergeAndDownloadRecordingsWithProgress(
+                    SESSION_ID, List.of("f-1", "f-3"), progress));
+
+            verify(streamClient, never()).downloadRecordings(any(), anyList());
+            verify(progress, never()).onStart(anyInt(), anyLong());
+        }
+
+        @Test
+        void anUnbrokenRunOfChunksIsAccepted() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+            merges();
+
+            assertEquals(RECORDING_ID, manager.mergeAndDownloadRecordings(SESSION_ID, List.of("f-1", "f-2")));
         }
 
         @Test

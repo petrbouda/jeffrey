@@ -397,11 +397,17 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     public List<Path> recordings(String sessionId, List<String> recordingIds) {
         RecordingSession session = resolveSession(sessionId);
 
+        // No ids named means every finished recording file, which is what the gRPC contract
+        // promises. It used to mean the opposite for an empty list: the test was for null, and a
+        // caller over the wire cannot send null — protobuf hands back an empty list — so asking
+        // for "all of it" that way selected nothing and failed as an empty session.
+        boolean allOfThem = recordingIds == null || recordingIds.isEmpty();
+
         return session.files().stream()
                 .filter(file -> Files.isRegularFile(file.filePath()))
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .filter(file -> recordingIds == null || recordingIds.contains(file.id()))
+                .filter(file -> allOfThem || recordingIds.contains(file.id()))
                 .sorted(Comparator.comparing(RepositoryFile::createdAt))
                 .map(file -> ensureCompressed(sessionId, file))
                 .filter(Objects::nonNull)

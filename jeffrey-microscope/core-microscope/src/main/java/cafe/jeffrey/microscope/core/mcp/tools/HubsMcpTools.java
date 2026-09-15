@@ -444,7 +444,7 @@ public class HubsMcpTools {
             + "span, and the chunks covering it are brought - every one whose span touches the window, "
             + "so a chunk straddling a bound is included and the recording always covers the whole "
             + "window with some slack at either end; or fileIds name files from hubs_files by id, "
-            + "chunks and any artifact beside them. Either way the chunks are merged into one "
+            + "an unbroken run of chunks and any artifact beside them. Either way the chunks are merged into one "
             + "recording and the answer reports the span they actually cover. The started and duration "
             + "columns of hubs_sessions say what span there is to choose from. Takes the "
             + "session_ref from a hubs_sessions row. Returns a recording id: pass it to "
@@ -474,8 +474,9 @@ public class HubsMcpTools {
                     + "startTime. Omit on its own to reach forward to the session's end")
             Long endTime,
             @ToolParam(required = false, description = "Comma-separated file_id values from hubs_files rows to "
-                    + "bring instead of a window - at least one must be a JFR chunk. Not combined with "
-                    + "startTime or endTime")
+                    + "bring instead of a window - at least one must be a JFR chunk, and the chunks must be an "
+                    + "unbroken run of the session because they are merged into one recording. Artifacts beside "
+                    + "them are free to pick. Not combined with startTime or endTime")
             String fileIds) {
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
         DownloadKey key = DownloadKey.of(ref, startTime, endTime, ToolArguments.commaSeparated(fileIds));
@@ -507,29 +508,22 @@ public class HubsMcpTools {
         boolean retryFailed = Boolean.TRUE.equals(retry);
 
         // A window is a recording of its own: two windows of one session are two recordings, and
-        // neither is the session, so "already here" is an answer only the whole session gets.
-        if (key.wholeSession()) {
-            Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
-                    DownloadedSessionIndex.build(recordingsManager).find(ref);
-            if (alreadyHere.isPresent()) {
-                LOG.debug("Hub session was already downloaded: session_id={} recording_id={}",
-                        ref.sessionId(), alreadyHere.get().recordingId());
-                OperationHandle<String> operation = downloads.rememberCompleted(key, alreadyHere.get().recordingId());
-                return operations.decorate(McpToolOutput.json(existing(ref, alreadyHere.get())),
-                        registerDownload(key, operation));
-            }
+        // neither is the session, so "already here" is an answer only the whole session gets. A
+        // window is still told about a whole-session copy that is here, further down, because the
+        // reader may not need a second recording at all.
+        Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
+                DownloadedSessionIndex.build(recordingsManager).find(ref);
+        if (key.wholeSession() && alreadyHere.isPresent()) {
+            LOG.debug("Hub session was already downloaded: session_id={} recording_id={}",
+                    ref.sessionId(), alreadyHere.get().recordingId());
+            OperationHandle<String> operation = downloads.rememberCompleted(key, alreadyHere.get().recordingId());
+            return operations.decorate(McpToolOutput.json(existing(ref, alreadyHere.get())),
+                    registerDownload(key, operation));
         }
 
         Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
-        if (prior.isPresent()) {
-            BoundedJobs.Outcome<String> outcome = prior.get();
-            if (outcome.failure() != null && !retryFailed) {
-                throw mapRemoteFailure(outcome.failure());
-            }
-            if (outcome.value() != null && recordingsManager.findRecording(outcome.value()).isPresent()) {
-                return operations.decorate(McpToolOutput.json(completedOutcome(ref, outcome.value())),
-                        registerDownload(key, downloads.current(key).orElseThrow()));
-            }
+        if (prior.isPresent() && prior.get().failure() != null && !retryFailed) {
+            throw mapRemoteFailure(prior.get().failure());
         }
 
         Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
@@ -539,15 +533,33 @@ public class HubsMcpTools {
         RecordingSession session = preflight.session();
         ChunkWindow.Selection selection = key.select(session);
 
+        // Handing back the recording an identical call already made, unless the answer has moved
+        // on since. A window with no end means "up to now" on a session that is still recording,
+        // and "now" is later than it was: the retained recording stops where the session stood an
+        // hour ago, so the same question asked twice would get a shorter answer the second time.
+        // Everything else is settled and is answered from what is here.
+        if (prior.isPresent() && !key.reachesPastTheEnd(session)) {
+            String recordingId = prior.get().value();
+            if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
+                return operations.decorate(McpToolOutput.json(completedOutcome(ref, recordingId)),
+                        registerDownload(key, downloads.current(key).orElseThrow()));
+            }
+        }
+
         LOG.info("Downloading a hub session over MCP: hub_id={} project_id={} session_id={} window={} file_ids={}",
                 ref.hubId(), ref.projectId(), ref.sessionId(), key.window(), key.fileIds());
+        // A recording an identical call already made is handed back instead of fetched again --
+        // unless what was asked for is still growing, in which case the retained one answers a
+        // shorter question than the one being put. A transfer still in flight is joined either way.
+        boolean stillGrowing = key.reachesPastTheEnd(session);
         OperationHandle<String> operation = downloads.startOrJoin(key, retryFailed,
-                recordingId -> recordingsManager.findRecording(recordingId).isPresent(), control -> {
+                recordingId -> !stillGrowing && recordingsManager.findRecording(recordingId).isPresent(),
+                control -> {
                     control.phase("downloading");
                     control.progress(Map.of("sessionRef", ref.encode(), "sessionId", ref.sessionId(),
                             "totalSizeBytes", selection == null
                                     ? session.totalSizeBytes()
-                                    : selection.chunks().stream().mapToLong(RepositoryFile::size).sum()));
+                                    : selection.files().stream().mapToLong(RepositoryFile::size).sum()));
                     return transferWithinDeadline(project, key, control);
                 });
         String operationId = registerDownload(key, operation);
@@ -580,16 +592,16 @@ public class HubsMcpTools {
                     hubInfo.name(),
                     project.info().name(),
                     ref.sessionId(),
-                    selection.chunks().size(),
+                    selection.files().size(),
                     others.size(),
-                    selection.chunks().stream().mapToLong(RepositoryFile::size).sum()
+                    selection.files().stream().mapToLong(RepositoryFile::size).sum()
                             + others.stream().mapToLong(RepositoryFile::size).sum(),
                     selection.coverageStart(),
                     selection.coverageEnd(),
                     "Call recordings_analyzeRecording with recordingId=" + recordingId
                             + " to build the profile every analysis tool takes. Its figures are about "
                             + "the covered span, not the whole session; recordings_delete removes it once "
-                            + "the question is answered.")), operationId);
+                            + "the question is answered." + wholeSessionNote(alreadyHere))), operationId);
         }
         return operations.decorate(McpToolOutput.json(new DownloadedSession(
                 recordingId,
@@ -801,6 +813,20 @@ public class HubsMcpTools {
                 copy.recordingId(), null, null, null, ref.sessionId(), 0, 0, 0L, null, null, next);
     }
 
+    /**
+     * Said on a part download when the whole session is here too: a reader who asked for an hour
+     * of it may well be able to use what is already analysed instead of keeping a second recording.
+     */
+    private static String wholeSessionNote(Optional<DownloadedSessionIndex.LocalCopy> wholeSession) {
+        if (wholeSession.isEmpty()) {
+            return "";
+        }
+        DownloadedSessionIndex.LocalCopy copy = wholeSession.get();
+        return copy.analysed()
+                ? " The whole session is also here, already analysed as profile " + copy.profileId() + "."
+                : " The whole session is also here as recording " + copy.recordingId() + ".";
+    }
+
     private static DownloadedSession completedOutcome(HubSessionRef ref, String recordingId) {
         return new DownloadedSession(
                 recordingId,
@@ -904,6 +930,15 @@ public class HubsMcpTools {
             return window == null && fileIds == null;
         }
 
+        /**
+         * Whether what this asks for is still growing: an open-ended window on a session that is
+         * still recording covers more of it with every chunk that rolls, so an answer retained
+         * from an earlier call is already short of the question.
+         */
+        boolean reachesPastTheEnd(RecordingSession session) {
+            return window != null && window.end() == null && session.status() == RecordingStatus.ACTIVE;
+        }
+
         /** The non-chunk files a part brings: those named by id; a window brings none. */
         List<RepositoryFile> others(List<RepositoryFile> finished) {
             if (fileIds == null) {
@@ -960,6 +995,16 @@ public class HubsMcpTools {
             if (selection.isEmpty()) {
                 throw new IllegalArgumentException("None of the fileIds is a JFR chunk of session " + ref.sessionId()
                         + ": a recording needs at least one. A log or a heap dump on its own is what hubs_fetchFile is for.");
+            }
+            // The chunks are merged into one recording, so a skipped one leaves no trace in the
+            // result: the profile would claim a span it only partly holds, and every rate read off
+            // it would be wrong by the size of the hole. The hub refuses this too.
+            if (!selection.contiguous()) {
+                throw new IllegalArgumentException("The chunks named for session " + ref.sessionId()
+                        + " are not next to each other: " + selection.describeGap(finished)
+                        + " lies between them. hubs_download merges the chunks into one recording, so they have "
+                        + "to be an unbroken run. Name the chunks in between as well, or ask for the span with "
+                        + "startTime and endTime and let the window pick them.");
             }
             return selection;
         }
