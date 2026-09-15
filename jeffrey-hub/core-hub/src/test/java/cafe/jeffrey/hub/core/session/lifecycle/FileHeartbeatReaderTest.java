@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -61,83 +60,107 @@ class FileHeartbeatReaderTest {
             long epochMillis = 1700000000000L;
             writeHeartbeatFile(tempDir, String.valueOf(epochMillis));
 
-            Optional<Instant> result = reader.readLastHeartbeat(tempDir);
+            LivenessRead result = reader.readLastHeartbeat(tempDir);
 
-            assertAll(
-                    () -> assertTrue(result.isPresent(), "Expected a present Optional"),
-                    () -> assertEquals(Instant.ofEpochMilli(epochMillis), result.get())
-            );
-        }
-    }
-
-    @Nested
-    class InvalidContent {
-
-        @Test
-        void missingFile_returnsEmpty(@TempDir Path tempDir) {
-            Optional<Instant> result = reader.readLastHeartbeat(tempDir);
-
-            assertTrue(result.isEmpty(), "Expected empty when heartbeat file does not exist");
+            assertEquals(new LivenessRead.Reported(Instant.ofEpochMilli(epochMillis)), result);
         }
 
         @Test
-        void corruptContent_returnsEmpty(@TempDir Path tempDir) throws IOException {
-            writeHeartbeatFile(tempDir, "not-a-number");
-
-            Optional<Instant> result = reader.readLastHeartbeat(tempDir);
-
-            assertTrue(result.isEmpty(), "Expected empty when file contains non-numeric content");
-        }
-
-        @Test
-        void emptyFile_returnsEmpty(@TempDir Path tempDir) throws IOException {
-            writeHeartbeatFile(tempDir, "");
-
-            Optional<Instant> result = reader.readLastHeartbeat(tempDir);
-
-            assertTrue(result.isEmpty(), "Expected empty when file is empty");
-        }
-    }
-
-    @Nested
-    class ReadFinishedMarker {
-
-        @Test
-        void presentMarker_returnsInstant(@TempDir Path tempDir) throws IOException {
+        void toleratesSurroundingWhitespace(@TempDir Path tempDir) throws IOException {
             long epochMillis = 1700000000000L;
-            writeFinishedMarkerFile(tempDir, String.valueOf(epochMillis));
+            writeHeartbeatFile(tempDir, "  " + epochMillis + "\n");
 
-            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+            LivenessRead result = reader.readLastHeartbeat(tempDir);
 
-            assertAll(
-                    () -> assertTrue(result.isPresent(), "Expected a present Optional"),
-                    () -> assertEquals(Instant.ofEpochMilli(epochMillis), result.get())
-            );
+            assertEquals(new LivenessRead.Reported(Instant.ofEpochMilli(epochMillis)), result);
+        }
+    }
+
+    /**
+     * Absence is evidence — it is what lets the finisher conclude a declared producer never
+     * reported. Every one of these must read as {@code Absent} and not as a failed read.
+     */
+    @Nested
+    class NothingWritten {
+
+        @Test
+        void missingFile_isAbsent(@TempDir Path tempDir) {
+            assertEquals(LivenessRead.absent(), reader.readLastHeartbeat(tempDir));
         }
 
         @Test
-        void missingMarker_returnsEmpty(@TempDir Path tempDir) {
-            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+        void missingHeartbeatDirectory_isAbsent(@TempDir Path tempDir) {
+            Path sessionWithoutHeartbeatDir = tempDir.resolve("session");
 
-            assertTrue(result.isEmpty(), "Expected empty when finished marker does not exist");
+            assertEquals(LivenessRead.absent(), reader.readLastHeartbeat(sessionWithoutHeartbeatDir));
+        }
+
+        @Test
+        void missingMarker_isAbsent(@TempDir Path tempDir) {
+            assertEquals(LivenessRead.absent(), reader.readFinishedMarker(tempDir));
         }
 
         @Test
         void heartbeatDoesNotLeakIntoMarker(@TempDir Path tempDir) throws IOException {
             writeHeartbeatFile(tempDir, "1700000000000");
 
-            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+            assertEquals(LivenessRead.absent(), reader.readFinishedMarker(tempDir),
+                    "Heartbeat file must not be read as a finished marker");
+        }
+    }
 
-            assertTrue(result.isEmpty(), "Heartbeat file must not be read as a finished marker");
+    /**
+     * A file that is there and makes no sense is the opposite of absence: the producer may well
+     * be running. Reporting it as absence is what lets one unreadable file finish a live session
+     * at its own start timestamp — see {@link SessionFinisher#tryFinishFromHeartbeat}.
+     */
+    @Nested
+    class PresentButUnreadable {
+
+        @Test
+        void corruptContent_isUnreadable(@TempDir Path tempDir) throws IOException {
+            writeHeartbeatFile(tempDir, "not-a-number");
+
+            LivenessRead result = reader.readLastHeartbeat(tempDir);
+
+            assertAll(
+                    () -> assertInstanceOf(LivenessRead.Unreadable.class, result),
+                    () -> assertFalse(result.isAbsent(), "Corrupt content must not read as absence"),
+                    () -> assertTrue(result.timestamp().isEmpty())
+            );
         }
 
         @Test
-        void corruptMarker_returnsEmpty(@TempDir Path tempDir) throws IOException {
+        void emptyFile_isUnreadable(@TempDir Path tempDir) throws IOException {
+            writeHeartbeatFile(tempDir, "");
+
+            LivenessRead result = reader.readLastHeartbeat(tempDir);
+
+            assertAll(
+                    () -> assertInstanceOf(LivenessRead.Unreadable.class, result),
+                    () -> assertFalse(result.isAbsent(), "An empty file must not read as absence")
+            );
+        }
+
+        @Test
+        void corruptMarker_isUnreadable(@TempDir Path tempDir) throws IOException {
             writeFinishedMarkerFile(tempDir, "not-a-number");
 
-            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+            assertInstanceOf(LivenessRead.Unreadable.class, reader.readFinishedMarker(tempDir));
+        }
 
-            assertTrue(result.isEmpty(), "Expected empty when marker contains non-numeric content");
+        @Test
+        void directoryInPlaceOfFile_isUnreadable(@TempDir Path tempDir) throws IOException {
+            Files.createDirectories(tempDir
+                    .resolve(HeartbeatConstants.HEARTBEAT_DIR)
+                    .resolve(HeartbeatConstants.HEARTBEAT_FILE));
+
+            LivenessRead result = reader.readLastHeartbeat(tempDir);
+
+            assertAll(
+                    () -> assertInstanceOf(LivenessRead.Unreadable.class, result),
+                    () -> assertFalse(result.isAbsent(), "An unreadable path must not read as absence")
+            );
         }
     }
 }

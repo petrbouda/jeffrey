@@ -39,7 +39,6 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -113,8 +112,10 @@ class SessionFinisherIntegrationTest {
             var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
             Instant heartbeatTimestamp = Instant.parse("2025-06-15T11:30:00Z");
+            when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                    .thenReturn(LivenessRead.absent());
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
-                    .thenReturn(Optional.of(heartbeatTimestamp));
+                    .thenReturn(LivenessRead.reported(heartbeatTimestamp));
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant fallback = Instant.parse("2025-06-15T11:00:00Z");
@@ -134,7 +135,7 @@ class SessionFinisherIntegrationTest {
 
             Instant markerTimestamp = Instant.parse("2025-06-15T11:35:00Z");
             when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
-                    .thenReturn(Optional.of(markerTimestamp));
+                    .thenReturn(LivenessRead.reported(markerTimestamp));
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant fallback = Instant.parse("2025-06-15T11:00:00Z");
@@ -152,8 +153,10 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
+            when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                    .thenReturn(LivenessRead.absent());
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
-                    .thenReturn(Optional.empty());
+                    .thenReturn(LivenessRead.absent());
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant fallback = Instant.parse("2025-06-15T11:00:00Z");
@@ -190,7 +193,7 @@ class SessionFinisherIntegrationTest {
                 // session open — the shutdown hook wrote the marker after its last beat
                 Instant markerTimestamp = NOW.minus(Duration.ofMinutes(1));
                 when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
-                        .thenReturn(Optional.of(markerTimestamp));
+                        .thenReturn(LivenessRead.reported(markerTimestamp));
 
                 boolean result = finisher.tryFinishFromHeartbeat(
                         repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
@@ -212,8 +215,10 @@ class SessionFinisherIntegrationTest {
 
                 // Heartbeat file returns a stale heartbeat: 10 minutes before NOW, threshold is 5 minutes
                 Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
-                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
-                        .thenReturn(Optional.of(staleHeartbeat));
+                when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                    .thenReturn(LivenessRead.absent());
+            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(LivenessRead.reported(staleHeartbeat));
 
                 boolean result = finisher.tryFinishFromHeartbeat(
                         repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
@@ -233,8 +238,10 @@ class SessionFinisherIntegrationTest {
 
                 // Heartbeat file returns a fresh heartbeat: 2 minutes before NOW, threshold is 5 minutes
                 Instant freshHeartbeat = NOW.minus(Duration.ofMinutes(2));
-                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
-                        .thenReturn(Optional.of(freshHeartbeat));
+                when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                    .thenReturn(LivenessRead.absent());
+            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(LivenessRead.reported(freshHeartbeat));
 
                 boolean result = finisher.tryFinishFromHeartbeat(
                         repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
@@ -259,8 +266,10 @@ class SessionFinisherIntegrationTest {
                 // Promised liveness, wrote nothing, and the startup window (5 min) is long gone:
                 // the session is recorded as having ended when it began, which is a timestamp it
                 // really has — never the moment this sweep happened to run
-                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
-                        .thenReturn(Optional.empty());
+                when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                    .thenReturn(LivenessRead.absent());
+            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(LivenessRead.absent());
 
                 ProjectInstanceSessionInfo sessionInfo = expectingHeartbeat(repository);
 
@@ -283,8 +292,10 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
-                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
-                        .thenReturn(Optional.empty());
+                when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                    .thenReturn(LivenessRead.absent());
+            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(LivenessRead.absent());
 
                 boolean result = finisher.tryFinishFromHeartbeat(
                         repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, Duration.ofHours(5));
@@ -293,6 +304,82 @@ class SessionFinisherIntegrationTest {
 
                 ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
                 assertNull(updated.finishedAt());
+            }
+        }
+
+        /**
+         * A file that is there and cannot be read says nothing about whether the JVM is running.
+         * Read as absence it would send the session down the deadline branch and stamp
+         * {@code originCreatedAt} on a run that may still be recording — irreversibly, since only
+         * unfinished sessions are ever looked at again. One unreadable mount would do it to every
+         * declared session on it at once.
+         */
+        @Nested
+        class UnreadableLivenessFiles {
+
+            @Test
+            void doesNotFinish_whenTheHeartbeatCannotBeRead(DataSource dataSource) throws SQLException {
+                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+                var clock = new MutableClock(NOW);
+                var repository = createRepository(clock, dataSource);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
+
+                when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                        .thenReturn(LivenessRead.absent());
+                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(LivenessRead.unreadable("the file could not be read"));
+
+                boolean result = finisher.tryFinishFromHeartbeat(
+                        repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
+
+                assertFalse(result);
+                assertNull(repository.findSessionById(SESSION_ID).orElseThrow().finishedAt(),
+                        "An unreadable heartbeat must not be read as a session that never reported");
+            }
+
+            @Test
+            void doesNotFinish_whenTheMarkerCannotBeRead(DataSource dataSource) throws SQLException {
+                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+                var clock = new MutableClock(NOW);
+                var repository = createRepository(clock, dataSource);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
+
+                // The clean-exit marker is there — the session did end — but its content is not a
+                // timestamp this hub can use. Guessing one is worse than waiting for the reconciler
+                when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                        .thenReturn(LivenessRead.unreadable("the content is not epoch millis"));
+                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(LivenessRead.absent());
+
+                boolean result = finisher.tryFinishFromHeartbeat(
+                        repository, PROJECT_INFO, expectingHeartbeat(repository), SESSION_PATH, HEARTBEAT_THRESHOLD);
+
+                assertFalse(result);
+                assertNull(repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
+            }
+
+            @Test
+            void stillFinishes_onceTheFileBecomesReadable(DataSource dataSource) throws SQLException {
+                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+                var clock = new MutableClock(NOW);
+                var repository = createRepository(clock, dataSource);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
+
+                Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
+                when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                        .thenReturn(LivenessRead.absent());
+                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(LivenessRead.unreadable("the file could not be read"))
+                        .thenReturn(LivenessRead.reported(staleHeartbeat));
+
+                ProjectInstanceSessionInfo sessionInfo = expectingHeartbeat(repository);
+
+                assertFalse(finisher.tryFinishFromHeartbeat(
+                        repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD));
+                assertTrue(finisher.tryFinishFromHeartbeat(
+                        repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD));
+
+                assertEquals(staleHeartbeat, repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
             }
         }
 
