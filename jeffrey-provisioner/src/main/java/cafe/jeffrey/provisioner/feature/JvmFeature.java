@@ -102,9 +102,18 @@ public sealed interface JvmFeature {
         private static final String AGENT_OPTION_PREFIX = "-javaagent:";
         private static final String AGENT_ARGS_SEPARATOR = "=";
 
+        /**
+         * Whether a configured path actually yields a {@code -javaagent} option. The session
+         * marker records the same answer, because the agent is what writes the liveness files
+         * the hub finishes a session from — so the two must never disagree.
+         */
+        public static boolean isAttachable(String agentPath) {
+            return agentPath != null && !agentPath.isBlank();
+        }
+
         @Override
         public Optional<String> render(Path sessionPath, Placeholders placeholders) {
-            if (agentPath == null || agentPath.isBlank()) {
+            if (!isAttachable(agentPath)) {
                 return Optional.empty();
             }
 

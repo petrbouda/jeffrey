@@ -98,6 +98,10 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     -- Retained sessions are exempt from every retention job (age-based and quota-based).
     -- Set manually via the repository API, or automatically when a JVM crash log is detected.
     retained              BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Whether the session declared the Jeffrey agent, the only writer of the heartbeat files.
+    -- Nullable on purpose: NULL means the session was declared by a provisioner too old to say,
+    -- and only a TRUE session is held to the heartbeat deadline (see SessionFinisher).
+    agent_attached        BOOLEAN,
     PRIMARY KEY (repository_id, session_id)
 );
 

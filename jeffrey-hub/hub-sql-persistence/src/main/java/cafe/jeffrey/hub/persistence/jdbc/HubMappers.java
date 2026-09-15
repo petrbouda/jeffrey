@@ -67,7 +67,8 @@ public abstract class HubMappers {
                     HubMappers.instant(rs, "finished_at"),
                     rs.getBoolean("retained"),
                     // Derived, not persisted: computed against repository storage where needed
-                    false
+                    false,
+                    rs.getObject("agent_attached", Boolean.class)
             );
         };
     }

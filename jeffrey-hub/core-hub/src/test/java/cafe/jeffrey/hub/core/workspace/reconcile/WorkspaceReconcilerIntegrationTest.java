@@ -183,7 +183,7 @@ class WorkspaceReconcilerIntegrationTest {
         Path sessionDir = createDir(instanceDir.resolve(sessionId));
         RemoteProjectInstanceSession marker = new RemoteProjectInstanceSession(
                 sessionId, ORIGIN_PROJECT_ID, WORKSPACE_ID, INSTANCE_ID,
-                createdAt.toEpochMilli(), order, INSTANCE_ID + "/" + sessionId, "GLOBAL", "cmd");
+                createdAt.toEpochMilli(), order, INSTANCE_ID + "/" + sessionId, "GLOBAL", "cmd", true);
         write(sessionDir.resolve(".session-info.json"), Json.toString(marker));
     }
 

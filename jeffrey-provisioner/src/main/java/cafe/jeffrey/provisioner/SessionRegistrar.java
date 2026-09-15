@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.provisioner.feature.JvmFeature;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
@@ -78,7 +79,8 @@ public class SessionRegistrar {
                 session.instanceId(),
                 session.order(),
                 session.layout().session(),
-                resolvedSettings);
+                resolvedSettings,
+                JvmFeature.Agent.isAttachable(config.getAgentPath()));
     }
 
     private String findOrCreateProject(InitConfig config, ProjectLayout layout) {

@@ -11,5 +11,6 @@ VALUES ('proj-001', 'repo-001', 'ASYNC_PROFILER', '/workspaces', 'ws-001', 'proj
 INSERT INTO project_instances (instance_id, project_id, instance_name, status, started_at)
 VALUES ('inst-001', 'proj-001', 'host-1.example.com', 'ACTIVE', '2025-06-15T08:00:00Z');
 
-INSERT INTO project_instance_sessions (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, finished_at)
-VALUES ('session-001', 'repo-001', 'inst-001', 1, 'session-2025-06-15', '2025-06-15T08:00:00Z', '2025-06-15T08:00:01Z', NULL);
+-- agent_attached TRUE: these scenarios simulate the Jeffrey agent writing liveness files
+INSERT INTO project_instance_sessions (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, finished_at, agent_attached)
+VALUES ('session-001', 'repo-001', 'inst-001', 1, 'session-2025-06-15', '2025-06-15T08:00:00Z', '2025-06-15T08:00:01Z', NULL, TRUE);

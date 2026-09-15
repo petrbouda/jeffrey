@@ -139,7 +139,8 @@ public class FileSystemRepository {
             String instanceId,
             int order,
             Path sessionPath,
-            ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings) {
+            ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings,
+            boolean agentAttached) {
         LOG.debug("Adding session to filesystem repository: sessionId={} projectId={} instanceId={} sessionPath={}", sessionId, projectId, instanceId, sessionPath);
         try {
             // Build relative session path: instanceId/sessionId (instance is always required)
@@ -154,7 +155,8 @@ public class FileSystemRepository {
                     order,
                     relativeSessionPath,
                     resolvedSettings.source().name(),
-                    resolvedSettings.command());
+                    resolvedSettings.command(),
+                    agentAttached);
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             writeAtomically(sessionInfoFile, Json.toString(session));

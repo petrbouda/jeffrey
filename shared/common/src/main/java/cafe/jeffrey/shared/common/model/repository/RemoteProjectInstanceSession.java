@@ -24,6 +24,14 @@ package cafe.jeffrey.shared.common.model.repository;
  * async-profiler command was resolved from ({@code ProfilerSettingsSource}
  * name) and the resolved command itself; both are null in files written by
  * older provisioners.
+ *
+ * <p>{@code agentAttached} declares whether this run was provisioned with the
+ * Jeffrey agent, which is the only thing that writes the liveness files the hub
+ * finishes a session from. It is {@code null} in files written by older
+ * provisioners, and null means <em>unknown</em> rather than false: the hub
+ * never applies the heartbeat deadline to a session that did not declare an
+ * agent, because a session nobody promised would report liveness must not be
+ * finished for failing to report it.</p>
  */
 public record RemoteProjectInstanceSession(
         String sessionId,
@@ -34,5 +42,6 @@ public record RemoteProjectInstanceSession(
         int order,
         String relativeSessionPath,
         String profilerSettingsSource,
-        String profilerCommand) {
+        String profilerCommand,
+        Boolean agentAttached) {
 }

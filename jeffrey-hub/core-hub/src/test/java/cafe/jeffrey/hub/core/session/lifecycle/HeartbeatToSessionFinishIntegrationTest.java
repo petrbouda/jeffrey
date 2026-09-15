@@ -122,7 +122,7 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             // Step 4: SessionFinisher detects stale heartbeat file and marks session finished
             boolean finished = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD);
 
             assertTrue(finished);
 
@@ -157,7 +157,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             ProjectInstanceSessionInfo sessionInfo = repoRepo.findSessionById(SESSION_ID).orElseThrow();
 
             boolean finished = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD);
 
             assertTrue(finished, "Session must finish immediately when the clean-exit marker is present");
 
@@ -181,7 +181,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             ProjectInstanceSessionInfo sessionInfo = repoRepo.findSessionById(SESSION_ID).orElseThrow();
 
             boolean finished = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD);
 
             assertFalse(finished, "Without a marker, a fresh heartbeat must keep the session active");
         }
@@ -212,7 +212,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             // Finish session-001 only
             ProjectInstanceSessionInfo session1 = repoRepo.findSessionById(SESSION_ID).orElseThrow();
             boolean finished = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, session1, session1Dir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, session1, session1Dir, HEARTBEAT_THRESHOLD);
 
             assertTrue(finished);
 
@@ -259,13 +259,13 @@ class HeartbeatToSessionFinishIntegrationTest {
             // Finish session-001
             ProjectInstanceSessionInfo session1 = repoRepo.findSessionById(SESSION_ID).orElseThrow();
             boolean finished1 = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, session1, session1Dir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, session1, session1Dir, HEARTBEAT_THRESHOLD);
             assertTrue(finished1);
 
             // Finish session-002
             ProjectInstanceSessionInfo session2 = repoRepo.findSessionById(SESSION_ID_2).orElseThrow();
             boolean finished2 = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, session2, session2Dir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, session2, session2Dir, HEARTBEAT_THRESHOLD);
             assertTrue(finished2);
 
             // Verify both sessions are finished
@@ -305,7 +305,7 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             // tryFinishFromHeartbeat detects stale heartbeat file and finishes session
             boolean finished = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD, NOW);
+                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD);
 
             assertTrue(finished);
 
@@ -314,7 +314,7 @@ class HeartbeatToSessionFinishIntegrationTest {
         }
 
         @Test
-        void unfinishedSession_noHeartbeatFile_finishedWithFallback(
+        void unfinishedSession_noHeartbeatFile_finishedAtSessionStart(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
 
             TestUtils.executeSql(dataSource, "sql/e2e/insert-project-for-e2e.sql");
@@ -330,14 +330,15 @@ class HeartbeatToSessionFinishIntegrationTest {
             ProjectInstanceSessionInfo sessionInfo = repoRepo.findSessionById(SESSION_ID).orElseThrow();
             assertNull(sessionInfo.finishedAt());
 
-            Instant fallback = Instant.parse("2025-06-15T11:00:00Z");
             boolean finished = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD, fallback);
+                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD);
 
             assertTrue(finished);
 
+            // The session's own start, not the moment the sweep ran: a declared agent that never
+            // wrote a beat leaves originCreatedAt as the only real timestamp available
             ProjectInstanceSessionInfo updated = repoRepo.findSessionById(SESSION_ID).orElseThrow();
-            assertEquals(fallback, updated.finishedAt());
+            assertEquals(sessionInfo.originCreatedAt(), updated.finishedAt());
         }
     }
 
@@ -364,7 +365,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             assertNull(beforeFinish.finishedAt());
 
             boolean notFinishedYet = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, beforeFinish, sessionDir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, beforeFinish, sessionDir, HEARTBEAT_THRESHOLD);
             assertFalse(notFinishedYet);
 
             // Step 3: Advance clock past threshold
@@ -375,7 +376,7 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             // Step 5: SessionFinisher.tryFinishFromHeartbeat() detects stale heartbeat file
             boolean finished = finisher.tryFinishFromHeartbeat(
-                    repoRepo, PROJECT_INFO, sessionWithStaleHeartbeat, sessionDir, HEARTBEAT_THRESHOLD, clock.instant());
+                    repoRepo, PROJECT_INFO, sessionWithStaleHeartbeat, sessionDir, HEARTBEAT_THRESHOLD);
 
             assertTrue(finished);
 
