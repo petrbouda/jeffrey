@@ -66,11 +66,13 @@ final class McpInstructions {
             hands you the file rather than parsing it for you. hubs_files also shows the path of a \
             file already here, and the profile whose timeline its timestamps line up with.
 
-            Ten tools are not read-only: recordings_analyzeFile, recordings_analyzeRecording, \
-            heap_prepare, hubs_download, hubs_fetchFile, hubs_eventActivity, hubs_activityCancel, \
-            operations_cancel, ide_link and ide_open. None of them alters an analysed profile. Each returns an \
-            operationId rather than blocking; poll operations_status until it completes, and \
-            operations_cancel to stop it.
+            Nine tools are not read-only: recordings_analyzeFile, recordings_analyzeRecording, \
+            recordings_delete, heap_prepare, hubs_download, hubs_fetchFile, operations_cancel, \
+            ide_link and ide_open. None of them alters an analysed profile. The five that can take \
+            a while - recordings_analyzeFile, recordings_analyzeRecording, heap_prepare, \
+            hubs_download and hubs_fetchFile - answer with an operationId rather than blocking; \
+            poll operations_status until it completes, and operations_cancel to stop it. The rest \
+            answer straight away and have no operationId to poll.
 
             Two rules worth knowing before the first surprise. Output is capped at 120,000 characters \
             and always says when it cut, in a TRUNCATED line or a _truncated object — a short answer \

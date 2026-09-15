@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS repositories
     PRIMARY KEY (project_id, repository_id)
 );
 
--- The event-streaming hot path joins repositories by repository_id alone, which is not the
+-- The file-download hot path joins repositories by repository_id alone, which is not the
 -- leftmost column of the primary key and would otherwise require a full scan per lookup.
 CREATE INDEX IF NOT EXISTS idx_repositories_repository_id ON repositories(repository_id);
 
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_project_instance_sessions_session_path ON project_instance_sessions(repository_id, relative_session_path);
 CREATE INDEX IF NOT EXISTS idx_project_instance_sessions_instance_id ON project_instance_sessions(instance_id);
--- The event-streaming hot path looks sessions up by session_id alone, which is not the
+-- The file-download hot path looks sessions up by session_id alone, which is not the
 -- leftmost column of the primary key and would otherwise require a full scan per lookup.
 CREATE INDEX IF NOT EXISTS idx_project_instance_sessions_session_id ON project_instance_sessions(session_id);
 

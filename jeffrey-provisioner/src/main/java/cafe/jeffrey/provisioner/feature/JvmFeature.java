@@ -127,7 +127,7 @@ public sealed interface JvmFeature {
      * profiler's recording as well without either knowing about the other.
      *
      * <p>The events all land in the same repository chunks, so the profiler's dumped
-     * {@code .jfr} files carry them for analysis and replay.
+     * {@code .jfr} files carry them for analysis.
      *
      * <p>No {@code settings=} is given, which leaves this recording on the JVM's default
      * configuration — the same one the profiler records with, so the union is unchanged by it.

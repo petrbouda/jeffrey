@@ -27,7 +27,7 @@ interface HeroBullet {
 const serverHeroBullets: HeroBullet[] = [
   { icon: 'bi-box-seam', text: 'Runs as a container in Kubernetes' },
   { icon: 'bi-hdd-stack', text: 'Collects via shared volume — zero agent overhead' },
-  { icon: 'bi-broadcast', text: 'Replay sessions and merge recording downloads' },
+  { icon: 'bi-cloud-download', text: 'Serves every file a session holds, chunk by chunk' },
   { icon: 'bi-plug', text: 'Connect Microscope or your own custom consumer' }
 ];
 
@@ -140,8 +140,7 @@ const productTabs: ProductTab[] = [
     features: [
       { icon: 'bi-arrow-repeat', title: 'Application Lifecycle Events', desc: 'Tracks workspaces, instances and sessions across your application\'s lifecycle.' },
       { icon: 'bi-cloud-arrow-down', title: 'Collecting Recordings and Artifacts', desc: 'Captures JFR recordings, heap dumps and logs from your running services.' },
-      { icon: 'bi-cloud-arrow-up', title: 'Providing Merged Recordings and Artifacts', desc: 'Serves merged recordings and artifacts over gRPC, ready to download or analyze.' },
-      { icon: 'bi-broadcast-pin', title: 'Replay JFR Events', desc: 'Read JFR events from recorded sessions over gRPC.' },
+      { icon: 'bi-cloud-arrow-up', title: 'Serving Recordings and Artifacts', desc: 'Serves recording chunks and artifacts over gRPC — a whole session, or the hour that matters.' },
       { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'Straightforward and cheap integration among the components.' },
       { icon: 'bi-puzzle', title: 'Custom consumers', desc: 'Microscope is one client — build your own.' }
     ],
@@ -445,7 +444,7 @@ function copyCmd(): void {
         <span class="connect-eyebrow"><i class="bi bi-link-45deg"></i> How they connect</span>
         <h2>One JFR pipeline. Two halves that work alone.</h2>
         <p>
-          Microscope can pull recordings and replay events from a Hub over gRPC — or work
+          Microscope can pull recordings from a Hub over gRPC — or work
           with a JFR file you drop in. Hub can serve Microscope, your own gRPC client, or both at once.
         </p>
         <div class="connect-flow">

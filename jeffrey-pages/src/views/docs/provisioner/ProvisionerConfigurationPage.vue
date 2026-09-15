@@ -405,7 +405,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           JFR applies the most verbose setting across every recording running in a JVM, and all
           recordings write into the same repository chunks. So this one recording lowers the
           thresholds for the profiler's recording as well, and the extra events reach the dumped
-          <code>.jfr</code> files used for analysis and replay without the profiler's own
+          <code>.jfr</code> files used for analysis without the profiler's own
           configuration being touched. That is why it works the same whether the
           profiler settings came from the CLI, from the hub, or from the built-in default.
         </p>

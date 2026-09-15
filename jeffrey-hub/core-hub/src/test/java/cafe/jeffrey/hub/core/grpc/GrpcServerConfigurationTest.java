@@ -26,13 +26,10 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.server.GlobalServerInterceptor;
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
 import java.lang.reflect.Method;
@@ -63,9 +60,7 @@ class GrpcServerConfigurationTest {
             InstanceGrpcService.class,
             ProfilerSettingsGrpcService.class,
             RepositoryGrpcService.class,
-            RecordingDownloadGrpcService.class,
-            EventStreamingGrpcService.class,
-            EventActivityGrpcService.class);
+            RecordingDownloadGrpcService.class);
 
     @Test
     void hubHasNoMcpEndpointOrProtocolDependency() {
@@ -133,21 +128,6 @@ class GrpcServerConfigurationTest {
         @Bean
         public RepositoryManager.Factory repositoryManagerFactory() {
             return mock(RepositoryManager.Factory.class);
-        }
-
-        @Bean
-        public HubJeffreyDirs jeffreyDirs() {
-            return mock(HubJeffreyDirs.class);
-        }
-
-        @Bean
-        public ReplayStreamingManager replayStreamingManager() {
-            return mock(ReplayStreamingManager.class);
-        }
-
-        @Bean
-        public RepositoryStorage.Factory repositoryStorageFactory() {
-            return mock(RepositoryStorage.Factory.class);
         }
     }
 }

@@ -37,14 +37,6 @@
             <span>Instances</span>
           </router-link>
           <router-link
-            :to="generateProjectUrl('events/replay-stream')"
-            class="nav-pill"
-            active-class="active"
-          >
-            <i class="bi bi-collection-play"></i>
-            <span>Replay Stream</span>
-          </router-link>
-          <router-link
             :to="generateProjectUrl('profiler-settings')"
             class="nav-pill"
             active-class="active"

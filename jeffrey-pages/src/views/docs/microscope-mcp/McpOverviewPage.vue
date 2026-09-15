@@ -68,7 +68,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and fourteen tools in nineteen families:</p>
+      <p>A hundred and eleven tools in nineteen families:</p>
       <table>
         <thead>
           <tr>
@@ -155,18 +155,18 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>recordings_</code></td>
-            <td>4</td>
-            <td>One of the five families with a writer in it: imports a recording file from the machine Jeffrey runs on and builds a profile from it</td>
+            <td>5</td>
+            <td>One of the five families with a writer in it: imports a recording file from the machine Jeffrey runs on and builds a profile from it, and deletes a recording together with the profile built from it</td>
           </tr>
           <tr>
             <td><code>hubs_</code></td>
-            <td>9</td>
-            <td>The recordings still on a connected Jeffrey Hub: lists the sessions across every hub, reads a bounded sample of events or a time-bucketed activity summary from one where it lies, pulls one in to be analysed &mdash; and, for the files a JVM writes beside its recording, lists what a session holds and fetches one of them on its own, as a path the agent reads with its own tools</td>
+            <td>5</td>
+            <td>The recordings still on a connected Jeffrey Hub: lists the sessions across every hub, pulls one in to be analysed &mdash; the whole session, the recording files covering a time window, or files named from the listing &mdash; and, for the files a JVM writes beside its recording, lists what a session holds and fetches one of them on its own, as a path the agent reads with its own tools</td>
           </tr>
           <tr>
             <td><code>operations_</code></td>
             <td>2</td>
-            <td>The work the writers start &mdash; an import, a Hub download or scan, a heap preparation &mdash; followed by its <code>operationId</code>: where it has got to, and a request that it stop</td>
+            <td>The work the writers start &mdash; an import, a Hub download or file fetch, a heap preparation &mdash; followed by its <code>operationId</code>: where it has got to, and a request that it stop</td>
           </tr>
           <tr>
             <td><code>ide_</code></td>
@@ -196,6 +196,7 @@ onMounted(() => {
       <h2 id="where-to-go-next">Where to Go Next</h2>
       <ul>
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
+        <li><router-link to="/docs/microscope-mcp/clients">Every Client</router-link> &mdash; what the plugin brings to any coding agent: the skills, the agents, the nine tools that write, and how a long call behaves</li>
         <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; installing the plugin, pointing it at this Jeffrey, and the three subagents only that client can carry</li>
         <li><router-link to="/docs/microscope-mcp/codex">Codex</router-link> &mdash; the same plugin through the portable Agent Plugins format, and what changes with it</li>
         <li><router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> &mdash; the same package again as a Gemini extension, which carries the skills and two of the three agents</li>

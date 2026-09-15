@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.shared.common.model.Recording;
 
 import java.util.Comparator;
@@ -114,6 +115,12 @@ public final class DownloadedSessionIndex {
         Map<String, String> byKey = new HashMap<>();
         for (RecordingTag tag : tags) {
             byKey.put(tag.key(), tag.value());
+        }
+
+        // A window of a session is a recording of its own, not the session's local copy: telling a
+        // reader it is "already here" would hand them an hour of a day they asked for whole.
+        if (byKey.containsKey(OriginContext.TAG_WINDOW)) {
+            return Optional.empty();
         }
 
         String hubId = byKey.get(TAG_HUB_ID);

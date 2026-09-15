@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.manager.project;
 
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 
-import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -63,14 +62,4 @@ public interface ProjectManager {
     void restore();
 
     void delete();
-
-    /**
-     * Returns the event streaming manager for subscribing to live JFR events
-     * from the hub. Only available for remote workspace projects.
-     *
-     * @return the event streaming manager, or null for local projects
-     */
-    default EventStreamingManager eventStreamingManager() {
-        return null;
-    }
 }

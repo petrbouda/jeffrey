@@ -195,7 +195,6 @@ export const microscopeNavigation: DocSection[] = [
         children: [
           { title: 'Overview', to: '/docs/microscope/projects' },
           { title: 'Instances', to: '/docs/microscope/projects/instances' },
-          { title: 'Replay Stream', to: '/docs/microscope/projects/event-streaming' },
           { title: 'Profiler Settings', to: '/docs/microscope/projects/profiler-settings' }
         ]
       },
@@ -255,12 +254,14 @@ export const microscopeMcpNavigation: DocSection[] = [
     children: [{ title: 'Enabling the Server', to: '/docs/microscope-mcp/enabling' }]
   },
   {
-    // One page per coding agent: each covers installing, pointing it at this Jeffrey, updating and
-    // removing, and what that client can and cannot carry.
+    // What every client shares comes first; then one page per coding agent, each covering only
+    // what differs there: installing, pointing it at this Jeffrey, approvals, and what that
+    // client can and cannot carry.
     title: 'Coding Agents',
     path: '_microscope-mcp-coding-agents',
     icon: 'bi-robot',
     children: [
+      { title: 'Every Client', to: '/docs/microscope-mcp/clients' },
       { title: 'Claude Code', to: '/docs/microscope-mcp/claude-code' },
       { title: 'Codex', to: '/docs/microscope-mcp/codex' },
       { title: 'Gemini CLI', to: '/docs/microscope-mcp/gemini' },

@@ -10,8 +10,8 @@
 # The tool restriction is instruction-level rather than enforced, as it is in Codex: a Gemini subagent
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
 # every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off
-# recordings_, the four hubs_ tools that write (hubs_download, hubs_fetchFile, hubs_eventActivity,
-# hubs_activityCancel), operations_cancel and the two ide_ tools. To make it a wall, name those tools
+# recordings_ (including recordings_delete), the two hubs_ tools that write (hubs_download,
+# hubs_fetchFile), operations_cancel and the two ide_ tools. To make it a wall, name those tools
 # in excludeTools on the server entry in settings.json.
 name: heap-triage
 description: Works a heap dump end to end and returns only the findings — what is holding the memory, with class names, retained bytes and the GC-root paths that make each claim checkable. Delegate a whole heap question to it rather than reading histograms and dominator trees in the main conversation. It reports figures; it never maps them to source, edits anything, or decides what to change.

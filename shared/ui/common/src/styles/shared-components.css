@@ -1170,6 +1170,13 @@
   flex-shrink: 0;
 }
 
+/* A caution rather than a failure: nothing has gone wrong, an action is simply not available yet. */
+.field-alert-warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+
 /* Info rows — label/value pairs inside a LeftDrawer (see InfoRow.vue) */
 .info-rows {
   display: flex;

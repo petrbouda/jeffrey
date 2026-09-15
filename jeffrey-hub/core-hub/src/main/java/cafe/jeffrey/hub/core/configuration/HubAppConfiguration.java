@@ -33,7 +33,6 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
@@ -59,7 +58,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * Configuration beans specific to HUB mode: scheduling, streaming, CopyLibs.
+ * Configuration beans specific to HUB mode: scheduling, CopyLibs.
  */
 @Configuration
 @Import({
@@ -210,11 +209,6 @@ public class HubAppConfiguration {
     @Bean
     public FileHeartbeatReader fileHeartbeatReader() {
         return new FileHeartbeatReader();
-    }
-
-    @Bean(destroyMethod = "close")
-    public ReplayStreamingManager replayStreamingManager() {
-        return new ReplayStreamingManager();
     }
 
     @Bean

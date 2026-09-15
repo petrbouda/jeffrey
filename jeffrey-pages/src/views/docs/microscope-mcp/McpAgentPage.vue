@@ -108,7 +108,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <ul>
         <li><strong>No source.</strong> It has no file tools and cannot read your repository. It names the frame, never a file or a line &mdash; mapping frames onto the checkout is yours, and a guess made there would arrive looking measured.</li>
         <li><strong>No recommendations.</strong> It reports what the profile shows. Whether to change anything, and what, stays in your session where you can be asked.</li>
-        <li><strong>No writing.</strong> It can neither import a recording from this machine nor pull one off a connected hub, so it cannot build a profile either way; nor can it start a scan on a hub, or cancel work your session started. If the profile it was given does not exist or is not ready, it reports that and stops.</li>
+        <li><strong>No writing.</strong> It can neither import a recording from this machine nor pull one off a connected hub, so it cannot build a profile either way; nor can it delete a recording, or cancel work your session started. If the profile it was given does not exist or is not ready, it reports that and stops.</li>
         <li><strong>No nesting.</strong> The skills it carries tell <em>their</em> reader to delegate export reading to the analyst; that instruction is written for your session, not for it. It does the reading itself and never spawns another agent.</li>
       </ul>
 

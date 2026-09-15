@@ -24,7 +24,6 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
@@ -121,7 +120,7 @@ class McpToolsetAssemblerTest {
                 recordingCommitResolver,
                 new HeapDumpInitService(CLOCK),
                 ideBridge,
-                properties, new HubsReplayMcpTools(projectManagerResolver, new McpOperationRegistry(CLOCK), CLOCK),
+                properties,
                 new HubsArtifactsMcpTools(projectManagerResolver, recordingsManager, Path.of("artifacts"),
                         Path.of("profiles"), new McpOperationRegistry(CLOCK), CLOCK),
                 new McpOperationRegistry(CLOCK), CLOCK);
@@ -247,9 +246,6 @@ class McpToolsetAssemblerTest {
             assertTrue(names.contains("hubs_list"));
             assertTrue(names.contains("hubs_sessions"));
             assertTrue(names.contains("hubs_download"));
-            assertTrue(names.contains("hubs_eventActivity"));
-            assertTrue(names.contains("hubs_activityStatus"));
-            assertTrue(names.contains("hubs_activityCancel"));
             assertTrue(names.contains("hubs_files"));
             assertTrue(names.contains("hubs_fetchFile"));
         }
@@ -399,11 +395,10 @@ class McpToolsetAssemblerTest {
         private static final Set<String> WRITES = Set.of(
                 "recordings_analyzeFile",
                 "recordings_analyzeRecording",
+                "recordings_delete",
                 "heap_prepare",
                 "hubs_download",
                 "hubs_fetchFile",
-                "hubs_eventActivity",
-                "hubs_activityCancel",
                 "operations_cancel",
                 "ide_link",
                 "ide_open");
@@ -426,7 +421,7 @@ class McpToolsetAssemblerTest {
          * and those numbers silently stopped being true. Adding a tool should fail here, with this
          * list in front of whoever added it.
          */
-        private static final int ADVERTISED_TOOLS = 114;
+        private static final int ADVERTISED_TOOLS = 111;
 
         @Test
         void advertisesTheDocumentedNumberOfTools() {
@@ -482,17 +477,18 @@ class McpToolsetAssemblerTest {
         }
 
         /**
-         * The documentation says it in as many words: nothing here deletes a profile, a recording or
-         * a dump. A tool that ever needs to would have to change that sentence as well as this test.
+         * The documentation says it in as many words: one tool deletes, {@code recordings_delete},
+         * and nothing else takes a profile, a recording or a dump away. A second one would have to
+         * change that sentence as well as this test.
          */
         @Test
-        void nothingIsDestructive() {
+        void onlyRecordingsDeleteIsDestructive() {
             List<String> destructive = specs().stream()
                     .filter(spec -> spec.annotations().destructive())
                     .map(McpToolSpec::name)
                     .toList();
 
-            assertTrue(destructive.isEmpty(), "Tools claiming to be destructive: " + destructive);
+            assertEquals(List.of("recordings_delete"), destructive);
         }
 
         /**

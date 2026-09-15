@@ -184,7 +184,6 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
       <ul>
         <li><strong>Catalog</strong> — <code>RepositoryService</code> lists sessions and their files, so you can see what a project recorded without downloading anything.</li>
         <li><strong>Bytes</strong> — <code>RecordingDownloadService</code> streams a merged recording, a single file, or an artifact back in 64&nbsp;KB chunks.</li>
-        <li><strong>Replay</strong> — <code>EventStreamingService</code> reads dumped recording files for a selected session and time window.</li>
       </ul>
 
       <p>Downloaded bytes land under <code>~/.jeffrey-microscope/recordings/</code>, and initializing a profile parses them once into a per-profile DuckDB at <code>~/.jeffrey-microscope/profiles/&lt;profile-id&gt;/profile-data.db</code>. The trace tables described in <router-link to="/docs/tracing/analysis">Analyzing Traces</router-link> are derived at that moment — which is why <router-link to="/docs/tracing/jdk-events">promoted blocking spans</router-link> and <router-link to="/docs/tracing/gc-safepoints">GC context</router-link> apply retroactively to recordings made before those features existed.</p>

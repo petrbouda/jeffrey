@@ -18,16 +18,10 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.activity.HubActivityService;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
-import cafe.jeffrey.hub.core.streaming.ScopedReplaySource;
-import cafe.jeffrey.hub.core.streaming.StreamingWindow;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.jfr.events.grpc.interceptor.JfrGrpcServerInterceptor;
 import io.grpc.BindableService;
@@ -37,7 +31,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.server.GlobalServerInterceptor;
 
 import java.time.Clock;
-import java.time.Instant;
 
 /**
  * Wires the hub's gRPC services as Spring beans. Spring gRPC's auto-configuration owns the
@@ -107,44 +100,5 @@ public class GrpcServerConfiguration {
     @Bean
     public BindableService recordingDownloadGrpcService(GrpcLookups grpcLookups) {
         return new RecordingDownloadGrpcService(grpcLookups);
-    }
-
-    @Bean
-    public ScopedReplaySource scopedReplaySource(
-            HubPlatformRepositories repositories,
-            RepositoryStorage.Factory storage,
-            HubJeffreyDirs dirs) {
-        return new ScopedReplaySource(repositories, storage, dirs);
-    }
-
-    @Bean(destroyMethod = "close")
-    public HubActivityService hubActivityService(ScopedReplaySource source, Clock clock) {
-        return new HubActivityService(
-                request -> source.resolve(
-                        request.workspaceId(),
-                        request.projectId(),
-                        request.sessionId(),
-                        request.eventTypes(),
-                        new StreamingWindow(
-                                Instant.ofEpochMilli(request.startTime()),
-                                Instant.ofEpochMilli(request.endTime()))),
-                clock);
-    }
-
-    @Bean
-    public BindableService eventActivityGrpcService(HubActivityService activityService) {
-        return new EventActivityGrpcService(activityService);
-    }
-
-    @Bean
-    public BindableService eventStreamingGrpcService(
-            HubJeffreyDirs jeffreyDirs,
-            HubPlatformRepositories platformRepositories,
-            ReplayStreamingManager replayStreamingManager,
-            RepositoryStorage.Factory repositoryStorageFactory,
-            ScopedReplaySource scopedReplaySource) {
-        return new EventStreamingGrpcService(
-                jeffreyDirs, platformRepositories, replayStreamingManager, repositoryStorageFactory,
-                scopedReplaySource);
     }
 }

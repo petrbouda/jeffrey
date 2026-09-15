@@ -51,8 +51,8 @@ onMounted(() => {
           Jeffrey Hub runs alongside your Java fleet — typically on Kubernetes or a dedicated
           host — and continuously collects JFR recordings. It catalogs them by workspace, project,
           and instance, schedules recording jobs, and serves the results over gRPC. Detailed profile
-          analysis happens in Microscope. Use <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
-          to count event activity and select a time period before downloading recordings.
+          analysis happens in Microscope. <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
+          pick a session, or the hours of it that matter, and download that.
         </p>
         <div class="hero-actions">
           <router-link class="hero-cta hero-cta-primary" to="/docs/hub/deployment">
@@ -109,13 +109,13 @@ onMounted(() => {
           color="green"
           icon="bi bi-hdd-network"
           title="gRPC API"
-          description="Discovery, project, instance, recording-download, repository, profiler-settings, and messages services — defined by proto."
+          description="Workspace, project, instance, repository, file-download and profiler-settings services — defined by proto."
         />
         <DocsFeatureCard
           color="neutral"
-          icon="bi bi-broadcast"
-          title="Replay Stream"
-          description="Replay JFR events from dumped session recordings for incident investigations in Microscope and through MCP."
+          icon="bi bi-clock-history"
+          title="A Session by the Hour"
+          description="Microscope, and a coding agent through MCP, pull a whole session or only the chunks covering the hour that matters."
         />
         <DocsFeatureCard
           color="blue"

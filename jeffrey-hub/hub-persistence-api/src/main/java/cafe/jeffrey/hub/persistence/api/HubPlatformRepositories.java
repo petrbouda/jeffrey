@@ -48,7 +48,7 @@ public interface HubPlatformRepositories {
     /**
      * Resolves a session by id alone, returning both the session and its parent
      * repository in a single query. Used by flows that only have a session id and
-     * need the repository context to compute filesystem paths (e.g. event streaming).
+     * need the repository context to compute filesystem paths (e.g. file download).
      *
      * @param sessionId the session id
      * @return the session joined with its repository, or empty if no session matches

@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * Turns a {@link HubSessionRef} back into the hub, project and session it names, and turns every
  * way that can fail into one sentence the model can act on: the ref went stale, ask for a fresh one.
  * <p>
- * Shared by the tools that take a session_ref — download, per-file fetch, replay — so that a
+ * Shared by the tools that take a session_ref — download, per-file fetch — so that a
  * session that has been retired by retention reads the same whichever tool bumped into it. The
  * failure that actually happened is logged rather than surfaced, because a hub that is merely
  * unreachable is indistinguishable, in the model's answer, from one that was disconnected on

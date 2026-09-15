@@ -12,7 +12,7 @@ paths:
   - `@hubs` → `shared/ui/hubs/ui` (the hub browser + recording components and clients)
   - `@instances` → `shared/ui/instances/src` (instance views)
 - Only write custom markup or a new component when no shared one fits. Never duplicate a shared component locally.
-- Where a new component lives: if it is generic (no page/JFR-domain semantics — chart, table, form input, badge, breadcrumb, layout, modal, drawer, etc.), create it under `shared/ui/common/src/components/` (`@shared`), NOT app-local. App `src/components/` is reserved for components tied to a specific page/feature (profile analysis, flamegraph, heap, gc, jdbc, grpc, span, streaming, …). When unsure, prefer `@shared`.
+- Where a new component lives: if it is generic (no page/JFR-domain semantics — chart, table, form input, badge, breadcrumb, layout, modal, drawer, etc.), create it under `shared/ui/common/src/components/` (`@shared`), NOT app-local. App `src/components/` is reserved for components tied to a specific page/feature (profile analysis, flamegraph, heap, gc, jdbc, grpc, span, …). When unsure, prefer `@shared`.
 
 ### Design Tokens
 - No hardcoded hex colors in `<style>` blocks — use `var(--color-*)` from `design-tokens.css`

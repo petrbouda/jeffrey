@@ -109,25 +109,6 @@ export function useNavigation() {
     return path ? `${basePath}/${path}` : basePath;
   };
 
-  const generateReplayStreamUrl = (
-    sessionId?: string,
-    sessionInstance?: string,
-    hId?: string,
-    pId?: string,
-    wId?: string
-  ) => {
-    const base = generateProjectUrl('events/replay-stream', hId, pId, wId);
-    if (!sessionId) {
-      return base;
-    }
-    const params = new URLSearchParams();
-    params.set('sessionId', sessionId);
-    if (sessionInstance) {
-      params.set('sessionInstance', sessionInstance);
-    }
-    return `${base}?${params.toString()}`;
-  };
-
   /**
    * Navigate to an instance detail page.
    */
@@ -157,7 +138,6 @@ export function useNavigation() {
     // URL generators
     generateProjectUrl,
     generateProfileUrl,
-    generateInstanceUrl,
-    generateReplayStreamUrl
+    generateInstanceUrl
   };
 }

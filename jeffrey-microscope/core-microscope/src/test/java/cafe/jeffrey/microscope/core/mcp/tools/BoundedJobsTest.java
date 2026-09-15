@@ -236,6 +236,51 @@ class BoundedJobsTest {
         }
     }
 
+    /**
+     * Retention bounds the map only where keys repeat, and several callers key on something new
+     * every call -- an import on a fresh UUID, a hub download on the session plus the window asked
+     * for. Without a cap those entries sit there for the whole retention window.
+     */
+    @Nested
+    class RetainedSize {
+
+        private static final Duration RETENTION = Duration.ofHours(1);
+        private static final int MAX_RETAINED = 4;
+
+        private final MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
+        private final BoundedJobs<String, String> jobs = new BoundedJobs<>(
+                GENEROUS, RETENTION, clock, Runnable::run, BoundedJobs.UNBOUNDED_CONCURRENCY, MAX_RETAINED);
+
+        @Test
+        void dropsTheOldestFinishedAttemptsOnceTheCapIsPassed() {
+            for (int i = 0; i < MAX_RETAINED + 3; i++) {
+                jobs.runWithin("job-" + i, () -> "done");
+                clock.advance(Duration.ofSeconds(1));
+            }
+
+            assertTrue(jobs.outcome("job-0").isEmpty(), "the oldest should have been dropped");
+            assertTrue(jobs.outcome("job-1").isEmpty(), "the next oldest should have been dropped");
+            assertTrue(jobs.outcome("job-6").isPresent(), "the newest should still be readable");
+        }
+
+        @Test
+        void keepsEverythingWhileUnderTheCap() {
+            for (int i = 0; i < MAX_RETAINED; i++) {
+                jobs.runWithin("job-" + i, () -> "done");
+                clock.advance(Duration.ofSeconds(1));
+            }
+
+            assertTrue(jobs.outcome("job-0").isPresent());
+            assertTrue(jobs.outcome("job-3").isPresent());
+        }
+
+        @Test
+        void refusesACapThatCannotHoldAnything() {
+            assertThrows(IllegalArgumentException.class, () -> new BoundedJobs<>(
+                    GENEROUS, RETENTION, clock, Runnable::run, BoundedJobs.UNBOUNDED_CONCURRENCY, 0));
+        }
+    }
+
     @Nested
     class Retention {
 

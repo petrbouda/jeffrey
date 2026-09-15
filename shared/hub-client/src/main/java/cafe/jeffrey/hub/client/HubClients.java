@@ -30,8 +30,7 @@ public record HubClients(
         RecordingStreamClient recordings,
         ProfilerClient profiler,
         InstancesClient instances,
-        ProjectsClient projects,
-        EventStreamingClient eventStreaming
+        ProjectsClient projects
 ) {
 
     @FunctionalInterface

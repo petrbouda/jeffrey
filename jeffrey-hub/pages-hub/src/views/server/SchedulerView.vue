@@ -259,7 +259,7 @@ const descriptions: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER:
         'Materializes new projects, instances and sessions from the entries the provisioner writes into each workspace\'s .pending index, reading only the subtrees it announced. Run it manually to walk every workspace tree in full — that is what finds trees the index never named, after an upgrade or a restored volume. Strictly additive either way: removing directories from the volume never deletes server state.',
     TEMP_DIRECTORY_CLEANER:
-        'Sweeps the server temp directory, removing scratch entries (JFR merges, compression staging, replay windows) left behind by operations that crashed before cleaning up after themselves.',
+        'Sweeps the server temp directory, removing scratch entries (compression staging, session file transfers) left behind by operations that crashed before cleaning up after themselves.',
     DELETED_PROJECTS_CLEANER:
         'Permanently purges soft-deleted project rows once their retention window has passed. Until then the project can still be restored, so this retention doubles as the restore window.',
     STORAGE_OVERVIEW_REFRESHER:

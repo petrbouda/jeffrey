@@ -334,11 +334,6 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProjectsProfilerSettings',
         component: () => import('@/views/docs/microscope/projects/ProjectsProfilerSettingsPage.vue')
       },
-      {
-        path: 'microscope/projects/event-streaming',
-        name: 'DocsProjectsEventStreaming',
-        component: () => import('@/views/docs/microscope/projects/ProjectsEventStreamingPage.vue')
-      },
       // Legacy paths — features moved to global pages or were removed in the UI.
       { path: 'microscope/projects/profiles', redirect: '/docs/microscope/profiles' },
       { path: 'microscope/projects/recordings', redirect: '/docs/microscope/recordings' },
@@ -636,6 +631,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope-mcp/McpEnablingPage.vue')
       },
       {
+        path: 'microscope-mcp/clients',
+        name: 'DocsMicroscopeMcpClients',
+        component: () => import('@/views/docs/microscope-mcp/McpClientsPage.vue')
+      },
+      {
         path: 'microscope-mcp/claude-code',
         name: 'DocsMicroscopeMcpClaudeCode',
         component: () => import('@/views/docs/microscope-mcp/McpClaudeCodePage.vue')
@@ -713,7 +713,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'platform/projects/instances', redirect: '/docs/microscope/projects/instances' },
       { path: 'platform/projects/profiler-settings', redirect: '/docs/microscope/projects/profiler-settings' },
       { path: 'platform/projects/scheduler', redirect: '/docs/microscope/projects' },
-      { path: 'platform/projects/alerts-messages', redirect: '/docs/microscope/projects/event-streaming' },
+      { path: 'platform/projects/alerts-messages', redirect: '/docs/microscope/projects' },
+      { path: 'microscope/projects/event-streaming', redirect: '/docs/microscope/projects' },
       { path: 'platform/recording-sessions/overview', redirect: '/docs/hub/recording-sessions/overview' },
       { path: 'platform/recording-sessions/configuration', redirect: '/docs/hub/recording-sessions/configuration' },
       { path: 'platform/recording-sessions/lifecycle', redirect: '/docs/hub/recording-sessions/lifecycle' },

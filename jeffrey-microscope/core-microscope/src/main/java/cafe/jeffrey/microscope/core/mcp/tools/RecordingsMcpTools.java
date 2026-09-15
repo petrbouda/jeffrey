@@ -262,6 +262,50 @@ public class RecordingsMcpTools {
     }
 
     /*
+     * The one tool in this family that takes something away. It is the other half of downloading a
+     * window of a hub session: the hub is the copy of record, Microscope holds what is being read,
+     * and a window profile that has answered its question has no reason to stay. The only tool that
+     * declares itself destructive: the family's hint says it writes, and a client that asks before a
+     * destructive call should get to ask here. Deleting twice is refused, not repeated, so it is not
+     * idempotent either.
+     */
+    @McpToolHints(readOnly = false, destructive = true, idempotent = false)
+    @Tool(description = "Delete a recording from the Quick Analysis store together with the profile "
+            + "built from it, its files and everything analysed out of it. Use it to clean up after a "
+            + "profile has answered its question - a window of a hub session pulled in by hubs_download, "
+            + "a partial look taken before the real window, a file imported twice. A recording on a hub "
+            + "is untouched: hubs_download can pull it again. The profile id stops working the moment "
+            + "this returns; a client that still shows it should call profiles_list again.")
+    public String delete(
+            @ToolParam(required = true, description = "Recording id from recordings_list, hubs_download or "
+                    + "recordings_analyzeFile. A profile id is not accepted; recordings_list shows which "
+                    + "recording a profile belongs to")
+            String recordingId) {
+        if (recordingId == null || recordingId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "A recording id is required. Call recordings_list to see them.");
+        }
+        String id = recordingId.trim();
+        Recording recording = recordingsManager.findRecording(id)
+                .orElseThrow(() -> new IllegalArgumentException("No such recording: " + id));
+
+        // Deleting a profile while it is being built pulls the database out from under the parser.
+        // analyzeRecording already refuses to disturb a live run for the same reason; this is the
+        // other half of it, and matters more here because an agent can analyse and delete within
+        // seconds of each other.
+        if (recording.hasProfile() && runRegistry.isRunning(recording.profileId())) {
+            throw new IllegalArgumentException("Profile " + recording.profileId()
+                    + " is still being built from recording " + id + ", and deleting it now would leave the "
+                    + "parse writing into storage that is no longer there. Poll recordings_status until it "
+                    + "finishes, or stop it with operations_cancel, then delete.");
+        }
+
+        LOG.info("Deleting a recording over MCP: recording_id={} profile_id={}", id, recording.profileId());
+        recordingsManager.deleteRecording(id);
+        return McpToolOutput.json(new DeletedRecording(id, recording.recordingName(), recording.profileId()));
+    }
+
+    /*
      * Reads. Its family is registered as writing because the tools that build a profile sit in
      * it, and a member that only reports has to say so for itself — the same inheritance that let
      * hubs_download offer a cross-machine transfer as a safe read, running the other way.
@@ -334,8 +378,8 @@ public class RecordingsMcpTools {
                     List.of(), null, null, null));
         }
 
-        // A profile row appears before the parse begins -- it is inserted first so the recordings list
-        // can show a run in progress -- and is enabled only once every stage has finished. Reporting
+        // A profile row appears before the parse begins — it is inserted first so the recordings list
+        // can show a run in progress — and is enabled only once every stage has finished. Reporting
         // the id at the sight of the row would hand back a profile whose events are still being
         // written, which reads as success and is the one answer worse than "not yet".
         String profileId = recording.profileId();
@@ -354,8 +398,8 @@ public class RecordingsMcpTools {
         }
 
         // A live profile outranks a retained failure. The failure this process remembers is about an
-        // attempt it made; the profile can have been built since by another one -- the UI, or an
-        // earlier attempt whose outcome expired -- and a reader told "failed" about a profile every
+        // attempt it made; the profile can have been built since by another one — the UI, or an
+        // earlier attempt whose outcome expired — and a reader told "failed" about a profile every
         // other tool answers from would start a third build of it.
         Optional<ProfileInfo> profileInfo = recordingsManager.profile(profileId)
                 .map(profile -> profile.info());
@@ -429,8 +473,8 @@ public class RecordingsMcpTools {
     }
 
     /**
-     * A run the manager found already in flight -- started from the UI, or by an earlier call whose
-     * attempt has since been forgotten -- is joined here rather than taken for a result: the manager
+     * A run the manager found already in flight — started from the UI, or by an earlier call whose
+     * attempt has since been forgotten — is joined here rather than taken for a result: the manager
      * answers with the profile id the moment it sees such a run, and an attempt that completed on
      * that answer would hand out a link to a profile still being parsed.
      */
@@ -447,7 +491,7 @@ public class RecordingsMcpTools {
         }
         // A failed run under this key is only this attempt's answer while there is no profile to
         // hand back. The registry retains a failure for as long as it retains anything, and a
-        // profile enabled by some other path outranks it -- the same precedence status() and
+        // profile enabled by some other path outranks it — the same precedence status() and
         // analyzed() apply, which this would otherwise contradict from three lines away.
         if (enabledProfile(recordingId).isEmpty()) {
             throw new ToolExecutionException(PIPELINE_FAILED + outcome.get().errorMessage());
@@ -474,7 +518,7 @@ public class RecordingsMcpTools {
             // The same precedence as recordings_status: a retained failure is obsolete once the
             // recording has a working profile, so an inspection call hands that profile back rather
             // than the failure that predates it. Undecorated, because no attempt of this call's is
-            // what produced the profile -- the retained one is the failure being set aside.
+            // what produced the profile — the retained one is the failure being set aside.
             Optional<String> live = enabledProfile(recordingId);
             if (live.isPresent()) {
                 return analyzedProfile(recordingId, live.get());
@@ -581,6 +625,12 @@ public class RecordingsMcpTools {
      * @param durationMs null while the stage has not finished
      */
     private record Stage(String id, String status, Long durationMs) {
+    }
+
+    /**
+     * @param profileId the profile that went with the recording, or {@code null} when it had none
+     */
+    private record DeletedRecording(String recordingId, String name, String profileId) {
     }
 
     private record AnalyzedProfile(

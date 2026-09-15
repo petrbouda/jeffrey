@@ -24,7 +24,6 @@ module cafe.jeffrey.shared.common {
     requires transitive tools.jackson.databind;
 
     exports cafe.jeffrey.shared.common;
-    exports cafe.jeffrey.shared.common.activity;
     exports cafe.jeffrey.shared.common.compression;
     exports cafe.jeffrey.shared.common.exception;
     exports cafe.jeffrey.shared.common.filesystem;

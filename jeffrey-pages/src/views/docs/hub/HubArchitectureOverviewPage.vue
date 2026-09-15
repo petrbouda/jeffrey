@@ -99,13 +99,12 @@ onMounted(() => {
         <div class="service-chip"><i class="bi bi-hdd-network"></i> Instances</div>
         <div class="service-chip"><i class="bi bi-cloud-download"></i> Recording Download</div>
         <div class="service-chip"><i class="bi bi-archive"></i> Repository</div>
-        <div class="service-chip"><i class="bi bi-broadcast"></i> Event Streaming</div>
         <div class="service-chip"><i class="bi bi-sliders"></i> Profiler Settings</div>
       </div>
 
       <p>
-        Recordings stream on demand from the Server when a client opens them, while recorded JFR
-        events flow over a separate replay channel for session and incident investigations. See the
+        A session's files stream on demand from the Hub when a client asks for them — every chunk,
+        or only the ones covering a window — and the client assembles the recording. See the
         <router-link to="/docs/hub/grpc-api">gRPC API reference</router-link> for the full
         service surface.
       </p>
