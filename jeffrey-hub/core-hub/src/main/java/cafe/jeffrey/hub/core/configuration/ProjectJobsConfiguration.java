@@ -139,7 +139,6 @@ public class ProjectJobsConfiguration {
 
     @Bean
     public SessionFinishedDetectorProjectJob sessionFinishedDetectorProjectJob(
-            Clock clock,
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher,
@@ -150,7 +149,6 @@ public class ProjectJobsConfiguration {
                 repositoryStorageFactory,
                 schedulerJobsProperties.forType(JobType.SESSION_FINISHED_DETECTOR).period(),
                 heartbeatTimeout,
-                clock,
                 jeffreyDirs,
                 platformRepositories,
                 sessionFinisher);

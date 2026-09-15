@@ -118,7 +118,7 @@ class FileSystemRepositoryTest {
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
             repository.addSession(SESSION_ID, PROJECT_ID, WORKSPACE_REF_ID, INSTANCE_ID, 1,
-                    sessionPath, PROFILER_SETTINGS);
+                    sessionPath, PROFILER_SETTINGS, true);
 
             List<Path> entries = pendingEntries(workspacePath);
             assertEquals(1, entries.size());
@@ -138,7 +138,7 @@ class FileSystemRepositoryTest {
                     "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
             repository.addInstance(INSTANCE_ID, PROJECT_ID, WORKSPACE_REF_ID, instancePath);
             repository.addSession(SESSION_ID, PROJECT_ID, WORKSPACE_REF_ID, INSTANCE_ID, 1,
-                    sessionPath, PROFILER_SETTINGS);
+                    sessionPath, PROFILER_SETTINGS, true);
 
             assertEquals(3, pendingEntries(workspacePath).size());
         }

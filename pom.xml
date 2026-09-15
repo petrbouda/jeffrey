@@ -32,7 +32,6 @@
         <module>jeffrey-hub</module>
         <module>jeffrey-microscope</module>
         <module>jeffrey-provisioner</module>
-        <module>jeffrey-agent</module>
         <module>utilities</module>
         <module>build</module>
     </modules>
@@ -250,12 +249,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jeffrey-provisioner</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>jeffrey-agent</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

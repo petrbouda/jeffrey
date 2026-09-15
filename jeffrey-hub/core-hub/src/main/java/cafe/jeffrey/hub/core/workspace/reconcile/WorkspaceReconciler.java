@@ -336,7 +336,8 @@ public class WorkspaceReconciler {
                 Path.of(marker.relativeSessionPath()),
                 originCreatedAt,
                 clock.instant(),
-                null);
+                null)
+                .withHeartbeatExpected(marker.heartbeatExpected());
 
         projectManager.repositoryManager().createSession(sessionInfo);
 

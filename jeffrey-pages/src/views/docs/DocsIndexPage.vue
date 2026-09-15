@@ -30,7 +30,7 @@ const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
 const mcpComponents = ['102 read-only tools', 'Claude Code, Codex & Gemini', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
-const tracingComponents = ['Tracer API', '@Traced agent', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
+const tracingComponents = ['Tracer API', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
 
 onMounted(() => {
   setHeadings([]);
@@ -91,7 +91,7 @@ onMounted(() => {
           to="/docs/tracing"
           title="Tracing"
           role="Library · In-process traces"
-          description="JFR-native tracing for a single JVM. Instrument with the zero-dependency events library or the @Traced agent, and read requests as span waterfalls correlated with I/O, locks, GC pauses and per-span flamegraphs."
+          description="JFR-native tracing for a single JVM. Instrument with the zero-dependency events library, and read requests as span waterfalls correlated with I/O, locks, GC pauses and per-span flamegraphs."
           icon="bi bi-bezier2"
           :components="tracingComponents"
           cta-text="Open Tracing docs"

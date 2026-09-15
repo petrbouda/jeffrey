@@ -70,7 +70,7 @@ final class ProfileCapabilityGaps {
     private static final String EVENT_TYPE_SEPARATOR = ", ";
 
     private static final String REMEDY_INSTRUMENT =
-            "Run the application with Jeffrey's instrumentation (jeffrey-agent) so the next recording carries them.";
+            "Instrument the application with jeffrey-events so the next recording carries them.";
     private static final String REMEDY_ENABLE_EVENTS =
             "Enable those event types in the recording settings for the next run.";
 

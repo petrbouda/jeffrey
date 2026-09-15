@@ -53,6 +53,44 @@ class RemoteProjectInstanceSessionSerdeTest {
         assertEquals(1, session.order());
         assertNull(session.profilerSettingsSource());
         assertNull(session.profilerCommand());
+        // Not merely absent: null is what tells the hub this session never declared whether
+        // anything would report liveness, so it must not be finished for failing to report it
+        assertNull(session.heartbeatExpected());
+    }
+
+    @Test
+    void sessionInfo_withoutHeartbeatDeclaration_isUnknownRatherThanFalse() {
+        String withoutHeartbeatField = """
+                {
+                    "sessionId": "session-001",
+                    "projectId": "proj-001",
+                    "workspaceId": "ws-001",
+                    "instanceId": "inst-001",
+                    "createdAt": 1700000000000,
+                    "order": 1,
+                    "relativeSessionPath": "inst-001/session-001",
+                    "profilerSettingsSource": "HUB_PROJECT",
+                    "profilerCommand": "-agentpath:/lib.so=start"
+                }
+                """;
+
+        RemoteProjectInstanceSession session =
+                Json.read(withoutHeartbeatField, RemoteProjectInstanceSession.class);
+
+        assertNull(session.heartbeatExpected());
+    }
+
+    @Test
+    void sessionInfo_declaringNoHeartbeat_roundTripsAsFalse() {
+        RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
+                "session-001", "proj-001", "ws-001", "inst-001",
+                1700000000000L, 1, "inst-001/session-001",
+                "HUB_PROJECT", "-agentpath:/lib.so=start", false);
+
+        RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
+
+        assertEquals(Boolean.FALSE, read.heartbeatExpected());
+        assertEquals(session, read);
     }
 
     @Test
@@ -60,7 +98,7 @@ class RemoteProjectInstanceSessionSerdeTest {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                 "session-001", "proj-001", "ws-001", "inst-001",
                 1700000000000L, 2, "inst-001/session-001",
-                "HUB_PROJECT", "-agentpath:/lib.so=start");
+                "HUB_PROJECT", "-agentpath:/lib.so=start", true);
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 

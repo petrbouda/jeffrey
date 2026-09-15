@@ -24,9 +24,9 @@ import java.util.Set;
  * Writes an arbitrary runtime value onto a span as an attribute, the same way wherever it comes
  * from.
  * <p>
- * Two emitters record values a developer handed the application rather than values the library
- * chose: {@code @Traced} captures method arguments, and the MyBatis interceptor captures statement
- * parameters. They write into the same field of the same recording and are read side by side in the
+ * Emitters record values a developer handed the application rather than values the library chose —
+ * the MyBatis interceptor captures statement parameters, the servlet filter captures request
+ * attributes. They write into the same field of the same recording and are read side by side in the
  * same dashboards, so the rules for turning an object into JSON belong in one place — a number
  * should not be a number in one and a quoted string in the other because two files drifted apart.
  * <p>

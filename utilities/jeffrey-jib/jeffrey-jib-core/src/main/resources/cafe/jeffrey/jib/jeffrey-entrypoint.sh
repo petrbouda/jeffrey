@@ -59,7 +59,7 @@ esac
 # Expand the literal {arch} placeholder in JEFFREY_* env vars baked by jeffrey-jib
 # (or set on the pod) so multi-arch images can ship a single static value such as
 # /jeffrey-libs/libasyncProfiler-{arch}.so without per-arch builds.
-for var in JEFFREY_PROVISIONER_PATH JEFFREY_PROFILER_PATH JEFFREY_AGENT_PATH; do
+for var in JEFFREY_PROVISIONER_PATH JEFFREY_PROFILER_PATH; do
   eval "value=\${$var-}"
   case "$value" in
     *"{arch}"*)

@@ -36,14 +36,14 @@ public record JvmFeatures(List<JvmFeature> features) {
 
     private static final String OPTION_SEPARATOR = " ";
 
-    public static JvmFeatures of(InitConfig config, AppIdentity identity) {
+    public static JvmFeatures of(InitConfig config) {
         return new JvmFeatures(List.of(
                 new JvmFeature.DebugNonSafepoints(config.isDebugNonSafepointsEnabled()),
                 new JvmFeature.PerfCounters(config.isPerfCountersEnabled()),
                 new JvmFeature.HeapDump(config.resolveHeapDumpType()),
-                new JvmFeature.Agent(config.getAgentPath(), config.isMethodTracingEnabled(), identity),
+                new JvmFeature.Heartbeat(config.isHeartbeatEnabled()),
                 new JvmFeature.TracingEventThresholds(
-                        config.isMethodTracingEnabled(), config.getTracingJfrEventSettings()),
+                        config.isSpanTracingEnabled(), config.getTracingJfrEventSettings()),
                 new JvmFeature.AdditionalOptions(config.getAdditionalJvmOptions())));
     }
 

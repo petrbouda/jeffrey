@@ -348,42 +348,17 @@ class InitConfigTest {
     }
 
     @Nested
-    class AgentPathResolution {
+    class HeartbeatDeclaration {
 
         @TempDir
         Path tempDir;
 
         @Test
-        void returnsExplicitAgentPathWhenSet() throws IOException {
-            Path configFile = tempDir.resolve("config.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"" + tempDir + "\"",
-                    "agent-path = \"/custom/path/jeffrey-agent.jar\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertEquals("/custom/path/jeffrey-agent.jar", config.getAgentPath());
-        }
-
-        @Test
-        void autoResolvesFromJeffreyHome() throws IOException {
-            Path configFile = tempDir.resolve("config.conf");
-            Path libsDir = tempDir.resolve("libs/current");
-            Files.createDirectories(libsDir);
-            Files.createFile(libsDir.resolve("jeffrey-agent.jar"));
-
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertEquals(libsDir.resolve("jeffrey-agent.jar").toString(), config.getAgentPath());
-        }
-
-        @Test
-        void returnsNullWhenAutoResolvePathDoesNotExist() throws IOException {
+        void defaultsToExpectingNothing() throws IOException {
+            // This switch is a claim about the application, not about the JVM: it says the
+            // jeffrey-heartbeat library is on its class path, which the provisioner cannot see.
+            // Claimed wrongly it is not inert — the hub finishes the session at its own start
+            // timestamp seconds after the JVM came up — so the default is the harmless side.
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
@@ -391,23 +366,23 @@ class InitConfigTest {
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertNull(config.getAgentPath());
+
+            assertFalse(config.isHeartbeatEnabled(),
+                    "an application carrying the dependency is something only a deployment knows");
         }
 
         @Test
-        void returnsNullWhenUsingWorkspacesDir() throws IOException {
+        void canDeclareThatSomethingWillReport() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
-            Path libsDir = tempDir.resolve("libs/current");
-            Files.createDirectories(libsDir);
-            Files.createFile(libsDir.resolve("jeffrey-agent.jar"));
-
             Files.writeString(configFile, configWithOverrides(
-                    "workspaces-dir = \"" + tempDir + "\"",
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "heartbeat { enabled = true }",
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertNull(config.getAgentPath());
+
+            assertTrue(config.isHeartbeatEnabled());
         }
     }
 
@@ -668,7 +643,7 @@ class InitConfigTest {
             assertEquals(Path.of("/tmp/jvm.args"), config.getArgFilePath());
             assertTrue(config.isDebugNonSafepointsEnabled());
             assertFalse(config.isPerfCountersEnabled());
-            assertTrue(config.isMethodTracingEnabled());
+            assertTrue(config.isSpanTracingEnabled());
             assertNull(config.resolveHeapDumpType());
         }
 
@@ -679,7 +654,7 @@ class InitConfigTest {
                     "JEFFREY_PROJECT_NAME", "my-service",
                     "JEFFREY_TRACING_ENABLED", "false")));
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         @Test
@@ -689,7 +664,7 @@ class InitConfigTest {
                     "JEFFREY_PROJECT_NAME", "my-service",
                     "JEFFREY_TRACING_ENABLED", "maybe")));
 
-            assertTrue(config.isMethodTracingEnabled());
+            assertTrue(config.isSpanTracingEnabled());
         }
 
         @Test
@@ -834,7 +809,7 @@ class InitConfigTest {
         @ValueSource(strings = {"false", "FALSE", "False", " false "})
         void acceptsFalse(String value) {
             assertFalse(InitConfig.fromEnvironment(envWith("JEFFREY_TRACING_ENABLED", value))
-                    .isMethodTracingEnabled());
+                    .isSpanTracingEnabled());
         }
 
         /**
@@ -848,7 +823,7 @@ class InitConfigTest {
             assertFalse(InitConfig.fromEnvironment(envWith("JEFFREY_PERF_COUNTERS", value))
                     .isPerfCountersEnabled(), "perf-counters defaults to off and must stay off");
             assertTrue(InitConfig.fromEnvironment(envWith("JEFFREY_TRACING_ENABLED", value))
-                    .isMethodTracingEnabled(), "tracing defaults to on and must stay on");
+                    .isSpanTracingEnabled(), "tracing defaults to on and must stay on");
         }
     }
 
@@ -924,7 +899,7 @@ class InitConfigTest {
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         /**
@@ -944,7 +919,7 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(configFile, null,
                     name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         /** The same holds when no file declares the flag at all — the environment beats defaults. */
@@ -959,7 +934,7 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(configFile, null,
                     name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         @Test

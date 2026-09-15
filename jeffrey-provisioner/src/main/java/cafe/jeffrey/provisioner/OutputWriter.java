@@ -49,7 +49,8 @@ public class OutputWriter {
         }
 
         String content = envFileBuilder.build(new EnvFileBuilder.Context(
-                layout, profilerSettings, config.isJdkJavaOptionsEnabled()));
+                layout, profilerSettings, config.isJdkJavaOptionsEnabled(),
+                config.isHeartbeatEnabled()));
 
         if (envFilePath != null) {
             Files.writeString(envFilePath, content);
