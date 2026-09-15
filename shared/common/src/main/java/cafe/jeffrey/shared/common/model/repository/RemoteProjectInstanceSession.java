@@ -24,6 +24,18 @@ package cafe.jeffrey.shared.common.model.repository;
  * async-profiler command was resolved from ({@code ProfilerSettingsSource}
  * name) and the resolved command itself; both are null in files written by
  * older provisioners.
+ *
+ * <p>{@code heartbeatExpected} declares whether anything in this run will report
+ * liveness — the {@code jeffrey-heartbeat} library, which is an ordinary
+ * dependency of the application. The provisioner cannot detect that on its own:
+ * whether the library is on the class path is a build-time fact, invisible to the
+ * tool that writes the JVM arguments. So it is <em>declared</em>, from
+ * {@code heartbeat.enabled} in the provisioner's configuration.
+ *
+ * <p>It is {@code null} in files written by older provisioners, and null means
+ * <em>unknown</em> rather than false: the hub never applies the heartbeat deadline
+ * to a session that did not promise to report, because failing to report liveness
+ * it never promised is not evidence that it ended.</p>
  */
 public record RemoteProjectInstanceSession(
         String sessionId,
@@ -34,5 +46,6 @@ public record RemoteProjectInstanceSession(
         int order,
         String relativeSessionPath,
         String profilerSettingsSource,
-        String profilerCommand) {
+        String profilerCommand,
+        Boolean heartbeatExpected) {
 }

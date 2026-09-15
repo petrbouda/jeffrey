@@ -165,7 +165,7 @@ withDefaults(defineProps<{
                 <span>Java Application</span>
                 <div class="arch-agent-badge">
                   <i class="bi bi-heart-pulse"></i>
-                  <span>Jeffrey Agent</span>
+                  <span>jeffrey-heartbeat</span>
                 </div>
               </div>
             </div>

@@ -60,6 +60,5 @@ files:
     - path: artifacts/microscope.jar
     - path: artifacts/jeffrey-hub.jar
     - path: artifacts/provisioner.jar
-    - path: artifacts/jeffrey-agent.jar
     - path: artifacts/provisioner-amd64
     - path: artifacts/provisioner-arm64

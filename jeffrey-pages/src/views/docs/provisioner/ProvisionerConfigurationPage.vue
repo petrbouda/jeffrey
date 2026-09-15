@@ -81,7 +81,7 @@ project {
 
 const fullConfig = `jeffrey-home = "/opt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
-agent-path = "/opt/jeffrey/libs/current/jeffrey-agent.jar"
+heartbeat { enabled = true }
 arg-file = "/tmp/jvm.args"
 project {
     workspace-ref-id = "production"
@@ -254,10 +254,10 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>Human-readable project label</td>
             </tr>
             <tr>
-              <td><code>agent-path</code></td>
+              <td><code>heartbeat.enabled</code></td>
               <td>No</td>
-              <td><code>JEFFREY_AGENT_PATH</code></td>
-              <td>Path to <code>jeffrey-agent.jar</code>. Auto-resolved from <code>libs/current/jeffrey-agent.jar</code> when <code>jeffrey-home</code> is set.</td>
+              <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
+              <td><strong>Off by default.</strong> Declares that this session will report liveness through the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library. Set <code>true</code> only once the application carries the dependency — a session that claims to report and then does not is finished at its own start timestamp seconds after the JVM comes up</td>
             </tr>
             <tr>
               <td><code>env-file</code></td>
@@ -317,7 +317,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>tracing.enabled</code></td>
               <td>No</td>
               <td><code>JEFFREY_TRACING_ENABLED</code></td>
-              <td><strong>On by default.</strong> Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-events</code> on the application's class path; without them the weaver stays inert. Set <code>JEFFREY_TRACING_ENABLED=false</code> to opt out</td>
+              <td><strong>On by default.</strong> Lower the JFR thresholds a span is read at, via a second recording. Costs nothing in an application that emits no spans. Set <code>JEFFREY_TRACING_ENABLED=false</code> to opt out</td>
             </tr>
             <tr>
               <td><code>tracing.jfr-event-settings</code></td>
@@ -358,7 +358,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <div class="feature-card trace">
             <div class="feature-icon"><i class="bi bi-braces"></i></div>
             <h4>Method Tracing</h4>
-            <p>Tells the Jeffrey Agent to weave methods annotated <code>@Traced</code> into spans. On by default — a provisioned JVM is one being profiled on purpose — and inert on a JVM below 25 or without <code>jeffrey-events</code> on the class path.</p>
+            <p>Lowers the JFR event thresholds a trace is read at, by starting a second recording that carries them. On by default — a provisioned JVM is one being profiled on purpose — and harmless in an application that emits no spans. It does not switch instrumentation on: spans come from the application's own <code>Tracer</code> calls and the <code>jeffrey-tracing-*</code> libraries.</p>
             <code>tracing { enabled = false }</code>
           </div>
           <div class="feature-card heap">
@@ -370,8 +370,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <div class="feature-card heartbeat">
             <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
             <h4>Heartbeat &amp; Clean-Exit Marker</h4>
-            <p>Automatic whenever <code>agent-path</code> resolves — not a configuration block. The Jeffrey Agent writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean JVM shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes.</p>
-            <code>agent-path = ".../jeffrey-agent.jar"</code>
+            <p>The <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. The Provisioner passes the directory and the declaration to the JVM as system properties, and exports them as environment variables too; the application carries the dependency, which is why this one is off until a deployment says otherwise.</p>
+            <code>heartbeat { enabled = true }</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>

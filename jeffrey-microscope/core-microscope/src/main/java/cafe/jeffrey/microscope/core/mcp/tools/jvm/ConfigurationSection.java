@@ -43,7 +43,6 @@ public record ConfigurationSection(ProfileManager profileManager) implements Jvm
     private static final String TITLE = "Configuration";
 
     private static final Set<Type> EVENT_TYPES = Set.of(
-            Type.APP_INFORMATION,
             Type.JVM_INFORMATION,
             Type.CPU_INFORMATION,
             Type.OS_INFORMATION,

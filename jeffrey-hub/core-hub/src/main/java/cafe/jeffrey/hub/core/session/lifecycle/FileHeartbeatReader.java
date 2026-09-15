@@ -24,61 +24,79 @@ import cafe.jeffrey.shared.common.HeartbeatConstants;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Optional;
 
 /**
- * Reads the file-based liveness files written by the agent into
+ * Reads the liveness files the {@code jeffrey-heartbeat} library writes into
  * {@code {sessionPath}/.heartbeat/}: the periodic {@code heartbeat} file and
  * the clean-exit {@code finished} marker. Both contain epoch millis as plain text.
+ *
+ * <p>Every read answers with a {@link LivenessRead}, which separates "nothing was written here"
+ * from "something is here and could not be read". Only the first is evidence a session ended, and
+ * the caller acts on the difference — see {@link SessionFinisher#tryFinishFromHeartbeat}.</p>
  */
 public class FileHeartbeatReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileHeartbeatReader.class);
 
+    private static final String REASON_UNREADABLE = "the file could not be read";
+    private static final String REASON_EMPTY = "the file is empty";
+    private static final String REASON_NOT_A_TIMESTAMP = "the content is not epoch millis";
+
     /**
      * Reads the last heartbeat timestamp from the heartbeat file.
      *
      * @param sessionPath path to the session directory
-     * @return the last heartbeat instant, or empty if file missing or unreadable
      */
-    public Optional<Instant> readLastHeartbeat(Path sessionPath) {
-        return readEpochMillisFile(sessionPath
+    public LivenessRead readLastHeartbeat(Path sessionPath) {
+        return read(sessionPath
                 .resolve(HeartbeatConstants.HEARTBEAT_DIR)
                 .resolve(HeartbeatConstants.HEARTBEAT_FILE));
     }
 
     /**
-     * Reads the clean-exit marker written by the agent's shutdown hook.
+     * Reads the clean-exit marker, written when the library is closed.
      *
      * @param sessionPath path to the session directory
-     * @return the clean-exit instant, or empty if the marker is missing or unreadable
      */
-    public Optional<Instant> readFinishedMarker(Path sessionPath) {
-        return readEpochMillisFile(sessionPath
+    public LivenessRead readFinishedMarker(Path sessionPath) {
+        return read(sessionPath
                 .resolve(HeartbeatConstants.HEARTBEAT_DIR)
                 .resolve(HeartbeatConstants.FINISHED_FILE));
     }
 
-    private static Optional<Instant> readEpochMillisFile(Path file) {
-        if (!Files.exists(file)) {
-            return Optional.empty();
+    /**
+     * Reads without stat-ing first, so that the answer comes from one syscall rather than from a
+     * check and a read that can disagree. It also keeps the two failures apart: only a missing
+     * file reports {@code NoSuchFileException}, while a directory this hub may not traverse and a
+     * stale handle on a network mount arrive as an ordinary {@code IOException} — which
+     * {@code Files.exists} would have flattened into "not there".
+     */
+    private static LivenessRead read(Path file) {
+        String content;
+        try {
+            content = Files.readString(file).strip();
+        } catch (NoSuchFileException e) {
+            return LivenessRead.absent();
+        } catch (IOException | RuntimeException e) {
+            LOG.warn("Liveness file cannot be read, session left alone: path={}", file, e);
+            return LivenessRead.unreadable(REASON_UNREADABLE);
+        }
+
+        if (content.isEmpty()) {
+            // The writer renames a fully written temporary file into place, so an empty file is a
+            // truncated read or a foreign write rather than a state the producer can be in
+            LOG.warn("Liveness file is empty, session left alone: path={}", file);
+            return LivenessRead.unreadable(REASON_EMPTY);
         }
 
         try {
-            String content = Files.readString(file).strip();
-            if (content.isEmpty()) {
-                return Optional.empty();
-            }
-            long epochMillis = Long.parseLong(content);
-            return Optional.of(Instant.ofEpochMilli(epochMillis));
-        } catch (IOException e) {
-            LOG.warn("Failed to read heartbeat file: path={}", file, e);
-            return Optional.empty();
+            return LivenessRead.reported(Instant.ofEpochMilli(Long.parseLong(content)));
         } catch (NumberFormatException e) {
-            LOG.warn("Invalid heartbeat file content: path={}", file, e);
-            return Optional.empty();
+            LOG.warn("Liveness file does not carry epoch millis, session left alone: path={}", file, e);
+            return LivenessRead.unreadable(REASON_NOT_A_TIMESTAMP);
         }
     }
 }

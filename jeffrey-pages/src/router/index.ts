@@ -427,11 +427,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'cli/directory-structure', redirect: '/docs/provisioner/directory-structure' },
       { path: 'cli/generated-output', redirect: '/docs/provisioner/generated-output' },
 
-      // ──── Jeffrey Agent ────
+      // ──── Heartbeat Library ────
       {
-        path: 'agent/overview',
-        name: 'DocsAgentOverview',
-        component: () => import('@/views/docs/agent/AgentOverviewPage.vue')
+        path: 'agent/heartbeat-library',
+        name: 'DocsAgentHeartbeatLibrary',
+        component: () => import('@/views/docs/agent/HeartbeatLibraryPage.vue')
       },
 
       // The MCP integration moved to its own top-level product at /docs/microscope-mcp.
@@ -521,11 +521,6 @@ const routes: RouteRecordRaw[] = [
         path: 'tracing/tracer-api/propagating',
         name: 'DocsTracingTracerPropagating',
         component: () => import('@/views/docs/tracing/tracer-api/TracerPropagatingPage.vue')
-      },
-      {
-        path: 'tracing/traced-annotation',
-        name: 'DocsTracingTracedAnnotation',
-        component: () => import('@/views/docs/tracing/TracingTracedAnnotationPage.vue')
       },
       {
         path: 'tracing/method-tracing',

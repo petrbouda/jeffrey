@@ -173,7 +173,13 @@ class InitExecutorTest {
                     "export JEFFREY_CURRENT_PROJECT="
                             + workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME),
                     "export JEFFREY_CURRENT_SESSION=" + session,
-                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr"),
+                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr",
+                    "export JEFFREY_HEARTBEAT_DIR=" + session + "/.heartbeat",
+                    // The directory is exported either way — it says where the files would go,
+                    // not that anything will write them. This fixture declares no liveness, which
+                    // is the default: whether the application carries jeffrey-heartbeat is a
+                    // build-time fact the provisioner cannot see and must not assume
+                    "export JEFFREY_HEARTBEAT_ENABLED=false"),
                     layoutExports);
             assertTrue(Files.readString(envFile).endsWith("\n"), "env file must be newline-terminated");
         }

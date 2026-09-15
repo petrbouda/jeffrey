@@ -33,7 +33,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Centralizes the logic for marking sessions as finished. Consolidates the scattered
@@ -90,6 +89,11 @@ public class SessionFinisher {
      * Unconditionally finishes a session using the heartbeat file for the finish timestamp,
      * or the provided fallback if no heartbeat is available. No staleness check is performed.
      * Used when closing previous sessions before creating a new one.
+     *
+     * <p>This is the only way a session that never promised to report liveness is finished: it
+     * writes no liveness files, so there is nothing for {@link #tryFinishFromHeartbeat} to
+     * read, and the arrival of the instance's next session is the only evidence the hub has
+     * that the previous one ended.</p>
      */
     public void forceFinish(
             ProjectRepositoryRepository repositoryRepository,
@@ -98,25 +102,51 @@ public class SessionFinisher {
             Path sessionPath,
             Instant fallbackFinishedAt) {
 
-        Instant finishedAt = fileHeartbeatReader.readFinishedMarker(sessionPath)
-                .or(() -> fileHeartbeatReader.readLastHeartbeat(sessionPath))
+        Instant finishedAt = fileHeartbeatReader.readFinishedMarker(sessionPath).timestamp()
+                .or(() -> fileHeartbeatReader.readLastHeartbeat(sessionPath).timestamp())
                 .orElse(fallbackFinishedAt);
         markFinished(repositoryRepository, projectInfo, sessionInfo, finishedAt);
     }
 
     /**
-     * Determines the finish time from the clean-exit marker or the heartbeat file
-     * and marks the session finished. Used by polling-based detection and
-     * auto-close of previous sessions.
+     * Applies the heartbeat deadline to one unfinished session and marks it finished when it
+     * has stopped reporting. Used by the polling detector.
      *
-     * <p>The clean-exit marker is checked first: it is a pure presence check and
-     * therefore immune to clock skew between the producing host and the hub (the
-     * producer-written timestamp is only recorded as the finish time, never
-     * compared against the hub clock). Heartbeat staleness remains the fallback
-     * for crashed JVMs that never ran the shutdown hook. A possible future
-     * improvement is a hub-side freshness tracker that remembers when each
-     * heartbeat value was first observed and computes staleness purely from hub
-     * clock deltas, removing skew sensitivity from the crash path too.</p>
+     * <p>Only a session that promised to report liveness is held to this deadline. The writer is
+     * the {@code jeffrey-heartbeat} library, an ordinary dependency of the profiled application,
+     * so whether anything will report is a build-time fact the provisioner cannot detect — it is
+     * declared, through {@code heartbeat.enabled}. A session that never made that promise must not
+     * be finished for failing to keep it; those are closed instead when the instance's next
+     * session appears, by {@link #forceFinish}.</p>
+     *
+     * <p>Four outcomes for a session that did declare one:</p>
+     * <ol>
+     *   <li>the clean-exit marker is present — finished at the timestamp it carries. Checked
+     *   first and by presence alone, so it is immune to clock skew between the producing host
+     *   and the hub: the producer-written timestamp is recorded as the finish time, never
+     *   compared against the hub clock;</li>
+     *   <li>the heartbeat has gone stale — finished at the last heartbeat, which is when the
+     *   JVM was last known alive. This is the crash path, where nothing closed the library;</li>
+     *   <li>a liveness file could not be read — left alone. A file that is there and unreadable
+     *   says nothing about whether the JVM is running, and the timestamp below would be a
+     *   fabrication rather than a reading. The next sweep looks again, and an instance whose
+     *   volume never recovers is closed by its next session instead;</li>
+     *   <li>no liveness file at all past the deadline — the library never got as far as writing
+     *   one (a crash during startup, or a mount the JVM could not write to). Finished at
+     *   {@code originCreatedAt}: a real timestamp the session actually has, rather than the
+     *   moment this sweep happened to notice.</li>
+     * </ol>
+     *
+     * <p>The order of 3 and 4 is the whole point of {@link LivenessRead} having three states.
+     * Read as one, a mount that answers an ordinary {@code IOException} looks exactly like a
+     * session that never reported, and every declared session on that volume is finished at its
+     * own start timestamp — irreversibly, since only unfinished sessions are ever revisited.</p>
+     *
+     * <p>The deadline in case 4 is measured against {@code createdAt} — the hub's own clock at
+     * materialization — and not against {@code originCreatedAt}, which the producer wrote. The
+     * comparison is then skew-free even though the timestamp it records is not; case 2 keeps
+     * the skew sensitivity the heartbeat file inherently has, and a hub-side freshness tracker
+     * that remembers when each heartbeat value was first observed would remove it there too.</p>
      *
      * @return true if session was marked finished
      */
@@ -125,45 +155,57 @@ public class SessionFinisher {
             ProjectInfo projectInfo,
             ProjectInstanceSessionInfo sessionInfo,
             Path sessionPath,
-            Duration heartbeatThreshold,
-            Instant fallbackFinishedAt) {
+            Duration heartbeatThreshold) {
 
-        // Case 0: Clean-exit marker written by the agent's shutdown hook
-        Optional<Instant> finishedMarker = fileHeartbeatReader.readFinishedMarker(sessionPath);
-        if (finishedMarker.isPresent()) {
-            LOG.trace("Case 0 clean-exit marker found, marking finished: sessionId={}", sessionInfo.sessionId());
-            markFinished(repositoryRepository, projectInfo, sessionInfo, finishedMarker.get());
+        if (!sessionInfo.expectsHeartbeat()) {
+            LOG.trace("Session promised no liveness, no heartbeat deadline applies: sessionId={}",
+                    sessionInfo.sessionId());
+            return false;
+        }
+
+        // Case 1: clean-exit marker, written when the application shut down cleanly
+        LivenessRead finishedMarker = fileHeartbeatReader.readFinishedMarker(sessionPath);
+        if (finishedMarker instanceof LivenessRead.Reported(Instant markerAt)) {
+            LOG.trace("Clean-exit marker found, marking finished: sessionId={}", sessionInfo.sessionId());
+            markFinished(repositoryRepository, projectInfo, sessionInfo, markerAt);
             return true;
         }
 
-        Optional<Instant> lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
+        Instant deadline = clock.instant().minus(heartbeatThreshold);
 
-        LOG.trace("tryFinishFromHeartbeat: sessionId={} heartbeatPresent={} heartbeatThreshold={}",
-                sessionInfo.sessionId(), lastHeartbeat.isPresent(), heartbeatThreshold);
-
-        // Case 1: Heartbeat file exists
-        if (lastHeartbeat.isPresent()) {
-            Instant hb = lastHeartbeat.get();
-            if (hb.isBefore(clock.instant().minus(heartbeatThreshold))) {
-                LOG.trace("Case 1 stale heartbeat, marking finished: sessionId={}", sessionInfo.sessionId());
-                markFinished(repositoryRepository, projectInfo, sessionInfo, hb);
+        // Case 2: the JVM stopped beating without writing the clean-exit marker
+        LivenessRead lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
+        if (lastHeartbeat instanceof LivenessRead.Reported(Instant heartbeatAt)) {
+            if (heartbeatAt.isBefore(deadline)) {
+                LOG.trace("Stale heartbeat, marking finished: sessionId={} lastHeartbeat={}",
+                        sessionInfo.sessionId(), heartbeatAt);
+                markFinished(repositoryRepository, projectInfo, sessionInfo, heartbeatAt);
                 return true;
             }
-            LOG.trace("Case 1 fresh heartbeat, skipping: sessionId={}", sessionInfo.sessionId());
+            LOG.trace("Fresh heartbeat, session still alive: sessionId={}", sessionInfo.sessionId());
             return false;
         }
 
-        // Case 2: No heartbeat file, session too young — heartbeats may not have arrived
-        if (sessionInfo.originCreatedAt().isAfter(clock.instant().minus(heartbeatThreshold))) {
-            LOG.trace("Case 2 session too young, skipping: sessionId={} originCreatedAt={}",
-                    sessionInfo.sessionId(), sessionInfo.originCreatedAt());
+        // Case 3: a read failed rather than came back empty. Nothing is known about this session,
+        // so nothing is concluded about it — the next sweep reads again once the volume recovers.
+        if (!finishedMarker.isAbsent() || !lastHeartbeat.isAbsent()) {
+            LOG.warn("Liveness files unreadable, leaving session unfinished: sessionId={} "
+                            + "sessionPath={} finishedMarker={} heartbeat={}",
+                    sessionInfo.sessionId(), sessionPath, finishedMarker, lastHeartbeat);
             return false;
         }
 
-        // Case 3: No heartbeat file, session old enough — use fallback
-        LOG.trace("Case 3 no heartbeat found, using fallback: sessionId={} fallbackFinishedAt={}",
-                sessionInfo.sessionId(), fallbackFinishedAt);
-        markFinished(repositoryRepository, projectInfo, sessionInfo, fallbackFinishedAt);
+        // Case 4: liveness was promised and nothing was ever written. Inside the deadline that is
+        // a JVM still starting up; past it, one that never got far enough to report.
+        if (sessionInfo.createdAt().isAfter(deadline)) {
+            LOG.trace("No heartbeat yet, still within startup deadline: sessionId={} createdAt={}",
+                    sessionInfo.sessionId(), sessionInfo.createdAt());
+            return false;
+        }
+
+        LOG.trace("Promised liveness never arrived, marking finished at session start: sessionId={}",
+                sessionInfo.sessionId());
+        markFinished(repositoryRepository, projectInfo, sessionInfo, sessionInfo.originCreatedAt());
         return true;
     }
 }

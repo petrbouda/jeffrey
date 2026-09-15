@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.shared.common.HeartbeatConstants;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +41,8 @@ public class EnvFileBuilder {
     private static final String JEFFREY_PROJECT_PROP = "JEFFREY_CURRENT_PROJECT";
     private static final String JEFFREY_FILE_PATTERN_PROP = "JEFFREY_FILE_PATTERN";
     private static final String JEFFREY_PROFILER_CONFIG_PROP = "JEFFREY_PROFILER_CONFIG";
+    private static final String JEFFREY_HEARTBEAT_DIR_PROP = "JEFFREY_HEARTBEAT_DIR";
+    private static final String JEFFREY_HEARTBEAT_ENABLED_PROP = "JEFFREY_HEARTBEAT_ENABLED";
     private static final String JDK_JAVA_OPTIONS_PROP = "JDK_JAVA_OPTIONS";
 
     private static final String EXPORT_PREFIX = "export ";
@@ -48,11 +52,16 @@ public class EnvFileBuilder {
     /**
      * @param exportJdkJavaOptions also export the profiler command as {@code JDK_JAVA_OPTIONS},
      *                             which the JVM picks up without an argfile
+     * @param heartbeatEnabled     whether this session expects the {@code jeffrey-heartbeat}
+     *                             library to report liveness. Exported so the library reads it,
+     *                             and recorded in the session marker so the hub knows whether to
+     *                             hold the session to its heartbeat deadline
      */
     public record Context(
             SessionLayout layout,
             String profilerSettings,
-            boolean exportJdkJavaOptions
+            boolean exportJdkJavaOptions,
+            boolean heartbeatEnabled
     ) {}
 
     /**
@@ -73,6 +82,13 @@ public class EnvFileBuilder {
         exports.add(export(JEFFREY_PROJECT_PROP, layout.project()));
         exports.add(export(JEFFREY_SESSION_PROP, layout.session()));
         exports.add(export(JEFFREY_FILE_PATTERN_PROP, layout.recordingFilePattern(DEFAULT_FILE_TEMPLATE)));
+
+        // Named outright rather than left to be derived from JEFFREY_CURRENT_SESSION, so the
+        // library needs no opinion about where inside a session directory the files belong. The
+        // library still falls back to deriving it, for a session provisioned before this export.
+        exports.add(export(JEFFREY_HEARTBEAT_DIR_PROP,
+                layout.session().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
+        exports.add(export(JEFFREY_HEARTBEAT_ENABLED_PROP, Boolean.toString(context.heartbeatEnabled())));
 
         if (context.profilerSettings() != null && !context.profilerSettings().isEmpty()) {
             String quoted = wrapQuotes(context.profilerSettings());

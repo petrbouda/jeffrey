@@ -144,7 +144,7 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
       </ul>
 
       <DocsCallout type="tip">
-        <code>@Traced</code> on a method emits byte-for-byte the same <code>jeffrey.TraceSpan</code> as <code>Tracer.call</code> — pick by whether you prefer the span visible in the code or the method left untouched. See <router-link to="/docs/tracing/traced-annotation">@Traced &amp; the Agent</router-link>.
+        The <code>jeffrey-tracing-*</code> instrumentation libraries emit byte-for-byte the same <code>jeffrey.TraceSpan</code> for the work they cover — HTTP, gRPC, JDBC, MyBatis. Reach for <code>Tracer.call</code> where no library covers the work. See <router-link to="/docs/tracing/instrumentation">Instrumentation</router-link>.
       </DocsCallout>
 
       <h2 id="related">Related</h2>

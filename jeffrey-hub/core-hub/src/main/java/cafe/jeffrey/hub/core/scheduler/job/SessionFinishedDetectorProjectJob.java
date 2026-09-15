@@ -40,7 +40,6 @@ import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
@@ -52,6 +51,9 @@ import java.util.stream.Stream;
  * For each unfinished session, it uses {@link SessionFinisher} to determine if the session
  * has actually finished based on heartbeat data. When a session is detected as finished, it
  * also checks if the parent instance should be auto-finished.
+ * <p>
+ * Only sessions that promised to report liveness are examined here; the rest are left alone and
+ * closed by the reconciler when the instance's next session appears.
  */
 public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<SessionFinishedDetectorProjectJobDescriptor> {
 
@@ -59,7 +61,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
 
     private final Duration period;
     private final Duration heartbeatThreshold;
-    private final Clock clock;
     private final HubJeffreyDirs jeffreyDirs;
     private final HubPlatformRepositories platformRepositories;
     private final SessionFinisher sessionFinisher;
@@ -69,7 +70,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
             Duration period,
             Duration heartbeatThreshold,
-            Clock clock,
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher) {
@@ -77,7 +77,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         super(workspacesManager, remoteRepositoryManagerFactory, new SessionFinishedDetectorProjectJobDescriptor());
         this.period = period;
         this.heartbeatThreshold = heartbeatThreshold;
-        this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.sessionFinisher = sessionFinisher;
@@ -122,7 +121,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
 
         boolean finished = sessionFinisher.tryFinishFromHeartbeat(
                 projectRepositoryRepository, projectInfo, sessionInfo,
-                sessionPath, heartbeatThreshold, clock.instant());
+                sessionPath, heartbeatThreshold);
 
         if (finished) {
             // Check for hs_err log (JVM crash) - emit specific alert

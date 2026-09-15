@@ -21,11 +21,12 @@ package cafe.jeffrey.shared.common;
 import java.time.Duration;
 
 /**
- * Shared constants for the file-based heartbeat mechanism.
- * Used by both the CLI (producer wiring) and the platform (consumer).
+ * Shared constants for the file-based heartbeat mechanism, as the hub reads it.
  *
- * <p>The agent module duplicates the relevant subset of these constants
- * because it must remain zero-dependency for minimal JAR size.</p>
+ * <p>{@code utilities/jeffrey-heartbeat} — the library that writes these files from inside a
+ * profiled application — carries its own copy in {@code HeartbeatFiles} rather than depending on
+ * this module, which no application should ever be made to pull in. The two move together; there
+ * is no third reader.</p>
  */
 public abstract class HeartbeatConstants {
 
@@ -37,21 +38,34 @@ public abstract class HeartbeatConstants {
 
     /**
      * Name of the clean-exit marker file (contains epoch millis). Written into
-     * {@link #HEARTBEAT_DIR} by the agent's shutdown hook; its presence lets the
+     * {@link #HEARTBEAT_DIR} when the library is closed; its presence lets the
      * hub finish a session deterministically instead of waiting for the
      * heartbeat to go stale. Absent after a hard crash (kill -9, OOM kill).
      */
     public static final String FINISHED_FILE = "finished";
 
-    /** Agent argument key for heartbeat directory path */
-    public static final String PARAM_DIR = "heartbeat.dir";
-
-    /** Agent argument key for heartbeat interval in milliseconds */
-    public static final String PARAM_INTERVAL = "heartbeat.interval";
-
-    /** Agent argument key to enable/disable heartbeat (optional, defaults to true) */
-    public static final String PARAM_ENABLED = "heartbeat.enabled";
-
-    /** Default heartbeat interval. Must match {@code AgentArgs.DEFAULT_INTERVAL} in jeffrey-agent. */
+    /**
+     * Default heartbeat interval. Must match {@code HeartbeatFiles.DEFAULT_INTERVAL} in
+     * {@code jeffrey-heartbeat}: the hub's staleness threshold is chosen as a multiple of it, so a
+     * producer beating more slowly than the hub expects reads as dead while it is running.
+     */
     public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
+
+    /**
+     * System property naming the directory the liveness files go in. The Provisioner writes it
+     * into the argfile, which is the one channel every deployment path delivers: the {@code .env}
+     * file is written only when a deployment asks for one, and the container entrypoint execs the
+     * JVM with the argfile without sourcing a shell file at all.
+     *
+     * <p>Must match {@code HeartbeatSettings.DIRECTORY_PROPERTY} in {@code jeffrey-heartbeat},
+     * which resolves it ahead of {@code JEFFREY_HEARTBEAT_DIR}.</p>
+     */
+    public static final String DIRECTORY_PROPERTY = "jeffrey.heartbeat.dir";
+
+    /**
+     * System property declaring whether anything will report liveness at all. Carried the same way
+     * and for the same reason as {@link #DIRECTORY_PROPERTY}, and must match
+     * {@code HeartbeatSettings.ENABLED_PROPERTY}.
+     */
+    public static final String ENABLED_PROPERTY = "jeffrey.heartbeat.enabled";
 }
