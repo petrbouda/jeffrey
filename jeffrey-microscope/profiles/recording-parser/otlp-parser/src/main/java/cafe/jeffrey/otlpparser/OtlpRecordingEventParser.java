@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.measure.Measuring;
 
 import java.nio.file.Path;
@@ -37,10 +38,16 @@ public class OtlpRecordingEventParser implements RecordingEventParser {
 
     private static final Logger LOG = LoggerFactory.getLogger(OtlpRecordingEventParser.class);
 
+    /**
+     * Each file gets its own writer, the way a JFR chunk does: the writers are independent and the
+     * events carry their own timestamps, so nothing depends on the files being read together.
+     */
     @Override
-    public void start(EventWriter eventWriter, Path recording) {
-        OtlpProfileReader reader = new OtlpProfileReader(eventWriter.newSingleThreadedWriter());
-        Duration elapsed = Measuring.r(() -> reader.read(recording));
-        LOG.info("OTLP recording parsed: recording={} duration_in_ms={}", recording, elapsed.toMillis());
+    public void start(EventWriter eventWriter, RecordingSources sources) {
+        for (Path recording : sources.files()) {
+            OtlpProfileReader reader = new OtlpProfileReader(eventWriter.newSingleThreadedWriter());
+            Duration elapsed = Measuring.r(() -> reader.read(recording));
+            LOG.info("OTLP recording parsed: recording={} duration_in_ms={}", recording, elapsed.toMillis());
+        }
     }
 }

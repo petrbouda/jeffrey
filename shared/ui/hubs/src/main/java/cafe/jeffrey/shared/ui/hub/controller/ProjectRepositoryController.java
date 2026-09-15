@@ -115,7 +115,7 @@ public class ProjectRepositoryController {
             @RequestBody SelectedRecordingsRequest request) {
         LOG.debug("Downloading session recordings: sessionId={}", request.sessionId());
         RecordingsDownloadManager mgr = projectAccess.recordingsDownloadManager(hubId, workspaceId, projectId);
-        mgr.mergeAndDownloadSession(request.sessionId());
+        mgr.downloadSession(request.sessionId());
     }
 
     @DeleteMapping("/sessions/{sessionId}")
@@ -150,7 +150,7 @@ public class ProjectRepositoryController {
         LOG.debug("Downloading selected recordings: fileCount={}",
                 request.recordingIds() != null ? request.recordingIds().size() : 0);
         RecordingsDownloadManager mgr = projectAccess.recordingsDownloadManager(hubId, workspaceId, projectId);
-        mgr.mergeAndDownloadRecordings(request.sessionId(), request.recordingIds());
+        mgr.downloadRecordings(request.sessionId(), request.recordingIds());
     }
 
     @PostMapping("/recordings/delete")

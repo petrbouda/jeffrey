@@ -33,7 +33,7 @@ public enum DownloadTaskStatus {
     DOWNLOADING,
 
     /**
-     * Files have been downloaded and are being processed (merged, copied to storage).
+     * Files have been downloaded and are being copied into storage.
      */
     PROCESSING,
 

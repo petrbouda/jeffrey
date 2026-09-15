@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.pprofparser;
 
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import com.google.perftools.profiles.ProfileProto.Profile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -87,7 +88,7 @@ class PprofRecordingRoundTripTest {
                         Schedulers.sharedDbWriter(), dataSource, BATCH_SIZE, profilingStartedAt,
                         BatchFlushLimit.ofSlots(Schedulers.DB_WRITER_THREADS)));
 
-        new PprofRecordingEventParser().start(eventWriter, recording);
+        new PprofRecordingEventParser().start(eventWriter, RecordingSources.of(recording));
         eventWriter.onComplete();
 
         // one event per non-zero sample dimension

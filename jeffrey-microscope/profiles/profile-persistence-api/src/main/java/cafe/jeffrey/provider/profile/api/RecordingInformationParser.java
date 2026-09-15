@@ -19,15 +19,17 @@
 package cafe.jeffrey.provider.profile.api;
 
 
-import java.nio.file.Path;
-
 public interface RecordingInformationParser {
 
     /**
      * Retrieves the recording information for a given recording.
+     * <p>
+     * Across several files the answer is one recording's worth: the earliest start, the latest
+     * end, and the sizes added up. The window matters beyond display — it anchors the relative
+     * timeline written with every event — so it has to span all of them.
      *
-     * @param recordingPath path to the given recording.
+     * @param sources the files the recording is made of
      * @return the recording information
      */
-    RecordingInformation provide(Path recordingPath);
+    RecordingInformation provide(RecordingSources sources);
 }

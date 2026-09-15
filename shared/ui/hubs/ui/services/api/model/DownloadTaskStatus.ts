@@ -26,7 +26,7 @@ enum DownloadTaskStatus {
   /** Files are currently being downloaded from the hub. */
   DOWNLOADING = 'DOWNLOADING',
 
-  /** Files have been downloaded and are being processed (merged, copied to storage). */
+  /** Files have been downloaded and are being copied into storage. */
   PROCESSING = 'PROCESSING',
 
   /** Download completed successfully. */

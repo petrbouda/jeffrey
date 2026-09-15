@@ -323,10 +323,9 @@ const clearAllSelections = (sessionId: string) => {
 };
 
 /**
- * Whether the ticked recordings may be downloaded together. Downloading merges them into one
- * recording, so a skipped chunk would leave a hole the result cannot show — the Hub refuses such a
- * selection and this says so first. Ticking itself stays free, because Delete Selected shares this
- * map and has no reason to want an unbroken run.
+ * Whether the ticked recordings may be downloaded together. They become one recording reporting one
+ * span, so a skipped chunk would leave a hole the result cannot show. Ticking itself stays free,
+ * because Delete Selected shares this map and has no reason to want an unbroken run.
  */
 const isDownloadableSelection = (sessionId: string): boolean => {
   const session = props.sessions.find(s => s.id === sessionId);
@@ -1058,7 +1057,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
         <!--
           Why Download is greyed out. Deleting a gapped selection is fine, so the checkboxes stay
-          free and only the merge is refused.
+          free and only the download is refused.
         -->
         <div
           v-if="showMultiSelectActions[session.id] && !isDownloadableSelection(session.id)"

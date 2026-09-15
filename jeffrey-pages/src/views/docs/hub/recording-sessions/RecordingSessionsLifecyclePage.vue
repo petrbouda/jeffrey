@@ -62,7 +62,7 @@ onMounted(() => {
               <p>Profiling is in progress. New JFR chunks are being created as time passes. The session remains active until the application stops or profiling is terminated.</p>
               <ul class="lifecycle-details">
                 <li>View files as they're created in real-time</li>
-                <li>Merge available chunks for preliminary analysis</li>
+                <li>Pull the chunks written so far for preliminary analysis</li>
                 <li>Monitor session progress and duration</li>
               </ul>
             </div>
@@ -73,7 +73,7 @@ onMounted(() => {
               <h4>Finished</h4>
               <p>Profiling has completed. All JFR files are finalised and ready for analysis from the project's <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab.</p>
               <ul class="lifecycle-details">
-                <li>Select specific JFR chunks to merge</li>
+                <li>Select specific JFR chunks to download</li>
                 <li>Download all session artifacts</li>
                 <li>Create recordings for profile analysis</li>
               </ul>
@@ -82,7 +82,7 @@ onMounted(() => {
         </div>
 
         <DocsCallout type="tip">
-          <strong>Selective analysis:</strong> You don't need to merge all chunks. Select specific time periods to analyze - for example, only the startup phase or a specific incident window.
+          <strong>Selective analysis:</strong> You don't need the whole session. Select specific time periods to analyze - for example, only the startup phase or a specific incident window. The chunks you pick are fetched separately and kept as the several files the recording is made of; they must be an unbroken run, because the recording reports one span across the files it holds and a hole inside that span would be invisible.
         </DocsCallout>
 
         <h2 id="example-sessions">Example: Active and Crashed Sessions</h2>

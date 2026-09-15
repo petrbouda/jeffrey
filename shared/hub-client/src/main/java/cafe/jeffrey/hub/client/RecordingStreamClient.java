@@ -20,23 +20,13 @@ package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.microscope.grpc.client.*;
 
-import io.grpc.Context;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.hub.client.manager.TempDirProvider;
-import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class RecordingStreamClient {
 
@@ -55,51 +45,9 @@ public class RecordingStreamClient {
     private static final long UNKNOWN_CONTENT_LENGTH = -1;
 
     private final RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub;
-    private final TempDirProvider tempDirProvider;
 
-    public RecordingStreamClient(GrpcHubConnection connection, TempDirProvider tempDirProvider) {
+    public RecordingStreamClient(GrpcHubConnection connection) {
         this.stub = RecordingDownloadServiceGrpc.newBlockingStub(connection.getChannel());
-        this.tempDirProvider = tempDirProvider;
-    }
-
-    public CompletableFuture<Resource> downloadRecordings(
-            String sessionId, List<String> recordingIds) {
-
-        return CompletableFuture.supplyAsync(() -> {
-            DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
-                    .setSessionId(sessionId)
-                    .addAllFileIds(recordingIds)
-                    .build();
-
-            Iterator<DataChunk> chunks = stub.downloadMergedRecordings(request);
-            return collectChunksToResource(chunks);
-        }, Context.current().fixedContextExecutor(Schedulers.sharedVirtual()));
-    }
-
-    public CompletableFuture<Resource> downloadArtifactFile(
-            String sessionId, String fileId) {
-
-        return CompletableFuture.supplyAsync(() -> {
-            DownloadArtifactFileRequest request = DownloadArtifactFileRequest.newBuilder()
-                    .setSessionId(sessionId)
-                    .setFileId(fileId)
-                    .build();
-
-            Iterator<DataChunk> chunks = stub.downloadArtifactFile(request);
-            return collectChunksToResource(chunks);
-        }, Context.current().fixedContextExecutor(Schedulers.sharedVirtual()));
-    }
-
-    public void streamRecordings(
-            String sessionId, List<String> recordingIds, InputStreamConsumer consumer) {
-
-        DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
-                .setSessionId(sessionId)
-                .addAllFileIds(recordingIds)
-                .build();
-
-        Iterator<DataChunk> chunks = stub.downloadMergedRecordings(request);
-        streamChunksToConsumer(chunks, consumer);
     }
 
     public void streamArtifactFile(
@@ -124,33 +72,6 @@ public class RecordingStreamClient {
 
         Iterator<DataChunk> chunks = stub.downloadRecordingFile(request);
         streamChunksToConsumer(chunks, consumer);
-    }
-
-    /**
-     * Collects gRPC data chunks into a temporary file and returns it as a Spring Resource.
-     * The temp directory is intentionally not closed on success — the returned Resource is backed
-     * by the file inside it, so ownership passes to the consumer and the application's temp-dir
-     * lifecycle removes the leftovers.
-     */
-    private Resource collectChunksToResource(Iterator<DataChunk> chunks) {
-        TempDirectory tempDir = tempDirProvider.newTempDir();
-        try {
-            Path tempFile = Files.createTempFile(tempDir.path(), "grpc-download-", ".tmp");
-
-            try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(tempFile))) {
-                while (chunks.hasNext()) {
-                    chunks.next().getData().writeTo(out);
-                }
-            }
-
-            return new FileSystemResource(tempFile);
-        } catch (IOException e) {
-            tempDir.close();
-            throw new UncheckedIOException("Failed to collect gRPC data chunks to temp file", e);
-        } catch (RuntimeException e) {
-            tempDir.close();
-            throw e;
-        }
     }
 
     /**
@@ -195,8 +116,13 @@ public class RecordingStreamClient {
             try {
                 consumer.accept(pipeIn, contentLength);
             } finally {
-                writer.join();
+                // Closed before the join, not after it. A consumer that stopped early -- a
+                // cancelled download -- leaves the writer blocked on a full pipe with nobody
+                // reading, and PipedInputStream only gives up on a reader it can see is dead:
+                // this thread is alive, waiting in that very join. Closing first turns the
+                // writer's next write into the IOException it handles.
                 pipeIn.close();
+                writer.join();
             }
 
             if (writerError[0] != null) {

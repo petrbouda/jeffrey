@@ -23,16 +23,15 @@ import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
 /**
  * Whether a set of ticked files may be downloaded together.
  *
- * Downloading several recording files merges them into one recording, and merging is
- * concatenation: the chunks are written one after another and nothing in the result records that
- * one was skipped. A recording built from chunks 1 and 3 therefore claims the span of 1 to 3 while
- * holding two thirds of it, and every rate read off it is wrong by the size of the hole. So the
- * chunks have to be an unbroken run.
+ * Several recording files become one recording — kept as the several files they are, but reporting
+ * one span across them. Nothing in that span records that a chunk was skipped: a recording built
+ * from chunks 1 and 3 claims the span of 1 to 3 while holding two thirds of it, and every rate read
+ * off it is wrong by the size of the hole. So the chunks have to be an unbroken run.
  *
- * The Hub refuses a gapped selection itself — this is the same rule, said before the request is
- * made so the reader finds out while looking at the list rather than afterwards. It mirrors
- * `ChunkWindow` on the Java side field for field: finished recording files only, ordered by
- * `createdAt`. Deleting files has no such rule, which is why this constrains the Download button
+ * Said before the request is made, so the reader finds out while looking at the list rather than
+ * afterwards. It mirrors `ChunkWindow` on the Java side field for field: finished recording files
+ * only, ordered by `createdAt`. Deleting files has no such rule, which is why this constrains the
+ * Download button
  * rather than the ticking.
  */
 
@@ -102,7 +101,7 @@ export function chunkSelectionGapMessage(
   const subject = gap.length === 1 ? `${names} lies` : `${names} lie`;
   return (
     `The selected recordings are not next to each other: ${subject} between them. ` +
-    'A download merges them into one recording, so they have to be an unbroken run — ' +
+    'They become one recording reporting one span, so they have to be an unbroken run — ' +
     'select the recordings in between as well, or download them separately.'
   );
 }

@@ -22,9 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -43,15 +45,15 @@ public class JfrRecordingMetadataParserAdapter implements RecordingMetadataParse
     }
 
     @Override
-    public Optional<RecordingMetadata> parse(Path recordingFile) {
+    public Optional<RecordingMetadata> parse(List<Path> recordingFiles) {
         try {
-            RecordingInformation info = delegate.provide(recordingFile);
+            RecordingInformation info = delegate.provide(new RecordingSources(recordingFiles));
             return Optional.of(new RecordingMetadata(
                     info.eventSource(),
                     info.recordingStartedAt(),
                     info.recordingFinishedAt()));
         } catch (Exception e) {
-            LOG.warn("Failed to parse recording metadata: file={} error={}", recordingFile, e.getMessage());
+            LOG.warn("Failed to parse recording metadata: files={} error={}", recordingFiles, e.getMessage());
             return Optional.empty();
         }
     }

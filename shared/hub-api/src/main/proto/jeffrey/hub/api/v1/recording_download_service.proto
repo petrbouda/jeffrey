@@ -8,17 +8,13 @@ option java_multiple_files = true;
 // Provides server-streaming RPCs for downloading recordings and artifacts.
 // Files are streamed in 64KB chunks to support efficient transfer of large files
 // (JFR recordings, heap dumps) without loading them entirely into memory.
+//
+// One file per call, always. A session's recording is several rotated chunk files and
+// the client fetches them separately, in parallel, keeping them separate afterwards:
+// each is a self-contained JFR and the parser reads them independently. Joining them
+// here cost the hub a full decompress and recompress of the session, and a whole-session
+// temp file, to produce something the client took apart again before parsing it.
 service RecordingDownloadService {
-  // Merges selected JFR recording files from a session into a single file
-  // and streams the result. If no file_ids are specified, all finished recordings
-  // in the session are merged.
-  //
-  // The chosen files must be an unbroken run of the session's chunks: merging
-  // concatenates them, so a skipped chunk leaves no trace in the result and the
-  // recording would claim a span it does not hold. A gapped selection, and an id
-  // the session does not have, are both refused with INVALID_ARGUMENT.
-  rpc DownloadMergedRecordings(DownloadMergedRecordingsRequest) returns (stream DataChunk);
-
   // Streams a single artifact file (heap dump, log, error log, etc.) from a session.
   // The file must exist and be in FINISHED status.
   rpc DownloadArtifactFile(DownloadArtifactFileRequest) returns (stream DataChunk);
@@ -26,14 +22,6 @@ service RecordingDownloadService {
   // Streams a single JFR recording file from a session.
   // The file must exist and be in FINISHED status.
   rpc DownloadRecordingFile(DownloadRecordingFileRequest) returns (stream DataChunk);
-}
-
-message DownloadMergedRecordingsRequest {
-  // The recording session containing the files to merge.
-  string session_id = 1;
-  // Specific file IDs to merge, which must be adjacent chunks of the session.
-  // If empty, all finished recordings are merged.
-  repeated string file_ids = 2;
 }
 
 message DownloadArtifactFileRequest {

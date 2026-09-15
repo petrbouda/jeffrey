@@ -31,7 +31,7 @@ public interface RecordingsDownloadManager {
      * @return id of the recording created in the local store, so the caller can go on to
      * analyse it without having to search the store for whatever appeared last
      */
-    String mergeAndDownloadSession(String recordingSessionId);
+    String downloadSession(String recordingSessionId);
 
     /**
      * Downloads the named files of the session and stores them as one local recording.
@@ -40,17 +40,17 @@ public interface RecordingsDownloadManager {
      * @param rawRecordingIds    ids of the files to take from that session
      * @return id of the recording created in the local store
      */
-    String mergeAndDownloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
+    String downloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
 
     /**
-     * Downloads the recording files of the session that cover the window, merged into one local
-     * recording named and tagged with the span those files actually cover. Nothing else the session
-     * holds comes with them: an artifact is fetched on its own.
+     * Downloads the recording files of the session that cover the window and stores them as one
+     * local recording, named and tagged with the span those files actually cover. Nothing else the
+     * session holds comes with them: an artifact is fetched on its own.
      *
      * @param recordingSessionId the upstream session to take the window from
      * @param window             the span of interest; the files straddling its bounds are included
      * @return id of the recording created in the local store
      * @throws IllegalArgumentException when no finished recording file of the session touches the window
      */
-    String mergeAndDownloadWindow(String recordingSessionId, ChunkWindow window);
+    String downloadWindow(String recordingSessionId, ChunkWindow window);
 }

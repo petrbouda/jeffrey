@@ -28,7 +28,6 @@ import cafe.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcess
 import cafe.jeffrey.profile.manager.additional.ProcessingResult;
 import cafe.jeffrey.profile.manager.additional.PerfCounter;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
-import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,7 +45,6 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             };
 
     private final ProfileCacheRepository cacheRepository;
-    private final ProjectRecordingStorage projectRecordingStorage;
     private final Path heapDumpAnalysisPath;
     private final Map<SupportedRecordingFile, AdditionalFileProcessor> processors;
 
@@ -56,11 +54,9 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
     public AdditionalFilesManagerImpl(
             ProfileCacheRepository cacheRepository,
-            ProjectRecordingStorage projectRecordingStorage,
             Path heapDumpAnalysisPath) {
 
         this.cacheRepository = cacheRepository;
-        this.projectRecordingStorage = projectRecordingStorage;
         this.heapDumpAnalysisPath = heapDumpAnalysisPath;
 
         // Initialize processors map with all supported processors
@@ -73,9 +69,8 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
 
     @Override
-    public void processAdditionalFiles(String recordingId) {
-        List<Path> findAdditionalFiles = projectRecordingStorage.findArtifacts(recordingId);
-        for (Path additionalFile : findAdditionalFiles) {
+    public void processAdditionalFiles(List<Path> artifacts) {
+        for (Path additionalFile : artifacts) {
             SupportedRecordingFile fileType = SupportedRecordingFile.of(additionalFile);
             AdditionalFileProcessor processor = processors.get(fileType);
             if (processor != null) {

@@ -30,6 +30,7 @@ import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
@@ -96,8 +97,9 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     }
 
     @Override
-    public ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath) {
-        LOG.debug("Initializing profile: profileId={} recordingId={}", profileInfo.id(), recordingId);
+    public ProfileManager initialize(ProfileInfo profileInfo, RecordingSources sources, List<Path> artifacts) {
+        LOG.debug("Initializing profile: profileId={} sources={} artifacts={}",
+                profileInfo.id(), sources.size(), artifacts.size());
         Instant startedAt = clock.instant();
 
         // Open database connection for the new profile (creating the database file on disk if it
@@ -119,7 +121,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             // by profile id while it happens.
             AtomicReference<ProfileManager> initialized = new AtomicReference<>();
             runRegistry.runInline(PipelineRunRequest.of(profileInfo.id(),
-                    run -> initialized.set(runStages(run, profileInfo, recordingId, recordingPath, lease))));
+                    run -> initialized.set(runStages(run, profileInfo, sources, artifacts, lease))));
 
             long elapsedMs = clock.instant().toEpochMilli() - startedAt.toEpochMilli();
             LOG.info("Profile parsed and initialized: profile_id={} profile_name={} elapsed_ms={}",
@@ -132,8 +134,8 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     private ProfileManager runStages(
             PipelineRun run,
             ProfileInfo profileInfo,
-            String recordingId,
-            Path recordingPath,
+            RecordingSources sources,
+            List<Path> artifacts,
             DatabaseLease lease) {
 
         DataSource dataSource = lease.dataSource();
@@ -143,7 +145,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         // the import cost the longer of them instead of both. It is joined in the warming stage at
         // the end, which is also where the findings it produced are written.
         CompletableFuture<List<AutoAnalysisResult>> autoAnalysis =
-                profileDataInitializer.startAutoAnalysis(profileInfo, recordingPath);
+                profileDataInitializer.startAutoAnalysis(profileInfo, sources);
 
         // Store profile context (workspace_id, project_id) in the profile database.
         // Skipped for Recordings profiles, where workspace and project are null.
@@ -165,7 +167,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         EventWriter eventWriter = eventWriterFactory.create(dataSource, profileInfo.profilingStartedAt());
         RecordingEventParser recordingEventParser =
                 recordingEventParserResolver.resolve(profileInfo.eventSource());
-        run.runStage(ProfileInitStages.PARSE, () -> recordingEventParser.start(eventWriter, recordingPath));
+        run.runStage(ProfileInitStages.PARSE, () -> recordingEventParser.start(eventWriter, sources));
         run.runStage(ProfileInitStages.FLUSH, eventWriter::onComplete);
 
         DatabaseClient infrastructureClient = profileRepositories.databaseClientProvider(dataSource)
@@ -188,12 +190,14 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
         // Process additional files (like logs, metrics, heap-dumps, perf-counters etc.)
         // Currently only perf-counters are supported.
-        // Skipped for Recordings, where recordingId is null.
-        if (recordingId != null) {
-            run.runStage(ProfileInitStages.ADDITIONAL_FILES,
-                    () -> profileManager.additionalFilesManager().processAdditionalFiles(recordingId));
-        } else {
+        // Skipped only when the recording brought nothing along, which is what the stage being
+        // skipped was always meant to say. It used to key on whether the recording came from a
+        // project, so a downloaded session's heap dump and perf counters never reached the profile.
+        if (artifacts.isEmpty()) {
             run.skipStage(ProfileInitStages.ADDITIONAL_FILES);
+        } else {
+            run.runStage(ProfileInitStages.ADDITIONAL_FILES,
+                    () -> profileManager.additionalFilesManager().processAdditionalFiles(artifacts));
         }
 
         // Ensure all data is flushed to disk - especially important for WAL mode databases.

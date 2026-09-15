@@ -51,8 +51,6 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RecordingDownloadGrpcServiceTest {
@@ -76,148 +74,6 @@ class RecordingDownloadGrpcServiceTest {
         }
     }
 
-    // ========== DownloadMergedRecordings ==========
-
-    @Nested
-    class DownloadMergedRecordings {
-
-        @Test
-        void sessionNotFound_returnsNotFound() throws Exception {
-            var stub = startServer(serviceWithNoSession());
-            var observer = new TestStreamObserver();
-
-            stub.downloadMergedRecordings(
-                    DownloadMergedRecordingsRequest.newBuilder()
-                            .setSessionId("non-existent")
-                            .build(),
-                    observer);
-
-            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
-            assertStatus(Status.Code.NOT_FOUND, observer.error);
-        }
-
-        @Test
-        void streamsFileChunks(@TempDir Path tempDir) throws Exception {
-            byte[] content = new byte[200];
-            for (int i = 0; i < content.length; i++) {
-                content[i] = (byte) (i % 127);
-            }
-            Path tempFile = tempDir.resolve("merged.jfr");
-            Files.write(tempFile, content);
-
-            var repoManager = mock(RepositoryManager.class);
-            when(repoManager.mergeAndStreamRecordings(SESSION_ID, List.of("f1", "f2")))
-                    .thenReturn(new StreamedRecordingFile("merged.jfr", tempFile));
-
-            var stub = startServer(serviceWithSession(repoManager));
-            var observer = new TestStreamObserver();
-
-            stub.downloadMergedRecordings(
-                    DownloadMergedRecordingsRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .addFileIds("f1")
-                            .addFileIds("f2")
-                            .build(),
-                    observer);
-
-            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
-            assertNull(observer.error, "Stream should complete without error");
-            assertFalse(observer.chunks.isEmpty(), "Should receive at least one chunk");
-
-            assertTotalSizeOnFirstChunkOnly(observer.chunks, content.length);
-            assertArrayEquals(content, reassemble(observer.chunks));
-        }
-
-        /**
-         * Merging is concatenation, so a skipped chunk would leave no trace in the result: the
-         * recording would claim f1's start to f3's end while holding two thirds of it. Refused
-         * here because this is the only place every client goes through.
-         */
-        @Test
-        void chunksWithOneSkipped_returnsInvalidArgument() throws Exception {
-            var repoManager = mock(RepositoryManager.class);
-            var stub = startServer(serviceWithSession(repoManager));
-            var observer = new TestStreamObserver();
-
-            stub.downloadMergedRecordings(
-                    DownloadMergedRecordingsRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .addFileIds("f1")
-                            .addFileIds("f3")
-                            .build(),
-                    observer);
-
-            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
-            assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
-            assertTrue(observer.error.getMessage().contains("profile-f2.jfr"), observer.error.getMessage());
-            verify(repoManager, never()).mergeAndStreamRecordings(any(), any());
-        }
-
-        @Test
-        void unknownFileId_returnsInvalidArgument() throws Exception {
-            var repoManager = mock(RepositoryManager.class);
-            var stub = startServer(serviceWithSession(repoManager));
-            var observer = new TestStreamObserver();
-
-            stub.downloadMergedRecordings(
-                    DownloadMergedRecordingsRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .addFileIds("f1")
-                            .addFileIds("nope")
-                            .build(),
-                    observer);
-
-            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
-            assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
-            assertTrue(observer.error.getMessage().contains("nope"), observer.error.getMessage());
-            verify(repoManager, never()).mergeAndStreamRecordings(any(), any());
-        }
-
-        /** The RPC's own contract: naming no file means every finished recording file. */
-        @Test
-        void noFileIds_mergesEverything(@TempDir Path tempDir) throws Exception {
-            Path tempFile = Files.write(tempDir.resolve("merged.jfr"), new byte[16]);
-
-            var repoManager = mock(RepositoryManager.class);
-            when(repoManager.mergeAndStreamRecordings(SESSION_ID, List.of()))
-                    .thenReturn(new StreamedRecordingFile("merged.jfr", tempFile));
-
-            var stub = startServer(serviceWithSession(repoManager));
-            var observer = new TestStreamObserver();
-
-            stub.downloadMergedRecordings(
-                    DownloadMergedRecordingsRequest.newBuilder().setSessionId(SESSION_ID).build(), observer);
-
-            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
-            assertNull(observer.error, "Stream should complete without error");
-            verify(repoManager).mergeAndStreamRecordings(SESSION_ID, List.of());
-        }
-
-        @Test
-        void anUnbrokenRunIsAccepted(@TempDir Path tempDir) throws Exception {
-            Path tempFile = Files.write(tempDir.resolve("merged.jfr"), new byte[16]);
-
-            var repoManager = mock(RepositoryManager.class);
-            when(repoManager.mergeAndStreamRecordings(SESSION_ID, List.of("f2", "f3")))
-                    .thenReturn(new StreamedRecordingFile("merged.jfr", tempFile));
-
-            var stub = startServer(serviceWithSession(repoManager));
-            var observer = new TestStreamObserver();
-
-            stub.downloadMergedRecordings(
-                    DownloadMergedRecordingsRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .addFileIds("f2")
-                            .addFileIds("f3")
-                            .build(),
-                    observer);
-
-            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
-            assertNull(observer.error, "Stream should complete without error");
-        }
-    }
-
-    // ========== DownloadRecordingFile ==========
 
     @Nested
     class DownloadRecordingFile {
@@ -341,7 +197,6 @@ class RecordingDownloadGrpcServiceTest {
     }
 
     private RecordingDownloadGrpcService serviceWithSession(RepositoryManager repoManager) {
-        // Validation resolves the session before the merge does, so every fixture needs it.
         when(repoManager.findRecordingSessions(SESSION_ID)).thenReturn(Optional.of(threeChunks()));
 
         var sessionWithRepo = mock(SessionWithRepository.class);

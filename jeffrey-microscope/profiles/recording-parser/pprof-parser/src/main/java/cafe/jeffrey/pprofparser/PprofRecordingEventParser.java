@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 
 import java.nio.file.Path;
@@ -42,13 +43,19 @@ public class PprofRecordingEventParser implements RecordingEventParser {
         this.streamReader = new PprofStreamReader();
     }
 
+    /**
+     * Each file gets its own writer, the way a JFR chunk does: the writers are independent and the
+     * events carry their own timestamps, so nothing depends on the files being read together.
+     */
     @Override
-    public void start(EventWriter eventWriter, Path recording) {
-        Profile profile = streamReader.read(recording);
-        LOG.info("Parsing pprof recording: recording={} sample_types={} samples={}",
-                recording, profile.getSampleTypeCount(), profile.getSampleCount());
+    public void start(EventWriter eventWriter, RecordingSources sources) {
+        for (Path recording : sources.files()) {
+            Profile profile = streamReader.read(recording);
+            LOG.info("Parsing pprof recording: recording={} sample_types={} samples={}",
+                    recording, profile.getSampleTypeCount(), profile.getSampleCount());
 
-        SingleThreadedEventWriter writer = eventWriter.newSingleThreadedWriter();
-        new PprofProfileReader(writer).read(profile);
+            SingleThreadedEventWriter writer = eventWriter.newSingleThreadedWriter();
+            new PprofProfileReader(writer).read(profile);
+        }
     }
 }

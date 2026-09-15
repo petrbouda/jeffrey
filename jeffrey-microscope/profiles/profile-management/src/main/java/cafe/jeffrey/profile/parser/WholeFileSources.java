@@ -15,16 +15,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.hub.client {
-    requires transitive cafe.jeffrey.microscope.grpc.client;
-    requires transitive cafe.jeffrey.shared.hub.api;
-    requires transitive cafe.jeffrey.shared.common;
-    requires io.grpc;
-    requires io.grpc.stub;
-    requires tools.jackson.databind;
-    requires org.slf4j;
 
-    exports cafe.jeffrey.hub.client;
-    exports cafe.jeffrey.hub.client.dto;
-    exports cafe.jeffrey.hub.client.manager;
+package cafe.jeffrey.profile.parser;
+
+import java.nio.file.Path;
+import java.util.function.Consumer;
+
+/**
+ * Parses each source file as it lies.
+ * <p>
+ * Nothing is read, written or created: the file the recording arrived as is the file handed to the
+ * parser. That is the whole point of this mode — with enough files there is no parallelism left to
+ * buy, so the split would be a full copy of the recording paid for nothing.
+ */
+record WholeFileSources() implements SourceParseMode {
+
+    @Override
+    public void expand(Path source, Path scratchDir, Consumer<Path> onUnit) {
+        onUnit.accept(source);
+    }
 }

@@ -437,14 +437,14 @@ public class HubsMcpTools {
      */
     @McpToolHints(readOnly = false, openWorld = true)
     @Tool(description = "Download a recording session from its hub into this Jeffrey - the whole "
-            + "session, or the part of it that matters. Without a selection it merges the session's "
-            + "finished recording files into a single local recording and brings its artifacts - heap "
-            + "dumps, JVM and application logs - with it. A session on a hub can run for days and roll a chunk every few minutes, so the "
+            + "session, or the part of it that matters. Without a selection it brings the session's "
+            + "finished recording files, kept as the several files they are, and its artifacts - heap "
+            + "dumps, JVM and application logs - with them, as one local recording. A session on a hub can run for days and roll a chunk every few minutes, so the "
             + "part is usually what to pull, chosen one of two ways: startTime and/or endTime name a "
             + "span, and the chunks covering it are brought - every one whose span touches the window, "
             + "so a chunk straddling a bound is included and the recording always covers the whole "
             + "window with some slack at either end; or fileIds name files from hubs_files by id, "
-            + "an unbroken run of chunks and any artifact beside them. Either way the chunks are merged into one "
+            + "an unbroken run of chunks and any artifact beside them. Either way the chunks become one "
             + "recording and the answer reports the span they actually cover. The started and duration "
             + "columns of hubs_sessions say what span there is to choose from. Takes the "
             + "session_ref from a hubs_sessions row. Returns a recording id: pass it to "
@@ -475,7 +475,7 @@ public class HubsMcpTools {
             Long endTime,
             @ToolParam(required = false, description = "Comma-separated file_id values from hubs_files rows to "
                     + "bring instead of a window - at least one must be a JFR chunk, and the chunks must be an "
-                    + "unbroken run of the session because they are merged into one recording. Artifacts beside "
+                    + "unbroken run of the session because the recording reports one span across them. Artifacts beside "
                     + "them are free to pick. Not combined with startTime or endTime")
             String fileIds) {
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
@@ -702,7 +702,7 @@ public class HubsMcpTools {
 
     /**
      * Reads the session before pulling it, so a ref that has gone stale and a session with nothing
-     * to merge both fail in a sentence rather than partway through a multi-gigabyte transfer.
+     * to download both fail in a sentence rather than partway through a multi-gigabyte transfer.
      */
     private RecordingSession preflight(ProjectManager project, HubSessionRef ref, HubInfo hubInfo) {
         RecordingSession session = locator.session(project, ref, hubInfo);
@@ -952,12 +952,12 @@ public class HubsMcpTools {
 
         String transfer(RecordingsDownloadManager manager) {
             if (window != null) {
-                return manager.mergeAndDownloadWindow(ref.sessionId(), window);
+                return manager.downloadWindow(ref.sessionId(), window);
             }
             if (fileIds != null) {
-                return manager.mergeAndDownloadRecordings(ref.sessionId(), fileIds);
+                return manager.downloadRecordings(ref.sessionId(), fileIds);
             }
-            return manager.mergeAndDownloadSession(ref.sessionId());
+            return manager.downloadSession(ref.sessionId());
         }
 
         /**
@@ -996,13 +996,15 @@ public class HubsMcpTools {
                 throw new IllegalArgumentException("None of the fileIds is a JFR chunk of session " + ref.sessionId()
                         + ": a recording needs at least one. A log or a heap dump on its own is what hubs_fetchFile is for.");
             }
-            // The chunks are merged into one recording, so a skipped one leaves no trace in the
+            // The chunks become one recording reporting one span, so a skipped one leaves no trace in the
             // result: the profile would claim a span it only partly holds, and every rate read off
-            // it would be wrong by the size of the hole. The hub refuses this too.
+            // it would be wrong by the size of the hole. Refused here and again in
+            // RemoteRecordingsDownloadManager; the hub serves one file per call and never sees a
+            // selection to judge.
             if (!selection.contiguous()) {
                 throw new IllegalArgumentException("The chunks named for session " + ref.sessionId()
                         + " are not next to each other: " + selection.describeGap(finished)
-                        + " lies between them. hubs_download merges the chunks into one recording, so they have "
+                        + " lies between them. hubs_download makes them one recording reporting one span, so they have "
                         + "to be an unbroken run. Name the chunks in between as well, or ask for the span with "
                         + "startTime and endTime and let the window pick them.");
             }

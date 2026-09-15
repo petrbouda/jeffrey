@@ -150,7 +150,7 @@ onMounted(() => {
           <div class="step-number">1b</div>
           <div class="step-content">
             <h4><i class="bi bi-cloud-arrow-down"></i> Auto-download from a project session</h4>
-            <p>From a project's <strong>Instances</strong> view, open a session and click <strong>Download</strong>. The merged recording (plus heap dumps and logs) is streamed to local storage and shows up tagged with its origin.</p>
+            <p>From a project's <strong>Instances</strong> view, open a session and click <strong>Download</strong>. The session's JFR files are streamed to local storage separately and in parallel (five at a time), and land as the several files one recording is made of — nothing is joined, here or later — with the heap dumps and logs beside them, all tagged with their origin. The recording's window is taken across those files: the earliest start to the latest end.</p>
             <p>A coding agent can do the same without the UI: the <router-link to="/docs/microscope-mcp/tools#hubs"><code>hubs_</code> tools</router-link> list the sessions across every connected hub and pull one down, writing the same origin tags. Those tags are what lets a later listing say a session is already here rather than fetching it twice.</p>
           </div>
         </div>

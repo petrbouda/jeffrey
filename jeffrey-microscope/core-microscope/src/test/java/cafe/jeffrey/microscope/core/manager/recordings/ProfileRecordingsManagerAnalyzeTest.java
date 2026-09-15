@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -38,6 +39,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
@@ -64,6 +66,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -146,6 +149,95 @@ class ProfileRecordingsManagerAnalyzeTest {
                 NOW.minusSeconds(60), NOW,
                 false, null, null,
                 List.of(file));
+    }
+
+    /**
+     * Which of a recording's files get parsed. They are told apart only by their type, and the two
+     * kinds pull in opposite directions: a JFR recording is every RECORDING-category file it holds,
+     * while a heap dump is an ARTIFACT and so matches none of them.
+     */
+    @Nested
+    class ChoosingTheFiles {
+
+        @Test
+        void parsesEveryRecordingFileAndLeavesTheArtifactsOut() throws IOException {
+            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-profile-2.jfr"));
+            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-heap.hprof"));
+            when(recordingRepository.findRecording(RECORDING_ID))
+                    .thenReturn(Optional.of(sessionRecording()));
+
+            manager.analyzeRecording(RECORDING_ID);
+
+            ArgumentCaptor<RecordingSources> sources = ArgumentCaptor.forClass(RecordingSources.class);
+            verify(profileInitializer).initialize(any(), sources.capture(), anyList());
+
+            assertEquals(
+                    List.of(RECORDING_ID + "-" + FILENAME, RECORDING_ID + "-profile-2.jfr"),
+                    sources.getValue().files().stream()
+                            .map(path -> path.getFileName().toString())
+                            .toList());
+        }
+
+        @Test
+        void handsTheArtifactsToTheInitializerRatherThanDroppingThem() throws IOException {
+            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-profile-2.jfr"));
+            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-heap.hprof"));
+            when(recordingRepository.findRecording(RECORDING_ID))
+                    .thenReturn(Optional.of(sessionRecording()));
+
+            manager.analyzeRecording(RECORDING_ID);
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<Path>> artifacts = ArgumentCaptor.forClass(List.class);
+            verify(profileInitializer).initialize(any(), any(), artifacts.capture());
+
+            assertEquals(
+                    List.of(RECORDING_ID + "-heap.hprof"),
+                    artifacts.getValue().stream()
+                            .map(path -> path.getFileName().toString())
+                            .toList());
+        }
+
+        /**
+         * A heap dump is an ARTIFACT by category, so the recording-file filter finds nothing for it.
+         * It has to be decided before that filter is applied, or the one recording kind that is
+         * always a single file is the one that cannot be analysed at all.
+         */
+        @Test
+        void analysesAHeapDumpEvenThoughItIsNotARecordingFile() throws IOException {
+            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-heap.hprof"));
+            when(jeffreyDirs.profileDir(any())).thenReturn(recordingsDir.resolve("profiles"));
+            when(recordingRepository.findRecording(RECORDING_ID))
+                    .thenReturn(Optional.of(heapDumpRecording()));
+
+            String profileId = manager.analyzeRecording(RECORDING_ID);
+
+            verify(localCoreRepositories).newProfileRepository(profileId);
+            verify(profileRepository).enableProfile(any());
+        }
+    }
+
+    private static Recording sessionRecording() {
+        return new Recording(
+                RECORDING_ID, "checkout_2026-03-01T12-00-00Z", null, null,
+                RecordingEventSource.JDK,
+                NOW,
+                NOW.minusSeconds(60), NOW,
+                false, null, null,
+                List.of(
+                        new RecordingFile("file-1", RECORDING_ID, FILENAME, SupportedRecordingFile.JFR, NOW, 1024L),
+                        new RecordingFile("file-2", RECORDING_ID, "profile-2.jfr", SupportedRecordingFile.JFR, NOW, 1024L),
+                        new RecordingFile("file-3", RECORDING_ID, "heap.hprof", SupportedRecordingFile.HEAP_DUMP, NOW, 1024L)));
+    }
+
+    private static Recording heapDumpRecording() {
+        return new Recording(
+                RECORDING_ID, "heap.hprof", null, null,
+                RecordingEventSource.HEAP_DUMP,
+                NOW, NOW, NOW,
+                false, null, null,
+                List.of(new RecordingFile(
+                        "file-1", RECORDING_ID, "heap.hprof", SupportedRecordingFile.HEAP_DUMP, NOW, 1024L)));
     }
 
     @Nested

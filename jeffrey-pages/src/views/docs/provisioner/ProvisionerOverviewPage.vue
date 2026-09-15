@@ -278,8 +278,8 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <div class="workflow-step">
             <div class="step-number">4</div>
             <div class="step-content">
-              <strong>Merge and Copy</strong>
-              <p>Select specific JFR files from the session to merge into a Recording (+ download artifacts)</p>
+              <strong>Select and Copy</strong>
+              <p>Select specific JFR files from the session; they are fetched separately and kept as the files of one Recording (+ download artifacts)</p>
             </div>
           </div>
           <div class="workflow-step">

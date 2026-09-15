@@ -106,6 +106,21 @@ public abstract class JfrParser {
         return buildRecordingInfo(chunks);
     }
 
+    /**
+     * Extracts recording information from chunks already collected elsewhere.
+     * <p>
+     * A recording made of several files is described by pooling their chunks and asking this
+     * once: the window is then the earliest start and the latest end across all of them, which is
+     * what the recording actually covers. Collecting the chunks is left to the caller because
+     * only it knows how to open each file — LZ4 or plain.
+     *
+     * @param chunks every chunk of the recording, in any order
+     * @return recording information including size, timing, and event source
+     */
+    public static RecordingInformation recordingInfo(List<JfrChunk> chunks) {
+        return buildRecordingInfo(chunks);
+    }
+
     // ========== Event Types ==========
 
     /**

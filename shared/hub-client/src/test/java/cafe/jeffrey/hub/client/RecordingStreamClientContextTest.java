@@ -20,10 +20,9 @@ package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.hub.api.v1.DataChunk;
 import cafe.jeffrey.hub.api.v1.DownloadArtifactFileRequest;
-import cafe.jeffrey.hub.api.v1.DownloadMergedRecordingsRequest;
+import cafe.jeffrey.hub.api.v1.DownloadRecordingFileRequest;
 import cafe.jeffrey.hub.api.v1.RecordingDownloadServiceGrpc;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
@@ -34,46 +33,41 @@ import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.core.io.Resource;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * A download is one file per call, and every one of them is a blocking stream the caller drives.
+ * What has to hold for both kinds of file: the caller's deadline reaches the hub, and when it
+ * expires the call ends rather than hanging on a server that has stopped sending.
+ */
 class RecordingStreamClientContextTest {
 
-    @TempDir
-    Path directory;
     private Server server;
     private ManagedChannel channel;
     private RecordingStreamClient client;
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
     private final CountDownLatch arrived = new CountDownLatch(1);
     private final CountDownLatch cancelled = new CountDownLatch(1);
-    private final CountDownLatch tempOpened = new CountDownLatch(1);
     private final AtomicReference<Deadline> serverDeadline = new AtomicReference<>();
 
     @BeforeEach
     void start() throws Exception {
         String name = InProcessServerBuilder.generateName();
         var service = new RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase() {
-            private void hold(StreamObserver<DataChunk> observer) {
+            private void hold() {
                 Context context = Context.current();
                 serverDeadline.set(context.getDeadline());
                 context.addListener(ignored -> cancelled.countDown(), Runnable::run);
@@ -81,22 +75,20 @@ class RecordingStreamClientContextTest {
             }
 
             @Override
-            public void downloadMergedRecordings(DownloadMergedRecordingsRequest request, StreamObserver<DataChunk> observer) {
-                hold(observer);
+            public void downloadRecordingFile(
+                    DownloadRecordingFileRequest request, StreamObserver<DataChunk> observer) {
+                hold();
             }
 
             @Override
-            public void downloadArtifactFile(DownloadArtifactFileRequest request, StreamObserver<DataChunk> observer) {
-                hold(observer);
+            public void downloadArtifactFile(
+                    DownloadArtifactFileRequest request, StreamObserver<DataChunk> observer) {
+                hold();
             }
         };
         server = InProcessServerBuilder.forName(name).directExecutor().addService(service).build().start();
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
-        client = new RecordingStreamClient(new GrpcHubConnection(channel) {}, () -> {
-            TempDirectory temp = new TempDirectory(directory.resolve("download"));
-            tempOpened.countDown();
-            return temp;
-        });
+        client = new RecordingStreamClient(new GrpcHubConnection(channel) {});
     }
 
     @AfterEach
@@ -106,38 +98,45 @@ class RecordingStreamClientContextTest {
         timer.shutdownNow();
     }
 
-    private CompletableFuture<Resource> download(boolean artifact) {
-        return artifact ? client.downloadArtifactFile("session", "file")
-                : client.downloadRecordings("session", List.of("file"));
+    private void download(boolean artifact) {
+        if (artifact) {
+            client.streamArtifactFile("session", "file", (stream, length) -> stream.readAllBytes());
+        } else {
+            client.streamRecordingFile("session", "file", (stream, length) -> stream.readAllBytes());
+        }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void propagatesDeadlineToTheServerAcrossTheAsyncDownload(boolean artifact) throws Exception {
+    @DisplayName("carries the caller's deadline to the hub and ends when it expires")
+    void propagatesDeadlineToTheServer(boolean artifact) throws Exception {
         try (Context.CancellableContext context = Context.current().withDeadlineAfter(2, TimeUnit.SECONDS, timer)) {
-            CompletableFuture<Resource> future = context.call(() -> download(artifact));
-            assertTrue(arrived.await(5, TimeUnit.SECONDS));
-            assertNotNull(serverDeadline.get(), "the asynchronous RPC must carry the caller's deadline");
-            ExecutionException failure = assertThrows(ExecutionException.class,
-                    () -> future.get(5, TimeUnit.SECONDS));
-            assertEquals(Status.Code.DEADLINE_EXCEEDED, Status.fromThrowable(failure.getCause()).getCode());
+            // The client reports a streaming failure as a RuntimeException carrying the gRPC
+            // status as its cause, so the status is read off the chain rather than the type.
+            RuntimeException failure = context.call(() -> {
+                RuntimeException thrown = assertThrows(RuntimeException.class, () -> download(artifact));
+                assertTrue(arrived.await(5, TimeUnit.SECONDS));
+                return thrown;
+            });
+
+            assertNotNull(serverDeadline.get(), "the RPC must carry the caller's deadline");
+            assertEquals(Status.Code.DEADLINE_EXCEEDED, Status.fromThrowable(failure).getCode());
             assertTrue(cancelled.await(5, TimeUnit.SECONDS));
         }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void cancelsTheRpcAndRemovesPartialTemporaryFiles(boolean artifact) throws Exception {
+    @DisplayName("ends the call when the caller's context is cancelled")
+    void cancelsTheRpc(boolean artifact) throws Exception {
         try (Context.CancellableContext context = Context.current().withCancellation()) {
-            CompletableFuture<Resource> future = context.call(() -> download(artifact));
-            assertTrue(arrived.await(5, TimeUnit.SECONDS));
-            assertTrue(tempOpened.await(5, TimeUnit.SECONDS));
-            context.cancel(null);
-            ExecutionException failure = assertThrows(ExecutionException.class,
-                    () -> future.get(2, TimeUnit.SECONDS));
-            assertEquals(Status.Code.CANCELLED, Status.fromThrowable(failure.getCause()).getCode());
+            timer.schedule(() -> context.cancel(null), 200, TimeUnit.MILLISECONDS);
+
+            RuntimeException failure = context.call(() ->
+                    assertThrows(RuntimeException.class, () -> download(artifact)));
+
+            assertEquals(Status.Code.CANCELLED, Status.fromThrowable(failure).getCode());
             assertTrue(cancelled.await(5, TimeUnit.SECONDS));
-            assertFalse(Files.exists(directory.resolve("download")), "failed downloads must remove partial files");
         }
     }
 }

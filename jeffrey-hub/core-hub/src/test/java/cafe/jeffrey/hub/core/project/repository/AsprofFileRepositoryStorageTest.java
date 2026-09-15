@@ -95,7 +95,6 @@ class AsprofFileRepositoryStorageTest {
             return new AsprofFileRepositoryStorage(
                     mock(ProjectInfo.class),
                     workspace,
-                    workspace.resolve("temp"),
                     mock(ProjectRepositoryRepository.class),
                     new AsprofFileInfoProcessor());
         }

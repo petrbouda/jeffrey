@@ -200,8 +200,8 @@ public record ChunkWindow(Instant start, Instant end) {
 
         /**
          * The gap, named by the files that fill it, for a refusal a reader can act on. One
-         * sentence fragment, built here rather than at each of the four layers that refuse, so
-         * they cannot drift into describing the same selection differently.
+         * sentence fragment, built here rather than at each of the layers that refuse, so they
+         * cannot drift into describing the same selection differently.
          */
         public String describeGap(List<RepositoryFile> files) {
             return gaps(files).stream().map(RepositoryFile::name).collect(Collectors.joining(", "));

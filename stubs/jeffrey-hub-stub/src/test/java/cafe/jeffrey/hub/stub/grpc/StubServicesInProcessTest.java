@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.stub.grpc;
 
 import cafe.jeffrey.hub.api.v1.DataChunk;
 import cafe.jeffrey.hub.api.v1.DownloadArtifactFileRequest;
-import cafe.jeffrey.hub.api.v1.DownloadMergedRecordingsRequest;
+import cafe.jeffrey.hub.api.v1.DownloadRecordingFileRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
 import cafe.jeffrey.hub.api.v1.GetInstanceSessionDetailRequest;
@@ -196,13 +196,14 @@ class StubServicesInProcessTest {
     }
 
     @Test
-    void downloadMergedRecordingsStreamsTheBundledJfrForAKnownSession() {
+    void downloadRecordingFileStreamsTheBundledJfrForAKnownSession() {
         String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
         String sessionId = dataset.sessionsForProject(projectId).getFirst().id();
 
         Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
+                .downloadRecordingFile(DownloadRecordingFileRequest.newBuilder()
                         .setSessionId(sessionId)
+                        .setFileId("any-chunk")
                         .build());
 
         ByteArrayOutputStream collected = new ByteArrayOutputStream();
@@ -218,7 +219,7 @@ class StubServicesInProcessTest {
         }
 
         byte[] bytes = collected.toByteArray();
-        assertTrue(bytes.length > 0, "expected a non-empty merged recording");
+        assertTrue(bytes.length > 0, "expected a non-empty recording file");
         assertEquals(bytes.length, totalSizeFromFirstChunk, "total_size must match the streamed byte count");
         // LZ4 frame magic (0x04 0x22 0x4D 0x18) — confirms the bundled .jfr.lz4 streamed intact.
         assertEquals(0x04, bytes[0] & 0xFF);
@@ -228,7 +229,7 @@ class StubServicesInProcessTest {
     }
 
     @Test
-    void downloadMergedRecordingsAlwaysReturnsTheSameBytesAcrossSessions() {
+    void downloadRecordingFileAlwaysReturnsTheSameBytesAcrossSessions() {
         RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub =
                 RecordingDownloadServiceGrpc.newBlockingStub(channel);
 
@@ -236,7 +237,7 @@ class StubServicesInProcessTest {
         long second = countBytes(stub, "sess-inst-inventory-1-1");
 
         assertTrue(first > 0);
-        assertEquals(first, second, "the merged download must be the same fixed file for every session");
+        assertEquals(first, second, "the stub serves the same fixed file for every session");
     }
 
     @Test
@@ -258,10 +259,11 @@ class StubServicesInProcessTest {
     }
 
     @Test
-    void downloadMergedRecordingsForUnknownSessionReturnsNotFound() {
+    void downloadRecordingFileForUnknownSessionReturnsNotFound() {
         Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
+                .downloadRecordingFile(DownloadRecordingFileRequest.newBuilder()
                         .setSessionId("does-not-exist")
+                        .setFileId("any-chunk")
                         .build());
 
         StatusRuntimeException error = assertThrows(StatusRuntimeException.class, () -> {
@@ -274,8 +276,9 @@ class StubServicesInProcessTest {
 
     private static long countBytes(
             RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub, String sessionId) {
-        Iterator<DataChunk> chunks = stub.downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
+        Iterator<DataChunk> chunks = stub.downloadRecordingFile(DownloadRecordingFileRequest.newBuilder()
                 .setSessionId(sessionId)
+                .setFileId("any-chunk")
                 .build());
         long total = 0;
         while (chunks.hasNext()) {

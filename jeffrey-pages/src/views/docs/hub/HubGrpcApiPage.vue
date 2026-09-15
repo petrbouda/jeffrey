@@ -270,23 +270,16 @@ onMounted(() => {
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>DownloadMergedRecordings</code>
-                </div>
-                <p>Stream merged recordings in 64KB chunks. Naming no file merges every finished chunk; naming some requires them to be an unbroken run, since merging writes them end to end &mdash; a gapped selection, or an id the session does not hold, is refused with <code>INVALID_ARGUMENT</code></p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
                   <code>DownloadArtifactFile</code>
                 </div>
-                <p>Stream artifact file - heap dump, logs</p>
+                <p>Stream one finished artifact &mdash; a heap dump, an application log, the <code>gc.jvm-log</code>, a crash file, the perf-counters file &mdash; named by its <code>file_id</code>, in 64KB chunks</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>DownloadRecordingFile</code>
                 </div>
-                <p>Stream single recording file</p>
+                <p>Stream one finished JFR file, named by its <code>file_id</code>, in 64KB chunks. One file per call, always: a session's recording is several rotated chunk files, and Microscope fetches them separately and in parallel &mdash; the hub never joins them, so it never sees a selection of files and never has to judge one</p>
               </div>
             </div>
           </div>

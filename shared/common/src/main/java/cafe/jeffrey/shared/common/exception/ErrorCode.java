@@ -32,7 +32,6 @@ public enum ErrorCode {
     UNKNOWN_ERROR_RESPONSE,
     HUB_UNAVAILABLE,
     EMPTY_RECORDING_SESSION,
-    COMPRESSION_ERROR,
 
     // Validation errors
     INVALID_REQUEST,

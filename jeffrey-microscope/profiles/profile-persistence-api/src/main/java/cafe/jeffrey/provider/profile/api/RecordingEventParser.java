@@ -18,10 +18,13 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import java.nio.file.Path;
-
 public interface RecordingEventParser {
 
-    void start(EventWriter eventWriter, Path recording);
+    /**
+     * Parses every recording file into {@code eventWriter}. The files are independent inputs, not
+     * pieces of one that has to be put back together, so an implementation is free to read them
+     * in whatever order and with whatever parallelism suits it.
+     */
+    void start(EventWriter eventWriter, RecordingSources sources);
 
 }

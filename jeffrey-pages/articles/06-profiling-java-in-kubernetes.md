@@ -134,10 +134,10 @@ On your developer machine, open Jeffrey Local and add a **remote workspace** con
 From here, you can:
 
 - **Browse instances and sessions** — See which pods are running, which have finished, and what data is available
-- **Download recordings** — Select specific JFR chunks from a session and download them as a merged file
+- **Download recordings** — Select specific JFR chunks from a session; they are fetched separately, in parallel, and kept as the several files one local recording is made of
 
 ![Download assistant](images/release-notes/server-recording/05-download-assistant.png)
-*Download assistant for selecting and merging JFR chunks from a remote session.*
+*Download assistant for selecting JFR chunks from a remote session.*
 
 Downloads happen via gRPC streaming in 64KB chunks, so even large files (multi-GB heap dumps) transfer efficiently without memory pressure.
 

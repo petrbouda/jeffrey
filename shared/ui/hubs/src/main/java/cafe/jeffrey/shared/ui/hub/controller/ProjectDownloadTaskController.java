@@ -166,7 +166,7 @@ public class ProjectDownloadTaskController {
         if (downloadManager instanceof RemoteRecordingsDownloadManager remoteManager) {
             return CompletableFuture.runAsync(() -> {
                 try {
-                    remoteManager.mergeAndDownloadRecordingsWithProgress(
+                    remoteManager.downloadRecordingsWithProgress(
                             task.getSessionId(), task.getFileIds(), task);
                 } catch (Exception e) {
                     LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);
@@ -178,7 +178,7 @@ public class ProjectDownloadTaskController {
         return CompletableFuture.runAsync(() -> {
             try {
                 task.onStart(task.getFileIds().size(), 0);
-                downloadManager.mergeAndDownloadRecordings(task.getSessionId(), task.getFileIds());
+                downloadManager.downloadRecordings(task.getSessionId(), task.getFileIds());
                 task.onComplete();
             } catch (Exception e) {
                 LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);

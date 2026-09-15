@@ -152,21 +152,6 @@ public interface RepositoryStorage {
      */
     List<Path> recordings(String sessionId, List<String> recordingIds);
 
-    // ========== Merge Recordings ==========
-
-    /**
-     * Merge specific recordings from a session into a single compressed file.
-     * <p>
-     * Compresses if needed, then merges to temp file.
-     * The returned MergedRecording auto-deletes the temp file on close.
-     * </p>
-     *
-     * @param sessionId    the session ID
-     * @param recordingIds list of recording IDs to merge
-     * @return MergedRecording wrapper (auto-deletes temp file on close)
-     */
-    MergedRecording mergeRecordings(String sessionId, List<String> recordingIds);
-
     // ========== Artifact Files ==========
 
     /**
