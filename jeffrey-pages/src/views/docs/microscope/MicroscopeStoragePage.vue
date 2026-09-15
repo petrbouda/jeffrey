@@ -211,9 +211,12 @@ onMounted(() => {
 │       └── profile-data.db
 └── recordings/                           # JFR files (uploaded or downloaded)
     └── {recording-id}/
-        ├── recording.jfr                 # or recording.jfr.lz4
+        ├── profile-1704067200.jfr        # one file, or several — see below
+        ├── profile-1704067800.jfr
         └── artifacts/                    # heap dumps, JVM logs, perf-counters</code></pre>
       </div>
+
+      <p>A recording is <strong>one or more files</strong>. An upload is usually a single file; a session downloaded from a Hub is every JFR file that session wrote, fetched separately and in parallel and kept exactly as it was written — nothing is joined, at download time or later. The parser reads them as independent inputs into one profile, and the recording's window is taken across all of them: the earliest start to the latest end. There is deliberately no &ldquo;export as one file&rdquo; action.</p>
 
       <DocsCallout type="tip">
         Override the home directory with <code>jeffrey.microscope.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_MICROSCOPE_HOME_DIR</code> environment variable.

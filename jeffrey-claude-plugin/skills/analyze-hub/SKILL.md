@@ -126,10 +126,10 @@ and the tool does the mapping. `hubs_files` is for choosing by *name*: when the 
 points at particular files — the chunk rolled right after the deploy, a chunk and the heap dump
 taken beside it — pass their `file_id` values as a comma-separated `fileIds` instead of a window.
 
-Chunks named that way have to be **next to each other**. A download merges them into one recording
-by writing them end to end, so a skipped chunk leaves no hole to see: the recording would claim the
-span from the first to the last while holding only part of it. Naming a gapped pair is refused, and
-names the chunk in between. Artifacts beside the run — a heap dump, a log — are free to pick, and if
+Chunks named that way have to be **next to each other**. The recording reports one span across the
+files it holds, so a skipped chunk leaves no hole to see: the recording would claim the span from
+the first to the last while holding only part of it. Naming a gapped pair is refused, and names the
+chunk in between. Artifacts beside the run — a heap dump, a log — are free to pick, and if
 what you actually want is a span rather than particular files, `startTime`/`endTime` picks the
 chunks for you and cannot come out gapped.
 
@@ -143,11 +143,12 @@ confirmed on the window that matters. A single chunk may equally go `hubs_fetchF
 
 ## 4. Pull it in
 
-`hubs_download(sessionRef, startTime, endTime)` brings the recording files covering the window,
-merged into one local recording, nothing else; `hubs_download(sessionRef, fileIds="…")` brings
-the named files, recording files merged and any artifact beside them; and
-`hubs_download(sessionRef)` alone brings every finished file of the session — recording files
-merged into one, heap dumps and logs beside it. Each returns a `recordingId`, and a part of a
+`hubs_download(sessionRef, startTime, endTime)` brings the recording files covering the window as
+one local recording, nothing else; `hubs_download(sessionRef, fileIds="…")` brings the named files,
+the recording files and any artifact beside them; and `hubs_download(sessionRef)` alone brings every
+finished file of the session — its recording files, with heap dumps and logs beside them. The
+recording files are kept as the several files they are and fetched in parallel; nothing joins them,
+and the parser reads them as independent inputs. Each returns a `recordingId`, and a part of a
 session reports `windowStart` / `windowEnd`, the span its files cover. A part is a recording of
 its own: it is never answered from a whole-session copy that is already here, and the Recordings
 list names it after its span so two windows of one session read apart.

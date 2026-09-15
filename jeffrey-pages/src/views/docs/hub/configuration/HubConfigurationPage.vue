@@ -456,7 +456,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
       <p>
         There is no server property for this. <strong>Collector-only mode</strong> is a per-project
         toggle in Microscope's own UI, remembered in the browser: with it on, the Profiles and
-        Recordings navigation is hidden and the Merge/Download actions are disabled, so a project
+        Recordings navigation is hidden and the Download actions are disabled, so a project
         that exists purely to collect does not offer analysis entry points. It affects only the
         browser it was set in.
       </p>
