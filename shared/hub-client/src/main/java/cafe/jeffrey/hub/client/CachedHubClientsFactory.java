@@ -22,7 +22,6 @@ import cafe.jeffrey.microscope.grpc.client.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
 
 import java.io.Closeable;
@@ -38,12 +37,6 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(CachedHubClientsFactory.class);
 
     private final ConcurrentHashMap<HubAddress, CachedEntry> cache = new ConcurrentHashMap<>();
-
-    private final TempDirProvider tempDirProvider;
-
-    public CachedHubClientsFactory(TempDirProvider tempDirProvider) {
-        this.tempDirProvider = tempDirProvider;
-    }
 
     @Override
     public HubClients apply(HubAddress address) {

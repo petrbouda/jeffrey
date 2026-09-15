@@ -998,7 +998,9 @@ public class HubsMcpTools {
             }
             // The chunks become one recording reporting one span, so a skipped one leaves no trace in the
             // result: the profile would claim a span it only partly holds, and every rate read off
-            // it would be wrong by the size of the hole. The hub refuses this too.
+            // it would be wrong by the size of the hole. Refused here and again in
+            // RemoteRecordingsDownloadManager; the hub serves one file per call and never sees a
+            // selection to judge.
             if (!selection.contiguous()) {
                 throw new IllegalArgumentException("The chunks named for session " + ref.sessionId()
                         + " are not next to each other: " + selection.describeGap(finished)

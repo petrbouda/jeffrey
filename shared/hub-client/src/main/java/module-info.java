@@ -22,7 +22,6 @@ module cafe.jeffrey.hub.client {
     requires io.grpc;
     requires io.grpc.stub;
     requires tools.jackson.databind;
-    requires spring.core;
     requires org.slf4j;
 
     exports cafe.jeffrey.hub.client;

@@ -20,23 +20,13 @@ package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.microscope.grpc.client.*;
 
-import io.grpc.Context;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.hub.client.manager.TempDirProvider;
-import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class RecordingStreamClient {
 
@@ -126,8 +116,13 @@ public class RecordingStreamClient {
             try {
                 consumer.accept(pipeIn, contentLength);
             } finally {
-                writer.join();
+                // Closed before the join, not after it. A consumer that stopped early -- a
+                // cancelled download -- leaves the writer blocked on a full pipe with nobody
+                // reading, and PipedInputStream only gives up on a reader it can see is dead:
+                // this thread is alive, waiting in that very join. Closing first turns the
+                // writer's next write into the IOException it handles.
                 pipeIn.close();
+                writer.join();
             }
 
             if (writerError[0] != null) {

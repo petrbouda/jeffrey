@@ -20,7 +20,6 @@ package cafe.jeffrey.recordings.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.hub.client.RecordingStreamClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
@@ -37,22 +36,22 @@ import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -76,6 +75,17 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * Suffix for partially downloaded files before they are atomically moved to their final name.
      */
     private static final String PARTIAL_FILE_SUFFIX = ".part";
+
+    /**
+     * How much of a file is moved from the wire to disk at a time.
+     */
+    private static final int COPY_BUFFER_BYTES = 8192;
+
+    /**
+     * Path elements that name a directory rather than a file in it, and so are not a name a
+     * session's file may be written under.
+     */
+    private static final Set<String> NOT_A_FILE_NAME = Set.of(".", "..");
 
     private final TempDirProvider tempDirProvider;
     private final RecordingStreamClient recordingStreamClient;
@@ -118,14 +128,36 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 recordingSessionId);
 
-        Set<String> requestedFileIds = Set.copyOf(fileIds);
-        List<RepositoryFile> files = recordingSession.files().stream()
+        return download(recordingSession, chosenFiles(recordingSession, fileIds), ProgressCallback.noop());
+    }
+
+    /**
+     * The session's finished files the caller named, refusing an id the session does not hold.
+     *
+     * <p>Filtering alone would drop such an id without a word and return a recording made of the
+     * rest — a download that looks like the one that was asked for and is not. The hub used to
+     * catch this, because the merged RPC was the one call that saw a session and a whole selection
+     * together; it serves one file per call now, so the refusal belongs here with the other one.
+     */
+    private static List<RepositoryFile> chosenFiles(RecordingSessionResponse session, List<String> fileIds) {
+        List<RepositoryFile> finished = session.files().stream()
                 .map(RepositoryFileResponse::from)
                 .filter(RepositoryFile::isFinished)
-                .filter(file -> requestedFileIds.contains(file.id()))
                 .toList();
 
-        return download(recordingSession, files, ProgressCallback.noop());
+        Set<String> known = finished.stream().map(RepositoryFile::id).collect(Collectors.toSet());
+        List<String> unknown = fileIds.stream().filter(id -> !known.contains(id)).toList();
+        if (!unknown.isEmpty()) {
+            throw new IllegalArgumentException("Session " + session.id() + " has no finished file " + unknown
+                    + ". Downloading the rest would have returned a recording made of whatever was left, "
+                    + "with nothing saying a file was missing. Take the ids from the session's file listing; "
+                    + "a file still being written is not one yet.");
+        }
+
+        Set<String> requestedFileIds = Set.copyOf(fileIds);
+        return finished.stream()
+                .filter(file -> requestedFileIds.contains(file.id()))
+                .toList();
     }
 
     @Override
@@ -193,14 +225,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(recordingSessionId);
 
-        Set<String> requestedFileIds = Set.copyOf(fileIds);
-        List<RepositoryFile> files = recordingSession.files().stream()
-                .map(RepositoryFileResponse::from)
-                .filter(RepositoryFile::isFinished)
-                .filter(file -> requestedFileIds.contains(file.id()))
-                .toList();
-
-        return download(recordingSession, files, progressCallback);
+        return download(recordingSession, chosenFiles(recordingSession, fileIds), progressCallback);
     }
 
     /**
@@ -270,11 +295,23 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                             .exceptionally(throwable -> artifactMissing(file, recordingSessionId, throwable, progressCallback)))
                     .toList();
 
+            // Everything is waited for before anything is read, including when a recording file has
+            // already failed: the temp directory is deleted on the way out of this block, and a
+            // transfer still writing into it would be writing into a directory that is being
+            // removed -- reported afterwards as a lost artifact, for a download that had already
+            // failed for another reason.
+            List<Path> recordingPaths;
+            try {
+                recordingPaths = joinAll(recordingDownloads);
+            } catch (RuntimeException e) {
+                awaitQuietly(artifactDownloads);
+                throw e;
+            }
+
             // A recording file that did not arrive fails the whole download. Dropping it the way a
             // missing artifact is dropped would leave a profile with a hole in it that reads as a
             // quiet stretch -- the same defect the contiguity rule above exists to prevent, arrived
             // at by a different route.
-            List<Path> recordingPaths = joinAll(recordingDownloads);
             List<Path> artifactPaths = joinAll(artifactDownloads).stream()
                     .filter(Objects::nonNull)
                     .toList();
@@ -291,22 +328,42 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
             return recordingId;
 
-        } catch (CancellationException e) {
-            LOG.info("Download cancelled: sessionId={}", recordingSessionId);
-            throw e;
         } catch (Exception e) {
-            LOG.error("Download failed: sessionId={} error={}", recordingSessionId, e.getMessage(), e);
-            progressCallback.onError(e.getMessage());
+            // Unwrapped first: the transfers run as futures, so anything they throw -- a
+            // cancellation included -- arrives wrapped in a CompletionException. Tested for as it
+            // comes back, a cancelled download reads as a failure, and is reported as one.
+            Throwable cause = unwrap(e);
+            if (cause instanceof CancellationException cancellation) {
+                LOG.info("Download cancelled: sessionId={}", recordingSessionId);
+                throw cancellation;
+            }
+
+            LOG.error("Download failed: sessionId={} error={}", recordingSessionId, cause.getMessage(), cause);
+            progressCallback.onError(cause.getMessage());
 
             // Whoever asked for this has usually navigated away by now: the progress channel is the
             // only thing that carries the error, and it dies with the page that was watching it.
             Notifications.of(NotificationType.DOWNLOAD_FAILED)
                     .attribute("sessionId", recordingSessionId)
-                    .errorType(e)
+                    .errorType(cause)
                     .emit();
 
             throw e;
         }
+    }
+
+    /**
+     * What actually went wrong, out of the {@link CompletionException} a future wraps it in.
+     *
+     * <p>Everything here is transferred on a future, so the wrapper is on every failure this class
+     * sees. Left on, it hides the one distinction that matters -- a cancellation the reader asked
+     * for, against a download that failed -- behind a type nothing tests for.
+     */
+    private static Throwable unwrap(Throwable throwable) {
+        if (throwable instanceof CompletionException && throwable.getCause() != null) {
+            return throwable.getCause();
+        }
+        return throwable;
     }
 
     /**
@@ -335,7 +392,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             try {
                 throwIfCancelled(progressCallback);
 
-                Path target = tempDir.resolve(file.name());
+                Path target = targetIn(tempDir, file.name());
                 transfer.stream(recordingSessionId, file.id(), (inputStream, contentLength) -> {
                     long actualSize = contentLength > 0 ? contentLength : file.size();
                     progressCallback.onFileStart(file.name(), actualSize);
@@ -351,23 +408,42 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     }
 
     /**
+     * Where a file of the session is written, from a name that came off the wire.
+     *
+     * <p>The hub names its own files and nothing here has reason to doubt them, but the name is
+     * remote input and this is a path: reduced to a single element it cannot climb out of the
+     * directory it is resolved against, whatever the other end sends.
+     */
+    private static Path targetIn(TempDirectory tempDir, String name) {
+        Path single = Path.of(name).getFileName();
+        if (single == null || single.toString().isBlank() || NOT_A_FILE_NAME.contains(single.toString())) {
+            throw new IllegalArgumentException("The session names a file that cannot be written: " + name);
+        }
+        return tempDir.resolve(single.toString());
+    }
+
+    /**
      * What a lost artifact costs: the download still succeeds without it. Said out loud, because
      * the recording that results looks complete and is missing its heap dump or its log.
      */
     private static Path artifactMissing(
             RepositoryFile file, String recordingSessionId, Throwable throwable, ProgressCallback progressCallback) {
 
-        if (throwable instanceof CancellationException cancellation) {
+        // Unwrapped for the same reason as in download(): a cancelled artifact is not a missing
+        // one, and reported as one it would raise a notification per transfer in flight for a
+        // download the reader stopped on purpose.
+        Throwable cause = unwrap(throwable);
+        if (cause instanceof CancellationException cancellation) {
             throw cancellation;
         }
 
-        LOG.warn("Failed to download artifact: file={} error={}", file.name(), throwable.getMessage());
-        progressCallback.onFileError(file.name(), throwable.getMessage());
+        LOG.warn("Failed to download artifact: file={} error={}", file.name(), cause.getMessage());
+        progressCallback.onFileError(file.name(), cause.getMessage());
 
         Notifications.of(NotificationType.DOWNLOAD_ARTIFACT_MISSING)
                 .attribute("file", file.name())
                 .attribute("sessionId", recordingSessionId)
-                .errorType(throwable)
+                .errorType(cause)
                 .emit();
 
         return null;
@@ -376,6 +452,19 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static List<Path> joinAll(List<CompletableFuture<Path>> downloads) {
         CompletableFuture.allOf(downloads.toArray(CompletableFuture[]::new)).join();
         return downloads.stream().map(CompletableFuture::join).toList();
+    }
+
+    /**
+     * Waits for transfers whose result is no longer wanted, so that none of them is still writing
+     * when the directory they write into is removed. Their failures are the reason this is being
+     * unwound, or are beside it; either way the one being thrown is what gets reported.
+     */
+    private static void awaitQuietly(List<CompletableFuture<Path>> downloads) {
+        try {
+            CompletableFuture.allOf(downloads.toArray(CompletableFuture[]::new)).join();
+        } catch (RuntimeException suppressed) {
+            LOG.debug("A transfer also failed while unwinding a failed download", suppressed);
+        }
     }
 
     private static void throwIfCancelled(ProgressCallback progressCallback) {
@@ -400,11 +489,18 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             String fileName,
             ProgressCallback progressCallback) throws IOException {
 
+        // Written beside the real name and moved onto it once the last byte has arrived. A transfer
+        // that stops partway -- cancelled, or the hub going away -- otherwise leaves a truncated
+        // file under the name a complete one would have, and a short chunk is indistinguishable
+        // from a chunk that recorded less: exactly the hole the whole-run rules exist to refuse.
+        Path partial = target.resolveSibling(target.getFileName().toString() + PARTIAL_FILE_SUFFIX);
+
         try (InputStream in = new ProgressTrackingInputStream(
                 source, fileName, progressCallback::onFileProgress);
-             OutputStream out = Files.newOutputStream(target)) {
+             OutputStream out = Files.newOutputStream(partial, StandardOpenOption.CREATE,
+                     StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
 
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[COPY_BUFFER_BYTES];
             int bytesRead;
             while ((bytesRead = in.read(buffer)) != -1) {
                 if (progressCallback.isCancelled()) {
@@ -412,7 +508,12 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 }
                 out.write(buffer, 0, bytesRead);
             }
+        } catch (RuntimeException | IOException e) {
+            FileSystemUtils.removeFile(partial);
+            throw e;
         }
+
+        Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
     private static final DateTimeFormatter RECORDING_NAME_TIMESTAMP =

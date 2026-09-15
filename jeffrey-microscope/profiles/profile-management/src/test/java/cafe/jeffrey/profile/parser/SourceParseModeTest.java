@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -85,7 +86,7 @@ class SourceParseModeTest {
     @Test
     @DisplayName("splits a mixed set rather than handing a compressed file to EventStream")
     void splitsAMixedSet() {
-        List<Path> mixed = new java.util.ArrayList<>(plainFiles(THRESHOLD * 2).files());
+        List<Path> mixed = new ArrayList<>(plainFiles(THRESHOLD * 2).files());
         mixed.add(tempDir.resolve("late.jfr.lz4"));
 
         assertInstanceOf(ChunkedSources.class, mode(new RecordingSources(mixed)));

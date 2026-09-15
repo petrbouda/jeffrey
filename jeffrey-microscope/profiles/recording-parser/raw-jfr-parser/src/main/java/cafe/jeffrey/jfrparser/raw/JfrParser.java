@@ -121,28 +121,6 @@ public abstract class JfrParser {
         return buildRecordingInfo(chunks);
     }
 
-    /**
-     * Reads the chunk descriptors of a recording file without parsing its events.
-     *
-     * @param recording the path to the recording file
-     * @return the file's chunks, in file order
-     */
-    public static List<JfrChunk> chunks(Path recording) {
-        validateRecording(recording);
-        return ChunkIterator.collect(recording);
-    }
-
-    /**
-     * Reads the chunk descriptors from a stream — for a recording that has to be decompressed on
-     * the way in.
-     *
-     * @param input InputStream containing JFR data
-     * @return the stream's chunks, in stream order
-     */
-    public static List<JfrChunk> chunks(InputStream input) {
-        return ChunkIterator.collect(input);
-    }
-
     // ========== Event Types ==========
 
     /**

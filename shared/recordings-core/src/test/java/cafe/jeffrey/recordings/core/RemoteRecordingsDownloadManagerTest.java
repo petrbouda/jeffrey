@@ -23,6 +23,7 @@ import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
+import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
@@ -44,6 +45,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -109,6 +111,70 @@ class RemoteRecordingsDownloadManagerTest {
                 .when(streamClient).streamRecordingFile(eq(SESSION_ID), any(), any());
         doAnswer(invocation -> feed(invocation.getArgument(1), invocation.getArgument(2)))
                 .when(streamClient).streamArtifactFile(eq(SESSION_ID), any(), any());
+    }
+
+    /**
+     * A progress channel that can be cancelled and remembers whether it was told the download
+     * failed — the distinction the wrapping of a future's exception used to hide.
+     */
+    private static final class RecordingProgress implements ProgressCallback {
+
+        private volatile boolean cancelled;
+        private volatile boolean cancelOnFileStart;
+        private volatile boolean errored;
+
+        /**
+         * Cancels from inside a transfer rather than before one, so the exception is raised on a
+         * worker and reaches the download wrapped, the way a reader's cancellation does.
+         */
+        private void cancelOnceATransferStarts() {
+            cancelOnFileStart = true;
+        }
+
+        @Override
+        public void onStart(int totalFiles, long totalBytes) {
+        }
+
+        @Override
+        public void onFilesDiscovered(List<FileProgress> pendingFiles) {
+        }
+
+        @Override
+        public void onFileStart(String fileName, long fileSize) {
+            if (cancelOnFileStart) {
+                cancelled = true;
+            }
+        }
+
+        @Override
+        public void onFileProgress(String fileName, long bytesDownloaded) {
+        }
+
+        @Override
+        public void onFileComplete(String fileName) {
+        }
+
+        @Override
+        public void onFileError(String fileName, String errorMessage) {
+        }
+
+        @Override
+        public void onProcessing() {
+        }
+
+        @Override
+        public void onComplete() {
+        }
+
+        @Override
+        public void onError(String errorMessage) {
+            errored = true;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return cancelled;
+        }
     }
 
     private static Object feed(String fileId, RecordingStreamClient.InputStreamConsumer consumer) throws Exception {
@@ -242,6 +308,28 @@ class RemoteRecordingsDownloadManagerTest {
         }
 
         /**
+         * Cancelled once a transfer is already running, so the CancellationException is raised
+         * inside a future and comes back wrapped in a CompletionException — which is every
+         * cancellation a reader can actually cause, the checks before the first transfer being the
+         * only ones that throw on the calling thread. Read as it comes back it is indistinguishable
+         * from a failure: the download reports itself failed, flipping a task the reader had just
+         * cancelled, and raises a notification for a stop the reader asked for.
+         */
+        @Test
+        @DisplayName("a transfer cancelled midway reports cancellation, not failure")
+        void aCancelledTransferIsNotAFailure() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            RecordingProgress progress = new RecordingProgress();
+            progress.cancelOnceATransferStarts();
+
+            assertThrows(CancellationException.class,
+                    () -> manager.downloadRecordingsWithProgress(SESSION_ID, List.of("f-1", "f-2", "f-3"), progress));
+
+            assertFalse(progress.errored, "a cancelled download must not be reported as an error");
+        }
+
+        /**
          * An artifact is supplementary, so the recording is still worth having without it — but the
          * result looks complete, which is why it is reported rather than merely logged.
          */
@@ -323,6 +411,42 @@ class RemoteRecordingsDownloadManagerTest {
             verify(recordingsManager).createDownloadedRecording(
                     recordingName.capture(), anyList(), anyList(), any());
             assertEquals("checkout_2026-03-01T12-00-00Z", recordingName.getValue());
+        }
+
+        /**
+         * An id the session does not hold used to be dropped by the filter that picked the files,
+         * returning a recording made of the rest with nothing saying a file had been asked for and
+         * not brought. The hub caught it while it still saw whole selections; it serves one file
+         * per call now, so the refusal lives here beside the gap check.
+         */
+        @Test
+        void anIdTheSessionDoesNotHoldIsRefusedRatherThanDropped() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2", "f-mistyped")));
+
+            assertTrue(e.getMessage().contains("f-mistyped"), e.getMessage());
+            verify(streamClient, never()).streamRecordingFile(any(), any(), any());
+            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+        }
+
+        /**
+         * An unfinished file is one the session does not hold yet, and reads the same way: named
+         * rather than quietly left out of the recording that comes back.
+         */
+        @Test
+        void anUnfinishedFileIsRefusedRatherThanDropped() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED),
+                    file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, RecordingStatus.ACTIVE,
+                            CREATED_AT.plusSeconds(20))));
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2")));
+
+            assertTrue(e.getMessage().contains("f-2"), e.getMessage());
+            verify(streamClient, never()).streamRecordingFile(any(), any(), any());
         }
 
         /**

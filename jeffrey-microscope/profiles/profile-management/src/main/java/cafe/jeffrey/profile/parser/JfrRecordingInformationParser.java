@@ -63,7 +63,7 @@ public class JfrRecordingInformationParser implements RecordingInformationParser
         if (Lz4Compressor.isLz4Compressed(recordingPath)) {
             // Try streaming first - works for single-frame LZ4 files
             try (InputStream lz4Stream = Lz4Compressor.decompressStream(recordingPath)) {
-                return JfrParser.chunks(lz4Stream);
+                return JfrParser.collectChunks(lz4Stream);
             } catch (Exception e) {
                 // Fallback: decompress to temp file and parse
                 // This handles multi-frame LZ4 files where streaming may fail at frame boundaries
@@ -73,7 +73,7 @@ public class JfrRecordingInformationParser implements RecordingInformationParser
             }
         } else {
             // Uncompressed .jfr file
-            return JfrParser.chunks(recordingPath);
+            return JfrParser.collectChunks(recordingPath);
         }
     }
 
@@ -81,7 +81,7 @@ public class JfrRecordingInformationParser implements RecordingInformationParser
         Lz4Compressor lz4Compressor = new Lz4Compressor(tempDirFactory);
         try (TempDirectory tempDir = tempDirFactory.newTempDir()) {
             Path decompressed = lz4Compressor.decompressToDir(recordingPath, tempDir.path());
-            return JfrParser.chunks(decompressed);
+            return JfrParser.collectChunks(decompressed);
         } catch (Exception e) {
             throw Exceptions.internal("Cannot read LZ4 recording info: " + recordingPath, e);
         }

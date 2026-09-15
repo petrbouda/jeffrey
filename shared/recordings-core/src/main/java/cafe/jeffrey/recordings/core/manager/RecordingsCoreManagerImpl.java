@@ -58,6 +58,11 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsCoreManagerImpl.class);
 
+    /**
+     * Between a recording's id and its file's own name, in the flat recordings directory.
+     */
+    private static final String STORAGE_NAME_SEPARATOR = "-";
+
     private final Clock clock;
     private final Path recordingsDir;
     private final RecordingRepository recordingRepository;
@@ -131,15 +136,15 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         }
 
         String recordingId = IDGenerator.generate();
-        Path targetPath = recordingsDir.resolve(recordingId + "-" + filename);
+        StoredFile stored = new StoredFile(filename, storagePath(recordingId, filename));
 
         try {
-            Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(inputStream, stored.path(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to save uploaded file", e);
         }
 
-        persistRecording(recordingId, filename, List.of(targetPath), groupId, List.of(), Map.of());
+        persistRecording(recordingId, filename, List.of(stored), groupId, List.of(), Map.of());
 
         LOG.info("Quick analysis recording uploaded: recordingId={} filename={} groupId={}", recordingId, filename, groupId);
         return recordingId;
@@ -186,26 +191,27 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         }
 
         String recordingId = IDGenerator.generate();
-        List<Path> targetPaths = recordingFiles.stream()
+        List<StoredFile> storedFiles = recordingFiles.stream()
                 .map(file -> copyIntoStorage(recordingId, file))
                 .toList();
 
-        persistRecording(recordingId, recordingName, targetPaths, null, artifactFiles, originTags);
+        persistRecording(recordingId, recordingName, storedFiles, null, artifactFiles, originTags);
 
         LOG.info("Quick analysis recording downloaded from project: recordingId={} recordingName={} "
                         + "fileCount={} artifactCount={} tagCount={}",
-                recordingId, recordingName, targetPaths.size(), artifactFiles.size(), originTags.size());
+                recordingId, recordingName, storedFiles.size(), artifactFiles.size(), originTags.size());
         return recordingId;
     }
 
-    private Path copyIntoStorage(String recordingId, Path source) {
-        Path targetPath = recordingsDir.resolve(recordingId + "-" + source.getFileName());
+    private StoredFile copyIntoStorage(String recordingId, Path source) {
+        String filename = source.getFileName().toString();
+        StoredFile stored = new StoredFile(filename, storagePath(recordingId, filename));
         try {
-            Files.copy(source, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(source, stored.path(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to copy downloaded recording into QA storage", e);
         }
-        return targetPath;
+        return stored;
     }
 
     /**
@@ -216,26 +222,26 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
      * @param recordingName what the recording is called in the list — the file's own name for an
      *                      upload, the session's name for a download, which is several files and
      *                      so has no one file to be named after
-     * @param targetPaths   the recording files, already in storage
+     * @param files         the recording files, already in storage
      */
     private void persistRecording(
             String recordingId,
             String recordingName,
-            List<Path> targetPaths,
+            List<StoredFile> files,
             String groupId,
             List<Path> artifactFiles,
             Map<String, String> originTags) {
 
         // The kind is decided by the first file. A recording is one format throughout — the files
         // of a session are chunks of the same profiler run — so there is nothing to decide per file.
-        RecordingEventSource eventSource = detectEventSource(targetPaths.getFirst().getFileName().toString());
+        RecordingEventSource eventSource = detectEventSource(files.getFirst().filename());
         Instant uploadedAt = clock.instant();
 
         Instant profilingStartedAt = null;
         Instant profilingFinishedAt = null;
 
         if (eventSource != RecordingEventSource.HEAP_DUMP) {
-            Optional<RecordingMetadata> metadata = metadataParser.parse(targetPaths);
+            Optional<RecordingMetadata> metadata = metadataParser.parse(files.stream().map(StoredFile::path).toList());
             if (metadata.isPresent()) {
                 RecordingMetadata recordingInfo = metadata.get();
                 eventSource = recordingInfo.eventSource();
@@ -251,10 +257,10 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
 
         // The first file goes in with the recording row itself; the rest are ordinary rows beside
         // it. There is no primary among them — which one is first only decides what a listing shows.
-        recordingRepository.insertRecording(recording, recordingFile(recordingId, targetPaths.getFirst(), uploadedAt));
-        targetPaths.stream()
+        recordingRepository.insertRecording(recording, recordingFile(recordingId, files.getFirst(), uploadedAt));
+        files.stream()
                 .skip(1)
-                .map(target -> recordingFile(recordingId, target, uploadedAt))
+                .map(stored -> recordingFile(recordingId, stored, uploadedAt))
                 .forEach(recordingRepository::insertRecordingFile);
 
         for (Path artifact : artifactFiles) {
@@ -270,33 +276,37 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
      * One row describing a file already sitting in storage. Recording files and artifacts are the
      * same row with a different {@code supported_type}, which is what the category is read off
      * later — there is no flag saying which of a recording's files is the important one.
+     *
+     * <p>The row carries the file's <em>own</em> name, never the name it happens to sit under:
+     * {@link #resolveRecordingFilePath} puts the recording id back in front of it, so a row holding
+     * the storage name would resolve to a path with that prefix on it twice. That is what
+     * {@link StoredFile} exists to keep from being expressible.
      */
-    private RecordingFile recordingFile(String recordingId, Path targetPath, Instant uploadedAt) {
-        String filename = targetPath.getFileName().toString();
+    private RecordingFile recordingFile(String recordingId, StoredFile stored, Instant uploadedAt) {
         long sizeInBytes;
         try {
-            sizeInBytes = Files.size(targetPath);
+            sizeInBytes = Files.size(stored.path());
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to get file size: " + filename, e);
+            throw new UncheckedIOException("Failed to get file size: " + stored.filename(), e);
         }
 
         return new RecordingFile(
-                IDGenerator.generate(), recordingId, filename,
-                SupportedRecordingFile.of(filename),
+                IDGenerator.generate(), recordingId, stored.filename(),
+                SupportedRecordingFile.of(stored.filename()),
                 uploadedAt, sizeInBytes);
     }
 
     private void persistArtifact(String recordingId, Path artifactPath, Instant uploadedAt) {
         String artifactFilename = artifactPath.getFileName().toString();
-        Path targetPath = recordingsDir.resolve(recordingId + "-" + artifactFilename);
+        StoredFile stored = new StoredFile(artifactFilename, storagePath(recordingId, artifactFilename));
         try {
-            Files.copy(artifactPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(artifactPath, stored.path(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new UncheckedIOException(
                     "Failed to copy artifact into QA storage: " + artifactFilename, e);
         }
 
-        recordingRepository.insertRecordingFile(recordingFile(recordingId, targetPath, uploadedAt));
+        recordingRepository.insertRecordingFile(recordingFile(recordingId, stored, uploadedAt));
     }
 
     @Override
@@ -357,7 +367,31 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     }
 
     private Path resolveRecordingFilePath(RecordingFile file) {
-        return recordingsDir.resolve(file.recordingId() + "-" + file.filename());
+        return storagePath(file.recordingId(), file.filename());
+    }
+
+    /**
+     * Where a recording's file sits. The directory is flat and shared by every recording, so each
+     * file is prefixed with the id of the recording it belongs to; the prefix is storage's business
+     * and never part of the name the file is known by.
+     *
+     * <p>One method rather than the same concatenation at each of the four places that write or
+     * read a file, because they have to agree exactly: a writer that disagreed with this reader by
+     * one prefix would store files nothing could find again.
+     */
+    private Path storagePath(String recordingId, String filename) {
+        return recordingsDir.resolve(recordingId + STORAGE_NAME_SEPARATOR + filename);
+    }
+
+    /**
+     * A file of a recording: the name it is known by, and where it actually sits.
+     *
+     * <p>The two are deliberately carried together rather than derived from each other. They differ
+     * by the storage prefix {@link #storagePath} adds, so reading the name back off the path yields
+     * the prefixed name — which, put through the same method again, resolves to a path carrying the
+     * prefix twice. Keeping both means that mistake has nowhere to happen.
+     */
+    private record StoredFile(String filename, Path path) {
     }
 
     /**

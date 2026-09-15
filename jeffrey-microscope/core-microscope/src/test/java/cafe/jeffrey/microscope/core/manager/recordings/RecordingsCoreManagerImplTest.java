@@ -41,13 +41,18 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +132,63 @@ class RecordingsCoreManagerImplTest {
         }
     }
 
+    /**
+     * The file row carries the file's own name, and storage puts the recording id in front of it.
+     * A row that stored the name it sits under instead would be resolved back to a path with that
+     * prefix on it twice — nothing would find the file again: analysis would report it missing,
+     * deletion would leave it behind, and the IDE panel, which matches a file by name and size,
+     * would read every imported recording as never imported.
+     */
+    @Nested
+    class StoredFileNames {
+
+        @Test
+        void storesTheFilesOwnNameRatherThanTheNameItSitsUnder() throws Exception {
+            Path jfr = Files.writeString(sourceDir.resolve("recording.jfr"), "jfr-bytes");
+            when(recordingMetadataParser.parse(anyList())).thenReturn(Optional.empty());
+
+            String recordingId = manager.importRecordingFromPath(jfr);
+
+            ArgumentCaptor<RecordingFile> fileCaptor = ArgumentCaptor.forClass(RecordingFile.class);
+            verify(recordingRepository).insertRecording(any(Recording.class), fileCaptor.capture());
+
+            RecordingFile persisted = fileCaptor.getValue();
+            assertEquals("recording.jfr", persisted.filename());
+            assertEquals(recordingId, persisted.recordingId());
+
+            // And the row resolves to the file that is actually there.
+            Path onDisk = recordingsDir.resolve(persisted.recordingId() + "-" + persisted.filename());
+            assertTrue(Files.exists(onDisk), "the row must resolve to the stored file: " + onDisk);
+        }
+
+        @Test
+        void keepsEveryDownloadedFileUnderItsSessionName() throws Exception {
+            Path first = Files.writeString(sourceDir.resolve("profile-1.jfr"), "chunk-one");
+            Path second = Files.writeString(sourceDir.resolve("profile-2.jfr"), "chunk-two");
+            Path heapDump = Files.writeString(sourceDir.resolve("heap.hprof"), "dump");
+            when(recordingMetadataParser.parse(anyList())).thenReturn(Optional.empty());
+
+            String recordingId = manager.createDownloadedRecording(
+                    "checkout_2026-03-01T12-00-00Z", List.of(first, second), List.of(heapDump), Map.of());
+
+            ArgumentCaptor<RecordingFile> firstFile = ArgumentCaptor.forClass(RecordingFile.class);
+            verify(recordingRepository).insertRecording(any(Recording.class), firstFile.capture());
+            ArgumentCaptor<RecordingFile> restOfFiles = ArgumentCaptor.forClass(RecordingFile.class);
+            verify(recordingRepository, times(2)).insertRecordingFile(restOfFiles.capture());
+
+            List<String> names = Stream.concat(
+                            Stream.of(firstFile.getValue()), restOfFiles.getAllValues().stream())
+                    .map(RecordingFile::filename)
+                    .toList();
+            assertEquals(List.of("profile-1.jfr", "profile-2.jfr", "heap.hprof"), names);
+
+            for (String name : names) {
+                assertTrue(Files.exists(recordingsDir.resolve(recordingId + "-" + name)),
+                        "every row must resolve to a stored file: " + name);
+            }
+        }
+    }
+
     @Nested
     class FindRecording {
 
@@ -138,7 +200,7 @@ class RecordingsCoreManagerImplTest {
         void delegatesToProjectAgnosticByIdLookup() {
             Recording projectScoped = new Recording(
                     "rec-1", "recording.jfr", "project-42", null, RecordingEventSource.JDK,
-                    NOW, NOW, NOW.plusSeconds(60), false, null, null, java.util.List.of());
+                    NOW, NOW, NOW.plusSeconds(60), false, null, null, List.of());
             when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(projectScoped));
 
             Optional<Recording> found = manager.findRecording("rec-1");

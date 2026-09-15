@@ -52,8 +52,8 @@ public class HubConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    public CachedHubClientsFactory hubClientsFactory(MicroscopeJeffreyDirs jeffreyDirs) {
-        return new CachedHubClientsFactory(jeffreyDirs::newTempDir);
+    public CachedHubClientsFactory hubClientsFactory() {
+        return new CachedHubClientsFactory();
     }
 
     @Bean

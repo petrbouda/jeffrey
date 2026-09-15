@@ -209,14 +209,15 @@ onMounted(() => {
 │   │   └── profile-data.db               # Profile database
 │   └── {profile-id-2}/
 │       └── profile-data.db
-└── recordings/                           # JFR files (uploaded or downloaded)
-    └── {recording-id}/
-        ├── profile-1704067200.jfr        # one file, or several — see below
-        ├── profile-1704067800.jfr
-        └── artifacts/                    # heap dumps, JVM logs, perf-counters</code></pre>
+└── recordings/                           # JFR files and artifacts, in one flat directory
+    ├── {recording-id}-profile-20240101-120000.jfr   # one file, or several — see below
+    ├── {recording-id}-profile-20240101-121000.jfr
+    └── {recording-id}-heap.hprof         # artifacts sit beside them, same naming</code></pre>
       </div>
 
       <p>A recording is <strong>one or more files</strong>. An upload is usually a single file; a session downloaded from a Hub is every JFR file that session wrote, fetched separately and in parallel and kept exactly as it was written — nothing is joined, at download time or later. The parser reads them as independent inputs into one profile, and the recording's window is taken across all of them: the earliest start to the latest end. There is deliberately no &ldquo;export as one file&rdquo; action.</p>
+
+      <p>The directory is flat, and every file is stored under its recording's id followed by the name the file itself carries — the session's name for a downloaded chunk, the uploaded file's own name for an upload. The prefix is what keeps one directory unique across recordings; it is not part of the name the file is known by, and the database row stores the name without it.</p>
 
       <DocsCallout type="tip">
         Override the home directory with <code>jeffrey.microscope.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_MICROSCOPE_HOME_DIR</code> environment variable.
