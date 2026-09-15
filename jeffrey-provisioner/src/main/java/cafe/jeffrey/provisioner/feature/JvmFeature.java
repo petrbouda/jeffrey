@@ -96,8 +96,8 @@ public sealed interface JvmFeature {
         }
     }
 
-    /** The Jeffrey agent, with file-based liveness and optional method tracing. */
-    record Agent(String agentPath, boolean methodTracingEnabled, AppIdentity identity) implements JvmFeature {
+    /** The Jeffrey agent: file-based liveness, and the identity the recording carries. */
+    record Agent(String agentPath, AppIdentity identity) implements JvmFeature {
 
         private static final String AGENT_OPTION_PREFIX = "-javaagent:";
         private static final String AGENT_ARGS_SEPARATOR = "=";
@@ -119,7 +119,7 @@ public sealed interface JvmFeature {
 
             String heartbeatDir = sessionPath.resolve(HeartbeatConstants.HEARTBEAT_DIR).toString();
             String agentOption = AGENT_OPTION_PREFIX + agentPath + AGENT_ARGS_SEPARATOR
-                    + AgentArguments.of(heartbeatDir, methodTracingEnabled, identity);
+                    + AgentArguments.of(heartbeatDir, identity);
 
             return Optional.of(agentOption);
         }

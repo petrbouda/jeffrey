@@ -73,7 +73,7 @@ const tasteSpans = [
 
       <p>A tracing tool normally tells you that a span took 400&nbsp;ms and stops there. The next question — <em>doing what?</em> — needs a profiler and a second, correlated data source. Jeffrey has both in one file: spans are JFR events written into the same flight recording that carries the profiler's samples, so a span selected in the waterfall becomes a flamegraph query, a socket read becomes a child bar, and a GC pause becomes a lane drawn across the whole trace.</p>
 
-      <p>There is no collector, no exporter, no separate "send data" step. You instrument with the zero-dependency <code>cafe.jeffrey-analyst:jeffrey-events</code> library (or attach the Jeffrey Agent and annotate methods with <code>@Traced</code>), record with whatever starts a JFR recording, and open the <code>.jfr</code> file in Jeffrey Microscope. Everything else — trace assembly, JDK-event correlation, visualization — happens at analysis time.</p>
+      <p>There is no collector, no exporter, no separate "send data" step. You instrument with the zero-dependency <code>cafe.jeffrey-analyst:jeffrey-events</code> library, record with whatever starts a JFR recording, and open the <code>.jfr</code> file in Jeffrey Microscope. Everything else — trace assembly, JDK-event correlation, visualization — happens at analysis time.</p>
 
       <DocsCodeBlock :code="taste" language="java" />
       <DocsSpanTree trace="5f3a90c2…" :spans="tasteSpans" />
@@ -111,7 +111,7 @@ const tasteSpans = [
           <tr>
             <td><strong>Events library</strong></td>
             <td><code>cafe.jeffrey-analyst:jeffrey-events</code></td>
-            <td>The whole developer-facing API: <router-link to="/docs/tracing/instrumentation">Tracer</router-link>, <code>@Traced</code>, <code>AbstractTracedEvent</code>, and every <code>jeffrey.*</code> event type. Zero dependencies (only <code>jdk.jfr</code>); safe to leave in production — every emit path checks <code>isEnabled()</code> first.</td>
+            <td>The whole developer-facing API: <router-link to="/docs/tracing/instrumentation">Tracer</router-link>, <code>AbstractTracedEvent</code>, and every <code>jeffrey.*</code> event type. Zero dependencies (only <code>jdk.jfr</code>); safe to leave in production — every emit path checks <code>isEnabled()</code> first.</td>
           </tr>
           <tr>
             <td><strong>Framework glue</strong></td>
@@ -121,7 +121,7 @@ const tasteSpans = [
           <tr>
             <td><strong>Jeffrey Agent</strong></td>
             <td><code>jeffrey-agent.jar</code></td>
-            <td>A <code>-javaagent</code> that weaves methods annotated with <code>@Traced</code> into spans without touching their code. Optional — the library works fully without it. See <router-link to="/docs/tracing/traced-annotation">@Traced &amp; the Agent</router-link>.</td>
+            <td>A <code>-javaagent</code> that reports liveness to a Hub and stamps the recording with its workspace, project and session. It emits no spans and instruments nothing. See <router-link to="/docs/agent/overview">Jeffrey Agent</router-link>.</td>
           </tr>
           <tr>
             <td><strong>Jeffrey Microscope</strong></td>
@@ -155,7 +155,7 @@ const tasteSpans = [
           </tr>
           <tr>
             <td><code>jeffrey.TraceSpan</code></td>
-            <td>Interior span — emitted by <code>Tracer.run</code>/<code>call</code>/<code>continueIn</code> and by <code>@Traced</code></td>
+            <td>Interior span — emitted by <code>Tracer.run</code>/<code>call</code>/<code>continueIn</code></td>
           </tr>
           <tr>
             <td><code>jeffrey.TraceScope</code></td>
@@ -187,7 +187,7 @@ const tasteSpans = [
       <h2 id="requirements">Requirements</h2>
 
       <ul>
-        <li><strong>Java 25 or newer</strong> for the <code>Tracer</code> API and <code>@Traced</code> — both are built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, finalized in Java&nbsp;25.</li>
+        <li><strong>Java 25 or newer</strong> for the <code>Tracer</code> API — it is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, finalized in Java&nbsp;25.</li>
         <li>On <strong>Java 17–24</strong>, an earlier <code>jeffrey-events</code> release still provides the HTTP, gRPC and JDBC events (they light up the HTTP and Database dashboards), but no hand-written spans and no cross-event nesting.</li>
         <li><strong>Any JFR recording</strong> records the events — plain <code>-XX:StartFlightRecording</code>, <code>jcmd</code>, or async-profiler with <code>--jfrsync</code>. Nothing to enable; the events are on by default in any recording.</li>
       </ul>

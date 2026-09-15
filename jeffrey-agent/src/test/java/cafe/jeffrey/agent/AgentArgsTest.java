@@ -99,33 +99,15 @@ class AgentArgsTest {
     }
 
     @Nested
-    class MethodTracing {
+    class UnknownArguments {
 
         @Test
-        void offUnlessAskedFor() {
-            AgentArgs args = AgentArgs.parse("heartbeat.dir=/tmp");
-
-            assertFalse(args.tracingEnabled(),
-                    "weaving application bytecode is not something to switch on behind an operator's back");
-        }
-
-        @Test
-        void offForAnEmptyArgumentString() {
-            assertFalse(AgentArgs.parse("").tracingEnabled());
-            assertFalse(AgentArgs.parse(null).tracingEnabled());
-        }
-
-        @Test
-        void enabledExplicitly() {
+        void areIgnored() {
+            // tracing.enabled was this agent's third feature and is gone; an argument string
+            // written for an older agent must still start this one rather than fail it
             AgentArgs args = AgentArgs.parse("heartbeat.dir=/tmp,tracing.enabled=true");
 
-            assertTrue(args.tracingEnabled());
-            assertEquals(Path.of("/tmp"), args.heartbeatDir(), "the other features are unaffected");
-        }
-
-        @Test
-        void disabledExplicitly() {
-            assertFalse(AgentArgs.parse("tracing.enabled=false").tracingEnabled());
+            assertEquals(Path.of("/tmp"), args.heartbeatDir(), "the known arguments still parse");
         }
     }
 

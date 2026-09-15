@@ -502,7 +502,6 @@ export const tracingNavigation: DocSection[] = [
           { title: 'propagating', to: '/docs/tracing/tracer-api/propagating' }
         ]
       },
-      { title: '@Traced & the Agent', to: '/docs/tracing/traced-annotation' },
       { title: 'Jeffrey Agent', to: '/docs/agent/overview' },
       { title: 'JFR Method Tracing', to: '/docs/tracing/method-tracing' },
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },

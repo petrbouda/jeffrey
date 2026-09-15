@@ -668,7 +668,7 @@ class InitConfigTest {
             assertEquals(Path.of("/tmp/jvm.args"), config.getArgFilePath());
             assertTrue(config.isDebugNonSafepointsEnabled());
             assertFalse(config.isPerfCountersEnabled());
-            assertTrue(config.isMethodTracingEnabled());
+            assertTrue(config.isSpanTracingEnabled());
             assertNull(config.resolveHeapDumpType());
         }
 
@@ -679,7 +679,7 @@ class InitConfigTest {
                     "JEFFREY_PROJECT_NAME", "my-service",
                     "JEFFREY_TRACING_ENABLED", "false")));
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         @Test
@@ -689,7 +689,7 @@ class InitConfigTest {
                     "JEFFREY_PROJECT_NAME", "my-service",
                     "JEFFREY_TRACING_ENABLED", "maybe")));
 
-            assertTrue(config.isMethodTracingEnabled());
+            assertTrue(config.isSpanTracingEnabled());
         }
 
         @Test
@@ -834,7 +834,7 @@ class InitConfigTest {
         @ValueSource(strings = {"false", "FALSE", "False", " false "})
         void acceptsFalse(String value) {
             assertFalse(InitConfig.fromEnvironment(envWith("JEFFREY_TRACING_ENABLED", value))
-                    .isMethodTracingEnabled());
+                    .isSpanTracingEnabled());
         }
 
         /**
@@ -848,7 +848,7 @@ class InitConfigTest {
             assertFalse(InitConfig.fromEnvironment(envWith("JEFFREY_PERF_COUNTERS", value))
                     .isPerfCountersEnabled(), "perf-counters defaults to off and must stay off");
             assertTrue(InitConfig.fromEnvironment(envWith("JEFFREY_TRACING_ENABLED", value))
-                    .isMethodTracingEnabled(), "tracing defaults to on and must stay on");
+                    .isSpanTracingEnabled(), "tracing defaults to on and must stay on");
         }
     }
 
@@ -924,7 +924,7 @@ class InitConfigTest {
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         /**
@@ -944,7 +944,7 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(configFile, null,
                     name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         /** The same holds when no file declares the flag at all — the environment beats defaults. */
@@ -959,7 +959,7 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(configFile, null,
                     name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
 
-            assertFalse(config.isMethodTracingEnabled());
+            assertFalse(config.isSpanTracingEnabled());
         }
 
         @Test

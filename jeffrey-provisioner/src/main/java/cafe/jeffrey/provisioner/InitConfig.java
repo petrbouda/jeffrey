@@ -117,9 +117,9 @@ public class InitConfig {
             }
             attributes = {}
             perf-counters { enabled = false }
-            # On by default, unlike the agent's own parameter: a provisioned JVM is one being
-            # profiled on purpose, and the weaver is inert without Java 25 and jeffrey-events on
-            # the class path. JEFFREY_TRACING_ENABLED=false opts a deployment out.
+            # Lowers the JFR thresholds a span is read at. On by default: a provisioned JVM is one
+            # being profiled on purpose, and the settings cost nothing in an application that emits
+            # no spans. JEFFREY_TRACING_ENABLED=false opts a deployment out.
             # jfr-event-settings left empty means the built-in event list
             # (TracingJfrEvents.DEFAULT_SETTINGS); "none" opts out while leaving tracing on.
             tracing { enabled = true, jfr-event-settings = "" }
@@ -227,7 +227,7 @@ public class InitConfig {
     private final Map<String, String> attributes;
 
     private final boolean perfCountersEnabled;
-    private final boolean methodTracingEnabled;
+    private final boolean spanTracingEnabled;
     private final String tracingJfrEventSettings;
     private final boolean debugNonSafepointsEnabled;
     private final boolean jdkJavaOptionsEnabled;
@@ -276,7 +276,7 @@ public class InitConfig {
                 resolved.getObject(ConfigPaths.ATTRIBUTES).unwrapped(), placeholders);
 
         this.perfCountersEnabled = resolved.getBoolean(ConfigPaths.PERF_COUNTERS_ENABLED);
-        this.methodTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
+        this.spanTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
         this.tracingJfrEventSettings = valueOrDefault(
                 resolved.getString(ConfigPaths.TRACING_JFR_EVENT_SETTINGS), TracingJfrEvents.DEFAULT_SETTINGS);
         this.debugNonSafepointsEnabled = resolved.getBoolean(ConfigPaths.DEBUG_NON_SAFEPOINTS_ENABLED);
@@ -438,9 +438,13 @@ public class InitConfig {
         return perfCountersEnabled;
     }
 
-    /** Whether the agent records {@code @Traced} methods as spans. */
-    public boolean isMethodTracingEnabled() {
-        return methodTracingEnabled;
+    /**
+     * Whether this session records spans, which is what decides if the JFR thresholds a span is
+     * read at are lowered. It says nothing about the agent: spans come from the application's own
+     * {@code Tracer} calls and from the {@code jeffrey-tracing-*} instrumentation libraries.
+     */
+    public boolean isSpanTracingEnabled() {
+        return spanTracingEnabled;
     }
 
     /**

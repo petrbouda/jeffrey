@@ -35,7 +35,7 @@ const headings = [
   { id: 'membership', text: 'A Traced Method Needs a Trace Around It', level: 2 },
   { id: 'nesting', text: 'Nesting, Adoption and Self Time', level: 2 },
   { id: 'reading', text: 'Reading Traced Methods in the Waterfall', level: 2 },
-  { id: 'choosing', text: 'Method Tracing, @Traced or the Tracer API', level: 2 },
+  { id: 'choosing', text: 'Method Tracing or the Tracer API', level: 2 },
   { id: 'pitfalls', text: 'Pitfalls', level: 2 }
 ];
 
@@ -190,7 +190,7 @@ const promotedSpans = [
 
       <p><strong>The name comes from the event's <code>method</code> field</strong>, not from its stack trace. JEP&nbsp;520 roots a <code>jdk.MethodTrace</code> stack at the <em>caller</em>, so the leaf frame names the method that made the call rather than the one being traced — a span named from the stack would call <code>OrderService#charge</code> "OrderController#submit". The package is dropped for the row, because a waterfall row is a few centimetres wide and a qualified name pushes the timing off the end of it; the full name stays in the payload the detail panel shows. The <code>#</code> is JFR's own separator, kept because it says "a method" in a span name the way <code>{service}/{method}</code> says "an RPC".</p>
 
-      <p><strong>The kind is <code>INTERNAL</code> and there is no status</strong>, because the JVM records neither an outcome nor a peer: a traced method is the application's own code running, and it is not a call out to anything. An exception escaping it does not turn the bar red — only instrumentation records an outcome, so use <router-link to="/docs/tracing/traced-annotation">@Traced</router-link> or the <router-link to="/docs/tracing/tracer-api/run">Tracer API</router-link> where the failure matters.</p>
+      <p><strong>The kind is <code>INTERNAL</code> and there is no status</strong>, because the JVM records neither an outcome nor a peer: a traced method is the application's own code running, and it is not a call out to anything. An exception escaping it does not turn the bar red — only instrumentation records an outcome, so use the <router-link to="/docs/tracing/tracer-api/run">Tracer API</router-link> where the failure matters.</p>
 
       <h2 id="membership">A Traced Method Needs a Trace Around It</h2>
 
@@ -223,14 +223,13 @@ const promotedSpans = [
         <li><strong>Never repeated in "Events in span".</strong> The drill-down that lists JVM events inside a span's window leaves out the promoted event types — a traced method is already a child bar of the span being opened.</li>
       </ul>
 
-      <h2 id="choosing">Method Tracing, @Traced or the Tracer API</h2>
+      <h2 id="choosing">Method Tracing or the Tracer API</h2>
 
       <table>
         <thead>
           <tr>
             <th></th>
             <th>JFR method tracing</th>
-            <th><router-link to="/docs/tracing/traced-annotation">@Traced</router-link></th>
             <th><router-link to="/docs/tracing/tracer-api/run">Tracer API</router-link></th>
           </tr>
         </thead>
@@ -238,37 +237,31 @@ const promotedSpans = [
           <tr>
             <td>Touches the application</td>
             <td>Nothing — a recording setting</td>
-            <td>An annotation plus the agent</td>
             <td>Code around the work</td>
           </tr>
           <tr>
             <td>Granularity</td>
             <td>Whole methods, named or annotated</td>
-            <td>Whole methods, one at a time</td>
             <td>Any block, however small</td>
           </tr>
           <tr>
             <td>Name and kind</td>
             <td>The method; always <code>INTERNAL</code></td>
-            <td>Yours, or derived</td>
             <td>Yours</td>
           </tr>
           <tr>
             <td>Attributes, errors, forking</td>
             <td>None</td>
-            <td>Attributes and <code>ERROR</code> status</td>
             <td>Everything</td>
           </tr>
           <tr>
             <td>Changed without a redeploy</td>
             <td>Yes</td>
             <td>No</td>
-            <td>No</td>
           </tr>
           <tr>
             <td>Requires</td>
             <td>JDK 25+</td>
-            <td>The Jeffrey Agent</td>
             <td>Java 25+</td>
           </tr>
         </tbody>

@@ -190,7 +190,8 @@ jeffrey/
 │   ├── recording-storage-api/         # Storage interfaces
 │   └── filesystem-recording-storage/  # Filesystem storage implementation
 ├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
-├── jeffrey-agent/                     # Agent module
+├── jeffrey-agent/                     # Agent module — liveness heartbeat + jeffrey.AppInformation only;
+│                                   #   pure JDK, no dependencies, transforms no bytecode
 ├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, four manifests
 │   ├── .claude-plugin/plugin.json     # Claude Code manifest, with the configurable MCP endpoint inline
 │   ├── plugin.json + mcp.json         # Agent Plugins 1.0.0 — Codex, Cursor, Copilot, VS Code, Kiro
@@ -662,7 +663,8 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, ...) |
 | `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
 | `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |
-| `jeffrey-agent/` + tracing instrumentation | `docs/tracing/` — concepts, getting started, configuration, `@Traced`, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
+| `jeffrey-agent/` | `docs/agent/` — overview (heartbeat + AppInformation) |
+| tracing instrumentation (`utilities/`) | `docs/tracing/` — concepts, getting started, configuration, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
 | `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
 | Jib build/deployment | `docs/jib/` — overview, setup, configuration |
 | External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, every client (what the plugin brings to any agent), Claude Code plugin, Codex plugin, Gemini extension, tool reference, skills, analysis agents, recipes, other clients |

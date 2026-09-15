@@ -25,7 +25,7 @@ import java.util.Base64;
 import java.util.Optional;
 
 public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean heartbeatEnabled,
-                        AppInformation appInfo, boolean tracingEnabled) {
+                        AppInformation appInfo) {
 
     private record KeyValue(String key, String value) {
     }
@@ -38,10 +38,6 @@ public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean h
     private static final String PARAM_ENABLED = "heartbeat.enabled";
     // Must match HeartbeatConstants.DEFAULT_INTERVAL — both values move together
     private static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
-
-    // Method tracing is off unless asked for: it installs a transformer consulted on every class
-    // the application loads, which is not something to switch on behind an operator's back.
-    private static final String PARAM_TRACING_ENABLED = "tracing.enabled";
 
     // Duplicated from AppInfoConstants — see note above
     private static final String PARAM_WORKSPACE_ID = "app.workspaceId";
@@ -56,13 +52,12 @@ public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean h
 
     public static AgentArgs parse(String args) {
         if (args == null || args.isBlank()) {
-            return new AgentArgs(null, DEFAULT_INTERVAL, true, null, false);
+            return new AgentArgs(null, DEFAULT_INTERVAL, true, null);
         }
 
         Path heartbeatDir = null;
         Duration interval = DEFAULT_INTERVAL;
         boolean enabled = true;
-        boolean tracingEnabled = false;
 
         String workspaceId = null;
         String projectId = null;
@@ -84,7 +79,6 @@ public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean h
                 case PARAM_DIR -> heartbeatDir = Path.of(kv.value);
                 case PARAM_INTERVAL -> interval = Duration.ofMillis(Long.parseLong(kv.value));
                 case PARAM_ENABLED -> enabled = Boolean.parseBoolean(kv.value);
-                case PARAM_TRACING_ENABLED -> tracingEnabled = Boolean.parseBoolean(kv.value);
                 case PARAM_WORKSPACE_ID -> workspaceId = kv.value;
                 case PARAM_PROJECT_ID -> projectId = kv.value;
                 case PARAM_PROJECT_NAME -> projectName = kv.value;
@@ -103,7 +97,7 @@ public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean h
                 workspaceId, projectId, projectName, projectLabel,
                 instanceId, sessionId, sessionOrder, attributes, provisionedAt);
 
-        return new AgentArgs(heartbeatDir, interval, enabled, appInfo, tracingEnabled);
+        return new AgentArgs(heartbeatDir, interval, enabled, appInfo);
     }
 
     private static Optional<KeyValue> parseKeyValue(String part) {

@@ -317,7 +317,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>tracing.enabled</code></td>
               <td>No</td>
               <td><code>JEFFREY_TRACING_ENABLED</code></td>
-              <td><strong>On by default.</strong> Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-events</code> on the application's class path; without them the weaver stays inert. Set <code>JEFFREY_TRACING_ENABLED=false</code> to opt out</td>
+              <td><strong>On by default.</strong> Lower the JFR thresholds a span is read at, via a second recording. Costs nothing in an application that emits no spans. Set <code>JEFFREY_TRACING_ENABLED=false</code> to opt out</td>
             </tr>
             <tr>
               <td><code>tracing.jfr-event-settings</code></td>
@@ -358,7 +358,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <div class="feature-card trace">
             <div class="feature-icon"><i class="bi bi-braces"></i></div>
             <h4>Method Tracing</h4>
-            <p>Tells the Jeffrey Agent to weave methods annotated <code>@Traced</code> into spans. On by default — a provisioned JVM is one being profiled on purpose — and inert on a JVM below 25 or without <code>jeffrey-events</code> on the class path.</p>
+            <p>Lowers the JFR event thresholds a trace is read at, by starting a second recording that carries them. On by default — a provisioned JVM is one being profiled on purpose — and harmless in an application that emits no spans. It does not switch instrumentation on: spans come from the application's own <code>Tracer</code> calls and the <code>jeffrey-tracing-*</code> libraries.</p>
             <code>tracing { enabled = false }</code>
           </div>
           <div class="feature-card heap">

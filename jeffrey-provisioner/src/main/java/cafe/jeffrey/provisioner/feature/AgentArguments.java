@@ -40,16 +40,10 @@ public abstract class AgentArguments {
     private static final String SEPARATOR = ",";
     private static final String ASSIGN = "=";
 
-    /** Turns on {@code @Traced} method tracing; off unless the session asks for it. */
-    private static final String METHOD_TRACING = "tracing.enabled=true";
-
-    public static String of(String heartbeatDir, boolean methodTracingEnabled, AppIdentity identity) {
+    public static String of(String heartbeatDir, AppIdentity identity) {
         List<String> arguments = new ArrayList<>();
         arguments.add(HeartbeatConstants.PARAM_DIR + ASSIGN + heartbeatDir);
 
-        if (methodTracingEnabled) {
-            arguments.add(METHOD_TRACING);
-        }
         if (identity != null) {
             addIdentity(arguments, identity);
         }

@@ -108,7 +108,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="generatedOptions" language="bash" />
 
-      <p>That is: <code>tracing.enabled=true</code> on the <router-link to="/docs/tracing/traced-annotation">Jeffrey Agent</router-link> so <code>@Traced</code> methods are woven, and a second JFR recording carrying the event thresholds a trace is read at. The <code>jeffrey.*</code> events your instrumentation emits need no configuration at all — they are on by default in any recording.</p>
+      <p>That is: <code>tracing.enabled=true</code>, which starts a second JFR recording carrying the event thresholds a trace is read at. The <code>jeffrey.*</code> events your instrumentation emits need no configuration at all — they are on by default in any recording.</p>
 
       <h2 id="thresholds">What the Provisioner Emits</h2>
 
@@ -210,9 +210,9 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
             <td>Keep the <code>#throttle</code> settings; a custom event list that drops them reintroduces the cap</td>
           </tr>
           <tr>
-            <td><code>@Traced</code> methods produce no spans, everything else is fine</td>
+            <td>JDK events a trace nests (socket reads, file writes, locks) stay above their default thresholds and never appear</td>
             <td>Agent weaving is off or unavailable</td>
-            <td>Java 25+, <code>tracing.enabled=true</code>, and <code>jeffrey-events</code> on the class's own loader — see <router-link to="/docs/tracing/traced-annotation">@Traced &amp; the Agent</router-link></td>
+            <td><code>tracing.enabled=true</code>, and a <code>jfr-event-settings</code> value other than <code>none</code></td>
           </tr>
           <tr>
             <td>The session never appears in the Hub</td>

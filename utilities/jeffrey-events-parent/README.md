@@ -63,28 +63,6 @@ Use `jeffrey-tracing-mybatis` **or** the `DataSource` wrapper, not both — the 
 statements by mapper method rather than by parsing their SQL, and two of them record every statement
 twice.
 
-## Or annotate the method and write nothing
-
-```java
-@Traced(name = "order.checkout", args = {"tier=gold"}, includeMethodArgs = {"orderId"})
-public Receipt checkout(String orderId, Card card) { ... }
-```
-
-```bash
-java -javaagent:jeffrey-agent.jar=tracing.enabled=true -jar app.jar
-```
-
-The [Jeffrey agent](https://www.jeffrey-analyst.cafe) weaves the same span the explicit form builds,
-so the method is not written around its own tracing. It nests under whatever span is in progress,
-fails with the exception's type, and records only the arguments you name — `includeMethodArgs = {"*"}`
-names them all. Needs Java 25; without the agent the annotation is inert and the method runs as
-written.
-
-Only values whose textual form is stable and intentional are recorded: text, numbers, booleans,
-enums, `UUID`, `BigDecimal`/`BigInteger` and the `java.time` value types. Naming `card` above would
-be refused rather than passed through `toString()` — a record's generated one prints every
-component, and a recording is a file that gets uploaded, shared and kept.
-
 ## Sixty seconds of tracing
 
 An inbound request becomes the root of a trace, hand-written spans describe the application logic
@@ -162,7 +140,7 @@ dashboards.
 | `jeffrey.GrpcClientExchange` | `grpc.GrpcClientExchangeEvent` | leaf: outbound gRPC call |
 | `jeffrey.JdbcQuery` / `JdbcInsert` / `JdbcUpdate` / `JdbcDelete` / `JdbcExecute` | `jdbc.statement.*` | leaf: one statement per event, split by verb |
 | `jeffrey.JdbcStream` | `jdbc.statement.JdbcStreamEvent` | leaf: query consumed as a stream (deferred commit) |
-| `jeffrey.TraceSpan` | `trace.TraceSpanEvent` | interior span, emitted by `Tracer.run`/`call`/`continueIn` and by `@Traced` |
+| `jeffrey.TraceSpan` | `trace.TraceSpanEvent` | interior span, emitted by `Tracer.run`/`call`/`continueIn` |
 | `jeffrey.TraceScope` | `trace.TraceScopeEvent` | where a re-entered span ran; emitted by `Tracer.reenter` only |
 | `jeffrey.JdbcPoolStatistics` + `PooledJdbcConnection*` | `jdbc.pool.*` | not spans: pool gauges and durations |
 | `jeffrey.Notification` | `notification.NotificationEvent` | not a span: an instant (`trace.AbstractTracedInstant`), but it records the span it fired in |

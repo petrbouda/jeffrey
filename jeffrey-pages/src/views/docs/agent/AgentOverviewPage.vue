@@ -28,7 +28,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'how-it-works', text: 'How It Works', level: 2 },
   { id: 'configuration', text: 'Configuration', level: 2 },
-  { id: 'method-tracing', text: 'Method Tracing', level: 2 },
+  { id: 'app-information', text: 'Application Information', level: 2 },
   { id: 'server-side-detection', text: 'Server-Side Detection', level: 2 }
 ];
 
@@ -46,8 +46,8 @@ onMounted(() => {
 
       <div class="docs-content">
         <h2 id="overview">Overview</h2>
-        <p><strong>Jeffrey Agent</strong> is a Java agent that runs inside your Java application's JVM process. It does two things: <strong>heartbeat monitoring</strong>, so Jeffrey Hub can detect when a profiled application has stopped, and <strong>method tracing</strong>, which records methods annotated with <code>@Traced</code> as spans without touching their code.</p>
-        <p>Heartbeating is what the agent does by default and costs a daemon thread writing a timestamp. Method tracing rewrites application bytecode as it loads, so it is off until <code>tracing.enabled=true</code> asks for it.</p>
+        <p><strong>Jeffrey Agent</strong> is a Java agent that runs inside your Java application's JVM process. It does two things, both of them observation: <strong>heartbeat monitoring</strong>, so Jeffrey Hub can detect when a profiled application has stopped, and <strong>application information</strong>, a single JFR event that stamps the recording with the workspace, project, instance and session it belongs to.</p>
+        <p>It transforms no bytecode and touches nothing in the application. Between them the two features cost one daemon thread writing a timestamp, and one event emitted at startup.</p>
 
         <DocsCallout type="info">
           Jeffrey Agent is automatically configured by <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> when initializing a profiling session. You do not need to set up the agent manually.
@@ -65,14 +65,14 @@ onMounted(() => {
             <div class="agent-card-icon"><i class="bi bi-feather"></i></div>
             <div class="agent-card-content">
               <h4>Minimal Footprint</h4>
-              <p>A single daemon thread, no external dependencies at runtime, and nothing touched in the application unless method tracing is switched on. The JAR is ~4.9 MB, almost all of it the bytecode engine that does the weaving, relocated so it can never clash with the application's own copy.</p>
+              <p>A single daemon thread and no dependencies at all — the JAR is pure JDK, so there is no library inside it that could clash with a version the application ships. Nothing in the application is instrumented, rewritten or wrapped.</p>
             </div>
           </div>
           <div class="agent-card">
             <div class="agent-card-icon"><i class="bi bi-braces"></i></div>
             <div class="agent-card-content">
-              <h4>Method Tracing</h4>
-              <p>Every method annotated <code>@Traced</code> becomes a span nested under whatever work called it. Opt-in, and it needs Java 25 plus <code>jeffrey-events</code> on the application's class path; without either, the annotated methods simply run.</p>
+              <h4>Recording Identity</h4>
+              <p>Emits <code>jeffrey.AppInformation</code> once at startup, carrying the workspace, project, instance and session ids plus any attributes the deployment set. The recording then says where it came from on its own, without depending on the directory it is found in.</p>
             </div>
           </div>
           <div class="agent-card">
@@ -144,33 +144,23 @@ onMounted(() => {
                 <td>Set to <code>false</code> to disable heartbeating</td>
               </tr>
               <tr>
-                <td><code>tracing.enabled</code></td>
-                <td><code>false</code></td>
-                <td>Set to <code>true</code> to record <code>@Traced</code> methods as spans</td>
+                <td><code>app.*</code></td>
+                <td>—</td>
+                <td>Identity fields written into <code>jeffrey.AppInformation</code>; set by the Provisioner, not by hand</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <h2 id="method-tracing">Method Tracing</h2>
-        <p>Annotate a method and it becomes a span. The method itself is not written around its own tracing — that is the difference from calling <code>Tracer.run</code> by hand, which the <code>jeffrey-events</code> library also offers.</p>
-        <pre class="agent-code"><code>@Traced(name = "order.checkout", args = {"tier=gold"}, includeMethodArgs = {"orderId"})
-public Receipt checkout(String orderId, Card card) { ... }</code></pre>
-        <pre class="agent-code"><code>java -javaagent:/path/to/jeffrey-agent.jar=tracing.enabled=true -jar app.jar</code></pre>
-        <p>The span nests under whatever span is in progress on the thread — an inbound HTTP request, a job, another traced method — and records as its own root when there is none. A method that throws marks its span as failed with the exception's type, and the exception reaches the caller untouched.</p>
-        <p>Arguments are recorded only when asked for. <code>includeMethodArgs</code> names the ones to keep — a list of what may be recorded rather than of what may not — and <code>{"*"}</code> names them all. A captured value is recorded whole, and the parameter names come from javac's <code>-parameters</code> flag — without it they are <code>arg0</code>, <code>arg1</code>, and so on.</p>
-        <p>Naming a parameter is a request, not a guarantee: only values whose textual form is stable and intentional are recorded — text, numbers, booleans, enums, <code>UUID</code>, <code>BigDecimal</code>/<code>BigInteger</code> and the <code>java.time</code> value types. The <code>card</code> above would be refused. That is deliberate: a record's generated <code>toString()</code>, or Lombok's <code>@ToString</code>, prints every component, so <code>Card[number=4111111111111111, cvv=123]</code> would land in a file that gets uploaded, shared and kept — and not capturing it is the only thing that helps, because the first characters of a card are still the card. A type without <code>toString()</code> is no better: <code>com.acme.Card@1b6d3586</code> is an identity hash, unique per call, which is the worst possible key for a dashboard that groups spans by attribute value.</p>
-        <p>A parameter that could never be captured is dropped when the class is woven, with a warning naming it, so asking for something you will not get is said out loud once instead of being discovered in a recording later. Where the declaration decides nothing — <code>Object</code>, an interface, a type variable — the value settles it at the call, and one that turns out to be uncapturable is recorded as <code>&lt;unsupported&gt;</code> rather than silently dropped.</p>
-
+        <h2 id="app-information">Application Information</h2>
+        <p>At startup the agent emits one <code>jeffrey.AppInformation</code> event carrying the identity the Provisioner resolved for this run — workspace, project name and label, instance, session and its order, the attributes the deployment set, and when it was provisioned.</p>
+        <p>That identity is what lets a recording answer where it came from without being asked about its surroundings. A <code>.jfr</code> file copied off the shared volume, downloaded from a Hub or handed to Microscope on its own still names its project and session; Microscope reads the event in the profile configuration view, and the <code>jvm_configuration</code> MCP tool surfaces the same fields to a coding agent.</p>
         <DocsCallout type="info">
-          Method tracing needs Java 25 and <code>cafe.jeffrey-analyst:jeffrey-events</code> on the application's class path, because that is where <code>@Traced</code> and the span machinery live. Missing either, the agent says so once in the log and the annotated methods run exactly as if it were not attached — the application is never at risk from a missing dependency.
-        </DocsCallout>
-        <DocsCallout type="warning">
-          Classes are woven as they load, so the agent has to be on the command line at startup. A class already loaded when the agent attaches keeps its original methods.
+          Emitting one JFR event needs nothing on the application's class path — the agent uses the JDK's own <code>jdk.jfr</code> API. There is no dependency to add and nothing to configure: the Provisioner fills these arguments in when it builds the <code>-javaagent</code> flag.
         </DocsCallout>
 
         <h2 id="server-side-detection">Server-Side Detection</h2>
-        <p>Jeffrey Hub checks liveness files for active sessions every 30 seconds by default. A readable <code>.heartbeat/finished</code> marker ends the session using its timestamp. Otherwise, a heartbeat older than the configured threshold (10 seconds by default) ends it at the last heartbeat timestamp. If neither file can be read and the session is old enough, the detector uses the current Hub time as a fallback.</p>
+        <p>Jeffrey Hub checks liveness files for active sessions every 30 seconds by default. A readable <code>.heartbeat/finished</code> marker ends the session using its timestamp. Otherwise, a heartbeat older than the configured threshold (10 seconds by default) ends it at the last heartbeat timestamp — that is the crash path, where no shutdown hook ran. If a session declared the agent but no liveness file ever appeared and the startup window has passed, it is ended at the session's own start time. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for the full rules, including sessions provisioned without the agent.</p>
 
       </div>
 

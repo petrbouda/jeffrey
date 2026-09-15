@@ -110,7 +110,7 @@ class JvmFeatureTest {
 
         @Test
         void loadsTheAgentWithoutOverridingTheJfrRepository() {
-            String options = render(new JvmFeature.Agent("/libs/jeffrey-agent.jar", false, IDENTITY));
+            String options = render(new JvmFeature.Agent("/libs/jeffrey-agent.jar", IDENTITY));
 
             assertTrue(options.startsWith("-javaagent:/libs/jeffrey-agent.jar="), options);
             assertFalse(options.contains("-XX:FlightRecorderOptions="), options);
@@ -118,22 +118,22 @@ class JvmFeatureTest {
 
         @Test
         void passesTheHeartbeatDirectoryFirst() {
-            String options = render(new JvmFeature.Agent("/agent.jar", false, IDENTITY));
+            String options = render(new JvmFeature.Agent("/agent.jar", IDENTITY));
 
             assertTrue(options.contains(HeartbeatConstants.PARAM_DIR + "="
                     + SESSION.resolve(HeartbeatConstants.HEARTBEAT_DIR)), options);
         }
 
         @Test
-        void addsTracingOnlyWhenAsked() {
-            assertTrue(render(new JvmFeature.Agent("/agent.jar", true, IDENTITY)).contains("tracing.enabled=true"));
-            assertTrue(!render(new JvmFeature.Agent("/agent.jar", false, IDENTITY)).contains("tracing.enabled"));
+        void neverAsksTheAgentToTrace() {
+            // The agent transforms no bytecode; span thresholds are TracingEventThresholds' job
+            assertFalse(render(new JvmFeature.Agent("/agent.jar", IDENTITY)).contains("tracing.enabled"), "agent args");
         }
 
         @Test
         void rendersNothingWithoutAnAgentPath() {
-            assertEquals(Optional.empty(), new JvmFeature.Agent(null, true, IDENTITY).render(SESSION, PLACEHOLDERS));
-            assertEquals(Optional.empty(), new JvmFeature.Agent("  ", true, IDENTITY).render(SESSION, PLACEHOLDERS));
+            assertEquals(Optional.empty(), new JvmFeature.Agent(null, IDENTITY).render(SESSION, PLACEHOLDERS));
+            assertEquals(Optional.empty(), new JvmFeature.Agent("  ", IDENTITY).render(SESSION, PLACEHOLDERS));
         }
     }
 

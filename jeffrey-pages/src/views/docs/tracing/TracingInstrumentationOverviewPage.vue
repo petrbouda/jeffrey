@@ -146,11 +146,6 @@ const composedSpans = [
             <td>The <router-link to="/docs/tracing/tracer-api/run">Tracer API Reference</router-link> — one page per method</td>
           </tr>
           <tr>
-            <td><strong>Annotated methods</strong></td>
-            <td><code>@Traced</code> on a method, woven by the Jeffrey Agent</td>
-            <td><router-link to="/docs/tracing/traced-annotation">@Traced &amp; the Agent</router-link></td>
-          </tr>
-          <tr>
             <td><strong>JFR method tracing</strong></td>
             <td>A filter in the recording configuration — no code, no agent, no redeploy</td>
             <td><router-link to="/docs/tracing/method-tracing">JFR Method Tracing</router-link></td>
@@ -210,7 +205,7 @@ const composedSpans = [
         <tbody>
           <tr>
             <td><code>jeffrey.TraceSpan</code></td>
-            <td>A hand-written span — one named interval of work. Emitted by <router-link to="/docs/tracing/tracer-api/run">run</router-link>, <router-link to="/docs/tracing/tracer-api/call">call</router-link>, <router-link to="/docs/tracing/tracer-api/continue-in">continueIn</router-link> (and therefore <router-link to="/docs/tracing/tracer-api/fork">fork</router-link>/<router-link to="/docs/tracing/tracer-api/fork-callable">forkCallable</router-link>), and by <code>@Traced</code>. Declares no fields of its own; everything lives on <code>AbstractTracedEvent</code>.</td>
+            <td>A hand-written span — one named interval of work. Emitted by <router-link to="/docs/tracing/tracer-api/run">run</router-link>, <router-link to="/docs/tracing/tracer-api/call">call</router-link>, <router-link to="/docs/tracing/tracer-api/continue-in">continueIn</router-link> (and therefore <router-link to="/docs/tracing/tracer-api/fork">fork</router-link>/<router-link to="/docs/tracing/tracer-api/fork-callable">forkCallable</router-link>). Declares no fields of its own; everything lives on <code>AbstractTracedEvent</code>.</td>
           </tr>
           <tr>
             <td><code>jeffrey.TraceScope</code></td>

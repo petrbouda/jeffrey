@@ -31,11 +31,7 @@
 
     <properties>
         <finalName>jeffrey-agent</finalName>
-        <!--
-          Pinned: unlike the assembly plugin, shade has no version in Maven's super-POM. It also has
-          to be new enough to read ByteBuddy's versioned classes for recent JDKs — 3.6.0 fails on
-          them with "Unsupported class file major version 68".
-        -->
+        <!-- Pinned: unlike the assembly plugin, shade has no version in Maven's super-POM. -->
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
     </properties>
 
@@ -49,10 +45,12 @@
     <build>
         <plugins>
             <!--
-              Shaded rather than assembled, because the agent now carries ByteBuddy and the jar is
-              appended to the system class path of every application it attaches to. Unrelocated, it
-              would win parent-first delegation over the ByteBuddy those applications ship with
-              Hibernate, Mockito or Spring — a profiler must never re-version the thing it profiles.
+              The agent carries no third-party code, so this packages its own classes and writes the
+              Premain-Class manifest entry — there is nothing to relocate. Keep it that way: the jar
+              is appended to the system class path of every application it attaches to, where any
+              library it bundled would win parent-first delegation over the application's own copy.
+              A profiler must never re-version the thing it profiles, and the cheapest guarantee of
+              that is having no dependencies to bundle.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -67,18 +65,7 @@
                         <configuration>
                             <finalName>${finalName}</finalName>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <!--
-                              Left off deliberately: ByteBuddy reaches parts of itself reflectively,
-                              so keeping only what is statically reachable is a correctness risk not
-                              worth a few megabytes.
-                            -->
                             <minimizeJar>false</minimizeJar>
-                            <relocations>
-                                <relocation>
-                                    <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>cafe.jeffrey.agent.internal.bytebuddy</shadedPattern>
-                                </relocation>
-                            </relocations>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -95,8 +82,6 @@
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Premain-Class>cafe.jeffrey.agent.JeffreyAgent</Premain-Class>
-                                        <!-- ByteBuddy ships versioned classes for newer JDKs. -->
-                                        <Multi-Release>true</Multi-Release>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
