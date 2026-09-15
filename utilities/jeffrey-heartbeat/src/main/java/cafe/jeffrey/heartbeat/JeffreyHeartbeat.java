@@ -22,9 +22,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.INFO;
@@ -62,9 +64,17 @@ public final class JeffreyHeartbeat implements AutoCloseable {
     private static final String THREAD_NAME = "jeffrey-heartbeat";
     private static final String SHUTDOWN_THREAD_NAME = "jeffrey-heartbeat-shutdown";
 
+    /**
+     * How long {@link #close()} waits for a beat that is already writing. Bounded because this
+     * runs on the shutdown path: a slow volume must delay an application's exit by a moment, not
+     * hold it open. Well under the beat interval, since a beat is one small file and a rename.
+     */
+    private static final Duration SHUTDOWN_GRACE = Duration.ofSeconds(2);
+
     private final HeartbeatWriter writer;
     private final Clock clock;
     private final ScheduledExecutorService scheduler;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     private JeffreyHeartbeat(HeartbeatWriter writer, Clock clock, ScheduledExecutorService scheduler) {
         this.writer = writer;
@@ -131,21 +141,27 @@ public final class JeffreyHeartbeat implements AutoCloseable {
         return heartbeat;
     }
 
-    /** Whether this instance is actually reporting. */
+    /** Whether this instance is actually reporting — false once it is inert or closed. */
     public boolean running() {
-        return scheduler != null;
+        return scheduler != null && !closed.get();
     }
 
     /**
      * Stops beating and writes the clean-exit marker, which is what lets the hub finish the session
-     * at once instead of waiting for the heartbeat to go stale. Closing twice is harmless.
+     * at once instead of waiting for the heartbeat to go stale. Closing twice is a no-op: the
+     * marker is written by whichever call wins, and a second one would only move its timestamp.
+     *
+     * <p>A beat already in flight is <b>waited for</b> rather than interrupted. Both files are
+     * written through a scratch file and a rename, and the two writers share the scratch names,
+     * so tearing a beat down mid-write is how a rename fails, a temporary file is left behind, or
+     * a beat lands after the marker it is supposed to precede.</p>
      */
     @Override
     public void close() {
-        if (!running()) {
+        if (scheduler == null || !closed.compareAndSet(false, true)) {
             return;
         }
-        scheduler.shutdownNow();
+        awaitLastBeat();
         try {
             writer.finish(clock.millis());
         } catch (IOException | RuntimeException e) {
@@ -153,6 +169,24 @@ public final class JeffreyHeartbeat implements AutoCloseable {
             LOG.log(WARNING, "Jeffrey clean-exit marker could not be written", e);
         }
         writer.discardTemporaryFiles();
+    }
+
+    /**
+     * Refuses new beats and gives the running one {@link #SHUTDOWN_GRACE} to finish, forcing it
+     * only if it overruns — at which point a stuck volume is the problem and the marker matters
+     * more than the beat.
+     */
+    private void awaitLastBeat() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(SHUTDOWN_GRACE.toMillis(), TimeUnit.MILLISECONDS)) {
+                LOG.log(DEBUG, () -> "Jeffrey heartbeat did not stop within " + SHUTDOWN_GRACE);
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            scheduler.shutdownNow();
+        }
     }
 
     private void beat() {

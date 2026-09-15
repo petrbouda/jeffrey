@@ -29,9 +29,10 @@ import java.time.Duration;
  * {@link HeartbeatSettings} the library consumes.
  *
  * <p><b>Every value is optional, and that is the point.</b> A provisioned application configures
- * itself: the Provisioner exports {@code JEFFREY_HEARTBEAT_DIR} and {@code JEFFREY_HEARTBEAT_ENABLED},
- * and Spring's relaxed binding maps those onto {@code jeffrey.heartbeat.dir} and
- * {@code jeffrey.heartbeat.enabled} with nothing declared anywhere. These properties exist so a
+ * itself: the Provisioner passes {@code -Djeffrey.heartbeat.dir} and
+ * {@code -Djeffrey.heartbeat.enabled} in the argfile the JVM starts with, which Spring reads as
+ * ordinary properties, and exports the matching {@code JEFFREY_HEARTBEAT_*} variables for a
+ * deployment that sources the generated {@code .env} instead. These properties exist so a
  * deployment can override one of them in {@code application.yaml} without editing a generated file
  * — not because an application is expected to fill them in.</p>
  *
@@ -40,8 +41,8 @@ import java.time.Duration;
  * knows about {@code JEFFREY_CURRENT_SESSION}, the older variable that names the session directory
  * rather than the heartbeat folder inside it, and defaulting here would shadow it.</p>
  *
- * @param enabled  whether liveness is reported at all; the Provisioner sets this false when it
- *                 attached the Jeffrey agent, which already beats for that session
+ * @param enabled  whether liveness is reported at all; the Provisioner sets it from what the
+ *                 session declared through {@code heartbeat.enabled}
  * @param dir      where the liveness files go, when something other than the session directory
  * @param interval how often the heartbeat is rewritten
  */

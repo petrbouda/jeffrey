@@ -39,9 +39,10 @@ import org.springframework.context.annotation.Bean;
  * jar runs unchanged on a developer's laptop and under a Provisioner, which is the property that
  * makes it safe to leave the dependency in.</p>
  *
- * <p>{@code jeffrey.heartbeat.enabled=false} turns it off without removing the dependency, and is
- * what the Provisioner exports when it attached the Jeffrey agent: the agent beats for that
- * session already, and two writers of one file is redundant work rather than redundancy.</p>
+ * <p>{@code jeffrey.heartbeat.enabled=false} turns it off without removing the dependency. It is
+ * also what the Provisioner passes for a session that declared no liveness, so that a jar carrying
+ * this starter reports only where the hub was told to expect it — the session marker and the JVM
+ * argument come from one setting, and a session cannot be held to a promise it never made.</p>
  */
 @AutoConfiguration
 @ConditionalOnClass(JeffreyHeartbeat.class)

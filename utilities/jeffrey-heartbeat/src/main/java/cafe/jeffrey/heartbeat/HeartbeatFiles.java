@@ -48,9 +48,9 @@ public final class HeartbeatFiles {
     public static final String FINISHED_FILE = "finished";
 
     /**
-     * How often the heartbeat is rewritten. Must match {@code HeartbeatConstants.DEFAULT_INTERVAL}
-     * and the agent's own default: the hub's staleness threshold is chosen as a multiple of it, so
-     * a producer that beats more slowly than the hub expects reads as dead while it is running.
+     * How often the heartbeat is rewritten. Must match {@code HeartbeatConstants.DEFAULT_INTERVAL}:
+     * the hub's staleness threshold is chosen as a multiple of it, so a producer that beats more
+     * slowly than the hub expects reads as dead while it is running.
      */
     public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
 
