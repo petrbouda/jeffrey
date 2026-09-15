@@ -126,7 +126,7 @@ const exRecordings = `recordings_analyzeFile { "path": "/abs/path/target/checkou
 
 const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the time goes.`;
 
-const hubsExample = `Analyse what production recorded in the last hour.`;
+const hubsExample = `Analyse what production recorded between 14:00 and 15:00 today.`;
 
 const exIde = `ide_resolve { "profileId": "019f885e-...", "className": "com.example.OrderService", "methodName": "process", "line": 214 }
 ide_windows { "profileId": "019f885e-...", "className": "com.example.OrderService" }
@@ -162,7 +162,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>source</code>, <code>operator</code>, <code>scope</code>, <code>sort</code>, <code>sortBy</code>, <code>order</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. A value outside the list is refused by name, with the alternatives spelled out, before the tool runs &mdash; as is a required argument the call left out, rather than being bound to an empty value the tool then reads as an answer. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
 
-      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. The tools that change state are: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, <code>hubs_fetchFile</code>, which moves one of a session&rsquo;s artifacts the same way, <code>hubs_eventActivity</code>, which claims one of a Hub&rsquo;s retained scan slots and runs a reader there, <code>operations_cancel</code> and <code>hubs_activityCancel</code>, which request cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code>, <code>heap_status</code> and <code>hubs_activityStatus</code> read as read-only although they sit in families that write. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families and the <code>operations_</code> pair, which can poll or cancel work on a Hub. These tools can reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
+      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. The tools that change state are: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which moves a recording off another machine and creates one here, <code>hubs_fetchFile</code>, which moves one of a session&rsquo;s artifacts the same way, <code>recordings_delete</code>, which removes a recording and the profile built from it, <code>operations_cancel</code>, which requests cancellation of background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile. Each says so for itself rather than inheriting its family&rsquo;s hint, which is why <code>recordings_list</code>, <code>recordings_status</code> and <code>heap_status</code> read as read-only although they sit in families that write. One tool is destructive, and says so with <code>destructiveHint</code>: <code>recordings_delete</code>. Nothing else deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families and the <code>operations_</code> pair, which can poll or cancel work on a Hub. These tools can reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
 
       <p id="findings"><strong>The two tools that judge share one finding shape.</strong> Almost everything here reports figures and routes; two tools go further and say something is wrong &mdash; <code>jvm_autoAnalysis</code>, the JMC rule set, and the throttling verdict in <code>jvm_container</code> &mdash; and both emit the same record rather than a shape of their own: <code>id</code> (<code>category:subject</code>, stable across tools, so the same condition reported twice collapses into one), <code>severity</code> (<code>CRITICAL</code>, <code>WARNING</code>, <code>INFO</code>, or <code>OK</code> for a check that ran and passed), <code>category</code>, <code>title</code>, <code>detail</code>, <code>source</code> (the tool that produced it), <code>evidence</code> (the figures it rests on), <code>action</code> (the source&rsquo;s suggestion, not a diagnosis) and <code>nextTool</code> (the call that carries the figures in full). <code>profiles_summary</code> leads with the ones that flagged something. A rule that had no events to run on is not a finding of any severity: it goes under <code>notEvaluated</code>, and the summary&rsquo;s <code>capabilityGaps</code> say what it would have needed.</p>
 
@@ -295,36 +295,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         </tbody>
       </table>
 
-      <p><strong>Structured discovery results.</strong> Eight tools &mdash; <code>profiles_list</code>, <code>profiles_evidence</code>, <code>compare_quality</code>, <code>hubs_sessions</code>, <code>hubs_queryEvents</code>, <code>hubs_eventActivity</code>, <code>hubs_activityStatus</code> and <code>hubs_activityCancel</code> &mdash; keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
+      <p><strong>Structured discovery results.</strong> Four tools &mdash; <code>profiles_list</code>, <code>profiles_evidence</code>, <code>compare_quality</code> and <code>hubs_sessions</code> &mdash; keep their readable text and also return a JSON object in <code>structuredContent</code> for protocol revisions from <code>2025-06-18</code> onward. Their <code>tools/list</code> definitions include an <code>outputSchema</code>. Older supported revisions receive the text response.</p>
 
       <p><strong>Evidence snapshots.</strong> <code>profiles_evidence(profileId, limit?)</code>, also available at <code>jeffrey://profile/{profileId}/evidence</code>, exports the current profile and recording identity, filters, units, denominators, existing findings, sampling evidence and capability gaps. The snapshot is versioned and explicitly reports omitted rows. Save the response to preserve that evidence: reading the URI again reflects the current profile state.</p>
 
       <p><strong>Comparison quality.</strong> <code>compare_quality(profileId, baselineProfileId)</code> reports duration, event overlap, available sampling settings and loss telemetry before interpreting a difference. It returns evidence, not a single comparability verdict. Persisted settings are a merged snapshot, so matching settings do not prove they stayed constant. Observed HTTP/gRPC events are not automatically a complete request count; per-operation normalization remains unavailable without a defensible denominator. That still permits comparing observed hotspot shares or qualified movements per recording duration. State the denominator and limitations; those movements alone do not prove that each request became faster or slower.</p>
-
-      <p><strong>Bounded remote events.</strong> <code>hubs_queryEvents(sessionRef, eventTypes, startTime?, endTime?, limit?, maxBytes?)</code> reads finished recording files directly from a Hub. Event types are comma-separated; timestamps are epoch milliseconds. It returns complete event rows within the limits, then cancels the replay. Inspect source coverage and the termination reason before interpreting an empty or partial response. It requires a Hub that acknowledges the full workspace/project/session identity; an older Hub is not treated as a complete empty result. The deadline includes workspace and project discovery. Remote error text is truncated as needed to keep the complete JSON response within <code>maxBytes</code>.</p>
-
-      <p>The default is <strong>100 matching events</strong>, with a 15-second deadline and a 65,536-byte result budget. Set <code>limit</code> to any positive integer for a different event-count limit, or <code>0</code> to disable the event-count limit. Set <code>maxBytes</code> between 4,096 and 100,000. These are the first matches in replay order; they are not ranked by duration and do not represent the whole time window when <code>partial</code> is true. A byte or time limit can return fewer events than requested.</p>
-
-      <p><strong>Row and byte limits apply independently.</strong> Raising <code>limit</code> can return more events until the byte budget or deadline is reached. The number that fits depends on event fields, string lengths and response metadata. For illustration, rows averaging 250 bytes leave room for roughly 250 rows under the default budget or 400 under the maximum, before accounting for metadata. These are estimates, not fixed row capacities.</p>
-
-      <p>For example, call this tool through Microscope's MCP endpoint to inspect GC events between 10:00 and 12:00 UTC on 13 September 2026. Copy <code>sessionRef</code> from <code>hubs_sessions</code>. Both time bounds are inclusive.</p>
-      <pre><code>{
-  "name": "hubs_queryEvents",
-  "arguments": {
-    "sessionRef": "&lt;session_ref from hubs_sessions&gt;",
-    "eventTypes": "jdk.GarbageCollection,jdk.GCPhasePause",
-    "startTime": 1789293600000,
-    "endTime": 1789300800000,
-    "limit": 100
-  }
-}</code></pre>
-      <p>Omitting <code>limit</code> keeps the default of 100. For more events, try <code>"limit": 500</code> and <code>"maxBytes": 100000</code>. Use <code>"limit": 0</code> to remove the row cap. Neither setting guarantees that all matches fit: the byte budget and 15-second deadline still apply.</p>
-
-      <p><code>termination</code> explains why the query ended. <code>completed</code> means all matching events from the finished files in scope were returned with known coverage and no source errors. Exactly as many events as the row limit can still be complete: the query waits for another match or the Hub&rsquo;s completion report, subject to the deadline. <code>row_limit</code> means an additional matching event was omitted; <code>byte_limit</code> means the next event did not fit. <code>timeout</code> means completion could not be confirmed before the deadline. Narrow the window or event types when a result is partial. Results follow replay order, with no global chronological ordering or deduplication guarantee; do not infer total counts, the busiest period, or the slowest events from a partial result.</p>
-
-      <p><strong>Remote event summaries.</strong> <code>hubs_eventActivity(sessionRef, startTime, endTime, bucketSeconds?, eventTypes?)</code>
-        starts an aggregation on Hub through gRPC. The agent connects to Microscope’s existing MCP endpoint.
-        Hub reads the recordings and keeps the counters; only compact summaries travel to Microscope.</p>
 
       <p><strong>Runtime diagnostics.</strong> Read <code>jeffrey://diagnostics</code> for build and family information, profile readiness counts, bounded Hub reachability and aggregate tool latency/output-size measurements. The resource does not retain tool arguments or result contents and respects the Hub access switch.</p>
 
@@ -1132,29 +1107,9 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td>Recording sessions across <strong>every</strong> hub at once, newest first, each row carrying a <code>session_ref</code> and a <code>local</code> column saying whether it is already here</td>
           </tr>
           <tr>
-            <td><code>hubs_queryEvents</code></td>
-            <td><code>sessionRef</code>, <code>eventTypes</code>, <code>startTime?</code>, <code>endTime?</code>, <code>limit?</code>, <code>maxBytes?</code></td>
-            <td>A bounded sample of matching events read from the session where it lies, in replay order &mdash; the first hundred by default; <code>limit</code> is any positive integer, or <code>0</code> for no row cap, under a 15-second deadline and a byte budget either way</td>
-          </tr>
-          <tr>
-            <td><code>hubs_eventActivity</code></td>
-            <td><code>sessionRef</code>, <code>startTime</code>, <code>endTime</code>, <code>bucketSeconds?</code>, <code>eventTypes?</code></td>
-            <td>Starts an event-count scan on Hub and returns a <code>scanId</code>, which doubles as its <code>operationId</code>. Each call starts a new scan.</td>
-          </tr>
-          <tr>
-            <td><code>hubs_activityStatus</code></td>
-            <td><code>sessionRef</code>, <code>scanId</code>, <code>order?</code>, <code>limit?</code>, <code>offset?</code></td>
-            <td>One page of time buckets, ranked by event count (<code>events</code>), variety (<code>types</code>), or <code>time</code></td>
-          </tr>
-          <tr>
-            <td><code>hubs_activityCancel</code></td>
-            <td><code>sessionRef</code>, <code>scanId</code></td>
-            <td>Cancels that exact scan on its Hub, retaining partial counts until expiry.</td>
-          </tr>
-          <tr>
             <td><code>hubs_download</code></td>
-            <td><code>sessionRef</code>, <code>retry?</code></td>
-            <td>Pulls that session in &mdash; its recording files merged into one, its heap dumps and logs alongside &mdash; and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code>. A transfer that outlasts the call comes back with a status saying so and an <code>operationId</code>; <code>operations_status</code> is where to follow it</td>
+            <td><code>sessionRef</code>, <code>retry?</code>, <code>startTime?</code>, <code>endTime?</code>, <code>fileIds?</code></td>
+            <td>Pulls that session in and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code>. Alone, the whole session &mdash; its recording files merged into one, its heap dumps and logs alongside. With <code>startTime</code>/<code>endTime</code> (UTC epoch milliseconds, either alone), only the chunks covering that window, every chunk whose span touches it, so the recording always covers the window with some slack at either end; with <code>fileIds</code> (comma-separated <code>file_id</code> values from <code>hubs_files</code>), the named files. A part of a session reports <code>windowStart</code>/<code>windowEnd</code>, the span its chunks cover, and is a recording of its own, never answered from a whole-session copy already here. A transfer that outlasts the call comes back with a status saying so and an <code>operationId</code>; <code>operations_status</code> is where to follow it</td>
           </tr>
           <tr>
             <td><code>hubs_files</code></td>
@@ -1171,43 +1126,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>A JVM writes more than it records.</strong> A session directory provisioned by Jeffrey holds the application&rsquo;s own log if the application was pointed at it, the unified-logging file (<code>gc.jvm-log</code>, rotated as <code>.0</code>, <code>.1</code>&hellip;), the perf-counters file, and &mdash; when the JVM died &mdash; <code>hs-jvm-err.log</code> (or the JVM&rsquo;s default <code>hs_err_pid*.log</code>), often with nothing else beside it because the first chunk never rolled. Those two tools are for that case: find out what the session holds, fetch the one file that matters, and read it. Jeffrey deliberately does not parse a log for you. The path it returns is on the machine Jeffrey runs on, which is the machine the agent runs on (the endpoint accepts loopback hosts only), and an agent&rsquo;s own <code>grep</code>, <code>sed</code> and file reader are better at a text file than anything a tool result could carry.</p>
 
-      <p><strong>Find activity before downloading.</strong> Pass a <code>session_ref</code> from <code>hubs_sessions</code>
-        to <code>hubs_eventActivity</code>. Its UTC epoch-millisecond window is start inclusive and end exclusive;
-        buckets are anchored at the start. <code>bucketSeconds</code> defaults to 300. Omit <code>eventTypes</code> to
-        count all types, or pass up to 16 comma-separated exact names such as <code>jdk.GarbageCollection</code>.
-        Poll <code>hubs_activityStatus</code> with the same <code>sessionRef</code> and returned <code>scanId</code>.
-        For the interval with the greatest variety of recorded types, use <code>order="types"</code> with no type filter.
-        A call repeated with the same arguments while its scan is still running on the Hub adopts that scan instead of
-        claiming a second slot &mdash; the request carries a key derived from its own arguments &mdash; so a call whose
-        response was lost to a timeout can simply be made again. Once the scan has finished, the same call starts a new one.</p>
-      <p>Scans have no total-event cap. Hub keeps counters for up to 288 buckets and 512 observed types, runs two scans
-        concurrently, and retains at most 16 scans for up to one hour after completion. New scans can evict the oldest
-        terminal result earlier when all slots are occupied. Restarting Hub forgets them.
-        Polls return up to 20 buckets per page and 10 types per bucket; <code>omittedBuckets</code> and <code>omittedTypes</code>
-        report omitted detail, while totals include it. Output sizing can reduce the number of returned buckets further.</p>
-      <p><strong>Page with <code>offset</code> while <code>hasMoreBuckets</code> is true.</strong> A window divides into as
-        many as 288 buckets and a page carries 20, so without paging the rest are unreachable without starting a second
-        scan over a narrower window. It matters most with <code>order="time"</code>: buckets are kept even when empty, so
-        the time axis stays whole, and a session that began recording late in the window therefore has a first page of
-        nothing but zeroes. Advance <code>offset</code> by the number of returned buckets. Wait for a terminal
-        state before paging a stable ranking; <code>order="time"</code> keeps the bucket order stable while a scan runs.</p>
-      <p><strong>It is also an operation.</strong> The <code>scanId</code> is returned as <code>operationId</code> too, so
-        <code>operations_status</code> and <code>operations_cancel</code> reach a Hub scan the way they reach an import, a
-        download or a heap preparation. <code>hubs_activityStatus</code> is the one that carries the buckets;
-        <code>operations_status</code> reports the lifecycle and progress in the shape every other background job uses.
-        Both status paths update the same operation observation. Unobserved Hub activity handles expire in Microscope
-        after one hour without a poll; this does not cancel the remote scan. A later <code>hubs_activityStatus</code>
-        call can register it again if Hub still retains it. A scan removed by Hub becomes a failed local operation
-        when polled through <code>operations_status</code>, preserving the last observed partial counts.</p>
-      <p>Check <code>complete</code>, <code>coverageKnown</code>, <code>sourceErrors</code>, and <code>error</code>.
-        Running or incomplete results are lower bounds whose rankings can change. Coverage includes finished files visible
-        at scan start; overlapping recordings can count an event more than once. An absent type may be disabled in the
-        recording settings. Counts describe recorded activity, not equivalent workloads. Cancellation is cooperative and
-        remains <code>cancel_requested</code> until cleanup finishes.</p>
-      <p>These tools use the existing Microscope Hub access switch and <code>hubs</code> family filter. They require a Hub
-        supporting <code>EventActivityService</code>; an older Hub reports an unsupported operation. Individual gRPC calls
-        have deadlines while an accepted scan continues in Hub. A timed-out start can leave a scan running, so retrying may
-        create another scan.</p>
+      <p><strong>Ask for the interval, not the session.</strong> A session on a hub is a JVM&rsquo;s whole recording life &mdash; hours or days of chunks rolled every few minutes &mdash; and the question is almost never about all of it. The <code>started</code> and <code>duration</code> columns of <code>hubs_sessions</code> say what span there is; <code>hubs_download</code> with <code>startTime</code>/<code>endTime</code> brings the chunks covering the hour that matters and nothing else. A chunk&rsquo;s start is the timestamp in its own name, so chunk <em>n</em> covers everything up to the start of chunk <em>n+1</em>; every chunk whose span touches the window is brought, which is why the recording begins at or before the window and ends at or after it rather than leaving a gap. The answer&rsquo;s <code>windowStart</code>/<code>windowEnd</code> are that covered span, and they are what the profile&rsquo;s figures are about. A narrow window is also the cheap way to look before pulling a wider one &mdash; does the session throw at all, does it record allocation samples &mdash; and <code>recordings_delete</code> is how the look is cleaned up afterwards. Figures measured in a window hold for that window; a rate must not be extrapolated across the session it was cut from.</p>
 
       <p><strong>Flat, not a tree.</strong> A hub holds workspaces holding projects holding sessions, and the web UI lets you walk that. There is deliberately no tool for the walk. One <code>hubs_sessions</code> call fans out across every hub and returns flat rows, because four calls before anything is downloaded is four chances for a model to pair a workspace with the wrong project. The hierarchy survives as the <code>hub</code>, <code>workspace</code> and <code>project</code> filters, all matched loosely against names, and as columns you can read.</p>
 
@@ -1322,6 +1241,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td>&mdash;</td>
             <td>Every recording in the Quick Analysis store, analysed or not. A row with an empty <code>profile_id</code> is waiting for <code>recordings_analyzeRecording</code></td>
           </tr>
+          <tr>
+            <td><code>recordings_delete</code></td>
+            <td><code>recordingId</code></td>
+            <td>Removes the recording from the Quick Analysis store together with the profile built from it and its files. The one destructive tool, and the cleanup after a window of a hub session has answered its question &mdash; the hub&rsquo;s copy is untouched, and <code>hubs_download</code> can pull it again. The profile id stops working the moment this returns</td>
+          </tr>
         </tbody>
       </table>
 
@@ -1345,7 +1269,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <DocsCodeBlock :code="exRecordings" language="json" />
 
       <h2 id="operations">operations_ &mdash; the work the writers start</h2>
-      <p>Four of the tools above start something that can outlast the call &mdash; <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, <code>hubs_download</code> and <code>heap_prepare</code> &mdash; and a fifth, <code>hubs_eventActivity</code>, starts a scan on a Hub whose <code>scanId</code> is the same kind of handle. Each returns an <code>operationId</code> naming that exact attempt, and this family is how the attempt is followed afterwards without touching the tool that started it. Neither tool here takes a <code>profileId</code>.</p>
+      <p>Five of the tools above start something that can outlast the call &mdash; <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, <code>hubs_download</code>, <code>hubs_fetchFile</code> and <code>heap_prepare</code>. Each returns an <code>operationId</code> naming that exact attempt, and this family is how the attempt is followed afterwards without touching the tool that started it. Neither tool here takes a <code>profileId</code>.</p>
       <table>
         <thead>
           <tr>
@@ -1368,7 +1292,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         </tbody>
       </table>
       <p>Cancellation is cooperative: the operation keeps its slot until the worker and its cleanup finish, and repeating the request is safe. Terminal attempts stay readable for one hour in this process; a restart or expiry makes the id unavailable, and an unobserved Hub scan expires after an hour without a poll. Progress reports the stages that were measured, and where a byte total or a percentage was never known it stays unknown rather than being estimated. A submission the server refused &mdash; a full pipeline, say &mdash; reports an error without leaving queued work behind, and can be tried again once it can accept work.</p>
-      <p>The family is advertised by every preset, because a client that can start work and not follow it is worse off than one that can do neither; an explicit <code>jeffrey.microscope.mcp.families</code> list that leaves <code>operations</code> out has to accept that a running import can only be followed through <code>recordings_status</code>, and a Hub scan through <code>hubs_activityStatus</code>.</p>
+      <p>The family is advertised by every preset, because a client that can start work and not follow it is worse off than one that can do neither; an explicit <code>jeffrey.microscope.mcp.families</code> list that leaves <code>operations</code> out has to accept that a running import can only be followed through <code>recordings_status</code>.</p>
 
       <h2 id="links">Links Back to the UI</h2>
       <p>Analysis answers carry a link to the view that shows them &mdash; a <code>uiLink</code> field on the JSON answers, and a trailing <code>Open in Jeffrey: &hellip;</code> line on the Markdown exports. The flamegraph link reproduces the event type and filters the export was built with, the operation link opens on its slowest or flames tab, and a trace link opens that trace&rsquo;s span waterfall.</p>

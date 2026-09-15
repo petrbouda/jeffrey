@@ -41,6 +41,8 @@ import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.ArrayNode;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
+import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
+import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -62,6 +64,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -139,7 +144,7 @@ public class HubsMcpTools {
     /**
      * One transfer per session at a time, and no call waits longer than a client will.
      */
-    private final BoundedJobs<HubSessionRef, String> downloads;
+    private final BoundedJobs<DownloadKey, String> downloads;
     private final HubSessionScan scan;
     private final HubSessionLocator locator;
     private final McpOperationRegistry operations;
@@ -431,15 +436,25 @@ public class HubsMcpTools {
      * which is exactly the case a client's read-only hint is there to let a reader approve knowingly.
      */
     @McpToolHints(readOnly = false, openWorld = true)
-    @Tool(description = "Download one recording session from its hub into this Jeffrey, merging the "
-            + "session's finished recording files into a single local recording and bringing its "
-            + "artifacts - heap dumps, JVM and application logs - with it. Takes the session_ref from "
-            + "a hubs_sessions row and nothing else. Returns a recording id: pass it to "
-            + "recordings_analyzeRecording to build the profile the analysis tools take. A small "
-            + "session transfers inside this call; a large one takes longer than a client waits, so "
+    @Tool(description = "Download a recording session from its hub into this Jeffrey - the whole "
+            + "session, or the part of it that matters. Without a selection it merges the session's "
+            + "finished recording files into a single local recording and brings its artifacts - heap "
+            + "dumps, JVM and application logs - with it. A session on a hub can run for days and roll a chunk every few minutes, so the "
+            + "part is usually what to pull, chosen one of two ways: startTime and/or endTime name a "
+            + "span, and the chunks covering it are brought - every one whose span touches the window, "
+            + "so a chunk straddling a bound is included and the recording always covers the whole "
+            + "window with some slack at either end; or fileIds name files from hubs_files by id, "
+            + "chunks and any artifact beside them. Either way the chunks are merged into one "
+            + "recording and the answer reports the span they actually cover. The started and duration "
+            + "columns of hubs_sessions say what span there is to choose from. Takes the "
+            + "session_ref from a hubs_sessions row. Returns a recording id: pass it to "
+            + "recordings_analyzeRecording to build the profile the analysis tools take, and "
+            + "recordings_delete removes it once its question is answered. A small "
+            + "transfer completes inside this call; a large one takes longer than a client waits, so "
             + "the answer is a status saying the transfer continues and calling this tool again with "
-            + "the same session_ref reports it once it lands. A session already downloaded is returned "
-            + "as it is rather than fetched twice. Failed transfer outcomes are retained in memory for "
+            + "the same arguments reports it once it lands. A whole session already downloaded is "
+            + "returned as it is rather than fetched twice; a part always makes a recording of its "
+            + "own. Failed transfer outcomes are retained in memory for "
             + "one hour after completion. During that window, later calls report the failure without "
             + "restarting unless retry=true. Every started transfer includes an operationId; use "
             + "operations_status to poll locally or operations_cancel to request cancellation. "
@@ -451,22 +466,33 @@ public class HubsMcpTools {
             @ToolParam(required = false, description = "Retry a failed transfer while its outcome is retained "
                     + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
                     + "After expiry or a server restart, this call can start a new transfer regardless of retry")
-            Boolean retry) {
+            Boolean retry,
+            @ToolParam(required = false, description = "Start of the window as UTC epoch milliseconds. Omit "
+                    + "with endTime for the whole session; omit on its own to reach back to the session's start")
+            Long startTime,
+            @ToolParam(required = false, description = "End of the window as UTC epoch milliseconds, after "
+                    + "startTime. Omit on its own to reach forward to the session's end")
+            Long endTime,
+            @ToolParam(required = false, description = "Comma-separated file_id values from hubs_files rows to "
+                    + "bring instead of a window - at least one must be a JFR chunk. Not combined with "
+                    + "startTime or endTime")
+            String fileIds) {
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
-        Optional<OperationHandle<String>> before = downloads.current(ref);
+        DownloadKey key = DownloadKey.of(ref, startTime, endTime, ToolArguments.commaSeparated(fileIds));
+        Optional<OperationHandle<String>> before = downloads.current(key);
         String priorId = before.map(OperationHandle::operationId).orElse(null);
         boolean priorTerminal = before.map(handle -> handle.snapshot().state().terminal()).orElse(false);
         try {
-            return downloadLegacy(sessionRef, retry);
+            return download(key, retry);
         } catch (RuntimeException failure) {
-            Optional<OperationHandle<String>> attempt = downloads.current(ref);
+            Optional<OperationHandle<String>> attempt = downloads.current(key);
             if (attempt.isPresent()) {
                 OperationHandle<String> current = attempt.get();
                 OperationState state = current.snapshot().state();
                 boolean reportsThisAttempt = !Boolean.TRUE.equals(retry) || !priorTerminal
                         || !current.operationId().equals(priorId);
                 if (reportsThisAttempt && (state == OperationState.FAILED || state == OperationState.CANCELLED)) {
-                    return McpToolOutput.json(operations.status(registerDownload(ref, current)));
+                    return McpToolOutput.json(operations.status(registerDownload(key, current)));
                 }
             }
             // A rejected retry preflight did not create an attempt. Its own error must not be
@@ -475,22 +501,26 @@ public class HubsMcpTools {
         }
     }
 
-    /** The legacy Java wrapper retains transfer exceptions; MCP returns the retained attempt. */
-    private String downloadLegacy(String sessionRef, Boolean retry) {
-        HubSessionRef ref = HubSessionRef.decode(sessionRef);
+    /** The transfer itself; the annotated method above turns a retained failure into a status. */
+    private String download(DownloadKey key, Boolean retry) {
+        HubSessionRef ref = key.ref();
         boolean retryFailed = Boolean.TRUE.equals(retry);
 
-        Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
-                DownloadedSessionIndex.build(recordingsManager).find(ref);
-        if (alreadyHere.isPresent()) {
-            LOG.debug("Hub session was already downloaded: session_id={} recording_id={}",
-                    ref.sessionId(), alreadyHere.get().recordingId());
-            OperationHandle<String> operation = downloads.rememberCompleted(ref, alreadyHere.get().recordingId());
-            return operations.decorate(McpToolOutput.json(existing(ref, alreadyHere.get())),
-                    registerDownload(ref, operation));
+        // A window is a recording of its own: two windows of one session are two recordings, and
+        // neither is the session, so "already here" is an answer only the whole session gets.
+        if (key.wholeSession()) {
+            Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
+                    DownloadedSessionIndex.build(recordingsManager).find(ref);
+            if (alreadyHere.isPresent()) {
+                LOG.debug("Hub session was already downloaded: session_id={} recording_id={}",
+                        ref.sessionId(), alreadyHere.get().recordingId());
+                OperationHandle<String> operation = downloads.rememberCompleted(key, alreadyHere.get().recordingId());
+                return operations.decorate(McpToolOutput.json(existing(ref, alreadyHere.get())),
+                        registerDownload(key, operation));
+            }
         }
 
-        Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(ref);
+        Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
         if (prior.isPresent()) {
             BoundedJobs.Outcome<String> outcome = prior.get();
             if (outcome.failure() != null && !retryFailed) {
@@ -498,7 +528,7 @@ public class HubsMcpTools {
             }
             if (outcome.value() != null && recordingsManager.findRecording(outcome.value()).isPresent()) {
                 return operations.decorate(McpToolOutput.json(completedOutcome(ref, outcome.value())),
-                        registerDownload(ref, downloads.current(ref).orElseThrow()));
+                        registerDownload(key, downloads.current(key).orElseThrow()));
             }
         }
 
@@ -507,17 +537,20 @@ public class HubsMcpTools {
         HubInfo hubInfo = preflight.hubInfo();
         ProjectManager project = preflight.project();
         RecordingSession session = preflight.session();
+        ChunkWindow.Selection selection = key.select(session);
 
-        LOG.info("Downloading a hub session over MCP: hub_id={} project_id={} session_id={}",
-                ref.hubId(), ref.projectId(), ref.sessionId());
-        OperationHandle<String> operation = downloads.startOrJoin(ref, retryFailed,
+        LOG.info("Downloading a hub session over MCP: hub_id={} project_id={} session_id={} window={} file_ids={}",
+                ref.hubId(), ref.projectId(), ref.sessionId(), key.window(), key.fileIds());
+        OperationHandle<String> operation = downloads.startOrJoin(key, retryFailed,
                 recordingId -> recordingsManager.findRecording(recordingId).isPresent(), control -> {
                     control.phase("downloading");
                     control.progress(Map.of("sessionRef", ref.encode(), "sessionId", ref.sessionId(),
-                            "totalSizeBytes", session.totalSizeBytes()));
-                    return transferWithinDeadline(project, ref, control);
+                            "totalSizeBytes", selection == null
+                                    ? session.totalSizeBytes()
+                                    : selection.chunks().stream().mapToLong(RepositoryFile::size).sum()));
+                    return transferWithinDeadline(project, key, control);
                 });
-        String operationId = registerDownload(ref, operation);
+        String operationId = registerDownload(key, operation);
         Optional<String> transferred;
         try {
             transferred = downloads.awaitWithin(operation, remaining(responseDeadline));
@@ -539,6 +572,25 @@ public class HubsMcpTools {
         String recordingId = transferred.get();
 
         List<RepositoryFile> finished = finishedFiles(session);
+        if (selection != null) {
+            List<RepositoryFile> others = key.others(finished);
+            return operations.decorate(McpToolOutput.json(new DownloadedSession(
+                    recordingId,
+                    session.name(),
+                    hubInfo.name(),
+                    project.info().name(),
+                    ref.sessionId(),
+                    selection.chunks().size(),
+                    others.size(),
+                    selection.chunks().stream().mapToLong(RepositoryFile::size).sum()
+                            + others.stream().mapToLong(RepositoryFile::size).sum(),
+                    selection.coverageStart(),
+                    selection.coverageEnd(),
+                    "Call recordings_analyzeRecording with recordingId=" + recordingId
+                            + " to build the profile every analysis tool takes. Its figures are about "
+                            + "the covered span, not the whole session; recordings_delete removes it once "
+                            + "the question is answered.")), operationId);
+        }
         return operations.decorate(McpToolOutput.json(new DownloadedSession(
                 recordingId,
                 session.name(),
@@ -548,22 +600,29 @@ public class HubsMcpTools {
                 (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
                 (int) finished.stream().filter(RepositoryFile::isArtifactFile).count(),
                 session.totalSizeBytes(),
+                null,
+                null,
                 "Call recordings_analyzeRecording with recordingId=" + recordingId
                         + " to build the profile every analysis tool takes.")), operationId);
     }
 
-    private String registerDownload(HubSessionRef ref, OperationHandle<String> operation) {
-        String sessionRef = ref.encode();
+    private String registerDownload(DownloadKey key, OperationHandle<String> operation) {
+        String sessionRef = key.ref().encode();
         return operations.register(OperationKind.HUB_DOWNLOAD, operation,
                 recordingId -> Map.of("recordingId", recordingId, "sessionRef", sessionRef));
     }
 
     /**
      * Java callers written before failed-download retry became explicit keep their source contract.
-     * MCP reflection uses the annotated two-argument method above.
+     * MCP reflection uses the annotated method above.
      */
     public String download(String sessionRef) {
-        return downloadLegacy(sessionRef, false);
+        return download(new DownloadKey(HubSessionRef.decode(sessionRef), null, null), false);
+    }
+
+    /** The two-argument form the tests written before the window keep calling. */
+    public String download(String sessionRef, Boolean retry) {
+        return download(sessionRef, retry, null, null, null);
     }
 
     private RecordingSessionFilter sessionFilter(
@@ -678,13 +737,12 @@ public class HubsMcpTools {
         }
     }
 
-    private String transferWithinDeadline(ProjectManager project, HubSessionRef ref, BoundedJobs.JobControl control) {
+    private String transferWithinDeadline(ProjectManager project, DownloadKey key, BoundedJobs.JobControl control) {
         Context.CancellableContext context = McpDeadlines.withDeadlineAfter(Context.ROOT, downloadDeadline);
         control.onCancellation(() -> context.cancel(null));
         try {
             control.checkCancellation();
-            return context.call(() ->
-                    project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId()));
+            return context.call(() -> key.transfer(project.recordingsDownloadManager()));
         } catch (StatusRuntimeException e) {
             if (e.getStatus().getCode() == Status.Code.CANCELLED) {
                 control.checkCancellation();
@@ -740,7 +798,7 @@ public class HubsMcpTools {
                 : "Call recordings_analyzeRecording with recordingId=" + copy.recordingId()
                         + " to build the profile every analysis tool takes.";
         return new DownloadedSession(
-                copy.recordingId(), null, null, null, ref.sessionId(), 0, 0, 0L, next);
+                copy.recordingId(), null, null, null, ref.sessionId(), 0, 0, 0L, null, null, next);
     }
 
     private static DownloadedSession completedOutcome(HubSessionRef ref, String recordingId) {
@@ -753,6 +811,8 @@ public class HubsMcpTools {
                 0,
                 0,
                 0L,
+                null,
+                null,
                 "Call recordings_analyzeRecording with recordingId=" + recordingId
                         + " to build the profile every analysis tool takes.");
     }
@@ -798,6 +858,12 @@ public class HubsMcpTools {
             HubInfo hubInfo, ProjectManager project, RecordingSession session) {
     }
 
+    /**
+     * @param windowStart when the first downloaded chunk started, for a window download; {@code null}
+     *                    for the whole session
+     * @param windowEnd   when the last downloaded chunk ended; {@code null} for the whole session and
+     *                    for a chunk the session is still writing
+     */
     private record DownloadedSession(
             String recordingId,
             String sessionName,
@@ -807,6 +873,95 @@ public class HubsMcpTools {
             int recordingFiles,
             int artifactFiles,
             long sizeBytes,
+            Instant windowStart,
+            Instant windowEnd,
             String nextStep) {
+    }
+
+    /**
+     * What one download is: a session and the part of it — a window, files named by id, or neither
+     * for all of it. The jobs are keyed on this rather than on the session alone so that a part
+     * neither joins a running whole-session transfer nor is short-circuited by one that finished.
+     *
+     * @param window  the span asked for, or {@code null}
+     * @param fileIds the files asked for by id, or {@code null}; never set together with the window
+     */
+    private record DownloadKey(HubSessionRef ref, ChunkWindow window, List<String> fileIds) {
+
+        static DownloadKey of(HubSessionRef ref, Long startTime, Long endTime, List<String> fileIds) {
+            boolean windowed = startTime != null || endTime != null;
+            boolean named = fileIds != null && !fileIds.isEmpty();
+            if (windowed && named) {
+                throw new IllegalArgumentException(
+                        "Choose the part of the session one way: a window (startTime/endTime) or fileIds, not both.");
+            }
+            return new DownloadKey(ref,
+                    windowed ? ChunkWindow.ofEpochMillis(startTime, endTime) : null,
+                    named ? List.copyOf(new TreeSet<>(fileIds)) : null);
+        }
+
+        boolean wholeSession() {
+            return window == null && fileIds == null;
+        }
+
+        /** The non-chunk files a part brings: those named by id; a window brings none. */
+        List<RepositoryFile> others(List<RepositoryFile> finished) {
+            if (fileIds == null) {
+                return List.of();
+            }
+            return finished.stream()
+                    .filter(file -> fileIds.contains(file.id()))
+                    .filter(RepositoryFile::isArtifactFile)
+                    .toList();
+        }
+
+        String transfer(RecordingsDownloadManager manager) {
+            if (window != null) {
+                return manager.mergeAndDownloadWindow(ref.sessionId(), window);
+            }
+            if (fileIds != null) {
+                return manager.mergeAndDownloadRecordings(ref.sessionId(), fileIds);
+            }
+            return manager.mergeAndDownloadSession(ref.sessionId());
+        }
+
+        /**
+         * The chunks the part takes from the session as read at preflight, so a window nothing
+         * covers and an id the session does not hold both fail in a sentence, before the transfer
+         * starts. A chunk may equally be absent from a whole-session download; that is preflight's
+         * own check.
+         *
+         * @return the selection, or {@code null} for the whole session
+         */
+        ChunkWindow.Selection select(RecordingSession session) {
+            if (wholeSession()) {
+                return null;
+            }
+            List<RepositoryFile> finished = finishedFiles(session);
+            if (window != null) {
+                ChunkWindow.Selection selection = window.select(finished, session.finishedAt());
+                if (selection.isEmpty()) {
+                    throw new IllegalArgumentException("No finished chunk of session " + ref.sessionId()
+                            + " covers the window: the session started at " + session.createdAt()
+                            + (session.finishedAt() == null ? " and is still recording" : " and finished at " + session.finishedAt())
+                            + ". Choose a window inside that span, in UTC epoch milliseconds.");
+                }
+                return selection;
+            }
+            Set<String> known = finished.stream()
+                    .map(RepositoryFile::id)
+                    .collect(Collectors.toSet());
+            List<String> unknown = fileIds.stream().filter(id -> !known.contains(id)).toList();
+            if (!unknown.isEmpty()) {
+                throw new IllegalArgumentException("Session " + ref.sessionId() + " has no finished file "
+                        + unknown + ". Take file_id values from hubs_files; a file still being written is not one yet.");
+            }
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(finished, Set.copyOf(fileIds), session.finishedAt());
+            if (selection.isEmpty()) {
+                throw new IllegalArgumentException("None of the fileIds is a JFR chunk of session " + ref.sessionId()
+                        + ": a recording needs at least one. A log or a heap dump on its own is what hubs_fetchFile is for.");
+            }
+            return selection;
+        }
     }
 }

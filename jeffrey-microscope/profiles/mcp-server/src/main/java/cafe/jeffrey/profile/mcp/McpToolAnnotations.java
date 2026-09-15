@@ -27,7 +27,8 @@ package cafe.jeffrey.profile.mcp;
  * {@code McpToolsetAssemblerTest}, so a new writer that forgets its hint fails a test rather than
  * quietly claiming to read.
  * <p>
- * {@code destructive} is false throughout: nothing Jeffrey exposes deletes a profile or a recording.
+ * {@code destructive} is true on exactly one tool, {@code recordings_delete}, which takes a recording
+ * and the profile built from it away; nothing else Jeffrey exposes removes anything.
  * {@code openWorld} marks the tools that reach past this installation — the hub family talks to
  * machines this Jeffrey merely knows about, and the IDE family to an editor running beside it. What
  * either answers is outside Jeffrey's control.

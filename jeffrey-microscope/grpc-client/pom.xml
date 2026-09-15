@@ -30,7 +30,7 @@
     <artifactId>grpc-client</artifactId>
 
     <dependencies>
-        <!-- Proto stubs (EventStreamingServiceGrpc, etc.) -->
+        <!-- Proto stubs (FileDownloadServiceGrpc, RepositoryServiceGrpc, etc.) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hub-api</artifactId>

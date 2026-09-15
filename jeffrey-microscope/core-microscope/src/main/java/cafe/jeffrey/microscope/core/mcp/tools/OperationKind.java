@@ -51,12 +51,6 @@ public enum OperationKind {
             OperationKind.FAMILY_HUBS,
             "Call hubs_fetchFile with the same sessionRef and fileId to start a new attempt."),
 
-    HUB_ACTIVITY(
-            "hub_activity",
-            OperationKind.FAMILY_HUBS,
-            "Call hubs_eventActivity with the same sessionRef and window to start a new scan; "
-                    + "its partial counts remain readable until they expire."),
-
     HEAP_PREPARE(
             "heap_prepare",
             OperationKind.FAMILY_HEAP,

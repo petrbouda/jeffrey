@@ -32,9 +32,9 @@ import java.util.concurrent.TimeUnit;
  * A gRPC {@link Deadline} needs somewhere to schedule the shot that cancels its {@link Context}. That
  * timer does nothing but sleep: the task is armed when a remote call starts and cancelled when it
  * answers, which is almost always, and {@code setRemoveOnCancelPolicy} takes the cancelled ones out
- * of the queue rather than letting them accumulate. The scan, the download, the per-file fetch and
- * the replay had each grown their own single-thread copy of exactly that, which is four idle threads
- * and four names in a thread dump for one job.
+ * of the queue rather than letting them accumulate. The scan, the download and the per-file fetch
+ * had each grown their own single-thread copy of exactly that, which is three idle threads and
+ * three names in a thread dump for one job.
  * <p>
  * One daemon thread is enough for all of them and cannot be the thing that runs out: nothing is
  * executed on it but the cancellation of a context, and a deadline that fires hands the work back to

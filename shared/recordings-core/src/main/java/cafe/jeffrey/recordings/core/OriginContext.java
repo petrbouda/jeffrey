@@ -34,6 +34,13 @@ public record OriginContext(
         String projectName) {
 
     /**
+     * Present on a recording that holds a window of its session rather than all of it. The
+     * whole-session download keys on the other {@code origin.*} tags to say "already here"; a
+     * window carries this one so that answer is never given about a part.
+     */
+    public static final String TAG_WINDOW = "origin.window";
+
+    /**
      * Builds the {@code origin.*} system tag map for a recording downloaded from an upstream session.
      *
      * @param upstreamRecordingId the upstream session/recording id (used for dedup of repeat downloads)

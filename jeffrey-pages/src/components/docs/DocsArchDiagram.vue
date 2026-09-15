@@ -103,7 +103,6 @@ withDefaults(defineProps<{
           </div>
           <div class="arch-section-label">Features</div>
           <div class="arch-layer">
-            <div class="arch-chip streaming"><i class="bi bi-broadcast"></i> JFR Replay</div>
             <div class="arch-chip scheduler"><i class="bi bi-clock"></i> Scheduler &amp; Jobs</div>
           </div>
           <div class="arch-layer">
@@ -288,7 +287,6 @@ withDefaults(defineProps<{
 .arch-chip.grpc-s { background: #ede9fe; color: #6d28d9; }
 .arch-chip.analysis { background: #fef3c7; color: #92400e; }
 .arch-chip.mcp { background: #cffafe; color: #155e75; }
-.arch-chip.streaming { background: #fce7f3; color: #9d174d; }
 .arch-chip.scheduler { background: #e0e7ff; color: #3730a3; }
 .arch-chip.server-feat { background: #f3f4f6; color: #374151; }
 .arch-chip.entry { background: #ecfdf5; color: #065f46; }

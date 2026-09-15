@@ -31,9 +31,6 @@ url = "http://localhost:8585/api/mcp"
 # Codex gives a tool call 60 seconds by default
 tool_timeout_sec = 120`;
 
-const familiesProperty = `# On the Jeffrey side, in application.properties
-jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
-
 const headings = [
   { id: 'install-it', text: 'Install It', level: 2 },
   { id: 'pointing-it-elsewhere', text: 'Pointing It Elsewhere', level: 2 },
@@ -75,9 +72,8 @@ default_tools_approval_mode = "auto"`;
 
 const ingestDenyRule = `[mcp_servers.jeffrey]
 disabled_tools = [
-  "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_list",
-  "hubs_list", "hubs_sessions", "hubs_queryEvents", "hubs_download",
-  "hubs_eventActivity", "hubs_activityStatus", "hubs_activityCancel",
+  "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete",
+  "recordings_list", "hubs_list", "hubs_sessions", "hubs_download",
   "operations_cancel",
 ]`;
 
@@ -96,11 +92,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
     />
 
     <div class="docs-content">
-      <p>The same <strong>Microscope plugin</strong> installs into Codex. One directory in the Jeffrey repository carries two manifests &mdash; the one <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> reads, and an <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest that Codex, Cursor, Copilot, VS Code and Kiro read &mdash; over a single set of skills and a single MCP server. Nothing about the endpoint is Claude-specific: it is plain JSON-RPC over Streamable HTTP.</p>
-
-      <DocsCallout type="info" title="Jeffrey has to be running">
-        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
-      </DocsCallout>
+      <p>The same <strong>Microscope plugin</strong> installs into Codex through its <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest, which Cursor, Copilot, VS Code and Kiro read too. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Codex does differently: a <strong>fixed endpoint</strong>, agents that are <strong>files to copy</strong>, a <strong>sixty-second</strong> tool timeout and a tool list that is <strong>loaded every turn</strong>.</p>
 
       <h2 id="install-it">Install It</h2>
       <p>Register the Jeffrey repository as a plugin marketplace:</p>
@@ -130,14 +122,10 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The skills keep working either way &mdash; they name tools by the part after the prefix, and the server is still called <code>jeffrey</code>. Only the registration moves.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you every tool. The plugin adds the endpoint already configured and <strong>ten skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>, as <code>$analyze-jfr</code>: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page; <code>/skills</code> lists what the session actually loaded.</p>
-
-      <p>They are the same files Claude Code loads &mdash; both clients read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the skill directory is shared rather than duplicated.</p>
+      <p>The endpoint already configured and the <router-link to="/docs/microscope-mcp/clients#the-skills">ten skills</router-link>, which Codex picks up on its own and which you can also invoke directly with <code>$</code>, as <code>$analyze-jfr</code>; <code>/skills</code> lists what the session actually loaded. No startup check: hooks are not part of the Agent Plugins format, so a Codex session finds out that Jeffrey is down the way it always did.</p>
 
       <h2 id="the-analyst-agent">The Agents</h2>
-      <p>The <router-link to="/docs/microscope-mcp/agent">three agents</router-link> &mdash; <code>profile-analyst</code>, <code>heap-triage</code> and <code>profile-lead</code> &mdash; read an export end to end and return only the findings. What each one is for is on that page; what follows is how Codex gets them.</p>
-
-      <p><strong>A Codex plugin cannot carry them.</strong> Agent Plugins defines exactly two component types, skills and MCP servers; agents are not among them. So the plugin ships both as files to copy:</p>
+      <p><strong>A Codex plugin cannot carry the <router-link to="/docs/microscope-mcp/clients#the-agents">three agents</router-link>.</strong> Agent Plugins defines exactly two component types, skills and MCP servers; agents are not among them. So the plugin ships both as files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />
 
       <p><code>~/.codex/agents/</code> makes them available in every repository; <code>.codex/agents/</code> inside a checkout scopes them to that one. The skills look for an agent by name and delegate to it when one exists, and read the exports themselves when none does &mdash; so this step is optional, and skipping it costs context rather than correctness.</p>
@@ -146,31 +134,20 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <DocsCodeBlock :code="ingestDenyRule" language="toml" />
 
       <h2 id="approvals">Approvals</h2>
-      <p>Codex asks before each tool the first time. Every tool here reads except ten: the two <code>recordings_</code> analyse tools and <code>hubs_download</code>, which build a profile from a recording file on this machine or from a session on a connected hub, <code>heap_prepare</code>, which builds a cache, <code>hubs_fetchFile</code>, which pulls one of a session&rsquo;s artifacts off that machine, <code>hubs_eventActivity</code>, which starts a scan on a hub, <code>hubs_activityCancel</code> and <code>operations_cancel</code>, which stop background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey &mdash; so approving the server once is usually what you want:</p>
+      <p>Codex asks before each tool the first time. Only <router-link to="/docs/microscope-mcp/clients#what-writes">nine tools write</router-link>, so approving the server once is usually what you want:</p>
       <DocsCodeBlock :code="approvalRule" language="toml" />
 
       <p>Tool names arrive prefixed with the server they came from &mdash; <code>mcp__jeffrey__flamegraph_export</code> and so on. <code>enabled_tools</code> and <code>disabled_tools</code> on the same block narrow what the model sees at all, which is the sharper instrument when you want a strictly read-only Jeffrey for one machine regardless of what the server advertises.</p>
 
       <h2 id="timeouts">Timeouts on Long Calls</h2>
-      <p>Codex abandons a tool call after <strong>sixty seconds</strong> by default. Most of Jeffrey&rsquo;s tools answer in well under a second, but three do real work: importing a recording parses every event in it, and pulling a session off a hub moves however many gigabytes it holds.</p>
-
-      <p>Those three are built for it. <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code> wait about forty-five seconds and then hand back a status of <code>running</code>, and <code>recordings_status</code> reports when the profile is ready. <code>hubs_download</code> does the same, and calling it again with the same <code>session_ref</code> is how you check &mdash; it answers from the local store first. <strong>What matters is not retrying the analyze call:</strong> a second one imports the file again and builds a second profile of it. The skills know this; a hand-driven session should too.</p>
-
-      <p>If you would rather wait than poll, raise the client&rsquo;s own timeout:</p>
+      <p>Codex abandons a tool call after <strong>sixty seconds</strong> by default. The <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> are built for that &mdash; they hand back <code>running</code> and an <code>operationId</code> well inside it &mdash; but if you would rather wait than poll, raise the client&rsquo;s own timeout:</p>
       <DocsCodeBlock :code="timeoutConfig" language="toml" />
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
-      <p>This is the one place Codex and Claude Code differ in cost rather than capability. Claude Code fetches a tool&rsquo;s schema when it needs it; Codex loads every schema into the model&rsquo;s context on every turn, and Jeffrey advertises a hundred-odd tools across nineteen families.</p>
-
-      <p>That is usually fine and occasionally not. If it matters for your work, the Jeffrey side can advertise fewer:</p>
-      <DocsCodeBlock :code="familiesProperty" language="properties" />
-
-      <p>Families are named by their tool prefix, and <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> lists them. Leave it alone unless you have a reason &mdash; the skills route between families freely, and one that is not advertised is one their advice sends the model to in vain.</p>
+      <p>This is the one place Codex and Claude Code differ in cost rather than capability. Claude Code fetches a tool&rsquo;s schema when it needs it; Codex loads every schema into the model&rsquo;s context on every turn. That is usually fine and occasionally not; when it matters, <router-link to="/docs/microscope-mcp/clients#the-tool-list">narrow the families Jeffrey advertises</router-link>, or use <code>enabled_tools</code> on the server block above to narrow what this client sees.</p>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>codex mcp list</code>, or <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools. If it is not, in order of likelihood: the session predates the install and needs restarting, this installation set <code>jeffrey.microscope.mcp.enabled=false</code>, Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
-
-      <p>A server that shows as connected but whose tools never appear is worth reporting upstream rather than debugging in Jeffrey &mdash; Codex's Streamable HTTP client has had that failure mode. <code>curl</code> against the endpoint settles which side is at fault; <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> has the exact request.</p>
+      <p>Run <code>codex mcp list</code>, or <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools; if it is not, <router-link to="/docs/microscope-mcp/clients#when-it-is-not-connected">the usual causes</router-link> apply. A server that shows as connected but whose tools never appear is worth reporting upstream rather than debugging in Jeffrey &mdash; Codex's Streamable HTTP client has had that failure mode.</p>
 
       <h2 id="updating-and-removing">Updating and Removing</h2>
       <p>Refresh the marketplace, which pulls the repository again and offers the newer plugin:</p>
@@ -181,7 +158,6 @@ const removal = `codex plugin marketplace remove jeffrey`;
 
       <p>To keep it installed but silent for a while, set <code>enabled = false</code> under its <code>[plugins."microscope@jeffrey"]</code> block in <code>~/.codex/config.toml</code>. Individual skills can be switched off the same way, with a <code>[[skills.config]]</code> entry naming the skill's path.</p>
 
-      <p>Uninstalling takes the skills with it. It does not change anything inside Jeffrey &mdash; the MCP server keeps serving &mdash; and it does not remove an agent you copied into <code>~/.codex/agents/</code>.</p>
 
       <h2 id="without-the-plugin">Without the Plugin</h2>
       <p>The endpoint is an ordinary MCP server, so one command connects it with no marketplace involved:</p>

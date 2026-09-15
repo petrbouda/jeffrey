@@ -69,13 +69,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
     />
 
     <div class="docs-content">
-      <p>The <strong>Microscope plugin</strong> packages the MCP server together with ten skills and three subagents, so connecting is one install rather than a hand-written command per machine and per repository. It is a convenience over the plain server &mdash; everything it does can be done by hand, as <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> describes.</p>
-
-      <p>One package serves every agent. Claude Code reads the <code>.claude-plugin/</code> manifest described here; <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and the other Agent Plugins clients read a second manifest in the same directory. The skills and the MCP server underneath are the same files. What this page covers that the Codex one cannot: a <strong>configurable endpoint</strong> and the <strong>subagents</strong>, neither of which the portable format carries.</p>
-
-      <DocsCallout type="info" title="Jeffrey has to be running">
-        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
-      </DocsCallout>
+      <p>Claude Code reads the <code>.claude-plugin/</code> manifest of the <strong>Microscope plugin</strong>, so connecting is one install rather than a hand-written command per machine and per repository. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is the same for every agent and is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Claude Code does differently: a <strong>configurable endpoint</strong>, the <strong>subagents</strong> with a real deny-list, and a <strong>startup check</strong> &mdash; none of which the portable format carries.</p>
 
       <h2 id="install-it">Install It</h2>
       <p>From inside Claude Code:</p>
@@ -100,18 +94,10 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       </DocsCallout>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you all hundred and fourteen tools. The plugin adds three things on top.</p>
-
-      <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
-
-      <p><strong>A startup check</strong>, which says so when Jeffrey is not answering rather than letting the first tool call find out. <a href="#the-startup-check">Below.</a></p>
-
-      <p><strong>Ten skills</strong>, which Claude picks up on its own when a question calls for them and which you can also invoke directly, as <code>/microscope:analyze-jfr</code>: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page.</p>
-
-      <p><strong>Three subagents</strong> &mdash; <code>microscope:profile-analyst</code>, <code>microscope:heap-triage</code> and <code>microscope:profile-lead</code> &mdash; which arrive with the plugin and need no install step. Claude Code is the only client that can carry them: its subagent definitions take a tool deny-list, so all three are held to reading a profile rather than told to. What each one does, and when to delegate to it, is on the <router-link to="/docs/microscope-mcp/agent">Agents</router-link> page.</p>
+      <p>The endpoint, already configured &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey &mdash; the <a href="#the-startup-check">startup check</a> below, the <router-link to="/docs/microscope-mcp/clients#the-skills">ten skills</router-link>, invoked directly as <code>/microscope:analyze-jfr</code>, and the <router-link to="/docs/microscope-mcp/agent">three subagents</router-link> as <code>microscope:profile-analyst</code>, <code>microscope:heap-triage</code> and <code>microscope:profile-lead</code>, which arrive with the plugin and need no install step. Claude Code is the only client that can carry them: its subagent definitions take a tool deny-list, so all three are held to reading a profile rather than told to.</p>
 
       <h2 id="permissions">Permissions</h2>
-      <p>Claude Code asks before each tool the first time. Every tool here reads except ten: the two <code>recordings_</code> analyse tools and <code>hubs_download</code>, which build a profile from a recording file on this machine or from a session on a connected hub, <code>heap_prepare</code>, which builds a cache, <code>hubs_fetchFile</code>, which pulls one of a session&rsquo;s artifacts off that machine, <code>hubs_eventActivity</code>, which starts a scan on a hub, <code>hubs_activityCancel</code> and <code>operations_cancel</code>, which stop background work, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey &mdash; so approving the read-only families once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>
+      <p>Claude Code asks before each tool the first time. Only <router-link to="/docs/microscope-mcp/clients#what-writes">nine tools write</router-link>, so approving the read-only families once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>
       <DocsCodeBlock :code="permissionRule" language="bash" />
 
       <p>The name reads <code>mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;</code>: the <code>microscope</code> plugin, the <code>jeffrey</code> server inside it. In a non-interactive run there is no prompt to answer, so the rule has to be passed explicitly or the run stalls:</p>
@@ -129,7 +115,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       </DocsCallout>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>/mcp</code> in Claude Code. The <code>jeffrey</code> server should be listed as connected. If it is not, in order of likelihood: this installation set <code>jeffrey.microscope.mcp.enabled=false</code>, Jeffrey is not on the address the plugin is pointed at, or Jeffrey is not running.</p>
+      <p>Run <code>/mcp</code> in Claude Code. The <code>jeffrey</code> server should be listed as connected; if it is not, <router-link to="/docs/microscope-mcp/clients#when-it-is-not-connected">the usual causes</router-link> apply, and the address the plugin is pointed at is the one to check first here.</p>
 
       <h2 id="updating-and-removing">Updating and Removing</h2>
       <p>Refresh the marketplace, then update the plugin from it &mdash; a restart of Claude Code applies the new version:</p>
@@ -137,8 +123,6 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p>To remove it:</p>
       <DocsCodeBlock :code="removal" language="bash" />
-
-      <p>Uninstalling takes the skills with it. It does not change anything inside Jeffrey &mdash; the MCP server keeps serving.</p>
     </div>
 
     <DocsNavFooter />

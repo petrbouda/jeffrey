@@ -249,13 +249,6 @@
                     :aria-label="session.isActive ? 'Active' : 'Finished'"
                   ></span>
                   <div class="drawer-actions">
-                    <router-link
-                      :to="generateReplayStreamUrl(session.id, instance.instanceName)"
-                      class="drawer-action drawer-action--replay"
-                      @click.stop
-                    >
-                      <i class="bi bi-play-circle"></i> Replay Stream
-                    </router-link>
                     <button
                       v-if="downloadableSummary(session.id)"
                       type="button"
@@ -581,8 +574,7 @@ const {
   hubId,
   workspaceId,
   projectId,
-  generateInstanceUrl,
-  generateReplayStreamUrl
+  generateInstanceUrl
 } = useNavigation();
 
 const timeRanges = [
@@ -2032,16 +2024,6 @@ onMounted(async () => {
 }
 .drawer-action .bi {
   font-size: 0.78rem;
-}
-.drawer-action--replay {
-  background: var(--color-violet-lightest-bg);
-  color: var(--color-violet-deeper);
-  border-color: var(--color-violet-border);
-}
-.drawer-action--replay:hover {
-  background: var(--color-violet);
-  color: var(--color-white);
-  border-color: var(--color-violet);
 }
 .drawer-action--download {
   background: var(--color-primary-bg);

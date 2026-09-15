@@ -188,7 +188,7 @@ onMounted(() => {
       <p>Groups are flat (one level) and orthogonal to the origin breadcrumb. A "Load tests" group can mix manually-uploaded files and auto-downloaded artifacts from any project — the breadcrumb still tells you where each came from.</p>
 
       <h2 id="recordings-vs-projects">Recordings vs Projects</h2>
-      <p>Projects organize <strong>live applications</strong> — their instances, sessions, profiler settings, and event streams. Recordings is the post-capture artifact view: once a session has produced something worth keeping, you bring it here for analysis.</p>
+      <p>Projects organize <strong>live applications</strong> — their instances, sessions, and profiler settings. Recordings is the post-capture artifact view: once a session has produced something worth keeping, you bring it here for analysis.</p>
 
       <table>
         <thead>
@@ -198,10 +198,6 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>JFR events from a session’s dumped recordings</td>
-            <td>Project → Instances → session → Replay Stream</td>
-          </tr>
           <tr>
             <td>List of past recording sessions in a project</td>
             <td>Project → Instances → session</td>

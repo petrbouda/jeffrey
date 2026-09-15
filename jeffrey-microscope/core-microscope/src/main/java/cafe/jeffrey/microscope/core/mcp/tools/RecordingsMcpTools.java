@@ -262,6 +262,39 @@ public class RecordingsMcpTools {
     }
 
     /*
+     * The one tool in this family that takes something away. It is the other half of downloading a
+     * window of a hub session: the hub is the copy of record, Microscope holds what is being read,
+     * and a window profile that has answered its question has no reason to stay. The only tool that
+     * declares itself destructive: the family's hint says it writes, and a client that asks before a
+     * destructive call should get to ask here. Deleting twice is refused, not repeated, so it is not
+     * idempotent either.
+     */
+    @McpToolHints(readOnly = false, destructive = true, idempotent = false)
+    @Tool(description = "Delete a recording from the Quick Analysis store together with the profile "
+            + "built from it, its files and everything analysed out of it. Use it to clean up after a "
+            + "profile has answered its question - a window of a hub session pulled in by hubs_download, "
+            + "a partial look taken before the real window, a file imported twice. A recording on a hub "
+            + "is untouched: hubs_download can pull it again. The profile id stops working the moment "
+            + "this returns; a client that still shows it should call profiles_list again.")
+    public String delete(
+            @ToolParam(required = true, description = "Recording id from recordings_list, hubs_download or "
+                    + "recordings_analyzeFile. A profile id is not accepted; recordings_list shows which "
+                    + "recording a profile belongs to")
+            String recordingId) {
+        if (recordingId == null || recordingId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "A recording id is required. Call recordings_list to see them.");
+        }
+        String id = recordingId.trim();
+        Recording recording = recordingsManager.findRecording(id)
+                .orElseThrow(() -> new IllegalArgumentException("No such recording: " + id));
+
+        LOG.info("Deleting a recording over MCP: recording_id={} profile_id={}", id, recording.profileId());
+        recordingsManager.deleteRecording(id);
+        return McpToolOutput.json(new DeletedRecording(id, recording.recordingName(), recording.profileId()));
+    }
+
+    /*
      * Reads. Its family is registered as writing because the tools that build a profile sit in
      * it, and a member that only reports has to say so for itself — the same inheritance that let
      * hubs_download offer a cross-machine transfer as a safe read, running the other way.
@@ -581,6 +614,12 @@ public class RecordingsMcpTools {
      * @param durationMs null while the stage has not finished
      */
     private record Stage(String id, String status, Long durationMs) {
+    }
+
+    /**
+     * @param profileId the profile that went with the recording, or {@code null} when it had none
+     */
+    private record DeletedRecording(String recordingId, String name, String profileId) {
     }
 
     private record AnalyzedProfile(

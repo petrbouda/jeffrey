@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -69,6 +70,24 @@ final class ToolArguments {
         }
         return Math.min(limit, max);
     }
+
+    /**
+     * A list argument, which the tool contract carries as one comma-separated string because a
+     * {@code @Tool} parameter is a scalar. Blank entries are dropped; a value that is all blanks is
+     * no list, and reads as {@code null} so the caller's "omitted" branch covers it.
+     */
+    static List<String> commaSeparated(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        List<String> values = Arrays.stream(value.split(LIST_SEPARATOR))
+                .map(String::trim)
+                .filter(entry -> !entry.isEmpty())
+                .toList();
+        return values.isEmpty() ? null : values;
+    }
+
+    private static final String LIST_SEPARATOR = ",";
 
     /**
      * The head of a list that has no bound of its own — endpoint and class counts are unbounded in

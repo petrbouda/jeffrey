@@ -33,9 +33,11 @@ import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
+import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -51,6 +53,7 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.notification.NotificationCategory;
@@ -105,7 +108,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .filter(RepositoryFile::isFinished)
                 .toList();
 
-        return processRecordingSession(recordingSessionId, files);
+        return processRecordingSession(recordingSession, files);
     }
 
     @Override
@@ -120,11 +123,45 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .filter(file -> requestedFileIds.contains(file.id()))
                 .toList();
 
-        return processRecordingSession(recordingSessionId, files);
+        return processRecordingSession(recordingSession, files);
+    }
+
+    @Override
+    public String mergeAndDownloadWindow(String recordingSessionId, ChunkWindow window) {
+        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(recordingSessionId);
+        ChunkWindow.Selection selection = window.select(allFiles(recordingSession), finishedAt(recordingSession));
+        if (selection.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No finished recording file of session " + recordingSessionId + " covers the window");
+        }
+        return processRecordingSession(recordingSession, selection.chunks());
+    }
+
+    private static List<RepositoryFile> allFiles(RecordingSessionResponse session) {
+        return session.files().stream().map(RepositoryFileResponse::from).toList();
+    }
+
+    private static Instant finishedAt(RecordingSessionResponse session) {
+        return session.finishedAt() == null ? null : Instant.ofEpochMilli(session.finishedAt());
+    }
+
+    /**
+     * A recording that holds every finished recording file of its session is the session; one that
+     * holds fewer — a window, or files picked from the listing — is a part of it, and is named and
+     * tagged with the span its files cover so it is never mistaken for the whole.
+     *
+     * @return the covered span, or {@code null} for the whole session
+     */
+    private static ChunkWindow.Selection partOf(RecordingSessionResponse session, List<RepositoryFile> files) {
+        List<RepositoryFile> all = allFiles(session);
+        Set<String> chosen = files.stream().map(RepositoryFile::id).collect(Collectors.toSet());
+        ChunkWindow.Selection selection = ChunkWindow.ofFiles(all, chosen, finishedAt(session));
+        return selection.isWholeSession(all) ? null : selection;
     }
 
     // TODO: Simplify this behaviour
-    private String processRecordingSession(String recordingSessionId, List<RepositoryFile> files) {
+    private String processRecordingSession(RecordingSessionResponse recordingSession, List<RepositoryFile> files) {
+        String recordingSessionId = recordingSession.id();
         // At least one recording file must be present, otherwise nothing to merge and download
         // 0...n additional recording files can be present (e.g. HeapDump, logs, etc.)
         if (files.stream().noneMatch(RepositoryFile::isRecordingFile)) {
@@ -158,7 +195,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                     .toList();
 
             // Persist into Recordings storage with origin tags
-            return persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
+            return persistToRecordings(recordingSession, recordingPath, artifactPaths, partOf(recordingSession, files));
         }
     }
 
@@ -349,7 +386,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             progressCallback.onProcessing();
 
             // Persist into Recordings storage with origin tags
-            String recordingId = persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
+            String recordingId = persistToRecordings(
+                    recordingSession, recordingPath, artifactPaths, partOf(recordingSession, files));
 
             // Completed successfully
             progressCallback.onComplete();
@@ -418,13 +456,56 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * Persist the merged recording + any artifact files into Recordings storage,
      * tagged with the {@code origin.*} system tags from {@link #originContext}.
      *
+     * @param window the span the recording covers when it is a part of the session, or {@code null}
+     *               for the whole session; a part is renamed after that span and tagged with it
      * @return id of the newly created local recording
      */
     private String persistToRecordings(
-            String recordingSessionId, Path recordingPath, List<Path> artifactPaths) {
+            RecordingSessionResponse session, Path recordingPath, List<Path> artifactPaths,
+            ChunkWindow.Selection window) {
 
+        String recordingSessionId = session.id();
         Map<String, String> originTags = originContext.toTagMap(recordingSessionId);
+        Path recording = recordingPath;
+        if (window != null) {
+            originTags.put(OriginContext.TAG_WINDOW, windowTag(window));
+            recording = renameToWindow(recordingPath, session, window);
+        }
         return recordingsManager.createDownloadedRecording(
-                recordingSessionId, recordingPath, artifactPaths, originTags);
+                recordingSessionId, recording, artifactPaths, originTags);
+    }
+
+    private static final String WINDOW_NAME_SEPARATOR = "_";
+    private static final String OPEN_WINDOW_END = "open";
+    private static final String WINDOW_TAG_SEPARATOR = "-";
+
+    /**
+     * {@code <project>_<session start>_<window start>_<window end>.jfr.lz4}: two windows of one
+     * session read apart in the Recordings list, and neither reads as the session.
+     */
+    private Path renameToWindow(Path recordingPath, RecordingSessionResponse session, ChunkWindow.Selection window) {
+        String fileName = recordingPath.getFileName().toString();
+        int dot = fileName.indexOf('.');
+        String extension = dot < 0 ? "" : fileName.substring(dot);
+        String base = sanitizeForFilename(projectName) + WINDOW_NAME_SEPARATOR
+                + MERGED_FILE_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
+        String end = window.coverageEnd() == null ? OPEN_WINDOW_END : MERGED_FILE_TIMESTAMP.format(window.coverageEnd());
+        Path renamed = recordingPath.resolveSibling(base + WINDOW_NAME_SEPARATOR
+                + MERGED_FILE_TIMESTAMP.format(window.coverageStart()) + WINDOW_NAME_SEPARATOR + end + extension);
+        try {
+            return Files.move(recordingPath, renamed, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot rename the window recording: " + recordingPath, e);
+        }
+    }
+
+    /**
+     * {@code <start millis>-<end millis>} of the covered span, {@code open} for an end the session
+     * has not reached yet. Written for whoever lists the recording; the index that tells a whole
+     * session apart from a window of it only asks whether the tag is there.
+     */
+    private static String windowTag(ChunkWindow.Selection window) {
+        String end = window.coverageEnd() == null ? OPEN_WINDOW_END : Long.toString(window.coverageEnd().toEpochMilli());
+        return window.coverageStart().toEpochMilli() + WINDOW_TAG_SEPARATOR + end;
     }
 }

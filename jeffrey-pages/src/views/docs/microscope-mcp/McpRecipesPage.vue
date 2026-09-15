@@ -143,10 +143,12 @@ LIMIT 20`;
 
       <p>&ldquo;The last hour&rdquo; means <em>recording during</em> the last hour, not <em>started within</em> it, so a JVM that came up this morning and is still running is included. That is almost always what the question meant.</p>
 
-      <p>You will be asked to choose only when the choice is real &mdash; several projects matched, or the session is large enough that pulling it is worth a moment's thought &mdash; and when you are, the projects, durations and sizes come with the question.</p>
+      <p>You will be asked to choose only when the choice is real &mdash; several projects matched, or the session runs for hours or days and you have not said which part of it you mean &mdash; and when you are, the projects, start times, durations and sizes come with the question.</p>
+
+      <p><strong>The interval, not the session.</strong> A session on a hub is a JVM&rsquo;s whole recording life, and a question is about an hour of it. The agent asks which &mdash; the last hour, yesterday, 14:00 to 15:00 &mdash; and <code>hubs_download</code> brings only the chunks covering it, every chunk that touches the window, so the recording covers the whole interval with some slack at either end. The answer says what span it actually covers, and the profile&rsquo;s figures are about that span. A narrow window is also the cheap look before a wider one: <em>&ldquo;does the checkout service throw at all this morning&rdquo;</em> is two chunks, a profile and an answer, and <code>recordings_delete</code> takes the look away again once the real window is in. Files can be picked by name as well &mdash; the chunk rolled right after the deploy, the heap dump beside it &mdash; from <code>hubs_files</code>.</p>
 
       <DocsCallout type="tip" title="The second time costs nothing">
-        Sessions already pulled in are marked in the listing, with the profile id when they have been analysed. Ask the same question tomorrow and yesterday's session is not downloaded again.
+        Whole sessions already pulled in are marked in the listing, with the profile id when they have been analysed. Ask the same question tomorrow and yesterday's session is not downloaded again. A window is a recording of its own, named after its span, and shows up in <code>recordings_list</code> rather than in that column.
       </DocsCallout>
 
       <p>A heap dump in the session arrives with it, so <em>&ldquo;pull the dump from the pod that OOMed and tell me what was holding memory&rdquo;</em> is the same recipe ending in the <code>heap_</code> family instead.</p>

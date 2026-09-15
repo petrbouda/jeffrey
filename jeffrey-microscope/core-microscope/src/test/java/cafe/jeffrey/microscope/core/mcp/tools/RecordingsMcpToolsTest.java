@@ -404,6 +404,47 @@ class RecordingsMcpToolsTest {
     }
 
     @Nested
+    class Delete {
+
+        @Test
+        void deletesTheRecordingAndReportsTheProfileThatWentWithIt() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+
+            String result = tools.delete(RECORDING_ID);
+
+            verify(recordingsManager).deleteRecording(RECORDING_ID);
+            assertTrue(result.contains("\"recordingId\":\"" + RECORDING_ID + "\""), result);
+            assertTrue(result.contains("\"profileId\":\"" + PROFILE_ID + "\""), result);
+        }
+
+        @Test
+        void aRecordingWithoutAProfileIsDeletedTheSameWay() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
+
+            String result = tools.delete(RECORDING_ID);
+
+            verify(recordingsManager).deleteRecording(RECORDING_ID);
+            assertTrue(result.contains("\"profileId\":null"), result);
+        }
+
+        @Test
+        void anUnknownRecordingIsRefusedInASentence() {
+            when(recordingsManager.findRecording("missing")).thenReturn(Optional.empty());
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> tools.delete("missing"));
+
+            assertTrue(e.getMessage().contains("missing"), e.getMessage());
+            verify(recordingsManager, never()).deleteRecording(any());
+        }
+
+        @Test
+        void aBlankIdIsRefused() {
+            assertThrows(IllegalArgumentException.class, () -> tools.delete(" "));
+            verify(recordingsManager, never()).deleteRecording(any());
+        }
+    }
+
+    @Nested
     class ListRecordings {
 
         @Test

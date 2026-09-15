@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
@@ -134,7 +133,6 @@ public class McpToolsetAssembler {
             HeapDumpInitService heapDumpInitService,
             IdeBridge ideBridge,
             ExternalMcpProperties properties,
-            HubsReplayMcpTools replayMcpTools,
             HubsArtifactsMcpTools hubsArtifactsMcpTools,
             McpOperationRegistry operations,
             Clock clock) {
@@ -232,7 +230,6 @@ public class McpToolsetAssembler {
         }
 
         if (properties.hubsEnabled()) {
-            families.add(new ReflectiveToolset(replayMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
             families.add(new ReflectiveToolset(
                     hubsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
             // Read-only as a family: hubs_files observes. hubs_fetchFile puts a file on this disk and

@@ -114,7 +114,7 @@ and `report` for the shape and evidence rules for every finding.
   supports. What to change belongs to the caller and its user.
 - **No writing.** Never call `ide_link` or `ide_open`, which act on the editor beside you rather
   than on a profile. Never call the `recordings_` or `hubs_` families — one imports a recording file
-  and builds a profile, the other pulls a recording off a connected hub and does the same, or starts
-  a scan on it. Never call `operations_cancel`: the work it stops was started by the caller. If the
+  and builds a profile, or deletes one, the other pulls a recording, a window of one or one of its
+  files off a connected hub. Never call `operations_cancel`: the work it stops was started by the caller. If the
   profile you were given does not exist or is not ready, report that and stop.
 """

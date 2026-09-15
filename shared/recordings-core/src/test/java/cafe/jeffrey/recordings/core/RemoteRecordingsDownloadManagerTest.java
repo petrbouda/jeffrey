@@ -28,9 +28,11 @@ import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -41,15 +43,20 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -88,8 +95,13 @@ class RemoteRecordingsDownloadManagerTest {
 
     private static RepositoryFileResponse file(
             String id, String name, SupportedRecordingFile type, RecordingStatus status) {
+        return file(id, name, type, status, CREATED_AT);
+    }
+
+    private static RepositoryFileResponse file(
+            String id, String name, SupportedRecordingFile type, RecordingStatus status, Instant createdAt) {
         return new RepositoryFileResponse(
-                id, name, CREATED_AT.toEpochMilli(), 1024L, type, status, type == SupportedRecordingFile.JFR);
+                id, name, createdAt.toEpochMilli(), 1024L, type, status, type == SupportedRecordingFile.JFR);
     }
 
     private static RecordingSessionResponse session(RepositoryFileResponse... files) {
@@ -158,6 +170,85 @@ class RemoteRecordingsDownloadManagerTest {
             String recordingId = manager.mergeAndDownloadRecordings(SESSION_ID, List.of("f-1", "f-2"));
 
             assertEquals(RECORDING_ID, recordingId);
+        }
+    }
+
+    /**
+     * The UI's "download session" names every file, and that recording is the session; a pick of
+     * some recording files is a part of it and carries the window tag like a window does.
+     */
+    @Nested
+    class MergeAndDownloadPart {
+
+        private static final Instant SESSION_END = CREATED_AT.plusSeconds(60);
+
+        private RecordingSessionResponse threeChunks() {
+            return session(
+                    file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED, CREATED_AT),
+                    file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(20)),
+                    file("f-3", "profile-3.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(40)),
+                    file("f-4", "heap.hprof", SupportedRecordingFile.HEAP_DUMP, RecordingStatus.FINISHED));
+        }
+
+        private void merges() {
+            when(streamClient.downloadRecordings(eq(SESSION_ID), anyList()))
+                    .thenReturn(CompletableFuture.completedFuture(resource("checkout_2026-03-01T12-00-00Z.jfr.lz4")));
+        }
+
+        @Test
+        void aWindowMergesOnlyTheCoveringFilesAndNothingElse() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+            merges();
+
+            String recordingId = manager.mergeAndDownloadWindow(SESSION_ID,
+                    new ChunkWindow(CREATED_AT.plusSeconds(25), CREATED_AT.plusSeconds(35)));
+
+            assertEquals(RECORDING_ID, recordingId);
+            verify(streamClient).downloadRecordings(SESSION_ID, List.of("f-2"));
+            verify(streamClient, never()).downloadArtifactFile(any(), any());
+        }
+
+        @Test
+        void aWindowIsTaggedAndNamedAfterTheSpanItsFilesCover() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+            merges();
+            ArgumentCaptor<Path> recordingPath = ArgumentCaptor.forClass(Path.class);
+
+            manager.mergeAndDownloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(45), null));
+
+            Map<String, String> expectedTags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
+            expectedTags.put(OriginContext.TAG_WINDOW,
+                    CREATED_AT.plusSeconds(40).toEpochMilli() + "-" + SESSION_END.toEpochMilli());
+            verify(recordingsManager).createDownloadedRecording(
+                    eq(SESSION_ID), recordingPath.capture(), anyList(), eq(expectedTags));
+            assertEquals("checkout_2026-03-01T12-00-00Z_2026-03-01T12-00-40Z_2026-03-01T12-01-00Z.jfr.lz4",
+                    recordingPath.getValue().getFileName().toString());
+        }
+
+        @Test
+        void aWindowNoFileCoversIsRefused() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+
+            assertThrows(IllegalArgumentException.class, () -> manager.mergeAndDownloadWindow(SESSION_ID,
+                    new ChunkWindow(SESSION_END.plusSeconds(600), SESSION_END.plusSeconds(1200))));
+            verify(recordingsManager, never()).createDownloadedRecording(any(), any(), anyList(), any());
+        }
+
+        @Test
+        void namingEveryFileIsTheWholeSessionAndNamingSomeIsAPart() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
+            merges();
+            when(streamClient.downloadArtifactFile(SESSION_ID, "f-4"))
+                    .thenReturn(CompletableFuture.completedFuture(resource("heap.hprof")));
+            ArgumentCaptor<Map<String, String>> tags = ArgumentCaptor.forClass(Map.class);
+
+            manager.mergeAndDownloadRecordings(SESSION_ID, List.of("f-1", "f-2", "f-3", "f-4"));
+            manager.mergeAndDownloadRecordings(SESSION_ID, List.of("f-2", "f-4"));
+
+            verify(recordingsManager, times(2)).createDownloadedRecording(eq(SESSION_ID), any(), anyList(), tags.capture());
+            assertFalse(tags.getAllValues().get(0).containsKey(OriginContext.TAG_WINDOW));
+            assertEquals(CREATED_AT.plusSeconds(20).toEpochMilli() + "-" + CREATED_AT.plusSeconds(40).toEpochMilli(),
+                    tags.getAllValues().get(1).get(OriginContext.TAG_WINDOW));
         }
     }
 

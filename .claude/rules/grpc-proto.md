@@ -41,4 +41,4 @@ paths:
 - Every gRPC service must have an in-process integration test
 - Use `InProcessServerBuilder` / `InProcessChannelBuilder`
 - Test validation errors (status codes) and end-to-end streaming
-- Reference pattern: `EventStreamingGrpcServiceTest`
+- Reference pattern: `FileDownloadGrpcServiceTest`

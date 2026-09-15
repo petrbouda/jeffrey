@@ -36,8 +36,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Sweeps the hub's temp directory. Scratch files (JFR merges, compression staging,
- * replay windows) are normally removed by their owners, but a crash between creating
+ * Sweeps the hub's temp directory. Scratch files (compression staging, session file
+ * transfers) are normally removed by their owners, but a crash between creating
  * and deleting them leaks the entry — without this job it would live until the next
  * process restart. Entries older than the retention window are removed; anything
  * younger is presumed to belong to an in-flight operation.

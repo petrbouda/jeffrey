@@ -70,6 +70,12 @@ Everything else needs a denominator before it means anything:
   `jdk.ObjectAllocationSample`
 - **a heap figure → retained bytes**, never shallow; and against the heap's total
 
+A profile built from a **window of a hub session** — `hubs_download` with `startTime`/`endTime`
+or `fileIds` — is that window, not the session. Its recording length is the span the chunks cover,
+which `hubs_download` reported as `windowStart`/`windowEnd`; name that span with every rate drawn
+from it, and never extrapolate a rate or a count across the session it was cut from. "12 GC pauses
+in the 14:00–14:30 window" is a finding; "about 600 a day" is not.
+
 Counts from two recordings of different lengths are not comparable. `compare_list` reports both
 lengths and `compare_movements` scales the baseline onto the primary's; a comparison you do by hand
 has to do the same, or say that it did not.

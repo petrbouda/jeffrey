@@ -35,7 +35,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hub-api</artifactId>
         </dependency>
-        <!-- GrpcHubConnection + EventStreamingClient + streaming records -->
+        <!-- GrpcHubConnection and the per-service clients -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>grpc-client</artifactId>
@@ -76,15 +76,10 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- In-process gRPC server for the streaming client tests -->
+        <!-- In-process gRPC server for the client tests -->
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-inprocess</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

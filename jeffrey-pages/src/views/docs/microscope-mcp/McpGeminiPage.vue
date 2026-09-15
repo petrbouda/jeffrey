@@ -88,16 +88,13 @@ const excludeWriters = `{
     "jeffrey": {
       "httpUrl": "http://localhost:8585/api/mcp",
       "excludeTools": [
-        "recordings_analyzeFile", "recordings_analyzeRecording",
-        "hubs_download", "hubs_eventActivity", "hubs_activityCancel",
+        "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete",
+        "hubs_download", "hubs_fetchFile",
         "operations_cancel", "ide_link", "ide_open"
       ]
     }
   }
 }`;
-
-const familiesProperty = `# On the Jeffrey side, in application.properties
-jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
 
 const agentTools = `tools:
   - mcp_jeffrey_*`;
@@ -126,13 +123,7 @@ const update = `gemini extensions update microscope`;
     />
 
     <div class="docs-content">
-      <p>The <strong>Microscope plugin</strong> installs into Gemini CLI as an <strong>extension</strong>. One directory in the Jeffrey repository now carries three manifests &mdash; the one <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> reads, the <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> one <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and its neighbours read, and <code>gemini-extension.json</code> &mdash; over a single set of skills and a single MCP server.</p>
-
-      <p>What Gemini takes from the package is the server, the skills and the session-start check that says whether Jeffrey is actually running. The agents are copied by hand, for the reason <a href="#the-agents">below</a>.</p>
-
-      <DocsCallout type="info" title="Jeffrey has to be running">
-        The extension installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
-      </DocsCallout>
+      <p>The <strong>Microscope plugin</strong> installs into Gemini CLI as an <strong>extension</strong>, through the <code>gemini-extension.json</code> manifest beside the other two. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Gemini does differently: an endpoint <strong>asked for at install</strong>, <strong>two of the three agents</strong> as files to copy, tool names spelled with <strong>single underscores</strong>, and a tool list <strong>declared every turn</strong>.</p>
 
       <h2 id="install-it">Install It</h2>
       <p>Gemini installs an extension from a directory holding a <code>gemini-extension.json</code>, which is <code>jeffrey-claude-plugin/</code> in a clone:</p>
@@ -160,14 +151,10 @@ const update = `gemini extensions update microscope`;
       <p>Keep the name <code>jeffrey</code>: the skills name tools by the part after the prefix, and the prefix is built from the server's name. Then remove the extension, or accept that the same tools are registered twice.</p>
 
       <h2 id="what-the-extension-adds">What the Extension Adds</h2>
-      <p>Registering the server by hand gives you every tool. The extension adds the endpoint already configured, a check that Jeffrey is serving when a session starts, and <strong>ten skills</strong>, which Gemini loads on its own when a question calls for one: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page; <code>/skills</code> lists what a session actually loaded, and <code>gemini extensions list</code> prints them with the server and the endpoint setting from outside one.</p>
-
-      <p>They are the same files Claude Code and Codex load &mdash; all three read the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, so the directory is shared rather than duplicated.</p>
+      <p>The endpoint already configured, a check that Jeffrey is serving when a session starts &mdash; the same one the Claude Code plugin runs, read from the same file &mdash; and the <router-link to="/docs/microscope-mcp/clients#the-skills">ten skills</router-link>, which Gemini loads on its own when a question calls for one. <code>/skills</code> lists what a session actually loaded, and <code>gemini extensions list</code> prints them with the server and the endpoint setting from outside one.</p>
 
       <h2 id="the-agents">The Agents</h2>
-      <p>The <router-link to="/docs/microscope-mcp/agent">agents</router-link> read an export end to end and return only the findings. What each one is for is on that page; what follows is how Gemini gets them, and which of them it can run at all.</p>
-
-      <p>Gemini gets <strong>two of the three</strong>, and they are files to copy:</p>
+      <p>Gemini gets <strong>two of the <router-link to="/docs/microscope-mcp/clients#the-agents">three agents</router-link></strong>, and they are files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />
 
       <p><code>~/.gemini/agents/</code> makes them available in every repository; <code>.gemini/agents/</code> inside a checkout scopes them to that one, and <code>/agents</code> lists what loaded. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
@@ -190,28 +177,19 @@ const update = `gemini extensions update microscope`;
       <p><strong>A wildcard there covers a server, not a family.</strong> <code>mcp_jeffrey_*</code> is valid and means every Jeffrey tool; <code>mcp_jeffrey_heap_*</code> is <em>not</em> a valid tool name, and one invalid entry makes the whole agent fail to load. Narrowing to a family means naming its tools one by one. The part after the prefix is the same everywhere and is exact and camelCase: <code>jfr_listTables</code>, never <code>jfr_list_tables</code>.</p>
 
       <h2 id="approvals">Approvals</h2>
-      <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Every Jeffrey tool reads except the ten named on the <router-link to="/docs/microscope-mcp/tools">tool reference</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
+      <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Only <router-link to="/docs/microscope-mcp/clients#what-writes">nine tools write</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
       <DocsCodeBlock :code="trustServer" language="json" />
 
       <p><code>trust</code> covers every tool on the server, the three <code>hubs_</code> writers, <code>operations_cancel</code> and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
 
       <h2 id="timeouts">Timeouts on Long Calls</h2>
-      <p>Most of Jeffrey's tools answer in well under a second, but three do real work: importing a recording parses every event in it, and pulling a session off a hub moves however many gigabytes it holds. The extension asks for <strong>fifteen minutes</strong> (<code>timeout</code> is milliseconds) rather than leaving them on Gemini's ten.</p>
-
-      <p>Those three are built for the wait either way. <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code> wait about forty-five seconds and then hand back a status of <code>running</code> with an <code>operationId</code>, and <code>operations_status</code> reports when the profile is ready. <strong>What matters is not retrying the analyze call:</strong> a second one imports the file again and builds a second profile of it.</p>
+      <p>Gemini abandons a tool call after ten minutes by default; the extension asks for <strong>fifteen</strong> (<code>timeout</code> is milliseconds), which the <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> never need, since they hand back <code>running</code> and an <code>operationId</code> well inside a minute.</p>
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
-      <p>Jeffrey advertises a hundred-odd tools across nineteen families, and Gemini declares every enabled tool to the model on each turn. On its own that is comfortably inside the API's ceiling on function declarations; stacked with several other MCP servers it stops being comfortable, and the symptom is a request rejected for declaring too many functions rather than anything that looks like Jeffrey.</p>
-
-      <p>There are two ways to narrow it, and they compose. On the Jeffrey side, advertise fewer families:</p>
-      <DocsCodeBlock :code="familiesProperty" language="properties" />
-
-      <p>On the Gemini side, <code>includeTools</code> or <code>excludeTools</code> on the server entry narrows what this client sees without touching what Jeffrey serves to anything else. Leave both alone unless you have a reason &mdash; the skills route between families freely, and one that is not advertised is one their advice sends the model to in vain.</p>
+      <p>Gemini declares every enabled tool to the model on each turn. On its own Jeffrey's list is comfortably inside the API's ceiling on function declarations; stacked with several other MCP servers it stops being comfortable, and the symptom is a request rejected for declaring too many functions rather than anything that looks like Jeffrey. Two ways to narrow it compose: <router-link to="/docs/microscope-mcp/clients#the-tool-list">fewer families on the Jeffrey side</router-link>, and <code>includeTools</code> or <code>excludeTools</code> on the server entry, which narrows what this client sees without touching what Jeffrey serves to anything else.</p>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>/mcp</code> inside a session, or <code>gemini mcp list</code> outside one. The <code>jeffrey</code> server should be listed with its tools. If it is listed but <strong>Disabled</strong>, the directory is untrusted &mdash; Gemini disables every MCP server in an untrusted folder, user-level ones included, and says so above the list; trust the folder and start again. If it is not listed at all, in order of likelihood: the session predates the install and needs restarting, this installation set <code>jeffrey.microscope.mcp.enabled=false</code>, Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
-
-      <p><code>curl</code> against the endpoint settles which side is at fault; <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> has the exact request.</p>
+      <p>Run <code>/mcp</code> inside a session, or <code>gemini mcp list</code> outside one. The <code>jeffrey</code> server should be listed with its tools. If it is listed but <strong>Disabled</strong>, the directory is untrusted &mdash; Gemini disables every MCP server in an untrusted folder, user-level ones included, and says so above the list; trust the folder and start again. If it is not listed at all, <router-link to="/docs/microscope-mcp/clients#when-it-is-not-connected">the usual causes</router-link> apply.</p>
 
       <h2 id="updating-and-removing">Updating and Removing</h2>
       <p>Gemini copies an extension when it installs one, so a newer clone is not a newer extension until you say so:</p>
@@ -220,7 +198,6 @@ const update = `gemini extensions update microscope`;
       <p>To remove it:</p>
       <DocsCodeBlock :code="removal" language="bash" />
 
-      <p>Uninstalling takes the skills and the session-start check with it. It does not change anything inside Jeffrey &mdash; the MCP server keeps serving &mdash; and it touches neither a server you registered yourself in <code>settings.json</code> nor an agent you copied into <code>~/.gemini/agents/</code>.</p>
 
       <h2 id="without-the-extension">Without the Extension</h2>
       <p>The endpoint is an ordinary MCP server, and one command registers it with no extension involved:</p>

@@ -27,7 +27,7 @@ paths:
 - Use `InProcessServerBuilder` / `InProcessChannelBuilder` for integration tests
 - Test validation errors with expected status codes
 - Test streaming with real data where applicable
-- Reference: `EventStreamingGrpcServiceTest`
+- Reference: `FileDownloadGrpcServiceTest`
 
 ### Test Naming
 - Test class: `{ClassUnderTest}Test` or `{Feature}IntegrationTest`

@@ -30,7 +30,6 @@ import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
@@ -104,7 +103,7 @@ class SpringAiToolConformanceTest {
      * plus the two the Claude Code endpoint serves directly.
      */
     private static final List<Class<?>> TOOL_CLASSES = List.of(
-            HubsReplayMcpTools.class, ProfileEvidenceMcpTools.class, OperationsMcpTools.class,
+            ProfileEvidenceMcpTools.class, OperationsMcpTools.class,
             ProfilesMcpTools.class,
             ProfileMcpTools.class,
             EventTypeMcpTools.class,

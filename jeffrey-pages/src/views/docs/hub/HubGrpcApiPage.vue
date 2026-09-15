@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Jeffrey Hub exposes gRPC services for Jeffrey Microscope instances to connect and fetch data. All communication between Jeffrey Microscope and Jeffrey Hub uses gRPC on port <code>9090</code> (configurable).</p>
 
         <DocsCallout type="info">
-          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. Full profile analysis happens locally; Hub counts event activity through gRPC for <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s MCP tools</router-link> before downloading.
+          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. Full profile analysis happens locally; <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s MCP tools</router-link> pull a session down by session, time window or file.
         </DocsCallout>
 
         <h2 id="purpose">Purpose</h2>
@@ -77,60 +77,9 @@ onMounted(() => {
         </div>
 
         <h2 id="grpc-services">gRPC Services</h2>
-        <p>Jeffrey Hub exposes 8 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
+        <p>Jeffrey Hub exposes 6 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
 
         <div class="endpoint-groups">
-          <!-- EventActivityService -->
-          <div class="endpoint-group">
-            <div class="group-header">
-              <i class="bi bi-bar-chart"></i>
-              <h4>EventActivityService</h4>
-            </div>
-            <div class="group-body">
-              <div class="endpoint-item">
-                <div class="endpoint-line"><span class="method rpc">RPC</span><code>StartActivity</code></div>
-                <p>Start an asynchronous scan of finished JFR files on Hub. Supply <code>scope</code> with workspace,
-                  project and session IDs, required <code>start_time</code> and <code>end_time</code> (UTC epoch milliseconds,
-                  start inclusive and end exclusive), optional <code>bucket_seconds</code> (default 300), and
-                  <code>event_types</code> (empty means all types). Returns a typed <code>EventActivitySnapshot</code> with a <code>scan_id</code>.
-                  The scope is resolved before the scan is admitted, so an unknown workspace, project or session returns
-                  <code>NOT_FOUND</code> here rather than a <code>scan_id</code> that only reports a failure when it is first
-                  polled. <code>RESOURCE_EXHAUSTED</code> means every retained slot is held by a scan that has not finished.
-                  An optional <code>idempotency_key</code> (at most 128 characters) makes a repeat safe: while a scan with
-                  the same key is still in flight in the same scope, the Hub answers with that scan instead of admitting a
-                  second one, so a caller whose own deadline expired after admission can retry without claiming another
-                  slot. A finished scan is never adopted; the same request after completion starts a fresh scan.</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line"><span class="method rpc">RPC</span><code>GetActivity</code></div>
-                <p>Poll with the original <code>scope</code> and <code>scan_id</code>. Optional <code>order</code> ranks
-                  by event count, distinct event types, or time. Optional <code>limit</code> selects 1–20 buckets per page
-                  (default 20) and optional <code>offset</code> skips that many in the ranked order (default 0, at most 288).
-                  The snapshot includes total counts, bucket/type counts, omitted detail, state, and source coverage, and
-                  echoes <code>offset</code> with <code>has_more_buckets</code> so a caller can page without tracking it.
-                  Paging is what makes every bucket reachable: a window holds up to 288, so under
-                  <code>ACTIVITY_ORDER_TIME</code> the first page is all a caller would otherwise see — and it is empty
-                  whenever the session began recording late in the window. Polling never starts another scan.</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line"><span class="method rpc">RPC</span><code>CancelActivity</code></div>
-                <p>Cancel the scan identified by its original <code>scope</code> and <code>scan_id</code>.
-                  Cancellation remains pending until the reader releases its resources. A scope mismatch or expired scan
-                  returns <code>NOT_FOUND</code>; invalid requests return <code>INVALID_ARGUMENT</code>.</p>
-              </div>
-              <p>Hub performs all aggregation. Microscope calls these RPCs through its existing Hub connection and exposes
-                <code>hubs_eventActivity</code>, <code>hubs_activityStatus</code>, and <code>hubs_activityCancel</code>.
-                The MCP endpoint belongs to Microscope.</p>
-              <p>There is no total-event cap. Counts use at most 288 buckets and 512 observed types; two scans run
-                concurrently, with at most 16 retained scans and up to one hour of retention after completion.
-                <code>requested_event_types</code> on the snapshot echoes the filter the scan was started with — the types
-                actually observed are counted per bucket in <code>ActivityBucket.event_types</code>.
-                Read <code>complete</code> and <code>source_errors</code> even when the state is completed.
-                Finished files visible at scan start define coverage; overlapping files may count an event twice.
-                Definitions are in <code>event_activity_service.proto</code>.</p>
-            </div>
-          </div>
-
           <!-- WorkspaceService -->
           <div class="endpoint-group">
             <div class="group-header">
@@ -397,35 +346,6 @@ onMounted(() => {
                   <code>GetWorkspaceEffectiveSettings</code>
                 </div>
                 <p>Get the workspace-level and global-level settings for a workspace</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- EventStreamingService -->
-          <div class="endpoint-group">
-            <div class="group-header">
-              <i class="bi bi-broadcast"></i>
-              <h4>EventStreamingService</h4>
-            </div>
-            <div class="group-body">
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>ReplayStreaming</code>
-                  <span class="rpc-type">server-streaming</span>
-                </div>
-                <p>Replay selected historical JFR events from finished recording files. Optional <code>start_time</code> and <code>end_time</code> bound the event window in epoch milliseconds.</p>
-                <p>Existing callers may omit scope fields and retain the legacy replay behavior. New read-only clients use <code>ScopedReplayStreaming</code>.</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>ScopedReplayStreaming</code>
-                  <span class="rpc-type">server-streaming</span>
-                </div>
-                <p>Supply both <code>workspace_id</code> and <code>project_id</code> to resolve <code>session_id</code> within that project. Scoped replay reads raw or compressed files without replacing the originals. The <code>ScopedReplayStreaming</code> RPC enforces this read-only contract; older Hubs return <code>UNIMPLEMENTED</code> without invoking legacy replay. Its first <code>EventBatch.replay_status</code> acknowledges the scope; a terminal status reports skipped files, corrupt chunks and mapping failures through <code>source_errors</code>. A session that resolves but has no finished file yet completes the same way with zero events, the shape <code>StartActivity</code> reports for it; <code>NOT_FOUND</code> is reserved for a workspace, project or session that does not resolve.</p>
-                <p>The Microscope MCP tool <code>hubs_queryEvents</code> accepts a <code>session_ref</code>, comma-separated event types, optional epoch-millisecond bounds, and row/UTF-8 byte limits. Defaults are 100 rows, 65,536 bytes and a 15-second deadline; the row limit takes any positive integer, or <code>0</code> for no row cap at all, and the byte ceiling is 100,000. The byte limit covers the returned JSON object, including its metadata; the MCP transport may carry both text and structured copies, plus envelope overhead. Whole event rows are returned with <code>complete</code>, <code>termination</code> and applied filters. Limits, timeout, source errors and missing scope/coverage support produce a partial result. Cancellation stops replay and releases temporary files after the reader exits. Scoped replay uses strict JFR parsing so unreadable input cannot silently become a complete result.</p>
-                <p>Coverage describes finished files visible when replay starts. An active session may create additional files later; overlapping recordings may repeat events. Replay does not establish a globally ordered or deduplicated event set, and stack traces are omitted.</p>
               </div>
             </div>
           </div>

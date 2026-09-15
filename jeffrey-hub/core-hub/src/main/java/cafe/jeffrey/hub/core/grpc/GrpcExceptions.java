@@ -18,10 +18,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import cafe.jeffrey.hub.core.activity.ActivityCapacityException;
-import cafe.jeffrey.hub.core.activity.ActivityServiceStoppingException;
-import cafe.jeffrey.hub.core.activity.ActivityScanNotFoundException;
-import cafe.jeffrey.hub.core.streaming.ReplayScopeNotFoundException;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
@@ -50,10 +46,6 @@ public abstract class GrpcExceptions {
         return Status.FAILED_PRECONDITION.withDescription(description).asRuntimeException();
     }
 
-    public static StatusRuntimeException resourceExhausted(String description) {
-        return Status.RESOURCE_EXHAUSTED.withDescription(description).asRuntimeException();
-    }
-
     public static StatusRuntimeException unavailable(String description) {
         return Status.UNAVAILABLE.withDescription(description).asRuntimeException();
     }
@@ -77,11 +69,6 @@ public abstract class GrpcExceptions {
             case StatusException e -> e.getStatus().asRuntimeException();
             case WorkspaceAlreadyExistsException e ->
                     Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException();
-            case ActivityServiceStoppingException e ->
-                    Status.UNAVAILABLE.withDescription(e.getMessage()).asRuntimeException();
-            case ActivityCapacityException e -> resourceExhausted(e.getMessage());
-            case ActivityScanNotFoundException e -> notFound(e.getMessage());
-            case ReplayScopeNotFoundException e -> notFound(e.getMessage());
             case IllegalArgumentException e ->
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException();
             default -> {

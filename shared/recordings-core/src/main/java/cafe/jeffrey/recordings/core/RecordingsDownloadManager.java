@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.recordings.core;
 
+import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
+
 import java.util.List;
 
 public interface RecordingsDownloadManager {
@@ -39,4 +41,16 @@ public interface RecordingsDownloadManager {
      * @return id of the recording created in the local store
      */
     String mergeAndDownloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
+
+    /**
+     * Downloads the recording files of the session that cover the window, merged into one local
+     * recording named and tagged with the span those files actually cover. Nothing else the session
+     * holds comes with them: an artifact is fetched on its own.
+     *
+     * @param recordingSessionId the upstream session to take the window from
+     * @param window             the span of interest; the files straddling its bounds are included
+     * @return id of the recording created in the local store
+     * @throws IllegalArgumentException when no finished recording file of the session touches the window
+     */
+    String mergeAndDownloadWindow(String recordingSessionId, ChunkWindow window);
 }

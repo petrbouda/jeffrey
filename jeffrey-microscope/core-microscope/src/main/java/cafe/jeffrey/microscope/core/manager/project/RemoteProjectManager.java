@@ -121,9 +121,4 @@ public class RemoteProjectManager implements ProjectManager {
         remoteClients.projects().deleteProject(
                 detailedProjectInfo.projectInfo().id());
     }
-
-    @Override
-    public EventStreamingManager eventStreamingManager() {
-        return new EventStreamingManager(remoteClients.eventStreaming());
-    }
 }

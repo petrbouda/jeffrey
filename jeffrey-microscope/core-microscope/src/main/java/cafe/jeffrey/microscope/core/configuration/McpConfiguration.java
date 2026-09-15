@@ -31,7 +31,6 @@ import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsReplayMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
@@ -191,13 +190,13 @@ public class McpConfiguration {
             RecordingCommitResolver recordingCommitResolver,
             HeapDumpInitService heapDumpInitService,
             IdeBridge ideBridge,
-            ExternalMcpProperties properties, HubsReplayMcpTools replayMcpTools,
+            ExternalMcpProperties properties,
             HubsArtifactsMcpTools hubsArtifactsMcpTools,
             McpOperationRegistry operations, Clock applicationClock) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
-                properties, replayMcpTools, hubsArtifactsMcpTools, operations, applicationClock);
+                properties, hubsArtifactsMcpTools, operations, applicationClock);
     }
 
     /**
@@ -208,12 +207,6 @@ public class McpConfiguration {
     @Bean
     public McpOperationRegistry mcpOperationRegistry(Clock applicationClock) {
         return new McpOperationRegistry(applicationClock);
-    }
-
-    @Bean
-    public HubsReplayMcpTools hubsReplayMcpTools(
-            ProjectManagerResolver resolver, McpOperationRegistry operations, Clock applicationClock) {
-        return new HubsReplayMcpTools(resolver, operations, applicationClock);
     }
 
     /**

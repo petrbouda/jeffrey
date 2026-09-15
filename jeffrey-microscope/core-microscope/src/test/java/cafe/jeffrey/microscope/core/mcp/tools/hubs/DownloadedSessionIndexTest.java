@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -182,6 +184,22 @@ class DownloadedSessionIndexTest {
                     Map.of("rec-1", List.of(
                             new RecordingTag("origin.hubId", REF.hubId()),
                             new RecordingTag("origin.recordingId", REF.sessionId()))));
+
+            assertTrue(index.find(REF).isEmpty());
+        }
+
+        /**
+         * A window of the session is tagged with every origin coordinate the whole session carries,
+         * plus the window. Answering "already downloaded" from it would hand a reader an hour when
+         * they asked for the day.
+         */
+        @Test
+        void ignoresAWindowOfTheSession() {
+            List<RecordingTag> tags = new ArrayList<>(originTags(REF));
+            tags.add(new RecordingTag(OriginContext.TAG_WINDOW, "1000-2000"));
+            DownloadedSessionIndex index = indexOf(
+                    List.of(recording("rec-1", "profile-1", CREATED_AT)),
+                    Map.of("rec-1", tags));
 
             assertTrue(index.find(REF).isEmpty());
         }

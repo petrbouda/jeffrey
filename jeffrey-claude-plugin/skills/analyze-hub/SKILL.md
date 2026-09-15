@@ -1,6 +1,6 @@
 ---
 name: analyze-hub
-description: Finds and analyses JVM recordings that live on a Jeffrey Hub rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service or pod, "the last hour", "since the deploy", "what the hub has", "why was prod slow this morning", "why did the pod's JVM die", "the exceptions in the service log". It locates the session, pulls in the recording or the one file that matters, and hands off to analyze-jfr or analyze-heap — or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly.
+description: Finds and analyses JVM recordings that live on a Jeffrey Hub rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service or pod, "the last hour", "since the deploy", "what the hub has", "why was prod slow this morning", "why did the pod's JVM die", "the exceptions in the service log". It locates the session, asks which interval matters, pulls in that part of the recording — or the one file that matters — and hands off to analyze-jfr or analyze-heap, or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
@@ -23,21 +23,24 @@ guessing at a path — the recordings are not reachable from here.
 ## The shape of the whole thing
 
 ```
-hubs_sessions(withinLastMinutes=60)      → rows, newest first, each with a session_ref
-hubs_queryEvents / hubs_eventActivity    → a look at the session where it lies, optional
-hubs_download(sessionRef="h1…")          → recordingId, or a running operationId
-recordings_analyzeRecording(recordingId) → profileId, or a running operationId
-operations_status(operationId)           → where either of the last two has got to
+hubs_sessions(withinLastMinutes=60)                  → rows, newest first, each with a session_ref
+  … which interval? — ask, with started/duration in front of the user
+hubs_download(sessionRef, startTime, endTime)        → recordingId, or a running operationId
+   or hubs_download(sessionRef, fileIds="…")         → the same, for files picked from hubs_files
+   or hubs_download(sessionRef)                      → the whole session, when it is short
+recordings_analyzeRecording(recordingId)             → profileId, or a running operationId
+operations_status(operationId)                       → where either of the last two has got to
 … then analyze-jfr (or analyze-heap for a dump)
+recordings_delete(recordingId)                       → when the question is answered
 
-hubs_files(sessionRef)                   → the files beside the recording: logs, crash file, perf counters
-hubs_fetchFile(sessionRef, fileId)       → one of them, as a path on this machine — read it yourself
+hubs_files(sessionRef)                               → the files beside the recording: logs, crash file, perf counters
+hubs_fetchFile(sessionRef, fileId)                   → one of them, as a path on this machine — read it yourself
 ```
 
-Three calls on the main path, and the third is a tool you already know; the look in between is
-what saves a download that would have told you nothing, and `operations_status` is how the two long
-ones are followed. There is no hub-specific analysis: once a session is downloaded it is a normal
-Jeffrey recording.
+Three calls on the main path, and the third is a tool you already know; the question in between
+is what keeps a day-long session from being pulled for an hour's worth of answer, and
+`operations_status` is how the two long ones are followed. There is no hub-specific analysis:
+once a part of a session is downloaded it is a normal Jeffrey recording.
 
 ## 1. Find the session — one call, not four
 
@@ -64,10 +67,11 @@ The columns to read before doing anything else:
 - **`local`** — empty means the session is not here yet. `recording:<id>` means it has been
   downloaded but not analysed, so skip to step 4. `profile:<id>` means it is already analysed, so
   skip to step 5 and use that `profileId` directly. **Always check this before downloading.**
-- **`size`** and **`duration`** — what a download will cost, and how much data is behind it.
+- **`started`** and **`duration`** — the span there is to choose an interval from, and how much
+  data is behind it; with **`size`**, what pulling all of it would cost.
 - **`status`** — `ACTIVE` is still recording. That is fine to download; you get the chunks that
   have been rolled so far, not a broken file.
-- **`session_ref`** — the only thing `hubs_download` takes. Copy it exactly.
+- **`session_ref`** — what `hubs_download` and `hubs_files` take. Copy it exactly.
 
 If nothing comes back, read the footer before concluding there is nothing. A hub that did not
 answer is listed there, and "production is unreachable" is a completely different answer from "no
@@ -89,7 +93,8 @@ the project the user named. Just proceed.
 
 - several sessions match and they differ in a way that matters — different projects, or one is
   three minutes and another is an hour;
-- the session you would pick is large enough that pulling it is a real cost;
+- the session you would pick runs for hours or days, and the user has not said which part of it
+  they mean — that question is section 3;
 - the user named an environment that matches more than one hub.
 
 Ask with the facts in front of them — *"production has three sessions in the last hour: checkout
@@ -97,36 +102,48 @@ Ask with the facts in front of them — *"production has three sessions in the l
 ask which hub, then which workspace, then which project. Nobody knows their workspace ids, and each
 step buys nothing that the table did not already show.
 
-## 3. Look before you download
+## 3. Ask for the interval, not the session
 
-A session is a size and a duration until something reads it, and a gigabyte pulled in to learn that
-the interesting minute is not in it is the expensive way to find out. Two tools read a session
-**where it lies**, on the hub, without transferring or analysing it:
+A session on a hub is not a file, it is a JVM's whole recording life: hours or days of chunks
+rolled every few minutes, and the question is almost never about all of it. "Why was prod slow this
+morning" is about this morning. Before downloading a session that runs longer than a few minutes,
+ask **which interval** — with its `started` and `duration` in front of the user, so the answer can
+be concrete: *"checkout has been recording since 06:12 today, 9 hours so far. The last hour, the
+morning, or a particular window?"* The usual answers are the last hour, the last day, yesterday,
+"since the deploy", or a pair of hours; turn the one you get into UTC epoch milliseconds and pass
+it as `startTime` / `endTime`. One bound alone is fine — `startTime` alone reads to the session's
+end, `endTime` alone back to its start.
 
-- `hubs_queryEvents(sessionRef, eventTypes)` returns a bounded sample of matching events in replay
-  order — the first hundred by default; `limit` takes any positive integer, or `0` for no row cap,
-  and either way a 15-second deadline and a byte budget (`maxBytes`, 64 KB by default, 100,000 at
-  most) still bound the answer. It is a sample, not a ranking: "did this session record
-  `jdk.ObjectAllocationSample` at all, and what do a few look like" is its question, not "which
-  was the slowest". Narrow `eventTypes` and the time window when a limit cuts it short.
-- `hubs_eventActivity(sessionRef, startTime, endTime)` starts a scan on the hub that counts events
-  by time bucket and returns a `scanId`; `hubs_activityStatus(sessionRef, scanId)` reads it, ranked
-  by event count, by distinct types or in time order, with counts that are lower bounds until
-  `complete` is true. That is how "when was it busy" is answered before anything is downloaded —
-  and, when the session is long, how the window worth analysing is chosen. The scan is work on the
-  hub: it claims one of a handful of retained slots and runs a reader there, and
-  `hubs_activityCancel(sessionRef, scanId)` releases one that is no longer wanted. The `scanId` is
-  also an `operationId`, so `operations_status` reads the same scan.
+A window is **always covered**: a chunk holds a stretch of the recording — fifteen minutes is
+common — and every chunk whose stretch touches the window is brought, so the recording begins at or
+before the interval and ends at or after it, with some slack at either end rather than a gap. The
+answer reports the span the chunks actually cover; that span, not the interval you asked for, is
+what the profile's figures are about.
 
-Neither changes a recording, and both are optional: a three-minute session is cheaper to pull than
-to ask about. The look is for the large one, or the one you would otherwise have to ask the user
-about.
+A session of a few minutes is pulled whole; asking would cost more than the download. Do **not**
+call `hubs_files` to choose chunks by hand for a window — a long session lists thousands of rows,
+and the tool does the mapping. `hubs_files` is for choosing by *name*: when the user or the listing
+points at particular files — the chunk rolled right after the deploy, a chunk and the heap dump
+taken beside it — pass their `file_id` values as a comma-separated `fileIds` instead of a window.
+
+**A partial look.** To learn whether a session is worth a wider window at all — does it throw,
+does it record `jdk.ObjectAllocationSample`, when is it busy — take a narrow window first, one or
+two chunks, and answer it with the ordinary tools: `profiles_summary`, the timeline, `jfr_*`. Then
+widen, or stop. A window is not the session: figures hold for that window only, a rate measured
+in it must never be extrapolated across the whole recording, and a finding worth reporting is
+confirmed on the window that matters. A single chunk may equally go `hubs_fetchFile` →
+`recordings_analyzeFile`; the result is the same kind of profile.
 
 ## 4. Pull it in
 
-`hubs_download(sessionRef)` merges the session's finished recording files into one local recording
-and brings its artifacts — heap dumps, JVM and application logs — with it. It returns a
-`recordingId`.
+`hubs_download(sessionRef, startTime, endTime)` brings the recording files covering the window,
+merged into one local recording, nothing else; `hubs_download(sessionRef, fileIds="…")` brings
+the named files, recording files merged and any artifact beside them; and
+`hubs_download(sessionRef)` alone brings every finished file of the session — recording files
+merged into one, heap dumps and logs beside it. Each returns a `recordingId`, and a part of a
+session reports `windowStart` / `windowEnd`, the span its files cover. A part is a recording of
+its own: it is never answered from a whole-session copy that is already here, and the Recordings
+list names it after its span so two windows of one session read apart.
 
 It does **not** build the profile; `recordings_analyzeRecording(recordingId)` does that and returns
 the `profileId` every analysis tool takes. The two are separate on purpose: a large session is a
@@ -137,9 +154,11 @@ Both calls answer inside the call for a small session and hand back an `operatio
 one — see the last section for how that is followed. Say what you are doing before starting a big
 one.
 
-Downloading the same session twice is wasteful and never necessary — `hubs_download` returns the
-recording it already has rather than fetching it again, but you should have read the `local` column
-in step 1 instead of relying on that.
+Downloading the same whole session twice is wasteful and never necessary — `hubs_download` returns
+the recording it already has rather than fetching it again, but you should have read the `local`
+column in step 1 instead of relying on that. That column speaks only of the whole session: a window
+pulled earlier is in `recordings_list`, tagged `origin.window`, and is where to look before pulling
+the same hour a second time.
 
 ## 4b. The files beside the recording — when the question is about what the JVM *wrote*
 
@@ -193,10 +212,19 @@ A session often carries both a JFR recording and a heap dump; the dump arrives a
 alongside the recording. `profiles_features` on the resulting profile says which of the two you
 actually have.
 
+## 6. Clean up
+
+The hub is the copy of record; Microscope holds what is being read. A window that has answered its
+question, and a partial look once the real window is downloaded, are removed with
+`recordings_delete(recordingId)` — recording, profile and files together, nothing on the hub
+touched. Say which one you are deleting; a profile the user opened in the browser stops working
+the moment it goes. Leave a profile the user asked to keep, or one another skill is still reading.
+
 ## What this skill will not do
 
-**It does not delete anything on a hub.** No tool here removes a session, a file or a project. Data
-retention on the hub is the hub's business.
+**It does not delete anything on a hub.** `recordings_delete` removes a recording from *this*
+Jeffrey; no tool here removes a session, a file or a project from a hub. Data retention on the hub
+is the hub's business.
 
 **It does not push.** Recordings travel from a hub into this Jeffrey, never the other way.
 

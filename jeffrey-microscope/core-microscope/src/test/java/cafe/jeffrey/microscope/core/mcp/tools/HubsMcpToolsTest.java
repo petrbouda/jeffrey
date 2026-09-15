@@ -46,6 +46,7 @@ import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.common.model.hub.HubSource;
+import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -698,6 +699,120 @@ class HubsMcpToolsTest {
 
             assertTrue(e.getMessage().contains("no finished recording file"), e.getMessage());
             verify(downloads, never()).mergeAndDownloadSession(any());
+        }
+
+        private RecordingSession fourChunks() {
+            return session(SESSION_ID, NOW,
+                    new RepositoryFile("c0", "profile-0.jfr", NOW, 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
+                    new RepositoryFile("c1", "profile-1.jfr", NOW.plusSeconds(150), 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
+                    new RepositoryFile("c2", "profile-2.jfr", NOW.plusSeconds(300), 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
+                    new RepositoryFile("c3", "profile-3.jfr", NOW.plusSeconds(450), 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
+                    file("log", "app.log", SupportedRecordingFile.APP_LOG));
+        }
+
+        @Test
+        void aWindowBringsTheCoveringChunksAndReportsTheirSpan() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+
+            String result = tools.download(REF.encode(), null,
+                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null);
+
+            assertTrue(result.contains("\"recordingId\":\"rec-window\""), result);
+            assertTrue(result.contains("\"recordingFiles\":2"), result);
+            assertTrue(result.contains("\"windowStart\":\"" + NOW.plusSeconds(150) + "\""), result);
+            assertTrue(result.contains("\"windowEnd\":\"" + NOW.plusSeconds(450) + "\""), result);
+            assertTrue(result.contains("recordings_delete"), result);
+            ArgumentCaptor<ChunkWindow> window = ArgumentCaptor.forClass(ChunkWindow.class);
+            verify(downloads).mergeAndDownloadWindow(eq(SESSION_ID), window.capture());
+            assertEquals(NOW.plusSeconds(200), window.getValue().start());
+            assertEquals(NOW.plusSeconds(320), window.getValue().end());
+            verify(downloads, never()).mergeAndDownloadSession(any());
+        }
+
+        @Test
+        void aWindowIsNotAnsweredFromTheWholeSessionAlreadyHere() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+            resolvesTo(projectWith(fourChunks(), downloads));
+            localRecording("rec-existing", "profile-existing", REF);
+
+            String result = tools.download(REF.encode(), null, NOW.plusSeconds(200).toEpochMilli(), null, null);
+
+            assertTrue(result.contains("rec-window"), result);
+            assertFalse(result.contains("rec-existing"), result);
+        }
+
+        @Test
+        void aWindowOutsideTheSessionIsRefusedWithTheSessionsSpan() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> tools.download(
+                    REF.encode(), null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null));
+
+            assertTrue(e.getMessage().contains("started at " + NOW), e.getMessage());
+            assertTrue(e.getMessage().contains("finished at " + NOW.plusSeconds(600)), e.getMessage());
+            verifyNoInteractions(downloads);
+        }
+
+        @Test
+        void aWindowWithItsEndBeforeItsStartIsRefusedBeforeTheHubIsAsked() {
+            assertThrows(IllegalArgumentException.class, () -> tools.download(
+                    REF.encode(), null, NOW.plusSeconds(300).toEpochMilli(), NOW.plusSeconds(200).toEpochMilli(), null));
+            verifyNoInteractions(resolver);
+        }
+
+        @Test
+        void namedFilesBringThoseFilesAndCountTheOnesBesideTheChunks() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.mergeAndDownloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-files");
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+
+            String result = tools.download(REF.encode(), null, null, null, "c2, log");
+
+            assertTrue(result.contains("\"recordingId\":\"rec-files\""), result);
+            assertTrue(result.contains("\"recordingFiles\":1"), result);
+            assertTrue(result.contains("\"artifactFiles\":1"), result);
+            assertTrue(result.contains("\"windowStart\":\"" + NOW.plusSeconds(300) + "\""), result);
+            verify(downloads).mergeAndDownloadRecordings(SESSION_ID, List.of("c2", "log"));
+        }
+
+        @Test
+        void anUnknownFileIdIsRefusedBeforeTheTransfer() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> tools.download(REF.encode(), null, null, null, "c2,nope"));
+
+            assertTrue(e.getMessage().contains("[nope]"), e.getMessage());
+            verifyNoInteractions(downloads);
+        }
+
+        @Test
+        void namedFilesWithoutAChunkAreRefused() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> tools.download(REF.encode(), null, null, null, "log"));
+
+            assertTrue(e.getMessage().contains("hubs_fetchFile"), e.getMessage());
+            verifyNoInteractions(downloads);
+        }
+
+        @Test
+        void aWindowAndFileIdsTogetherAreRefused() {
+            assertThrows(IllegalArgumentException.class, () -> tools.download(
+                    REF.encode(), null, NOW.toEpochMilli(), null, "c1"));
+            verifyNoInteractions(resolver);
         }
 
         @Test
