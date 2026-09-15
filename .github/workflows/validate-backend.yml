@@ -31,10 +31,11 @@ jobs:
           - component: Provisioner
             module: build/build-provisioner
             phase: verify
-          # verify packages the shaded agent before Failsafe attaches it with -javaagent.
-          - component: Agent
-            module: build/build-agent-tests
-            phase: verify
+          # Not reachable from Hub or Microscope: the heartbeat library is a dependency of the
+          # applications Jeffrey profiles, not of Jeffrey itself, so nothing else builds it.
+          - component: Heartbeat
+            module: utilities/jeffrey-heartbeat-spring-boot-starter
+            phase: test
     steps:
       - uses: actions/checkout@v6
 
