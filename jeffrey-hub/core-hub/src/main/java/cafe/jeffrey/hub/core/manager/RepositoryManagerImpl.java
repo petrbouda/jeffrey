@@ -100,8 +100,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .sum();
 
         long totalSize = sessions.stream()
-                .flatMap(s -> s.files().stream())
-                .mapToLong(this::fileSize)
+                .mapToLong(RecordingSession::totalSizeBytes)
                 .sum();
 
         return new InstanceStats(fileCount, totalSize);
