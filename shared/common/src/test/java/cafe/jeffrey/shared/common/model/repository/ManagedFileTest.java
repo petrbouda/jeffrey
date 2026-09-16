@@ -27,34 +27,34 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class SupportedRecordingFileTest {
+class ManagedFileTest {
 
     @Nested
     class Recognising {
 
         @Test
         void recordingsAndTheirCompressedForms() {
-            assertEquals(SupportedRecordingFile.JFR, SupportedRecordingFile.of("run.jfr"));
-            assertEquals(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.of("run.jfr.lz4"));
-            assertEquals(SupportedRecordingFile.HEAP_DUMP, SupportedRecordingFile.of("heap.hprof"));
-            assertEquals(SupportedRecordingFile.HEAP_DUMP_GZ, SupportedRecordingFile.of("heap.hprof.gz"));
-            assertEquals(SupportedRecordingFile.PPROF, SupportedRecordingFile.of("cpu.pprof"));
-            assertEquals(SupportedRecordingFile.PPROF, SupportedRecordingFile.of("cpu.pb.gz"));
-            assertEquals(SupportedRecordingFile.OTLP_PROFILE, SupportedRecordingFile.of("profiles.otlp"));
+            assertEquals(ManagedFile.JFR, ManagedFile.of("run.jfr"));
+            assertEquals(ManagedFile.JFR_LZ4, ManagedFile.of("run.jfr.lz4"));
+            assertEquals(ManagedFile.HEAP_DUMP, ManagedFile.of("heap.hprof"));
+            assertEquals(ManagedFile.HEAP_DUMP_GZ, ManagedFile.of("heap.hprof.gz"));
+            assertEquals(ManagedFile.PPROF, ManagedFile.of("cpu.pprof"));
+            assertEquals(ManagedFile.PPROF, ManagedFile.of("cpu.pb.gz"));
+            assertEquals(ManagedFile.OTLP_PROFILE, ManagedFile.of("profiles.otlp"));
         }
 
         @Test
         void applicationLogsInTheirRotatedAndCompressedForms() {
-            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service.log"));
-            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service.log.1.gz"));
-            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service.2026-09-13.log.gz"));
-            assertEquals(SupportedRecordingFile.APP_LOG, SupportedRecordingFile.of("service-2026-09-13.1.log.zip"));
+            assertEquals(ManagedFile.APP_LOG, ManagedFile.of("service.log"));
+            assertEquals(ManagedFile.APP_LOG, ManagedFile.of("service.log.1.gz"));
+            assertEquals(ManagedFile.APP_LOG, ManagedFile.of("service.2026-09-13.log.gz"));
+            assertEquals(ManagedFile.APP_LOG, ManagedFile.of("service-2026-09-13.1.log.zip"));
         }
 
         @Test
         void jvmLogsAndTheirRotatedForms() {
-            assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("gc.jvm-log"));
-            assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("gc.jvm-log.0"));
+            assertEquals(ManagedFile.JVM_LOG, ManagedFile.of("gc.jvm-log"));
+            assertEquals(ManagedFile.JVM_LOG, ManagedFile.of("gc.jvm-log.0"));
         }
 
         /**
@@ -63,7 +63,7 @@ class SupportedRecordingFileTest {
          */
         @Test
         void theCrashLogIsNotAnApplicationLog() {
-            assertEquals(SupportedRecordingFile.HS_JVM_ERROR_LOG, SupportedRecordingFile.of("hs-jvm-err.log"));
+            assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("hs-jvm-err.log"));
         }
 
         /**
@@ -73,22 +73,22 @@ class SupportedRecordingFileTest {
          */
         @Test
         void aCompressedRecordingIsNotThePlainOne() {
-            assertFalse(SupportedRecordingFile.JFR.matches("run.jfr.lz4"));
-            assertFalse(SupportedRecordingFile.HEAP_DUMP.matches("heap.hprof.gz"));
+            assertFalse(ManagedFile.JFR.matches("run.jfr.lz4"));
+            assertFalse(ManagedFile.HEAP_DUMP.matches("heap.hprof.gz"));
         }
 
         @Test
         void anythingElseIsUnknown() {
-            assertEquals(SupportedRecordingFile.UNKNOWN, SupportedRecordingFile.of("notes.txt"));
-            assertEquals(SupportedRecordingFile.UNKNOWN, SupportedRecordingFile.of("Main.java"));
-            assertEquals(SupportedRecordingFile.UNKNOWN, SupportedRecordingFile.of("jfr"));
+            assertEquals(ManagedFile.UNKNOWN, ManagedFile.of("notes.txt"));
+            assertEquals(ManagedFile.UNKNOWN, ManagedFile.of("Main.java"));
+            assertEquals(ManagedFile.UNKNOWN, ManagedFile.of("jfr"));
         }
 
         @Test
         void aPathIsJudgedByItsFileName() {
             assertEquals(
-                    SupportedRecordingFile.JFR,
-                    SupportedRecordingFile.of(Path.of("/var/recordings/run.jfr")));
+                    ManagedFile.JFR,
+                    ManagedFile.of(Path.of("/var/recordings/run.jfr")));
         }
     }
 
@@ -102,10 +102,10 @@ class SupportedRecordingFileTest {
 
         @Test
         void anUpperCasedNameIsTheSameType() {
-            assertEquals(SupportedRecordingFile.JFR, SupportedRecordingFile.of("RUN.JFR"));
-            assertEquals(SupportedRecordingFile.HEAP_DUMP, SupportedRecordingFile.of("HEAP.HPROF"));
-            assertEquals(SupportedRecordingFile.HEAP_DUMP_GZ, SupportedRecordingFile.of("Heap.HProf.GZ"));
-            assertEquals(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.of("Run.Jfr.Lz4"));
+            assertEquals(ManagedFile.JFR, ManagedFile.of("RUN.JFR"));
+            assertEquals(ManagedFile.HEAP_DUMP, ManagedFile.of("HEAP.HPROF"));
+            assertEquals(ManagedFile.HEAP_DUMP_GZ, ManagedFile.of("Heap.HProf.GZ"));
+            assertEquals(ManagedFile.JFR_LZ4, ManagedFile.of("Run.Jfr.Lz4"));
         }
 
         /**
@@ -114,14 +114,14 @@ class SupportedRecordingFileTest {
          */
         @Test
         void holdsWhenOneTypeIsAskedDirectly() {
-            assertTrue(SupportedRecordingFile.HS_JVM_ERROR_LOG.matches("HS-JVM-ERR.LOG"));
-            assertTrue(SupportedRecordingFile.JFR.matches(Path.of("/tmp/RUN.JFR")));
+            assertTrue(ManagedFile.HS_JVM_ERROR_LOG.matches("HS-JVM-ERR.LOG"));
+            assertTrue(ManagedFile.JFR.matches(Path.of("/tmp/RUN.JFR")));
         }
 
         @Test
         void holdsForThePatternMatchersToo() {
-            assertEquals(SupportedRecordingFile.ASPROF_TEMP, SupportedRecordingFile.of("RUN.JFR.1~"));
-            assertEquals(SupportedRecordingFile.JVM_LOG, SupportedRecordingFile.of("GC.JVM-LOG"));
+            assertEquals(ManagedFile.ASPROF_TEMP, ManagedFile.of("RUN.JFR.1~"));
+            assertEquals(ManagedFile.JVM_LOG, ManagedFile.of("GC.JVM-LOG"));
         }
     }
 
@@ -135,9 +135,9 @@ class SupportedRecordingFileTest {
         @Test
         void aRecordingDropsItsExtensionSoTheIdSurvivesCompression() {
             assertEquals("profile-20260220-120500",
-                    SupportedRecordingFile.JFR.idOf(Path.of("s", "profile-20260220-120500.jfr")));
+                    ManagedFile.JFR.idOf(Path.of("s", "profile-20260220-120500.jfr")));
             assertEquals("profile-20260220-120500",
-                    SupportedRecordingFile.JFR_LZ4.idOf(Path.of("s", "profile-20260220-120500.jfr.lz4")));
+                    ManagedFile.JFR_LZ4.idOf(Path.of("s", "profile-20260220-120500.jfr.lz4")));
         }
 
         /**
@@ -147,13 +147,13 @@ class SupportedRecordingFileTest {
         @Test
         void everythingElseKeepsItsWholeName() {
             assertEquals("service-app.log",
-                    SupportedRecordingFile.APP_LOG.idOf(Path.of("s", "service-app.log")));
+                    ManagedFile.APP_LOG.idOf(Path.of("s", "service-app.log")));
             assertEquals("heap.hprof",
-                    SupportedRecordingFile.HEAP_DUMP.idOf(Path.of("s", "heap.hprof")));
+                    ManagedFile.HEAP_DUMP.idOf(Path.of("s", "heap.hprof")));
             assertEquals("app.pprof",
-                    SupportedRecordingFile.PPROF.idOf(Path.of("s", "app.pprof")));
+                    ManagedFile.PPROF.idOf(Path.of("s", "app.pprof")));
             assertEquals("notes.txt",
-                    SupportedRecordingFile.UNKNOWN.idOf(Path.of("s", "notes.txt")));
+                    ManagedFile.UNKNOWN.idOf(Path.of("s", "notes.txt")));
         }
 
         @Test
@@ -162,8 +162,8 @@ class SupportedRecordingFileTest {
             Path archive = Path.of("s", "profile-1.jfr.lz4");
 
             assertEquals(
-                    SupportedRecordingFile.of(plain).idOf(plain),
-                    SupportedRecordingFile.of(archive).idOf(archive));
+                    ManagedFile.of(plain).idOf(plain),
+                    ManagedFile.of(archive).idOf(archive));
         }
     }
 
@@ -176,7 +176,7 @@ class SupportedRecordingFileTest {
          */
         @Test
         void aMissingNameIsNotAnyType() {
-            assertFalse(SupportedRecordingFile.JFR.matches((String) null));
+            assertFalse(ManagedFile.JFR.matches((String) null));
         }
     }
 }

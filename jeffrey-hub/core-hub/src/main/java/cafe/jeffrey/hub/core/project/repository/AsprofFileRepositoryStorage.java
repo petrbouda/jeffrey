@@ -34,7 +34,7 @@ import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -197,7 +197,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      */
     RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path sessionPath) {
         String sourceName = sessionPath.relativize(file).toString();
-        SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
+        ManagedFile fileType = ManagedFile.of(sourceName);
         try {
             return new RepositoryFile(
                     fileType.idOf(file),
@@ -222,7 +222,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * matched back to the file it came from is an id that deletes nothing.
      */
     private static String fileId(Path file) {
-        return SupportedRecordingFile.of(file).idOf(file);
+        return ManagedFile.of(file).idOf(file);
     }
 
     /**
@@ -235,7 +235,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * old the listing is. That matters because a listing covers every session of a project, and
      * an open apiece would be hundreds of round trips on one page load.
      */
-    static FileSizeReader sizeReader(RecordingStatus sessionStatus, SupportedRecordingFile fileType) {
+    static FileSizeReader sizeReader(RecordingStatus sessionStatus, ManagedFile fileType) {
         if (sessionStatus == RecordingStatus.FINISHED || fileType.isCompressed()) {
             return FileSizeReader.FILE_ATTRIBUTES;
         }

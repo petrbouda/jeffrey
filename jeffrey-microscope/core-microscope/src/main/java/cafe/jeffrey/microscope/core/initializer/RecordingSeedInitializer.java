@@ -24,7 +24,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,11 +38,11 @@ public class RecordingSeedInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingSeedInitializer.class);
 
-    private static final Set<SupportedRecordingFile> SEED_FILE_TYPES = Set.of(
-            SupportedRecordingFile.JFR,
-            SupportedRecordingFile.JFR_LZ4,
-            SupportedRecordingFile.HEAP_DUMP,
-            SupportedRecordingFile.HEAP_DUMP_GZ
+    private static final Set<ManagedFile> SEED_FILE_TYPES = Set.of(
+            ManagedFile.JFR,
+            ManagedFile.JFR_LZ4,
+            ManagedFile.HEAP_DUMP,
+            ManagedFile.HEAP_DUMP_GZ
     );
 
     private final RecordingsManager recordingsManager;
@@ -94,6 +94,6 @@ public class RecordingSeedInitializer implements ApplicationRunner {
     }
 
     private static boolean isRecordingFile(Path path) {
-        return SEED_FILE_TYPES.contains(SupportedRecordingFile.of(path));
+        return SEED_FILE_TYPES.contains(ManagedFile.of(path));
     }
 }

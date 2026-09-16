@@ -30,7 +30,7 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import cafe.jeffrey.shared.notification.NotificationCategory;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
@@ -160,7 +160,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         }
 
         String filename = path.getFileName().toString();
-        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.UNKNOWN) {
+        if (ManagedFile.of(filename) == ManagedFile.UNKNOWN) {
             throw new IllegalArgumentException("Unsupported recording file type: " + filename);
         }
 
@@ -292,7 +292,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
 
         return new RecordingFile(
                 IDGenerator.generate(), recordingId, stored.filename(),
-                SupportedRecordingFile.of(stored.filename()),
+                ManagedFile.of(stored.filename()),
                 uploadedAt, sizeInBytes);
     }
 
@@ -397,12 +397,12 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     /**
      * What kind of events a file holds, from its name.
      *
-     * <p>Decided by {@link SupportedRecordingFile} rather than by suffix tests of its own: the heap
+     * <p>Decided by {@link ManagedFile} rather than by suffix tests of its own: the heap
      * dump branch used to carry its own copy of {@code .hprof} and {@code .hprof.gz}, which is one
      * more place to update when a format is added and one more place to disagree about case.
      */
     private static RecordingEventSource detectEventSource(String filename) {
-        return switch (SupportedRecordingFile.of(filename)) {
+        return switch (ManagedFile.of(filename)) {
             case HEAP_DUMP, HEAP_DUMP_GZ -> RecordingEventSource.HEAP_DUMP;
             case PPROF -> RecordingEventSource.PPROF;
             case OTLP_PROFILE -> RecordingEventSource.OPEN_TELEMETRY;

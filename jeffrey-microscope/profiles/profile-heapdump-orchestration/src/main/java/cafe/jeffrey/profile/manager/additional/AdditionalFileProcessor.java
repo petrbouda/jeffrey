@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager.additional;
 
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -44,9 +44,7 @@ public interface AdditionalFileProcessor {
     Optional<ProcessingResult> process(Path filePath);
 
     /**
-     * Returns the supported recording file type for this processor.
-     *
-     * @return the supported recording file type
+     * The file type this processor handles.
      */
-    SupportedRecordingFile supportedRecordingFile();
+    ManagedFile managedFile();
 }

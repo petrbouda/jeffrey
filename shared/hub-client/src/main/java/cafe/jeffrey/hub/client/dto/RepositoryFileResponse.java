@@ -22,14 +22,14 @@ import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 public record RepositoryFileResponse(
         String id,
         String name,
         Long createdAt,
         Long size,
-        SupportedRecordingFile fileType,
+        ManagedFile fileType,
         RecordingStatus status,
         boolean isRecording) {
 

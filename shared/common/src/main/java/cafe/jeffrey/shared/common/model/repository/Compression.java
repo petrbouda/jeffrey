@@ -24,7 +24,7 @@ import java.nio.file.Path;
  * How a file of a given type is compressed, if it can be at all.
  *
  * <p>Compressing a file rewrites it under a new name, and a name is how everything downstream
- * decides what a file is: its {@link SupportedRecordingFile type}, the id it is known by, and —
+ * decides what a file is: its {@link ManagedFile type}, the id it is known by, and —
  * for a recording — when it was opened. So a type may only be compressed when the compressed name
  * is one that still answers all three the same way. {@code profile-1.jfr} becomes
  * {@code profile-1.jfr.lz4}, which is a JFR_LZ4, still a recording, still the same id with the

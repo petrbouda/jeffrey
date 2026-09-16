@@ -30,7 +30,7 @@ import java.util.Locale;
 import java.util.function.Predicate;
 
 
-public enum SupportedRecordingFile {
+public enum ManagedFile {
     // JFR_LZ4 must be before JFR to ensure .jfr.lz4 files are matched first
     JFR_LZ4(
             "LZ4 Compressed JDK Flight Recording",
@@ -131,7 +131,7 @@ public enum SupportedRecordingFile {
             Compression.NONE
     );
 
-    private final static List<SupportedRecordingFile> KNOWN_TYPES;
+    private final static List<ManagedFile> KNOWN_TYPES;
 
     static {
         KNOWN_TYPES = Arrays.stream(values())
@@ -146,7 +146,7 @@ public enum SupportedRecordingFile {
     private final TimestampResolver timestampResolver;
     private final Compression compression;
 
-    SupportedRecordingFile(
+    ManagedFile(
             String description,
             String fileExtension,
             Predicate<String> filenameMatcher,
@@ -162,23 +162,23 @@ public enum SupportedRecordingFile {
         this.compression = compression;
     }
 
-    public static SupportedRecordingFile of(Path path) {
+    public static ManagedFile of(Path path) {
         return of(path.getFileName().toString());
     }
 
-    public static SupportedRecordingFile of(String filename) {
-        for (var supportedRecordingFile : KNOWN_TYPES) {
-            if (supportedRecordingFile.matches(filename)) {
-                return supportedRecordingFile;
+    public static ManagedFile of(String filename) {
+        for (var managedFile : KNOWN_TYPES) {
+            if (managedFile.matches(filename)) {
+                return managedFile;
             }
         }
         return UNKNOWN;
     }
 
-    public static SupportedRecordingFile ofType(String type) {
-        for (var supportedRecordingFile : KNOWN_TYPES) {
-            if (supportedRecordingFile.name().equals(type)) {
-                return supportedRecordingFile;
+    public static ManagedFile ofType(String type) {
+        for (var managedFile : KNOWN_TYPES) {
+            if (managedFile.name().equals(type)) {
+                return managedFile;
             }
         }
         return UNKNOWN;

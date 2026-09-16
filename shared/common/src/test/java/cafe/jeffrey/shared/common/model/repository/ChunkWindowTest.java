@@ -41,12 +41,12 @@ class ChunkWindowTest {
 
     private static RepositoryFile chunk(String id, long startMinute) {
         return new RepositoryFile(id, "profile-" + id + ".jfr", minutes(startMinute), 10L,
-                SupportedRecordingFile.JFR, null);
+                ManagedFile.JFR, null);
     }
 
     private static RepositoryFile log(long startMinute) {
         return new RepositoryFile("log", "app.log", minutes(startMinute), 10L,
-                SupportedRecordingFile.APP_LOG, null);
+                ManagedFile.APP_LOG, null);
     }
 
     /**
@@ -206,7 +206,7 @@ class ChunkWindowTest {
         @Test
         void aChunkWithNoTimestampIsIgnoredByBothTheSelectionAndTheCount() {
             RepositoryFile undated = new RepositoryFile("c4", "profile-c4.jfr", null, 10L,
-                    SupportedRecordingFile.JFR, null);
+                    ManagedFile.JFR, null);
             RecordingSession session = session(List.of(chunk("c0", 0), chunk("c1", 10), undated), minutes(20));
 
             ChunkWindow.Selection selection = ChunkWindow.ofFiles(session, Set.of("c0", "c1"));
@@ -225,7 +225,7 @@ class ChunkWindowTest {
         @Test
         void ignoresFilesThatAreNotFinishedChunks() {
             RepositoryFile open = new RepositoryFile("c4", "profile-c4.jfr", minutes(40), 10L,
-                    SupportedRecordingFile.JFR, null);
+                    ManagedFile.JFR, null);
             RecordingSession session = session(List.of(chunk("c0", 0), log(0), open), null);
 
             ChunkWindow.Selection selection = new ChunkWindow(minutes(0), minutes(60)).select(session);

@@ -29,7 +29,7 @@ import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -204,7 +204,7 @@ class RemoteRecordingsDownloadManagerTest {
     }
 
     private static RepositoryFileResponse file(
-            String id, String name, SupportedRecordingFile type) {
+            String id, String name, ManagedFile type) {
         return file(id, name, type, CREATED_AT);
     }
 
@@ -213,10 +213,10 @@ class RemoteRecordingsDownloadManagerTest {
      * fills it in from the session. It is FINISHED here because these sessions have finished.
      */
     private static RepositoryFileResponse file(
-            String id, String name, SupportedRecordingFile type, Instant createdAt) {
+            String id, String name, ManagedFile type, Instant createdAt) {
         return new RepositoryFileResponse(
                 id, name, createdAt.toEpochMilli(), 1024L, type, RecordingStatus.FINISHED,
-                type == SupportedRecordingFile.JFR);
+                type == ManagedFile.JFR);
     }
 
     private static RecordingSessionResponse session(RepositoryFileResponse... files) {
@@ -239,10 +239,10 @@ class RemoteRecordingsDownloadManagerTest {
 
     private static RecordingSessionResponse threeChunks() {
         return session(
-                file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR, CREATED_AT),
-                file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, CREATED_AT.plusSeconds(20)),
-                file("f-3", "profile-3.jfr", SupportedRecordingFile.JFR, CREATED_AT.plusSeconds(40)),
-                file("f-4", "heap.hprof", SupportedRecordingFile.HEAP_DUMP));
+                file("f-1", "profile-1.jfr", ManagedFile.JFR, CREATED_AT),
+                file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20)),
+                file("f-3", "profile-3.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(40)),
+                file("f-4", "heap.hprof", ManagedFile.HEAP_DUMP));
     }
 
     @SuppressWarnings("unchecked")
@@ -257,7 +257,7 @@ class RemoteRecordingsDownloadManagerTest {
         @Test
         void returnsTheIdOfTheRecordingItCreated() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
-                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR)));
+                    file("f-1", "recording.jfr", ManagedFile.JFR)));
             servesEveryFile();
 
             assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
@@ -285,7 +285,7 @@ class RemoteRecordingsDownloadManagerTest {
         @DisplayName("keeps a file under the name the hub sent, not the one the listing had")
         void keepsTheNameTheTransferCarried() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
-                    file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR)));
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR)));
             doAnswer(invocation -> feedAs(
                     invocation.getArgument(1), "profile-1.jfr.lz4", invocation.getArgument(2)))
                     .when(streamClient).streamFile(eq(SESSION_ID), any(), any());
@@ -310,7 +310,7 @@ class RemoteRecordingsDownloadManagerTest {
         @DisplayName("a transferred name cannot climb out of the directory it lands in")
         void reducesATransferredNameToASinglePathElement() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
-                    file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR)));
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR)));
             doAnswer(invocation -> feedAs(
                     invocation.getArgument(1), "../../escaped.jfr", invocation.getArgument(2)))
                     .when(streamClient).streamFile(eq(SESSION_ID), any(), any());
@@ -525,8 +525,8 @@ class RemoteRecordingsDownloadManagerTest {
         @Test
         void anUnfinishedFileIsRefusedRatherThanDropped() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(liveSession(
-                    file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR),
-                    file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, CREATED_AT.plusSeconds(20))));
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20))));
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                     () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2")));
@@ -597,7 +597,7 @@ class RemoteRecordingsDownloadManagerTest {
         @Test
         void returnsTheIdOfTheRecordingItCreated() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
-                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR)));
+                    file("f-1", "recording.jfr", ManagedFile.JFR)));
             servesEveryFile();
             ProgressCallback progress = mock(ProgressCallback.class);
 

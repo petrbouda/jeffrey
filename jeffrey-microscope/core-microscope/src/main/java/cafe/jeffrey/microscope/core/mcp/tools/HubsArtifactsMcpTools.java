@@ -39,7 +39,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.StreamedFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -641,7 +641,7 @@ public class HubsArtifactsMcpTools {
         LOG.debug("Answering a hub artifact fetch from this disk: session_id={} file_id={} path={}",
                 ref.sessionId(), key.fileId(), path);
         return Optional.of(new RetainedFetch(
-                operation, fetched(filename, SupportedRecordingFile.of(filename), size, path, true, local)));
+                operation, fetched(filename, ManagedFile.of(filename), size, path, true, local)));
     }
 
     /** A fetch answered off this disk: the operation it was, and the answer built from the file. */
@@ -653,10 +653,10 @@ public class HubsArtifactsMcpTools {
     }
 
     private static FetchedFile fetched(
-            String filename, SupportedRecordingFile type, Long sizeBytes, Path path,
+            String filename, ManagedFile type, Long sizeBytes, Path path,
             boolean alreadyHere, LocalSession local) {
-        boolean heapDump = type == SupportedRecordingFile.HEAP_DUMP
-                || type == SupportedRecordingFile.HEAP_DUMP_GZ;
+        boolean heapDump = type == ManagedFile.HEAP_DUMP
+                || type == ManagedFile.HEAP_DUMP_GZ;
         String nextStep = heapDump
                 ? "Pass path to recordings_analyzeFile to build the heap profile the heap_ tools take."
                 : "Open, grep or parse the file at path with your own tools; it is on the machine Jeffrey runs on."

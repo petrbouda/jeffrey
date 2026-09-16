@@ -24,7 +24,7 @@ import java.nio.file.Path;
 
 /**
  * LZ4, appended to the name the file already has, so {@code profile-1.jfr} becomes
- * {@code profile-1.jfr.lz4} — a name {@link SupportedRecordingFile} classifies as JFR_LZ4, which
+ * {@code profile-1.jfr.lz4} — a name {@link ManagedFile} classifies as JFR_LZ4, which
  * strips to the same id and carries the same timestamp.
  */
 final class Lz4Compression implements Compression {

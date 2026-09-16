@@ -35,15 +35,15 @@ class RecordingSessionTest {
 
     private static RepositoryFile file(Long size) {
         return new RepositoryFile(
-                "file-1", "file-1", CREATED_AT, size, SupportedRecordingFile.JFR, null);
+                "file-1", "file-1", CREATED_AT, size, ManagedFile.JFR, null);
     }
 
     private static RepositoryFile recording(String name, Instant createdAt) {
-        return new RepositoryFile(name, name, createdAt, 1L, SupportedRecordingFile.JFR, null);
+        return new RepositoryFile(name, name, createdAt, 1L, ManagedFile.JFR, null);
     }
 
     private static RepositoryFile artifact(String name, Instant createdAt) {
-        return new RepositoryFile(name, name, createdAt, 1L, SupportedRecordingFile.APP_LOG, null);
+        return new RepositoryFile(name, name, createdAt, 1L, ManagedFile.APP_LOG, null);
     }
 
     private static List<String> namesOf(List<RepositoryFile> files) {
@@ -134,7 +134,7 @@ class RecordingSessionTest {
         @Test
         void isNotTheArchiveWrittenBesideAnEarlierChunk() {
             RepositoryFile archive = new RepositoryFile(
-                    "c1", "c1.jfr.lz4", CREATED_AT, 1L, SupportedRecordingFile.JFR_LZ4, null);
+                    "c1", "c1.jfr.lz4", CREATED_AT, 1L, ManagedFile.JFR_LZ4, null);
             RecordingSession recordingSession = session(
                     null, archive, recording("c2", CREATED_AT.plusSeconds(60)));
 
