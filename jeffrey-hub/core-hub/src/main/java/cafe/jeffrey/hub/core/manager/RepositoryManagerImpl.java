@@ -33,7 +33,6 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatu
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -41,7 +40,6 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public class RepositoryManagerImpl implements RepositoryManager {
@@ -83,40 +81,11 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
-        List<RecordingSession> sessions = this.listRecordingSessions(true);
-        if (sessions.isEmpty()) {
-            return RepositoryStatistics.EMPTY;
-        }
+        long totalSize = listRecordingSessions(true).stream()
+                .mapToLong(RecordingSession::totalSizeBytes)
+                .sum();
 
-        List<RepositoryFile> allFiles = sessions.stream()
-                .flatMap(s -> s.files().stream())
-                .toList();
-
-        long totalSize = allFiles.stream().mapToLong(this::fileSize).sum();
-
-        long lastActivity = allFiles.stream()
-                .map(RepositoryFile::createdAt)
-                .filter(Objects::nonNull)
-                .mapToLong(Instant::toEpochMilli)
-                .max()
-                .orElse(0L);
-
-        long biggestSession = sessions.stream()
-                .mapToLong(s -> s.files().stream().mapToLong(this::fileSize).sum())
-                .max()
-                .orElse(0L);
-
-        return new RepositoryStatistics(
-                sessions.size(),
-                sessions.getFirst().status(),
-                lastActivity,
-                totalSize,
-                allFiles.size(),
-                biggestSession);
-    }
-
-    private long fileSize(RepositoryFile file) {
-        return file.size() != null ? file.size() : 0L;
+        return new RepositoryStatistics(totalSize);
     }
 
     @Override

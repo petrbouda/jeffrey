@@ -156,7 +156,6 @@ class StubServicesInProcessTest {
                 .getRepositoryStatistics(GetRepositoryStatisticsRequest.newBuilder()
                         .setProjectId(projectId)
                         .build());
-        assertTrue(stats.getTotalFiles() > 0);
         assertTrue(stats.getTotalSize() > 0);
     }
 

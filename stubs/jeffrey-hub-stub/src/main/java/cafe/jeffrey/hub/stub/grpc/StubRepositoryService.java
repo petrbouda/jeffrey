@@ -24,12 +24,10 @@ import cafe.jeffrey.hub.api.v1.GetSessionRequest;
 import cafe.jeffrey.hub.api.v1.GetSessionResponse;
 import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
 import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
-import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.stub.data.StubDataset;
 import io.grpc.stub.StreamObserver;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -80,34 +78,13 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
     }
 
     private static GetRepositoryStatisticsResponse aggregate(List<StubDataset.Session> sessions) {
-        GetRepositoryStatisticsResponse.Builder builder = GetRepositoryStatisticsResponse.newBuilder();
+        long totalSize = sessions.stream()
+                .flatMap(session -> session.files().stream())
+                .mapToLong(StubDataset.File::size)
+                .sum();
 
-        long lastActivity = 0;
-        long biggestSession = 0;
-        boolean anyActive = false;
-
-        for (StubDataset.Session session : sessions) {
-            long sessionSize = 0;
-            for (StubDataset.File file : session.files()) {
-                builder.setTotalFiles(builder.getTotalFiles() + 1);
-                builder.setTotalSize(builder.getTotalSize() + file.size());
-                sessionSize += file.size();
-            }
-            biggestSession = Math.max(biggestSession, sessionSize);
-            lastActivity = Math.max(lastActivity, lastActivityOf(session));
-            anyActive = anyActive || session.active();
-        }
-
-        return builder
-                .setTotalSessions(sessions.size())
-                .setSessionStatus(anyActive ? RecordingStatus.RECORDING_STATUS_ACTIVE : RecordingStatus.RECORDING_STATUS_FINISHED)
-                .setLastActivityTime(lastActivity)
-                .setBiggestSessionSize(biggestSession)
+        return GetRepositoryStatisticsResponse.newBuilder()
+                .setTotalSize(totalSize)
                 .build();
-    }
-
-    private static long lastActivityOf(StubDataset.Session session) {
-        Instant activity = session.finishedAt() != null ? session.finishedAt() : session.createdAt();
-        return activity.toEpochMilli();
     }
 }

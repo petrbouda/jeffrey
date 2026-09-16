@@ -18,38 +18,19 @@
 
 package cafe.jeffrey.hub.client.dto;
 
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 
 /**
- * A project's repository in totals. Nothing here is broken down by kind of file — see
- * {@link RepositoryStatistics} for why that went.
+ * What a project's repository occupies on the hub, in bytes. See {@link RepositoryStatistics}
+ * for why it is only that.
  */
-public record RepositoryStatisticsResponse(
-        int totalSessions,
-        RecordingStatus sessionStatus,
-        long lastActivityTime,
-        long totalSize,
-        int totalFiles,
-        long biggestSessionSize) {
+public record RepositoryStatisticsResponse(long totalSize) {
 
     public static RepositoryStatisticsResponse from(RepositoryStatistics stats) {
-        return new RepositoryStatisticsResponse(
-                stats.totalSessions(),
-                stats.latestSessionStatus(),
-                stats.lastActivityTimeMillis(),
-                stats.totalSizeBytes(),
-                stats.totalFiles(),
-                stats.biggestSessionSizeBytes());
+        return new RepositoryStatisticsResponse(stats.totalSizeBytes());
     }
 
     public static RepositoryStatistics from(RepositoryStatisticsResponse response) {
-        return new RepositoryStatistics(
-                response.totalSessions(),
-                response.sessionStatus(),
-                response.lastActivityTime(),
-                response.totalSize(),
-                response.totalFiles(),
-                response.biggestSessionSize());
+        return new RepositoryStatistics(response.totalSize());
     }
 }

@@ -19,26 +19,20 @@
 package cafe.jeffrey.shared.common.model.repository;
 
 /**
- * Aggregate figures about a project's recording repository.
+ * What a project's repository occupies on the hub.
  *
- * <p>Totals only, on purpose. This used to carry a count and a size for each of six buckets — JFR,
- * heap dump, log, app log, error log, other — filled by a switch over {@link ManagedFile}. That
- * switch was the last place anything on the hub side decided what a file type <em>means</em>, and
- * it decided wrong: pprof and OTLP recordings landed in "other", beside the files nothing could
- * classify at all.
+ * <p>One figure, because one figure is what anything actually read. This carried a status, a
+ * session count, a file count, a last-activity timestamp, a biggest-session size and a count and
+ * a size for each of six file-type buckets. The buckets were the last place anything on the hub
+ * side decided what a file type <em>means</em>, and they decided wrong: pprof and OTLP recordings
+ * landed in "other", beside the files nothing could classify at all. Of what remained, the status
+ * had no reader anywhere, and the rest sat beside the same numbers the page already had.
  *
- * <p>Nothing here names a kind of file, so adding a {@code ManagedFile} constant changes neither
+ * <p>Nothing here names a kind of file, so adding a {@link ManagedFile} constant changes neither
  * this record nor the RPC that carries it. A caller that wants to know what a particular file is
  * reads {@code fileType} off the session listing, where the hub reports it without acting on it.
  */
-public record RepositoryStatistics(
-        int totalSessions,
-        RecordingStatus latestSessionStatus,
-        long lastActivityTimeMillis,
-        long totalSizeBytes,
-        int totalFiles,
-        long biggestSessionSizeBytes) {
+public record RepositoryStatistics(long totalSizeBytes) {
 
-    public static final RepositoryStatistics EMPTY =
-            new RepositoryStatistics(0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L);
+    public static final RepositoryStatistics EMPTY = new RepositoryStatistics(0L);
 }

@@ -16,21 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
-
 /**
- * A project's repository in totals. There is deliberately no breakdown by file type: the hub used
- * to send six fixed buckets, which meant deciding what every type means, and a pprof or OTLP
- * recording arrived as "other". Adding a file type now changes nothing here.
+ * What a project's repository occupies on the hub, in bytes.
+ *
+ * One figure, because one figure is what anything actually read. This used to carry a status, a
+ * session count, a file count, a last-activity timestamp, a biggest-session size and six file-type
+ * buckets. The buckets made the hub decide what every file type means, and a pprof or OTLP
+ * recording arrived as "other"; the status had no reader at all.
+ *
+ * There is no capacity to divide it by on purpose. The hub reads a ReadWriteMany volume, and
+ * neither NFS, EFS nor hostPath reports the claim's own size, so a percentage would be fiction.
  */
 export default interface RepositoryStatistics {
-  // Session Overview
-  totalSessions: number;
-  sessionStatus: RecordingStatus; // Status of the latest session
-  lastActivityTime: number; // Timestamp in milliseconds - for use with FormattingService.formatRelativeTime()
-
-  // Storage Overview
   totalSize: number; // Total repository size in bytes
-  totalFiles: number; // Total number of files across all sessions
-  biggestSessionSize: number; // Size of the largest session in bytes
 }

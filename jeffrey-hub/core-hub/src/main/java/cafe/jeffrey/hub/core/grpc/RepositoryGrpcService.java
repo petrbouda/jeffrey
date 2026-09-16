@@ -83,12 +83,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             LOG.debug("Fetched repository statistics via gRPC: projectId={}", request.getProjectId());
 
             return GetRepositoryStatisticsResponse.newBuilder()
-                    .setTotalSessions(stats.totalSessions())
-                    .setSessionStatus(ProtoMappers.recordingStatus(stats.latestSessionStatus()))
-                    .setLastActivityTime(stats.lastActivityTimeMillis())
                     .setTotalSize(stats.totalSizeBytes())
-                    .setTotalFiles(stats.totalFiles())
-                    .setBiggestSessionSize(stats.biggestSessionSizeBytes())
                     .build();
         });
     }

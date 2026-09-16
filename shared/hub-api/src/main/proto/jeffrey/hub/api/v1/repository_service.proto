@@ -69,25 +69,22 @@ message GetRepositoryStatisticsRequest {
   string project_id = 1;
 }
 
-// Aggregate statistics about the recording repository.
+// What a project's repository occupies on the hub, in bytes.
 //
-// Totals only. This used to carry a count and a size for each of six buckets — JFR, heap dump,
-// log, app log, error log, other — which meant the hub had to decide what every file type means.
-// It decided wrong for pprof and OTLP, which arrived as "other" beside files nothing could
-// classify at all. A new ManagedFile now changes nothing here.
+// One number, because one number is all anything asked for. This carried a status, a session
+// count, a file count, a last-activity timestamp, a biggest-session size, and a count and a size
+// for each of six file-type buckets. The buckets made the hub decide what every file type means,
+// and it decided wrong for pprof and OTLP, which arrived as "other"; of the rest, the status had
+// no reader at all and the others were either shown beside the same figure computed elsewhere or
+// answered a question nobody was asking.
+//
+// There is deliberately no capacity to divide this by. The shared volume the hub reads is
+// ReadWriteMany — hostPath, NFS or EFS in these docs — and on none of those does the filesystem
+// report the claim's size: NFS reports the whole export, EFS reports an enormous constant, and
+// hostPath reports the node's own disk. A percentage built on any of those would be fiction.
 message GetRepositoryStatisticsResponse {
-  // Total number of recording sessions.
-  int32 total_sessions = 1;
-  // Overall session status summary.
-  RecordingStatus session_status = 2;
-  // Timestamp of the most recent activity (epoch millis).
-  int64 last_activity_time = 3;
-  // Total size of all files in bytes.
-  int64 total_size = 4;
-  // Total number of files across all sessions.
-  int32 total_files = 5;
-  // Size of the largest session in bytes.
-  int64 biggest_session_size = 6;
+  // Total size in bytes of every file in every session of the project.
+  int64 total_size = 1;
 }
 
 message DeleteSessionRequest {

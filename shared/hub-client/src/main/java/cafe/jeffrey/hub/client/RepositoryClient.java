@@ -90,13 +90,7 @@ public class RepositoryClient {
                         .setProjectId(projectId)
                         .build());
 
-        return new RepositoryStatisticsResponse(
-                response.getTotalSessions(),
-                ClientProtoMappers.recordingStatus(response.getSessionStatus()),
-                response.getLastActivityTime(),
-                response.getTotalSize(),
-                response.getTotalFiles(),
-                response.getBiggestSessionSize());
+        return new RepositoryStatisticsResponse(response.getTotalSize());
     }
 
     public void deleteSession(String sessionId) {

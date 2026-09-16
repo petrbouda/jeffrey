@@ -281,18 +281,10 @@ class RepositoryGrpcServiceTest {
     class GetRepositoryStatistics {
 
         @Test
-        void returnsStatistics() throws Exception {
+        void returnsTotalSize() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.calculateRepositoryStatistics()).thenReturn(
-                    new RepositoryStatistics(
-                            5,
-                            cafe.jeffrey.shared.common.model.repository.RecordingStatus.ACTIVE,
-                            FIXED_TIME.toEpochMilli(),
-                            1_000_000L,
-                            25,
-                            500_000L
-                    )
-            );
+            when(repoManager.calculateRepositoryStatistics())
+                    .thenReturn(new RepositoryStatistics(1_000_000L));
 
             var stub = startServer(serviceWithProject(repoManager));
 
@@ -301,12 +293,7 @@ class RepositoryGrpcServiceTest {
                             .setProjectId(PROJECT_ID)
                             .build());
 
-            assertEquals(5, response.getTotalSessions());
-            assertEquals(RecordingStatus.RECORDING_STATUS_ACTIVE, response.getSessionStatus());
-            assertEquals(FIXED_TIME.toEpochMilli(), response.getLastActivityTime());
             assertEquals(1_000_000L, response.getTotalSize());
-            assertEquals(25, response.getTotalFiles());
-            assertEquals(500_000L, response.getBiggestSessionSize());
         }
 
         @Test

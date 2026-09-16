@@ -62,28 +62,6 @@
                     FormattingService.formatBytes(repositoryStatistics.totalSize)
                   }}</span>
                 </div>
-                <div class="metric-item">
-                  <span class="metric-label">Total Files</span>
-                  <span class="metric-value">{{ repositoryStatistics.totalFiles }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Biggest Session</span>
-                  <span class="metric-value">{{
-                    FormattingService.formatBytes(repositoryStatistics.biggestSessionSize)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Repository Sessions</span>
-                  <span class="metric-value">{{ repositoryStatistics.totalSessions }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Last Activity</span>
-                  <span class="metric-value">{{
-                    repositoryStatistics.lastActivityTime > 0
-                      ? FormattingService.formatRelativeTime(repositoryStatistics.lastActivityTime)
-                      : '\u2014'
-                  }}</span>
-                </div>
               </div>
             </div>
           </div>
