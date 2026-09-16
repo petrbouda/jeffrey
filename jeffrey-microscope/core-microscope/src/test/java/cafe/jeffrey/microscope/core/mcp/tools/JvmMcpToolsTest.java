@@ -56,6 +56,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -596,6 +598,19 @@ class JvmMcpToolsTest {
 
     @Nested
     class GcDetail {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", " ", "\t\n", "\u2003"})
+        void listsThePagesForABlankArgumentThroughTheReflectiveAdapter(String page) {
+            recorded("jdk.GarbageCollection");
+            JvmMcpTools target = tools();
+
+            String result = new ReflectiveToolset(target, "jvm").call(
+                    "jvm_gcDetail", Json.createObject().put("page", page));
+
+            assertEquals(target.gcDetail(null), result);
+            assertTrue(result.contains("tenuring"), result);
+        }
 
         @Test
         void listsThePagesWhenNoneIsAskedFor() {

@@ -19,6 +19,8 @@ package cafe.jeffrey.profile.mcp;
 
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import tools.jackson.databind.JsonNode;
@@ -121,6 +123,7 @@ class McpRequestContractTest {
         for (String args : List.of("[]", "null", "{\"limit\":1.9}", "{\"limit\":\"1\"}",
                 "{\"limit\":2147483648}", "{\"limit\":true}", "{\"limit\":{}}",
                 "{\"label\":12}", "{\"enabled\":\"true\"}", "{\"direction\":\"invalid\"}",
+                "{\"direction\":42}", "{\"direction\":true}", "{\"direction\":[]}", "{\"direction\":{}}",
                 "{\"sequence\":9223372036854775808}", "{\"ratio\":1e100}", "{\"measured\":1e400}")) {
             assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"test_check\",\"arguments\":" + args + "}}", -32602);
         }
@@ -142,15 +145,19 @@ class McpRequestContractTest {
         assertEquals(2, target.calls);
     }
 
-    @Test
-    void readsABlankEnumeratedArgumentAsOmitted() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "\t\n", "\u2003"})
+    void passesBlankEnumeratedArgumentsToTheTool(String direction) {
         JsonNode response = dispatch("""
                 {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"test_check",
-                "arguments":{"direction":""}}}
-                """);
+                "arguments":%s}}
+                """.formatted(Json.createObject().put("direction", direction)));
 
+        assertTrue(response.has("result"), response.toString());
         assertFalse(response.path("result").path("isError").asBoolean(), response.toString());
+        assertEquals("ok", response.path("result").path("content").get(0).path("text").asString());
         assertEquals(1, target.calls);
+        assertEquals(direction, target.direction);
     }
 
     @Test

@@ -19,6 +19,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.profile.manager.TraceManager;
@@ -30,6 +32,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -86,6 +90,20 @@ class TracesMcpToolsTest {
                 "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         return new TracesMcpTools(profileManager);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "\t\n", "\u2003"})
+    void refusesABlankRequiredKindInsideTheTool(String kind) {
+        ReflectiveToolset toolset = new ReflectiveToolset(tools(), "traces");
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> toolset.call("traces_slowestTraces", Json.createObject()
+                        .put("name", "GET /orders")
+                        .put("kind", kind)
+                        .put("eventType", "jeffrey.HttpServerExchange")));
+
+        assertEquals("kind is required", error.getCause().getMessage());
     }
 
     private static TraceNotificationGroupRow poolPressure() {

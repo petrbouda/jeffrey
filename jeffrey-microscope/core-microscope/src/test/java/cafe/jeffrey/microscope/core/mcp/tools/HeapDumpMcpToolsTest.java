@@ -19,7 +19,11 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.profile.mcp.ToolExecutionException;
+import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +40,18 @@ class HeapDumpMcpToolsTest {
 
     @Mock
     HeapDumpToolsDelegate delegate;
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "\t\n", "\u2003"})
+    void usesTheDefaultHistogramOrderForABlankArgumentThroughTheReflectiveAdapter(String sortBy) {
+        HeapDumpMcpTools target = new HeapDumpMcpTools(delegate);
+
+        String result = new ReflectiveToolset(target, "heap").call(
+                "heap_getClassHistogram", Json.createObject().put("sortBy", sortBy));
+
+        assertEquals(target.getClassHistogram(null, null), result);
+        assertTrue(result.contains("by SIZE"), result);
+    }
 
     @Test
     void propagatesDelegateFailuresAsToolErrors() {
