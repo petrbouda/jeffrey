@@ -40,12 +40,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -436,10 +438,48 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         return session.finishedRecordings().stream()
                 .filter(file -> Files.isRegularFile(file.filePath()))
                 .filter(file -> allOfThem || recordingIds.contains(file.id()))
-                .map(file -> ensureCompressed(sessionId, file))
-                .filter(Objects::nonNull)
-                .distinct()
+                .filter(AsprofFileRepositoryStorage::hasContent)
+                .collect(Collectors.toMap(
+                        RepositoryFile::id,
+                        Function.identity(),
+                        AsprofFileRepositoryStorage::theOneCertainlyWhole,
+                        LinkedHashMap::new))
+                .values().stream()
+                .map(RepositoryFile::filePath)
                 .toList();
+    }
+
+    /**
+     * Whether the file holds anything.
+     *
+     * <p>A profiler stopped before it wrote an event — a container killed, a non-graceful
+     * shutdown — leaves a zero-byte recording behind. Handing one over yields a download that
+     * fails to parse rather than a recording of nothing, so it is left out here as it always was;
+     * only the reason it is reached has moved, from the compression that used to happen on this
+     * path to the listing's own figure, which costs no round trip.
+     *
+     * <p>A size that could not be read at all is not a reason to withhold the file: that is the
+     * one case where the listing cannot tell, and refusing would lose a recording that may be
+     * whole.
+     */
+    private static boolean hasContent(RepositoryFile file) {
+        return file.size() == null || file.size() > 0;
+    }
+
+    /**
+     * Which of two files sharing an id to hand over — the recording rather than the archive.
+     *
+     * <p>Two share one only while the compression job is between writing an archive and removing
+     * the recording it was made from, and in that window the recording is the file that is
+     * certainly complete: the archive may still be being written into. A stripped extension is
+     * what makes an id survive compression, and it is also what lets one id name two files for as
+     * long as that takes.
+     *
+     * <p>Nothing merged these before: both mapped to the compressed path and {@code distinct()}
+     * collapsed them, which is the same answer this makes explicit, for the other file.
+     */
+    private static RepositoryFile theOneCertainlyWhole(RepositoryFile first, RepositoryFile second) {
+        return first.fileType() == TARGET_COMPRESSED_TYPE ? second : first;
     }
 
     // ========== Artifact Files ==========
@@ -466,7 +506,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         // one it is still writing. There is nothing further to decide: a closed chunk's bytes
         // are final whether or not its session has finished.
         return (int) session.finishedRecordings().stream()
-                .map(file -> ensureCompressed(sessionId, file))
+                .map(file -> compress(sessionId, file))
                 .filter(Objects::nonNull)
                 .distinct()
                 .count();
@@ -483,14 +523,20 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * Ensures the recording file is compressed (JFR_LZ4 format).
-     * <p>
-     * If already compressed, returns the original path. Otherwise, compresses the file
-     * and stores the compressed version persistently in the same directory.
-     * Uses double-check locking pattern for thread safety.
-     * </p>
+     * Compresses one closed recording in place, replacing it with its LZ4 archive.
+     *
+     * <p>Reached from {@link #compressSession} and nowhere else. Serving a recording used to
+     * come through here too, compressing on the way out so the transfer carried less — and that
+     * was wrong in a way the saving did not pay for: a download rewrote the repository while
+     * reading it, and the reader was never told. The download carries the bytes and their length
+     * and no name, so a client that had listed {@code …jfr} a moment earlier wrote LZ4 bytes
+     * under that name, and a {@code .jfr} holding an LZ4 frame is not something any reader of it
+     * can recover — compression is detected by the extension, nothing sniffs the frame.
+     *
+     * <p>The lock and the double check stay: the job's periodic run and an on-demand run for one
+     * session can overlap on the same project.
      */
-    private Path ensureCompressed(String sessionId, RepositoryFile file) {
+    private Path compress(String sessionId, RepositoryFile file) {
         if (file.fileType() == TARGET_COMPRESSED_TYPE) {
             return file.filePath();
         }

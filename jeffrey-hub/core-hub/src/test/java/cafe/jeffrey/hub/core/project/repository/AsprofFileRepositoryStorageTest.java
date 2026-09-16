@@ -148,6 +148,137 @@ class AsprofFileRepositoryStorageTest {
     }
 
     /**
+     * Handing a session's recordings over. A lookup and nothing else: what the reader receives
+     * must be the file the listing named, because the download carries the bytes and their
+     * length and no name at all.
+     */
+    @Nested
+    class Recordings {
+
+        private static final String SESSION_ID = "session-1";
+        private static final String PROJECT = "project";
+        private static final String INSTANCE = "instance";
+
+        @TempDir
+        Path workspacesDir;
+
+        private final ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
+
+        private Path sessionDir() throws IOException {
+            return Files.createDirectories(
+                    workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
+        }
+
+        private AsprofFileRepositoryStorage storage(Instant finishedAt) {
+            when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
+                    "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
+            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
+                    SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                    T0, T0, finishedAt, false, false, null)));
+            when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
+
+            return new AsprofFileRepositoryStorage(
+                    mock(ProjectInfo.class), workspacesDir, repository, new AsprofFileInfoProcessor());
+        }
+
+        private AsprofFileRepositoryStorage finishedSession() {
+            return storage(T0.plusSeconds(600));
+        }
+
+        private static Path write(Path dir, String name, String content) throws IOException {
+            return Files.write(dir.resolve(name), content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        private static List<String> namesOf(List<Path> paths) {
+            return paths.stream().map(path -> path.getFileName().toString()).toList();
+        }
+
+        /**
+         * The file is handed over as it lies. Compressing it here — which is what this did, so the
+         * transfer would carry less — rewrote the repository in the middle of a read and changed
+         * the file's name under a reader that had already been told the old one.
+         */
+        @Test
+        void handOverTheFileTheListingNamed() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr", "chunk one");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths));
+            assertTrue(Files.exists(session.resolve("profile-20260220-120000.jfr")),
+                    "reading a session must not rewrite it");
+            assertFalse(Files.exists(session.resolve("profile-20260220-120000.jfr.lz4")));
+        }
+
+        @Test
+        void areOldestFirstWhenEveryRecordingIsAsked() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120500.jfr", "second");
+            write(session, "profile-20260220-120000.jfr", "first");
+            write(session, "service-app.log", "not a recording");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of());
+
+            assertEquals(
+                    List.of("profile-20260220-120000.jfr", "profile-20260220-120500.jfr"),
+                    namesOf(paths));
+        }
+
+        @Test
+        void leaveOutTheChunkTheProfilerIsStillWriting() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr", "closed");
+            write(session, "profile-20260220-120500.jfr", "still being written");
+
+            List<Path> paths = storage(null).recordings(SESSION_ID, List.of());
+
+            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths));
+        }
+
+        /**
+         * A profiler stopped before it wrote an event leaves a zero-byte recording. It used to be
+         * dropped by the compression that ran here; it is dropped by its listed size now.
+         */
+        @Test
+        void leaveOutAnEmptyRecording() throws IOException {
+            Path session = sessionDir();
+            Files.createFile(session.resolve("profile-20260220-120000.jfr"));
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of());
+
+            assertEquals(List.of(), paths);
+        }
+
+        /**
+         * The compression job is between writing an archive and removing the recording it was made
+         * from, so one id names two files. The recording is the one certainly complete — the
+         * archive at that moment may still be being written into.
+         */
+        @Test
+        void handOverTheRecordingRatherThanAnArchiveStillBeingWritten() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr", "the whole chunk");
+            write(session, "profile-20260220-120000.jfr.lz4", "half an archive");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths),
+                    "one id, one file - and the one that cannot be half-written");
+        }
+
+        @Test
+        void handOverTheArchiveOnceTheRecordingIsGone() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr.lz4", "the archive");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertEquals(List.of("profile-20260220-120000.jfr.lz4"), namesOf(paths));
+        }
+    }
+
+    /**
      * Deleting the files a caller named by the ids the listing gave them. Both retention jobs and
      * the UI's delete come through here, and an id that does not find its file frees nothing while
      * reporting success.
