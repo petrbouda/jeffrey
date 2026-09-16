@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.file.FileInfoProcessor;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -31,6 +30,7 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
+import cafe.jeffrey.shared.common.model.repository.Compression;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -65,8 +65,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private static final List<String> RECORDING_EXTENSIONS = RECORDING_FILE_TYPES.stream()
             .map(SupportedRecordingFile::fileExtension)
             .toList();
-
-    private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = JFR_LZ4;
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
@@ -215,7 +213,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return new RepositoryFile(
                     fileId(file),
                     sourceName,
-                    fileInfoProcessor.createdAt(file),
+                    fileType.timestampResolver().resolve(file),
                     sizeReader(sessionStatus, fileType).size(file),
                     fileType,
                     file);
@@ -250,7 +248,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * an open apiece would be hundreds of round trips on one page load.
      */
     static FileSizeReader sizeReader(RecordingStatus sessionStatus, SupportedRecordingFile fileType) {
-        if (sessionStatus == RecordingStatus.FINISHED || fileType == SupportedRecordingFile.JFR_LZ4) {
+        if (sessionStatus == RecordingStatus.FINISHED || fileType.isCompressed()) {
             return FileSizeReader.FILE_ATTRIBUTES;
         }
         return FileSizeReader.LIVE_FILE;
@@ -479,7 +477,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * collapsed them, which is the same answer this makes explicit, for the other file.
      */
     private static RepositoryFile theOneCertainlyWhole(RepositoryFile first, RepositoryFile second) {
-        return first.fileType() == TARGET_COMPRESSED_TYPE ? second : first;
+        return first.fileType().isCompressed() ? second : first;
     }
 
     // ========== Artifact Files ==========
@@ -537,12 +535,18 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * session can overlap on the same project.
      */
     private Path compress(String sessionId, RepositoryFile file) {
-        if (file.fileType() == TARGET_COMPRESSED_TYPE) {
+        Compression compression = file.fileType().compression();
+        if (!compression.isSupported()) {
+            // Either the file is already an archive, or it is a type that rewriting would
+            // destroy: a compressed pprof matches nothing, so it would come back UNKNOWN, stop
+            // being a recording, change id, and lose the original.
+            LOG.debug("Leaving a recording its type cannot compress alone: sessionId={} file={} file_type={}",
+                    sessionId, file.name(), file.fileType());
             return file.filePath();
         }
 
         Path sourcePath = file.filePath();
-        Path compressedPath = sourcePath.resolveSibling(file.name() + ".lz4");
+        Path compressedPath = compression.target(sourcePath);
 
         // Fast path: check if already compressed by another thread
         if (Files.exists(compressedPath)) {
@@ -573,7 +577,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             }
 
             // Compress, verify, and delete original
-            Lz4Compressor.compress(sourcePath, compressedPath);
+            compression.compress(sourcePath, compressedPath);
             long compressedSize = Files.size(compressedPath);
             if (Files.exists(compressedPath) && compressedSize > 0) {
                 FileSystemUtils.removeFile(sourcePath);

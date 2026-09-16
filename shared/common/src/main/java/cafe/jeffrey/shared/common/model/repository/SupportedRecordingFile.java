@@ -36,75 +36,99 @@ public enum SupportedRecordingFile {
             "LZ4 Compressed JDK Flight Recording",
             FileExtensions.JFR_LZ4,
             filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            TimestampResolver.RECORDING_NAME,
+            Compression.NONE
     ),
     JFR(
             "JDK Flight Recording",
             FileExtensions.JFR,
             filename -> filename.endsWith("." + FileExtensions.JFR),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            TimestampResolver.RECORDING_NAME,
+            Compression.LZ4
     ),
     ASPROF_TEMP(
             "Async Profiler Cache File",
             FileExtensions.ASPROF_TEMP,
             new AsprofCacheFileMatcher(),
-            FileCategory.TEMPORARY
+            FileCategory.TEMPORARY,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     HEAP_DUMP_GZ(
             "GZ Compressed  Heap Dump",
             FileExtensions.HPROF_GZ,
             filename -> filename.endsWith("." + FileExtensions.HPROF_GZ),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,
             filename -> filename.endsWith("." + FileExtensions.HPROF),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     PERF_COUNTERS(
             "HotSpot Performance Counters",
             FileExtensions.PERF_COUNTERS,
             filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     JVM_LOG(
             "JVM Log",
             FileExtensions.JVM_LOG,
             new JvmLogFileMatcher(),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     // Both crash-log spellings end in .log, so this must stay before APP_LOG
     HS_JVM_ERROR_LOG(
             "HotSpot JVM Error Log",
             FileExtensions.HS_JVM_ERROR_LOG,
             new HsJvmErrorLogFileMatcher(),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     APP_LOG(
             "Application Log",
             FileExtensions.APP_LOG,
             new AppLogFileMatcher(),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     PPROF(
             "pprof Profile",
             FileExtensions.PPROF,
             filename -> filename.endsWith("." + FileExtensions.PPROF)
                     || filename.endsWith("." + FileExtensions.PPROF_PB_GZ),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     OTLP_PROFILE(
             "OpenTelemetry Profiles",
             FileExtensions.OTLP,
             filename -> filename.endsWith("." + FileExtensions.OTLP),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     ),
     UNKNOWN(
             "Unsupported File Type",
             null,
             _ -> true,
-            FileCategory.UNRECOGNIZED
+            FileCategory.UNRECOGNIZED,
+            TimestampResolver.FILESYSTEM,
+            Compression.NONE
     );
 
     private final static List<SupportedRecordingFile> KNOWN_TYPES;
@@ -119,17 +143,23 @@ public enum SupportedRecordingFile {
     private final String fileExtension;
     private final Predicate<String> filenameMatcher;
     private final FileCategory fileCategory;
+    private final TimestampResolver timestampResolver;
+    private final Compression compression;
 
     SupportedRecordingFile(
             String description,
             String fileExtension,
             Predicate<String> filenameMatcher,
-            FileCategory fileCategory) {
+            FileCategory fileCategory,
+            TimestampResolver timestampResolver,
+            Compression compression) {
 
         this.description = description;
         this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
         this.fileCategory = fileCategory;
+        this.timestampResolver = timestampResolver;
+        this.compression = compression;
     }
 
     public static SupportedRecordingFile of(Path path) {
@@ -179,6 +209,29 @@ public enum SupportedRecordingFile {
 
     public boolean matches(Path path) {
         return matches(path.getFileName().toString());
+    }
+
+    /**
+     * Where this type's timestamp comes from — its own name, or the filesystem.
+     */
+    public TimestampResolver timestampResolver() {
+        return timestampResolver;
+    }
+
+    /**
+     * How a file of this type is compressed, or {@link Compression#NONE} when rewriting it would
+     * produce something no reader could place.
+     */
+    public Compression compression() {
+        return compression;
+    }
+
+    /**
+     * Whether this type is itself a compressed form — a file written and closed in one pass by
+     * whoever compressed it, so its bytes are final however old a listing of it is.
+     */
+    public boolean isCompressed() {
+        return fileExtension != null && fileExtension.endsWith("." + FileExtensions.LZ4);
     }
 
     public String fileExtension() {

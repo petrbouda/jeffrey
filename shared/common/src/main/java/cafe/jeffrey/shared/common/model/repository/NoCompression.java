@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,22 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.project.repository.file;
+package cafe.jeffrey.shared.common.model.repository;
 
 import java.nio.file.Path;
-import java.util.Comparator;
 
 /**
- * How a repository's own layout is read — which, now that a file's timestamp is the business of
- * its {@link cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile type}, is the
- * order its directory is listed in.
+ * The answer for a type that must be left as it is — because no compressed form of it would still
+ * be recognised as the same file, not because nobody has written one yet.
  */
-public interface FileInfoProcessor {
+final class NoCompression implements Compression {
 
-    /**
-     * Returns a comparator that can be used to sort files in the folder.
-     *
-     * @return a comparator for sorting files
-     */
-    Comparator<Path> comparator();
+    @Override
+    public boolean isSupported() {
+        return false;
+    }
+
+    @Override
+    public Path target(Path source) {
+        throw new UnsupportedOperationException("This file type has no compressed form: " + source);
+    }
+
+    @Override
+    public Path compress(Path source, Path target) {
+        throw new UnsupportedOperationException("This file type has no compressed form: " + source);
+    }
 }
