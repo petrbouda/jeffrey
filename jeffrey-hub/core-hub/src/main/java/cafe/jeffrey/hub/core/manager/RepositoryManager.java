@@ -25,7 +25,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,18 +36,6 @@ public interface RepositoryManager {
     @FunctionalInterface
     interface Factory extends Function<ProjectInfo, RepositoryManager> {
     }
-
-    /**
-     * Downloads an artifact file (heap dump, log, etc.) from the repository with validation.
-     * Only FINISHED, non-TEMPORARY artifact files can be streamed.
-     *
-     * @param sessionId id of the session to download from
-     * @param fileId    id of the artifact file to download
-     * @return entity for file information and streaming to output stream
-     * @throws IllegalArgumentException if the file is not found, not finished, or not an artifact
-     */
-    StreamedRecordingFile streamArtifactFile(String sessionId, String fileId);
-
 
     /**
      * Finds a recording session by its ID.
@@ -123,15 +111,14 @@ public interface RepositoryManager {
     void setSessionRetained(String recordingSessionId, boolean retained);
 
     /**
-     * Downloads a recording file (JFR) from the repository with validation.
-     * Only FINISHED, non-TEMPORARY recording files can be streamed.
+     * Opens one file of a session for streaming — a recording chunk, a heap dump, a log, a crash
+     * file. One method for every kind: the category decides what a reader does with the file, not
+     * whether the hub serves it.
      *
-     * @param sessionId the session containing the file
-     * @param fileId    the unique file ID
-     * @return entity for file information and streaming
-     * @throws IllegalArgumentException if the file is not found, not finished, or not a recording
+     * @throws IllegalArgumentException when the session has no such file, or it is one the hub
+     *                                  will not hand over
      */
-    StreamedRecordingFile streamRecordingFile(String sessionId, String fileId);
+    StreamedFile streamFile(String sessionId, String fileId);
 
     void delete();
 }

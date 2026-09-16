@@ -26,14 +26,13 @@ import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.StatsCategory;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -74,23 +73,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
         this.instanceRepository = instanceRepository;
         this.repositoryStorage = repositoryStorage;
         this.transactionOperations = transactionOperations;
-    }
-
-    @Override
-    public StreamedRecordingFile streamArtifactFile(String sessionId, String fileId) {
-        RepositoryFile file = findAndValidateFile(sessionId, fileId);
-
-        if (!file.isArtifactFile()) {
-            throw new IllegalArgumentException("File is not an artifact: fileId=" + fileId);
-        }
-
-        List<Path> paths = repositoryStorage.artifacts(sessionId, List.of(fileId));
-        if (paths.isEmpty()) {
-            throw new IllegalArgumentException("Artifact file path not found: fileId=" + fileId);
-        }
-
-        Path filePath = paths.getFirst();
-        return new StreamedRecordingFile(filePath.getFileName().toString(), filePath);
     }
 
     @Override
@@ -255,42 +237,17 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 recordingSessionId, projectInfo.id(), retained);
     }
 
+    /**
+     * One file of a session, whatever kind it is.
+     *
+     * <p>There were two of these, one per category, identical but for the word in their refusal.
+     * A category says what a reader does with a file, not whether the hub will hand it over, and
+     * the reader knows the category already — it arrives with every listing.
+     */
     @Override
-    public StreamedRecordingFile streamRecordingFile(String sessionId, String fileId) {
-        RepositoryFile file = findAndValidateFile(sessionId, fileId);
-
-        if (!file.isRecordingFile()) {
-            throw new IllegalArgumentException("File is not a recording: fileId=" + fileId);
-        }
-
-        List<Path> paths = repositoryStorage.recordings(sessionId, List.of(fileId));
-        if (paths.isEmpty()) {
-            throw new IllegalArgumentException("Recording file path not found: fileId=" + fileId);
-        }
-
-        Path filePath = paths.getFirst();
-        return new StreamedRecordingFile(filePath.getFileName().toString(), filePath);
-    }
-
-    private RepositoryFile findAndValidateFile(String sessionId, String fileId) {
-        RecordingSession session = repositoryStorage.singleSession(sessionId, true)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-
-        RepositoryFile file = session.files().stream()
-                .filter(f -> f.id().equals(fileId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("File not found: fileId=" + fileId));
-
-        if (session.isOpen(file)) {
-            throw new IllegalArgumentException("Cannot download a file the profiler is still writing: fileId="
-                    + fileId);
-        }
-
-        if (file.fileType().fileCategory() == FileCategory.TEMPORARY) {
-            throw new IllegalArgumentException("Cannot download temporary file: fileId=" + fileId);
-        }
-
-        return file;
+    public StreamedFile streamFile(String sessionId, String fileId) {
+        Path filePath = repositoryStorage.file(sessionId, fileId);
+        return new StreamedFile(filePath.getFileName().toString(), filePath);
     }
 
     @Override

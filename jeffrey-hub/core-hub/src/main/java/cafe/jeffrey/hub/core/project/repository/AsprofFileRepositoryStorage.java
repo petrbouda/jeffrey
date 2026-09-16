@@ -30,6 +30,7 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.Compression;
+import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -39,14 +40,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -404,42 +403,62 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
 
-    // ========== Recording Files ==========
+    // ========== Files ==========
 
+    /**
+     * Where one file of a session is, as it lies. A lookup and nothing else: it does not
+     * compress, and the path it names is the file the listing named.
+     *
+     * <p>Refuses rather than returning nothing. This used to be two methods returning lists, both
+     * called with a single id, and between them they filtered on five different grounds — so a
+     * caller that named an empty recording, or one that had vanished, or the chunk the profiler
+     * still holds, was told the same thing in each case: not found. Each of those now says what
+     * it is.
+     */
     @Override
-    public List<Path> recordings(String sessionId, List<String> recordingIds) {
+    public Path file(String sessionId, String fileId) {
         RecordingSession session = resolveSession(sessionId);
 
-        // No ids named means every finished recording file, which is what the gRPC contract
-        // promises. It used to mean the opposite for an empty list: the test was for null, and a
-        // caller over the wire cannot send null — protobuf hands back an empty list — so asking
-        // for "all of it" that way selected nothing and failed as an empty session.
-        boolean allOfThem = recordingIds == null || recordingIds.isEmpty();
+        RepositoryFile file = session.files().stream()
+                .filter(candidate -> candidate.id().equals(fileId))
+                // A recording and the archive beside it share an id while the compression job is
+                // between writing one and removing the other, and in that window the recording is
+                // the file certainly whole — the archive may still be being written into.
+                .reduce(AsprofFileRepositoryStorage::theOneCertainlyWhole)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Session " + sessionId + " holds no file with id " + fileId
+                                + ". Take the id from the session's file listing."));
 
-        // finishedRecordings() is already the closed chunks, oldest first: the one the profiler
-        // still holds open is not a recording anyone may be handed.
-        return session.finishedRecordings().stream()
-                .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(file -> allOfThem || recordingIds.contains(file.id()))
-                .filter(AsprofFileRepositoryStorage::hasContent)
-                .collect(Collectors.toMap(
-                        RepositoryFile::id,
-                        Function.identity(),
-                        AsprofFileRepositoryStorage::theOneCertainlyWhole,
-                        LinkedHashMap::new))
-                .values().stream()
-                .map(RepositoryFile::filePath)
-                .toList();
+        if (session.isOpen(file)) {
+            throw new IllegalArgumentException("File " + file.name() + " is the chunk the profiler is "
+                    + "still writing, and reading it would give a truncated answer. It can be taken "
+                    + "once the profiler has rolled the next one.");
+        }
+        if (file.fileType().fileCategory() == FileCategory.TEMPORARY) {
+            throw new IllegalArgumentException("File " + file.name() + " is a transient "
+                    + file.fileType().description() + ", which the profiler deletes as it goes.");
+        }
+        if (!Files.isRegularFile(file.filePath())) {
+            throw new IllegalArgumentException("File " + file.name() + " was listed for session "
+                    + sessionId + " but is no longer on disk.");
+        }
+        if (file.isRecordingFile() && !hasContent(file)) {
+            throw new IllegalArgumentException("Recording " + file.name() + " is empty — the profiler "
+                    + "stopped before it wrote an event into it.");
+        }
+
+        return file.filePath();
     }
 
     /**
-     * Whether the file holds anything.
+     * Whether the file holds anything. Asked of recordings only, because it is a statement about
+     * parsing rather than about files: an empty {@code gc.jvm-log} is an answer, and a reader
+     * asking for one wants to be handed the nothing it holds rather than a refusal.
      *
      * <p>A profiler stopped before it wrote an event — a container killed, a non-graceful
      * shutdown — leaves a zero-byte recording behind. Handing one over yields a download that
-     * fails to parse rather than a recording of nothing, so it is left out here as it always was;
-     * only the reason it is reached has moved, from the compression that used to happen on this
-     * path to the listing's own figure, which costs no round trip.
+     * fails to parse rather than a recording of nothing. The figure is the listing's, read for a
+     * live session through an open handle already, so this costs no round trip.
      *
      * <p>A size that could not be read at all is not a reason to withhold the file: that is the
      * one case where the listing cannot tell, and refusing would lose a recording that may be
@@ -452,31 +471,11 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     /**
      * Which of two files sharing an id to hand over — the recording rather than the archive.
      *
-     * <p>Two share one only while the compression job is between writing an archive and removing
-     * the recording it was made from, and in that window the recording is the file that is
-     * certainly complete: the archive may still be being written into. A stripped extension is
-     * what makes an id survive compression, and it is also what lets one id name two files for as
-     * long as that takes.
-     *
-     * <p>Nothing merged these before: both mapped to the compressed path and {@code distinct()}
-     * collapsed them, which is the same answer this makes explicit, for the other file.
+     * <p>A stripped extension is what makes an id survive compression, and it is also what lets
+     * one id name two files for as long as the job takes to remove the first.
      */
     private static RepositoryFile theOneCertainlyWhole(RepositoryFile first, RepositoryFile second) {
         return first.fileType().isCompressed() ? second : first;
-    }
-
-    // ========== Artifact Files ==========
-
-    @Override
-    public List<Path> artifacts(String sessionId, List<String> artifactIds) {
-        RecordingSession session = resolveSession(sessionId);
-
-        return session.files().stream()
-                .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(RepositoryFile::isArtifactFile)
-                .filter(file -> artifactIds == null || artifactIds.contains(file.id()))
-                .map(RepositoryFile::filePath)
-                .toList();
     }
 
     // ========== Session Compression ==========

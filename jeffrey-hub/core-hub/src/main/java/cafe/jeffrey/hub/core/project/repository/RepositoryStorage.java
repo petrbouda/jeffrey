@@ -117,34 +117,30 @@ public interface RepositoryStorage {
     List<Path> listSessionDirectoriesOnDisk();
 
 
-    // ========== Recording Files ==========
+    // ========== Files ==========
 
     /**
-     * The paths of a session's closed recording files, as they are on disk.
+     * Where one file of a session is on disk, exactly as it lies.
      *
-     * <p>A lookup and nothing else: it does not compress, and the file it names is the file the
-     * listing named. Compression belongs to the compression job alone — a reader that receives
-     * bytes cannot be told the name changed under it, because the download carries only the
-     * bytes and their length.
+     * <p>One lookup for every kind of file. There were two — one for recordings, one for
+     * artifacts — and by the end they differed only in the word in their refusal. What a file's
+     * category decides is what a reader does with it, and the reader knows the category already;
+     * it does not need a separate door to be told.
      *
-     * <p>The chunk the profiler is still writing is never among them.
+     * <p>Refuses rather than returns nothing, so "not found" means not found. A file the session
+     * does not hold, a transient one, one no longer on disk, the chunk the profiler is still
+     * writing, and an empty recording are each named with the reason, because a caller that asked
+     * for one file and got silence cannot tell which of those happened. An empty <em>artifact</em>
+     * is served: emptiness is a statement about parsing, and a log with nothing in it is an
+     * answer.
      *
-     * @param sessionId    the session ID
-     * @param recordingIds the ids to retrieve, or empty for every closed recording of the session
-     * @return paths to the recording files, oldest first
+     * @param sessionId the session ID
+     * @param fileId    the file's id, as the session's listing reports it
+     * @return the path the file has now, which is the name the caller must use for it
+     * @throws IllegalArgumentException when the session has no such file, or it is one the hub
+     *                                  will not hand over
      */
-    List<Path> recordings(String sessionId, List<String> recordingIds);
-
-    // ========== Artifact Files ==========
-
-    /**
-     * Get specific artifacts from a session.
-     *
-     * @param sessionId   the session ID
-     * @param artifactIds list of artifact IDs to retrieve
-     * @return list of paths to artifact files
-     */
-    List<Path> artifacts(String sessionId, List<String> artifactIds);
+    Path file(String sessionId, String fileId);
 
     // ========== Session Compression ==========
 

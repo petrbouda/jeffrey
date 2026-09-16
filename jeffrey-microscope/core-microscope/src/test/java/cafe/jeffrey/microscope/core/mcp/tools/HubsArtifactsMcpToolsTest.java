@@ -43,7 +43,7 @@ import cafe.jeffrey.shared.common.model.hub.HubSource;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -188,11 +188,11 @@ class HubsArtifactsMcpToolsTest {
         assertEquals(SupportedRecordingFile.UNKNOWN, SupportedRecordingFile.of("notes.txt"));
     }
 
-    private StreamedRecordingFile streamed(String name) throws IOException {
+    private StreamedFile streamed(String name) throws IOException {
         Path dir = Files.createDirectories(home.resolve("stream"));
         Path file = Files.writeString(dir.resolve(name), "2026-09-14 12:00:00 ERROR boom\n");
         AtomicBoolean cleaned = new AtomicBoolean();
-        return new StreamedRecordingFile(name, file, () -> cleaned.set(true));
+        return new StreamedFile(name, file, () -> cleaned.set(true));
     }
 
     @Nested
@@ -334,7 +334,7 @@ class HubsArtifactsMcpToolsTest {
         @Test
         void fetchesAFinishedArtifactUnderTheArtifactsDirectoryAndAnswersWithItsPath() throws IOException {
             hubHolds(session(finished("f-log", "service-app.log", SupportedRecordingFile.APP_LOG)));
-            StreamedRecordingFile streamed = streamed("service-app.log");
+            StreamedFile streamed = streamed("service-app.log");
             when(repository.streamFile(SESSION_ID, "f-log")).thenReturn(streamed);
 
             JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-log"));
@@ -354,7 +354,7 @@ class HubsArtifactsMcpToolsTest {
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
                     finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
-            StreamedRecordingFile streamed = streamed("gc.jvm-log");
+            StreamedFile streamed = streamed("gc.jvm-log");
             when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed);
 
             JsonNode answer = Json.readTree(tools.fetchFile(REF.encode(), "f-gc"));

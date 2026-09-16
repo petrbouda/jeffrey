@@ -21,7 +21,7 @@ package cafe.jeffrey.hub.client.environment;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
@@ -88,7 +88,7 @@ public class SessionEnvironmentReader {
     }
 
     private ObjectNode parseChunk(String sessionId, RepositoryFile chunk, boolean expectShutdown) {
-        StreamedRecordingFile downloaded = repositoryManager.streamFile(sessionId, chunk);
+        StreamedFile downloaded = repositoryManager.streamFile(sessionId, chunk.id());
         try {
             ObjectNode environment = parser.parse(downloaded.path(), expectShutdown);
 
@@ -103,7 +103,7 @@ public class SessionEnvironmentReader {
         }
     }
 
-    private static void cleanUp(StreamedRecordingFile downloaded) {
+    private static void cleanUp(StreamedFile downloaded) {
         if (downloaded.cleanup() == null) {
             return;
         }

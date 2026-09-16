@@ -38,7 +38,7 @@ import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import io.grpc.Context;
 import io.grpc.Deadline;
@@ -523,7 +523,7 @@ public class HubsArtifactsMcpTools {
      * Moves the streamed file to its place and lets the hub client's temporary directory go, whether
      * or not the move succeeded — a failed move must not leave a copy behind in the temp area.
      */
-    private static Path place(StreamedRecordingFile streamed, Path target) {
+    private static Path place(StreamedFile streamed, Path target) {
         try {
             FileSystemUtils.createDirectories(target.getParent());
             Files.move(streamed.path(), target, StandardCopyOption.REPLACE_EXISTING);

@@ -24,9 +24,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public record StreamedRecordingFile(String fileName, Path path, Closeable cleanup) {
+public record StreamedFile(String fileName, Path path, Closeable cleanup) {
 
-    public StreamedRecordingFile(String fileName, Path path) {
+    public StreamedFile(String fileName, Path path) {
         this(fileName, path, null);
     }
 

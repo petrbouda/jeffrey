@@ -60,7 +60,7 @@ class GrpcServerConfigurationTest {
             InstanceGrpcService.class,
             ProfilerSettingsGrpcService.class,
             RepositoryGrpcService.class,
-            RecordingDownloadGrpcService.class);
+            FileDownloadGrpcService.class);
 
     @Test
     void hubHasNoMcpEndpointOrProtocolDependency() {

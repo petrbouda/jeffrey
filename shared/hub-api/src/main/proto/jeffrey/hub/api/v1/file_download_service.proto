@@ -14,25 +14,25 @@ option java_multiple_files = true;
 // each is a self-contained JFR and the parser reads them independently. Joining them
 // here cost the hub a full decompress and recompress of the session, and a whole-session
 // temp file, to produce something the client took apart again before parsing it.
-service RecordingDownloadService {
-  // Streams a single artifact file (heap dump, log, error log, etc.) from a session.
-  // The file must exist and be in FINISHED status.
-  rpc DownloadArtifactFile(DownloadArtifactFileRequest) returns (stream DataChunk);
-
-  // Streams a single JFR recording file from a session.
-  // The file must exist and be in FINISHED status.
-  rpc DownloadRecordingFile(DownloadRecordingFileRequest) returns (stream DataChunk);
+service FileDownloadService {
+  // Streams one file of a session, whatever kind it is — a recording chunk, a heap dump, a log,
+  // a crash file.
+  //
+  // One RPC rather than one per kind. There were two, and by the end they differed only in the
+  // word in their refusal: both looked the file up in the session, both checked its category,
+  // both streamed the bytes. What the category decides is what a reader does with the file, and
+  // the reader already knows it — every listing carries `file_type` and `is_recording`. It does
+  // not need a second door to be told the same thing.
+  //
+  // The hub still refuses what it cannot meaningfully hand over: a file the session does not
+  // hold, a transient one (async-profiler's `.jfr.N~` cache, which appears and vanishes under a
+  // reader), and the chunk the profiler is still writing.
+  rpc DownloadFile(DownloadFileRequest) returns (stream DataChunk);
 }
 
-message DownloadArtifactFileRequest {
+message DownloadFileRequest {
   string session_id = 1;
-  // The ID of the artifact file to download.
-  string file_id = 2;
-}
-
-message DownloadRecordingFileRequest {
-  string session_id = 1;
-  // The ID of the JFR recording file to download.
+  // The ID of the file to download, as the session's listing reports it.
   string file_id = 2;
 }
 

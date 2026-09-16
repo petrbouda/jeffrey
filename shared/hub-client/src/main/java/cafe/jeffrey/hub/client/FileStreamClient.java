@@ -29,7 +29,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.Iterator;
 
-public class RecordingStreamClient {
+public class FileStreamClient {
 
     @FunctionalInterface
     public interface InputStreamConsumer {
@@ -39,37 +39,36 @@ public class RecordingStreamClient {
     /**
      * What the hub said it was sending, before a byte of it is written.
      *
-     * @param name the name the file has on the hub, or blank when it sent none
+     * @param name the name the file has on the hub — which is the name the receiver writes, not
+     *             the one it asked for. A caller's listing is older than its request, and the
+     *             compression job may have replaced {@code x.jfr} with {@code x.jfr.lz4} since.
+     *             Written under the remembered name, an LZ4 frame sits in a file called
+     *             {@code .jfr}, and compression is recognised by the extension — nothing sniffs
+     *             the frame — so every reader treats it as a raw recording and fails on the
+     *             chunk magic.
      * @param size the file's size, or {@link #UNKNOWN_CONTENT_LENGTH} when the hub sent none
      */
     public record TransferredFile(String name, long size) {
 
         /**
-         * The name to write the bytes under: the hub's, falling back to the one the caller
-         * expected when the hub sent none.
-         *
-         * <p>The hub's name wins because the caller's is older than the transfer. A listing says
-         * {@code profile-1.jfr}; the compression job replaces that file with
-         * {@code profile-1.jfr.lz4} a moment later; the bytes that arrive are the archive's.
-         * Written under the name the caller remembered, they are an LZ4 frame in a file called
-         * {@code .jfr}, and compression is recognised by the extension — nothing sniffs the frame
-         * — so every reader of it treats it as a raw recording and fails on the chunk magic.
-         *
-         * <p>Reduced to a single path element, because this name came off the wire and is about
-         * to be resolved into a directory.
+         * Reduced to a single path element here rather than at each place that resolves it into a
+         * directory: the name comes off the wire, and one guard that cannot be forgotten beats
+         * three that can.
          */
-        public String nameOr(String expected) {
-            String candidate = name == null || name.isBlank() ? expected : name;
-            String element = Path.of(candidate).getFileName().toString();
-            if (element.isBlank() || element.equals(".") || element.equals("..")) {
+        public TransferredFile {
+            if (name == null || name.isBlank()) {
                 throw new IllegalArgumentException(
-                        "Refusing a transferred file name that is not a single path element: " + candidate);
+                        "The hub sent a file with no name; there is nothing to write it as.");
             }
-            return element;
+            name = Path.of(name).getFileName().toString();
+            if (name.isBlank() || name.equals(".") || name.equals("..")) {
+                throw new IllegalArgumentException(
+                        "Refusing a transferred file name that is not a single path element");
+            }
         }
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(RecordingStreamClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FileStreamClient.class);
 
     private static final int PIPE_BUFFER_SIZE = 64 * 1024;
 
@@ -78,33 +77,27 @@ public class RecordingStreamClient {
      */
     private static final long UNKNOWN_CONTENT_LENGTH = -1;
 
-    private final RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub;
+    private final FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub;
 
-    public RecordingStreamClient(GrpcHubConnection connection) {
-        this.stub = RecordingDownloadServiceGrpc.newBlockingStub(connection.getChannel());
+    public FileStreamClient(GrpcHubConnection connection) {
+        this.stub = FileDownloadServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public void streamArtifactFile(
-            String sessionId, String fileId, InputStreamConsumer consumer) {
-
-        DownloadArtifactFileRequest request = DownloadArtifactFileRequest.newBuilder()
+    /**
+     * Pulls one file of a session onto this machine, whatever kind it is.
+     *
+     * <p>One call for every kind. There were two, and they differed only in the RPC they named:
+     * the hub looked the file up, checked its category and streamed the bytes either way. What
+     * the category decides is what the caller does with the file afterwards, and the caller read
+     * it off the listing that gave it this id.
+     */
+    public void streamFile(String sessionId, String fileId, InputStreamConsumer consumer) {
+        DownloadFileRequest request = DownloadFileRequest.newBuilder()
                 .setSessionId(sessionId)
                 .setFileId(fileId)
                 .build();
 
-        Iterator<DataChunk> chunks = stub.downloadArtifactFile(request);
-        streamChunksToConsumer(chunks, consumer);
-    }
-
-    public void streamRecordingFile(
-            String sessionId, String fileId, InputStreamConsumer consumer) {
-
-        DownloadRecordingFileRequest request = DownloadRecordingFileRequest.newBuilder()
-                .setSessionId(sessionId)
-                .setFileId(fileId)
-                .build();
-
-        Iterator<DataChunk> chunks = stub.downloadRecordingFile(request);
+        Iterator<DataChunk> chunks = stub.downloadFile(request);
         streamChunksToConsumer(chunks, consumer);
     }
 
