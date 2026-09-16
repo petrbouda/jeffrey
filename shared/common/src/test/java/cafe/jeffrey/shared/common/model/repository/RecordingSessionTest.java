@@ -39,6 +39,16 @@ class RecordingSessionTest {
                 SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
     }
 
+    private static RepositoryFile recording(String name, Instant createdAt, RecordingStatus status) {
+        return new RepositoryFile(
+                name, name, createdAt, 1L, SupportedRecordingFile.JFR, status, null);
+    }
+
+    private static RepositoryFile artifact(String name, Instant createdAt) {
+        return new RepositoryFile(
+                name, name, createdAt, 1L, SupportedRecordingFile.APP_LOG, RecordingStatus.FINISHED, null);
+    }
+
     private static RecordingSession session(Instant finishedAt, RepositoryFile... files) {
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         return new RecordingSession(
@@ -80,4 +90,59 @@ class RecordingSessionTest {
             assertFalse(session(null).isFailedEmpty());
         }
     }
+
+    /**
+     * Which chunk carries the session's one-shot configuration events, and — once the session has
+     * finished — its {@code jdk.Shutdown}.
+     */
+    @Nested
+    class LatestFinishedRecording {
+
+        @Test
+        void takesTheNewestClosedChunk() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    recording("c1", CREATED_AT, RecordingStatus.FINISHED),
+                    recording("c3", CREATED_AT.plusSeconds(120), RecordingStatus.FINISHED),
+                    recording("c2", CREATED_AT.plusSeconds(60), RecordingStatus.FINISHED));
+
+            assertEquals("c3", recordingSession.latestFinishedRecording().orElseThrow().name());
+        }
+
+        @Test
+        void skipsTheChunkStillBeingWritten() {
+            // Reading an open chunk is what produces a truncated answer, so the newest CLOSED one
+            // is the answer even though a newer file exists.
+            RecordingSession recordingSession = session(
+                    null,
+                    recording("c1", CREATED_AT, RecordingStatus.FINISHED),
+                    recording("c2", CREATED_AT.plusSeconds(60), RecordingStatus.ACTIVE));
+
+            assertEquals("c1", recordingSession.latestFinishedRecording().orElseThrow().name());
+        }
+
+        @Test
+        void ignoresArtifacts() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    recording("c1", CREATED_AT, RecordingStatus.FINISHED),
+                    artifact("app.log", CREATED_AT.plusSeconds(120)));
+
+            assertEquals("c1", recordingSession.latestFinishedRecording().orElseThrow().name());
+        }
+
+        @Test
+        void isEmptyWhenNoChunkHasBeenClosedYet() {
+            RecordingSession recordingSession = session(
+                    null, recording("c1", CREATED_AT, RecordingStatus.ACTIVE));
+
+            assertTrue(recordingSession.latestFinishedRecording().isEmpty());
+        }
+
+        @Test
+        void isEmptyForASessionLoadedWithoutFiles() {
+            assertTrue(session(FINISHED_AT).latestFinishedRecording().isEmpty());
+        }
+    }
+
 }

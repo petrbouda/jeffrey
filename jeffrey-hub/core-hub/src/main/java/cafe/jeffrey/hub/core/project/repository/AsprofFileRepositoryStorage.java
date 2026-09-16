@@ -513,15 +513,48 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .filter(Objects::nonNull)
                 .toList();
 
-        Optional<RepositoryFile> latestRecordingFile = repositoryFiles.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .findFirst();
+        return withOpenChunkMarked(repositoryFiles, recordingStatus);
+    }
 
-        // Updates the status of the latest recording according to the status of the session.
-        if (recordingStatus != RecordingStatus.FINISHED && latestRecordingFile.isPresent()) {
-            latestRecordingFile.get().withNonFinishedStatus(recordingStatus);
+    /**
+     * Carries the session's status onto the one chunk the profiler is still writing, which
+     * {@link #describe} cannot know about because it sees one file at a time.
+     *
+     * <p>That chunk is the newest recording file by {@code createdAt}, which is the timestamp in
+     * its own name. It is emphatically <em>not</em> "the first one the listing happens to return":
+     * the listing is sorted by filename for presentation, and every other reader of these files —
+     * {@code ChunkWindow}, {@link RecordingSession#latestFinishedRecording()}, both retention jobs,
+     * {@link #recordings} — orders them by {@code createdAt}. Deciding this one by list position
+     * left two notions of "newest" in the same class that agreed only while every file followed the
+     * naming convention; a recording whose name the processor does not recognise takes its
+     * timestamp from the filesystem while the sort still goes by the name.
+     *
+     * <p>A finished session has no open chunk, and neither has a live session that has not closed
+     * a file yet — both come back exactly as they were described.
+     */
+    static List<RepositoryFile> withOpenChunkMarked(
+            List<RepositoryFile> files, RecordingStatus sessionStatus) {
+
+        if (sessionStatus == RecordingStatus.FINISHED) {
+            return files;
         }
 
-        return repositoryFiles;
+        Optional<RepositoryFile> openChunk = files.stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .max(Comparator.comparing(
+                        RepositoryFile::createdAt,
+                        Comparator.nullsFirst(Comparator.naturalOrder())));
+
+        if (openChunk.isEmpty()) {
+            return files;
+        }
+
+        // Identity, not equality and not the id: a recording and the archive being written beside
+        // it strip to the same id while a compression is in flight, and only one of the two is the
+        // chunk the profiler holds open.
+        RepositoryFile open = openChunk.get();
+        return files.stream()
+                .map(file -> file == open ? file.withStatus(sessionStatus) : file)
+                .toList();
     }
 }

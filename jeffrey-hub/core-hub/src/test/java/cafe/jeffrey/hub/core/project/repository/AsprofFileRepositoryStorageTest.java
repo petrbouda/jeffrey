@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,6 +43,103 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 
 class AsprofFileRepositoryStorageTest {
+
+    /**
+     * Which chunk a live session is still writing. Everything downstream rests on this: the
+     * compression job refuses to touch it, both retention jobs refuse to delete it, and
+     * {@link AsprofFileRepositoryStorage#sizeReader} opens it rather than trusting the listing.
+     */
+    @Nested
+    class OpenChunk {
+
+        private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
+
+        private static RepositoryFile recording(String name, Instant createdAt) {
+            return new RepositoryFile(
+                    name, name, createdAt, 1L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+        }
+
+        private static RepositoryFile artifact(String name, Instant createdAt) {
+            return new RepositoryFile(
+                    name, name, createdAt, 1L, SupportedRecordingFile.APP_LOG, RecordingStatus.FINISHED, null);
+        }
+
+        private static RecordingStatus statusOf(List<RepositoryFile> files, String name) {
+            return files.stream()
+                    .filter(file -> file.name().equals(name))
+                    .findFirst()
+                    .orElseThrow()
+                    .status();
+        }
+
+        @Test
+        void marksTheNewestRecordingOfALiveSession() {
+            List<RepositoryFile> marked = AsprofFileRepositoryStorage.withOpenChunkMarked(
+                    List.of(recording("c1", T0),
+                            recording("c3", T0.plusSeconds(120)),
+                            recording("c2", T0.plusSeconds(60))),
+                    RecordingStatus.ACTIVE);
+
+            assertEquals(RecordingStatus.ACTIVE, statusOf(marked, "c3"));
+            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "c1"));
+            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "c2"));
+        }
+
+        @Test
+        void picksByTimestampRatherThanByPositionInTheListing() {
+            // The listing arrives sorted by filename for presentation. A recording whose name the
+            // processor does not recognise takes its timestamp from the filesystem, so the two
+            // orders part company — and every other reader of these files goes by the timestamp.
+            List<RepositoryFile> marked = AsprofFileRepositoryStorage.withOpenChunkMarked(
+                    List.of(recording("zzz-oldest", T0),
+                            recording("aaa-newest", T0.plusSeconds(60))),
+                    RecordingStatus.ACTIVE);
+
+            assertEquals(RecordingStatus.ACTIVE, statusOf(marked, "aaa-newest"));
+            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "zzz-oldest"));
+        }
+
+        @Test
+        void neverMarksAnArtifactEvenWhenItIsTheNewestFile() {
+            List<RepositoryFile> marked = AsprofFileRepositoryStorage.withOpenChunkMarked(
+                    List.of(recording("c1", T0),
+                            artifact("app.log", T0.plusSeconds(120))),
+                    RecordingStatus.ACTIVE);
+
+            assertEquals(RecordingStatus.ACTIVE, statusOf(marked, "c1"));
+            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "app.log"));
+        }
+
+        @Test
+        void leavesAFinishedSessionAlone() {
+            List<RepositoryFile> files = List.of(recording("c1", T0), recording("c2", T0.plusSeconds(60)));
+
+            List<RepositoryFile> marked =
+                    AsprofFileRepositoryStorage.withOpenChunkMarked(files, RecordingStatus.FINISHED);
+
+            assertSame(files, marked, "a finished session has no open chunk and needs no new list");
+        }
+
+        @Test
+        void leavesALiveSessionWithNoRecordingAlone() {
+            List<RepositoryFile> files = List.of(artifact("app.log", T0));
+
+            List<RepositoryFile> marked =
+                    AsprofFileRepositoryStorage.withOpenChunkMarked(files, RecordingStatus.ACTIVE);
+
+            assertSame(files, marked);
+        }
+
+        @Test
+        void doesNotMutateTheFilesItWasGiven() {
+            RepositoryFile chunk = recording("c1", T0);
+
+            AsprofFileRepositoryStorage.withOpenChunkMarked(List.of(chunk), RecordingStatus.ACTIVE);
+
+            assertEquals(RecordingStatus.FINISHED, chunk.status(),
+                    "the listing hands out values; marking one must not reach back into it");
+        }
+    }
 
     /**
      * Which files cost a round trip to the share. Every open here is paid per file, per session,
