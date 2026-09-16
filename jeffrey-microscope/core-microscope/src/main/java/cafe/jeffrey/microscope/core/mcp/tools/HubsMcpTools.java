@@ -583,7 +583,7 @@ public class HubsMcpTools {
         }
         String recordingId = transferred.get();
 
-        List<RepositoryFile> finished = finishedFiles(session);
+        List<RepositoryFile> finished = session.finishedFiles();
         if (selection != null) {
             List<RepositoryFile> others = key.others(finished);
             return operations.decorate(McpToolOutput.json(new DownloadedSession(
@@ -706,7 +706,7 @@ public class HubsMcpTools {
      */
     private RecordingSession preflight(ProjectManager project, HubSessionRef ref, HubInfo hubInfo) {
         RecordingSession session = locator.session(project, ref, hubInfo);
-        if (finishedFiles(session).stream().noneMatch(RepositoryFile::isRecordingFile)) {
+        if (session.finishedFiles().stream().noneMatch(RepositoryFile::isRecordingFile)) {
             throw new IllegalArgumentException(
                     "Session " + ref.sessionId() + " has no finished recording file to download"
                             + (session.status() == RecordingStatus.ACTIVE
@@ -714,19 +714,6 @@ public class HubsMcpTools {
                             : "."));
         }
         return session;
-    }
-
-    private static List<RepositoryFile> finishedFiles(RecordingSession session) {
-        if (session.files() == null) {
-            return List.of();
-        }
-        List<RepositoryFile> finished = new ArrayList<>();
-        for (RepositoryFile file : session.files()) {
-            if (file.isFinished()) {
-                finished.add(file);
-            }
-        }
-        return finished;
     }
 
     private DownloadPreflight preflightWithin(HubSessionRef ref, Deadline deadline) {
@@ -972,9 +959,9 @@ public class HubsMcpTools {
             if (wholeSession()) {
                 return null;
             }
-            List<RepositoryFile> finished = finishedFiles(session);
+            List<RepositoryFile> finished = session.finishedFiles();
             if (window != null) {
-                ChunkWindow.Selection selection = window.select(finished, session.finishedAt());
+                ChunkWindow.Selection selection = window.select(session);
                 if (selection.isEmpty()) {
                     throw new IllegalArgumentException("No finished chunk of session " + ref.sessionId()
                             + " covers the window: the session started at " + session.createdAt()
@@ -991,7 +978,7 @@ public class HubsMcpTools {
                 throw new IllegalArgumentException("Session " + ref.sessionId() + " has no finished file "
                         + unknown + ". Take file_id values from hubs_files; a file still being written is not one yet.");
             }
-            ChunkWindow.Selection selection = ChunkWindow.ofFiles(finished, Set.copyOf(fileIds), session.finishedAt());
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(session, Set.copyOf(fileIds));
             if (selection.isEmpty()) {
                 throw new IllegalArgumentException("None of the fileIds is a JFR chunk of session " + ref.sessionId()
                         + ": a recording needs at least one. A log or a heap dump on its own is what hubs_fetchFile is for.");
@@ -1003,7 +990,7 @@ public class HubsMcpTools {
             // selection to judge.
             if (!selection.contiguous()) {
                 throw new IllegalArgumentException("The chunks named for session " + ref.sessionId()
-                        + " are not next to each other: " + selection.describeGap(finished)
+                        + " are not next to each other: " + selection.describeGap(session)
                         + " lies between them. hubs_download makes them one recording reporting one span, so they have "
                         + "to be an unbroken run. Name the chunks in between as well, or ask for the span with "
                         + "startTime and endTime and let the window pick them.");

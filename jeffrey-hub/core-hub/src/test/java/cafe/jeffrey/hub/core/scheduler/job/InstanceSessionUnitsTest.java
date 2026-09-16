@@ -124,7 +124,7 @@ class InstanceSessionUnitsTest {
         Instant createdAt = NOW.minus(Duration.ofHours(hoursOld));
         RepositoryFile file = new RepositoryFile(
                 id + "-file", id + "-file", createdAt, 10 * MB,
-                SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                SupportedRecordingFile.JFR, null);
         return session(id, createdAt, createdAt.plusSeconds(60), file);
     }
 

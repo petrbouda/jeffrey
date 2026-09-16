@@ -90,10 +90,9 @@ public class ProjectInstanceRecordingCleanerJob extends RepositoryProjectJob<Pro
 
         Instant currentTime = clock.instant();
 
-        // Find recording files older than the retention period that are finished
-        List<String> filesToDelete = sessionWithFiles.get().files().stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(RepositoryFile::isFinished)
+        // Closed chunks older than the retention period. The one the profiler is still writing
+        // is not among them — finishedRecordings() is what leaves it out.
+        List<String> filesToDelete = sessionWithFiles.get().finishedRecordings().stream()
                 .filter(file -> currentTime.isAfter(file.createdAt().plus(duration)))
                 .map(RepositoryFile::id)
                 .toList();

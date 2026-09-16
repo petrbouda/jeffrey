@@ -95,7 +95,7 @@ class InstanceGrpcServiceTest {
                 ? List.of()
                 : List.of(new RepositoryFile(
                         id + "-file", id + "-file", FIXED_TIME, 1024L,
-                        SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null));
+                        SupportedRecordingFile.JFR, null));
 
         return new RecordingSession(
                 id, id, INSTANCE_ID, FIXED_TIME, FIXED_TIME.plusSeconds(60),

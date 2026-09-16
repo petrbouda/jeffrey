@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,22 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.project.repository.file;
+package cafe.jeffrey.shared.common.model.repository;
+
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;
-import java.util.Comparator;
+import java.time.Instant;
 
 /**
- * How a repository's own layout is read — which, now that a file's timestamp is the business of
- * its {@link cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile type}, is the
- * order its directory is listed in.
+ * The file's creation time, for every type that does not carry the instant in its own name.
+ *
+ * <p>Right for a file nothing has rewritten, and only for such a file: an archive's creation time
+ * is when the archive was written, not when the recording inside it was opened.
  */
-public interface FileInfoProcessor {
+final class FilesystemTimestamp implements TimestampResolver {
 
-    /**
-     * Returns a comparator that can be used to sort files in the folder.
-     *
-     * @return a comparator for sorting files
-     */
-    Comparator<Path> comparator();
+    @Override
+    public Instant resolve(Path file) {
+        return FileSystemUtils.createdAt(file);
+    }
 }

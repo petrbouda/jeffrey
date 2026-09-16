@@ -98,6 +98,20 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
         });
     }
 
+    /**
+     * What the first chunk says about the whole transfer: how many bytes are coming, and the name
+     * the file has here <em>now</em>. The caller listed the session some time ago and the
+     * compression job may have renamed the file since; written under the name it asked for, an
+     * archive is read as a plain recording and fails on the chunk magic.
+     */
+    private static DataChunk.Builder header(
+            DataChunk.Builder builder, StreamedRecordingFile recordingFile, long totalSize) {
+
+        return builder
+                .setTotalSize(totalSize)
+                .setFilename(recordingFile.fileName());
+    }
+
     private static void streamWithBackpressure(
             StreamedRecordingFile recordingFile,
             ServerCallStreamObserver<DataChunk> observer,
@@ -118,16 +132,24 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
                 DataChunk.Builder builder = DataChunk.newBuilder()
                         .setData(ByteString.copyFrom(buffer, 0, bytesRead));
                 if (firstChunk) {
-                    builder.setTotalSize(totalSize);
+                    header(builder, recordingFile, totalSize);
                     firstChunk = false;
                 }
                 observer.onNext(builder.build());
             }
         }
 
-        if (!gate.isCancelled()) {
-            observer.onCompleted();
+        if (gate.isCancelled()) {
+            return;
         }
+
+        // A file with no bytes still has to say what it is. Without this the reader is handed a
+        // stream with no name and no size, and has to guess both from what it asked for.
+        if (firstChunk) {
+            observer.onNext(header(DataChunk.newBuilder(), recordingFile, totalSize).build());
+        }
+
+        observer.onCompleted();
     }
 
 }

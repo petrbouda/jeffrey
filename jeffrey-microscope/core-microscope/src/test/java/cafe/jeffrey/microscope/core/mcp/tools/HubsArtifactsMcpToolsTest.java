@@ -103,17 +103,29 @@ class HubsArtifactsMcpToolsTest {
                 home.resolve("profiles"), operations, CLOCK, Duration.ofSeconds(5), Duration.ofSeconds(5));
     }
 
-    private static RepositoryFile file(String id, String name, SupportedRecordingFile type, RecordingStatus status) {
-        return new RepositoryFile(id, name, NOW, 2048L, type, status, null);
+    private static RepositoryFile file(String id, String name, SupportedRecordingFile type) {
+        return file(id, name, type, NOW);
+    }
+
+    private static RepositoryFile file(String id, String name, SupportedRecordingFile type, Instant createdAt) {
+        return new RepositoryFile(id, name, createdAt, 2048L, type, null);
     }
 
     private static RepositoryFile finished(String id, String name, SupportedRecordingFile type) {
-        return file(id, name, type, RecordingStatus.FINISHED);
+        return file(id, name, type);
     }
 
     private static RecordingSession session(RepositoryFile... files) {
         return new RecordingSession(SESSION_ID, "instance-1", "inst-1", NOW, NOW.plusSeconds(600),
                 RecordingStatus.FINISHED, null, List.of(files), false);
+    }
+
+    /**
+     * A session that is still recording, so its newest chunk is the one the profiler holds open.
+     */
+    private static RecordingSession liveSession(RepositoryFile... files) {
+        return new RecordingSession(SESSION_ID, "instance-1", "inst-1", NOW, null,
+                RecordingStatus.ACTIVE, null, List.of(files), false);
     }
 
     private void hubHolds(RecordingSession session) {
@@ -192,15 +204,34 @@ class HubsArtifactsMcpToolsTest {
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
                     finished("f-log", "service-app.log", SupportedRecordingFile.APP_LOG),
                     finished("f-crash", "hs-jvm-err.log", SupportedRecordingFile.HS_JVM_ERROR_LOG),
-                    file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
+                    finished("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG)));
 
             String text = tools.files(REF.encode());
 
             assertTrue(text.contains("| f-log | service-app.log | APP_LOG | artifact | FINISHED |"), text);
             assertTrue(text.contains("| f-crash | hs-jvm-err.log | HS_JVM_ERROR_LOG | artifact |"), text);
-            assertTrue(text.contains("| f-gc | gc.jvm-log | JVM_LOG | artifact | ACTIVE |"), text);
+            assertTrue(text.contains("| f-gc | gc.jvm-log | JVM_LOG | artifact | FINISHED |"), text);
             assertTrue(text.contains("| f-jfr | profile-1.jfr | JFR | recording |"), text);
             assertTrue(text.contains("hubs_fetchFile"), text);
+        }
+
+        /**
+         * The status column is derived here rather than sent: no file carries one, so the row for
+         * the chunk the profiler still holds open is the session's status, and every other row —
+         * the earlier chunks and every artifact beside them — reads FINISHED.
+         */
+        @Test
+        void theOpenChunkOfALiveSessionIsTheOnlyRowThatIsNotFinished() {
+            hubHolds(liveSession(
+                    file("f-c1", "profile-1.jfr", SupportedRecordingFile.JFR, NOW),
+                    file("f-c2", "profile-2.jfr", SupportedRecordingFile.JFR, NOW.plusSeconds(60)),
+                    file("f-log", "service-app.log", SupportedRecordingFile.APP_LOG, NOW.plusSeconds(120))));
+
+            String text = tools.files(REF.encode());
+
+            assertTrue(text.contains("| f-c2 | profile-2.jfr | JFR | recording | ACTIVE |"), text);
+            assertTrue(text.contains("| f-c1 | profile-1.jfr | JFR | recording | FINISHED |"), text);
+            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | artifact | FINISHED |"), text);
         }
 
         @Test
@@ -254,8 +285,7 @@ class HubsArtifactsMcpToolsTest {
             hubHolds(session(
                     finished("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR),
                     finished("f-log", "service-app.log", SupportedRecordingFile.APP_LOG),
-                    finished("f-odd", "notes.txt", SupportedRecordingFile.UNKNOWN),
-                    file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
+                    finished("f-odd", "notes.txt", SupportedRecordingFile.UNKNOWN)));
 
             String text = tools.files(REF.encode());
 
@@ -263,7 +293,6 @@ class HubsArtifactsMcpToolsTest {
             // the last two cells of each row: an empty `local`, then `fetch`
             assertTrue(text.contains("|  | fetch |"), text);
             assertTrue(text.contains("|  | hubs_download |"), text);
-            assertTrue(text.contains("|  | when finished |"), text);
             assertTrue(text.contains("|  | no |"), text);
         }
 
@@ -372,14 +401,21 @@ class HubsArtifactsMcpToolsTest {
             assertTrue(refused.getMessage().contains("hubs_download"), refused.getMessage());
         }
 
+        /**
+         * An artifact of a session that is still recording is fetched like any other. Only the
+         * newest recording chunk is held open, and a log a reader wants to grep before deciding
+         * whether the recording is worth the transfer is the whole point of this family.
+         */
         @Test
-        void aFileStillBeingWrittenIsRefused() {
-            hubHolds(session(file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, RecordingStatus.ACTIVE)));
+        void anArtifactOfALiveSessionIsStillFetched() throws IOException {
+            hubHolds(liveSession(
+                    file("f-jfr", "profile-1.jfr", SupportedRecordingFile.JFR, NOW.plusSeconds(60)),
+                    file("f-gc", "gc.jvm-log", SupportedRecordingFile.JVM_LOG, NOW.plusSeconds(120))));
+            when(repository.streamFile(SESSION_ID, "f-gc")).thenReturn(streamed("gc.jvm-log"));
 
-            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-                    () -> tools.fetchFile(REF.encode(), "f-gc"));
+            String answer = tools.fetchFile(REF.encode(), "f-gc");
 
-            assertTrue(refused.getMessage().contains("still being written"), refused.getMessage());
+            assertTrue(answer.contains("gc.jvm-log"), answer);
         }
 
         @Test

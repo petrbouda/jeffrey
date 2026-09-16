@@ -73,20 +73,33 @@ class SessionEnvironmentReaderTest {
         }
     }
 
-    private static RepositoryFile recording(String id, Instant createdAt, RecordingStatus status) {
+    private static RepositoryFile recording(String id, Instant createdAt) {
         return new RepositoryFile(
-                id, id + ".jfr", createdAt, 1L, SupportedRecordingFile.JFR, status, Path.of(id + ".jfr"));
+                id, id + ".jfr", createdAt, 1L, SupportedRecordingFile.JFR, Path.of(id + ".jfr"));
     }
 
     private static RepositoryFile artifact(String id) {
         return new RepositoryFile(
-                id, id + ".log", T0, 1L, SupportedRecordingFile.APP_LOG, RecordingStatus.FINISHED,
+                id, id + ".log", T0, 1L, SupportedRecordingFile.APP_LOG,
                 Path.of(id + ".log"));
     }
 
-    private static RecordingSession session(RepositoryFile... files) {
+    /**
+     * A session that is still recording, so its newest chunk is the one the profiler holds open
+     * and the reader must not take it.
+     */
+    private static RecordingSession liveSession(RepositoryFile... files) {
+        return session(null, files);
+    }
+
+    private static RecordingSession finishedSession(RepositoryFile... files) {
+        return session(T0.plusSeconds(600), files);
+    }
+
+    private static RecordingSession session(Instant finishedAt, RepositoryFile... files) {
         return new RecordingSession(
-                SESSION_ID, SESSION_ID, "instance-1", T0, null, RecordingStatus.ACTIVE, null,
+                SESSION_ID, SESSION_ID, "instance-1", T0, finishedAt,
+                finishedAt == null ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED, null,
                 List.of(files), false);
     }
 
@@ -95,10 +108,10 @@ class SessionEnvironmentReaderTest {
 
         @Test
         void parsesTheNewestFinishedChunk() {
-            FakeRepositoryManager hub = new FakeRepositoryManager(session(
-                    recording("chunk-1", T0, RecordingStatus.FINISHED),
-                    recording("chunk-2", T0.plusSeconds(60), RecordingStatus.FINISHED),
-                    recording("chunk-3", T0.plusSeconds(120), RecordingStatus.ACTIVE)));
+            FakeRepositoryManager hub = new FakeRepositoryManager(liveSession(
+                    recording("chunk-1", T0),
+                    recording("chunk-2", T0.plusSeconds(60)),
+                    recording("chunk-3", T0.plusSeconds(120))));
 
             Optional<ObjectNode> environment =
                     new SessionEnvironmentReader(hub, parser).forSession(SESSION_ID, false);
@@ -111,8 +124,8 @@ class SessionEnvironmentReaderTest {
 
         @Test
         void cleansUpTheDownloadedChunk() {
-            FakeRepositoryManager hub = new FakeRepositoryManager(session(
-                    recording("chunk-1", T0, RecordingStatus.FINISHED)));
+            FakeRepositoryManager hub = new FakeRepositoryManager(finishedSession(
+                    recording("chunk-1", T0)));
 
             new SessionEnvironmentReader(hub, parser).forSession(SESSION_ID, false);
 
@@ -125,8 +138,8 @@ class SessionEnvironmentReaderTest {
 
         @Test
         void isEmptyWhenNoChunkHasBeenClosedYet() {
-            FakeRepositoryManager hub = new FakeRepositoryManager(session(
-                    recording("chunk-1", T0, RecordingStatus.ACTIVE)));
+            FakeRepositoryManager hub = new FakeRepositoryManager(liveSession(
+                    recording("chunk-1", T0)));
 
             Optional<ObjectNode> environment =
                     new SessionEnvironmentReader(hub, parser).forSession(SESSION_ID, false);
@@ -137,7 +150,7 @@ class SessionEnvironmentReaderTest {
 
         @Test
         void isEmptyWhenTheSessionHasOnlyArtifacts() {
-            FakeRepositoryManager hub = new FakeRepositoryManager(session(artifact("app")));
+            FakeRepositoryManager hub = new FakeRepositoryManager(finishedSession(artifact("app")));
 
             Optional<ObjectNode> environment =
                     new SessionEnvironmentReader(hub, parser).forSession(SESSION_ID, false);
@@ -157,8 +170,8 @@ class SessionEnvironmentReaderTest {
 
         @Test
         void isEmptyWhenTheDownloadFails() {
-            FakeRepositoryManager hub = new FakeRepositoryManager(session(
-                    recording("chunk-1", T0, RecordingStatus.FINISHED)));
+            FakeRepositoryManager hub = new FakeRepositoryManager(finishedSession(
+                    recording("chunk-1", T0)));
             hub.failStreaming = true;
 
             Optional<ObjectNode> environment =

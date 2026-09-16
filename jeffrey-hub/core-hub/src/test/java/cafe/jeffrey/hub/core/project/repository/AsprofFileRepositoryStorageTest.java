@@ -20,6 +20,9 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
+import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.shared.common.model.RepositoryInfo;
+import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -35,111 +38,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AsprofFileRepositoryStorageTest {
 
-    /**
-     * Which chunk a live session is still writing. Everything downstream rests on this: the
-     * compression job refuses to touch it, both retention jobs refuse to delete it, and
-     * {@link AsprofFileRepositoryStorage#sizeReader} opens it rather than trusting the listing.
-     */
-    @Nested
-    class OpenChunk {
-
-        private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
-
-        private static RepositoryFile recording(String name, Instant createdAt) {
-            return new RepositoryFile(
-                    name, name, createdAt, 1L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
-        }
-
-        private static RepositoryFile artifact(String name, Instant createdAt) {
-            return new RepositoryFile(
-                    name, name, createdAt, 1L, SupportedRecordingFile.APP_LOG, RecordingStatus.FINISHED, null);
-        }
-
-        private static RecordingStatus statusOf(List<RepositoryFile> files, String name) {
-            return files.stream()
-                    .filter(file -> file.name().equals(name))
-                    .findFirst()
-                    .orElseThrow()
-                    .status();
-        }
-
-        @Test
-        void marksTheNewestRecordingOfALiveSession() {
-            List<RepositoryFile> marked = AsprofFileRepositoryStorage.withOpenChunkMarked(
-                    List.of(recording("c1", T0),
-                            recording("c3", T0.plusSeconds(120)),
-                            recording("c2", T0.plusSeconds(60))),
-                    RecordingStatus.ACTIVE);
-
-            assertEquals(RecordingStatus.ACTIVE, statusOf(marked, "c3"));
-            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "c1"));
-            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "c2"));
-        }
-
-        @Test
-        void picksByTimestampRatherThanByPositionInTheListing() {
-            // The listing arrives sorted by filename for presentation. A recording whose name the
-            // processor does not recognise takes its timestamp from the filesystem, so the two
-            // orders part company — and every other reader of these files goes by the timestamp.
-            List<RepositoryFile> marked = AsprofFileRepositoryStorage.withOpenChunkMarked(
-                    List.of(recording("zzz-oldest", T0),
-                            recording("aaa-newest", T0.plusSeconds(60))),
-                    RecordingStatus.ACTIVE);
-
-            assertEquals(RecordingStatus.ACTIVE, statusOf(marked, "aaa-newest"));
-            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "zzz-oldest"));
-        }
-
-        @Test
-        void neverMarksAnArtifactEvenWhenItIsTheNewestFile() {
-            List<RepositoryFile> marked = AsprofFileRepositoryStorage.withOpenChunkMarked(
-                    List.of(recording("c1", T0),
-                            artifact("app.log", T0.plusSeconds(120))),
-                    RecordingStatus.ACTIVE);
-
-            assertEquals(RecordingStatus.ACTIVE, statusOf(marked, "c1"));
-            assertEquals(RecordingStatus.FINISHED, statusOf(marked, "app.log"));
-        }
-
-        @Test
-        void leavesAFinishedSessionAlone() {
-            List<RepositoryFile> files = List.of(recording("c1", T0), recording("c2", T0.plusSeconds(60)));
-
-            List<RepositoryFile> marked =
-                    AsprofFileRepositoryStorage.withOpenChunkMarked(files, RecordingStatus.FINISHED);
-
-            assertSame(files, marked, "a finished session has no open chunk and needs no new list");
-        }
-
-        @Test
-        void leavesALiveSessionWithNoRecordingAlone() {
-            List<RepositoryFile> files = List.of(artifact("app.log", T0));
-
-            List<RepositoryFile> marked =
-                    AsprofFileRepositoryStorage.withOpenChunkMarked(files, RecordingStatus.ACTIVE);
-
-            assertSame(files, marked);
-        }
-
-        @Test
-        void doesNotMutateTheFilesItWasGiven() {
-            RepositoryFile chunk = recording("c1", T0);
-
-            AsprofFileRepositoryStorage.withOpenChunkMarked(List.of(chunk), RecordingStatus.ACTIVE);
-
-            assertEquals(RecordingStatus.FINISHED, chunk.status(),
-                    "the listing hands out values; marking one must not reach back into it");
-        }
-    }
+    private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
 
     /**
      * Which files cost a round trip to the share. Every open here is paid per file, per session,
@@ -207,7 +119,7 @@ class AsprofFileRepositoryStorageTest {
             Path session = sessionDir();
             Path file = Files.write(session.resolve("gc.jvm-log"), CONTENT);
 
-            RepositoryFile described = storage().describe(file, RecordingStatus.ACTIVE, workspace, session);
+            RepositoryFile described = storage().describe(file, RecordingStatus.ACTIVE, session);
 
             assertNotNull(described);
             assertEquals("gc.jvm-log", described.name());
@@ -223,7 +135,7 @@ class AsprofFileRepositoryStorageTest {
             Path session = sessionDir();
             Path vanished = session.resolve("profile-20260912-121559.jfr.1~");
 
-            assertNull(storage().describe(vanished, RecordingStatus.ACTIVE, workspace, session));
+            assertNull(storage().describe(vanished, RecordingStatus.ACTIVE, session));
         }
 
         @Test
@@ -231,7 +143,245 @@ class AsprofFileRepositoryStorageTest {
             Path session = sessionDir();
             Path vanished = session.resolve("profile-20260912-121559.jfr");
 
-            assertNull(storage().describe(vanished, RecordingStatus.FINISHED, workspace, session));
+            assertNull(storage().describe(vanished, RecordingStatus.FINISHED, session));
+        }
+    }
+
+    /**
+     * Handing a session's recordings over. A lookup and nothing else: what the reader receives
+     * must be the file the listing named, because the download carries the bytes and their
+     * length and no name at all.
+     */
+    @Nested
+    class Recordings {
+
+        private static final String SESSION_ID = "session-1";
+        private static final String PROJECT = "project";
+        private static final String INSTANCE = "instance";
+
+        @TempDir
+        Path workspacesDir;
+
+        private final ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
+
+        private Path sessionDir() throws IOException {
+            return Files.createDirectories(
+                    workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
+        }
+
+        private AsprofFileRepositoryStorage storage(Instant finishedAt) {
+            when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
+                    "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
+            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
+                    SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                    T0, T0, finishedAt, false, false, null)));
+            when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
+
+            return new AsprofFileRepositoryStorage(
+                    mock(ProjectInfo.class), workspacesDir, repository, new AsprofFileInfoProcessor());
+        }
+
+        private AsprofFileRepositoryStorage finishedSession() {
+            return storage(T0.plusSeconds(600));
+        }
+
+        private static Path write(Path dir, String name, String content) throws IOException {
+            return Files.write(dir.resolve(name), content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        private static List<String> namesOf(List<Path> paths) {
+            return paths.stream().map(path -> path.getFileName().toString()).toList();
+        }
+
+        /**
+         * The file is handed over as it lies. Compressing it here — which is what this did, so the
+         * transfer would carry less — rewrote the repository in the middle of a read and changed
+         * the file's name under a reader that had already been told the old one.
+         */
+        @Test
+        void handOverTheFileTheListingNamed() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr", "chunk one");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths));
+            assertTrue(Files.exists(session.resolve("profile-20260220-120000.jfr")),
+                    "reading a session must not rewrite it");
+            assertFalse(Files.exists(session.resolve("profile-20260220-120000.jfr.lz4")));
+        }
+
+        @Test
+        void areOldestFirstWhenEveryRecordingIsAsked() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120500.jfr", "second");
+            write(session, "profile-20260220-120000.jfr", "first");
+            write(session, "service-app.log", "not a recording");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of());
+
+            assertEquals(
+                    List.of("profile-20260220-120000.jfr", "profile-20260220-120500.jfr"),
+                    namesOf(paths));
+        }
+
+        @Test
+        void leaveOutTheChunkTheProfilerIsStillWriting() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr", "closed");
+            write(session, "profile-20260220-120500.jfr", "still being written");
+
+            List<Path> paths = storage(null).recordings(SESSION_ID, List.of());
+
+            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths));
+        }
+
+        /**
+         * A profiler stopped before it wrote an event leaves a zero-byte recording. It used to be
+         * dropped by the compression that ran here; it is dropped by its listed size now.
+         */
+        @Test
+        void leaveOutAnEmptyRecording() throws IOException {
+            Path session = sessionDir();
+            Files.createFile(session.resolve("profile-20260220-120000.jfr"));
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of());
+
+            assertEquals(List.of(), paths);
+        }
+
+        /**
+         * The compression job is between writing an archive and removing the recording it was made
+         * from, so one id names two files. The recording is the one certainly complete — the
+         * archive at that moment may still be being written into.
+         */
+        @Test
+        void handOverTheRecordingRatherThanAnArchiveStillBeingWritten() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr", "the whole chunk");
+            write(session, "profile-20260220-120000.jfr.lz4", "half an archive");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths),
+                    "one id, one file - and the one that cannot be half-written");
+        }
+
+        @Test
+        void handOverTheArchiveOnceTheRecordingIsGone() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr.lz4", "the archive");
+
+            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertEquals(List.of("profile-20260220-120000.jfr.lz4"), namesOf(paths));
+        }
+    }
+
+    /**
+     * Deleting the files a caller named by the ids the listing gave them. Both retention jobs and
+     * the UI's delete come through here, and an id that does not find its file frees nothing while
+     * reporting success.
+     */
+    @Nested
+    class DeleteRepositoryFiles {
+
+        private static final String SESSION_ID = "session-1";
+        private static final String PROJECT = "project";
+        private static final String INSTANCE = "instance";
+
+        @TempDir
+        Path workspacesDir;
+
+        private final ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
+
+        private Path sessionDir() throws IOException {
+            return Files.createDirectories(
+                    workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
+        }
+
+        private AsprofFileRepositoryStorage storage() {
+            when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
+                    "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
+            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
+                    SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                    T0, T0, null, false, false, null)));
+
+            return new AsprofFileRepositoryStorage(
+                    mock(ProjectInfo.class), workspacesDir, repository, new AsprofFileInfoProcessor());
+        }
+
+        private static Path write(Path dir, String name) throws IOException {
+            return Files.write(dir.resolve(name), "x".getBytes(StandardCharsets.UTF_8));
+        }
+
+        /**
+         * The id is the name with the recording extension stripped, so it cannot be turned back
+         * into a path by appending it to the session directory — which is what this did, and why
+         * it deleted nothing at all.
+         */
+        @Test
+        void deletesAChunkNamedByItsId() throws IOException {
+            Path session = sessionDir();
+            Path chunk = write(session, "profile-20260220-120000.jfr");
+            Path kept = write(session, "profile-20260220-120500.jfr");
+
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertFalse(Files.exists(chunk));
+            assertTrue(Files.exists(kept), "only the file that was named goes");
+        }
+
+        /**
+         * The id survives the hub compressing the file — that is what stripping the extension is
+         * for — so an id taken from a listing before the compression still names the chunk after.
+         */
+        @Test
+        void deletesTheCompressedFormUnderTheSameId() throws IOException {
+            Path session = sessionDir();
+            Path archive = write(session, "profile-20260220-120000.jfr.lz4");
+
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("profile-20260220-120000"));
+
+            assertFalse(Files.exists(archive));
+        }
+
+        @Test
+        void deletesAnArtifactNamedByItsId() throws IOException {
+            Path session = sessionDir();
+            Path log = write(session, "service-app.log");
+
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("service-app.log"));
+
+            assertFalse(Files.exists(log));
+        }
+
+        @Test
+        void leavesTheSessionAloneForAnIdItDoesNotHold() throws IOException {
+            Path session = sessionDir();
+            Path chunk = write(session, "profile-20260220-120000.jfr");
+
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("profile-20260220-999999"));
+
+            assertTrue(Files.exists(chunk));
+        }
+
+        /**
+         * The ids arrive over gRPC. Resolving one against the session directory let a {@code ../}
+         * walk out of it, and every file the hub could delete was one it would delete. Matching
+         * against the directory's own entries leaves nothing to resolve.
+         */
+        @Test
+        void cannotReachAFileOutsideTheSessionDirectory() throws IOException {
+            Path session = sessionDir();
+            Path outside = write(workspacesDir, "keep-me.txt");
+
+            // Exactly the depth the old resolve() needed: the session sits four levels under the
+            // workspaces directory, so this id named that file and deleteIfExists removed it.
+            assertEquals(workspacesDir, session.resolve("../../../..").normalize());
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("../../../../keep-me.txt"));
+
+            assertTrue(Files.exists(outside), "an id is matched against the session's files, not resolved to a path");
         }
     }
 }

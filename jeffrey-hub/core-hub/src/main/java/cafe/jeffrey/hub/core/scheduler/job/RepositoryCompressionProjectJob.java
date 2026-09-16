@@ -35,14 +35,20 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Scheduler job that compresses FINISHED JFR files using LZ4 compression.
+ * Scheduler job that compresses closed recording files using LZ4 compression.
  * <p>
  * When run without a specific session ID (periodic execution), this job processes:
  * - The ACTIVE session (if any)
  * - The latest FINISHED session
  * <p>
  * Older FINISHED sessions are assumed to be already compressed and are skipped.
- * Only files with status FINISHED are compressed to avoid corrupting active recordings.
+ * <p>
+ * Within a session there is nothing further to decide: every file up to the newest one is
+ * compressed, and a session that is still recording keeps that newest chunk — the one the
+ * profiler holds open — out of it. Whether a session is still recording is what the heartbeat
+ * settles, and the answer reaches here as the session's status; the job itself does not read a
+ * file to find out. Compressing the open chunk would compress a prefix of it and then delete the
+ * file the profiler is writing into.
  */
 public class RepositoryCompressionProjectJob extends RepositoryProjectJob<RepositoryCompressionProjectJobDescriptor> {
 

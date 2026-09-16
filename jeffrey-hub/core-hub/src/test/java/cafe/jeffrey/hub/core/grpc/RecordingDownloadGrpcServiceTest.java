@@ -186,7 +186,7 @@ class RecordingDownloadGrpcServiceTest {
 
     private static RepositoryFile chunk(String id, long startMinute) {
         return new RepositoryFile(id, "profile-" + id + ".jfr", SESSION_START.plusSeconds(startMinute * 60),
-                10L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                10L, SupportedRecordingFile.JFR, null);
     }
 
     /** Three ten-minute chunks, f1 f2 f3, the session finished at +30. */

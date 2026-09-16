@@ -42,6 +42,15 @@ message DownloadRecordingFileRequest {
 message DataChunk {
   // Binary content of this chunk (up to 64KB).
   bytes data = 1;
-  // Total size of the complete file in bytes (same value in every chunk).
+  // Total size of the complete file in bytes. Sent on the first chunk only.
   int64 total_size = 2;
+  // The name the file has on the hub at the moment it is sent, which is what the receiver must
+  // write it as. Not the name the caller asked for: a caller holds a listing taken some time
+  // earlier, and the compression job may have rewritten `x.jfr` as `x.jfr.lz4` since. Written
+  // under the old name, an LZ4 archive is read as a raw recording and fails on the chunk magic,
+  // because compression is recognised by the extension and nothing sniffs the frame.
+  //
+  // Sent on the first chunk only. A file with no bytes is one chunk carrying just this and the
+  // size.
+  string filename = 3;
 }

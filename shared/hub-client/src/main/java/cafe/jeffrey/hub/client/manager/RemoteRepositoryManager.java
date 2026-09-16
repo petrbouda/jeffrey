@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class RemoteRepositoryManager implements RepositoryManager {
 
@@ -90,11 +91,16 @@ public class RemoteRepositoryManager implements RepositoryManager {
     @Override
     public StreamedRecordingFile streamFile(String sessionId, RepositoryFile file) {
         TempDirectory tempDir = tempDirProvider.newTempDir();
-        Path tempFile = tempDir.resolve(file.name());
+        // Named by the transfer, not by the listing that chose it: the compression job may have
+        // replaced the file with its archive in between, and an archive written under the
+        // recording's name is read as a recording and fails.
+        AtomicReference<Path> landed = new AtomicReference<>();
 
         try {
-            RecordingStreamClient.InputStreamConsumer consumer = (inputStream, _) -> {
+            RecordingStreamClient.InputStreamConsumer consumer = (inputStream, transferred) -> {
+                Path tempFile = tempDir.resolve(transferred.nameOr(file.name()));
                 Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+                landed.set(tempFile);
             };
 
             if (file.fileType().fileCategory() == FileCategory.RECORDING) {
@@ -107,7 +113,8 @@ public class RemoteRepositoryManager implements RepositoryManager {
             throw e;
         }
 
-        return new StreamedRecordingFile(file.name(), tempFile, tempDir::close);
+        Path tempFile = landed.get();
+        return new StreamedRecordingFile(tempFile.getFileName().toString(), tempFile, tempDir::close);
     }
 
     @Override

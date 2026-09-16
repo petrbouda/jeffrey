@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 
 import java.nio.file.Path;
@@ -117,25 +116,22 @@ public interface RepositoryStorage {
      */
     List<Path> listSessionDirectoriesOnDisk();
 
-    /**
-     * Type of the repository.
-     *
-     * @return type of the repository.
-     */
-    RepositoryType type();
 
     // ========== Recording Files ==========
 
     /**
-     * Get specific recordings from a session as compressed files.
-     * <p>
-     * Compresses JFR → JFR_LZ4 if needed, stores persistently to avoid re-compression.
-     * Only returns recordings with FINISHED status.
-     * </p>
+     * The paths of a session's closed recording files, as they are on disk.
+     *
+     * <p>A lookup and nothing else: it does not compress, and the file it names is the file the
+     * listing named. Compression belongs to the compression job alone — a reader that receives
+     * bytes cannot be told the name changed under it, because the download carries only the
+     * bytes and their length.
+     *
+     * <p>The chunk the profiler is still writing is never among them.
      *
      * @param sessionId    the session ID
-     * @param recordingIds list of recording IDs to retrieve
-     * @return list of paths to compressed recording files
+     * @param recordingIds the ids to retrieve, or empty for every closed recording of the session
+     * @return paths to the recording files, oldest first
      */
     List<Path> recordings(String sessionId, List<String> recordingIds);
 
