@@ -25,10 +25,10 @@ import java.util.Comparator;
  * For a layout whose filenames carry their own order, newest first by name.
  *
  * <p>Named for async-profiler once, whose chunks are {@code profile-<yyyyMMdd-HHmmss>.jfr} and so
- * sort by name — but the rule is about names sorting, not about who wrote them, and it pairs with
- * {@link FilesystemFileInfoProcessor} for a layout where they do not. That is the same split
- * {@code TimestampResolver} makes between {@code RECORDING_NAME} and {@code FILESYSTEM}, and for
- * the same reason: a name survives a file being rewritten and a filesystem timestamp does not.
+ * sort by name — but the rule is about names sorting, not about who wrote them, which is why it no
+ * longer carries that profiler's name. It is the only implementation there is: a sibling ordering
+ * by modification time was written for a layout whose names say nothing about order, and nothing
+ * ever wired it, so it went rather than sit there implying such a layout exists.
  *
  * <p>Reading the instant back out of the name belonged here too, once. It is
  * {@code TimestampResolver} now, reached through the file's own type, because which files carry a
