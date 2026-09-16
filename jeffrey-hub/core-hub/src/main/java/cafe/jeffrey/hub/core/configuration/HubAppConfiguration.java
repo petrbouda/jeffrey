@@ -29,7 +29,6 @@ import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.file.RecordingNameFileInfoProcessor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
@@ -144,8 +143,7 @@ public class HubAppConfiguration {
         return projectInfo -> new FilesystemRepositoryStorage(
                 projectInfo,
                 jeffreyDirs.workspaces(),
-                platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
-                new RecordingNameFileInfoProcessor());
+                platformRepositories.newProjectRepositoryRepository(projectInfo.id()));
     }
 
     @Bean

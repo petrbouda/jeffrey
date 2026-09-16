@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.hub.core.project.repository.file.RecordingNameFileInfoProcessor;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
@@ -111,8 +110,7 @@ class FilesystemRepositoryStorageTest {
             return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class),
                     workspace,
-                    mock(ProjectRepositoryRepository.class),
-                    new RecordingNameFileInfoProcessor());
+                    mock(ProjectRepositoryRepository.class));
         }
 
         private Path sessionDir() throws IOException {
@@ -186,7 +184,7 @@ class FilesystemRepositoryStorageTest {
             when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
 
             return new FilesystemRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository, new RecordingNameFileInfoProcessor());
+                    mock(ProjectInfo.class), workspacesDir, repository);
         }
 
         private FilesystemRepositoryStorage finishedSession() {
@@ -364,7 +362,7 @@ class FilesystemRepositoryStorageTest {
             when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
 
             return new FilesystemRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository, new RecordingNameFileInfoProcessor());
+                    mock(ProjectInfo.class), workspacesDir, repository);
         }
 
         private FilesystemRepositoryStorage finishedSession() {
@@ -537,7 +535,7 @@ class FilesystemRepositoryStorageTest {
                     T0, T0, null, false, false, null)));
 
             return new FilesystemRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository, new RecordingNameFileInfoProcessor());
+                    mock(ProjectInfo.class), workspacesDir, repository);
         }
 
         private static Path write(Path dir, String name) throws IOException {
