@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.heartbeat;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Optional;
@@ -83,7 +86,7 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
 
     private static final String SESSION_PROPERTY = "jeffrey.current.session";
 
-    private static final System.Logger LOG = System.getLogger(HeartbeatSettings.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(HeartbeatSettings.class);
 
     public HeartbeatSettings {
         if (interval == null) {
@@ -154,14 +157,12 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
         try {
             long millis = Long.parseLong(value);
             if (millis <= 0) {
-                LOG.log(System.Logger.Level.WARNING,
-                        "Heartbeat interval must be positive, using the default: value=" + value);
+                LOG.warn("Heartbeat interval must be positive, using the default: value={}", value);
                 return Optional.empty();
             }
             return Optional.of(Duration.ofMillis(millis));
         } catch (NumberFormatException e) {
-            LOG.log(System.Logger.Level.WARNING,
-                    "Heartbeat interval is not a number of milliseconds, using the default: value=" + value);
+            LOG.warn("Heartbeat interval is not a number of milliseconds, using the default: value={}", value);
             return Optional.empty();
         }
     }

@@ -29,11 +29,31 @@
     </properties>
 
     <!--
-      No compile dependencies, and that is a requirement rather than a happy accident: this jar is
-      compiled into applications Jeffrey profiles but does not own, so anything it brought along
-      would be a version those applications did not choose.
+      One compile dependency, and the list stays that short on purpose: this jar is compiled into
+      applications Jeffrey profiles but does not own, so anything it brought along would be a
+      version those applications did not choose. slf4j-api is the exception that costs them
+      nothing — it is a facade with no implementation, every application that logs already has it,
+      and it is what the rest of Jeffrey logs through, so a heartbeat line is routed, formatted and
+      filtered by the application's own logging configuration rather than by whatever
+      java.util.logging happens to be set to. No binding is declared here; the application's is the
+      one that must win.
     -->
     <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!--
+          Test scope only: without a binding slf4j falls back to a no-op and announces it on
+          stderr on every run. A library never ships one.
+        -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
