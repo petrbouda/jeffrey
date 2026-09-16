@@ -62,6 +62,27 @@ export default class FormattingService {
   }
 
   /**
+   * The same figure {@link formatBytes} produces, split into the number and its unit, for a view
+   * that sets the two at different sizes.
+   *
+   * <p>Derived from formatBytes rather than written beside it, so a card showing a size as a
+   * headline cannot round it differently from a table showing the same size inline. A value with
+   * no unit at all — which is what formatBytes returns for a negative input — comes back with an
+   * empty unit rather than losing its last character to the split.
+   */
+  static formatBytesParts(bytes: number): { value: string; unit: string } {
+    const formatted = FormattingService.formatBytes(bytes);
+    const separator = formatted.lastIndexOf(' ');
+    if (separator < 0) {
+      return { value: formatted, unit: '' };
+    }
+    return {
+      value: formatted.substring(0, separator),
+      unit: formatted.substring(separator + 1)
+    };
+  }
+
+  /**
    * Formats bytes with a single decimal place and short SI-style units (KB/MB/...),
    * trimming trailing zeros (e.g. "1.5 KB", "1 KB").
    */

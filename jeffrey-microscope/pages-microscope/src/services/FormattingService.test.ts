@@ -35,6 +35,28 @@ describe('FormattingService', () => {
     });
   });
 
+  describe('formatBytesParts', () => {
+    it('splits the number from its unit', () => {
+      expect(FormattingService.formatBytesParts(1073741824)).toEqual({
+        value: '1.00',
+        unit: 'GiB'
+      });
+    });
+
+    it('agrees with formatBytes when joined back together', () => {
+      const parts = FormattingService.formatBytesParts(19_783_262_208);
+      expect(`${parts.value} ${parts.unit}`).toBe(FormattingService.formatBytes(19_783_262_208));
+    });
+
+    it('splits zero', () => {
+      expect(FormattingService.formatBytesParts(0)).toEqual({ value: '0.00', unit: 'B' });
+    });
+
+    it('returns an empty unit when the figure carries none', () => {
+      expect(FormattingService.formatBytesParts(-100)).toEqual({ value: '-100', unit: '' });
+    });
+  });
+
   describe('formatDuration', () => {
     it('returns "-" for undefined/null/negative', () => {
       expect(FormattingService.formatDuration(undefined as any)).toBe('-');

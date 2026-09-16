@@ -55,14 +55,11 @@
                 <i class="bi bi-hdd text-success"></i>
                 <span class="compact-stat-title">Storage</span>
               </div>
-              <div class="compact-stat-metrics">
-                <div class="metric-item">
-                  <span class="metric-label">Total Size</span>
-                  <span class="metric-value">{{
-                    FormattingService.formatBytes(repositoryStatistics.totalSize)
-                  }}</span>
-                </div>
+              <div class="storage-figure">
+                <span class="storage-value">{{ storageSize.value }}</span>
+                <span class="storage-unit">{{ storageSize.unit }}</span>
               </div>
+              <p class="storage-caption">across every session of this project</p>
             </div>
           </div>
         </div>
@@ -228,6 +225,15 @@ const statusFilter = ref('');
 const instances = ref<ProjectInstance[]>([]);
 const repositoryStatistics = ref<RepositoryStatistics | null>(null);
 
+/**
+ * The one figure the card carries, split so the number can be set larger than its unit.
+ * Falls back to an empty size rather than to placeholder text: the card is only rendered once
+ * the statistics have arrived, so a reader never sees this.
+ */
+const storageSize = computed(() =>
+  FormattingService.formatBytesParts(repositoryStatistics.value?.totalSize ?? 0)
+);
+
 const pendingCount = computed(() => instances.value.filter(i => i.status === 'PENDING').length);
 const activeCount = computed(() => instances.value.filter(i => i.status === 'ACTIVE').length);
 const finishedCount = computed(() => instances.value.filter(i => i.status === 'FINISHED').length);
@@ -299,6 +305,34 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.storage-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.storage-value {
+  font-size: var(--font-size-xxxl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.storage-unit {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.storage-caption {
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
 /* Compact Stat Cards (matching RepositoryStatistics.vue) */
 .compact-stat-card {
   background: var(--color-bg-card);
