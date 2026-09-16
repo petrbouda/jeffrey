@@ -24,8 +24,6 @@ import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.StatsCategory;
 import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
@@ -35,7 +33,6 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatu
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -43,10 +40,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
@@ -87,49 +81,11 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
-        List<RecordingSession> sessions = this.listRecordingSessions(true);
-        if (sessions.isEmpty()) {
-            return RepositoryStatistics.EMPTY;
-        }
+        long totalSize = listRecordingSessions(true).stream()
+                .mapToLong(RecordingSession::totalSizeBytes)
+                .sum();
 
-        List<RepositoryFile> allFiles = sessions.stream()
-                .flatMap(s -> s.files().stream())
-                .toList();
-
-        Map<StatsCategory, FileTypeStats> byCategory = allFiles.stream()
-                .collect(Collectors.groupingBy(
-                        f -> StatsCategory.of(f.fileType()),
-                        Collectors.teeing(
-                                Collectors.counting(),
-                                Collectors.summingLong(f -> fileSize(f)),
-                                (count, size) -> new FileTypeStats(count.intValue(), size))));
-
-        long totalSize = allFiles.stream().mapToLong(this::fileSize).sum();
-
-        long lastActivity = allFiles.stream()
-                .map(RepositoryFile::createdAt)
-                .filter(Objects::nonNull)
-                .mapToLong(Instant::toEpochMilli)
-                .max()
-                .orElse(0L);
-
-        long biggestSession = sessions.stream()
-                .mapToLong(s -> s.files().stream().mapToLong(this::fileSize).sum())
-                .max()
-                .orElse(0L);
-
-        return RepositoryStatistics.fromCategoryMap(
-                sessions.size(),
-                sessions.getFirst().status(),
-                lastActivity,
-                totalSize,
-                allFiles.size(),
-                biggestSession,
-                byCategory);
-    }
-
-    private long fileSize(RepositoryFile file) {
-        return file.size() != null ? file.size() : 0L;
+        return new RepositoryStatistics(totalSize);
     }
 
     @Override
@@ -144,8 +100,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .sum();
 
         long totalSize = sessions.stream()
-                .flatMap(s -> s.files().stream())
-                .mapToLong(this::fileSize)
+                .mapToLong(RecordingSession::totalSizeBytes)
                 .sum();
 
         return new InstanceStats(fileCount, totalSize);

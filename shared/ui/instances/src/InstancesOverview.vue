@@ -49,101 +49,20 @@
           </div>
 
           <!-- Storage -->
-          <div class="col-md-4 col-xl" v-if="repositoryStatistics">
+          <div class="col-md-4 col-xl" v-if="repositoryStatistics || statisticsError">
             <div class="compact-stat-card">
               <div class="compact-stat-header">
                 <i class="bi bi-hdd text-success"></i>
                 <span class="compact-stat-title">Storage</span>
               </div>
-              <div class="compact-stat-metrics">
-                <div class="metric-item">
-                  <span class="metric-label">Total Size</span>
-                  <span class="metric-value">{{
-                    FormattingService.formatBytes(repositoryStatistics.totalSize)
-                  }}</span>
+              <ErrorState v-if="statisticsError" message="Repository size could not be loaded" />
+              <template v-else>
+                <div class="storage-figure">
+                  <span class="storage-value">{{ storageSize.value }}</span>
+                  <span class="storage-unit">{{ storageSize.unit }}</span>
                 </div>
-                <div class="metric-item">
-                  <span class="metric-label">Total Files</span>
-                  <span class="metric-value">{{ repositoryStatistics.totalFiles }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Biggest Session</span>
-                  <span class="metric-value">{{
-                    FormattingService.formatBytes(repositoryStatistics.biggestSessionSize)
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- File Types -->
-          <div class="col-md-4 col-xl" v-if="repositoryStatistics">
-            <div class="compact-stat-card">
-              <div class="compact-stat-header">
-                <i class="bi bi-files text-info"></i>
-                <span class="compact-stat-title">File Types</span>
-              </div>
-              <div class="compact-stat-metrics compact-stat-metrics-grid">
-                <div class="metric-item metric-header-row">
-                  <span class="metric-label"></span>
-                  <span class="metric-col-header">Count</span>
-                  <span class="metric-col-header">Size</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">JFR Files</span>
-                  <span class="metric-value" style="color: #5e64ff">{{
-                    repositoryStatistics.jfrFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #5e64ff">{{
-                    FormattingService.formatBytes(repositoryStatistics.jfrSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Heap Dumps</span>
-                  <span class="metric-value" style="color: #6f42c1">{{
-                    repositoryStatistics.heapDumpFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #6f42c1">{{
-                    FormattingService.formatBytes(repositoryStatistics.heapDumpSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">JVM Logs</span>
-                  <span class="metric-value" style="color: #14b8a6">{{
-                    repositoryStatistics.logFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #14b8a6">{{
-                    FormattingService.formatBytes(repositoryStatistics.logSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Application Logs</span>
-                  <span class="metric-value" style="color: #8b5e3c">{{
-                    repositoryStatistics.appLogFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #8b5e3c">{{
-                    FormattingService.formatBytes(repositoryStatistics.appLogSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">JVM Error Logs</span>
-                  <span class="metric-value" style="color: #c62828">{{
-                    repositoryStatistics.errorLogFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #c62828">{{
-                    FormattingService.formatBytes(repositoryStatistics.errorLogSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Other Files</span>
-                  <span class="metric-value" style="color: #6c757d">{{
-                    repositoryStatistics.otherFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #6c757d">{{
-                    FormattingService.formatBytes(repositoryStatistics.otherSize ?? 0)
-                  }}</span>
-                </div>
-              </div>
+                <p class="storage-caption">across every session of this project</p>
+              </template>
             </div>
           </div>
         </div>
@@ -287,6 +206,7 @@
 import { ref, computed, onMounted } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import Badge from '@shared/components/Badge.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
@@ -308,6 +228,16 @@ const searchQuery = ref('');
 const statusFilter = ref('');
 const instances = ref<ProjectInstance[]>([]);
 const repositoryStatistics = ref<RepositoryStatistics | null>(null);
+const statisticsError = ref(false);
+
+/**
+ * The one figure the card carries, split so the number can be set larger than its unit.
+ * Falls back to an empty size rather than to placeholder text: the card is only rendered once
+ * the statistics have arrived, so a reader never sees this.
+ */
+const storageSize = computed(() =>
+  FormattingService.formatBytesParts(repositoryStatistics.value?.totalSize ?? 0)
+);
 
 const pendingCount = computed(() => instances.value.filter(i => i.status === 'PENDING').length);
 const activeCount = computed(() => instances.value.filter(i => i.status === 'ACTIVE').length);
@@ -375,12 +305,47 @@ onMounted(async () => {
     workspaceId.value!,
     projectId.value!
   );
-  repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
+  // The card is the only reader of this call. Left to reject, a failed call would drop the card
+  // without a word, and a project that looks storage-free is easy to mistake for one that is.
+  try {
+    repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
+  } catch (error) {
+    console.error('Failed to load repository statistics', error);
+    statisticsError.value = true;
+  }
 });
 </script>
 
 <style scoped>
-/* Compact Stat Cards (matching RepositoryStatistics.vue) */
+.storage-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.storage-value {
+  font-size: var(--font-size-xxxl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.storage-unit {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.storage-caption {
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
+/* Compact Stat Cards */
 .compact-stat-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
@@ -423,22 +388,12 @@ onMounted(async () => {
   gap: 4px;
 }
 
-.compact-stat-metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 4px 12px;
-}
-
 .metric-item {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 2px 0;
-}
-
-.compact-stat-metrics-grid .metric-item {
-  display: contents;
 }
 
 .metric-label {
@@ -447,35 +402,12 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.compact-stat-metrics-grid .metric-label,
-.compact-stat-metrics-grid .metric-value {
-  padding: 2px 0;
-}
-
 .metric-value {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
   text-align: right;
   min-width: 36px;
-}
-
-.metric-size {
-  min-width: 64px;
-}
-
-.metric-col-header {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--color-text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-align: right;
-  min-width: 36px;
-}
-
-.metric-col-header:last-child {
-  min-width: 64px;
 }
 
 /* Filter button group */

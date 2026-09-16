@@ -69,45 +69,34 @@ message GetRepositoryStatisticsRequest {
   string project_id = 1;
 }
 
-// Aggregate statistics about the recording repository.
-// Breaks down file counts and sizes by type (JFR, heap dump, logs, etc.).
+// What a project's repository occupies on the hub, in bytes.
+//
+// One number, because one number is all anything asked for. This carried a status, a session
+// count, a file count, a last-activity timestamp, a biggest-session size, and a count and a size
+// for each of six file-type buckets. The buckets made the hub decide what every file type means,
+// and it decided wrong for pprof and OTLP, which arrived as "other"; of the rest, the status had
+// no reader at all and the others were either shown beside the same figure computed elsewhere or
+// answered a question nobody was asking.
+//
+// There is deliberately no capacity to divide this by. The shared volume the hub reads is
+// ReadWriteMany — hostPath, NFS or EFS in these docs — and on none of those does the filesystem
+// report the claim's size: NFS reports the whole export, EFS reports an enormous constant, and
+// hostPath reports the node's own disk. A percentage built on any of those would be fiction.
 message GetRepositoryStatisticsResponse {
-  // Total number of recording sessions.
-  int32 total_sessions = 1;
-  // Overall session status summary.
-  RecordingStatus session_status = 2;
-  // Timestamp of the most recent activity (epoch millis).
-  int64 last_activity_time = 3;
-  // Total size of all files in bytes.
+  // Total size in bytes of every file in every session of the project.
+  //
+  // Field 4, as it was when seventeen others sat around it: a shipped field keeps its number.
+  // Renumbered to 1, an older Microscope would have read field 4, found nothing, and shown a
+  // project occupying zero bytes — a proto3 field that moves does not fail, it defaults.
   int64 total_size = 4;
-  // Total number of files across all sessions.
-  int32 total_files = 5;
-  // Size of the largest session in bytes.
-  int64 biggest_session_size = 6;
-  // Number of JFR recording files.
-  int32 jfr_files = 7;
-  // Total size of JFR files in bytes.
-  int64 jfr_size = 8;
-  // Number of heap dump files.
-  int32 heap_dump_files = 9;
-  // Total size of heap dump files in bytes.
-  int64 heap_dump_size = 10;
-  // Number of JVM log files (e.g., gc.log, hs_err).
-  int32 log_files = 11;
-  // Total size of JVM log files in bytes.
-  int64 log_size = 12;
-  // Number of application log files.
-  int32 app_log_files = 13;
-  // Total size of application log files in bytes.
-  int64 app_log_size = 14;
-  // Number of error log files (e.g., hs_err crash logs).
-  int32 error_log_files = 15;
-  // Total size of error log files in bytes.
-  int64 error_log_size = 16;
-  // Number of other/unclassified files.
-  int32 other_files = 17;
-  // Total size of other files in bytes.
-  int64 other_size = 18;
+
+  // The status, session count, last-activity time, file count, biggest-session size and the
+  // six per-kind buckets this message carried. Do not reuse the numbers.
+  reserved 1 to 3, 5 to 18;
+  reserved "total_sessions", "session_status", "last_activity_time", "total_files",
+      "biggest_session_size", "jfr_files", "jfr_size", "heap_dump_files", "heap_dump_size",
+      "log_files", "log_size", "app_log_files", "app_log_size", "error_log_files",
+      "error_log_size", "other_files", "other_size";
 }
 
 message DeleteSessionRequest {
@@ -173,10 +162,14 @@ message RepositoryFile {
   // File type identifier: a ManagedFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
   // JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, ...).
   string file_type = 5;
-  // Whether this is a JFR recording file (true) or an artifact like logs/heap dumps (false).
+  // Whether the file is a recording (true) or an artifact such as a log or heap dump (false).
+  // The file's category, not its format: a pprof and an OTLP profile are recordings too.
   bool is_recording = 7;
 
   // Was `RecordingStatus status`, which the hub resolved by reaching back into its own listing.
+  // The number stays reserved rather than being taken by is_recording: an older Microscope reads
+  // field 7, and were the bool moved to 6 it would find nothing there and read every file as an
+  // artifact — every chunk refused by hubs_download, with no error anywhere saying why.
   reserved 6;
   reserved "status";
 }

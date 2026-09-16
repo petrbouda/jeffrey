@@ -71,15 +71,6 @@ public abstract class JfrNotificationEmitter {
                 Severity.LOW, NotificationCategory.SESSION);
     }
 
-    // ==================== CRITICAL and HIGH ====================
-
-    public static void jvmCrashDetected(String sessionId, String instanceId, String projectId) {
-        emit(NotificationType.JVM_CRASH_DETECTED,
-                "Session finished due to HotSpot JVM error, hs_err log detected: sessionId=" + sessionId + " instanceId=" + instanceId + " projectId=" + projectId,
-                Severity.CRITICAL, NotificationCategory.SESSION);
-    }
-
-
     // ==================== Private helpers ====================
 
     private static void emit(NotificationType type, String message, Severity severity, NotificationCategory category) {

@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
@@ -35,14 +34,10 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.job.JobType;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Scheduler job that detects when sessions become FINISHED and emits SESSION_FINISHED events.
@@ -107,48 +102,11 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         RepositoryInfo repositoryInfo = repositoryInfos.getFirst();
 
         for (ProjectInstanceSessionInfo sessionInfo : unfinishedSessions) {
-            processSession(projectInfo, projectRepositoryRepository, repositoryInfo, sessionInfo);
-        }
-    }
+            Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
 
-    private void processSession(
-            ProjectInfo projectInfo,
-            ProjectRepositoryRepository projectRepositoryRepository,
-            RepositoryInfo repositoryInfo,
-            ProjectInstanceSessionInfo sessionInfo) {
-
-        Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
-
-        boolean finished = sessionFinisher.tryFinishFromHeartbeat(
-                projectRepositoryRepository, projectInfo, sessionInfo,
-                sessionPath, heartbeatThreshold);
-
-        if (finished) {
-            // Check for hs_err log (JVM crash) - emit specific alert
-            if (containsHsErrLog(sessionPath)) {
-                JfrNotificationEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
-
-                // A crashed session is the evidence someone will come looking for. Pin it so
-                // no retention job can reclaim it before anyone has had a chance to analyse it;
-                // it can still be released manually once the investigation is done.
-                projectRepositoryRepository.setSessionRetained(sessionInfo.sessionId(), true);
-                LOG.info("Retained session after JVM crash detection: project_id={} instance_id={} session_id={}",
-                        projectInfo.id(), sessionInfo.instanceId(), sessionInfo.sessionId());
-            }
-        }
-    }
-
-    private static boolean containsHsErrLog(Path sessionPath) {
-        if (!Files.isDirectory(sessionPath)) {
-            return false;
-        }
-        try (Stream<Path> files = Files.list(sessionPath)) {
-            return files.anyMatch(ManagedFile.HS_JVM_ERROR_LOG::matches);
-        } catch (IOException e) {
-            // The crash-log check is best-effort: an unreadable/vanished session directory
-            // must not abort the detector for the remaining sessions and projects.
-            LOG.warn("Cannot inspect session directory for hs_err log: session_path={}", sessionPath, e);
-            return false;
+            sessionFinisher.tryFinishFromHeartbeat(
+                    projectRepositoryRepository, projectInfo, sessionInfo,
+                    sessionPath, heartbeatThreshold);
         }
     }
 

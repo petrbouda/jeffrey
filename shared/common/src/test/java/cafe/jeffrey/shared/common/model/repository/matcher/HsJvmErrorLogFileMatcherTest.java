@@ -83,7 +83,8 @@ class HsJvmErrorLogFileMatcherTest {
 
     /**
      * The point of the second spelling: both end in {@code .log}, so without it the JVM's own crash
-     * file was filed as an application log and the hub's crash detection never saw it.
+     * file was filed as an application log — listed under the wrong badge, and named as an
+     * application log by {@code hubs_files} when an agent went looking for the crash.
      */
     @Nested
     class ThroughManagedFile {

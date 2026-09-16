@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.project.repository.file.FileInfoProcessor;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -50,33 +49,61 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * A project's repository as it lies on the shared volume: instance directories, session
+ * directories under them, and the files a profiler left behind.
+ *
+ * <p>Named for async-profiler once, and that stopped being true. Nothing here is specific to a
+ * profiler or to a kind of file: a file is classified by {@link ManagedFile#of(String)} and
+ * everything this class then does to it — the id it is known by, where its timestamp comes from,
+ * whether its size can be read from a directory listing, whether it may be compressed, whether it
+ * may be handed over — is a property that type declares about itself. Add a constant to the enum
+ * with its facets filled in and this class carries it without a line changing.
+ *
+ * <p>It is, however, the one class whose <em>behaviour</em> a file's type decides. Everywhere else
+ * in the hub a type is either reported onward or used as a grouping key.
+ *
+ * <p>The one thing here that is about the layout rather than about a file is
+ * {@link #NEWEST_BY_NAME}, the order a session directory is listed in.
+ */
+public class FilesystemRepositoryStorage implements RepositoryStorage {
 
-public class AsprofFileRepositoryStorage implements RepositoryStorage {
-
-    private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FilesystemRepositoryStorage.class);
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
     private static final int SESSION_SEARCH_MAX_DEPTH = 3;
 
+    /**
+     * How a session directory is listed: newest first by filename.
+     *
+     * <p>A constant rather than something injected. It was a {@code FileInfoProcessor} with two
+     * implementations, one ordering by name and one by modification time for a layout whose names
+     * say nothing about order. No such layout was ever wired, so the second went, and an interface
+     * with one implementation and one construction site is a seam that only claims to be one.
+     *
+     * <p>Presentation only. Which chunk the profiler still holds open is not read off this order —
+     * {@code RecordingSession} derives it from the session and the timestamps — and it was reading
+     * it off this order that left the two disagreeing.
+     */
+    private static final Comparator<Path> NEWEST_BY_NAME =
+            Comparator.comparing((Path file) -> file.getFileName().toString()).reversed();
+
     private final Lock compressionLock = new ReentrantLock();
     private final ProjectInfo projectInfo;
     private final Path workspacesDir;
     private final ProjectRepositoryRepository projectRepositoryRepository;
-    private final FileInfoProcessor fileInfoProcessor;
 
     private volatile RepositoryInfo cachedRepositoryInfo;
 
-    public AsprofFileRepositoryStorage(
+    public FilesystemRepositoryStorage(
             ProjectInfo projectInfo,
             Path workspacesDir,
-            ProjectRepositoryRepository projectRepositoryRepository,
-            FileInfoProcessor fileInfoProcessor) {
+            ProjectRepositoryRepository projectRepositoryRepository) {
 
         this.projectInfo = projectInfo;
         this.workspacesDir = workspacesDir;
         this.projectRepositoryRepository = projectRepositoryRepository;
-        this.fileInfoProcessor = fileInfoProcessor;
     }
 
     @Override
@@ -325,7 +352,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         // is in flight — the recording and the archive beside it strip to the same id, and both are
         // that chunk — so a count says nothing about whether every id was found.
         Set<String> found = matched.stream()
-                .map(AsprofFileRepositoryStorage::fileId)
+                .map(FilesystemRepositoryStorage::fileId)
                 .collect(Collectors.toSet());
         List<String> missing = requestedIds.stream().filter(id -> !found.contains(id)).toList();
 
@@ -424,7 +451,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 // A recording and the archive beside it share an id while the compression job
                 // is between publishing one and removing the other. Both are whole; the archive is
                 // the one that will still be there in a moment.
-                .reduce(AsprofFileRepositoryStorage::theOneThatStays)
+                .reduce(FilesystemRepositoryStorage::theOneThatStays)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Session " + sessionId + " holds no file with id " + fileId
                                 + ". Take the id from the session's file listing."));
@@ -577,11 +604,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return List.of();
         }
 
-        // Sorted by filename, for presentation. Which chunk the profiler still holds open is not
-        // read off this order — RecordingSession derives it from the session and the timestamps —
-        // and it was reading it off this order that left the two disagreeing.
-        return FileSystemUtils.sortedFilesInDirectory(
-                        sessionPath, fileInfoProcessor.comparator()).stream()
+        return FileSystemUtils.sortedFilesInDirectory(sessionPath, NEWEST_BY_NAME).stream()
                 .filter(Files::isRegularFile)
                 .filter(FileSystemUtils::isNotHidden)
                 .map(file -> describe(file, recordingStatus, sessionPath))

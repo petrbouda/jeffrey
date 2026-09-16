@@ -18,66 +18,19 @@
 
 package cafe.jeffrey.hub.client.dto;
 
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 
-public record RepositoryStatisticsResponse(
-        int totalSessions,
-        RecordingStatus sessionStatus,
-        long lastActivityTime,
-        long totalSize,
-        int totalFiles,
-        long biggestSessionSize,
-        int jfrFiles,
-        long jfrSize,
-        int heapDumpFiles,
-        long heapDumpSize,
-        int logFiles,
-        long logSize,
-        int appLogFiles,
-        long appLogSize,
-        int errorLogFiles,
-        long errorLogSize,
-        int otherFiles,
-        long otherSize) {
+/**
+ * What a project's repository occupies on the hub, in bytes. See {@link RepositoryStatistics}
+ * for why it is only that.
+ */
+public record RepositoryStatisticsResponse(long totalSize) {
 
     public static RepositoryStatisticsResponse from(RepositoryStatistics stats) {
-        return new RepositoryStatisticsResponse(
-                stats.totalSessions(),
-                stats.latestSessionStatus(),
-                stats.lastActivityTimeMillis(),
-                stats.totalSizeBytes(),
-                stats.totalFiles(),
-                stats.biggestSessionSizeBytes(),
-                stats.jfr().count(),
-                stats.jfr().size(),
-                stats.heapDump().count(),
-                stats.heapDump().size(),
-                stats.log().count(),
-                stats.log().size(),
-                stats.appLog().count(),
-                stats.appLog().size(),
-                stats.errorLog().count(),
-                stats.errorLog().size(),
-                stats.other().count(),
-                stats.other().size()
-        );
+        return new RepositoryStatisticsResponse(stats.totalSizeBytes());
     }
 
     public static RepositoryStatistics from(RepositoryStatisticsResponse response) {
-        return new RepositoryStatistics(
-                response.totalSessions(),
-                response.sessionStatus(),
-                response.lastActivityTime(),
-                response.totalSize(),
-                response.totalFiles(),
-                response.biggestSessionSize(),
-                new RepositoryStatistics.FileTypeStats(response.jfrFiles(), response.jfrSize()),
-                new RepositoryStatistics.FileTypeStats(response.heapDumpFiles(), response.heapDumpSize()),
-                new RepositoryStatistics.FileTypeStats(response.logFiles(), response.logSize()),
-                new RepositoryStatistics.FileTypeStats(response.appLogFiles(), response.appLogSize()),
-                new RepositoryStatistics.FileTypeStats(response.errorLogFiles(), response.errorLogSize()),
-                new RepositoryStatistics.FileTypeStats(response.otherFiles(), response.otherSize())
-        );
+        return new RepositoryStatistics(response.totalSize());
     }
 }

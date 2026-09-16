@@ -27,9 +27,8 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
 import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.project.repository.AsprofFileRepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
@@ -141,11 +140,10 @@ public class HubAppConfiguration {
     public RepositoryStorage.Factory repositoryStorageFactory(
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories) {
-        return projectInfo -> new AsprofFileRepositoryStorage(
+        return projectInfo -> new FilesystemRepositoryStorage(
                 projectInfo,
                 jeffreyDirs.workspaces(),
-                platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
-                new AsprofFileInfoProcessor());
+                platformRepositories.newProjectRepositoryRepository(projectInfo.id()));
     }
 
     @Bean

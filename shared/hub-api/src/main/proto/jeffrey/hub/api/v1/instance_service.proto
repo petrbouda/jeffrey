@@ -82,7 +82,7 @@ message GetInstanceSessionDetailRequest {
 }
 
 message GetInstanceSessionDetailResponse {
-  // Metadata for the requested session.
+  // Metadata for the requested session, and nothing read out of its recording.
   InstanceSessionInfo session = 1;
 
   // Field 2 carried the session's one-shot JFR environment events, parsed from the

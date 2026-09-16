@@ -24,12 +24,10 @@ import cafe.jeffrey.hub.api.v1.GetSessionRequest;
 import cafe.jeffrey.hub.api.v1.GetSessionResponse;
 import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
 import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
-import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.stub.data.StubDataset;
 import io.grpc.stub.StreamObserver;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -80,64 +78,13 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
     }
 
     private static GetRepositoryStatisticsResponse aggregate(List<StubDataset.Session> sessions) {
-        GetRepositoryStatisticsResponse.Builder builder = GetRepositoryStatisticsResponse.newBuilder();
+        long totalSize = sessions.stream()
+                .flatMap(session -> session.files().stream())
+                .mapToLong(StubDataset.File::size)
+                .sum();
 
-        long lastActivity = 0;
-        long biggestSession = 0;
-        boolean anyActive = false;
-
-        for (StubDataset.Session session : sessions) {
-            long sessionSize = 0;
-            for (StubDataset.File file : session.files()) {
-                accumulate(builder, file);
-                builder.setTotalFiles(builder.getTotalFiles() + 1);
-                builder.setTotalSize(builder.getTotalSize() + file.size());
-                sessionSize += file.size();
-            }
-            biggestSession = Math.max(biggestSession, sessionSize);
-            lastActivity = Math.max(lastActivity, lastActivityOf(session));
-            anyActive = anyActive || session.active();
-        }
-
-        return builder
-                .setTotalSessions(sessions.size())
-                .setSessionStatus(anyActive ? RecordingStatus.RECORDING_STATUS_ACTIVE : RecordingStatus.RECORDING_STATUS_FINISHED)
-                .setLastActivityTime(lastActivity)
-                .setBiggestSessionSize(biggestSession)
+        return GetRepositoryStatisticsResponse.newBuilder()
+                .setTotalSize(totalSize)
                 .build();
-    }
-
-    private static void accumulate(GetRepositoryStatisticsResponse.Builder builder, StubDataset.File file) {
-        switch (file.kind()) {
-            case JFR -> {
-                builder.setJfrFiles(builder.getJfrFiles() + 1);
-                builder.setJfrSize(builder.getJfrSize() + file.size());
-            }
-            case HEAP_DUMP -> {
-                builder.setHeapDumpFiles(builder.getHeapDumpFiles() + 1);
-                builder.setHeapDumpSize(builder.getHeapDumpSize() + file.size());
-            }
-            case GC_LOG -> {
-                builder.setLogFiles(builder.getLogFiles() + 1);
-                builder.setLogSize(builder.getLogSize() + file.size());
-            }
-            case APP_LOG -> {
-                builder.setAppLogFiles(builder.getAppLogFiles() + 1);
-                builder.setAppLogSize(builder.getAppLogSize() + file.size());
-            }
-            case HS_ERR_LOG -> {
-                builder.setErrorLogFiles(builder.getErrorLogFiles() + 1);
-                builder.setErrorLogSize(builder.getErrorLogSize() + file.size());
-            }
-            case OTHER -> {
-                builder.setOtherFiles(builder.getOtherFiles() + 1);
-                builder.setOtherSize(builder.getOtherSize() + file.size());
-            }
-        }
-    }
-
-    private static long lastActivityOf(StubDataset.Session session) {
-        Instant activity = session.finishedAt() != null ? session.finishedAt() : session.createdAt();
-        return activity.toEpochMilli();
     }
 }
