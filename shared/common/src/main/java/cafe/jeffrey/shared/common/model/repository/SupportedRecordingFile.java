@@ -227,6 +227,38 @@ public enum SupportedRecordingFile {
     }
 
     /**
+     * The id a file of this type is known by within its session.
+     *
+     * <p>Its own name, except for a type compression renames: there the extension comes off, so
+     * {@code profile-1.jfr} and the {@code profile-1.jfr.lz4} the job turns it into are one id,
+     * and a reader holding an id from before the rewrite still names the file after it. That is
+     * the whole reason an id is not simply the name.
+     *
+     * <p>And the reason only those types drop it. Nothing renames a log or a heap dump, so
+     * stripping their extension would buy nothing and would collide a {@code service.log} with a
+     * {@code service.hprof} beside it. Several types spell their extension as a pattern rather
+     * than a literal ({@code jvm-log(.[0-9]+)?}); none of them is renamed by compression, so none
+     * reaches the stripping below.
+     */
+    public String idOf(Path file) {
+        String name = file.getFileName().toString();
+        if (!renamedByCompression()) {
+            return name;
+        }
+        String suffix = "." + fileExtension;
+        return name.endsWith(suffix) ? name.substring(0, name.length() - suffix.length()) : name;
+    }
+
+    /**
+     * Whether compression changes this type's name — because it compresses, or because it is
+     * what a compression produced. The two ends of one rewrite, and the pair that has to answer
+     * with the same id.
+     */
+    private boolean renamedByCompression() {
+        return compression.isSupported() || isCompressed();
+    }
+
+    /**
      * Whether this type is itself a compressed form — a file written and closed in one pass by
      * whoever compressed it, so its bytes are final however old a listing of it is.
      */

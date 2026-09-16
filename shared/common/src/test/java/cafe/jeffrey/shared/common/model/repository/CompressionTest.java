@@ -98,6 +98,10 @@ class CompressionTest {
                     SupportedRecordingFile.JFR.timestampResolver().resolve(source),
                     archived.timestampResolver().resolve(target),
                     "the archive answers with the instant the profiler opened the chunk");
+            assertEquals(
+                    SupportedRecordingFile.JFR.idOf(source),
+                    archived.idOf(target),
+                    "and to the id a reader took from the listing before the rewrite");
         }
 
         @Test

@@ -125,6 +125,48 @@ class SupportedRecordingFileTest {
         }
     }
 
+    /**
+     * What a file is known by within its session. An id is not simply the name because a
+     * recording gets renamed underneath its readers when the compression job reaches it.
+     */
+    @Nested
+    class Ids {
+
+        @Test
+        void aRecordingDropsItsExtensionSoTheIdSurvivesCompression() {
+            assertEquals("profile-20260220-120500",
+                    SupportedRecordingFile.JFR.idOf(Path.of("s", "profile-20260220-120500.jfr")));
+            assertEquals("profile-20260220-120500",
+                    SupportedRecordingFile.JFR_LZ4.idOf(Path.of("s", "profile-20260220-120500.jfr.lz4")));
+        }
+
+        /**
+         * Nothing renames these, so dropping the extension would buy nothing and would collide
+         * two files of one session that differ only by it.
+         */
+        @Test
+        void everythingElseKeepsItsWholeName() {
+            assertEquals("service-app.log",
+                    SupportedRecordingFile.APP_LOG.idOf(Path.of("s", "service-app.log")));
+            assertEquals("heap.hprof",
+                    SupportedRecordingFile.HEAP_DUMP.idOf(Path.of("s", "heap.hprof")));
+            assertEquals("app.pprof",
+                    SupportedRecordingFile.PPROF.idOf(Path.of("s", "app.pprof")));
+            assertEquals("notes.txt",
+                    SupportedRecordingFile.UNKNOWN.idOf(Path.of("s", "notes.txt")));
+        }
+
+        @Test
+        void aRecordingAndItsArchiveAreOneId() {
+            Path plain = Path.of("s", "profile-1.jfr");
+            Path archive = Path.of("s", "profile-1.jfr.lz4");
+
+            assertEquals(
+                    SupportedRecordingFile.of(plain).idOf(plain),
+                    SupportedRecordingFile.of(archive).idOf(archive));
+        }
+    }
+
     @Nested
     class Arguments {
 

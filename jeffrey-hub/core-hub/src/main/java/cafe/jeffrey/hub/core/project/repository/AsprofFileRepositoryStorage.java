@@ -52,19 +52,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR;
-import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR_LZ4;
 
 public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
-
-    // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
-    private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES = List.of(JFR_LZ4, JFR);
-
-    private static final List<String> RECORDING_EXTENSIONS = RECORDING_FILE_TYPES.stream()
-            .map(SupportedRecordingFile::fileExtension)
-            .toList();
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
@@ -211,7 +202,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
         try {
             return new RepositoryFile(
-                    fileId(file),
+                    fileType.idOf(file),
                     sourceName,
                     fileType.timestampResolver().resolve(file),
                     sizeReader(sessionStatus, fileType).size(file),
@@ -225,16 +216,15 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * A file's identity within its session: its own name with the recording extension stripped,
-     * so it survives the hub compressing the file and an id taken from a listing still names the
-     * same recording afterwards.
+     * A file's identity within its session, which its type decides — the extension comes off a
+     * recording so the id survives compression, and stays on everything else.
      *
-     * <p>One definition, because it is read in both directions — {@link #describe} hands it out
-     * and {@link #deleteRepositoryFiles} matches files against it — and an id that could not be
+     * <p>Here because it is read in both directions: {@link #describe} hands an id out and
+     * {@link #deleteRepositoryFiles} matches files against it, and an id that could not be
      * matched back to the file it came from is an id that deletes nothing.
      */
     private static String fileId(Path file) {
-        return FileSystemUtils.removeExtension(file, RECORDING_EXTENSIONS);
+        return SupportedRecordingFile.of(file).idOf(file);
     }
 
     /**
