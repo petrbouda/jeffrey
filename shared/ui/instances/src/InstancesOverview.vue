@@ -49,17 +49,20 @@
           </div>
 
           <!-- Storage -->
-          <div class="col-md-4 col-xl" v-if="repositoryStatistics">
+          <div class="col-md-4 col-xl" v-if="repositoryStatistics || statisticsError">
             <div class="compact-stat-card">
               <div class="compact-stat-header">
                 <i class="bi bi-hdd text-success"></i>
                 <span class="compact-stat-title">Storage</span>
               </div>
-              <div class="storage-figure">
-                <span class="storage-value">{{ storageSize.value }}</span>
-                <span class="storage-unit">{{ storageSize.unit }}</span>
-              </div>
-              <p class="storage-caption">across every session of this project</p>
+              <ErrorState v-if="statisticsError" message="Repository size could not be loaded" />
+              <template v-else>
+                <div class="storage-figure">
+                  <span class="storage-value">{{ storageSize.value }}</span>
+                  <span class="storage-unit">{{ storageSize.unit }}</span>
+                </div>
+                <p class="storage-caption">across every session of this project</p>
+              </template>
             </div>
           </div>
         </div>
@@ -203,6 +206,7 @@
 import { ref, computed, onMounted } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import Badge from '@shared/components/Badge.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
@@ -224,6 +228,7 @@ const searchQuery = ref('');
 const statusFilter = ref('');
 const instances = ref<ProjectInstance[]>([]);
 const repositoryStatistics = ref<RepositoryStatistics | null>(null);
+const statisticsError = ref(false);
 
 /**
  * The one figure the card carries, split so the number can be set larger than its unit.
@@ -300,7 +305,14 @@ onMounted(async () => {
     workspaceId.value!,
     projectId.value!
   );
-  repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
+  // The card is the only reader of this call. Left to reject, a failed call would drop the card
+  // without a word, and a project that looks storage-free is easy to mistake for one that is.
+  try {
+    repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
+  } catch (error) {
+    console.error('Failed to load repository statistics', error);
+    statisticsError.value = true;
+  }
 });
 </script>
 
@@ -333,7 +345,7 @@ onMounted(async () => {
   color: var(--color-text-light);
 }
 
-/* Compact Stat Cards (matching RepositoryStatistics.vue) */
+/* Compact Stat Cards */
 .compact-stat-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);

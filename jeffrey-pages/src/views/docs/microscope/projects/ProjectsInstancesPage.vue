@@ -53,7 +53,7 @@ onMounted(() => {
 
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-grid" title="Instances">
-            All instances registered in the project, grouped by status, with the project's storage totals (size, file count, biggest session) and a file-type breakdown.
+            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the hub.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-bar-chart-steps" title="Timeline">
             A swimlane view of when each instance and its sessions were active. Pick a time range (1H, 6H, 24H, 7D, 30D) to focus on the period you care about.

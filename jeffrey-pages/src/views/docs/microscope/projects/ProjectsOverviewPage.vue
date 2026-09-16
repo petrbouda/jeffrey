@@ -91,7 +91,7 @@ onMounted(() => {
         <strong>Where did "Profiles", "Recordings", and "Repository" go?</strong>
         Profiles and recordings now live globally on the
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page, regardless of project.
-        Repository totals (storage size, file count, biggest session) are now a stat card on the
+        The repository's storage size is now a stat card on the
         <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab.
       </DocsCallout>
 

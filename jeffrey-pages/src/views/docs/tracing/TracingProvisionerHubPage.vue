@@ -162,7 +162,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           <tr>
             <td>Session-finished detector</td>
             <td>30&nbsp;s</td>
-            <td>Reads <code>.heartbeat/</code>. A <code>finished</code> marker ends the session deterministically; a stale heartbeat ends it at that timestamp. A present <code>hs_err</code> file raises a JVM-crash notification and auto-retains the session.</td>
+            <td>Reads <code>.heartbeat/</code>. A <code>finished</code> marker ends the session deterministically; a stale heartbeat ends it at that timestamp. A crash log left in the directory is listed as a session file, not acted on.</td>
           </tr>
           <tr>
             <td>Compression &amp; retention</td>

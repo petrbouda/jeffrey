@@ -33,6 +33,4 @@ package cafe.jeffrey.shared.common.model.repository;
  * reads {@code fileType} off the session listing, where the hub reports it without acting on it.
  */
 public record RepositoryStatistics(long totalSizeBytes) {
-
-    public static final RepositoryStatistics EMPTY = new RepositoryStatistics(0L);
 }

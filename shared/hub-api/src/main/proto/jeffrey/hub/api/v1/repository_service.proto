@@ -84,7 +84,19 @@ message GetRepositoryStatisticsRequest {
 // hostPath reports the node's own disk. A percentage built on any of those would be fiction.
 message GetRepositoryStatisticsResponse {
   // Total size in bytes of every file in every session of the project.
-  int64 total_size = 1;
+  //
+  // Field 4, as it was when seventeen others sat around it: a shipped field keeps its number.
+  // Renumbered to 1, an older Microscope would have read field 4, found nothing, and shown a
+  // project occupying zero bytes — a proto3 field that moves does not fail, it defaults.
+  int64 total_size = 4;
+
+  // The status, session count, last-activity time, file count, biggest-session size and the
+  // six per-kind buckets this message carried. Do not reuse the numbers.
+  reserved 1 to 3, 5 to 18;
+  reserved "total_sessions", "session_status", "last_activity_time", "total_files",
+      "biggest_session_size", "jfr_files", "jfr_size", "heap_dump_files", "heap_dump_size",
+      "log_files", "log_size", "app_log_files", "app_log_size", "error_log_files",
+      "error_log_size", "other_files", "other_size";
 }
 
 message DeleteSessionRequest {
@@ -152,5 +164,12 @@ message RepositoryFile {
   string file_type = 5;
   // Whether the file is a recording (true) or an artifact such as a log or heap dump (false).
   // The file's category, not its format: a pprof and an OTLP profile are recordings too.
-  bool is_recording = 6;
+  bool is_recording = 7;
+
+  // Was `RecordingStatus status`, which the hub resolved by reaching back into its own listing.
+  // The number stays reserved rather than being taken by is_recording: an older Microscope reads
+  // field 7, and were the bool moved to 6 it would find nothing there and read every file as an
+  // artifact — every chunk refused by hubs_download, with no error anywhere saying why.
+  reserved 6;
+  reserved "status";
 }

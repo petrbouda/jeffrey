@@ -13,8 +13,8 @@ option java_multiple_files = true;
 // an older hub gets UNIMPLEMENTED, and so does an older Microscope calling a hub on this one. The
 // two are released together and a hub serves the Microscope it ships with; upgrade both. Nothing
 // else about the transfer changed, so a downgrade needs no data migration.
-// (RepositoryFile.status went the same way. Field numbers are kept contiguous rather than
-// reserved, so every removal is a break of that same kind: release the two together.)
+// (RepositoryFile.status went the same way, but as a field it degrades quietly — see
+// repository_service.proto, where field 6 is reserved and is_recording keeps its 7.)
 // Files are streamed in 64KB chunks to support efficient transfer of large files
 // (JFR recordings, heap dumps) without loading them entirely into memory.
 //

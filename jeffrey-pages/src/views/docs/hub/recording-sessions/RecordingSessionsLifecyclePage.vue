@@ -32,7 +32,7 @@ const headings = [
   { id: 'heartbeat-mechanism', text: 'Heartbeat Mechanism', level: 3 },
   { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
   { id: 'sessions-without-the-agent', text: 'Sessions That Report Nothing', level: 3 },
-  { id: 'jvm-crash-detection', text: 'JVM Crash Detection', level: 3 },
+  { id: 'jvm-crash-logs', text: 'JVM Crash Logs', level: 3 },
   { id: 'heartbeat-recovery', text: 'Hub Restart', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
 ];
@@ -181,8 +181,8 @@ onMounted(() => {
         <p>The consequence is that the last session of an instance that never restarts stays Active until something else ends it, which is the honest answer — with nothing reporting, nothing on disk distinguishes a JVM that stopped from one that is simply quiet.</p>
         <p>Sessions declared by a Provisioner older than this field are treated as <em>unknown</em> rather than as reporting nothing, so an existing long-running session is never finished prematurely by an upgrade.</p>
 
-        <h3 id="jvm-crash-detection">JVM Crash Detection</h3>
-        <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>) is generated in the session directory. After a session finishes, Jeffrey checks for the presence of this file and emits a JVM crash event, providing visibility into abnormal terminations.</p>
+        <h3 id="jvm-crash-logs">JVM Crash Logs</h3>
+        <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>, or <code>hs-jvm-err.log</code> when the Provisioner named it) is left in the session directory. The Hub classifies it as a <em>HotSpot Error Log</em> and lists it beside the session's other files, where it can be downloaded or fetched by a coding agent. The Hub does not read the file and raises no event for it: the detector finishes the session on the heartbeat evidence alone, and whether a crashed session is worth keeping is a decision left to whoever investigates it — see <a href="#retained-sessions">Retained Sessions</a>.</p>
 
         <h3 id="heartbeat-recovery">Hub Restart</h3>
         <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts. The detector reads those files again when it resumes, using the clean-exit timestamp first and the last heartbeat timestamp when stale. If neither file exists, the normal age check applies; if one exists but cannot be read, the session is left for the next sweep.</p>
@@ -208,9 +208,9 @@ onMounted(() => {
           captured when something went wrong, and normal retention would eventually reclaim exactly that evidence.
         </p>
         <p>
-          Sessions are retained automatically when the Session Finished Detector finds a JVM crash log
-          (<code>hs_err</code>) in the session directory, and can be set or released manually through the
-          repository API. A retained session stays until it is explicitly released or deleted.
+          Retention is a manual choice: a session is set or released through the repository API, or from the
+          session's row in Microscope. Nothing pins a session on its own — a crash log in the session directory
+          is listed, not acted on. A retained session stays until it is explicitly released or deleted.
         </p>
 
         <DocsCallout type="warning">
