@@ -6,6 +6,15 @@ option java_package = "cafe.jeffrey.hub.api.v1";
 option java_multiple_files = true;
 
 // Provides server-streaming RPCs for downloading recordings and artifacts.
+//
+// COMPATIBILITY: this service replaces RecordingDownloadService, whose DownloadRecordingFile and
+// DownloadArtifactFile it merges into one RPC. A service and its methods are addressed by name on
+// the wire, so the rename is a break rather than a migration: a Microscope on this version calling
+// an older hub gets UNIMPLEMENTED, and so does an older Microscope calling a hub on this one. The
+// two are released together and a hub serves the Microscope it ships with; upgrade both. Nothing
+// else about the transfer changed, so a downgrade needs no data migration.
+// (RepositoryFile.status went the same way, but as a field it degrades quietly — see
+// repository_service.proto, where field 6 is reserved.)
 // Files are streamed in 64KB chunks to support efficient transfer of large files
 // (JFR recordings, heap dumps) without loading them entirely into memory.
 //

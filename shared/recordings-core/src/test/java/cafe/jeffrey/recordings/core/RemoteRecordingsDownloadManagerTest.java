@@ -219,6 +219,12 @@ class RemoteRecordingsDownloadManagerTest {
                 type == ManagedFile.JFR);
     }
 
+    /** A chunk a profiler was stopped before it wrote anything into. */
+    private static RepositoryFileResponse emptyFile(String id, String name, Instant createdAt) {
+        return new RepositoryFileResponse(
+                id, name, createdAt.toEpochMilli(), 0L, ManagedFile.JFR, RecordingStatus.FINISHED, true);
+    }
+
     private static RecordingSessionResponse session(RepositoryFileResponse... files) {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-name", "inst-1",
@@ -375,6 +381,47 @@ class RemoteRecordingsDownloadManagerTest {
     @Nested
     @DisplayName("When a file does not arrive")
     class Failures {
+
+        /**
+         * A zero-byte chunk is left behind by a profiler stopped before it wrote an event — a
+         * killed container, a shutdown that was not graceful — and it is the last chunk that gets
+         * it. The hub refuses to serve one, so asking for it fails the whole session's download;
+         * the rest of the session is worth having without it.
+         */
+        @Test
+        @DisplayName("an empty chunk is left out rather than failing the download")
+        void anEmptyChunkIsLeftOut() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR, CREATED_AT),
+                    emptyFile("f-2", "profile-2.jfr", CREATED_AT.plusSeconds(20))));
+            servesEveryFile();
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(streamClient, never()).streamFile(eq(SESSION_ID), eq("f-2"), any());
+            ArgumentCaptor<List<Path>> recordings = capturedRecordingFiles();
+            verify(recordingsManager)
+                    .createDownloadedRecording(any(), recordings.capture(), anyList(), any());
+            assertEquals(
+                    List.of("profile-1.jfr"),
+                    recordings.getValue().stream().map(path -> path.getFileName().toString()).toList());
+        }
+
+        /**
+         * And when emptiness is all the session has, there is nothing to download: the refusal is
+         * the same one a session with no recording at all gets, rather than a recording of no
+         * files.
+         */
+        @Test
+        @DisplayName("a session of nothing but empty chunks is refused")
+        void aSessionOfNothingButEmptyChunksIsRefused() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
+                    emptyFile("f-1", "profile-1.jfr", CREATED_AT)));
+
+            assertThrows(RuntimeException.class, () -> manager.downloadSession(SESSION_ID));
+
+            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+        }
 
         /**
          * A recording file that did not arrive fails the download. Dropping it the way a missing

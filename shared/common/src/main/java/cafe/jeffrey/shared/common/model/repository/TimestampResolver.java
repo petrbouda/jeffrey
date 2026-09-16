@@ -37,7 +37,7 @@ import java.time.Instant;
  * type that cannot state its own timestamp therefore must not be rewritten — see
  * {@link Compression}.
  */
-public interface TimestampResolver {
+public sealed interface TimestampResolver permits FilesystemTimestamp, RecordingNameTimestamp {
 
     /**
      * When the file was opened. Never {@code null}: a resolver that cannot read the answer out of

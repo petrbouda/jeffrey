@@ -59,7 +59,6 @@ public class RepositoryClient {
 
         return response.getSessionsList().stream()
                 .map(RepositoryClient::toSessionResponse)
-                .map(RecordingSessionResponse::withResolvedFileStatuses)
                 .toList();
     }
 
@@ -82,7 +81,7 @@ public class RepositoryClient {
                         .setSessionId(sessionId)
                         .build());
 
-        return toSessionResponse(response.getSession()).withResolvedFileStatuses();
+        return toSessionResponse(response.getSession());
     }
 
     public RepositoryStatisticsResponse repositoryStatistics(String projectId) {
@@ -156,13 +155,19 @@ public class RepositoryClient {
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 files,
-                proto.getRetained());
+                proto.getRetained())
+                // Here rather than at each call site. A file's status is a fact about its
+                // session, so it can only be settled once the whole session is decoded — and
+                // settling it inside the one method that decodes one means no caller can be
+                // handed a session whose file statuses nobody filled in.
+                .withResolvedFileStatuses();
     }
 
     /**
      * One file as the hub sent it. Its status is left FINISHED here and settled by
-     * {@link RecordingSessionResponse#withResolvedFileStatuses()} once the whole session is in
-     * hand: the wire carries no status, and a file on its own cannot answer for one.
+     * {@link RecordingSessionResponse#withResolvedFileStatuses()} before the session leaves
+     * {@link #toSessionResponse}: the wire carries no status, and a file on its own cannot
+     * answer for one.
      */
     private static RepositoryFileResponse toFileResponse(RepositoryFile proto) {
         return new RepositoryFileResponse(

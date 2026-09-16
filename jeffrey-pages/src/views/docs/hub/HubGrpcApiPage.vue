@@ -260,7 +260,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- RecordingDownloadService -->
+          <!-- FileDownloadService -->
           <div class="endpoint-group">
             <div class="group-header">
               <i class="bi bi-cloud-download"></i>

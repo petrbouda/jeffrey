@@ -225,8 +225,32 @@ public class RepositoryManagerImpl implements RepositoryManager {
         }
     }
 
+    /**
+     * Deletes the named files of a session, refusing the one file of it that is not finished.
+     *
+     * <p>The guard sits here rather than in the storage because this is where ids arrive from
+     * outside — the UI's delete, over gRPC. The retention jobs reach the storage directly with
+     * ids they took from {@link RecordingSession#finishedRecordings()}, so they can never name
+     * the open chunk and should not pay for a second listing of the session to be told so.
+     *
+     * <p>Deleting it would take the file the profiler is writing into out from under it: the
+     * recording loses the chunk in flight, and the profiler writes on to a path that no longer
+     * has a directory entry.
+     */
     @Override
     public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
+        RecordingSession session = repositoryStorage.singleSession(recordingSessionId, true)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + recordingSessionId));
+
+        session.openRecording()
+                .filter(open -> fileIds.contains(open.id()))
+                .ifPresent(open -> {
+                    throw new IllegalArgumentException("File " + open.name() + " is the chunk the profiler "
+                            + "is still writing for session " + recordingSessionId + ", and deleting it would "
+                            + "take it out from under the profiler. It can be deleted once the profiler has "
+                            + "rolled the next one.");
+                });
+
         repositoryStorage.deleteRepositoryFiles(recordingSessionId, fileIds);
     }
 

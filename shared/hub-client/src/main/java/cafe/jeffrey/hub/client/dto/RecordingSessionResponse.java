@@ -58,10 +58,13 @@ public record RecordingSessionResponse(
     /**
      * The same session with every file's status resolved against it.
      *
-     * <p>For a decoder: the wire carries no per-file status, because whether a file is still
-     * being written is a fact about the session rather than about the file. A session decoded
-     * from a hub therefore arrives with that column unfilled, and fills it here, once, instead
-     * of leaving each reader of a row to work it out or to trust a value nobody set.
+     * <p>For the decoder, and only for it: the wire carries no per-file status, because whether
+     * a file is still being written is a fact about the session rather than about the file. A
+     * session decoded from a hub therefore arrives with that column unfilled, and it is filled
+     * here, once, instead of leaving each reader of a row to work it out or to trust a value
+     * nobody set. {@code RepositoryClient} calls this as the last step of decoding a session, so
+     * no session with an unfilled column is ever handed out and there is nothing for a caller to
+     * remember.
      */
     public RecordingSessionResponse withResolvedFileStatuses() {
         RecordingSession session = from(this);

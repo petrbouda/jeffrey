@@ -38,7 +38,7 @@ public enum ManagedFile {
             filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
             FileCategory.RECORDING,
             TimestampResolver.RECORDING_NAME,
-            Compression.NONE
+            Compression.ARCHIVE
     ),
     JFR(
             "JDK Flight Recording",
@@ -255,15 +255,20 @@ public enum ManagedFile {
      * with the same id.
      */
     private boolean renamedByCompression() {
-        return compression.isSupported() || isCompressed();
+        return compression.isSupported() || isArchive();
     }
 
     /**
-     * Whether this type is itself a compressed form — a file written and closed in one pass by
-     * whoever compressed it, so its bytes are final however old a listing of it is.
+     * Whether this type is itself a compressed form — a file this hub wrote and closed in one
+     * pass, so its bytes are final however old a listing of it is.
+     *
+     * <p>Its {@link Compression} says so, which is the same place that says whether the type can
+     * be compressed. Read off the extension instead, the answer was whatever a name happened to
+     * end in: a type nothing here compresses would have claimed an archive's guarantees on the
+     * strength of its spelling.
      */
-    public boolean isCompressed() {
-        return fileExtension != null && fileExtension.endsWith("." + FileExtensions.LZ4);
+    public boolean isArchive() {
+        return compression.isArchive();
     }
 
     public String fileExtension() {

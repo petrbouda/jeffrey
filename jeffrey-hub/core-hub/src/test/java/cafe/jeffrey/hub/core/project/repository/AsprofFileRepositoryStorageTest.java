@@ -55,6 +55,9 @@ class AsprofFileRepositoryStorageTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
 
+    /** Long enough that LZ4 has something to do with it, short enough to read in a failure. */
+    private static final String CHUNK_BODY = "a chunk of events, repeated so the frame compresses".repeat(20);
+
     /**
      * Which files cost a round trip to the share. Every open here is paid per file, per session,
      * on every listing of the project, so the cases that read from the listing are as much the
@@ -290,17 +293,33 @@ class AsprofFileRepositoryStorageTest {
         }
 
         /**
-         * The compression job is between writing an archive and removing the recording it was made
-         * from, so one id names two files. The recording is the one certainly complete — the
-         * archive at that moment may still be being written into.
+         * The compression job is between publishing an archive and removing the recording it was
+         * made from, so one id names two files. Both are whole — an archive is renamed onto its
+         * name and so is never listed half-written — and the archive is the one served, because
+         * it is the one that will still be there: the recording beside it is about to go, and a
+         * reader that resolved it can find it gone before it opens it.
          */
         @Test
-        void prefersTheRecordingOverAnArchiveStillBeingWritten() throws IOException {
+        void prefersTheArchiveOverTheRecordingItWasMadeFrom() throws IOException {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr", "the whole chunk");
-            write(session, "profile-20260220-120000.jfr.lz4", "half an archive");
+            write(session, "profile-20260220-120000.jfr.lz4", "the archive of it");
 
-            assertEquals("profile-20260220-120000.jfr",
+            assertEquals("profile-20260220-120000.jfr.lz4",
+                    finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
+        }
+
+        /**
+         * And the other way round, since a reduce over two entries sees them in listing order and
+         * must answer the same either way.
+         */
+        @Test
+        void prefersTheArchiveWhicheverWayTheListingOrdersThem() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr.lz4", "the archive of it");
+            write(session, "profile-20260220-120000.jfr", "the whole chunk");
+
+            assertEquals("profile-20260220-120000.jfr.lz4",
                     finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
         }
 
@@ -311,6 +330,180 @@ class AsprofFileRepositoryStorageTest {
 
             assertEquals("profile-20260220-120000.jfr.lz4",
                     finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
+        }
+    }
+
+    /**
+     * The compression job, which is now the only thing in the tree that rewrites a repository
+     * file. It had no test at all: the six that arrived with it were written against the lookup
+     * that used to compress on the way out of a read, and went when that did.
+     */
+    @Nested
+    class CompressSession {
+
+        private static final String SESSION_ID = "session-1";
+        private static final String PROJECT = "project";
+        private static final String INSTANCE = "instance";
+
+        @TempDir
+        Path workspacesDir;
+
+        private final ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
+
+        private Path sessionDir() throws IOException {
+            return Files.createDirectories(
+                    workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
+        }
+
+        private AsprofFileRepositoryStorage storage(Instant finishedAt) {
+            when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
+                    "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
+            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
+                    SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                    T0, T0, finishedAt, false, false, null)));
+            when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
+
+            return new AsprofFileRepositoryStorage(
+                    mock(ProjectInfo.class), workspacesDir, repository, new AsprofFileInfoProcessor());
+        }
+
+        private AsprofFileRepositoryStorage finishedSession() {
+            return storage(T0.plusSeconds(1800));
+        }
+
+        private AsprofFileRepositoryStorage liveSession() {
+            return storage(null);
+        }
+
+        private static Path write(Path dir, String name) throws IOException {
+            return Files.write(dir.resolve(name), CHUNK_BODY.getBytes(StandardCharsets.UTF_8));
+        }
+
+        private static List<String> names(Path dir) throws IOException {
+            try (var entries = Files.list(dir)) {
+                return entries.map(path -> path.getFileName().toString()).sorted().toList();
+            }
+        }
+
+        @Test
+        void replacesEveryClosedChunkWithItsArchive() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr");
+            write(session, "profile-20260220-121000.jfr");
+
+            assertEquals(2, finishedSession().compressSession(SESSION_ID));
+
+            assertEquals(
+                    List.of("profile-20260220-120000.jfr.lz4", "profile-20260220-121000.jfr.lz4"),
+                    names(session),
+                    "each recording is gone and its archive is there");
+        }
+
+        /**
+         * Compressing the file the profiler holds open would compress a prefix of it and then
+         * delete the file being written into. It is left out by {@code finishedRecordings()},
+         * which is the one definition of which chunk that is.
+         */
+        @Test
+        void leavesTheChunkTheProfilerIsStillWriting() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr");
+            write(session, "profile-20260220-121000.jfr");
+
+            assertEquals(1, liveSession().compressSession(SESSION_ID));
+
+            assertEquals(
+                    List.of("profile-20260220-120000.jfr.lz4", "profile-20260220-121000.jfr"),
+                    names(session),
+                    "the newest chunk of a live session is untouched");
+        }
+
+        /**
+         * The live bug this rule was written for. {@code app.pprof.lz4} matches nothing in the
+         * enum, so the file came back UNKNOWN, stopped being a recording, changed id and took the
+         * compression's timestamp — with the original deleted. Only JFR ever round-tripped.
+         */
+        @Test
+        void leavesARecordingItsTypeCannotCompress() throws IOException {
+            Path session = sessionDir();
+            write(session, "app.pprof");
+            write(session, "app.otlp");
+
+            finishedSession().compressSession(SESSION_ID);
+
+            assertEquals(List.of("app.otlp", "app.pprof"), names(session));
+        }
+
+        /**
+         * A profiler stopped before it wrote an event leaves a zero-byte recording. Compressing
+         * one would delete it in favour of an archive of nothing, and the emptiness is what the
+         * hub reports to a reader that asks for the file.
+         */
+        @Test
+        void leavesAnEmptyRecordingAlone() throws IOException {
+            Path session = sessionDir();
+            Files.createFile(session.resolve("profile-20260220-120000.jfr"));
+
+            assertEquals(0, finishedSession().compressSession(SESSION_ID));
+
+            assertEquals(List.of("profile-20260220-120000.jfr"), names(session));
+        }
+
+        /**
+         * A second run has nothing to do, and says so by counting the archive it finds rather
+         * than compressing it again.
+         */
+        @Test
+        void isIdempotent() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr");
+
+            assertEquals(1, finishedSession().compressSession(SESSION_ID));
+            long firstSize = Files.size(session.resolve("profile-20260220-120000.jfr.lz4"));
+
+            assertEquals(1, finishedSession().compressSession(SESSION_ID));
+
+            assertEquals(List.of("profile-20260220-120000.jfr.lz4"), names(session));
+            assertEquals(firstSize, Files.size(session.resolve("profile-20260220-120000.jfr.lz4")));
+        }
+
+        /**
+         * The recording is deleted on the strength of an archive already being there, which is
+         * only safe because an archive under its own name is whole: it is renamed onto that name
+         * rather than written to it. Before the rename a hub killed mid-compression left a
+         * partial archive beside a whole recording, and this shortcut deleted the recording.
+         */
+        @Test
+        void removesARecordingWhoseArchiveIsAlreadyThere() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr");
+            write(session, "profile-20260220-120000.jfr.lz4");
+
+            finishedSession().compressSession(SESSION_ID);
+
+            assertEquals(List.of("profile-20260220-120000.jfr.lz4"), names(session));
+        }
+
+        /**
+         * The scratch file a compression writes into is hidden, so a session that is listed while
+         * one is in flight does not report a file that is about to stop existing — under a name
+         * no reader could place, at a size that is still growing.
+         */
+        @Test
+        void aScratchFileIsNoFileOfTheSession() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr");
+            Files.write(session.resolve(".profile-20260220-120000.jfr.lz4.0e57.tmp"),
+                    "half an archive".getBytes(StandardCharsets.UTF_8));
+
+            List<RepositoryFile> files = finishedSession()
+                    .singleSession(SESSION_ID, true)
+                    .orElseThrow()
+                    .files();
+
+            assertEquals(
+                    List.of("profile-20260220-120000.jfr"),
+                    files.stream().map(RepositoryFile::name).toList());
         }
     }
 

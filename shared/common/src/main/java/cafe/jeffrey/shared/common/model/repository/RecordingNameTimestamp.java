@@ -40,6 +40,11 @@ import java.time.format.DateTimeParseException;
  * <p>Anything the convention does not cover falls back to the filesystem — another prefix, a
  * timestamp that does not parse. A failure must not propagate: the caller drops a file it cannot
  * describe, so one oddly named file would leave the listing entirely rather than sort imprecisely.
+ *
+ * <p>Said at debug rather than warned about, because this is asked once per file per listing: a
+ * repository whose chunks are named otherwise is a supported arrangement that merely sorts by the
+ * filesystem, and warning about it would put a line in the log for every file on every page load
+ * and every run of every scheduled job.
  */
 final class RecordingNameTimestamp implements TimestampResolver {
 
@@ -59,9 +64,10 @@ final class RecordingNameTimestamp implements TimestampResolver {
             if (createdAt != null) {
                 return createdAt;
             }
-            LOG.warn("Recording has an unparseable timestamp in its name, asking the filesystem: filename={}", name);
+            LOG.debug("Recording has an unparseable timestamp in its name, asking the filesystem: filename={}",
+                    name);
         } else {
-            LOG.warn("Recording does not follow the naming convention, asking the filesystem: "
+            LOG.debug("Recording does not follow the naming convention, asking the filesystem: "
                     + "filename={} expected_prefix={}", name, PREFIX);
         }
 

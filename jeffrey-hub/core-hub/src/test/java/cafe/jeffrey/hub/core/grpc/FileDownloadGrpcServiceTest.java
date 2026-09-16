@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
+import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
@@ -155,6 +156,102 @@ class FileDownloadGrpcServiceTest {
             assertEquals(filename, observer.chunks.getFirst().getFilename(),
                     "the receiver is told the name the file has here, not the one it asked for");
             assertArrayEquals(content, reassemble(observer.chunks));
+        }
+
+        /**
+         * What the lookup refuses is a statement about what was asked for, not a hub failure.
+         * Reported as INTERNAL it reached the caller as {@code REMOTE_OPERATION_FAILED} — the
+         * same thing an unreachable hub gives — with a stack trace in the hub's log for every
+         * mistyped id.
+         */
+        @Test
+        void aRefusalIsReportedAsAnInvalidArgument() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.streamFile(SESSION_ID, FILE_ID))
+                    .thenThrow(new IllegalArgumentException("Recording profile-1.jfr is empty"));
+
+            var stub = startServer(serviceWithSession(repoManager));
+            var observer = new TestStreamObserver();
+
+            stub.downloadFile(request(SESSION_ID, FILE_ID), observer);
+
+            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
+            assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
+            assertEquals("Recording profile-1.jfr is empty",
+                    Status.fromThrowable(observer.error).getDescription(),
+                    "and the reason travels with it, since it is the whole use of refusing by reason");
+        }
+
+        /**
+         * The compression job publishes the archive and removes the recording between the
+         * listing and the open. The id survives that rewrite, so the same id is resolved once
+         * more — and what comes back is the archive, under the archive's name.
+         */
+        @Test
+        void resolvesTheIdAgainWhenTheFileWasReplacedUnderIt(@TempDir Path tempDir) throws Exception {
+            byte[] archived = "the archive of that chunk".getBytes();
+            Path archive = Files.write(tempDir.resolve("profile-1.jfr.lz4"), archived);
+
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.streamFile(SESSION_ID, FILE_ID))
+                    .thenThrow(new FileVanishedException("File profile-1.jfr was listed but is no longer on disk"))
+                    .thenReturn(new StreamedFile("profile-1.jfr.lz4", archive));
+
+            var stub = startServer(serviceWithSession(repoManager));
+            var observer = new TestStreamObserver();
+
+            stub.downloadFile(request(SESSION_ID, FILE_ID), observer);
+
+            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
+            assertNull(observer.error, "the retry is invisible to the caller");
+            assertEquals("profile-1.jfr.lz4", observer.chunks.getFirst().getFilename());
+            assertArrayEquals(archived, reassemble(observer.chunks));
+        }
+
+        /**
+         * The same race caught one step later: the listing still named the recording, and it was
+         * gone by the time the file was opened. Nothing has been sent at that point, so the
+         * second answer can still be streamed in full.
+         */
+        @Test
+        void resolvesTheIdAgainWhenTheFileIsGoneByTheTimeItIsOpened(@TempDir Path tempDir) throws Exception {
+            byte[] archived = "the archive of that chunk".getBytes();
+            Path archive = Files.write(tempDir.resolve("profile-1.jfr.lz4"), archived);
+            Path removed = tempDir.resolve("profile-1.jfr");
+
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.streamFile(SESSION_ID, FILE_ID))
+                    .thenReturn(new StreamedFile("profile-1.jfr", removed))
+                    .thenReturn(new StreamedFile("profile-1.jfr.lz4", archive));
+
+            var stub = startServer(serviceWithSession(repoManager));
+            var observer = new TestStreamObserver();
+
+            stub.downloadFile(request(SESSION_ID, FILE_ID), observer);
+
+            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
+            assertNull(observer.error);
+            assertEquals("profile-1.jfr.lz4", observer.chunks.getFirst().getFilename());
+            assertArrayEquals(archived, reassemble(observer.chunks));
+        }
+
+        /**
+         * Once, and once only. A second miss is not a rewrite in flight but a file that is
+         * genuinely not there, and retrying it again would turn one missing file into a loop.
+         */
+        @Test
+        void butOnlyOnce() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.streamFile(SESSION_ID, FILE_ID))
+                    .thenThrow(new FileVanishedException("File profile-1.jfr is no longer on disk"));
+
+            var stub = startServer(serviceWithSession(repoManager));
+            var observer = new TestStreamObserver();
+
+            stub.downloadFile(request(SESSION_ID, FILE_ID), observer);
+
+            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
+            assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
         }
 
         private DownloadFileRequest request(String sessionId, String fileId) {

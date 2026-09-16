@@ -234,20 +234,36 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         String recordingSessionId = recordingSession.id();
 
-        // At least one recording file must be present. 0...n artifacts (heap dumps, logs) may come
-        // along with it.
-        if (files.stream().noneMatch(RepositoryFile::isRecordingFile)) {
+        // Before anything is transferred, and before the progress bar starts: a pick with a hole in
+        // it is refused here rather than after the bytes have been paid for. Judged over the files
+        // the reader chose, including any the transfer below leaves out, so that dropping an empty
+        // chunk cannot turn a whole session into a gapped one.
+        ChunkWindow.Selection part = partOf(recordingSession, files);
+
+        // The chunks that can be asked for, and the ones that cannot. The hub refuses to serve an
+        // empty recording and is right to: a zero-byte chunk is what a profiler leaves when it is
+        // stopped before it writes an event, and a download of one is a file that fails to parse.
+        // Asked for anyway it fails the whole session's download for the sake of a chunk holding
+        // nothing — usually the last one, which is exactly what a killed container leaves behind.
+        Map<Boolean, List<RepositoryFile>> chunksByContent = files.stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(file -> !recordingSession.isOpen(file))
+                .collect(Collectors.partitioningBy(RepositoryFile::hasContent));
+
+        List<RepositoryFile> recordingFiles = chunksByContent.get(true);
+        List<RepositoryFile> emptyRecordings = chunksByContent.get(false);
+
+        if (!emptyRecordings.isEmpty()) {
+            LOG.info("Leaving empty recording files out of the download: sessionId={} files={}",
+                    recordingSessionId, emptyRecordings.stream().map(RepositoryFile::name).toList());
+        }
+
+        // At least one recording file must be left to download. 0...n artifacts (heap dumps,
+        // logs) may come along with it.
+        if (recordingFiles.isEmpty()) {
             throw Exceptions.emptyRecordingSession(recordingSessionId);
         }
 
-        // Before anything is transferred, and before the progress bar starts: a pick with a hole in
-        // it is refused here rather than after the bytes have been paid for.
-        ChunkWindow.Selection part = partOf(recordingSession, files);
-
-        List<RepositoryFile> recordingFiles = files.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> !recordingSession.isOpen(file))
-                .toList();
         List<RepositoryFile> artifactFiles = files.stream()
                 .filter(RepositoryFile::isArtifactFile)
                 .toList();
@@ -407,6 +423,9 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * directory it is resolved against, whatever the other end sends.
      */
     private static Path targetIn(TempDirectory tempDir, String name) {
+        // Kept although TransferredFile reduces the name to one path element of its own accord:
+        // this is the line that resolves it into a directory, and a guard beside the resolve is
+        // the one a later refactor cannot quietly separate from what it protects.
         Path single = Path.of(name).getFileName();
         if (single == null || single.toString().isBlank() || NOT_A_FILE_NAME.contains(single.toString())) {
             throw new IllegalArgumentException("The session names a file that cannot be written: " + name);

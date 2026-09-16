@@ -236,7 +236,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * an open apiece would be hundreds of round trips on one page load.
      */
     static FileSizeReader sizeReader(RecordingStatus sessionStatus, ManagedFile fileType) {
-        if (sessionStatus == RecordingStatus.FINISHED || fileType.isCompressed()) {
+        if (sessionStatus == RecordingStatus.FINISHED || fileType.isArchive()) {
             return FileSizeReader.FILE_ATTRIBUTES;
         }
         return FileSizeReader.LIVE_FILE;
@@ -421,10 +421,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         RepositoryFile file = session.files().stream()
                 .filter(candidate -> candidate.id().equals(fileId))
-                // A recording and the archive beside it share an id while the compression job is
-                // between writing one and removing the other, and in that window the recording is
-                // the file certainly whole — the archive may still be being written into.
-                .reduce(AsprofFileRepositoryStorage::theOneCertainlyWhole)
+                // A recording and the archive beside it share an id while the compression job
+                // is between publishing one and removing the other. Both are whole; the archive is
+                // the one that will still be there in a moment.
+                .reduce(AsprofFileRepositoryStorage::theOneThatStays)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Session " + sessionId + " holds no file with id " + fileId
                                 + ". Take the id from the session's file listing."));
@@ -439,10 +439,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                     + file.fileType().description() + ", which the profiler deletes as it goes.");
         }
         if (!Files.isRegularFile(file.filePath())) {
-            throw new IllegalArgumentException("File " + file.name() + " was listed for session "
-                    + sessionId + " but is no longer on disk.");
+            // Its own kind, because a caller holding the id can act on it: the compression job
+            // publishes the archive and removes the recording between this listing and this
+            // check, and the same id resolves to the archive on the next look.
+            throw new FileVanishedException("File " + file.name() + " was listed for session "
+                    + sessionId + " but is no longer on disk. It may have been replaced by its "
+                    + "compressed form; ask for the same file id again.");
         }
-        if (file.isRecordingFile() && !hasContent(file)) {
+        if (file.isRecordingFile() && !file.hasContent()) {
             throw new IllegalArgumentException("Recording " + file.name() + " is empty — the profiler "
                     + "stopped before it wrote an event into it.");
         }
@@ -451,31 +455,17 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * Whether the file holds anything. Asked of recordings only, because it is a statement about
-     * parsing rather than about files: an empty {@code gc.jvm-log} is an answer, and a reader
-     * asking for one wants to be handed the nothing it holds rather than a refusal.
-     *
-     * <p>A profiler stopped before it wrote an event — a container killed, a non-graceful
-     * shutdown — leaves a zero-byte recording behind. Handing one over yields a download that
-     * fails to parse rather than a recording of nothing. The figure is the listing's, read for a
-     * live session through an open handle already, so this costs no round trip.
-     *
-     * <p>A size that could not be read at all is not a reason to withhold the file: that is the
-     * one case where the listing cannot tell, and refusing would lose a recording that may be
-     * whole.
-     */
-    private static boolean hasContent(RepositoryFile file) {
-        return file.size() == null || file.size() > 0;
-    }
-
-    /**
-     * Which of two files sharing an id to hand over — the recording rather than the archive.
+     * Which of two files sharing an id to hand over — the archive rather than the recording.
      *
      * <p>A stripped extension is what makes an id survive compression, and it is also what lets
-     * one id name two files for as long as the job takes to remove the first.
+     * one id name two files for as long as the job takes to remove the first. Both are whole in
+     * that window: the archive is published by a rename, so its name never names a file being
+     * written into, and the recording is what it was made from. The archive is the one to serve
+     * because it is the one that stays — the recording beside it is about to be deleted, and a
+     * reader that resolved it may find it gone before it opens it.
      */
-    private static RepositoryFile theOneCertainlyWhole(RepositoryFile first, RepositoryFile second) {
-        return first.fileType().isCompressed() ? second : first;
+    private static RepositoryFile theOneThatStays(RepositoryFile first, RepositoryFile second) {
+        return first.fileType().isArchive() ? first : second;
     }
 
     // ========== Session Compression ==========
@@ -515,8 +505,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * under that name, and a {@code .jfr} holding an LZ4 frame is not something any reader of it
      * can recover — compression is detected by the extension, nothing sniffs the frame.
      *
-     * <p>The lock and the double check stay: the job's periodic run and an on-demand run for one
-     * session can overlap on the same project.
+     * <p>The source is deleted only once the archive exists, and the archive exists only once it
+     * is whole: {@link Compression#compress} writes elsewhere and renames onto the target, so
+     * the target's name never names a file being written into. That is what makes the two
+     * shortcuts below safe. Written straight to the target, as this did, a hub killed
+     * mid-compression left a partial archive beside a whole recording, and the next run read
+     * "the archive is there" and deleted the recording; two overlapping runs did the same to
+     * each other, since the lock is held by one storage instance and an instance is built per
+     * call.
      */
     private Path compress(String sessionId, RepositoryFile file) {
         Compression compression = file.fileType().compression();
@@ -532,7 +528,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         Path sourcePath = file.filePath();
         Path compressedPath = compression.target(sourcePath);
 
-        // Fast path: check if already compressed by another thread
+        // Already done, here or by a run this one overlaps: the archive under that name is whole
+        // by construction, so the recording it was made from has served its purpose.
         if (Files.exists(compressedPath)) {
             FileSystemUtils.removeFile(sourcePath);
             return compressedPath;
@@ -560,15 +557,12 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 return null;
             }
 
-            // Compress, verify, and delete original
+            // No verification of the result here any more: compress() returns only once the
+            // archive is whole and under its own name, and throws otherwise, so there is nothing
+            // left for this to check that the check could still fail.
             compression.compress(sourcePath, compressedPath);
-            long compressedSize = Files.size(compressedPath);
-            if (Files.exists(compressedPath) && compressedSize > 0) {
-                FileSystemUtils.removeFile(sourcePath);
-            }
+            FileSystemUtils.removeFile(sourcePath);
             return compressedPath;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to verify compressed file: " + compressedPath, e);
         } finally {
             compressionLock.unlock();
         }

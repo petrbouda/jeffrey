@@ -54,4 +54,21 @@ public record RepositoryFile(
     public boolean isArtifactFile() {
         return fileType.fileCategory() == FileCategory.ARTIFACT;
     }
+
+    /**
+     * Whether the file holds anything at all.
+     *
+     * <p>A profiler stopped before it wrote an event — a container killed, a shutdown that was
+     * not graceful — leaves a zero-byte recording behind, and a recording of no bytes is not
+     * something any reader can parse. The hub refuses to serve one and a download must not ask
+     * for one; the question is asked here so the two cannot come to different answers.
+     *
+     * <p>A size that could not be read at all counts as content: that is the one case where
+     * nothing here can tell, and treating it as empty would withhold a recording that may be
+     * whole. Worth asking of a recording only — an empty log is an answer, and a reader wanting
+     * one wants to be handed the nothing it holds.
+     */
+    public boolean hasContent() {
+        return size == null || size > 0;
+    }
 }
