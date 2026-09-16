@@ -50,6 +50,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
@@ -381,15 +382,21 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             try {
                 throwIfCancelled(progressCallback);
 
-                Path target = targetIn(tempDir, file.name());
-                transfer.stream(recordingSessionId, file.id(), (inputStream, contentLength) -> {
-                    long actualSize = contentLength > 0 ? contentLength : file.size();
+                // The name comes off the transfer rather than out of the listing: the job may
+                // have replaced this file with its archive since the session was listed, and the
+                // bytes arriving are then the archive's. The progress channel keeps saying the
+                // name the reader chose, which is the one it was shown.
+                AtomicReference<Path> landed = new AtomicReference<>();
+                transfer.stream(recordingSessionId, file.id(), (inputStream, transferred) -> {
+                    long actualSize = transferred.size() > 0 ? transferred.size() : file.size();
                     progressCallback.onFileStart(file.name(), actualSize);
+                    Path target = targetIn(tempDir, transferred.nameOr(file.name()));
                     streamToFileWithProgress(inputStream, target, file.name(), progressCallback);
+                    landed.set(target);
                 });
 
                 progressCallback.onFileComplete(file.name());
-                return target;
+                return landed.get();
             } finally {
                 downloadSemaphore.release();
             }

@@ -26,13 +26,47 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.Iterator;
 
 public class RecordingStreamClient {
 
     @FunctionalInterface
     public interface InputStreamConsumer {
-        void accept(InputStream inputStream, long contentLength) throws IOException;
+        void accept(InputStream inputStream, TransferredFile file) throws IOException;
+    }
+
+    /**
+     * What the hub said it was sending, before a byte of it is written.
+     *
+     * @param name the name the file has on the hub, or blank when it sent none
+     * @param size the file's size, or {@link #UNKNOWN_CONTENT_LENGTH} when the hub sent none
+     */
+    public record TransferredFile(String name, long size) {
+
+        /**
+         * The name to write the bytes under: the hub's, falling back to the one the caller
+         * expected when the hub sent none.
+         *
+         * <p>The hub's name wins because the caller's is older than the transfer. A listing says
+         * {@code profile-1.jfr}; the compression job replaces that file with
+         * {@code profile-1.jfr.lz4} a moment later; the bytes that arrive are the archive's.
+         * Written under the name the caller remembered, they are an LZ4 frame in a file called
+         * {@code .jfr}, and compression is recognised by the extension — nothing sniffs the frame
+         * — so every reader of it treats it as a raw recording and fails on the chunk magic.
+         *
+         * <p>Reduced to a single path element, because this name came off the wire and is about
+         * to be resolved into a directory.
+         */
+        public String nameOr(String expected) {
+            String candidate = name == null || name.isBlank() ? expected : name;
+            String element = Path.of(candidate).getFileName().toString();
+            if (element.isBlank() || element.equals(".") || element.equals("..")) {
+                throw new IllegalArgumentException(
+                        "Refusing a transferred file name that is not a single path element: " + candidate);
+            }
+            return element;
+        }
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingStreamClient.class);
@@ -92,6 +126,8 @@ public class RecordingStreamClient {
         long contentLength = (firstChunk != null && firstChunk.getTotalSize() > 0)
                 ? firstChunk.getTotalSize()
                 : UNKNOWN_CONTENT_LENGTH;
+        TransferredFile transferred = new TransferredFile(
+                firstChunk != null ? firstChunk.getFilename() : "", contentLength);
 
         try {
             PipedOutputStream pipeOut = new PipedOutputStream();
@@ -114,7 +150,7 @@ public class RecordingStreamClient {
             });
 
             try {
-                consumer.accept(pipeIn, contentLength);
+                consumer.accept(pipeIn, transferred);
             } finally {
                 // Closed before the join, not after it. A consumer that stopped early -- a
                 // cancelled download -- leaves the writer blocked on a full pipe with nobody

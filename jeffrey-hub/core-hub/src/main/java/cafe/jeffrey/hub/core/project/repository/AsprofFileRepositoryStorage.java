@@ -29,7 +29,6 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.Compression;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -404,10 +403,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         LOG.info("Deleted project directory: {}", projectPath);
     }
 
-    @Override
-    public RepositoryType type() {
-        return RepositoryType.ASYNC_PROFILER;
-    }
 
     // ========== Recording Files ==========
 

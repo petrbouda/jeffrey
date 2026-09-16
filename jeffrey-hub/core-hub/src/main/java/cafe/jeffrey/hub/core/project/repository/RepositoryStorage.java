@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 
 import java.nio.file.Path;
@@ -117,12 +116,6 @@ public interface RepositoryStorage {
      */
     List<Path> listSessionDirectoriesOnDisk();
 
-    /**
-     * Type of the repository.
-     *
-     * @return type of the repository.
-     */
-    RepositoryType type();
 
     // ========== Recording Files ==========
 
