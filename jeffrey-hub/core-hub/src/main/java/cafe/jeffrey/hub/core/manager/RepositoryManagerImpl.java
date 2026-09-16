@@ -24,8 +24,6 @@ import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.StatsCategory;
 import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
@@ -43,10 +41,8 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
@@ -96,14 +92,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .flatMap(s -> s.files().stream())
                 .toList();
 
-        Map<StatsCategory, FileTypeStats> byCategory = allFiles.stream()
-                .collect(Collectors.groupingBy(
-                        f -> StatsCategory.of(f.fileType()),
-                        Collectors.teeing(
-                                Collectors.counting(),
-                                Collectors.summingLong(f -> fileSize(f)),
-                                (count, size) -> new FileTypeStats(count.intValue(), size))));
-
         long totalSize = allFiles.stream().mapToLong(this::fileSize).sum();
 
         long lastActivity = allFiles.stream()
@@ -118,14 +106,13 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .max()
                 .orElse(0L);
 
-        return RepositoryStatistics.fromCategoryMap(
+        return new RepositoryStatistics(
                 sessions.size(),
                 sessions.getFirst().status(),
                 lastActivity,
                 totalSize,
                 allFiles.size(),
-                biggestSession,
-                byCategory);
+                biggestSession);
     }
 
     private long fileSize(RepositoryFile file) {

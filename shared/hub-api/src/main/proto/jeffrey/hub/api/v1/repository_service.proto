@@ -70,7 +70,11 @@ message GetRepositoryStatisticsRequest {
 }
 
 // Aggregate statistics about the recording repository.
-// Breaks down file counts and sizes by type (JFR, heap dump, logs, etc.).
+//
+// Totals only. This used to carry a count and a size for each of six buckets — JFR, heap dump,
+// log, app log, error log, other — which meant the hub had to decide what every file type means.
+// It decided wrong for pprof and OTLP, which arrived as "other" beside files nothing could
+// classify at all. A new ManagedFile now changes nothing here.
 message GetRepositoryStatisticsResponse {
   // Total number of recording sessions.
   int32 total_sessions = 1;
@@ -84,30 +88,6 @@ message GetRepositoryStatisticsResponse {
   int32 total_files = 5;
   // Size of the largest session in bytes.
   int64 biggest_session_size = 6;
-  // Number of JFR recording files.
-  int32 jfr_files = 7;
-  // Total size of JFR files in bytes.
-  int64 jfr_size = 8;
-  // Number of heap dump files.
-  int32 heap_dump_files = 9;
-  // Total size of heap dump files in bytes.
-  int64 heap_dump_size = 10;
-  // Number of JVM log files (e.g., gc.log, hs_err).
-  int32 log_files = 11;
-  // Total size of JVM log files in bytes.
-  int64 log_size = 12;
-  // Number of application log files.
-  int32 app_log_files = 13;
-  // Total size of application log files in bytes.
-  int64 app_log_size = 14;
-  // Number of error log files (e.g., hs_err crash logs).
-  int32 error_log_files = 15;
-  // Total size of error log files in bytes.
-  int64 error_log_size = 16;
-  // Number of other/unclassified files.
-  int32 other_files = 17;
-  // Total size of other files in bytes.
-  int64 other_size = 18;
 }
 
 message DeleteSessionRequest {
@@ -173,10 +153,7 @@ message RepositoryFile {
   // File type identifier: a ManagedFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
   // JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, ...).
   string file_type = 5;
-  // Whether this is a JFR recording file (true) or an artifact like logs/heap dumps (false).
-  bool is_recording = 7;
-
-  // Was `RecordingStatus status`, which the hub resolved by reaching back into its own listing.
-  reserved 6;
-  reserved "status";
+  // Whether the file is a recording (true) or an artifact such as a log or heap dump (false).
+  // The file's category, not its format: a pprof and an OTLP profile are recordings too.
+  bool is_recording = 6;
 }

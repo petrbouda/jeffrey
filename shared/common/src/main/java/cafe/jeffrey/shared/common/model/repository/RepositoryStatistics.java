@@ -18,10 +18,18 @@
 
 package cafe.jeffrey.shared.common.model.repository;
 
-import java.util.Map;
-
 /**
- * Repository statistics containing aggregated information about sessions, files, and storage.
+ * Aggregate figures about a project's recording repository.
+ *
+ * <p>Totals only, on purpose. This used to carry a count and a size for each of six buckets — JFR,
+ * heap dump, log, app log, error log, other — filled by a switch over {@link ManagedFile}. That
+ * switch was the last place anything on the hub side decided what a file type <em>means</em>, and
+ * it decided wrong: pprof and OTLP recordings landed in "other", beside the files nothing could
+ * classify at all.
+ *
+ * <p>Nothing here names a kind of file, so adding a {@code ManagedFile} constant changes neither
+ * this record nor the RPC that carries it. A caller that wants to know what a particular file is
+ * reads {@code fileType} off the session listing, where the hub reports it without acting on it.
  */
 public record RepositoryStatistics(
         int totalSessions,
@@ -29,59 +37,8 @@ public record RepositoryStatistics(
         long lastActivityTimeMillis,
         long totalSizeBytes,
         int totalFiles,
-        long biggestSessionSizeBytes,
-        FileTypeStats jfr,
-        FileTypeStats heapDump,
-        FileTypeStats log,
-        FileTypeStats appLog,
-        FileTypeStats errorLog,
-        FileTypeStats other) {
+        long biggestSessionSizeBytes) {
 
-    public static final RepositoryStatistics EMPTY = new RepositoryStatistics(
-            0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L,
-            FileTypeStats.EMPTY, FileTypeStats.EMPTY, FileTypeStats.EMPTY,
-            FileTypeStats.EMPTY, FileTypeStats.EMPTY, FileTypeStats.EMPTY);
-
-    public static RepositoryStatistics fromCategoryMap(
-            int totalSessions,
-            RecordingStatus latestSessionStatus,
-            long lastActivityTimeMillis,
-            long totalSizeBytes,
-            int totalFiles,
-            long biggestSessionSizeBytes,
-            Map<StatsCategory, FileTypeStats> byCategory) {
-
-        return new RepositoryStatistics(
-                totalSessions,
-                latestSessionStatus,
-                lastActivityTimeMillis,
-                totalSizeBytes,
-                totalFiles,
-                biggestSessionSizeBytes,
-                byCategory.getOrDefault(StatsCategory.JFR, FileTypeStats.EMPTY),
-                byCategory.getOrDefault(StatsCategory.HEAP_DUMP, FileTypeStats.EMPTY),
-                byCategory.getOrDefault(StatsCategory.LOG, FileTypeStats.EMPTY),
-                byCategory.getOrDefault(StatsCategory.APP_LOG, FileTypeStats.EMPTY),
-                byCategory.getOrDefault(StatsCategory.ERROR_LOG, FileTypeStats.EMPTY),
-                byCategory.getOrDefault(StatsCategory.OTHER, FileTypeStats.EMPTY));
-    }
-
-    public record FileTypeStats(int count, long size) {
-        public static final FileTypeStats EMPTY = new FileTypeStats(0, 0L);
-    }
-
-    public enum StatsCategory {
-        JFR, HEAP_DUMP, LOG, APP_LOG, ERROR_LOG, OTHER;
-
-        public static StatsCategory of(ManagedFile fileType) {
-            return switch (fileType) {
-                case JFR, JFR_LZ4 -> JFR;
-                case HEAP_DUMP, HEAP_DUMP_GZ -> HEAP_DUMP;
-                case JVM_LOG -> LOG;
-                case APP_LOG -> APP_LOG;
-                case HS_JVM_ERROR_LOG -> ERROR_LOG;
-                default -> OTHER;
-            };
-        }
-    }
+    public static final RepositoryStatistics EMPTY =
+            new RepositoryStatistics(0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L);
 }

@@ -18,6 +18,11 @@
 
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 
+/**
+ * A project's repository in totals. There is deliberately no breakdown by file type: the hub used
+ * to send six fixed buckets, which meant deciding what every type means, and a pprof or OTLP
+ * recording arrived as "other". Adding a file type now changes nothing here.
+ */
 export default interface RepositoryStatistics {
   // Session Overview
   totalSessions: number;
@@ -28,18 +33,4 @@ export default interface RepositoryStatistics {
   totalSize: number; // Total repository size in bytes
   totalFiles: number; // Total number of files across all sessions
   biggestSessionSize: number; // Size of the largest session in bytes
-
-  // File Type Breakdown
-  jfrFiles: number; // Number of JFR files
-  jfrSize: number; // Total size of JFR files in bytes
-  heapDumpFiles: number; // Number of heap dump files
-  heapDumpSize: number; // Total size of heap dump files in bytes
-  logFiles: number; // Number of JVM log files
-  logSize: number; // Total size of JVM log files in bytes
-  appLogFiles: number; // Number of application log files
-  appLogSize: number; // Total size of application log files in bytes
-  errorLogFiles: number; // Number of HS JVM error log files
-  errorLogSize: number; // Total size of HS JVM error log files in bytes
-  otherFiles: number; // Number of other/unknown files
-  otherSize: number; // Total size of other/unknown files in bytes
 }

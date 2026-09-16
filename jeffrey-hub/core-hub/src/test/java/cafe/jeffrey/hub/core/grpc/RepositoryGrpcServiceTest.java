@@ -32,7 +32,6 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
 import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.time.Duration;
@@ -291,13 +290,7 @@ class RepositoryGrpcServiceTest {
                             FIXED_TIME.toEpochMilli(),
                             1_000_000L,
                             25,
-                            500_000L,
-                            new FileTypeStats(10, 800_000L),
-                            new FileTypeStats(2, 100_000L),
-                            new FileTypeStats(3, 50_000L),
-                            new FileTypeStats(5, 30_000L),
-                            new FileTypeStats(1, 10_000L),
-                            new FileTypeStats(4, 10_000L)
+                            500_000L
                     )
             );
 
@@ -314,18 +307,6 @@ class RepositoryGrpcServiceTest {
             assertEquals(1_000_000L, response.getTotalSize());
             assertEquals(25, response.getTotalFiles());
             assertEquals(500_000L, response.getBiggestSessionSize());
-            assertEquals(10, response.getJfrFiles());
-            assertEquals(800_000L, response.getJfrSize());
-            assertEquals(2, response.getHeapDumpFiles());
-            assertEquals(100_000L, response.getHeapDumpSize());
-            assertEquals(3, response.getLogFiles());
-            assertEquals(50_000L, response.getLogSize());
-            assertEquals(5, response.getAppLogFiles());
-            assertEquals(30_000L, response.getAppLogSize());
-            assertEquals(1, response.getErrorLogFiles());
-            assertEquals(10_000L, response.getErrorLogSize());
-            assertEquals(4, response.getOtherFiles());
-            assertEquals(10_000L, response.getOtherSize());
         }
 
         @Test

@@ -89,7 +89,6 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
         for (StubDataset.Session session : sessions) {
             long sessionSize = 0;
             for (StubDataset.File file : session.files()) {
-                accumulate(builder, file);
                 builder.setTotalFiles(builder.getTotalFiles() + 1);
                 builder.setTotalSize(builder.getTotalSize() + file.size());
                 sessionSize += file.size();
@@ -105,35 +104,6 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
                 .setLastActivityTime(lastActivity)
                 .setBiggestSessionSize(biggestSession)
                 .build();
-    }
-
-    private static void accumulate(GetRepositoryStatisticsResponse.Builder builder, StubDataset.File file) {
-        switch (file.kind()) {
-            case JFR -> {
-                builder.setJfrFiles(builder.getJfrFiles() + 1);
-                builder.setJfrSize(builder.getJfrSize() + file.size());
-            }
-            case HEAP_DUMP -> {
-                builder.setHeapDumpFiles(builder.getHeapDumpFiles() + 1);
-                builder.setHeapDumpSize(builder.getHeapDumpSize() + file.size());
-            }
-            case GC_LOG -> {
-                builder.setLogFiles(builder.getLogFiles() + 1);
-                builder.setLogSize(builder.getLogSize() + file.size());
-            }
-            case APP_LOG -> {
-                builder.setAppLogFiles(builder.getAppLogFiles() + 1);
-                builder.setAppLogSize(builder.getAppLogSize() + file.size());
-            }
-            case HS_ERR_LOG -> {
-                builder.setErrorLogFiles(builder.getErrorLogFiles() + 1);
-                builder.setErrorLogSize(builder.getErrorLogSize() + file.size());
-            }
-            case OTHER -> {
-                builder.setOtherFiles(builder.getOtherFiles() + 1);
-                builder.setOtherSize(builder.getOtherSize() + file.size());
-            }
-        }
     }
 
     private static long lastActivityOf(StubDataset.Session session) {

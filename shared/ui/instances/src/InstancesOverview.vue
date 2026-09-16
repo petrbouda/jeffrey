@@ -72,75 +72,16 @@
                     FormattingService.formatBytes(repositoryStatistics.biggestSessionSize)
                   }}</span>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- File Types -->
-          <div class="col-md-4 col-xl" v-if="repositoryStatistics">
-            <div class="compact-stat-card">
-              <div class="compact-stat-header">
-                <i class="bi bi-files text-info"></i>
-                <span class="compact-stat-title">File Types</span>
-              </div>
-              <div class="compact-stat-metrics compact-stat-metrics-grid">
-                <div class="metric-item metric-header-row">
-                  <span class="metric-label"></span>
-                  <span class="metric-col-header">Count</span>
-                  <span class="metric-col-header">Size</span>
+                <div class="metric-item">
+                  <span class="metric-label">Repository Sessions</span>
+                  <span class="metric-value">{{ repositoryStatistics.totalSessions }}</span>
                 </div>
                 <div class="metric-item">
-                  <span class="metric-label">JFR Files</span>
-                  <span class="metric-value" style="color: #5e64ff">{{
-                    repositoryStatistics.jfrFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #5e64ff">{{
-                    FormattingService.formatBytes(repositoryStatistics.jfrSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Heap Dumps</span>
-                  <span class="metric-value" style="color: #6f42c1">{{
-                    repositoryStatistics.heapDumpFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #6f42c1">{{
-                    FormattingService.formatBytes(repositoryStatistics.heapDumpSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">JVM Logs</span>
-                  <span class="metric-value" style="color: #14b8a6">{{
-                    repositoryStatistics.logFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #14b8a6">{{
-                    FormattingService.formatBytes(repositoryStatistics.logSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Application Logs</span>
-                  <span class="metric-value" style="color: #8b5e3c">{{
-                    repositoryStatistics.appLogFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #8b5e3c">{{
-                    FormattingService.formatBytes(repositoryStatistics.appLogSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">JVM Error Logs</span>
-                  <span class="metric-value" style="color: #c62828">{{
-                    repositoryStatistics.errorLogFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #c62828">{{
-                    FormattingService.formatBytes(repositoryStatistics.errorLogSize ?? 0)
-                  }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Other Files</span>
-                  <span class="metric-value" style="color: #6c757d">{{
-                    repositoryStatistics.otherFiles ?? 0
-                  }}</span>
-                  <span class="metric-value metric-size" style="color: #6c757d">{{
-                    FormattingService.formatBytes(repositoryStatistics.otherSize ?? 0)
+                  <span class="metric-label">Last Activity</span>
+                  <span class="metric-value">{{
+                    repositoryStatistics.lastActivityTime > 0
+                      ? FormattingService.formatRelativeTime(repositoryStatistics.lastActivityTime)
+                      : '\u2014'
                   }}</span>
                 </div>
               </div>
@@ -423,22 +364,12 @@ onMounted(async () => {
   gap: 4px;
 }
 
-.compact-stat-metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 4px 12px;
-}
-
 .metric-item {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 2px 0;
-}
-
-.compact-stat-metrics-grid .metric-item {
-  display: contents;
 }
 
 .metric-label {
@@ -447,35 +378,12 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.compact-stat-metrics-grid .metric-label,
-.compact-stat-metrics-grid .metric-value {
-  padding: 2px 0;
-}
-
 .metric-value {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
   text-align: right;
   min-width: 36px;
-}
-
-.metric-size {
-  min-width: 64px;
-}
-
-.metric-col-header {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--color-text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-align: right;
-  min-width: 36px;
-}
-
-.metric-col-header:last-child {
-  min-width: 64px;
 }
 
 /* Filter button group */

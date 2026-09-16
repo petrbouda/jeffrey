@@ -96,19 +96,7 @@ public class RepositoryClient {
                 response.getLastActivityTime(),
                 response.getTotalSize(),
                 response.getTotalFiles(),
-                response.getBiggestSessionSize(),
-                response.getJfrFiles(),
-                response.getJfrSize(),
-                response.getHeapDumpFiles(),
-                response.getHeapDumpSize(),
-                response.getLogFiles(),
-                response.getLogSize(),
-                response.getAppLogFiles(),
-                response.getAppLogSize(),
-                response.getErrorLogFiles(),
-                response.getErrorLogSize(),
-                response.getOtherFiles(),
-                response.getOtherSize());
+                response.getBiggestSessionSize());
     }
 
     public void deleteSession(String sessionId) {

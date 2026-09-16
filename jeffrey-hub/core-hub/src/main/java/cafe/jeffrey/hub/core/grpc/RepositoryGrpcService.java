@@ -89,18 +89,6 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
                     .setTotalSize(stats.totalSizeBytes())
                     .setTotalFiles(stats.totalFiles())
                     .setBiggestSessionSize(stats.biggestSessionSizeBytes())
-                    .setJfrFiles(stats.jfr().count())
-                    .setJfrSize(stats.jfr().size())
-                    .setHeapDumpFiles(stats.heapDump().count())
-                    .setHeapDumpSize(stats.heapDump().size())
-                    .setLogFiles(stats.log().count())
-                    .setLogSize(stats.log().size())
-                    .setAppLogFiles(stats.appLog().count())
-                    .setAppLogSize(stats.appLog().size())
-                    .setErrorLogFiles(stats.errorLog().count())
-                    .setErrorLogSize(stats.errorLog().size())
-                    .setOtherFiles(stats.other().count())
-                    .setOtherSize(stats.other().size())
                     .build();
         });
     }
