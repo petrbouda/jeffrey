@@ -96,7 +96,6 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
     └── current/                             # symlink → versioned bundle
         ├── provisioner-amd64                # per-arch provisioner binary
         ├── provisioner-aarch64
-        ├── jeffrey-agent.jar                # JVMTI agent
         └── libasyncProfiler.so              # async-profiler shared library`;
 </script>
 

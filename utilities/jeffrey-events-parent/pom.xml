@@ -39,6 +39,8 @@
     -->
     <modules>
         <module>../jeffrey-events</module>
+        <module>../jeffrey-heartbeat</module>
+        <module>../jeffrey-heartbeat-spring-boot-starter</module>
         <module>../jeffrey-events-test</module>
         <module>../jeffrey-tracing</module>
     </modules>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cafe.jeffrey-analyst</groupId>
+        <artifactId>jeffrey-events-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../jeffrey-events-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>jeffrey-heartbeat</artifactId>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Reports JVM liveness to a Jeffrey Hub from inside the application, without a Java agent</description>
+    <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
+    <url>https://github.com/petrbouda/jeffrey</url>
+
+    <properties>
+        <!--
+          Lower than its siblings, which need 25 for the Tracer API's ScopedValue. Nothing here
+          needs it — this is a scheduled file write — and this library is the only way a JVM
+          reports liveness to a hub, so pinning it to 25 would put an application on Java 21
+          outside Jeffrey's session tracking entirely.
+        -->
+        <maven.compiler.release>21</maven.compiler.release>
+    </properties>
+
+    <!--
+      No compile dependencies, and that is a requirement rather than a happy accident: this jar is
+      compiled into applications Jeffrey profiles but does not own, so anything it brought along
+      would be a version those applications did not choose.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -42,7 +42,7 @@
         <div class="pipe-box">
           <h4>Your Application</h4>
           <div class="pipe-chip entry"><code>jeffrey-events</code> — zero dependencies</div>
-          <div class="pipe-chip entry"><code>Tracer.run(…)</code> / <code>@Traced</code> + Agent</div>
+          <div class="pipe-chip entry"><code>Tracer.run(…)</code> / instrumentation</div>
           <div class="pipe-chip neutral">HTTP / gRPC / JDBC glue</div>
         </div>
         <div class="pipe-box">

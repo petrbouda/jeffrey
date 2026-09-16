@@ -182,7 +182,7 @@ const families: EventFamily[] = [
       {
         name: 'jeffrey.TraceSpan',
         recordedAs: 'INTERNAL',
-        description: 'A span opened by hand through Tracer.run / Tracer.call, or woven onto a @Traced method: a name, a kind, a status and optional JSON attributes.'
+        description: 'A span opened by hand through Tracer.run / Tracer.call: a name, a kind, a status and optional JSON attributes.'
       },
       {
         name: 'jeffrey.TraceScope',

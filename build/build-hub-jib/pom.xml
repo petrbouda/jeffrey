@@ -103,7 +103,7 @@
                                      jeffreyHome / configs remain unset — those are deployment-specific (shared
                                      volume mount, ConfigMap path) and provided by the operator via pod env.
 
-                                     provisionerPath / profilerPath / agentPath point at the in-image /jeffrey-libs/ bundle
+                                     provisionerPath / profilerPath point at the in-image /jeffrey-libs/ bundle
                                      so jeffrey-hub's own self-profiling does not depend on the shared volume
                                      being populated at startup. The {arch} placeholder is expanded at container
                                      start by jeffrey-entrypoint.sh after `uname -m` detects the running platform
@@ -111,7 +111,6 @@
                                      per-platform image. -->
                                 <provisionerPath>/jeffrey-libs/provisioner-{arch}</provisionerPath>
                                 <profilerPath>/jeffrey-libs/libasyncProfiler-{arch}.so</profilerPath>
-                                <agentPath>/jeffrey-libs/jeffrey-agent.jar</agentPath>
                             </configuration>
                         </pluginExtension>
                     </pluginExtensions>
@@ -120,7 +119,6 @@
                       src/main/jib/jeffrey-libs/ before running jib:build:
                         - provisioner.jar
                         - provisioner-amd64, provisioner-arm64 (native GraalVM binaries; need 0755)
-                        - jeffrey-agent.jar
                         - libasyncProfiler-amd64.so, libasyncProfiler-arm64.so
                       All four arch variants ship in every per-platform image (~6MB extra) — Jib's
                       extraDirectories aren't per-platform, and the wrapper / InitConfig pick the

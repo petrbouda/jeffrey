@@ -81,7 +81,7 @@ onMounted(() => {
       <p>
         Around the Server, the <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>
         prepares the Async-Profiler agent's JVM arguments before the application starts, and the
-        <router-link to="/docs/agent/overview">Jeffrey Agent</router-link> writes JFR recordings
+        <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> writes JFR recordings
         to the shared filesystem the Server reads from. The
         <router-link to="/docs/jib">Jeffrey JIB</router-link> module packages the provisioner
         and Agent alongside your application image.

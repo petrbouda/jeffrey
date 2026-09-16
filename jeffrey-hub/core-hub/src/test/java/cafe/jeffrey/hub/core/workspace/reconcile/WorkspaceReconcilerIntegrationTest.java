@@ -34,6 +34,7 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
+import cafe.jeffrey.hub.core.session.lifecycle.LivenessRead;
 import cafe.jeffrey.hub.core.session.lifecycle.SessionFinisher;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
@@ -115,8 +116,8 @@ class WorkspaceReconcilerIntegrationTest {
     private Fixture fixture(
             DataSource dataSource, Path tempDir, JdbcHubPlatformRepositories platformRepositories) {
 
-        when(fileHeartbeatReader.readFinishedMarker(any())).thenReturn(Optional.empty());
-        when(fileHeartbeatReader.readLastHeartbeat(any())).thenReturn(Optional.empty());
+        when(fileHeartbeatReader.readFinishedMarker(any())).thenReturn(LivenessRead.absent());
+        when(fileHeartbeatReader.readLastHeartbeat(any())).thenReturn(LivenessRead.absent());
 
         var sessionFinisher = new SessionFinisher(
                 FIXED_CLOCK,
@@ -183,7 +184,7 @@ class WorkspaceReconcilerIntegrationTest {
         Path sessionDir = createDir(instanceDir.resolve(sessionId));
         RemoteProjectInstanceSession marker = new RemoteProjectInstanceSession(
                 sessionId, ORIGIN_PROJECT_ID, WORKSPACE_ID, INSTANCE_ID,
-                createdAt.toEpochMilli(), order, INSTANCE_ID + "/" + sessionId, "GLOBAL", "cmd");
+                createdAt.toEpochMilli(), order, INSTANCE_ID + "/" + sessionId, "GLOBAL", "cmd", true);
         write(sessionDir.resolve(".session-info.json"), Json.toString(marker));
     }
 

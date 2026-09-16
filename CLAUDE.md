@@ -189,8 +189,20 @@ jeffrey/
 │   ├── pending-index/                 # CLI→hub discovery index
 │   ├── recording-storage-api/         # Storage interfaces
 │   └── filesystem-recording-storage/  # Filesystem storage implementation
-├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
-├── jeffrey-agent/                     # Agent module
+├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image). There is no Java
+│                                   #   agent: liveness is reported by utilities/jeffrey-heartbeat,
+│                                   #   a dependency of the profiled application. Whether it is on
+│                                   #   the class path is a build-time fact the provisioner cannot
+│                                   #   detect, so `heartbeat.enabled` DECLARES it. It travels three
+│                                   #   ways: into the argfile as -Djeffrey.heartbeat.dir/.enabled,
+│                                   #   which is the ONLY channel that reaches a JVM the container
+│                                   #   entrypoint execs (the .env is opt-in and nothing sources it
+│                                   #   there), into that .env for a deployment that does, and into
+│                                   #   the session marker the hub reconciles. It defaults to FALSE:
+│                                   #   declaring it wrongly is the one way to get a wrong answer,
+│                                   #   because a session that claims it will report and never does
+│                                   #   is finished at its own originCreatedAt shortly after it
+│                                   #   starts, while the profiler is still writing into it
 ├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, four manifests
 │   ├── .claude-plugin/plugin.json     # Claude Code manifest, with the configurable MCP endpoint inline
 │   ├── plugin.json + mcp.json         # Agent Plugins 1.0.0 — Codex, Cursor, Copilot, VS Code, Kiro
@@ -662,7 +674,8 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, ...) |
 | `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
 | `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |
-| `jeffrey-agent/` + tracing instrumentation | `docs/tracing/` — concepts, getting started, configuration, `@Traced`, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
+| `utilities/jeffrey-heartbeat/` + its Spring Boot starter | `docs/agent/` — heartbeat library |
+| tracing instrumentation (`utilities/`) | `docs/tracing/` — concepts, getting started, configuration, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
 | `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
 | Jib build/deployment | `docs/jib/` — overview, setup, configuration |
 | External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, every client (what the plugin brings to any agent), Claude Code plugin, Codex plugin, Gemini extension, tool reference, skills, analysis agents, recipes, other clients |

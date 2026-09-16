@@ -43,7 +43,6 @@ public class JeffreyJibConfig {
     public static final String PROVISIONER_PATH = "provisionerPath";
     public static final String ARG_FILE = "argFile";
     public static final String PROFILER_PATH = "profilerPath";
-    public static final String AGENT_PATH = "agentPath";
     public static final String PROJECT_NAME = "projectName";
 
     private boolean enabled = true;
@@ -53,7 +52,6 @@ public class JeffreyJibConfig {
     private String provisionerPath;
     private String argFile;
     private String profilerPath;
-    private String agentPath;
     private String projectName;
 
     public boolean isEnabled() {
@@ -110,14 +108,6 @@ public class JeffreyJibConfig {
 
     public void setProfilerPath(String profilerPath) {
         this.profilerPath = profilerPath;
-    }
-
-    public String getAgentPath() {
-        return agentPath;
-    }
-
-    public void setAgentPath(String agentPath) {
-        this.agentPath = agentPath;
     }
 
     public String getProjectName() {

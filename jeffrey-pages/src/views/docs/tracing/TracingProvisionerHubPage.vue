@@ -51,7 +51,6 @@ tracing {
 }`;
 
 const generatedOptions = `# Written into the @argfile the entrypoint hands to the JVM
--javaagent:/opt/jeffrey/jeffrey-agent.jar=heartbeat.dir=<session>/.heartbeat,tracing.enabled=true,app...
 -XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,<event settings below>`;
 
 const thresholds = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
@@ -108,7 +107,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="generatedOptions" language="bash" />
 
-      <p>That is: <code>tracing.enabled=true</code> on the <router-link to="/docs/tracing/traced-annotation">Jeffrey Agent</router-link> so <code>@Traced</code> methods are woven, and a second JFR recording carrying the event thresholds a trace is read at. The <code>jeffrey.*</code> events your instrumentation emits need no configuration at all — they are on by default in any recording.</p>
+      <p>That is: <code>tracing.enabled=true</code>, which starts a second JFR recording carrying the event thresholds a trace is read at. The <code>jeffrey.*</code> events your instrumentation emits need no configuration at all — they are on by default in any recording.</p>
 
       <h2 id="thresholds">What the Provisioner Emits</h2>
 
@@ -142,7 +141,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes the marker files, then appends a pointer file to <code>.pending/</code> — an index, not a queue, carrying a path rather than a copy of the state. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the Jeffrey Agent rewrites the heartbeat every 5&nbsp;seconds.</p>
+      <p>The Provisioner creates the tree and writes the marker files, then appends a pointer file to <code>.pending/</code> — an index, not a queue, carrying a path rather than a copy of the state. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the heartbeat library rewrites the liveness file every 5&nbsp;seconds.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 
@@ -210,9 +209,9 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
             <td>Keep the <code>#throttle</code> settings; a custom event list that drops them reintroduces the cap</td>
           </tr>
           <tr>
-            <td><code>@Traced</code> methods produce no spans, everything else is fine</td>
+            <td>JDK events a trace nests (socket reads, file writes, locks) stay above their default thresholds and never appear</td>
             <td>Agent weaving is off or unavailable</td>
-            <td>Java 25+, <code>tracing.enabled=true</code>, and <code>jeffrey-events</code> on the class's own loader — see <router-link to="/docs/tracing/traced-annotation">@Traced &amp; the Agent</router-link></td>
+            <td><code>tracing.enabled=true</code>, and a <code>jfr-event-settings</code> value other than <code>none</code></td>
           </tr>
           <tr>
             <td>The session never appears in the Hub</td>
@@ -221,7 +220,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           </tr>
           <tr>
             <td>The session never ends</td>
-            <td>No heartbeat file — the agent was not attached, or <code>heartbeat.dir</code> points elsewhere</td>
+            <td>No heartbeat file — the application does not carry the heartbeat library, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere</td>
             <td>The Provisioner sets <code>heartbeat.dir</code>; a hand-rolled agent argument has to match the session path</td>
           </tr>
         </tbody>

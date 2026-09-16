@@ -78,7 +78,8 @@ public class SessionRegistrar {
                 session.instanceId(),
                 session.order(),
                 session.layout().session(),
-                resolvedSettings);
+                resolvedSettings,
+                config.isHeartbeatEnabled());
     }
 
     private String findOrCreateProject(InitConfig config, ProjectLayout layout) {

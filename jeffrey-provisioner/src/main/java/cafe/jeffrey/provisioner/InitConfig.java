@@ -63,8 +63,6 @@ public class InitConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(InitConfig.class);
 
-    private static final String DEFAULT_AGENT_RELATIVE_PATH = "libs/current/jeffrey-agent.jar";
-
     private static final String BUNDLED_PROFILER_DIR = "libs/current";
     private static final String BUNDLED_PROFILER_PREFIX = "libasyncProfiler-";
     private static final String BUNDLED_PROFILER_SUFFIX = ".so";
@@ -117,14 +115,20 @@ public class InitConfig {
             }
             attributes = {}
             perf-counters { enabled = false }
-            # On by default, unlike the agent's own parameter: a provisioned JVM is one being
-            # profiled on purpose, and the weaver is inert without Java 25 and jeffrey-events on
-            # the class path. JEFFREY_TRACING_ENABLED=false opts a deployment out.
+            # Lowers the JFR thresholds a span is read at. On by default: a provisioned JVM is one
+            # being profiled on purpose, and the settings cost nothing in an application that emits
+            # no spans. JEFFREY_TRACING_ENABLED=false opts a deployment out.
             # jfr-event-settings left empty means the built-in event list
             # (TracingJfrEvents.DEFAULT_SETTINGS); "none" opts out while leaving tracing on.
             tracing { enabled = true, jfr-event-settings = "" }
             heap-dump { enabled = false, type = "exit" }
-            agent-path = ""
+            # Off by default, and deliberately the opposite of the other switches here. This one
+            # is a claim about the application rather than about the JVM: it says the
+            # jeffrey-heartbeat library is on its class path, which this tool cannot see and
+            # cannot arrange. Declared wrongly it is not inert but actively misleading — the hub
+            # holds the session to a deadline nothing will meet and finishes it at its start
+            # timestamp, seconds after the JVM came up. Turn it on once the dependency is there.
+            heartbeat { enabled = false }
             jdk-java-options { enabled = false }
             additional-jvm-options = ""
             debug-non-safepoints { enabled = true }
@@ -217,7 +221,7 @@ public class InitConfig {
     private final String profilerPath;
     private final String profilerConfig;
     private final String repositoryType;
-    private final String agentPath;
+    private final boolean heartbeatEnabled;
     private final String additionalJvmOptions;
 
     private final String workspaceRefId;
@@ -227,7 +231,7 @@ public class InitConfig {
     private final Map<String, String> attributes;
 
     private final boolean perfCountersEnabled;
-    private final boolean methodTracingEnabled;
+    private final boolean spanTracingEnabled;
     private final String tracingJfrEventSettings;
     private final boolean debugNonSafepointsEnabled;
     private final boolean jdkJavaOptionsEnabled;
@@ -263,8 +267,7 @@ public class InitConfig {
 
         this.profilerPath = resolveProfilerPath(
                 placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_PATH)), jeffreyHome);
-        this.agentPath = resolveAgentPath(
-                placeholders.resolve(resolved.getString(ConfigPaths.AGENT_PATH)), jeffreyHome);
+        this.heartbeatEnabled = resolved.getBoolean(ConfigPaths.HEARTBEAT_ENABLED);
 
         this.projectName = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_NAME)));
         this.projectLabel = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_LABEL)));
@@ -276,7 +279,7 @@ public class InitConfig {
                 resolved.getObject(ConfigPaths.ATTRIBUTES).unwrapped(), placeholders);
 
         this.perfCountersEnabled = resolved.getBoolean(ConfigPaths.PERF_COUNTERS_ENABLED);
-        this.methodTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
+        this.spanTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
         this.tracingJfrEventSettings = valueOrDefault(
                 resolved.getString(ConfigPaths.TRACING_JFR_EVENT_SETTINGS), TracingJfrEvents.DEFAULT_SETTINGS);
         this.debugNonSafepointsEnabled = resolved.getBoolean(ConfigPaths.DEBUG_NON_SAFEPOINTS_ENABLED);
@@ -315,17 +318,6 @@ public class InitConfig {
      * The explicit path, or the agent JAR bundled under {@code jeffrey-home}. Null when neither is
      * available — agent-dependent features are skipped downstream.
      */
-    private static String resolveAgentPath(String explicitPath, String jeffreyHome) {
-        String explicit = nullIfBlank(explicitPath);
-        if (explicit != null) {
-            return explicit;
-        }
-        if (jeffreyHome == null) {
-            return null;
-        }
-        Path candidate = Path.of(jeffreyHome).resolve(DEFAULT_AGENT_RELATIVE_PATH);
-        return Files.exists(candidate) ? candidate.toString() : null;
-    }
 
     /**
      * Reference ID of the workspace on the target Jeffrey server. The workspace must already
@@ -405,8 +397,23 @@ public class InitConfig {
         return repositoryType;
     }
 
-    public String getAgentPath() {
-        return agentPath;
+    /**
+     * Whether this session expects the {@code jeffrey-heartbeat} library to report liveness.
+     *
+     * <p>Declared rather than detected: whether the library is on the application's class path is
+     * a build-time fact, and this tool only writes JVM arguments. It travels three ways — into the
+     * argfile as {@code -Djeffrey.heartbeat.enabled}, into the {@code .env} for a deployment that
+     * sources one, and into the session marker, so the hub knows whether to hold this session to
+     * its heartbeat deadline.</p>
+     *
+     * <p><b>Off unless a deployment says otherwise.</b> An application that does not carry the
+     * dependency reports nothing, and a session that claimed it would is finished at its own start
+     * timestamp seconds after the JVM came up — so the default has to be the side that is merely
+     * late rather than the side that is wrong. An undeclared session is closed when the instance's
+     * next session appears instead.</p>
+     */
+    public boolean isHeartbeatEnabled() {
+        return heartbeatEnabled;
     }
 
     public String getAdditionalJvmOptions() {
@@ -438,9 +445,13 @@ public class InitConfig {
         return perfCountersEnabled;
     }
 
-    /** Whether the agent records {@code @Traced} methods as spans. */
-    public boolean isMethodTracingEnabled() {
-        return methodTracingEnabled;
+    /**
+     * Whether this session records spans, which is what decides if the JFR thresholds a span is
+     * read at are lowered. It says nothing about the agent: spans come from the application's own
+     * {@code Tracer} calls and from the {@code jeffrey-tracing-*} instrumentation libraries.
+     */
+    public boolean isSpanTracingEnabled() {
+        return spanTracingEnabled;
     }
 
     /**

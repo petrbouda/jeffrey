@@ -56,7 +56,11 @@ public class LayoutProvisioner {
         return new ProjectLayout(jeffreyHome, workspaces, workspace, project);
     }
 
-    /** Creates the session directory and the heartbeat directory the agent writes into. */
+    /**
+     * Creates the session directory and the heartbeat directory, which is laid down whether or not
+     * the session declared liveness: the library creates it too, and a directory that is already
+     * there is one fewer thing to fail on a read-only or slow mount.
+     */
     public SessionLayout provisionSession(ProjectLayout layout, Path sessionPath) throws IOException {
         Path session = createDirectories(sessionPath);
         createDirectories(session.resolve(HeartbeatConstants.HEARTBEAT_DIR));

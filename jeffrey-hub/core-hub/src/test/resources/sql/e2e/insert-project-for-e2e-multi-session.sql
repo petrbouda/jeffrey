@@ -11,7 +11,8 @@ VALUES ('proj-001', 'repo-001', 'ASYNC_PROFILER', '/workspaces', 'ws-001', 'proj
 INSERT INTO project_instances (instance_id, project_id, instance_name, status, started_at)
 VALUES ('inst-001', 'proj-001', 'host-1.example.com', 'ACTIVE', '2025-06-15T08:00:00Z');
 
-INSERT INTO project_instance_sessions (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, finished_at)
+-- heartbeat_expected TRUE: these scenarios simulate a session that reports liveness
+INSERT INTO project_instance_sessions (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, finished_at, heartbeat_expected)
 VALUES
-    ('session-001', 'repo-001', 'inst-001', 1, 'session-001', '2025-06-15T08:00:00Z', '2025-06-15T08:00:01Z', NULL),
-    ('session-002', 'repo-001', 'inst-001', 2, 'session-002', '2025-06-15T09:00:00Z', '2025-06-15T09:00:01Z', NULL);
+    ('session-001', 'repo-001', 'inst-001', 1, 'session-001', '2025-06-15T08:00:00Z', '2025-06-15T08:00:01Z', NULL, TRUE),
+    ('session-002', 'repo-001', 'inst-001', 2, 'session-002', '2025-06-15T09:00:00Z', '2025-06-15T09:00:01Z', NULL, TRUE);
