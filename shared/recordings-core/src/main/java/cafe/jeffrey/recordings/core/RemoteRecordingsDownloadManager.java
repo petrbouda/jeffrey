@@ -28,11 +28,11 @@ import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.download.ProgressTrackingInputStream;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
+import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 
 import java.io.IOException;
@@ -42,7 +42,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -112,21 +111,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     @Override
     public String downloadSession(String recordingSessionId) {
-        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
-                recordingSessionId);
+        RecordingSession recordingSession = session(recordingSessionId);
 
-        List<RepositoryFile> files = recordingSession.files().stream()
-                .map(RepositoryFileResponse::from)
-                .filter(RepositoryFile::isFinished)
-                .toList();
-
-        return download(recordingSession, files, ProgressCallback.noop());
+        return download(recordingSession, recordingSession.finishedFiles(), ProgressCallback.noop());
     }
 
     @Override
     public String downloadRecordings(String recordingSessionId, List<String> fileIds) {
-        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
-                recordingSessionId);
+        RecordingSession recordingSession = session(recordingSessionId);
 
         return download(recordingSession, chosenFiles(recordingSession, fileIds), ProgressCallback.noop());
     }
@@ -139,11 +131,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * catch this, because the merged RPC was the one call that saw a session and a whole selection
      * together; it serves one file per call now, so the refusal belongs here with the other one.
      */
-    private static List<RepositoryFile> chosenFiles(RecordingSessionResponse session, List<String> fileIds) {
-        List<RepositoryFile> finished = session.files().stream()
-                .map(RepositoryFileResponse::from)
-                .filter(RepositoryFile::isFinished)
-                .toList();
+    private static List<RepositoryFile> chosenFiles(RecordingSession session, List<String> fileIds) {
+        List<RepositoryFile> finished = session.finishedFiles();
 
         Set<String> known = finished.stream().map(RepositoryFile::id).collect(Collectors.toSet());
         List<String> unknown = fileIds.stream().filter(id -> !known.contains(id)).toList();
@@ -162,8 +151,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     @Override
     public String downloadWindow(String recordingSessionId, ChunkWindow window) {
-        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(recordingSessionId);
-        ChunkWindow.Selection selection = window.select(allFiles(recordingSession), finishedAt(recordingSession));
+        RecordingSession recordingSession = session(recordingSessionId);
+        ChunkWindow.Selection selection = window.select(recordingSession);
         if (selection.isEmpty()) {
             throw new IllegalArgumentException(
                     "No finished recording file of session " + recordingSessionId + " covers the window");
@@ -171,12 +160,13 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         return download(recordingSession, selection.files(), ProgressCallback.noop());
     }
 
-    private static List<RepositoryFile> allFiles(RecordingSessionResponse session) {
-        return session.files().stream().map(RepositoryFileResponse::from).toList();
-    }
-
-    private static Instant finishedAt(RecordingSessionResponse session) {
-        return session.finishedAt() == null ? null : Instant.ofEpochMilli(session.finishedAt());
+    /**
+     * The session as the hub has it now, with its files. Everything below asks the session which
+     * of its files are closed rather than asking a file: a file carries no status, and the one
+     * the profiler still holds open is the session's newest chunk.
+     */
+    private RecordingSession session(String recordingSessionId) {
+        return RecordingSessionResponse.from(repositoryClient.recordingSession(recordingSessionId));
     }
 
     /**
@@ -193,20 +183,19 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      *
      * @return the covered span, or {@code null} for the whole session
      */
-    private static ChunkWindow.Selection partOf(RecordingSessionResponse session, List<RepositoryFile> files) {
-        List<RepositoryFile> all = allFiles(session);
+    private static ChunkWindow.Selection partOf(RecordingSession session, List<RepositoryFile> files) {
         Set<String> chosen = files.stream().map(RepositoryFile::id).collect(Collectors.toSet());
-        ChunkWindow.Selection selection = ChunkWindow.ofFiles(all, chosen, finishedAt(session));
+        ChunkWindow.Selection selection = ChunkWindow.ofFiles(session, chosen);
         if (!selection.contiguous()) {
             throw new IllegalArgumentException(
                     "The recording files chosen from session " + session.id() + " are not next to each other: "
-                            + selection.describeGap(all) + " lies between them. The recording would claim "
+                            + selection.describeGap(session) + " lies between them. The recording would claim "
                             + "the whole span from the first file to the last while holding only part of it, so "
                             + "they have to be an unbroken run. Choose the files in between too, or ask for a "
                             + "time window instead.");
         }
         // An empty selection is the whole session as far as naming goes: there is no span to name.
-        return selection.isEmpty() || selection.isWholeSession(all) ? null : selection;
+        return selection.isEmpty() || selection.isWholeSession(session) ? null : selection;
     }
 
     /**
@@ -223,7 +212,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             List<String> fileIds,
             ProgressCallback progressCallback) {
 
-        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(recordingSessionId);
+        RecordingSession recordingSession = session(recordingSessionId);
 
         return download(recordingSession, chosenFiles(recordingSession, fileIds), progressCallback);
     }
@@ -240,7 +229,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * because one of them thought a session was one file and the other thought it was many.
      */
     private String download(
-            RecordingSessionResponse recordingSession,
+            RecordingSession recordingSession,
             List<RepositoryFile> files,
             ProgressCallback progressCallback) {
 
@@ -258,7 +247,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         List<RepositoryFile> recordingFiles = files.stream()
                 .filter(RepositoryFile::isRecordingFile)
-                .filter(RepositoryFile::isFinished)
+                .filter(file -> !recordingSession.isOpen(file))
                 .toList();
         List<RepositoryFile> artifactFiles = files.stream()
                 .filter(RepositoryFile::isArtifactFile)
@@ -533,9 +522,9 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      *
      * @param window the covered span, or {@code null} for the whole session
      */
-    private String recordingName(RecordingSessionResponse session, ChunkWindow.Selection window) {
+    private String recordingName(RecordingSession session, ChunkWindow.Selection window) {
         String name = sanitizeForFilename(projectName) + WINDOW_NAME_SEPARATOR
-                + RECORDING_NAME_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
+                + RECORDING_NAME_TIMESTAMP.format(session.createdAt());
         if (window == null) {
             return name;
         }
@@ -563,7 +552,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * @return id of the newly created local recording
      */
     private String persistToRecordings(
-            RecordingSessionResponse session, List<Path> recordingPaths, List<Path> artifactPaths,
+            RecordingSession session, List<Path> recordingPaths, List<Path> artifactPaths,
             ChunkWindow.Selection window) {
 
         String recordingSessionId = session.id();

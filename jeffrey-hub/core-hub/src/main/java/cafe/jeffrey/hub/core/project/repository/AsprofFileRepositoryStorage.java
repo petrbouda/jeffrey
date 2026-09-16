@@ -178,7 +178,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         List<RepositoryFile> repositoryFiles;
         if (withFiles) {
             repositoryFiles = _listRepositoryFiles(
-                    sessionInfo,
                     recordingStatus,
                     workspacePath,
                     sessionPath);
@@ -221,7 +220,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                     fileInfoProcessor.createdAt(file),
                     sizeReader(sessionStatus, fileType).size(file),
                     fileType,
-                    RecordingStatus.FINISHED,
                     file);
         } catch (RuntimeException e) {
             LOG.debug("Leaving out a repository file that can no longer be described: file={} reason={}",
@@ -385,12 +383,11 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         // for "all of it" that way selected nothing and failed as an empty session.
         boolean allOfThem = recordingIds == null || recordingIds.isEmpty();
 
-        return session.files().stream()
+        // finishedRecordings() is already the closed chunks, oldest first: the one the profiler
+        // still holds open is not a recording anyone may be handed.
+        return session.finishedRecordings().stream()
                 .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
                 .filter(file -> allOfThem || recordingIds.contains(file.id()))
-                .sorted(Comparator.comparing(RepositoryFile::createdAt))
                 .map(file -> ensureCompressed(sessionId, file))
                 .filter(Objects::nonNull)
                 .distinct()
@@ -417,9 +414,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     public int compressSession(String sessionId) {
         RecordingSession session = resolveSession(sessionId);
 
-        return (int) session.files().stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
+        // Everything the profiler has closed, which for a live session is every chunk but the
+        // one it is still writing. There is nothing further to decide: a closed chunk's bytes
+        // are final whether or not its session has finished.
+        return (int) session.finishedRecordings().stream()
                 .map(file -> ensureCompressed(sessionId, file))
                 .filter(Objects::nonNull)
                 .distinct()
@@ -495,7 +493,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     private List<RepositoryFile> _listRepositoryFiles(
-            ProjectInstanceSessionInfo sessionInfo,
             RecordingStatus recordingStatus,
             Path workspacePath,
             Path sessionPath) {
@@ -505,23 +502,15 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return List.of();
         }
 
-        List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
+        // Sorted by filename, for presentation. Which chunk the profiler still holds open is not
+        // read off this order — RecordingSession derives it from the session and the timestamps —
+        // and it was reading it off this order that left the two disagreeing.
+        return FileSystemUtils.sortedFilesInDirectory(
                         sessionPath, fileInfoProcessor.comparator()).stream()
                 .filter(Files::isRegularFile)
                 .filter(FileSystemUtils::isNotHidden)
                 .map(file -> describe(file, recordingStatus, workspacePath, sessionPath))
                 .filter(Objects::nonNull)
                 .toList();
-
-        Optional<RepositoryFile> latestRecordingFile = repositoryFiles.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .findFirst();
-
-        // Updates the status of the latest recording according to the status of the session.
-        if (recordingStatus != RecordingStatus.FINISHED && latestRecordingFile.isPresent()) {
-            latestRecordingFile.get().withNonFinishedStatus(recordingStatus);
-        }
-
-        return repositoryFiles;
     }
 }

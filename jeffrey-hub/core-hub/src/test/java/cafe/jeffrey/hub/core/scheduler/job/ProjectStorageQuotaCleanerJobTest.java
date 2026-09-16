@@ -98,9 +98,12 @@ class ProjectStorageQuotaCleanerJobTest {
                 projectManager, storage, new ProjectStorageQuotaCleanerJobDescriptor(BUDGET), JobContext.EMPTY);
     }
 
-    private static RepositoryFile recording(String id, Instant createdAt, long size, RecordingStatus status) {
-        return new RepositoryFile(
-                id, id, createdAt, size, SupportedRecordingFile.JFR, status, null);
+    /**
+     * A chunk. Whether it is the one the profiler still holds open is not said here: the session
+     * decides, and the answer is its newest chunk while it records.
+     */
+    private static RepositoryFile recording(String id, Instant createdAt, long size) {
+        return new RepositoryFile(id, id, createdAt, size, SupportedRecordingFile.JFR, null);
     }
 
     private static RecordingSession finishedSession(
@@ -124,7 +127,7 @@ class ProjectStorageQuotaCleanerJobTest {
         void deletesNothing() {
             when(storage.listSessions(true)).thenReturn(List.of(
                     finishedSession("s1", NOW.minusSeconds(3600), false,
-                            recording("f1", NOW.minusSeconds(3600), 10 * MB, RecordingStatus.FINISHED))));
+                            recording("f1", NOW.minusSeconds(3600), 10 * MB))));
 
             execute();
 
@@ -140,11 +143,11 @@ class ProjectStorageQuotaCleanerJobTest {
         void deletesOldestFinishedSessionsUntilUnderBudget() {
             when(storage.listSessions(true)).thenReturn(List.of(
                     finishedSession("oldest", NOW.minusSeconds(9000), false,
-                            recording("f1", NOW.minusSeconds(9000), 60 * MB, RecordingStatus.FINISHED)),
+                            recording("f1", NOW.minusSeconds(9000), 60 * MB)),
                     finishedSession("middle", NOW.minusSeconds(6000), false,
-                            recording("f2", NOW.minusSeconds(6000), 60 * MB, RecordingStatus.FINISHED)),
+                            recording("f2", NOW.minusSeconds(6000), 60 * MB)),
                     finishedSession("newest", NOW.minusSeconds(3000), false,
-                            recording("f3", NOW.minusSeconds(3000), 60 * MB, RecordingStatus.FINISHED))));
+                            recording("f3", NOW.minusSeconds(3000), 60 * MB))));
 
             execute();
 
@@ -160,9 +163,9 @@ class ProjectStorageQuotaCleanerJobTest {
         void stopsAsSoonAsItFitsTheBudget() {
             when(storage.listSessions(true)).thenReturn(List.of(
                     finishedSession("oldest", NOW.minusSeconds(9000), false,
-                            recording("f1", NOW.minusSeconds(9000), 80 * MB, RecordingStatus.FINISHED)),
+                            recording("f1", NOW.minusSeconds(9000), 80 * MB)),
                     finishedSession("newest", NOW.minusSeconds(3000), false,
-                            recording("f2", NOW.minusSeconds(3000), 40 * MB, RecordingStatus.FINISHED))));
+                            recording("f2", NOW.minusSeconds(3000), 40 * MB))));
 
             execute();
 
@@ -174,9 +177,9 @@ class ProjectStorageQuotaCleanerJobTest {
         void neverDeletesRetainedSessions() {
             when(storage.listSessions(true)).thenReturn(List.of(
                     finishedSession("pinned", NOW.minusSeconds(9000), true,
-                            recording("f1", NOW.minusSeconds(9000), 90 * MB, RecordingStatus.FINISHED)),
+                            recording("f1", NOW.minusSeconds(9000), 90 * MB)),
                     finishedSession("normal", NOW.minusSeconds(3000), false,
-                            recording("f2", NOW.minusSeconds(3000), 90 * MB, RecordingStatus.FINISHED))));
+                            recording("f2", NOW.minusSeconds(3000), 90 * MB))));
 
             execute();
 
@@ -186,8 +189,8 @@ class ProjectStorageQuotaCleanerJobTest {
 
         @Test
         void trimsActiveSessionOnlyAfterFinishedSessionsAreExhausted() {
-            RepositoryFile oldChunk = recording("chunk-old", NOW.minusSeconds(2000), 70 * MB, RecordingStatus.FINISHED);
-            RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 60 * MB, RecordingStatus.ACTIVE);
+            RepositoryFile oldChunk = recording("chunk-old", NOW.minusSeconds(2000), 70 * MB);
+            RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 60 * MB);
 
             when(storage.listSessions(true)).thenReturn(List.of(
                     activeSession("live", NOW.minusSeconds(2500), oldChunk, liveChunk)));
@@ -203,7 +206,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
         @Test
         void leavesLiveChunkAloneEvenWhenStillOverBudget() {
-            RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 500 * MB, RecordingStatus.ACTIVE);
+            RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 500 * MB);
 
             when(storage.listSessions(true)).thenReturn(List.of(
                     activeSession("live", NOW.minusSeconds(2500), liveChunk)));
@@ -215,7 +218,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
         @Test
         void doesNotTrimRetainedActiveSession() {
-            RepositoryFile oldChunk = recording("chunk-old", NOW.minusSeconds(2000), 200 * MB, RecordingStatus.FINISHED);
+            RepositoryFile oldChunk = recording("chunk-old", NOW.minusSeconds(2000), 200 * MB);
 
             RecordingSession pinnedActive = new RecordingSession(
                     "live", "live", "inst-1", NOW.minusSeconds(2500), null,
@@ -236,7 +239,7 @@ class ProjectStorageQuotaCleanerJobTest {
         void toleratesFilesWithUnknownSize() {
             RepositoryFile unsized = new RepositoryFile(
                     "f1", "f1", NOW.minusSeconds(3600), null,
-                    SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                    SupportedRecordingFile.JFR, null);
 
             when(storage.listSessions(true)).thenReturn(List.of(
                     finishedSession("s1", NOW.minusSeconds(3600), false, unsized)));

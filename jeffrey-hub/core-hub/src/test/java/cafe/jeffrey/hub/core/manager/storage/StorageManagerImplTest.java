@@ -223,7 +223,7 @@ class StorageManagerImplTest {
         }
 
         private RepositoryFile file(String name, SupportedRecordingFile fileType, Long size, Instant createdAt) {
-            return new RepositoryFile(name, name, createdAt, size, fileType, RecordingStatus.FINISHED, null);
+            return new RepositoryFile(name, name, createdAt, size, fileType, null);
         }
     }
 }

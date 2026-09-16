@@ -27,6 +27,7 @@ import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.util.List;
@@ -58,6 +59,7 @@ public class RepositoryClient {
 
         return response.getSessionsList().stream()
                 .map(RepositoryClient::toSessionResponse)
+                .map(RecordingSessionResponse::withResolvedFileStatuses)
                 .toList();
     }
 
@@ -80,7 +82,7 @@ public class RepositoryClient {
                         .setSessionId(sessionId)
                         .build());
 
-        return toSessionResponse(response.getSession());
+        return toSessionResponse(response.getSession()).withResolvedFileStatuses();
     }
 
     public RepositoryStatisticsResponse repositoryStatistics(String projectId) {
@@ -157,6 +159,11 @@ public class RepositoryClient {
                 proto.getRetained());
     }
 
+    /**
+     * One file as the hub sent it. Its status is left FINISHED here and settled by
+     * {@link RecordingSessionResponse#withResolvedFileStatuses()} once the whole session is in
+     * hand: the wire carries no status, and a file on its own cannot answer for one.
+     */
     private static RepositoryFileResponse toFileResponse(RepositoryFile proto) {
         return new RepositoryFileResponse(
                 proto.getId(),
@@ -164,7 +171,7 @@ public class RepositoryClient {
                 proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
                 parseFileType(proto.getFileType()),
-                ClientProtoMappers.recordingStatus(proto.getStatus()),
+                RecordingStatus.FINISHED,
                 proto.getIsRecording());
     }
 

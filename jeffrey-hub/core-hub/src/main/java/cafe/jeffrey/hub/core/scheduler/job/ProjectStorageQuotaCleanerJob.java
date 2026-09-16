@@ -139,8 +139,8 @@ public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob<ProjectS
     }
 
     /**
-     * Trims finished chunks from the live session oldest-first. The chunk the profiler is
-     * still writing carries a non-FINISHED status and is therefore never a candidate.
+     * Trims closed chunks from the live session oldest-first. The chunk the profiler is still
+     * writing is never a candidate: {@link RecordingSession#finishedRecordings()} leaves it out.
      */
     private long trimActiveSession(
             RepositoryStorage repositoryStorage,
@@ -159,13 +159,7 @@ public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob<ProjectS
             return totalSize;
         }
 
-        List<RepositoryFile> trimmable = active.files().stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(RepositoryFile::isFinished)
-                .sorted(Comparator.comparing(
-                        RepositoryFile::createdAt,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
-                .toList();
+        List<RepositoryFile> trimmable = active.finishedRecordings();
 
         List<String> toDelete = new ArrayList<>();
         long projected = totalSize;

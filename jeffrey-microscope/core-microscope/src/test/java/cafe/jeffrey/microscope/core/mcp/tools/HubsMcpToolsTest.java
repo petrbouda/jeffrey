@@ -117,7 +117,7 @@ class HubsMcpToolsTest {
     }
 
     private static RepositoryFile file(String id, String name, SupportedRecordingFile type) {
-        return new RepositoryFile(id, name, NOW, 1024L, type, RecordingStatus.FINISHED, null);
+        return new RepositoryFile(id, name, NOW, 1024L, type, null);
     }
 
     private static RecordingSession session(String id, Instant createdAt, RepositoryFile... files) {
@@ -703,10 +703,10 @@ class HubsMcpToolsTest {
 
         private RecordingSession fourChunks() {
             return session(SESSION_ID, NOW,
-                    new RepositoryFile("c0", "profile-0.jfr", NOW, 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
-                    new RepositoryFile("c1", "profile-1.jfr", NOW.plusSeconds(150), 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
-                    new RepositoryFile("c2", "profile-2.jfr", NOW.plusSeconds(300), 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
-                    new RepositoryFile("c3", "profile-3.jfr", NOW.plusSeconds(450), 100L, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null),
+                    new RepositoryFile("c0", "profile-0.jfr", NOW, 100L, SupportedRecordingFile.JFR, null),
+                    new RepositoryFile("c1", "profile-1.jfr", NOW.plusSeconds(150), 100L, SupportedRecordingFile.JFR, null),
+                    new RepositoryFile("c2", "profile-2.jfr", NOW.plusSeconds(300), 100L, SupportedRecordingFile.JFR, null),
+                    new RepositoryFile("c3", "profile-3.jfr", NOW.plusSeconds(450), 100L, SupportedRecordingFile.JFR, null),
                     file("log", "app.log", SupportedRecordingFile.APP_LOG));
         }
 

@@ -36,7 +36,6 @@ import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import org.springframework.transaction.support.TransactionOperations;
@@ -282,8 +281,9 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("File not found: fileId=" + fileId));
 
-        if (file.status() == RecordingStatus.ACTIVE) {
-            throw new IllegalArgumentException("Cannot download ACTIVE file: fileId=" + fileId);
+        if (session.isOpen(file)) {
+            throw new IllegalArgumentException("Cannot download a file the profiler is still writing: fileId="
+                    + fileId);
         }
 
         if (file.fileType().fileCategory() == FileCategory.TEMPORARY) {

@@ -19,6 +19,7 @@
 package cafe.jeffrey.hub.client.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -32,14 +33,23 @@ public record RepositoryFileResponse(
         RecordingStatus status,
         boolean isRecording) {
 
-    public static RepositoryFileResponse from(RepositoryFile file) {
+    /**
+     * The file as this application's own API reports it, with the status resolved here.
+     *
+     * <p>A file has no status of its own and none comes over the wire: the hub says which files
+     * exist, and whether one is still being written is a fact about the session, which
+     * {@link RecordingSession#isOpen} answers. It is resolved at this boundary because a reader
+     * of this response holds one file at a time — a table row, a checkbox — and asking it to
+     * carry the session around to find out would put the rule in every such reader.
+     */
+    public static RepositoryFileResponse from(RecordingSession session, RepositoryFile file) {
         return new RepositoryFileResponse(
                 file.id(),
                 file.name(),
                 InstantUtils.toEpochMilli(file.createdAt()),
                 file.size(),
                 file.fileType(),
-                file.status(),
+                session.isOpen(file) ? session.status() : RecordingStatus.FINISHED,
                 file.isRecordingFile());
     }
 
@@ -50,7 +60,6 @@ public record RepositoryFileResponse(
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 response.size(),
                 response.fileType(),
-                response.status(),
                 null);
     }
 }

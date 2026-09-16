@@ -155,20 +155,28 @@ message RecordingSession {
 }
 
 // A single file within a recording session.
+//
+// A file carries no status of its own. Whether one is still being written is a fact about the
+// session — a session that is still recording holds exactly one chunk open, and it is the newest
+// one by created_at — so the reader derives it from the enclosing RecordingSession rather than
+// being told. The hub's part is to say which files exist and when each was opened.
 message RepositoryFile {
   // Unique identifier for the file.
   string id = 1;
   // Filename (e.g., "recording-2025-01-15.jfr").
   string name = 2;
-  // Timestamp when the file was created (epoch millis).
+  // When the profiler opened the file (epoch millis). For a chunk following the naming
+  // convention this is the timestamp in its own name, and it survives the hub compressing it.
   int64 created_at = 3;
   // File size in bytes.
   int64 size = 4;
   // File type identifier: a SupportedRecordingFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
   // JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, ...).
   string file_type = 5;
-  // File status.
-  RecordingStatus status = 6;
   // Whether this is a JFR recording file (true) or an artifact like logs/heap dumps (false).
   bool is_recording = 7;
+
+  // Was `RecordingStatus status`, which the hub resolved by reaching back into its own listing.
+  reserved 6;
+  reserved "status";
 }

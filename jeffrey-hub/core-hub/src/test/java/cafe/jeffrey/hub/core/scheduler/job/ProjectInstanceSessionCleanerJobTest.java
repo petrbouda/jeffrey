@@ -142,7 +142,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
     private static RepositoryFile recording(String id, Instant createdAt, long size) {
         return new RepositoryFile(
-                id, id, createdAt, size, SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                id, id, createdAt, size, SupportedRecordingFile.JFR, null);
     }
 
     /** A finished session that produced real data. */
@@ -521,7 +521,7 @@ class ProjectInstanceSessionCleanerJobTest {
         void treatsFilesWithUnknownSizeAsZeroBytes() {
             RepositoryFile unsized = new RepositoryFile(
                     "f1", "f1", NOW.minus(PAST_RETENTION), null,
-                    SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                    SupportedRecordingFile.JFR, null);
 
             RecordingSession unsizedSession = session(
                     "unsized", NOW.minus(PAST_RETENTION), NOW.minus(PAST_RETENTION).plusSeconds(5), false, unsized);

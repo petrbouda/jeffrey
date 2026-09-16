@@ -186,14 +186,19 @@ class RemoteRecordingsDownloadManagerTest {
     }
 
     private static RepositoryFileResponse file(
-            String id, String name, SupportedRecordingFile type, RecordingStatus status) {
-        return file(id, name, type, status, CREATED_AT);
+            String id, String name, SupportedRecordingFile type) {
+        return file(id, name, type, CREATED_AT);
     }
 
+    /**
+     * The status column is the one the hub does not send: a file carries none, and the reader
+     * fills it in from the session. It is FINISHED here because these sessions have finished.
+     */
     private static RepositoryFileResponse file(
-            String id, String name, SupportedRecordingFile type, RecordingStatus status, Instant createdAt) {
+            String id, String name, SupportedRecordingFile type, Instant createdAt) {
         return new RepositoryFileResponse(
-                id, name, createdAt.toEpochMilli(), 1024L, type, status, type == SupportedRecordingFile.JFR);
+                id, name, createdAt.toEpochMilli(), 1024L, type, RecordingStatus.FINISHED,
+                type == SupportedRecordingFile.JFR);
     }
 
     private static RecordingSessionResponse session(RepositoryFileResponse... files) {
@@ -203,12 +208,23 @@ class RemoteRecordingsDownloadManagerTest {
                 RecordingStatus.FINISHED, 60_000L, List.of(files), false);
     }
 
+    /**
+     * A session that is still recording, so the newest of these files is the chunk the profiler
+     * holds open and nothing may download it.
+     */
+    private static RecordingSessionResponse liveSession(RepositoryFileResponse... files) {
+        return new RecordingSessionResponse(
+                SESSION_ID, "session-name", "inst-1",
+                CREATED_AT.toEpochMilli(), null,
+                RecordingStatus.ACTIVE, null, List.of(files), false);
+    }
+
     private static RecordingSessionResponse threeChunks() {
         return session(
-                file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED, CREATED_AT),
-                file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(20)),
-                file("f-3", "profile-3.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED, CREATED_AT.plusSeconds(40)),
-                file("f-4", "heap.hprof", SupportedRecordingFile.HEAP_DUMP, RecordingStatus.FINISHED));
+                file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR, CREATED_AT),
+                file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, CREATED_AT.plusSeconds(20)),
+                file("f-3", "profile-3.jfr", SupportedRecordingFile.JFR, CREATED_AT.plusSeconds(40)),
+                file("f-4", "heap.hprof", SupportedRecordingFile.HEAP_DUMP));
     }
 
     @SuppressWarnings("unchecked")
@@ -223,7 +239,7 @@ class RemoteRecordingsDownloadManagerTest {
         @Test
         void returnsTheIdOfTheRecordingItCreated() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
-                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED)));
+                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR)));
             servesEveryFile();
 
             assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
@@ -437,10 +453,9 @@ class RemoteRecordingsDownloadManagerTest {
          */
         @Test
         void anUnfinishedFileIsRefusedRatherThanDropped() {
-            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
-                    file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED),
-                    file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, RecordingStatus.ACTIVE,
-                            CREATED_AT.plusSeconds(20))));
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(liveSession(
+                    file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR),
+                    file("f-2", "profile-2.jfr", SupportedRecordingFile.JFR, CREATED_AT.plusSeconds(20))));
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                     () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2")));
@@ -511,7 +526,7 @@ class RemoteRecordingsDownloadManagerTest {
         @Test
         void returnsTheIdOfTheRecordingItCreated() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(session(
-                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR, RecordingStatus.FINISHED)));
+                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR)));
             servesEveryFile();
             ProgressCallback progress = mock(ProgressCallback.class);
 

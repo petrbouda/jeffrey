@@ -35,8 +35,19 @@ class RecordingSessionTest {
 
     private static RepositoryFile file(Long size) {
         return new RepositoryFile(
-                "file-1", "file-1", CREATED_AT, size,
-                SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                "file-1", "file-1", CREATED_AT, size, SupportedRecordingFile.JFR, null);
+    }
+
+    private static RepositoryFile recording(String name, Instant createdAt) {
+        return new RepositoryFile(name, name, createdAt, 1L, SupportedRecordingFile.JFR, null);
+    }
+
+    private static RepositoryFile artifact(String name, Instant createdAt) {
+        return new RepositoryFile(name, name, createdAt, 1L, SupportedRecordingFile.APP_LOG, null);
+    }
+
+    private static List<String> namesOf(List<RepositoryFile> files) {
+        return files.stream().map(RepositoryFile::name).toList();
     }
 
     private static RecordingSession session(Instant finishedAt, RepositoryFile... files) {
@@ -78,6 +89,165 @@ class RecordingSessionTest {
         @Test
         void activeSessionWithZeroBytesIsNotFailed() {
             assertFalse(session(null).isFailedEmpty());
+        }
+    }
+
+    /**
+     * Which chunk the profiler is still writing. Everything downstream rests on it: the
+     * compression job refuses to touch that file, both retention jobs refuse to delete it, no
+     * download may include it, and reading it produces a truncated answer.
+     */
+    @Nested
+    class OpenRecording {
+
+        @Test
+        void isTheNewestChunkOfALiveSession() {
+            RecordingSession recordingSession = session(
+                    null,
+                    recording("c1", CREATED_AT),
+                    recording("c3", CREATED_AT.plusSeconds(120)),
+                    recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("c3", recordingSession.openRecording().orElseThrow().name());
+        }
+
+        /**
+         * The listing arrives sorted by filename for presentation, and the two orders part
+         * company as soon as a file's name does not carry a parseable timestamp. Every reader of
+         * these files goes by the timestamp, so this one does too.
+         */
+        @Test
+        void isPickedByTimestampRatherThanByPositionInTheListing() {
+            RecordingSession recordingSession = session(
+                    null,
+                    recording("zzz-oldest", CREATED_AT),
+                    recording("aaa-newest", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("aaa-newest", recordingSession.openRecording().orElseThrow().name());
+        }
+
+        /**
+         * A compressed archive is a recording file like any other and is a candidate here. What
+         * keeps it from being mistaken for the open chunk is that it keeps the timestamp from its
+         * own name when the hub rewrites it, rather than taking the time of the rewrite.
+         */
+        @Test
+        void isNotTheArchiveWrittenBesideAnEarlierChunk() {
+            RepositoryFile archive = new RepositoryFile(
+                    "c1", "c1.jfr.lz4", CREATED_AT, 1L, SupportedRecordingFile.JFR_LZ4, null);
+            RecordingSession recordingSession = session(
+                    null, archive, recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("c2", recordingSession.openRecording().orElseThrow().name());
+        }
+
+        @Test
+        void isNeverAnArtifactEvenWhenItIsTheNewestFile() {
+            RecordingSession recordingSession = session(
+                    null,
+                    recording("c1", CREATED_AT),
+                    artifact("app.log", CREATED_AT.plusSeconds(120)));
+
+            assertEquals("c1", recordingSession.openRecording().orElseThrow().name());
+        }
+
+        @Test
+        void isEmptyForAFinishedSession() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    recording("c1", CREATED_AT),
+                    recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertTrue(recordingSession.openRecording().isEmpty());
+            assertEquals(List.of("c1", "c2"), namesOf(recordingSession.finishedRecordings()));
+        }
+
+        @Test
+        void isEmptyForALiveSessionThatHasNoRecordingYet() {
+            assertTrue(session(null, artifact("app.log", CREATED_AT)).openRecording().isEmpty());
+        }
+
+        @Test
+        void isEmptyForASessionLoadedWithoutFiles() {
+            assertTrue(session(null).openRecording().isEmpty());
+        }
+    }
+
+    @Nested
+    class FinishedFiles {
+
+        @Test
+        void keepEveryFileButTheOpenChunk() {
+            RecordingSession recordingSession = session(
+                    null,
+                    recording("c1", CREATED_AT),
+                    recording("c2", CREATED_AT.plusSeconds(60)),
+                    artifact("app.log", CREATED_AT.plusSeconds(120)));
+
+            assertEquals(List.of("c1", "app.log"), namesOf(recordingSession.finishedFiles()));
+        }
+
+        @Test
+        void areOrderedOldestFirstWhenNarrowedToRecordings() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    recording("c3", CREATED_AT.plusSeconds(120)),
+                    artifact("app.log", CREATED_AT),
+                    recording("c1", CREATED_AT),
+                    recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals(List.of("c1", "c2", "c3"), namesOf(recordingSession.finishedRecordings()));
+        }
+    }
+
+    /**
+     * Which chunk carries the session's one-shot configuration events, and — once the session has
+     * finished — its {@code jdk.Shutdown}.
+     */
+    @Nested
+    class LatestFinishedRecording {
+
+        @Test
+        void takesTheNewestClosedChunk() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    recording("c1", CREATED_AT),
+                    recording("c3", CREATED_AT.plusSeconds(120)),
+                    recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("c3", recordingSession.latestFinishedRecording().orElseThrow().name());
+        }
+
+        @Test
+        void skipsTheChunkStillBeingWritten() {
+            RecordingSession recordingSession = session(
+                    null,
+                    recording("c1", CREATED_AT),
+                    recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("c1", recordingSession.latestFinishedRecording().orElseThrow().name());
+        }
+
+        @Test
+        void ignoresArtifacts() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    recording("c1", CREATED_AT),
+                    artifact("app.log", CREATED_AT.plusSeconds(120)));
+
+            assertEquals("c1", recordingSession.latestFinishedRecording().orElseThrow().name());
+        }
+
+        @Test
+        void isEmptyWhenNoChunkHasBeenClosedYet() {
+            RecordingSession recordingSession = session(null, recording("c1", CREATED_AT));
+
+            assertTrue(recordingSession.latestFinishedRecording().isEmpty());
+        }
+
+        @Test
+        void isEmptyForASessionLoadedWithoutFiles() {
+            assertTrue(session(FINISHED_AT).latestFinishedRecording().isEmpty());
         }
     }
 }

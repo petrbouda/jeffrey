@@ -168,14 +168,22 @@ public class HubsArtifactsMcpTools {
         }
     }
 
-    private static String fetchColumn(RepositoryFile file) {
+    private static String fetchColumn(RecordingSession session, RepositoryFile file) {
         if (file.isRecordingFile()) {
             return Fetchability.DOWNLOAD.label();
         }
         if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {
             return Fetchability.NEVER.label();
         }
-        return file.isFinished() ? Fetchability.FETCH.label() : Fetchability.WHEN_FINISHED.label();
+        return session.isOpen(file) ? Fetchability.WHEN_FINISHED.label() : Fetchability.FETCH.label();
+    }
+
+    /**
+     * What the row's {@code status} column says. A file carries none of its own: the session
+     * holds one chunk open while it records, and every other file of it is final.
+     */
+    private static RecordingStatus statusOf(RecordingSession session, RepositoryFile file) {
+        return session.isOpen(file) ? session.status() : RecordingStatus.FINISHED;
     }
 
     private static String zeroPointNote(LocalSession local) {
@@ -239,11 +247,11 @@ public class HubsArtifactsMcpTools {
                     file.name(),
                     file.fileType().name(),
                     file.fileType().fileCategory().name().toLowerCase(Locale.ROOT),
-                    file.status(),
+                    statusOf(session, file),
                     ByteSizes.format(file.size()),
                     file.createdAt(),
                     localColumn(file, ref, local),
-                    fetchColumn(file));
+                    fetchColumn(session, file));
         }
         return table
                 .note("Session " + session.name() + " on hub " + hubInfo.name() + ", project "
@@ -479,9 +487,9 @@ public class HubsArtifactsMcpTools {
                     + "hubs_files reads `" + Fetchability.NEVER.label() + "`; hubs_download brings the whole "
                     + "session, this file included.");
         }
-        if (!file.isFinished()) {
+        if (session.isOpen(file)) {
             throw new IllegalArgumentException("File " + file.name() + " is still being written (status "
-                    + file.status() + "). Fetch it once the session has finished.");
+                    + session.status() + "). Fetch it once the session has finished.");
         }
         return file;
     }
