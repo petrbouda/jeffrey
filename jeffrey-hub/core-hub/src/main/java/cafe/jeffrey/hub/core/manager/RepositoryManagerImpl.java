@@ -18,10 +18,8 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
@@ -61,7 +59,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private final ProjectRepositoryRepository repository;
     private final ProjectInstanceRepository instanceRepository;
     private final RepositoryStorage repositoryStorage;
-    private final InstanceEnvironmentParser environmentParser;
     private final TransactionOperations transactionOperations;
 
     public RepositoryManagerImpl(
@@ -70,7 +67,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
             ProjectRepositoryRepository repository,
             ProjectInstanceRepository instanceRepository,
             RepositoryStorage repositoryStorage,
-            InstanceEnvironmentParser environmentParser,
             TransactionOperations transactionOperations) {
 
         this.clock = clock;
@@ -78,7 +74,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
         this.repository = repository;
         this.instanceRepository = instanceRepository;
         this.repositoryStorage = repositoryStorage;
-        this.environmentParser = environmentParser;
         this.transactionOperations = transactionOperations;
     }
 
@@ -173,12 +168,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .sum();
 
         return new InstanceStats(fileCount, totalSize);
-    }
-
-    @Override
-    public Optional<ObjectNode> sessionEnvironment(String sessionId, boolean expectShutdown) {
-        return repositoryStorage.latestFinishedRecordingForSession(sessionId)
-                .map(path -> environmentParser.parse(path, expectShutdown));
     }
 
     @Override

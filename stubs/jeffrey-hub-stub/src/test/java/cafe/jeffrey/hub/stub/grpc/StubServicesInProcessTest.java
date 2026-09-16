@@ -287,8 +287,12 @@ class StubServicesInProcessTest {
         return total;
     }
 
+    /**
+     * The session detail carries the session and nothing read out of its recording. The hub
+     * serves files; Microscope pulls the session's newest closed chunk and parses it there.
+     */
     @Test
-    void finishedSessionDetailCarriesEnvironmentJson() {
+    void sessionDetailCarriesSessionMetadataOnly() {
         InstanceServiceGrpc.InstanceServiceBlockingStub instances = InstanceServiceGrpc.newBlockingStub(channel);
         String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
 
@@ -317,11 +321,7 @@ class StubServicesInProcessTest {
                         .setSessionId(finishedSession.getId())
                         .build());
 
-        String env = detail.getEnvironmentJsonFields();
-        assertFalse(env.isEmpty());
-        assertTrue(env.contains("jdk.JVMInformation"));
-        assertTrue(env.contains("jdk.GCHeapConfiguration"));
-        assertTrue(env.contains("jdk.Shutdown"));
-        assertTrue(env.contains("Shutdown requested from Java"));
+        assertEquals(finishedSession.getId(), detail.getSession().getId());
+        assertFalse(detail.getSession().getIsActive());
     }
 }

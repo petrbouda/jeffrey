@@ -145,19 +145,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     @Override
-    public Optional<Path> latestFinishedRecordingForSession(String sessionId) {
-        return singleSession(sessionId, true)
-                .stream()
-                .flatMap(session -> session.files().stream())
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .max(Comparator.comparing(
-                        RepositoryFile::createdAt,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(RepositoryFile::filePath);
-    }
-
-    @Override
     public List<RecordingSession> listSessionsByInstanceId(String instanceId, boolean withFiles) {
         List<ProjectInstanceSessionInfo> sessions = projectRepositoryRepository.findSessionsByInstanceId(instanceId).stream()
                 .sorted(Comparator.comparing(ProjectInstanceSessionInfo::originCreatedAt).reversed())

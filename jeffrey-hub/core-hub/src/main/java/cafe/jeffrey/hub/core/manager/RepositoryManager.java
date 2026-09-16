@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
@@ -93,21 +92,6 @@ public interface RepositoryManager {
      * @return file count and total size across all sessions of that instance
      */
     InstanceStats instanceStats(String instanceId);
-
-    /**
-     * Parses the latest finished JFR chunk belonging to the session and
-     * returns the one-shot configuration / environment events it contains as
-     * a JSON map keyed by JFR event type name (see
-     * {@code InstanceEnvironmentParser}).
-     *
-     * @param sessionId the session to parse the environment for
-     * @param expectShutdown when {@code true}, the parser looks for the
-     *                       {@code jdk.Shutdown} event (present only in the
-     *                       final chunk of a FINISHED session).
-     * @return the parsed environment as an {@link ObjectNode}, or empty if no
-     *         finished recording chunk exists yet for this session
-     */
-    Optional<ObjectNode> sessionEnvironment(String sessionId, boolean expectShutdown);
 
     /**
      * Create a new repository for the project.

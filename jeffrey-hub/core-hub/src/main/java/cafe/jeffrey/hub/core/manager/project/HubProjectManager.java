@@ -26,7 +26,6 @@ import cafe.jeffrey.hub.core.manager.LiveProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
-import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
@@ -51,7 +50,6 @@ public class HubProjectManager implements ProjectManager {
     private final HubPlatformRepositories platformRepositories;
     private final RepositoryStorage repositoryStorage;
     private final Clock clock;
-    private final InstanceEnvironmentParser instanceEnvironmentParser;
     private final TransactionOperations transactionOperations;
 
     public HubProjectManager(
@@ -59,7 +57,6 @@ public class HubProjectManager implements ProjectManager {
             ProjectInfo projectInfo,
             HubPlatformRepositories platformRepositories,
             RepositoryStorage repositoryStorage,
-            InstanceEnvironmentParser instanceEnvironmentParser,
             TransactionOperations transactionOperations) {
 
         this.clock = clock;
@@ -68,7 +65,6 @@ public class HubProjectManager implements ProjectManager {
         this.projectRepository = platformRepositories.newProjectRepository(projectId);
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
-        this.instanceEnvironmentParser = instanceEnvironmentParser;
         this.transactionOperations = transactionOperations;
     }
 
@@ -85,7 +81,6 @@ public class HubProjectManager implements ProjectManager {
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 platformRepositories.newProjectInstanceRepository(projectInfo.id()),
                 repositoryStorage,
-                instanceEnvironmentParser,
                 transactionOperations);
     }
 

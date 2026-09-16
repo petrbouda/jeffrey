@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.project.repository;
+package cafe.jeffrey.hub.client.environment;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -26,8 +26,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,25 +41,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class InstanceEnvironmentParserTest {
+class SessionEnvironmentParserTest {
 
     private static final String PROFILE_1 = "profile-1.jfr";
 
     @TempDir
     Path jeffreyHome;
 
-    private InstanceEnvironmentParser parser;
+    private SessionEnvironmentParser parser;
 
     @BeforeEach
     void setUp() {
-        HubJeffreyDirs dirs = new HubJeffreyDirs(jeffreyHome);
-        dirs.initialize();
-        parser = new InstanceEnvironmentParser(dirs);
+        parser = new SessionEnvironmentParser(TempDirFactory.of(jeffreyHome));
     }
 
     private static Path resolveJfr(String name) {
         try {
-            return Path.of(InstanceEnvironmentParserTest.class.getClassLoader()
+            return Path.of(SessionEnvironmentParserTest.class.getClassLoader()
                     .getResource("jfrs/" + name).toURI());
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to resolve JFR test file: " + name, e);

@@ -19,6 +19,7 @@ module cafe.jeffrey.hub.client {
     requires transitive cafe.jeffrey.microscope.grpc.client;
     requires transitive cafe.jeffrey.shared.hub.api;
     requires transitive cafe.jeffrey.shared.common;
+    requires jdk.jfr;
     requires io.grpc;
     requires io.grpc.stub;
     requires tools.jackson.databind;
@@ -26,5 +27,6 @@ module cafe.jeffrey.hub.client {
 
     exports cafe.jeffrey.hub.client;
     exports cafe.jeffrey.hub.client.dto;
+    exports cafe.jeffrey.hub.client.environment;
     exports cafe.jeffrey.hub.client.manager;
 }

@@ -25,7 +25,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
@@ -84,7 +83,6 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
                 platformRepositories.newProjectRepositoryRepository(PROJECT_ID),
                 platformRepositories.newProjectInstanceRepository(PROJECT_ID),
                 repositoryStorage,
-                mock(InstanceEnvironmentParser.class),
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
 
         return new Fixture(manager, platformRepositories);

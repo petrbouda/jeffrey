@@ -20,8 +20,10 @@ package cafe.jeffrey.shared.common.model.repository;
 
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public record RecordingSession(
         String id,
@@ -45,6 +47,24 @@ public record RecordingSession(
                 .filter(Objects::nonNull)
                 .mapToLong(Long::longValue)
                 .sum();
+    }
+
+    /**
+     * The newest recording chunk the profiler has closed, or empty when it has not closed one
+     * yet. This is the chunk that carries the session's one-shot configuration events, and —
+     * once the session is finished — its {@code jdk.Shutdown}.
+     *
+     * <p>The chunk still being written is excluded by its status rather than by its position:
+     * a live session's newest chunk is open, and reading one is what produces a truncated
+     * answer. Only meaningful when the session was loaded WITH files.
+     */
+    public Optional<RepositoryFile> latestFinishedRecording() {
+        return files.stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(file -> file.status() == RecordingStatus.FINISHED)
+                .max(Comparator.comparing(
+                        RepositoryFile::createdAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
     /**

@@ -23,11 +23,13 @@ import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionResponse;
+import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,13 +38,16 @@ public class RemoteInstancesManager {
 
     private final ProjectInfo projectInfo;
     private final InstancesClient instancesClient;
+    private final SessionEnvironmentReader sessionEnvironmentReader;
 
     public RemoteInstancesManager(
             ProjectInfo projectInfo,
-            InstancesClient instancesClient) {
+            InstancesClient instancesClient,
+            SessionEnvironmentReader sessionEnvironmentReader) {
 
         this.projectInfo = projectInfo;
         this.instancesClient = instancesClient;
+        this.sessionEnvironmentReader = sessionEnvironmentReader;
     }
 
     public List<ProjectInstanceInfo> findAll(boolean includeSessions) {
@@ -60,8 +65,23 @@ public class RemoteInstancesManager {
         return Optional.ofNullable(instancesClient.instanceDetail(instanceId));
     }
 
+    /**
+     * The session's metadata from the hub, with its one-shot JFR environment events read here
+     * from the session's newest closed chunk. Two calls rather than one: the hub answers about
+     * the session, and {@link SessionEnvironmentReader} pulls the chunk and parses it, because
+     * the hub holds no JFR reader.
+     */
     public Optional<InstanceSessionDetailResponse> sessionDetail(String instanceId, String sessionId) {
-        return Optional.ofNullable(instancesClient.instanceSessionDetail(instanceId, sessionId));
+        InstanceSessionResponse session = instancesClient.instanceSessionDetail(instanceId, sessionId);
+        if (session == null) {
+            return Optional.empty();
+        }
+
+        boolean expectShutdown = session.finishedAt() != null;
+        JsonNode environment = sessionEnvironmentReader.forSession(sessionId, expectShutdown)
+                .orElse(null);
+
+        return Optional.of(new InstanceSessionDetailResponse(session, environment));
     }
 
     public List<ProjectInstanceSessionInfo> findSessions(String instanceId) {

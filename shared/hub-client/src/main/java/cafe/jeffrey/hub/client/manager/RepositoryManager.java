@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.client.manager;
 
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
@@ -64,5 +65,17 @@ public interface RepositoryManager {
      */
     void setSessionRetained(String recordingSessionId, boolean retained);
 
+    /**
+     * Downloads one of the session's files, resolving it by id first.
+     */
     StreamedRecordingFile streamFile(String sessionId, String fileId);
+
+    /**
+     * Downloads a file the caller already holds from a listing, skipping the lookup the id-based
+     * overload has to make. Resolving an id costs a whole session listing, and a listing walks
+     * the session directory and — while the session is still recording — opens each recording
+     * file to ask the share its current size. A caller that has just read the listing should not
+     * pay for a second walk of it.
+     */
+    StreamedRecordingFile streamFile(String sessionId, RepositoryFile file);
 }
