@@ -149,12 +149,18 @@ public class HubsArtifactsMcpTools {
     /**
      * How a row is reached, said in the table rather than left to the reader to infer from the
      * category. A listing that invites a fetch the fetch tool refuses is worse than no column.
+     *
+     * <p>There is deliberately no "still being written" case. Only one file of a session is ever
+     * open — the newest recording chunk — and a recording is never fetched one at a time anyway,
+     * so it already reads {@code hubs_download}. Every artifact is fetchable, including one the
+     * application is still appending to: a log a reader wants to grep before deciding whether the
+     * recording is worth the transfer is what this family exists for, and refusing it until the
+     * session ends would refuse it for as long as it is interesting.
      */
     private enum Fetchability {
 
         FETCH("fetch"),
         DOWNLOAD("hubs_download"),
-        WHEN_FINISHED("when finished"),
         NEVER("no");
 
         private final String label;
@@ -168,14 +174,14 @@ public class HubsArtifactsMcpTools {
         }
     }
 
-    private static String fetchColumn(RecordingSession session, RepositoryFile file) {
+    private static String fetchColumn(RepositoryFile file) {
         if (file.isRecordingFile()) {
             return Fetchability.DOWNLOAD.label();
         }
         if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {
             return Fetchability.NEVER.label();
         }
-        return session.isOpen(file) ? Fetchability.WHEN_FINISHED.label() : Fetchability.FETCH.label();
+        return Fetchability.FETCH.label();
     }
 
     /**
@@ -210,9 +216,8 @@ public class HubsArtifactsMcpTools {
             + "fetched or came along with hubs_download - open it with your own tools - or "
             + "recording:<id> / profile:<id> for a recording hubs_download already brought. The `fetch` "
             + "column says how each row is reached: `fetch` means pass its file_id to hubs_fetchFile, "
-            + "`hubs_download` means it is a recording chunk taken with the whole session, `when "
-            + "finished` means it is still being written, and `no` means the hub does not serve that "
-            + "file on its own - only hubs_download brings it.")
+            + "`hubs_download` means it is a recording chunk taken with the whole session, and `no` "
+            + "means the hub does not serve that file on its own - only hubs_download brings it.")
     public String files(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef) {
@@ -251,7 +256,7 @@ public class HubsArtifactsMcpTools {
                     ByteSizes.format(file.size()),
                     file.createdAt(),
                     localColumn(file, ref, local),
-                    fetchColumn(session, file));
+                    fetchColumn(file));
         }
         return table
                 .note("Session " + session.name() + " on hub " + hubInfo.name() + ", project "
@@ -259,7 +264,7 @@ public class HubsArtifactsMcpTools {
                         + Fetchability.FETCH.label() + "` means pass its file_id to hubs_fetchFile, `"
                         + Fetchability.DOWNLOAD.label()
                         + "` is a recording chunk taken with the rest by hubs_download rather than fetched on "
-                        + "its own, `" + Fetchability.WHEN_FINISHED.label() + "` is still being written, and `"
+                        + "its own, and `"
                         + Fetchability.NEVER.label() + "` is a file the hub does not serve one at a time - a "
                         + "type Jeffrey does not classify, or a transient one. A `local` path is on the "
                         + "machine Jeffrey runs on; read it with your own tools. A `local` cell that is empty "
@@ -434,7 +439,7 @@ public class HubsArtifactsMcpTools {
 
     /**
      * Reads the session and finds the file before anything is transferred, so a stale ref, a wrong
-     * id, a file still being written and a recording chunk each fail in a sentence.
+     * id and a recording chunk each fail in a sentence.
      */
     private Preflight preflightWithin(HubSessionRef ref, String fileId, Deadline deadline) {
         return withinDeadline(deadline, Context.current(), () -> {
@@ -467,8 +472,7 @@ public class HubsArtifactsMcpTools {
     }
 
     private static RepositoryFile fileIn(RecordingSession session, HubSessionRef ref, String fileId) {
-        List<RepositoryFile> files = session.files() == null ? List.of() : session.files();
-        RepositoryFile file = files.stream()
+        RepositoryFile file = session.files().stream()
                 .filter(candidate -> fileId.equals(candidate.id()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Session " + ref.sessionId()
@@ -486,10 +490,6 @@ public class HubsArtifactsMcpTools {
                     + "), and a hub serves only classified artifacts one at a time. Its `fetch` column in "
                     + "hubs_files reads `" + Fetchability.NEVER.label() + "`; hubs_download brings the whole "
                     + "session, this file included.");
-        }
-        if (session.isOpen(file)) {
-            throw new IllegalArgumentException("File " + file.name() + " is still being written (status "
-                    + session.status() + "). Fetch it once the session has finished.");
         }
         return file;
     }

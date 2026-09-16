@@ -43,8 +43,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -167,20 +169,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         RepositoryInfo repositoryInfo = repositoryInfo();
 
-        Path workspacePath = resolveWorkspacePath(repositoryInfo);
-        Path sessionPath = workspacePath
-                .resolve(repositoryInfo.relativeProjectPath())
-                .resolve(sessionInfo.relativeSessionPath());
+        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
         RecordingStatus recordingStatus = determineSessionStatus(sessionInfo, isLatestSession);
 
         List<RepositoryFile> repositoryFiles;
         if (withFiles) {
-            repositoryFiles = _listRepositoryFiles(
-                    recordingStatus,
-                    workspacePath,
-                    sessionPath);
+            repositoryFiles = _listRepositoryFiles(recordingStatus, sessionPath);
         } else {
             repositoryFiles = List.of();
         }
@@ -210,12 +206,12 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * answered from the client's attribute cache still reports a file the share has already
      * removed, where asking the share for a handle does not.
      */
-    RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path workspacePath, Path sessionPath) {
+    RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path sessionPath) {
         String sourceName = sessionPath.relativize(file).toString();
         SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
         try {
             return new RepositoryFile(
-                    FileSystemUtils.removeExtension(workspacePath.relativize(file), RECORDING_EXTENSIONS),
+                    fileId(file),
                     sourceName,
                     fileInfoProcessor.createdAt(file),
                     sizeReader(sessionStatus, fileType).size(file),
@@ -226,6 +222,19 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                     file, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * A file's identity within its session: its own name with the recording extension stripped,
+     * so it survives the hub compressing the file and an id taken from a listing still names the
+     * same recording afterwards.
+     *
+     * <p>One definition, because it is read in both directions — {@link #describe} hands it out
+     * and {@link #deleteRepositoryFiles} matches files against it — and an id that could not be
+     * matched back to the file it came from is an id that deletes nothing.
+     */
+    private static String fileId(Path file) {
+        return FileSystemUtils.removeExtension(file, RECORDING_EXTENSIONS);
     }
 
     /**
@@ -278,6 +287,21 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         }
     }
 
+    /**
+     * Deletes the named files of a session, looked up in the session's own listing.
+     *
+     * <p>Through the listing rather than by building a path out of the id, which is what this
+     * did and why it deleted nothing. A file's id is its name with the recording extension
+     * stripped — that is the point of it, so an id survives the hub compressing the file — so
+     * {@code sessionPath.resolve(id)} named a file that does not exist, and
+     * {@code deleteIfExists} reported success for it. Both retention jobs and the UI's delete ran
+     * as designed and freed nothing.
+     *
+     * <p>It also closes what that path built out of the id let through. The ids arrive over gRPC,
+     * and {@code resolve} on one holding {@code ../} walks out of the session directory: any file
+     * the hub could delete, it would delete. A listing has no entry for such an id, so there is
+     * now nothing to resolve.
+     */
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
         RepositoryInfo repositoryInfo = repositoryInfo();
@@ -297,14 +321,38 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return;
         }
 
-        for (String sessionFileId : sessionFileIds) {
-            // Repository file ID is relative to the workspace path
-            // e.g. "projectId/sessionId/recording.jfr"
-            Path repositoryFile = sessionPath.resolve(sessionFileId);
-            FileSystemUtils.removeFile(repositoryFile);
+        Set<String> requestedIds = Set.copyOf(sessionFileIds);
+        List<Path> matched;
+        try (Stream<Path> files = Files.list(sessionPath)) {
+            matched = files
+                    .filter(Files::isRegularFile)
+                    .filter(file -> requestedIds.contains(fileId(file)))
+                    .toList();
+        } catch (IOException e) {
+            LOG.warn("Cannot list a session directory to delete files from it: session_path={}", sessionPath, e);
+            return;
         }
 
-        LOG.info("Deleted files in repository session: session={} file_ids={}", sessionPath, sessionFileIds);
+        // Over the ids rather than over the counts: one id can match two files while a compression
+        // is in flight — the recording and the archive beside it strip to the same id, and both are
+        // that chunk — so a count says nothing about whether every id was found.
+        Set<String> found = matched.stream()
+                .map(AsprofFileRepositoryStorage::fileId)
+                .collect(Collectors.toSet());
+        List<String> missing = requestedIds.stream().filter(id -> !found.contains(id)).toList();
+
+        // Named but not held: said so rather than passed over, because a call that deleted nothing
+        // and a call that deleted everything it asked for read exactly the same otherwise.
+        if (!missing.isEmpty()) {
+            LOG.warn("Session holds no file with these ids, nothing deleted for them: session_id={} file_ids={}",
+                    sessionId, missing);
+        }
+
+        for (Path file : matched) {
+            FileSystemUtils.removeFile(file);
+        }
+
+        LOG.info("Deleted files in repository session: session_path={} file_ids={}", sessionPath, found);
     }
 
     @Override
@@ -494,7 +542,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private List<RepositoryFile> _listRepositoryFiles(
             RecordingStatus recordingStatus,
-            Path workspacePath,
             Path sessionPath) {
 
         if (!Files.isDirectory(sessionPath)) {
@@ -509,7 +556,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                         sessionPath, fileInfoProcessor.comparator()).stream()
                 .filter(Files::isRegularFile)
                 .filter(FileSystemUtils::isNotHidden)
-                .map(file -> describe(file, recordingStatus, workspacePath, sessionPath))
+                .map(file -> describe(file, recordingStatus, sessionPath))
                 .filter(Objects::nonNull)
                 .toList();
     }
