@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.heartbeat;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,10 +30,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.lang.System.Logger.Level.DEBUG;
-import static java.lang.System.Logger.Level.INFO;
-import static java.lang.System.Logger.Level.WARNING;
 
 /**
  * Reports to a Jeffrey Hub that this JVM is alive, and tells it when the JVM stopped.
@@ -59,7 +58,7 @@ import static java.lang.System.Logger.Level.WARNING;
  */
 public final class JeffreyHeartbeat implements AutoCloseable {
 
-    private static final System.Logger LOG = System.getLogger(JeffreyHeartbeat.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(JeffreyHeartbeat.class);
 
     private static final String THREAD_NAME = "jeffrey-heartbeat";
     private static final String SHUTDOWN_THREAD_NAME = "jeffrey-heartbeat-shutdown";
@@ -108,8 +107,8 @@ public final class JeffreyHeartbeat implements AutoCloseable {
     /** As {@link #start(HeartbeatSettings)}, with the clock the timestamps come from. */
     public static JeffreyHeartbeat start(HeartbeatSettings settings, Clock clock) {
         if (!settings.writable()) {
-            LOG.log(DEBUG, () -> "Jeffrey heartbeat not started: enabled=" + settings.enabled()
-                    + " directory=" + settings.directory());
+            LOG.debug("Jeffrey heartbeat not started: enabled={} directory={}",
+                    settings.enabled(), settings.directory());
             return inert();
         }
 
@@ -117,8 +116,8 @@ public final class JeffreyHeartbeat implements AutoCloseable {
         try {
             Files.createDirectories(directory);
         } catch (IOException e) {
-            LOG.log(WARNING, "Jeffrey heartbeat directory cannot be created, liveness will not be "
-                    + "reported: directory=" + directory, e);
+            LOG.warn("Jeffrey heartbeat directory cannot be created, liveness will not be "
+                    + "reported: directory={}", directory, e);
             return inert();
         }
 
@@ -136,8 +135,8 @@ public final class JeffreyHeartbeat implements AutoCloseable {
         // a hub that sees a declared producer write nothing eventually calls the session finished
         scheduler.scheduleAtFixedRate(heartbeat::beat, 0, intervalMillis, TimeUnit.MILLISECONDS);
 
-        LOG.log(INFO, "Jeffrey heartbeat started: directory=" + directory
-                + " interval=" + settings.interval());
+        LOG.info("Jeffrey heartbeat started: directory={} interval={}",
+                directory, settings.interval());
         return heartbeat;
     }
 
@@ -166,7 +165,7 @@ public final class JeffreyHeartbeat implements AutoCloseable {
             writer.finish(clock.millis());
         } catch (IOException | RuntimeException e) {
             // The session still finishes, from the last heartbeat, a threshold later
-            LOG.log(WARNING, "Jeffrey clean-exit marker could not be written", e);
+            LOG.warn("Jeffrey clean-exit marker could not be written", e);
         }
         writer.discardTemporaryFiles();
     }
@@ -180,7 +179,7 @@ public final class JeffreyHeartbeat implements AutoCloseable {
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(SHUTDOWN_GRACE.toMillis(), TimeUnit.MILLISECONDS)) {
-                LOG.log(DEBUG, () -> "Jeffrey heartbeat did not stop within " + SHUTDOWN_GRACE);
+                LOG.debug("Jeffrey heartbeat did not stop within its grace period: grace={}", SHUTDOWN_GRACE);
                 scheduler.shutdownNow();
             }
         } catch (InterruptedException e) {
@@ -195,7 +194,7 @@ public final class JeffreyHeartbeat implements AutoCloseable {
         } catch (IOException | RuntimeException e) {
             // Logged at debug: a volume that is briefly unwritable would otherwise fill the
             // application's log at the heartbeat interval, and the next beat recovers on its own
-            LOG.log(DEBUG, () -> "Jeffrey heartbeat could not be written: " + e);
+            LOG.debug("Jeffrey heartbeat could not be written", e);
         }
     }
 

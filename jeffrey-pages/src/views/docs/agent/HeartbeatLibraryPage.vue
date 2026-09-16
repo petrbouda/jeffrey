@@ -30,7 +30,7 @@ onMounted(() => {
       <div class="docs-content">
         <h2 id="overview">Overview</h2>
         <p><strong>jeffrey-heartbeat</strong> reports to a Jeffrey Hub that your JVM is alive, and tells it when the JVM stopped. It writes two files into the session directory: a timestamp it rewrites every few seconds, and a clean-exit marker on shutdown.</p>
-        <p>That is the whole of it. It emits no events, instruments nothing, and has no dependencies.</p>
+        <p>That is the whole of it. It emits no events, instruments nothing, and brings one dependency: the SLF4J API it logs through.</p>
 
         <DocsCallout type="info">
           A provisioned application configures itself. Jeffrey Provisioner passes <code>-Djeffrey.heartbeat.dir</code> and <code>-Djeffrey.heartbeat.enabled</code> in the argfile the JVM starts with, and exports the matching <code>JEFFREY_HEARTBEAT_*</code> variables into its <code>.env</code> for a deployment that sources one — so on Spring Boot the whole integration is one dependency and no code.
@@ -115,7 +115,7 @@ onMounted(() => {
         <p>The thread it uses is a daemon, so reporting liveness is never the reason a JVM stays up.</p>
 
         <DocsCallout type="info">
-          The library has <strong>no dependencies at all</strong>, deliberately: it is compiled into applications Jeffrey profiles but does not own, so anything it brought along would be a version those applications did not choose.
+          The library brings <strong>one dependency</strong>, deliberately kept to that: it is compiled into applications Jeffrey profiles but does not own, so anything it brought along would be a version those applications did not choose. <code>slf4j-api</code> is the exception, because it is a facade with no implementation — it ships no binding, so the handful of lines it writes go through <em>your</em> logging configuration, under the <code>cafe.jeffrey.heartbeat</code> logger, and are silenced or routed like any other.
         </DocsCallout>
       </div>
 
