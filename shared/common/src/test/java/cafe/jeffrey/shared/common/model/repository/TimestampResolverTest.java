@@ -50,16 +50,16 @@ class TimestampResolverTest {
 
         @Test
         void aRecordingReadsItsOwnName() {
-            assertSame(TimestampResolver.RECORDING_NAME, SupportedRecordingFile.JFR.timestampResolver());
-            assertSame(TimestampResolver.RECORDING_NAME, SupportedRecordingFile.JFR_LZ4.timestampResolver());
+            assertSame(TimestampResolver.RECORDING_NAME, ManagedFile.JFR.timestampResolver());
+            assertSame(TimestampResolver.RECORDING_NAME, ManagedFile.JFR_LZ4.timestampResolver());
         }
 
         @Test
         void everythingElseAsksTheFilesystem() {
-            assertSame(TimestampResolver.FILESYSTEM, SupportedRecordingFile.PPROF.timestampResolver());
-            assertSame(TimestampResolver.FILESYSTEM, SupportedRecordingFile.OTLP_PROFILE.timestampResolver());
-            assertSame(TimestampResolver.FILESYSTEM, SupportedRecordingFile.APP_LOG.timestampResolver());
-            assertSame(TimestampResolver.FILESYSTEM, SupportedRecordingFile.HEAP_DUMP.timestampResolver());
+            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.PPROF.timestampResolver());
+            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.OTLP_PROFILE.timestampResolver());
+            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.APP_LOG.timestampResolver());
+            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.HEAP_DUMP.timestampResolver());
         }
     }
 

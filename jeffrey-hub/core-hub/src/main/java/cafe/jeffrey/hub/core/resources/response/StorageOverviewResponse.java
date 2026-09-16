@@ -81,8 +81,8 @@ public record StorageOverviewResponse(
     }
 
     /**
-     * Usage of a single supported file type; {@code type} is the
-     * {@code SupportedRecordingFile} enum name (e.g. {@code JFR}, {@code HEAP_DUMP_GZ}).
+     * Usage of a single file type; {@code type} is the
+     * {@code ManagedFile} enum name (e.g. {@code JFR}, {@code HEAP_DUMP_GZ}).
      */
     public record FileTypeUsageResponse(String type, long sizeBytes, int fileCount) {
 

@@ -51,7 +51,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import io.grpc.Context;
@@ -116,7 +116,7 @@ class HubsMcpToolsTest {
         return new HubInfo(id, name, new HubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG);
     }
 
-    private static RepositoryFile file(String id, String name, SupportedRecordingFile type) {
+    private static RepositoryFile file(String id, String name, ManagedFile type) {
         return new RepositoryFile(id, name, NOW, 1024L, type, null);
     }
 
@@ -126,7 +126,7 @@ class HubsMcpToolsTest {
     }
 
     private static RecordingSession jfrSession(String id, Instant createdAt) {
-        return session(id, createdAt, file("f-1", "recording.jfr", SupportedRecordingFile.JFR));
+        return session(id, createdAt, file("f-1", "recording.jfr", ManagedFile.JFR));
     }
 
     private RepositoryManager repositoryWith(RecordingSession... sessions) {
@@ -620,8 +620,8 @@ class HubsMcpToolsTest {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
             RecordingSession withHeapDump = session(SESSION_ID, NOW,
-                    file("f-1", "recording.jfr", SupportedRecordingFile.JFR),
-                    file("f-2", "heap.hprof", SupportedRecordingFile.HEAP_DUMP));
+                    file("f-1", "recording.jfr", ManagedFile.JFR),
+                    file("f-2", "heap.hprof", ManagedFile.HEAP_DUMP));
             resolvesTo(projectWith(withHeapDump, downloads));
             noLocalRecordings();
 
@@ -690,7 +690,7 @@ class HubsMcpToolsTest {
         void refusesASessionWithNothingFinishedToDownload() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             RecordingSession logsOnly = session(SESSION_ID, NOW,
-                    file("f-1", "gc.log", SupportedRecordingFile.JVM_LOG));
+                    file("f-1", "gc.log", ManagedFile.JVM_LOG));
             resolvesTo(projectWith(logsOnly, downloads));
             noLocalRecordings();
 
@@ -703,11 +703,11 @@ class HubsMcpToolsTest {
 
         private RecordingSession fourChunks() {
             return session(SESSION_ID, NOW,
-                    new RepositoryFile("c0", "profile-0.jfr", NOW, 100L, SupportedRecordingFile.JFR, null),
-                    new RepositoryFile("c1", "profile-1.jfr", NOW.plusSeconds(150), 100L, SupportedRecordingFile.JFR, null),
-                    new RepositoryFile("c2", "profile-2.jfr", NOW.plusSeconds(300), 100L, SupportedRecordingFile.JFR, null),
-                    new RepositoryFile("c3", "profile-3.jfr", NOW.plusSeconds(450), 100L, SupportedRecordingFile.JFR, null),
-                    file("log", "app.log", SupportedRecordingFile.APP_LOG));
+                    new RepositoryFile("c0", "profile-0.jfr", NOW, 100L, ManagedFile.JFR, null),
+                    new RepositoryFile("c1", "profile-1.jfr", NOW.plusSeconds(150), 100L, ManagedFile.JFR, null),
+                    new RepositoryFile("c2", "profile-2.jfr", NOW.plusSeconds(300), 100L, ManagedFile.JFR, null),
+                    new RepositoryFile("c3", "profile-3.jfr", NOW.plusSeconds(450), 100L, ManagedFile.JFR, null),
+                    file("log", "app.log", ManagedFile.APP_LOG));
         }
 
         /** The same four chunks, but the session has not finished: its last chunk is open-ended. */

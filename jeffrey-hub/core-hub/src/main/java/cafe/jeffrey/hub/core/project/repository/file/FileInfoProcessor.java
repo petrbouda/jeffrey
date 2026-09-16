@@ -23,7 +23,7 @@ import java.util.Comparator;
 
 /**
  * How a repository's own layout is read — which, now that a file's timestamp is the business of
- * its {@link cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile type}, is the
+ * its {@link cafe.jeffrey.shared.common.model.repository.ManagedFile type}, is the
  * order its directory is listed in.
  */
 public interface FileInfoProcessor {

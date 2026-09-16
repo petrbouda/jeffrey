@@ -170,7 +170,7 @@ message RepositoryFile {
   int64 created_at = 3;
   // File size in bytes.
   int64 size = 4;
-  // File type identifier: a SupportedRecordingFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
+  // File type identifier: a ManagedFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
   // JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, ...).
   string file_type = 5;
   // Whether this is a JFR recording file (true) or an artifact like logs/heap dumps (false).

@@ -26,7 +26,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.StreamedFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -75,12 +75,12 @@ class SessionEnvironmentReaderTest {
 
     private static RepositoryFile recording(String id, Instant createdAt) {
         return new RepositoryFile(
-                id, id + ".jfr", createdAt, 1L, SupportedRecordingFile.JFR, Path.of(id + ".jfr"));
+                id, id + ".jfr", createdAt, 1L, ManagedFile.JFR, Path.of(id + ".jfr"));
     }
 
     private static RepositoryFile artifact(String id) {
         return new RepositoryFile(
-                id, id + ".log", T0, 1L, SupportedRecordingFile.APP_LOG,
+                id, id + ".log", T0, 1L, ManagedFile.APP_LOG,
                 Path.of(id + ".log"));
     }
 

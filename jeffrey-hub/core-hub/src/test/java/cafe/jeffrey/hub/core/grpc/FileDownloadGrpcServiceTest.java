@@ -34,7 +34,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.StreamedFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -178,7 +178,7 @@ class FileDownloadGrpcServiceTest {
 
     private static RepositoryFile chunk(String id, long startMinute) {
         return new RepositoryFile(id, "profile-" + id + ".jfr", SESSION_START.plusSeconds(startMinute * 60),
-                10L, SupportedRecordingFile.JFR, null);
+                10L, ManagedFile.JFR, null);
     }
 
     /** Three ten-minute chunks, f1 f2 f3, the session finished at +30. */

@@ -28,7 +28,7 @@ import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.util.List;
 
@@ -175,12 +175,12 @@ public class RepositoryClient {
                 proto.getIsRecording());
     }
 
-    private static SupportedRecordingFile parseFileType(String fileType) {
+    private static ManagedFile parseFileType(String fileType) {
         if (fileType == null || fileType.isEmpty()) {
             return null;
         }
         try {
-            return SupportedRecordingFile.valueOf(fileType);
+            return ManagedFile.valueOf(fileType);
         } catch (IllegalArgumentException e) {
             return null;
         }

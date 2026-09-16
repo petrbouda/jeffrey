@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.manager.additional;
 import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import cafe.jeffrey.profile.manager.additional.AdditionalFileProcessor;
 import cafe.jeffrey.profile.manager.additional.HeapDumpAdditionalFileProcessor;
 import cafe.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcessor;
@@ -46,7 +46,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
     private final ProfileCacheRepository cacheRepository;
     private final Path heapDumpAnalysisPath;
-    private final Map<SupportedRecordingFile, AdditionalFileProcessor> processors;
+    private final Map<ManagedFile, AdditionalFileProcessor> processors;
 
     // Cached heap dump path (lazy loaded)
     private Path heapDumpPath;
@@ -61,9 +61,9 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
         // Initialize processors map with all supported processors
         this.processors = Map.of(
-                SupportedRecordingFile.PERF_COUNTERS, new PerfCountersAdditionalFileProcessor(),
-                SupportedRecordingFile.HEAP_DUMP, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, SupportedRecordingFile.HEAP_DUMP),
-                SupportedRecordingFile.HEAP_DUMP_GZ, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, SupportedRecordingFile.HEAP_DUMP_GZ)
+                ManagedFile.PERF_COUNTERS, new PerfCountersAdditionalFileProcessor(),
+                ManagedFile.HEAP_DUMP, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, ManagedFile.HEAP_DUMP),
+                ManagedFile.HEAP_DUMP_GZ, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, ManagedFile.HEAP_DUMP_GZ)
         );
     }
 
@@ -71,7 +71,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
     @Override
     public void processAdditionalFiles(List<Path> artifacts) {
         for (Path additionalFile : artifacts) {
-            SupportedRecordingFile fileType = SupportedRecordingFile.of(additionalFile);
+            ManagedFile fileType = ManagedFile.of(additionalFile);
             AdditionalFileProcessor processor = processors.get(fileType);
             if (processor != null) {
                 processor.process(additionalFile)
@@ -125,9 +125,9 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             try (var files = Files.list(heapDumpAnalysisPath)) {
                 Optional<Path> found = files
                         .filter(file -> {
-                            SupportedRecordingFile fileType = SupportedRecordingFile.of(file);
-                            return fileType == SupportedRecordingFile.HEAP_DUMP ||
-                                    fileType == SupportedRecordingFile.HEAP_DUMP_GZ;
+                            ManagedFile fileType = ManagedFile.of(file);
+                            return fileType == ManagedFile.HEAP_DUMP ||
+                                    fileType == ManagedFile.HEAP_DUMP_GZ;
                         })
                         .findFirst();
                 if (found.isPresent()) {

@@ -44,7 +44,7 @@ public record RepositoryFile(
         String name,
         Instant createdAt,
         Long size,
-        SupportedRecordingFile fileType,
+        ManagedFile fileType,
         Path filePath) {
 
     public boolean isRecordingFile() {

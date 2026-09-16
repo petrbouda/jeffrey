@@ -31,7 +31,7 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.StoredFile;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -58,10 +58,10 @@ class StorageControllerTest {
                         "prj-1", "order-service", null,
                         27_100_000_000L, 342, 1_775_000_000_000L,
                         List.of(
-                                new FileTypeUsage(SupportedRecordingFile.JFR, 20_000_000_000L, 300),
-                                new FileTypeUsage(SupportedRecordingFile.HEAP_DUMP_GZ, 5_000_000_000L, 2),
-                                new FileTypeUsage(SupportedRecordingFile.JVM_LOG, 1_600_000_000L, 30),
-                                new FileTypeUsage(SupportedRecordingFile.PPROF, 500_000_000L, 10)),
+                                new FileTypeUsage(ManagedFile.JFR, 20_000_000_000L, 300),
+                                new FileTypeUsage(ManagedFile.HEAP_DUMP_GZ, 5_000_000_000L, 2),
+                                new FileTypeUsage(ManagedFile.JVM_LOG, 1_600_000_000L, 30),
+                                new FileTypeUsage(ManagedFile.PPROF, 500_000_000L, 10)),
                         List.of(
                                 new StoredFile("heapdump-01.hprof.gz", 4_000_000_000L),
                                 new StoredFile("recording-01.jfr", 900_000_000L)))));

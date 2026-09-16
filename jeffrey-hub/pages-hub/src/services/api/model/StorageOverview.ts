@@ -1,5 +1,5 @@
 export interface FileTypeUsage {
-    /** SupportedRecordingFile enum name, e.g. JFR, HEAP_DUMP_GZ */
+    /** ManagedFile enum name, e.g. JFR, HEAP_DUMP_GZ */
     type: string;
     sizeBytes: number;
     fileCount: number;

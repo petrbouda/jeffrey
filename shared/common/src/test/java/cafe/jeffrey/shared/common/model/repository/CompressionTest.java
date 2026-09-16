@@ -45,7 +45,7 @@ class CompressionTest {
 
         @Test
         void aRecordingThatStaysOneAfterwards() {
-            assertTrue(SupportedRecordingFile.JFR.compression().isSupported());
+            assertTrue(ManagedFile.JFR.compression().isSupported());
         }
 
         /**
@@ -54,8 +54,8 @@ class CompressionTest {
          */
         @Test
         void nothingElse() {
-            for (SupportedRecordingFile type : SupportedRecordingFile.values()) {
-                if (type != SupportedRecordingFile.JFR) {
+            for (ManagedFile type : ManagedFile.values()) {
+                if (type != ManagedFile.JFR) {
                     assertFalse(type.compression().isSupported(), "type: " + type);
                 }
             }
@@ -66,9 +66,9 @@ class CompressionTest {
             Path file = dir.resolve("app.pprof");
 
             assertThrows(UnsupportedOperationException.class,
-                    () -> SupportedRecordingFile.PPROF.compression().target(file));
+                    () -> ManagedFile.PPROF.compression().target(file));
             assertThrows(UnsupportedOperationException.class,
-                    () -> SupportedRecordingFile.PPROF.compression().compress(file, file));
+                    () -> ManagedFile.PPROF.compression().compress(file, file));
         }
     }
 
@@ -84,29 +84,29 @@ class CompressionTest {
             Path source = Files.write(
                     dir.resolve("profile-20260220-120500.jfr"), "x".getBytes(StandardCharsets.UTF_8));
 
-            Path target = SupportedRecordingFile.JFR.compression().target(source);
-            SupportedRecordingFile.JFR.compression().compress(source, target);
+            Path target = ManagedFile.JFR.compression().target(source);
+            ManagedFile.JFR.compression().compress(source, target);
 
             assertEquals("profile-20260220-120500.jfr.lz4", target.getFileName().toString());
             assertTrue(Files.isRegularFile(target));
 
-            SupportedRecordingFile archived = SupportedRecordingFile.of(target);
-            assertEquals(SupportedRecordingFile.JFR_LZ4, archived);
+            ManagedFile archived = ManagedFile.of(target);
+            assertEquals(ManagedFile.JFR_LZ4, archived);
             assertEquals(FileCategory.RECORDING, archived.fileCategory());
             assertTrue(archived.isCompressed());
             assertEquals(
-                    SupportedRecordingFile.JFR.timestampResolver().resolve(source),
+                    ManagedFile.JFR.timestampResolver().resolve(source),
                     archived.timestampResolver().resolve(target),
                     "the archive answers with the instant the profiler opened the chunk");
             assertEquals(
-                    SupportedRecordingFile.JFR.idOf(source),
+                    ManagedFile.JFR.idOf(source),
                     archived.idOf(target),
                     "and to the id a reader took from the listing before the rewrite");
         }
 
         @Test
         void andCannotBeCompressedAgain() {
-            assertFalse(SupportedRecordingFile.JFR_LZ4.compression().isSupported());
+            assertFalse(ManagedFile.JFR_LZ4.compression().isSupported());
         }
     }
 }

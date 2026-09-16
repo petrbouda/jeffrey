@@ -27,7 +27,7 @@ import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -66,15 +66,15 @@ class AsprofFileRepositoryStorageTest {
         @Test
         void opensTheRecordingOfASessionThatIsStillRecording() {
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JFR));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR));
         }
 
         @Test
         void opensTheLogsAndCachesOfASessionThatIsStillRecording() {
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JVM_LOG));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JVM_LOG));
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.ASPROF_TEMP));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.ASPROF_TEMP));
         }
 
         @Test
@@ -83,12 +83,12 @@ class AsprofFileRepositoryStorageTest {
             // final. A long session accumulates one of these every chunk, and opening each would
             // grow the cost of a listing without bound.
             assertSame(FileSizeReader.FILE_ATTRIBUTES,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, SupportedRecordingFile.JFR_LZ4));
+                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR_LZ4));
         }
 
         @Test
         void readsEveryFileOfAFinishedSessionFromTheListing() {
-            for (SupportedRecordingFile fileType : SupportedRecordingFile.values()) {
+            for (ManagedFile fileType : ManagedFile.values()) {
                 assertSame(FileSizeReader.FILE_ATTRIBUTES,
                         AsprofFileRepositoryStorage.sizeReader(RecordingStatus.FINISHED, fileType),
                         "file type: " + fileType);
@@ -126,7 +126,7 @@ class AsprofFileRepositoryStorageTest {
             assertNotNull(described);
             assertEquals("gc.jvm-log", described.name());
             assertEquals(CONTENT.length, described.size());
-            assertEquals(SupportedRecordingFile.JVM_LOG, described.fileType());
+            assertEquals(ManagedFile.JVM_LOG, described.fileType());
         }
 
         @Test

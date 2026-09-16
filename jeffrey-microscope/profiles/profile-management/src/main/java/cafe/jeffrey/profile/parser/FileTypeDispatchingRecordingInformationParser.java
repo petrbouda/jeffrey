@@ -23,7 +23,7 @@ import cafe.jeffrey.pprofparser.PprofRecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 /**
  * Selects the {@link RecordingInformationParser} for an uploaded recording by its file type: pprof
@@ -57,11 +57,11 @@ public class FileTypeDispatchingRecordingInformationParser implements RecordingI
      */
     @Override
     public RecordingInformation provide(RecordingSources sources) {
-        SupportedRecordingFile fileType = SupportedRecordingFile.of(sources.first());
-        if (fileType == SupportedRecordingFile.PPROF) {
+        ManagedFile fileType = ManagedFile.of(sources.first());
+        if (fileType == ManagedFile.PPROF) {
             return pprofParser.provide(sources);
         }
-        if (fileType == SupportedRecordingFile.OTLP_PROFILE) {
+        if (fileType == ManagedFile.OTLP_PROFILE) {
             return otlpParser.provide(sources);
         }
         return jfrParser.provide(sources);

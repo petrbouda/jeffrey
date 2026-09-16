@@ -28,7 +28,7 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -103,7 +103,7 @@ class ProjectStorageQuotaCleanerJobTest {
      * decides, and the answer is its newest chunk while it records.
      */
     private static RepositoryFile recording(String id, Instant createdAt, long size) {
-        return new RepositoryFile(id, id, createdAt, size, SupportedRecordingFile.JFR, null);
+        return new RepositoryFile(id, id, createdAt, size, ManagedFile.JFR, null);
     }
 
     private static RecordingSession finishedSession(
@@ -239,7 +239,7 @@ class ProjectStorageQuotaCleanerJobTest {
         void toleratesFilesWithUnknownSize() {
             RepositoryFile unsized = new RepositoryFile(
                     "f1", "f1", NOW.minusSeconds(3600), null,
-                    SupportedRecordingFile.JFR, null);
+                    ManagedFile.JFR, null);
 
             when(storage.listSessions(true)).thenReturn(List.of(
                     finishedSession("s1", NOW.minusSeconds(3600), false, unsized)));

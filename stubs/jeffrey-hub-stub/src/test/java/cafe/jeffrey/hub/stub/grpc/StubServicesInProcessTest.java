@@ -171,14 +171,14 @@ class StubServicesInProcessTest {
         assertFalse(first.getId().isEmpty());
     }
 
-    // Mirrors cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile names. The client
-    // resolves file_type via SupportedRecordingFile.valueOf(), so an unknown name = null fileType = NPE.
+    // Mirrors cafe.jeffrey.shared.common.model.repository.ManagedFile names. The client
+    // resolves file_type via ManagedFile.valueOf(), so an unknown name = null fileType = NPE.
     private static final Set<String> VALID_FILE_TYPES = Set.of(
             "JFR", "ASPROF_TEMP", "HEAP_DUMP_GZ", "HEAP_DUMP", "PERF_COUNTERS",
             "JVM_LOG", "HS_JVM_ERROR_LOG", "APP_LOG", "UNKNOWN");
 
     @Test
-    void repositoryFileTypesAreValidSupportedRecordingFileNames() {
+    void repositoryFileTypesAreValidManagedFileNames() {
         String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
         ListSessionsResponse sessions = RepositoryServiceGrpc.newBlockingStub(channel)
                 .listSessions(ListSessionsRequest.newBuilder().setProjectId(projectId).build());
