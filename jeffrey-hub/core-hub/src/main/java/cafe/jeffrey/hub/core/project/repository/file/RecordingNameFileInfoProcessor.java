@@ -22,17 +22,20 @@ import java.nio.file.Path;
 import java.util.Comparator;
 
 /**
- * An async-profiler repository: chunks named {@code profile-<yyyyMMdd-HHmmss>.jfr}, so the newest
- * file is the last one by name.
+ * For a layout whose filenames carry their own order, newest first by name.
  *
- * <p>Reading the instant back out of that name belonged here once, together with a fallback
- * processor for the files it did not fit. It is
- * {@link cafe.jeffrey.shared.common.model.repository.TimestampResolver} now, reached through the
- * file's own type, because which files carry their timestamp in their name is the same question
- * as which files may be compressed — and the two answers drifting apart is what let an archive
- * take the open chunk's place.
+ * <p>Named for async-profiler once, whose chunks are {@code profile-<yyyyMMdd-HHmmss>.jfr} and so
+ * sort by name — but the rule is about names sorting, not about who wrote them, and it pairs with
+ * {@link FilesystemFileInfoProcessor} for a layout where they do not. That is the same split
+ * {@code TimestampResolver} makes between {@code RECORDING_NAME} and {@code FILESYSTEM}, and for
+ * the same reason: a name survives a file being rewritten and a filesystem timestamp does not.
+ *
+ * <p>Reading the instant back out of the name belonged here too, once. It is
+ * {@code TimestampResolver} now, reached through the file's own type, because which files carry a
+ * timestamp in their name is the same question as which files may be compressed — and the two
+ * answers drifting apart is what let an archive take the open chunk's place.
  */
-public class AsprofFileInfoProcessor implements FileInfoProcessor {
+public class RecordingNameFileInfoProcessor implements FileInfoProcessor {
 
     @Override
     public Comparator<Path> comparator() {

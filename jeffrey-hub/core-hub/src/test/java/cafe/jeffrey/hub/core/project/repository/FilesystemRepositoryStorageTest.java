@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
+import cafe.jeffrey.hub.core.project.repository.file.RecordingNameFileInfoProcessor;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class AsprofFileRepositoryStorageTest {
+class FilesystemRepositoryStorageTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
 
@@ -69,15 +69,15 @@ class AsprofFileRepositoryStorageTest {
         @Test
         void opensTheRecordingOfASessionThatIsStillRecording() {
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR));
+                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR));
         }
 
         @Test
         void opensTheLogsAndCachesOfASessionThatIsStillRecording() {
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JVM_LOG));
+                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JVM_LOG));
             assertSame(FileSizeReader.LIVE_FILE,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.ASPROF_TEMP));
+                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.ASPROF_TEMP));
         }
 
         @Test
@@ -86,14 +86,14 @@ class AsprofFileRepositoryStorageTest {
             // final. A long session accumulates one of these every chunk, and opening each would
             // grow the cost of a listing without bound.
             assertSame(FileSizeReader.FILE_ATTRIBUTES,
-                    AsprofFileRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR_LZ4));
+                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR_LZ4));
         }
 
         @Test
         void readsEveryFileOfAFinishedSessionFromTheListing() {
             for (ManagedFile fileType : ManagedFile.values()) {
                 assertSame(FileSizeReader.FILE_ATTRIBUTES,
-                        AsprofFileRepositoryStorage.sizeReader(RecordingStatus.FINISHED, fileType),
+                        FilesystemRepositoryStorage.sizeReader(RecordingStatus.FINISHED, fileType),
                         "file type: " + fileType);
             }
         }
@@ -107,12 +107,12 @@ class AsprofFileRepositoryStorageTest {
         @TempDir
         Path workspace;
 
-        private AsprofFileRepositoryStorage storage() {
-            return new AsprofFileRepositoryStorage(
+        private FilesystemRepositoryStorage storage() {
+            return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class),
                     workspace,
                     mock(ProjectRepositoryRepository.class),
-                    new AsprofFileInfoProcessor());
+                    new RecordingNameFileInfoProcessor());
         }
 
         private Path sessionDir() throws IOException {
@@ -177,7 +177,7 @@ class AsprofFileRepositoryStorageTest {
                     workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
         }
 
-        private AsprofFileRepositoryStorage storage(Instant finishedAt) {
+        private FilesystemRepositoryStorage storage(Instant finishedAt) {
             when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
@@ -185,11 +185,11 @@ class AsprofFileRepositoryStorageTest {
                     T0, T0, finishedAt, false, false, null)));
             when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
 
-            return new AsprofFileRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository, new AsprofFileInfoProcessor());
+            return new FilesystemRepositoryStorage(
+                    mock(ProjectInfo.class), workspacesDir, repository, new RecordingNameFileInfoProcessor());
         }
 
-        private AsprofFileRepositoryStorage finishedSession() {
+        private FilesystemRepositoryStorage finishedSession() {
             return storage(T0.plusSeconds(600));
         }
 
@@ -355,7 +355,7 @@ class AsprofFileRepositoryStorageTest {
                     workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
         }
 
-        private AsprofFileRepositoryStorage storage(Instant finishedAt) {
+        private FilesystemRepositoryStorage storage(Instant finishedAt) {
             when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
@@ -363,15 +363,15 @@ class AsprofFileRepositoryStorageTest {
                     T0, T0, finishedAt, false, false, null)));
             when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
 
-            return new AsprofFileRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository, new AsprofFileInfoProcessor());
+            return new FilesystemRepositoryStorage(
+                    mock(ProjectInfo.class), workspacesDir, repository, new RecordingNameFileInfoProcessor());
         }
 
-        private AsprofFileRepositoryStorage finishedSession() {
+        private FilesystemRepositoryStorage finishedSession() {
             return storage(T0.plusSeconds(1800));
         }
 
-        private AsprofFileRepositoryStorage liveSession() {
+        private FilesystemRepositoryStorage liveSession() {
             return storage(null);
         }
 
@@ -529,15 +529,15 @@ class AsprofFileRepositoryStorageTest {
                     workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
         }
 
-        private AsprofFileRepositoryStorage storage() {
+        private FilesystemRepositoryStorage storage() {
             when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
                     SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
                     T0, T0, null, false, false, null)));
 
-            return new AsprofFileRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository, new AsprofFileInfoProcessor());
+            return new FilesystemRepositoryStorage(
+                    mock(ProjectInfo.class), workspacesDir, repository, new RecordingNameFileInfoProcessor());
         }
 
         private static Path write(Path dir, String name) throws IOException {

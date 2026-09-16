@@ -50,10 +50,26 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * A project's repository as it lies on the shared volume: instance directories, session
+ * directories under them, and the files a profiler left behind.
+ *
+ * <p>Named for async-profiler once, and that stopped being true. Nothing here is specific to a
+ * profiler or to a kind of file: a file is classified by {@link ManagedFile#of(String)} and
+ * everything this class then does to it — the id it is known by, where its timestamp comes from,
+ * whether its size can be read from a directory listing, whether it may be compressed, whether it
+ * may be handed over — is a property that type declares about itself. Add a constant to the enum
+ * with its facets filled in and this class carries it without a line changing.
+ *
+ * <p>It is, however, the one class whose <em>behaviour</em> a file's type decides. Everywhere else
+ * in the hub a type is either reported onward or used as a grouping key.
+ *
+ * <p>What is still a fact about the layout rather than about a file lives in
+ * {@link FileInfoProcessor}: the order a session directory is listed in.
+ */
+public class FilesystemRepositoryStorage implements RepositoryStorage {
 
-public class AsprofFileRepositoryStorage implements RepositoryStorage {
-
-    private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FilesystemRepositoryStorage.class);
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
@@ -67,7 +83,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private volatile RepositoryInfo cachedRepositoryInfo;
 
-    public AsprofFileRepositoryStorage(
+    public FilesystemRepositoryStorage(
             ProjectInfo projectInfo,
             Path workspacesDir,
             ProjectRepositoryRepository projectRepositoryRepository,
@@ -325,7 +341,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         // is in flight — the recording and the archive beside it strip to the same id, and both are
         // that chunk — so a count says nothing about whether every id was found.
         Set<String> found = matched.stream()
-                .map(AsprofFileRepositoryStorage::fileId)
+                .map(FilesystemRepositoryStorage::fileId)
                 .collect(Collectors.toSet());
         List<String> missing = requestedIds.stream().filter(id -> !found.contains(id)).toList();
 
@@ -424,7 +440,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 // A recording and the archive beside it share an id while the compression job
                 // is between publishing one and removing the other. Both are whole; the archive is
                 // the one that will still be there in a moment.
-                .reduce(AsprofFileRepositoryStorage::theOneThatStays)
+                .reduce(FilesystemRepositoryStorage::theOneThatStays)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Session " + sessionId + " holds no file with id " + fileId
                                 + ". Take the id from the session's file listing."));
