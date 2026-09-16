@@ -141,6 +141,15 @@ const TYPE_GROUP_DISPLAY: Record<
   UNKNOWN: { name: 'Other Files', variant: 'grey', fileType: 'UNKNOWN' }
 };
 
+/**
+ * The recordings fold like every other type, but through a panel of their own rather than through
+ * getTypeGroupPanels: the body keeps the rotation grouping (a `.jfr.N~` sibling folded under the
+ * chunk it belongs to), which a flat type panel has no notion of. Everything else — the header row,
+ * the chevron, the group checkbox, the Show-more inside the body — is the shared machinery.
+ */
+const RECORDING_GROUP_KEY: ArtifactTypeGroup = 'JFR_RECORDING';
+const RECORDING_DISPLAY = TYPE_GROUP_DISPLAY[RECORDING_GROUP_KEY];
+
 interface TypeGroupPanel {
   groupKey: ArtifactTypeGroup;
   display: { name: string; variant: string; fileType: string };
@@ -371,19 +380,19 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   });
 };
 
-const isAllGroupFilesSelected = (sessionId: string, panel: TypeGroupPanel): boolean => {
+const isAllGroupFilesSelected = (sessionId: string, files: RepositoryFile[]): boolean => {
   if (!selectedRepositoryFile.value[sessionId]) {return false;}
-  const selectableFiles = panel.files.filter(f => !isCheckboxDisabled(f));
+  const selectableFiles = files.filter(f => !isCheckboxDisabled(f));
   if (selectableFiles.length === 0) {return false;}
   return selectableFiles.every(f => selectedRepositoryFile.value[sessionId][f.id]);
 };
 
-const toggleGroupSelection = (sessionId: string, panel: TypeGroupPanel) => {
+const toggleGroupSelection = (sessionId: string, files: RepositoryFile[]) => {
   if (!selectedRepositoryFile.value[sessionId]) {
     selectedRepositoryFile.value[sessionId] = {};
   }
-  const allSelected = isAllGroupFilesSelected(sessionId, panel);
-  panel.files.forEach(file => {
+  const allSelected = isAllGroupFilesSelected(sessionId, files);
+  files.forEach(file => {
     if (!isCheckboxDisabled(file)) {
       selectedRepositoryFile.value[sessionId][file.id] = !allSelected;
     }
@@ -659,10 +668,39 @@ const isRecordingOrTempFile = (file: RepositoryFile): boolean => {
   return file.isRecording || file.fileType === RecordingFileType.ASPROF;
 };
 
+const getRecordingFiles = (session: RecordingSession): RepositoryFile[] => {
+  return getSortedRecordings(session).filter(f => isRecordingOrTempFile(f));
+};
+
 const getRecordingGroupedFiles = (session: RecordingSession): FileGroupEntry[] => {
-  const sortedFiles = getSortedRecordings(session);
-  const recordingFiles = sortedFiles.filter(f => isRecordingOrTempFile(f));
-  return groupRotatedFiles(recordingFiles);
+  return groupRotatedFiles(getRecordingFiles(session));
+};
+
+const getRecordingTotalSize = (session: RecordingSession): number => {
+  return getRecordingFiles(session).reduce((sum, f) => sum + f.size, 0);
+};
+
+/**
+ * The chunk the profiler still holds open, called out on the panel header: collapsed, the panel is
+ * all a reader sees of a running session, and "27 files" alone does not say that one of them is
+ * still growing.
+ */
+const getOpenRecordingCount = (session: RecordingSession): number => {
+  return getRecordingFiles(session).filter(f => f.status === RecordingStatus.ACTIVE).length;
+};
+
+/**
+ * The recordings are what a session is for, so their panel starts open while the logs beside it
+ * start closed. Only a toggle writes the key, so an untouched panel keeps answering true.
+ */
+const isRecordingPanelExpanded = (sessionId: string): boolean => {
+  const expanded = expandedTypePanels.value[`${sessionId}:${RECORDING_GROUP_KEY}`];
+  return expanded === undefined ? true : expanded;
+};
+
+const toggleRecordingPanel = (sessionId: string) => {
+  expandedTypePanels.value[`${sessionId}:${RECORDING_GROUP_KEY}`] =
+    !isRecordingPanelExpanded(sessionId);
 };
 
 const getVisibleRecordingGroups = (session: RecordingSession): FileGroupEntry[] => {
@@ -708,7 +746,7 @@ const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
   const groupMap = getArtifactGroupMap(session);
   const panels: TypeGroupPanel[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
-    if (groupKey === 'JFR_RECORDING') {continue;}
+    if (groupKey === RECORDING_GROUP_KEY) {continue;}
     const files = groupMap.get(groupKey);
     if (!files) {continue;}
     if (files.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) {continue;}
@@ -727,7 +765,7 @@ const getStandaloneArtifactFiles = (session: RecordingSession): RepositoryFile[]
   const groupMap = getArtifactGroupMap(session);
   const standalone: RepositoryFile[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
-    if (groupKey === 'JFR_RECORDING') {continue;}
+    if (groupKey === RECORDING_GROUP_KEY) {continue;}
     const files = groupMap.get(groupKey);
     if (files && files.length === 1 && !ALWAYS_GROUPED.has(groupKey)) {
       standalone.push(files[0]);
@@ -1068,6 +1106,202 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           <span>{{ selectionGapMessage(session.id) }}</span>
         </div>
 
+        <!-- JFR Recordings panel: the session's own chunks, folded like every other type -->
+        <div v-if="getRecordingFiles(session).length > 0" class="type-panel mb-2">
+          <div class="type-panel-header-wrapper" @click="toggleRecordingPanel(session.id)">
+            <RecordingFileRow
+              :filename="RECORDING_DISPLAY.name"
+              :fileType="RECORDING_DISPLAY.fileType"
+              :sizeInBytes="getRecordingTotalSize(session)"
+            >
+              <template #before>
+                <i
+                  class="bi me-1 type-panel-chevron"
+                  :class="
+                    isRecordingPanelExpanded(session.id) ? 'bi-chevron-down' : 'bi-chevron-right'
+                  "
+                ></i>
+                <div
+                  class="form-check file-form-check me-2"
+                  v-if="showMultiSelectActions[session.id]"
+                >
+                  <input
+                    class="form-check-input file-checkbox"
+                    type="checkbox"
+                    :checked="isAllGroupFilesSelected(session.id, getRecordingFiles(session))"
+                    @change="toggleGroupSelection(session.id, getRecordingFiles(session))"
+                    @click.stop
+                  />
+                </div>
+              </template>
+              <template #extra-badges>
+                <span class="recording-file-size ms-2">
+                  <i class="bi bi-files me-1"></i>{{ getRecordingFiles(session).length }} files
+                </span>
+                <span v-if="getOpenRecordingCount(session) > 0" class="recording-open-note ms-2">
+                  <i class="bi bi-record-circle me-1"></i>{{ getOpenRecordingCount(session) }} still
+                  being written
+                </span>
+              </template>
+            </RecordingFileRow>
+          </div>
+
+          <div v-if="isRecordingPanelExpanded(session.id)" class="type-panel-body">
+            <!-- Recording files (flat with rotation grouping) -->
+            <template v-for="entry in getVisibleRecordingGroups(session)" :key="entry.primary.id">
+              <!-- Primary row -->
+              <div
+                class="source-status-wrapper mb-2 rounded"
+                :class="getSourceStatusWrapperClass(entry.primary, session.id)"
+              >
+                <RecordingFileRow
+                  :filename="entry.primary.name"
+                  :fileType="entry.primary.fileType"
+                  :sizeInBytes="entry.primary.size"
+                  :timestamp="entry.primary.createdAt"
+                  :status="entry.primary.status"
+                >
+                  <template #before>
+                    <button
+                      v-if="entry.children.length > 0"
+                      class="rotation-toggle-btn me-1"
+                      @click.stop="toggleRotatedGroup(session.id, entry.primary.name)"
+                      :title="
+                        isRotatedGroupExpanded(session.id, entry.primary.name)
+                          ? 'Collapse rotated files'
+                          : 'Expand rotated files'
+                      "
+                    >
+                      <i
+                        class="bi"
+                        :class="
+                          isRotatedGroupExpanded(session.id, entry.primary.name)
+                            ? 'bi-chevron-down'
+                            : 'bi-chevron-right'
+                        "
+                      ></i>
+                    </button>
+                    <div
+                      class="form-check file-form-check me-2"
+                      v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(entry.primary)"
+                    >
+                      <input
+                        class="form-check-input file-checkbox"
+                        type="checkbox"
+                        :id="'source-' + entry.primary.id"
+                        :checked="
+                          selectedRepositoryFile[session.id] &&
+                          selectedRepositoryFile[session.id][entry.primary.id]
+                        "
+                        @change="() => toggleSourceSelection(session.id, entry.primary.id)"
+                        @click.stop
+                      />
+                    </div>
+                  </template>
+                  <template #extra-badges>
+                    <Badge
+                      v-if="entry.primary.status === RecordingStatus.UNKNOWN"
+                      :value="Utils.capitalize(entry.primary.status.toLowerCase())"
+                      variant="purple"
+                      size="xxs"
+                      class="ms-1"
+                    />
+                    <Badge
+                      v-if="entry.children.length > 0"
+                      :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
+                      variant="grey"
+                      size="xxs"
+                      class="ms-1"
+                      :uppercase="false"
+                    />
+                  </template>
+                  <template #actions>
+                    <button
+                      v-if="isDownloadAllowed(entry.primary)"
+                      class="btn btn-sm btn-outline-secondary download-file-btn"
+                      @click.stop="downloadFile(session.id, entry.primary.id)"
+                      title="Download file"
+                    >
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </template>
+                </RecordingFileRow>
+              </div>
+
+              <!-- Rotated children (when expanded) -->
+              <template
+                v-if="
+                  entry.children.length > 0 && isRotatedGroupExpanded(session.id, entry.primary.name)
+                "
+              >
+                <div
+                  v-for="child in entry.children"
+                  :key="child.id"
+                  class="rotated-child-row mb-2 rounded"
+                  :class="getSourceStatusWrapperClass(child, session.id)"
+                >
+                  <RecordingFileRow
+                    :filename="child.name"
+                    :fileType="child.fileType"
+                    :sizeInBytes="child.size"
+                    :timestamp="child.createdAt"
+                    :status="child.status"
+                  >
+                    <template #before>
+                      <div
+                        class="form-check file-form-check me-2"
+                        v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(child)"
+                      >
+                        <input
+                          class="form-check-input file-checkbox"
+                          type="checkbox"
+                          :id="'source-' + child.id"
+                          :checked="
+                            selectedRepositoryFile[session.id] &&
+                            selectedRepositoryFile[session.id][child.id]
+                          "
+                          @change="() => toggleSourceSelection(session.id, child.id)"
+                          @click.stop
+                        />
+                      </div>
+                    </template>
+                    <template #extra-badges>
+                      <Badge
+                        v-if="child.status === RecordingStatus.UNKNOWN"
+                        :value="Utils.capitalize(child.status.toLowerCase())"
+                        variant="purple"
+                        size="xxs"
+                        class="ms-1"
+                      />
+                    </template>
+                    <template #actions>
+                      <button
+                        v-if="isDownloadAllowed(child)"
+                        class="btn btn-sm btn-outline-secondary download-file-btn"
+                        @click.stop="downloadFile(session.id, child.id)"
+                        title="Download file"
+                      >
+                        <i class="bi bi-download"></i>
+                      </button>
+                    </template>
+                  </RecordingFileRow>
+                </div>
+              </template>
+            </template>
+
+            <!-- Show More for recordings -->
+            <div v-if="hasMoreRecordingGroups(session)" class="text-center mt-1 mb-2">
+              <button
+                class="btn btn-sm btn-outline-primary show-more-btn"
+                @click.stop="showMoreRecordingGroups(session.id)"
+              >
+                <i class="bi bi-chevron-down me-1"></i>Show
+                {{ getRemainingRecordingGroupCount(session) }} more files
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Artifact type panels (non-recording types with > 1 file) -->
         <div
           v-for="panel in getTypeGroupPanels(session)"
@@ -1100,8 +1334,8 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   <input
                     class="form-check-input file-checkbox"
                     type="checkbox"
-                    :checked="isAllGroupFilesSelected(session.id, panel)"
-                    @change="toggleGroupSelection(session.id, panel)"
+                    :checked="isAllGroupFilesSelected(session.id, panel.files)"
+                    @change="toggleGroupSelection(session.id, panel.files)"
                     @click.stop
                   />
                 </div>
@@ -1236,158 +1470,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           </div>
         </template>
 
-        <!-- Recording files (flat with rotation grouping) -->
-        <template v-for="entry in getVisibleRecordingGroups(session)" :key="entry.primary.id">
-          <!-- Primary row -->
-          <div
-            class="source-status-wrapper mb-2 rounded"
-            :class="getSourceStatusWrapperClass(entry.primary, session.id)"
-          >
-            <RecordingFileRow
-              :filename="entry.primary.name"
-              :fileType="entry.primary.fileType"
-              :sizeInBytes="entry.primary.size"
-              :timestamp="entry.primary.createdAt"
-              :status="entry.primary.status"
-            >
-              <template #before>
-                <button
-                  v-if="entry.children.length > 0"
-                  class="rotation-toggle-btn me-1"
-                  @click.stop="toggleRotatedGroup(session.id, entry.primary.name)"
-                  :title="
-                    isRotatedGroupExpanded(session.id, entry.primary.name)
-                      ? 'Collapse rotated files'
-                      : 'Expand rotated files'
-                  "
-                >
-                  <i
-                    class="bi"
-                    :class="
-                      isRotatedGroupExpanded(session.id, entry.primary.name)
-                        ? 'bi-chevron-down'
-                        : 'bi-chevron-right'
-                    "
-                  ></i>
-                </button>
-                <div
-                  class="form-check file-form-check me-2"
-                  v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(entry.primary)"
-                >
-                  <input
-                    class="form-check-input file-checkbox"
-                    type="checkbox"
-                    :id="'source-' + entry.primary.id"
-                    :checked="
-                      selectedRepositoryFile[session.id] &&
-                      selectedRepositoryFile[session.id][entry.primary.id]
-                    "
-                    @change="() => toggleSourceSelection(session.id, entry.primary.id)"
-                    @click.stop
-                  />
-                </div>
-              </template>
-              <template #extra-badges>
-                <Badge
-                  v-if="entry.primary.status === RecordingStatus.UNKNOWN"
-                  :value="Utils.capitalize(entry.primary.status.toLowerCase())"
-                  variant="purple"
-                  size="xxs"
-                  class="ms-1"
-                />
-                <Badge
-                  v-if="entry.children.length > 0"
-                  :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
-                  variant="grey"
-                  size="xxs"
-                  class="ms-1"
-                  :uppercase="false"
-                />
-              </template>
-              <template #actions>
-                <button
-                  v-if="isDownloadAllowed(entry.primary)"
-                  class="btn btn-sm btn-outline-secondary download-file-btn"
-                  @click.stop="downloadFile(session.id, entry.primary.id)"
-                  title="Download file"
-                >
-                  <i class="bi bi-download"></i>
-                </button>
-              </template>
-            </RecordingFileRow>
-          </div>
-
-          <!-- Rotated children (when expanded) -->
-          <template
-            v-if="
-              entry.children.length > 0 && isRotatedGroupExpanded(session.id, entry.primary.name)
-            "
-          >
-            <div
-              v-for="child in entry.children"
-              :key="child.id"
-              class="rotated-child-row mb-2 rounded"
-              :class="getSourceStatusWrapperClass(child, session.id)"
-            >
-              <RecordingFileRow
-                :filename="child.name"
-                :fileType="child.fileType"
-                :sizeInBytes="child.size"
-                :timestamp="child.createdAt"
-                :status="child.status"
-              >
-                <template #before>
-                  <div
-                    class="form-check file-form-check me-2"
-                    v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(child)"
-                  >
-                    <input
-                      class="form-check-input file-checkbox"
-                      type="checkbox"
-                      :id="'source-' + child.id"
-                      :checked="
-                        selectedRepositoryFile[session.id] &&
-                        selectedRepositoryFile[session.id][child.id]
-                      "
-                      @change="() => toggleSourceSelection(session.id, child.id)"
-                      @click.stop
-                    />
-                  </div>
-                </template>
-                <template #extra-badges>
-                  <Badge
-                    v-if="child.status === RecordingStatus.UNKNOWN"
-                    :value="Utils.capitalize(child.status.toLowerCase())"
-                    variant="purple"
-                    size="xxs"
-                    class="ms-1"
-                  />
-                </template>
-                <template #actions>
-                  <button
-                    v-if="isDownloadAllowed(child)"
-                    class="btn btn-sm btn-outline-secondary download-file-btn"
-                    @click.stop="downloadFile(session.id, child.id)"
-                    title="Download file"
-                  >
-                    <i class="bi bi-download"></i>
-                  </button>
-                </template>
-              </RecordingFileRow>
-            </div>
-          </template>
-        </template>
-
-        <!-- Show More for recordings -->
-        <div v-if="hasMoreRecordingGroups(session)" class="text-center mt-1 mb-2">
-          <button
-            class="btn btn-sm btn-outline-primary show-more-btn"
-            @click.stop="showMoreRecordingGroups(session.id)"
-          >
-            <i class="bi bi-chevron-down me-1"></i>Show
-            {{ getRemainingRecordingGroupCount(session) }} more files
-          </button>
-        </div>
       </div>
         </div>
       </template>
@@ -1881,6 +1963,15 @@ code {
 }
 
 /* Artifact type panel styles */
+.recording-open-note {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-amber-darkest);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
 .type-panel-header-wrapper {
   cursor: pointer;
   user-select: none;
