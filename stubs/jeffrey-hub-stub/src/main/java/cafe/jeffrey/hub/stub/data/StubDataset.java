@@ -150,8 +150,8 @@ public record StubDataset(List<Workspace> workspaces) {
 
     /**
      * File classification. {@code fileType} is the wire string the hub sends — it MUST be a
-     * {@code SupportedRecordingFile} enum name, because the client resolves it with
-     * {@code SupportedRecordingFile.valueOf(...)} (an unknown name yields a null fileType and
+     * {@code ManagedFile} enum name, because the client resolves it with
+     * {@code ManagedFile.valueOf(...)} (an unknown name yields a null fileType and
      * a downstream NPE). {@code recording} distinguishes JFR recordings from artifacts.
      */
     public enum FileKind {

@@ -27,7 +27,8 @@ import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.util.List;
 
@@ -154,9 +155,20 @@ public class RepositoryClient {
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 files,
-                proto.getRetained());
+                proto.getRetained())
+                // Here rather than at each call site. A file's status is a fact about its
+                // session, so it can only be settled once the whole session is decoded — and
+                // settling it inside the one method that decodes one means no caller can be
+                // handed a session whose file statuses nobody filled in.
+                .withResolvedFileStatuses();
     }
 
+    /**
+     * One file as the hub sent it. Its status is left FINISHED here and settled by
+     * {@link RecordingSessionResponse#withResolvedFileStatuses()} before the session leaves
+     * {@link #toSessionResponse}: the wire carries no status, and a file on its own cannot
+     * answer for one.
+     */
     private static RepositoryFileResponse toFileResponse(RepositoryFile proto) {
         return new RepositoryFileResponse(
                 proto.getId(),
@@ -164,16 +176,16 @@ public class RepositoryClient {
                 proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
                 parseFileType(proto.getFileType()),
-                ClientProtoMappers.recordingStatus(proto.getStatus()),
+                RecordingStatus.FINISHED,
                 proto.getIsRecording());
     }
 
-    private static SupportedRecordingFile parseFileType(String fileType) {
+    private static ManagedFile parseFileType(String fileType) {
         if (fileType == null || fileType.isEmpty()) {
             return null;
         }
         try {
-            return SupportedRecordingFile.valueOf(fileType);
+            return ManagedFile.valueOf(fileType);
         } catch (IllegalArgumentException e) {
             return null;
         }

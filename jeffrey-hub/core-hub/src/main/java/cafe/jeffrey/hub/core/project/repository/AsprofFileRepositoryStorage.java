@@ -23,18 +23,18 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.file.FileInfoProcessor;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
+import cafe.jeffrey.shared.common.model.repository.Compression;
+import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,26 +43,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR;
-import static cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile.JFR_LZ4;
 
 public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
-
-    // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
-    private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES = List.of(JFR_LZ4, JFR);
-
-    private static final List<String> RECORDING_EXTENSIONS = RECORDING_FILE_TYPES.stream()
-            .map(SupportedRecordingFile::fileExtension)
-            .toList();
-
-    private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = JFR_LZ4;
 
     // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
     // level of slack absorbs layouts with a deeper relative session path.
@@ -167,21 +158,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         RepositoryInfo repositoryInfo = repositoryInfo();
 
-        Path workspacePath = resolveWorkspacePath(repositoryInfo);
-        Path sessionPath = workspacePath
-                .resolve(repositoryInfo.relativeProjectPath())
-                .resolve(sessionInfo.relativeSessionPath());
+        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
         RecordingStatus recordingStatus = determineSessionStatus(sessionInfo, isLatestSession);
 
         List<RepositoryFile> repositoryFiles;
         if (withFiles) {
-            repositoryFiles = _listRepositoryFiles(
-                    sessionInfo,
-                    recordingStatus,
-                    workspacePath,
-                    sessionPath);
+            repositoryFiles = _listRepositoryFiles(recordingStatus, sessionPath);
         } else {
             repositoryFiles = List.of();
         }
@@ -211,23 +195,34 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * answered from the client's attribute cache still reports a file the share has already
      * removed, where asking the share for a handle does not.
      */
-    RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path workspacePath, Path sessionPath) {
+    RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path sessionPath) {
         String sourceName = sessionPath.relativize(file).toString();
-        SupportedRecordingFile fileType = SupportedRecordingFile.of(sourceName);
+        ManagedFile fileType = ManagedFile.of(sourceName);
         try {
             return new RepositoryFile(
-                    FileSystemUtils.removeExtension(workspacePath.relativize(file), RECORDING_EXTENSIONS),
+                    fileType.idOf(file),
                     sourceName,
-                    fileInfoProcessor.createdAt(file),
+                    fileType.timestampResolver().resolve(file),
                     sizeReader(sessionStatus, fileType).size(file),
                     fileType,
-                    RecordingStatus.FINISHED,
                     file);
         } catch (RuntimeException e) {
             LOG.debug("Leaving out a repository file that can no longer be described: file={} reason={}",
                     file, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * A file's identity within its session, which its type decides — the extension comes off a
+     * recording so the id survives compression, and stays on everything else.
+     *
+     * <p>Here because it is read in both directions: {@link #describe} hands an id out and
+     * {@link #deleteRepositoryFiles} matches files against it, and an id that could not be
+     * matched back to the file it came from is an id that deletes nothing.
+     */
+    private static String fileId(Path file) {
+        return ManagedFile.of(file).idOf(file);
     }
 
     /**
@@ -240,8 +235,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * old the listing is. That matters because a listing covers every session of a project, and
      * an open apiece would be hundreds of round trips on one page load.
      */
-    static FileSizeReader sizeReader(RecordingStatus sessionStatus, SupportedRecordingFile fileType) {
-        if (sessionStatus == RecordingStatus.FINISHED || fileType == SupportedRecordingFile.JFR_LZ4) {
+    static FileSizeReader sizeReader(RecordingStatus sessionStatus, ManagedFile fileType) {
+        if (sessionStatus == RecordingStatus.FINISHED || fileType.isArchive()) {
             return FileSizeReader.FILE_ATTRIBUTES;
         }
         return FileSizeReader.LIVE_FILE;
@@ -280,6 +275,21 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         }
     }
 
+    /**
+     * Deletes the named files of a session, looked up in the session's own listing.
+     *
+     * <p>Through the listing rather than by building a path out of the id, which is what this
+     * did and why it deleted nothing. A file's id is its name with the recording extension
+     * stripped — that is the point of it, so an id survives the hub compressing the file — so
+     * {@code sessionPath.resolve(id)} named a file that does not exist, and
+     * {@code deleteIfExists} reported success for it. Both retention jobs and the UI's delete ran
+     * as designed and freed nothing.
+     *
+     * <p>It also closes what that path built out of the id let through. The ids arrive over gRPC,
+     * and {@code resolve} on one holding {@code ../} walks out of the session directory: any file
+     * the hub could delete, it would delete. A listing has no entry for such an id, so there is
+     * now nothing to resolve.
+     */
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
         RepositoryInfo repositoryInfo = repositoryInfo();
@@ -299,14 +309,38 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return;
         }
 
-        for (String sessionFileId : sessionFileIds) {
-            // Repository file ID is relative to the workspace path
-            // e.g. "projectId/sessionId/recording.jfr"
-            Path repositoryFile = sessionPath.resolve(sessionFileId);
-            FileSystemUtils.removeFile(repositoryFile);
+        Set<String> requestedIds = Set.copyOf(sessionFileIds);
+        List<Path> matched;
+        try (Stream<Path> files = Files.list(sessionPath)) {
+            matched = files
+                    .filter(Files::isRegularFile)
+                    .filter(file -> requestedIds.contains(fileId(file)))
+                    .toList();
+        } catch (IOException e) {
+            LOG.warn("Cannot list a session directory to delete files from it: session_path={}", sessionPath, e);
+            return;
         }
 
-        LOG.info("Deleted files in repository session: session={} file_ids={}", sessionPath, sessionFileIds);
+        // Over the ids rather than over the counts: one id can match two files while a compression
+        // is in flight — the recording and the archive beside it strip to the same id, and both are
+        // that chunk — so a count says nothing about whether every id was found.
+        Set<String> found = matched.stream()
+                .map(AsprofFileRepositoryStorage::fileId)
+                .collect(Collectors.toSet());
+        List<String> missing = requestedIds.stream().filter(id -> !found.contains(id)).toList();
+
+        // Named but not held: said so rather than passed over, because a call that deleted nothing
+        // and a call that deleted everything it asked for read exactly the same otherwise.
+        if (!missing.isEmpty()) {
+            LOG.warn("Session holds no file with these ids, nothing deleted for them: session_id={} file_ids={}",
+                    sessionId, missing);
+        }
+
+        for (Path file : matched) {
+            FileSystemUtils.removeFile(file);
+        }
+
+        LOG.info("Deleted files in repository session: session_path={} file_ids={}", sessionPath, found);
     }
 
     @Override
@@ -368,47 +402,70 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         LOG.info("Deleted project directory: {}", projectPath);
     }
 
-    @Override
-    public RepositoryType type() {
-        return RepositoryType.ASYNC_PROFILER;
-    }
 
-    // ========== Recording Files ==========
+    // ========== Files ==========
 
+    /**
+     * Where one file of a session is, as it lies. A lookup and nothing else: it does not
+     * compress, and the path it names is the file the listing named.
+     *
+     * <p>Refuses rather than returning nothing. This used to be two methods returning lists, both
+     * called with a single id, and between them they filtered on five different grounds — so a
+     * caller that named an empty recording, or one that had vanished, or the chunk the profiler
+     * still holds, was told the same thing in each case: not found. Each of those now says what
+     * it is.
+     */
     @Override
-    public List<Path> recordings(String sessionId, List<String> recordingIds) {
+    public Path file(String sessionId, String fileId) {
         RecordingSession session = resolveSession(sessionId);
 
-        // No ids named means every finished recording file, which is what the gRPC contract
-        // promises. It used to mean the opposite for an empty list: the test was for null, and a
-        // caller over the wire cannot send null — protobuf hands back an empty list — so asking
-        // for "all of it" that way selected nothing and failed as an empty session.
-        boolean allOfThem = recordingIds == null || recordingIds.isEmpty();
+        RepositoryFile file = session.files().stream()
+                .filter(candidate -> candidate.id().equals(fileId))
+                // A recording and the archive beside it share an id while the compression job
+                // is between publishing one and removing the other. Both are whole; the archive is
+                // the one that will still be there in a moment.
+                .reduce(AsprofFileRepositoryStorage::theOneThatStays)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Session " + sessionId + " holds no file with id " + fileId
+                                + ". Take the id from the session's file listing."));
 
-        return session.files().stream()
-                .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .filter(file -> allOfThem || recordingIds.contains(file.id()))
-                .sorted(Comparator.comparing(RepositoryFile::createdAt))
-                .map(file -> ensureCompressed(sessionId, file))
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
+        if (session.isOpen(file)) {
+            throw new IllegalArgumentException("File " + file.name() + " is the chunk the profiler is "
+                    + "still writing, and reading it would give a truncated answer. It can be taken "
+                    + "once the profiler has rolled the next one.");
+        }
+        if (file.fileType().fileCategory() == FileCategory.TEMPORARY) {
+            throw new IllegalArgumentException("File " + file.name() + " is a transient "
+                    + file.fileType().description() + ", which the profiler deletes as it goes.");
+        }
+        if (!Files.isRegularFile(file.filePath())) {
+            // Its own kind, because a caller holding the id can act on it: the compression job
+            // publishes the archive and removes the recording between this listing and this
+            // check, and the same id resolves to the archive on the next look.
+            throw new FileVanishedException("File " + file.name() + " was listed for session "
+                    + sessionId + " but is no longer on disk. It may have been replaced by its "
+                    + "compressed form; ask for the same file id again.");
+        }
+        if (file.isRecordingFile() && !file.hasContent()) {
+            throw new IllegalArgumentException("Recording " + file.name() + " is empty — the profiler "
+                    + "stopped before it wrote an event into it.");
+        }
+
+        return file.filePath();
     }
 
-    // ========== Artifact Files ==========
-
-    @Override
-    public List<Path> artifacts(String sessionId, List<String> artifactIds) {
-        RecordingSession session = resolveSession(sessionId);
-
-        return session.files().stream()
-                .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(RepositoryFile::isArtifactFile)
-                .filter(file -> artifactIds == null || artifactIds.contains(file.id()))
-                .map(RepositoryFile::filePath)
-                .toList();
+    /**
+     * Which of two files sharing an id to hand over — the archive rather than the recording.
+     *
+     * <p>A stripped extension is what makes an id survive compression, and it is also what lets
+     * one id name two files for as long as the job takes to remove the first. Both are whole in
+     * that window: the archive is published by a rename, so its name never names a file being
+     * written into, and the recording is what it was made from. The archive is the one to serve
+     * because it is the one that stays — the recording beside it is about to be deleted, and a
+     * reader that resolved it may find it gone before it opens it.
+     */
+    private static RepositoryFile theOneThatStays(RepositoryFile first, RepositoryFile second) {
+        return first.fileType().isArchive() ? first : second;
     }
 
     // ========== Session Compression ==========
@@ -417,10 +474,11 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     public int compressSession(String sessionId) {
         RecordingSession session = resolveSession(sessionId);
 
-        return (int) session.files().stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .map(file -> ensureCompressed(sessionId, file))
+        // Everything the profiler has closed, which for a live session is every chunk but the
+        // one it is still writing. There is nothing further to decide: a closed chunk's bytes
+        // are final whether or not its session has finished.
+        return (int) session.finishedRecordings().stream()
+                .map(file -> compress(sessionId, file))
                 .filter(Objects::nonNull)
                 .distinct()
                 .count();
@@ -437,22 +495,41 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * Ensures the recording file is compressed (JFR_LZ4 format).
-     * <p>
-     * If already compressed, returns the original path. Otherwise, compresses the file
-     * and stores the compressed version persistently in the same directory.
-     * Uses double-check locking pattern for thread safety.
-     * </p>
+     * Compresses one closed recording in place, replacing it with its LZ4 archive.
+     *
+     * <p>Reached from {@link #compressSession} and nowhere else. Serving a recording used to
+     * come through here too, compressing on the way out so the transfer carried less — and that
+     * was wrong in a way the saving did not pay for: a download rewrote the repository while
+     * reading it, and the reader was never told. The download carries the bytes and their length
+     * and no name, so a client that had listed {@code …jfr} a moment earlier wrote LZ4 bytes
+     * under that name, and a {@code .jfr} holding an LZ4 frame is not something any reader of it
+     * can recover — compression is detected by the extension, nothing sniffs the frame.
+     *
+     * <p>The source is deleted only once the archive exists, and the archive exists only once it
+     * is whole: {@link Compression#compress} writes elsewhere and renames onto the target, so
+     * the target's name never names a file being written into. That is what makes the two
+     * shortcuts below safe. Written straight to the target, as this did, a hub killed
+     * mid-compression left a partial archive beside a whole recording, and the next run read
+     * "the archive is there" and deleted the recording; two overlapping runs did the same to
+     * each other, since the lock is held by one storage instance and an instance is built per
+     * call.
      */
-    private Path ensureCompressed(String sessionId, RepositoryFile file) {
-        if (file.fileType() == TARGET_COMPRESSED_TYPE) {
+    private Path compress(String sessionId, RepositoryFile file) {
+        Compression compression = file.fileType().compression();
+        if (!compression.isSupported()) {
+            // Either the file is already an archive, or it is a type that rewriting would
+            // destroy: a compressed pprof matches nothing, so it would come back UNKNOWN, stop
+            // being a recording, change id, and lose the original.
+            LOG.debug("Leaving a recording its type cannot compress alone: sessionId={} file={} file_type={}",
+                    sessionId, file.name(), file.fileType());
             return file.filePath();
         }
 
         Path sourcePath = file.filePath();
-        Path compressedPath = sourcePath.resolveSibling(file.name() + ".lz4");
+        Path compressedPath = compression.target(sourcePath);
 
-        // Fast path: check if already compressed by another thread
+        // Already done, here or by a run this one overlaps: the archive under that name is whole
+        // by construction, so the recording it was made from has served its purpose.
         if (Files.exists(compressedPath)) {
             FileSystemUtils.removeFile(sourcePath);
             return compressedPath;
@@ -480,24 +557,19 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 return null;
             }
 
-            // Compress, verify, and delete original
-            Lz4Compressor.compress(sourcePath, compressedPath);
-            long compressedSize = Files.size(compressedPath);
-            if (Files.exists(compressedPath) && compressedSize > 0) {
-                FileSystemUtils.removeFile(sourcePath);
-            }
+            // No verification of the result here any more: compress() returns only once the
+            // archive is whole and under its own name, and throws otherwise, so there is nothing
+            // left for this to check that the check could still fail.
+            compression.compress(sourcePath, compressedPath);
+            FileSystemUtils.removeFile(sourcePath);
             return compressedPath;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to verify compressed file: " + compressedPath, e);
         } finally {
             compressionLock.unlock();
         }
     }
 
     private List<RepositoryFile> _listRepositoryFiles(
-            ProjectInstanceSessionInfo sessionInfo,
             RecordingStatus recordingStatus,
-            Path workspacePath,
             Path sessionPath) {
 
         if (!Files.isDirectory(sessionPath)) {
@@ -505,23 +577,15 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return List.of();
         }
 
-        List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
+        // Sorted by filename, for presentation. Which chunk the profiler still holds open is not
+        // read off this order — RecordingSession derives it from the session and the timestamps —
+        // and it was reading it off this order that left the two disagreeing.
+        return FileSystemUtils.sortedFilesInDirectory(
                         sessionPath, fileInfoProcessor.comparator()).stream()
                 .filter(Files::isRegularFile)
                 .filter(FileSystemUtils::isNotHidden)
-                .map(file -> describe(file, recordingStatus, workspacePath, sessionPath))
+                .map(file -> describe(file, recordingStatus, sessionPath))
                 .filter(Objects::nonNull)
                 .toList();
-
-        Optional<RepositoryFile> latestRecordingFile = repositoryFiles.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .findFirst();
-
-        // Updates the status of the latest recording according to the status of the session.
-        if (recordingStatus != RecordingStatus.FINISHED && latestRecordingFile.isPresent()) {
-            latestRecordingFile.get().withNonFinishedStatus(recordingStatus);
-        }
-
-        return repositoryFiles;
     }
 }

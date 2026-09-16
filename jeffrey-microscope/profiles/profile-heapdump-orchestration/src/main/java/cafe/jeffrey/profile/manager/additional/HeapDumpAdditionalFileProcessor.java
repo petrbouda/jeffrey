@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager.additional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,7 +36,7 @@ public class HeapDumpAdditionalFileProcessor implements AdditionalFileProcessor 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpAdditionalFileProcessor.class);
 
     private final Path heapDumpAnalysisPath;
-    private final SupportedRecordingFile supportedType;
+    private final ManagedFile supportedType;
 
     /**
      * Creates a processor for the specified heap dump type.
@@ -44,12 +44,12 @@ public class HeapDumpAdditionalFileProcessor implements AdditionalFileProcessor 
      * @param heapDumpAnalysisPath destination folder for heap dumps
      * @param supportedType        either HEAP_DUMP or HEAP_DUMP_GZ
      */
-    public HeapDumpAdditionalFileProcessor(Path heapDumpAnalysisPath, SupportedRecordingFile supportedType) {
+    public HeapDumpAdditionalFileProcessor(Path heapDumpAnalysisPath, ManagedFile supportedType) {
         this.heapDumpAnalysisPath = heapDumpAnalysisPath;
         this.supportedType = supportedType;
 
-        if (supportedType != SupportedRecordingFile.HEAP_DUMP &&
-                supportedType != SupportedRecordingFile.HEAP_DUMP_GZ) {
+        if (supportedType != ManagedFile.HEAP_DUMP &&
+                supportedType != ManagedFile.HEAP_DUMP_GZ) {
             throw new IllegalArgumentException("Unsupported type: " + supportedType +
                     ". Only HEAP_DUMP and HEAP_DUMP_GZ are supported.");
         }
@@ -80,7 +80,7 @@ public class HeapDumpAdditionalFileProcessor implements AdditionalFileProcessor 
     }
 
     @Override
-    public SupportedRecordingFile supportedRecordingFile() {
+    public ManagedFile managedFile() {
         return supportedType;
     }
 }

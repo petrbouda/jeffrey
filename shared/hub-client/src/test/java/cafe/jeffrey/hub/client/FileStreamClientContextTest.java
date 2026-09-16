@@ -19,9 +19,8 @@
 package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.hub.api.v1.DataChunk;
-import cafe.jeffrey.hub.api.v1.DownloadArtifactFileRequest;
-import cafe.jeffrey.hub.api.v1.DownloadRecordingFileRequest;
-import cafe.jeffrey.hub.api.v1.RecordingDownloadServiceGrpc;
+import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
+import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
 import io.grpc.Context;
 import io.grpc.Deadline;
@@ -34,8 +33,7 @@ import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -53,11 +51,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * What has to hold for both kinds of file: the caller's deadline reaches the hub, and when it
  * expires the call ends rather than hanging on a server that has stopped sending.
  */
-class RecordingStreamClientContextTest {
+class FileStreamClientContextTest {
 
     private Server server;
     private ManagedChannel channel;
-    private RecordingStreamClient client;
+    private FileStreamClient client;
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
     private final CountDownLatch arrived = new CountDownLatch(1);
     private final CountDownLatch cancelled = new CountDownLatch(1);
@@ -66,7 +64,7 @@ class RecordingStreamClientContextTest {
     @BeforeEach
     void start() throws Exception {
         String name = InProcessServerBuilder.generateName();
-        var service = new RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase() {
+        var service = new FileDownloadServiceGrpc.FileDownloadServiceImplBase() {
             private void hold() {
                 Context context = Context.current();
                 serverDeadline.set(context.getDeadline());
@@ -75,20 +73,13 @@ class RecordingStreamClientContextTest {
             }
 
             @Override
-            public void downloadRecordingFile(
-                    DownloadRecordingFileRequest request, StreamObserver<DataChunk> observer) {
-                hold();
-            }
-
-            @Override
-            public void downloadArtifactFile(
-                    DownloadArtifactFileRequest request, StreamObserver<DataChunk> observer) {
+            public void downloadFile(DownloadFileRequest request, StreamObserver<DataChunk> observer) {
                 hold();
             }
         };
         server = InProcessServerBuilder.forName(name).directExecutor().addService(service).build().start();
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
-        client = new RecordingStreamClient(new GrpcHubConnection(channel) {});
+        client = new FileStreamClient(new GrpcHubConnection(channel) {});
     }
 
     @AfterEach
@@ -98,23 +89,18 @@ class RecordingStreamClientContextTest {
         timer.shutdownNow();
     }
 
-    private void download(boolean artifact) {
-        if (artifact) {
-            client.streamArtifactFile("session", "file", (stream, length) -> stream.readAllBytes());
-        } else {
-            client.streamRecordingFile("session", "file", (stream, length) -> stream.readAllBytes());
-        }
+    private void download() {
+        client.streamFile("session", "file", (stream, transferred) -> stream.readAllBytes());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
+    @Test
     @DisplayName("carries the caller's deadline to the hub and ends when it expires")
-    void propagatesDeadlineToTheServer(boolean artifact) throws Exception {
+    void propagatesDeadlineToTheServer() throws Exception {
         try (Context.CancellableContext context = Context.current().withDeadlineAfter(2, TimeUnit.SECONDS, timer)) {
             // The client reports a streaming failure as a RuntimeException carrying the gRPC
             // status as its cause, so the status is read off the chain rather than the type.
             RuntimeException failure = context.call(() -> {
-                RuntimeException thrown = assertThrows(RuntimeException.class, () -> download(artifact));
+                RuntimeException thrown = assertThrows(RuntimeException.class, () -> download());
                 assertTrue(arrived.await(5, TimeUnit.SECONDS));
                 return thrown;
             });
@@ -125,15 +111,14 @@ class RecordingStreamClientContextTest {
         }
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
+    @Test
     @DisplayName("ends the call when the caller's context is cancelled")
-    void cancelsTheRpc(boolean artifact) throws Exception {
+    void cancelsTheRpc() throws Exception {
         try (Context.CancellableContext context = Context.current().withCancellation()) {
             timer.schedule(() -> context.cancel(null), 200, TimeUnit.MILLISECONDS);
 
             RuntimeException failure = context.call(() ->
-                    assertThrows(RuntimeException.class, () -> download(artifact)));
+                    assertThrows(RuntimeException.class, () -> download()));
 
             assertEquals(Status.Code.CANCELLED, Status.fromThrowable(failure).getCode());
             assertTrue(cancelled.await(5, TimeUnit.SECONDS));

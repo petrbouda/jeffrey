@@ -20,7 +20,6 @@ package cafe.jeffrey.shared.common.model.repository;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -68,11 +67,11 @@ public record ChunkWindow(Instant start, Instant end) {
      * <p>Always {@linkplain Selection#contiguous() contiguous}: chunk spans tile the session, so
      * every chunk between the first and last one touching the window touches it too.
      *
-     * @param files      the session's files; anything that is not a finished chunk is ignored
-     * @param finishedAt when the session stopped recording, or {@code null} while it still does
+     * @param session the session, loaded with its files; anything that is not a closed chunk of
+     *                it is ignored
      */
-    public Selection select(List<RepositoryFile> files, Instant finishedAt) {
-        return Selection.of(files, finishedAt, (chunk, chunkEnd) -> covers(chunk.createdAt(), chunkEnd));
+    public Selection select(RecordingSession session) {
+        return Selection.of(session, (chunk, chunkEnd) -> covers(chunk.createdAt(), chunkEnd));
     }
 
     /**
@@ -83,8 +82,8 @@ public record ChunkWindow(Instant start, Instant end) {
      * names is free to skip one. Callers that go on to <em>merge</em> the result must refuse a
      * selection that is not {@linkplain Selection#contiguous() contiguous}.
      */
-    public static Selection ofFiles(List<RepositoryFile> files, Set<String> fileIds, Instant finishedAt) {
-        return Selection.of(files, finishedAt, (chunk, chunkEnd) -> fileIds.contains(chunk.id()));
+    public static Selection ofFiles(RecordingSession session, Set<String> fileIds) {
+        return Selection.of(session, (chunk, chunkEnd) -> fileIds.contains(chunk.id()));
     }
 
     /**
@@ -127,8 +126,9 @@ public record ChunkWindow(Instant start, Instant end) {
          * predicate, and keeps the ones it accepts.
          */
         private static Selection of(
-                List<RepositoryFile> files, Instant finishedAt, BiPredicate<RepositoryFile, Instant> keep) {
-            List<RepositoryFile> chunks = finishedChunks(files);
+                RecordingSession session, BiPredicate<RepositoryFile, Instant> keep) {
+            List<RepositoryFile> chunks = session.finishedRecordings();
+            Instant finishedAt = session.finishedAt();
 
             List<Chunk> selected = new ArrayList<>();
             for (int i = 0; i < chunks.size(); i++) {
@@ -186,12 +186,12 @@ public record ChunkWindow(Instant start, Instant end) {
          * The chunks of the session that lie between the first and last selected one but were not
          * selected — what {@link #contiguous()} refuses, named so a reader can act on it.
          */
-        public List<RepositoryFile> gaps(List<RepositoryFile> files) {
+        public List<RepositoryFile> gaps(RecordingSession session) {
             if (chunks.isEmpty()) {
                 return List.of();
             }
             Set<String> selected = chunks.stream().map(chunk -> chunk.file().id()).collect(Collectors.toSet());
-            return finishedChunks(files).stream()
+            return session.finishedRecordings().stream()
                     .filter(chunk -> !selected.contains(chunk.id()))
                     .filter(chunk -> !chunk.createdAt().isBefore(coverageStart()))
                     .filter(chunk -> coverageEnd() == null || chunk.createdAt().isBefore(coverageEnd()))
@@ -203,34 +203,20 @@ public record ChunkWindow(Instant start, Instant end) {
          * sentence fragment, built here rather than at each of the layers that refuse, so they
          * cannot drift into describing the same selection differently.
          */
-        public String describeGap(List<RepositoryFile> files) {
-            return gaps(files).stream().map(RepositoryFile::name).collect(Collectors.joining(", "));
+        public String describeGap(RecordingSession session) {
+            return gaps(session).stream().map(RepositoryFile::name).collect(Collectors.joining(", "));
         }
 
         /**
          * Whether these are every finished chunk of the session: a recording holding them is the
          * session itself, anything less is a part of it.
          */
-        public boolean isWholeSession(List<RepositoryFile> files) {
-            return chunks.size() == finishedChunks(files).size();
+        public boolean isWholeSession(RecordingSession session) {
+            return chunks.size() == session.finishedRecordings().size();
         }
 
         public List<String> fileIds() {
             return chunks.stream().map(chunk -> chunk.file().id()).toList();
         }
-    }
-
-    /**
-     * The session's finished recording chunks, oldest first. One definition, because a selection
-     * that counted chunks differently from the way it picked them would call a whole session a
-     * part of itself.
-     */
-    private static List<RepositoryFile> finishedChunks(List<RepositoryFile> files) {
-        return files.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(RepositoryFile::isFinished)
-                .filter(file -> file.createdAt() != null)
-                .sorted(Comparator.comparing(RepositoryFile::createdAt))
-                .toList();
     }
 }

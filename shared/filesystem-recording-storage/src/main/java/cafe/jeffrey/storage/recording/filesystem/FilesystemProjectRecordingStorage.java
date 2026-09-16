@@ -21,7 +21,7 @@ package cafe.jeffrey.storage.recording.filesystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.io.IOException;
@@ -35,9 +35,9 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemProjectRecordingStorage.class);
 
     private final Path projectFolder;
-    private final List<SupportedRecordingFile> recordingTypes;
+    private final List<ManagedFile> recordingTypes;
 
-    public FilesystemProjectRecordingStorage(Path projectFolder, List<SupportedRecordingFile> recordingTypes) {
+    public FilesystemProjectRecordingStorage(Path projectFolder, List<ManagedFile> recordingTypes) {
         this.projectFolder = projectFolder;
         this.recordingTypes = recordingTypes;
     }
@@ -81,7 +81,7 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     private Optional<Path> findRecordingFile(Path recordingFolder) {
-        for (SupportedRecordingFile recordingType : recordingTypes) {
+        for (ManagedFile recordingType : recordingTypes) {
             Optional<Path> recordingOpt = FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingType);
             if (recordingOpt.isPresent()) {
                 return recordingOpt;

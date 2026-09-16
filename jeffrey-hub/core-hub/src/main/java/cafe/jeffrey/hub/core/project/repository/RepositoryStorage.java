@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 
 import java.nio.file.Path;
@@ -117,38 +116,31 @@ public interface RepositoryStorage {
      */
     List<Path> listSessionDirectoriesOnDisk();
 
-    /**
-     * Type of the repository.
-     *
-     * @return type of the repository.
-     */
-    RepositoryType type();
 
-    // ========== Recording Files ==========
+    // ========== Files ==========
 
     /**
-     * Get specific recordings from a session as compressed files.
-     * <p>
-     * Compresses JFR → JFR_LZ4 if needed, stores persistently to avoid re-compression.
-     * Only returns recordings with FINISHED status.
-     * </p>
+     * Where one file of a session is on disk, exactly as it lies.
      *
-     * @param sessionId    the session ID
-     * @param recordingIds list of recording IDs to retrieve
-     * @return list of paths to compressed recording files
-     */
-    List<Path> recordings(String sessionId, List<String> recordingIds);
-
-    // ========== Artifact Files ==========
-
-    /**
-     * Get specific artifacts from a session.
+     * <p>One lookup for every kind of file. There were two — one for recordings, one for
+     * artifacts — and by the end they differed only in the word in their refusal. What a file's
+     * category decides is what a reader does with it, and the reader knows the category already;
+     * it does not need a separate door to be told.
      *
-     * @param sessionId   the session ID
-     * @param artifactIds list of artifact IDs to retrieve
-     * @return list of paths to artifact files
+     * <p>Refuses rather than returns nothing, so "not found" means not found. A file the session
+     * does not hold, a transient one, one no longer on disk, the chunk the profiler is still
+     * writing, and an empty recording are each named with the reason, because a caller that asked
+     * for one file and got silence cannot tell which of those happened. An empty <em>artifact</em>
+     * is served: emptiness is a statement about parsing, and a log with nothing in it is an
+     * answer.
+     *
+     * @param sessionId the session ID
+     * @param fileId    the file's id, as the session's listing reports it
+     * @return the path the file has now, which is the name the caller must use for it
+     * @throws IllegalArgumentException when the session has no such file, or it is one the hub
+     *                                  will not hand over
      */
-    List<Path> artifacts(String sessionId, List<String> artifactIds);
+    Path file(String sessionId, String fileId);
 
     // ========== Session Compression ==========
 

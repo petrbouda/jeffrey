@@ -45,7 +45,7 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -140,7 +140,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
     private static Recording recording() {
         RecordingFile file = new RecordingFile(
-                "file-1", RECORDING_ID, FILENAME, SupportedRecordingFile.JFR, NOW, 1024L);
+                "file-1", RECORDING_ID, FILENAME, ManagedFile.JFR, NOW, 1024L);
 
         return new Recording(
                 RECORDING_ID, FILENAME, null, null,
@@ -225,9 +225,9 @@ class ProfileRecordingsManagerAnalyzeTest {
                 NOW.minusSeconds(60), NOW,
                 false, null, null,
                 List.of(
-                        new RecordingFile("file-1", RECORDING_ID, FILENAME, SupportedRecordingFile.JFR, NOW, 1024L),
-                        new RecordingFile("file-2", RECORDING_ID, "profile-2.jfr", SupportedRecordingFile.JFR, NOW, 1024L),
-                        new RecordingFile("file-3", RECORDING_ID, "heap.hprof", SupportedRecordingFile.HEAP_DUMP, NOW, 1024L)));
+                        new RecordingFile("file-1", RECORDING_ID, FILENAME, ManagedFile.JFR, NOW, 1024L),
+                        new RecordingFile("file-2", RECORDING_ID, "profile-2.jfr", ManagedFile.JFR, NOW, 1024L),
+                        new RecordingFile("file-3", RECORDING_ID, "heap.hprof", ManagedFile.HEAP_DUMP, NOW, 1024L)));
     }
 
     private static Recording heapDumpRecording() {
@@ -237,7 +237,7 @@ class ProfileRecordingsManagerAnalyzeTest {
                 NOW, NOW, NOW,
                 false, null, null,
                 List.of(new RecordingFile(
-                        "file-1", RECORDING_ID, "heap.hprof", SupportedRecordingFile.HEAP_DUMP, NOW, 1024L)));
+                        "file-1", RECORDING_ID, "heap.hprof", ManagedFile.HEAP_DUMP, NOW, 1024L)));
     }
 
     @Nested

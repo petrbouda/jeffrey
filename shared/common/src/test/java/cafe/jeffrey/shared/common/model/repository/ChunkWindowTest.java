@@ -41,17 +41,31 @@ class ChunkWindowTest {
 
     private static RepositoryFile chunk(String id, long startMinute) {
         return new RepositoryFile(id, "profile-" + id + ".jfr", minutes(startMinute), 10L,
-                SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
+                ManagedFile.JFR, null);
     }
 
     private static RepositoryFile log(long startMinute) {
         return new RepositoryFile("log", "app.log", minutes(startMinute), 10L,
-                SupportedRecordingFile.APP_LOG, RecordingStatus.FINISHED, null);
+                ManagedFile.APP_LOG, null);
+    }
+
+    /**
+     * A session holding these files, finished at the given instant or still recording when it is
+     * {@code null} — in which case its newest chunk is the one the profiler still holds open, and
+     * no selection may take it.
+     */
+    private static RecordingSession session(List<RepositoryFile> files, Instant finishedAt) {
+        return new RecordingSession(
+                "session", "session", "instance", T0, finishedAt,
+                finishedAt == null ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED,
+                null, files, false);
     }
 
     /** Four chunks of ten minutes, the session finished at +40. */
     private static final List<RepositoryFile> CHUNKS = List.of(
             chunk("c3", 30), chunk("c1", 10), chunk("c0", 0), chunk("c2", 20), log(0));
+
+    private static final RecordingSession SESSION = session(CHUNKS, minutes(40));
 
     @Nested
     class Bounds {
@@ -80,7 +94,7 @@ class ChunkWindowTest {
 
         @Test
         void takesTheChunksWhoseSpanTouchesTheWindowOldestFirst() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(15), minutes(25)).select(CHUNKS, minutes(40));
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(15), minutes(25)).select(SESSION);
 
             assertEquals(List.of("c1", "c2"), selection.fileIds());
             assertEquals(minutes(10), selection.coverageStart());
@@ -89,44 +103,49 @@ class ChunkWindowTest {
 
         @Test
         void aChunkStartingExactlyAtTheEndIsNotTaken() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(5), minutes(20)).select(CHUNKS, minutes(40));
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(5), minutes(20)).select(SESSION);
 
             assertEquals(List.of("c0", "c1"), selection.fileIds());
         }
 
         @Test
         void aChunkEndingExactlyAtTheStartIsNotTaken() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(20), minutes(35)).select(CHUNKS, minutes(40));
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(20), minutes(35)).select(SESSION);
 
             assertEquals(List.of("c2", "c3"), selection.fileIds());
         }
 
         @Test
         void anOpenStartReachesBackToTheFirstChunk() {
-            ChunkWindow.Selection selection = new ChunkWindow(null, minutes(12)).select(CHUNKS, minutes(40));
+            ChunkWindow.Selection selection = new ChunkWindow(null, minutes(12)).select(SESSION);
 
             assertEquals(List.of("c0", "c1"), selection.fileIds());
         }
 
         @Test
         void anOpenEndReachesForwardToTheLastChunk() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(28), null).select(CHUNKS, minutes(40));
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(28), null).select(SESSION);
 
             assertEquals(List.of("c2", "c3"), selection.fileIds());
             assertEquals(minutes(40), selection.coverageEnd());
         }
 
+        /**
+         * A running session's newest chunk is the one the profiler still holds open, so the last
+         * chunk a selection can reach is the one before it — and that one has no known end while
+         * the session records, so it reaches as far forward as the window does.
+         */
         @Test
-        void theLastChunkOfARunningSessionIsOpenEnded() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(CHUNKS, null);
+        void theLastClosedChunkOfARunningSessionIsOpenEnded() {
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(session(CHUNKS, null));
 
-            assertEquals(List.of("c3"), selection.fileIds());
+            assertEquals(List.of("c2"), selection.fileIds());
             assertNull(selection.coverageEnd());
         }
 
         @Test
         void aWindowOutsideAFinishedSessionSelectsNothing() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(CHUNKS, minutes(40));
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(SESSION);
 
             assertTrue(selection.isEmpty());
             assertNull(selection.coverageStart());
@@ -134,13 +153,13 @@ class ChunkWindowTest {
 
         @Test
         void namedChunksCoverTheSpanBetweenTheirStartsAndTheNextOne() {
-            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c1", "c2", "log"), minutes(40));
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(SESSION, Set.of("c1", "c2", "log"));
 
             assertEquals(List.of("c1", "c2"), selection.fileIds());
             assertEquals(minutes(10), selection.coverageStart());
             assertEquals(minutes(30), selection.coverageEnd());
             assertTrue(selection.contiguous());
-            assertFalse(selection.isWholeSession(CHUNKS));
+            assertFalse(selection.isWholeSession(SESSION));
         }
 
         /**
@@ -151,23 +170,23 @@ class ChunkWindowTest {
          */
         @Test
         void namedChunksWithOneSkippedAreNotContiguous() {
-            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c1", "c3"), minutes(40));
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(SESSION, Set.of("c1", "c3"));
 
             assertEquals(List.of("c1", "c3"), selection.fileIds());
             assertFalse(selection.contiguous());
-            assertEquals(List.of("c2"), selection.gaps(CHUNKS).stream().map(RepositoryFile::id).toList());
-            assertEquals("profile-c2.jfr", selection.describeGap(CHUNKS));
+            assertEquals(List.of("c2"), selection.gaps(SESSION).stream().map(RepositoryFile::id).toList());
+            assertEquals("profile-c2.jfr", selection.describeGap(SESSION));
         }
 
         @Test
         void aSingleChunkIsContiguousAndSoIsTheWholeSession() {
-            assertTrue(ChunkWindow.ofFiles(CHUNKS, Set.of("c2"), minutes(40)).contiguous());
-            assertTrue(ChunkWindow.ofFiles(CHUNKS, Set.of("c0", "c1", "c2", "c3"), minutes(40)).contiguous());
+            assertTrue(ChunkWindow.ofFiles(SESSION, Set.of("c2")).contiguous());
+            assertTrue(ChunkWindow.ofFiles(SESSION, Set.of("c0", "c1", "c2", "c3")).contiguous());
         }
 
         @Test
         void artifactsBesideARunDoNotBreakIt() {
-            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c0", "c1", "log"), minutes(40));
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(SESSION, Set.of("c0", "c1", "log"));
 
             assertEquals(List.of("c0", "c1"), selection.fileIds());
             assertTrue(selection.contiguous());
@@ -176,7 +195,7 @@ class ChunkWindowTest {
         /** A window takes every chunk it touches, so it can never come back with a hole. */
         @Test
         void aWindowIsAlwaysContiguous() {
-            assertTrue(new ChunkWindow(minutes(5), minutes(35)).select(CHUNKS, minutes(40)).contiguous());
+            assertTrue(new ChunkWindow(minutes(5), minutes(35)).select(SESSION).contiguous());
         }
 
         /**
@@ -187,29 +206,29 @@ class ChunkWindowTest {
         @Test
         void aChunkWithNoTimestampIsIgnoredByBothTheSelectionAndTheCount() {
             RepositoryFile undated = new RepositoryFile("c4", "profile-c4.jfr", null, 10L,
-                    SupportedRecordingFile.JFR, RecordingStatus.FINISHED, null);
-            List<RepositoryFile> files = List.of(chunk("c0", 0), chunk("c1", 10), undated);
+                    ManagedFile.JFR, null);
+            RecordingSession session = session(List.of(chunk("c0", 0), chunk("c1", 10), undated), minutes(20));
 
-            ChunkWindow.Selection selection = ChunkWindow.ofFiles(files, Set.of("c0", "c1"), minutes(20));
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(session, Set.of("c0", "c1"));
 
             assertEquals(List.of("c0", "c1"), selection.fileIds());
-            assertTrue(selection.isWholeSession(files));
+            assertTrue(selection.isWholeSession(session));
         }
 
         @Test
         void everyFinishedChunkIsTheWholeSession() {
-            ChunkWindow.Selection selection = ChunkWindow.ofFiles(CHUNKS, Set.of("c0", "c1", "c2", "c3"), minutes(40));
+            ChunkWindow.Selection selection = ChunkWindow.ofFiles(SESSION, Set.of("c0", "c1", "c2", "c3"));
 
-            assertTrue(selection.isWholeSession(CHUNKS));
+            assertTrue(selection.isWholeSession(SESSION));
         }
 
         @Test
         void ignoresFilesThatAreNotFinishedChunks() {
             RepositoryFile open = new RepositoryFile("c4", "profile-c4.jfr", minutes(40), 10L,
-                    SupportedRecordingFile.JFR, RecordingStatus.ACTIVE, null);
-            List<RepositoryFile> files = List.of(chunk("c0", 0), log(0), open);
+                    ManagedFile.JFR, null);
+            RecordingSession session = session(List.of(chunk("c0", 0), log(0), open), null);
 
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(0), minutes(60)).select(files, null);
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(0), minutes(60)).select(session);
 
             assertEquals(List.of("c0"), selection.fileIds());
         }

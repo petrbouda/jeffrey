@@ -73,7 +73,7 @@ public record RepositoryStatistics(
     public enum StatsCategory {
         JFR, HEAP_DUMP, LOG, APP_LOG, ERROR_LOG, OTHER;
 
-        public static StatsCategory of(SupportedRecordingFile fileType) {
+        public static StatsCategory of(ManagedFile fileType) {
             return switch (fileType) {
                 case JFR, JFR_LZ4 -> JFR;
                 case HEAP_DUMP, HEAP_DUMP_GZ -> HEAP_DUMP;

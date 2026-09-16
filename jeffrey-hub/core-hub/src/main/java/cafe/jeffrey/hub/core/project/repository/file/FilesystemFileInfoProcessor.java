@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,17 +21,15 @@ package cafe.jeffrey.hub.core.project.repository.file;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.Comparator;
 
-public class FilesystemFileInfoProcessor implements  FileInfoProcessor {
+/**
+ * For a layout whose names say nothing about order, newest first by modification time.
+ */
+public class FilesystemFileInfoProcessor implements FileInfoProcessor {
+
     @Override
     public Comparator<Path> comparator() {
         return Comparator.comparing(FileSystemUtils::modifiedAt).reversed();
-    }
-
-    @Override
-    public Instant createdAt(Path file) {
-        return FileSystemUtils.createdAt(file);
     }
 }

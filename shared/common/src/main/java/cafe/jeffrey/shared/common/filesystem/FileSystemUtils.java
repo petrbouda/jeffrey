@@ -22,7 +22,7 @@ import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -129,7 +129,7 @@ public abstract class FileSystemUtils {
         }
     }
 
-    public static Optional<Path> findSupportedFileInDir(Path dir, SupportedRecordingFile recordingFileType) {
+    public static Optional<Path> findSupportedFileInDir(Path dir, ManagedFile recordingFileType) {
         BiPredicate<Path, BasicFileAttributes> matcher = (path, _) -> recordingFileType.matches(path.getFileName());
         try (var stream = Files.find(dir, 1, matcher)) {
             return stream.findFirst();
@@ -205,16 +205,6 @@ public abstract class FileSystemUtils {
         } catch (IOException e) {
             throw new RuntimeException("Cannot delete file: " + path, e);
         }
-    }
-
-    public static String removeExtension(Path path, List<String> extensions) {
-        String filename = path.getFileName().toString();
-        for (String extension : extensions) {
-            if (filename.endsWith(extension)) {
-                return filename.substring(0, filename.length() - extension.length() - 1);
-            }
-        }
-        return filename;
     }
 
     /**

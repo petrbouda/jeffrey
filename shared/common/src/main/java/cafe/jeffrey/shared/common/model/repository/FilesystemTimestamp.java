@@ -18,27 +18,21 @@
 
 package cafe.jeffrey.shared.common.model.repository;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+
 import java.nio.file.Path;
+import java.time.Instant;
 
-public record StreamedRecordingFile(String fileName, Path path, Closeable cleanup) {
+/**
+ * The file's creation time, for every type that does not carry the instant in its own name.
+ *
+ * <p>Right for a file nothing has rewritten, and only for such a file: an archive's creation time
+ * is when the archive was written, not when the recording inside it was opened.
+ */
+final class FilesystemTimestamp implements TimestampResolver {
 
-    public StreamedRecordingFile(String fileName, Path path) {
-        this(fileName, path, null);
-    }
-
-    /**
-     * Opens an InputStream for the file. If a cleanup action is present,
-     * it will be executed when the stream is closed.
-     */
-    public InputStream openStream() throws IOException {
-        InputStream stream = Files.newInputStream(path);
-        if (cleanup != null) {
-            stream = new CleanupInputStream(stream, cleanup);
-        }
-        return stream;
+    @Override
+    public Instant resolve(Path file) {
+        return FileSystemUtils.createdAt(file);
     }
 }

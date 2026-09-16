@@ -25,7 +25,7 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 
 import java.sql.ResultSet;
@@ -77,7 +77,7 @@ public abstract class Mappers {
                     rs.getString("id"),
                     rs.getString("recording_id"),
                     rs.getString("filename"),
-                    SupportedRecordingFile.ofType(rs.getString("supported_type")),
+                    ManagedFile.ofType(rs.getString("supported_type")),
                     Mappers.instant(rs, "uploaded_at"),
                     rs.getLong("size_in_bytes"));
         };

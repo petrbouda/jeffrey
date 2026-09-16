@@ -19,9 +19,13 @@
 package cafe.jeffrey.hub.core.project.repository.file;
 
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.Comparator;
 
+/**
+ * How a repository's own layout is read — which, now that a file's timestamp is the business of
+ * its {@link cafe.jeffrey.shared.common.model.repository.ManagedFile type}, is the
+ * order its directory is listed in.
+ */
 public interface FileInfoProcessor {
 
     /**
@@ -30,12 +34,4 @@ public interface FileInfoProcessor {
      * @return a comparator for sorting files
      */
     Comparator<Path> comparator();
-
-    /**
-     * Returns the instant when the file was created.
-     *
-     * @param filePath the path to the file
-     * @return the creation time of the file
-     */
-    Instant createdAt(Path filePath);
 }

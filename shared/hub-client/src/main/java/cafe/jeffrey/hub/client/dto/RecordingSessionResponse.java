@@ -50,9 +50,30 @@ public record RecordingSessionResponse(
                 session.status(),
                 duration,
                 session.files().stream()
-                        .map(RepositoryFileResponse::from)
+                        .map(file -> RepositoryFileResponse.from(session, file))
                         .toList(),
                 session.retained());
+    }
+
+    /**
+     * The same session with every file's status resolved against it.
+     *
+     * <p>For the decoder, and only for it: the wire carries no per-file status, because whether
+     * a file is still being written is a fact about the session rather than about the file. A
+     * session decoded from a hub therefore arrives with that column unfilled, and it is filled
+     * here, once, instead of leaving each reader of a row to work it out or to trust a value
+     * nobody set. {@code RepositoryClient} calls this as the last step of decoding a session, so
+     * no session with an unfilled column is ever handed out and there is nothing for a caller to
+     * remember.
+     */
+    public RecordingSessionResponse withResolvedFileStatuses() {
+        RecordingSession session = from(this);
+        return new RecordingSessionResponse(
+                id, name, instanceId, createdAt, finishedAt, status, duration,
+                session.files().stream()
+                        .map(file -> RepositoryFileResponse.from(session, file))
+                        .toList(),
+                retained);
     }
 
     public static RecordingSession from(RecordingSessionResponse response) {

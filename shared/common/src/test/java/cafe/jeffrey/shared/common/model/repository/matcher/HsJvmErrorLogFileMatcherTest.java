@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.shared.common.model.repository.matcher;
 
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -86,16 +86,16 @@ class HsJvmErrorLogFileMatcherTest {
      * file was filed as an application log and the hub's crash detection never saw it.
      */
     @Nested
-    class ThroughSupportedRecordingFile {
+    class ThroughManagedFile {
 
         @Test
         void theJvmDefaultIsACrashLogNotAnAppLog() {
-            assertEquals(SupportedRecordingFile.HS_JVM_ERROR_LOG, SupportedRecordingFile.of("hs_err_pid123.log"));
+            assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("hs_err_pid123.log"));
         }
 
         @Test
         void caseIsIgnoredLikeEverywhereElse() {
-            assertEquals(SupportedRecordingFile.HS_JVM_ERROR_LOG, SupportedRecordingFile.of("HS_ERR_PID123.LOG"));
+            assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("HS_ERR_PID123.LOG"));
         }
     }
 }

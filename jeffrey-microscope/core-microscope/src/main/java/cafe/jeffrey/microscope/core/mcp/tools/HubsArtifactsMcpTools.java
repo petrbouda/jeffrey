@@ -38,8 +38,8 @@ import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -149,12 +149,18 @@ public class HubsArtifactsMcpTools {
     /**
      * How a row is reached, said in the table rather than left to the reader to infer from the
      * category. A listing that invites a fetch the fetch tool refuses is worse than no column.
+     *
+     * <p>There is deliberately no "still being written" case. Only one file of a session is ever
+     * open — the newest recording chunk — and a recording is never fetched one at a time anyway,
+     * so it already reads {@code hubs_download}. Every artifact is fetchable, including one the
+     * application is still appending to: a log a reader wants to grep before deciding whether the
+     * recording is worth the transfer is what this family exists for, and refusing it until the
+     * session ends would refuse it for as long as it is interesting.
      */
     private enum Fetchability {
 
         FETCH("fetch"),
         DOWNLOAD("hubs_download"),
-        WHEN_FINISHED("when finished"),
         NEVER("no");
 
         private final String label;
@@ -175,7 +181,15 @@ public class HubsArtifactsMcpTools {
         if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {
             return Fetchability.NEVER.label();
         }
-        return file.isFinished() ? Fetchability.FETCH.label() : Fetchability.WHEN_FINISHED.label();
+        return Fetchability.FETCH.label();
+    }
+
+    /**
+     * What the row's {@code status} column says. A file carries none of its own: the session
+     * holds one chunk open while it records, and every other file of it is final.
+     */
+    private static RecordingStatus statusOf(RecordingSession session, RepositoryFile file) {
+        return session.isOpen(file) ? session.status() : RecordingStatus.FINISHED;
     }
 
     private static String zeroPointNote(LocalSession local) {
@@ -202,9 +216,8 @@ public class HubsArtifactsMcpTools {
             + "fetched or came along with hubs_download - open it with your own tools - or "
             + "recording:<id> / profile:<id> for a recording hubs_download already brought. The `fetch` "
             + "column says how each row is reached: `fetch` means pass its file_id to hubs_fetchFile, "
-            + "`hubs_download` means it is a recording chunk taken with the whole session, `when "
-            + "finished` means it is still being written, and `no` means the hub does not serve that "
-            + "file on its own - only hubs_download brings it.")
+            + "`hubs_download` means it is a recording chunk taken with the whole session, and `no` "
+            + "means the hub does not serve that file on its own - only hubs_download brings it.")
     public String files(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef) {
@@ -239,7 +252,7 @@ public class HubsArtifactsMcpTools {
                     file.name(),
                     file.fileType().name(),
                     file.fileType().fileCategory().name().toLowerCase(Locale.ROOT),
-                    file.status(),
+                    statusOf(session, file),
                     ByteSizes.format(file.size()),
                     file.createdAt(),
                     localColumn(file, ref, local),
@@ -251,7 +264,7 @@ public class HubsArtifactsMcpTools {
                         + Fetchability.FETCH.label() + "` means pass its file_id to hubs_fetchFile, `"
                         + Fetchability.DOWNLOAD.label()
                         + "` is a recording chunk taken with the rest by hubs_download rather than fetched on "
-                        + "its own, `" + Fetchability.WHEN_FINISHED.label() + "` is still being written, and `"
+                        + "its own, and `"
                         + Fetchability.NEVER.label() + "` is a file the hub does not serve one at a time - a "
                         + "type Jeffrey does not classify, or a transient one. A `local` path is on the "
                         + "machine Jeffrey runs on; read it with your own tools. A `local` cell that is empty "
@@ -426,7 +439,7 @@ public class HubsArtifactsMcpTools {
 
     /**
      * Reads the session and finds the file before anything is transferred, so a stale ref, a wrong
-     * id, a file still being written and a recording chunk each fail in a sentence.
+     * id and a recording chunk each fail in a sentence.
      */
     private Preflight preflightWithin(HubSessionRef ref, String fileId, Deadline deadline) {
         return withinDeadline(deadline, Context.current(), () -> {
@@ -459,8 +472,7 @@ public class HubsArtifactsMcpTools {
     }
 
     private static RepositoryFile fileIn(RecordingSession session, HubSessionRef ref, String fileId) {
-        List<RepositoryFile> files = session.files() == null ? List.of() : session.files();
-        RepositoryFile file = files.stream()
+        RepositoryFile file = session.files().stream()
                 .filter(candidate -> fileId.equals(candidate.id()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Session " + ref.sessionId()
@@ -478,10 +490,6 @@ public class HubsArtifactsMcpTools {
                     + "), and a hub serves only classified artifacts one at a time. Its `fetch` column in "
                     + "hubs_files reads `" + Fetchability.NEVER.label() + "`; hubs_download brings the whole "
                     + "session, this file included.");
-        }
-        if (!file.isFinished()) {
-            throw new IllegalArgumentException("File " + file.name() + " is still being written (status "
-                    + file.status() + "). Fetch it once the session has finished.");
         }
         return file;
     }
@@ -515,7 +523,7 @@ public class HubsArtifactsMcpTools {
      * Moves the streamed file to its place and lets the hub client's temporary directory go, whether
      * or not the move succeeded — a failed move must not leave a copy behind in the temp area.
      */
-    private static Path place(StreamedRecordingFile streamed, Path target) {
+    private static Path place(StreamedFile streamed, Path target) {
         try {
             FileSystemUtils.createDirectories(target.getParent());
             Files.move(streamed.path(), target, StandardCopyOption.REPLACE_EXISTING);
@@ -633,7 +641,7 @@ public class HubsArtifactsMcpTools {
         LOG.debug("Answering a hub artifact fetch from this disk: session_id={} file_id={} path={}",
                 ref.sessionId(), key.fileId(), path);
         return Optional.of(new RetainedFetch(
-                operation, fetched(filename, SupportedRecordingFile.of(filename), size, path, true, local)));
+                operation, fetched(filename, ManagedFile.of(filename), size, path, true, local)));
     }
 
     /** A fetch answered off this disk: the operation it was, and the answer built from the file. */
@@ -645,10 +653,10 @@ public class HubsArtifactsMcpTools {
     }
 
     private static FetchedFile fetched(
-            String filename, SupportedRecordingFile type, Long sizeBytes, Path path,
+            String filename, ManagedFile type, Long sizeBytes, Path path,
             boolean alreadyHere, LocalSession local) {
-        boolean heapDump = type == SupportedRecordingFile.HEAP_DUMP
-                || type == SupportedRecordingFile.HEAP_DUMP_GZ;
+        boolean heapDump = type == ManagedFile.HEAP_DUMP
+                || type == ManagedFile.HEAP_DUMP_GZ;
         String nextStep = heapDump
                 ? "Pass path to recordings_analyzeFile to build the heap profile the heap_ tools take."
                 : "Open, grep or parse the file at path with your own tools; it is on the machine Jeffrey runs on."

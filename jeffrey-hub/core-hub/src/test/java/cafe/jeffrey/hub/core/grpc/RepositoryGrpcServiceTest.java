@@ -33,7 +33,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -80,8 +80,7 @@ class RepositoryGrpcServiceTest {
                             null,
                             List.of(new RepositoryFile(
                                     "file-1", "recording.jfr", FIXED_TIME, 1024L,
-                                    SupportedRecordingFile.JFR,
-                                    cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
+                                    ManagedFile.JFR,
                                     null)),
                             false),
                     new cafe.jeffrey.shared.common.model.repository.RecordingSession(
@@ -114,7 +113,8 @@ class RepositoryGrpcServiceTest {
             assertEquals("file-1", protoFile.getId());
             assertEquals("recording.jfr", protoFile.getName());
             assertEquals(1024L, protoFile.getSize());
-            assertEquals(RecordingStatus.RECORDING_STATUS_FINISHED, protoFile.getStatus());
+            assertEquals(FIXED_TIME.toEpochMilli(), protoFile.getCreatedAt(),
+                    "the file's own timestamp is what the reader derives an open chunk from");
 
             cafe.jeffrey.hub.api.v1.RecordingSession second = response.getSessions(1);
             assertEquals("session-2", second.getId());

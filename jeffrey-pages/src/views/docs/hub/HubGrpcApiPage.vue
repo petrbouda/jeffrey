@@ -260,26 +260,19 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- RecordingDownloadService -->
+          <!-- FileDownloadService -->
           <div class="endpoint-group">
             <div class="group-header">
               <i class="bi bi-cloud-download"></i>
-              <h4>RecordingDownloadService</h4>
+              <h4>FileDownloadService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>DownloadArtifactFile</code>
+                  <code>DownloadFile</code>
                 </div>
-                <p>Stream one finished artifact &mdash; a heap dump, an application log, the <code>gc.jvm-log</code>, a crash file, the perf-counters file &mdash; named by its <code>file_id</code>, in 64KB chunks</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DownloadRecordingFile</code>
-                </div>
-                <p>Stream one finished JFR file, named by its <code>file_id</code>, in 64KB chunks. One file per call, always: a session's recording is several rotated chunk files, and Microscope fetches them separately and in parallel &mdash; the hub never joins them, so it never sees a selection of files and never has to judge one</p>
+                <p>Stream one file of a session &mdash; a JFR chunk, a heap dump, an application log, the <code>gc.jvm-log</code>, a crash file, the perf-counters file &mdash; named by its <code>file_id</code>, in 64KB chunks. One RPC for every kind: what a file <em>is</em> decides what the caller does with it afterwards, and the caller read that off the listing that gave it the id. One file per call, always: a session's recording is several rotated chunk files, and Microscope fetches them separately and in parallel &mdash; the hub never joins them, so it never sees a selection of files and never has to judge one. The first chunk carries the file's <code>total_size</code> and the name it has on the hub <em>now</em>, because the compression job may have renamed it since the caller listed the session</p>
               </div>
             </div>
           </div>

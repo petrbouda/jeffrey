@@ -181,9 +181,10 @@ the GC log say" — or the session has no finished recording at all — do not d
 
 1. `hubs_files(sessionRef)` — read the `type` column: `APP_LOG`, `JVM_LOG`, `HS_JVM_ERROR_LOG`,
    `PERF_COUNTERS`, `HEAP_DUMP`, `HEAP_DUMP_GZ`. The `fetch` column decides the row: only one
-   reading `fetch` can be fetched. `hubs_download` means a recording chunk, `when finished` means
-   still being written, and `no` means a type Jeffrey does not classify, which a hub will not
-   serve on its own — `hubs_download` is the only way to that one.
+   reading `fetch` can be fetched. `hubs_download` means a recording chunk, and `no` means a type
+   Jeffrey does not classify, which a hub will not serve on its own — `hubs_download` is the only
+   way to that one. Every artifact reads `fetch`, including one of a session still recording: an
+   application log is worth grepping while it is being written.
 2. `hubs_fetchFile(sessionRef, fileId)` — returns the **absolute path** the file now has on this
    machine, with its `filename`. A file already fetched comes back as it is; one whose transfer
    failed or was cancelled is started again by calling the tool again.

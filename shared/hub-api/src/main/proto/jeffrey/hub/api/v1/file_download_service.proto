@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+// Provides server-streaming RPCs for downloading recordings and artifacts.
+//
+// COMPATIBILITY: this service replaces RecordingDownloadService, whose DownloadRecordingFile and
+// DownloadArtifactFile it merges into one RPC. A service and its methods are addressed by name on
+// the wire, so the rename is a break rather than a migration: a Microscope on this version calling
+// an older hub gets UNIMPLEMENTED, and so does an older Microscope calling a hub on this one. The
+// two are released together and a hub serves the Microscope it ships with; upgrade both. Nothing
+// else about the transfer changed, so a downgrade needs no data migration.
+// (RepositoryFile.status went the same way, but as a field it degrades quietly — see
+// repository_service.proto, where field 6 is reserved.)
+// Files are streamed in 64KB chunks to support efficient transfer of large files
+// (JFR recordings, heap dumps) without loading them entirely into memory.
+//
+// One file per call, always. A session's recording is several rotated chunk files and
+// the client fetches them separately, in parallel, keeping them separate afterwards:
+// each is a self-contained JFR and the parser reads them independently. Joining them
+// here cost the hub a full decompress and recompress of the session, and a whole-session
+// temp file, to produce something the client took apart again before parsing it.
+service FileDownloadService {
+  // Streams one file of a session, whatever kind it is — a recording chunk, a heap dump, a log,
+  // a crash file.
+  //
+  // One RPC rather than one per kind. There were two, and by the end they differed only in the
+  // word in their refusal: both looked the file up in the session, both checked its category,
+  // both streamed the bytes. What the category decides is what a reader does with the file, and
+  // the reader already knows it — every listing carries `file_type` and `is_recording`. It does
+  // not need a second door to be told the same thing.
+  //
+  // The hub still refuses what it cannot meaningfully hand over: a file the session does not
+  // hold, a transient one (async-profiler's `.jfr.N~` cache, which appears and vanishes under a
+  // reader), and the chunk the profiler is still writing.
+  rpc DownloadFile(DownloadFileRequest) returns (stream DataChunk);
+}
+
+message DownloadFileRequest {
+  string session_id = 1;
+  // The ID of the file to download, as the session's listing reports it.
+  string file_id = 2;
+}
+
+// A chunk of binary data for streaming file transfers.
+// The stream consists of sequential chunks that, when concatenated,
+// form the complete file.
+message DataChunk {
+  // Binary content of this chunk (up to 64KB).
+  bytes data = 1;
+  // Total size of the complete file in bytes. Sent on the first chunk only.
+  int64 total_size = 2;
+  // The name the file has on the hub at the moment it is sent, which is what the receiver must
+  // write it as. Not the name the caller asked for: a caller holds a listing taken some time
+  // earlier, and the compression job may have rewritten `x.jfr` as `x.jfr.lz4` since. Written
+  // under the old name, an LZ4 archive is read as a raw recording and fails on the chunk magic,
+  // because compression is recognised by the extension and nothing sniffs the frame.
+  //
+  // Sent on the first chunk only. A file with no bytes is one chunk carrying just this and the
+  // size.
+  string filename = 3;
+}
