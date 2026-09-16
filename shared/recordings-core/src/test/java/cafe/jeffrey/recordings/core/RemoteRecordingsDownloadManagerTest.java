@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.recordings.core;
 
-import cafe.jeffrey.hub.client.RecordingStreamClient;
+import cafe.jeffrey.hub.client.FileStreamClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
@@ -81,7 +81,7 @@ class RemoteRecordingsDownloadManagerTest {
     private static final Instant CREATED_AT = Instant.parse("2026-03-01T12:00:00Z");
 
     private final RepositoryClient repositoryClient = mock(RepositoryClient.class);
-    private final RecordingStreamClient streamClient = mock(RecordingStreamClient.class);
+    private final FileStreamClient streamClient = mock(FileStreamClient.class);
     private final RecordingsCoreManager recordingsManager = mock(RecordingsCoreManager.class);
 
     private final OriginContext originContext =
@@ -107,10 +107,10 @@ class RemoteRecordingsDownloadManagerTest {
      * consumer its own bytes, the way the real client does.
      */
     private void servesEveryFile() {
-        doAnswer(invocation -> feed(invocation.getArgument(1), invocation.getArgument(2)))
-                .when(streamClient).streamRecordingFile(eq(SESSION_ID), any(), any());
-        doAnswer(invocation -> feed(invocation.getArgument(1), invocation.getArgument(2)))
-                .when(streamClient).streamArtifactFile(eq(SESSION_ID), any(), any());
+        doAnswer(invocation -> {
+            String fileId = invocation.getArgument(1);
+            return feedAs(fileId, listedNameOf(fileId), invocation.getArgument(2));
+        }).when(streamClient).streamFile(eq(SESSION_ID), any(), any());
     }
 
     /**
@@ -177,9 +177,16 @@ class RemoteRecordingsDownloadManagerTest {
         }
     }
 
-    private static Object feed(String fileId, RecordingStreamClient.InputStreamConsumer consumer) throws Exception {
-        // No name on the transfer, so the receiver keeps the one the listing gave it.
-        return feedAs(fileId, "", consumer);
+    /**
+     * What the session's listing calls this file — which is the name the hub sends back when
+     * nothing has renamed it since.
+     */
+    private String listedNameOf(String fileId) {
+        return repositoryClient.recordingSession(SESSION_ID).files().stream()
+                .filter(file -> file.id().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("no fixture file with id " + fileId))
+                .name();
     }
 
     /**
@@ -187,11 +194,11 @@ class RemoteRecordingsDownloadManagerTest {
      * compression job has replaced a chunk with its archive.
      */
     private static Object feedAs(
-            String fileId, String sentAs, RecordingStreamClient.InputStreamConsumer consumer) throws Exception {
+            String fileId, String sentAs, FileStreamClient.InputStreamConsumer consumer) throws Exception {
 
         byte[] bytes = ("bytes-of-" + fileId).getBytes(StandardCharsets.UTF_8);
         try (InputStream in = new ByteArrayInputStream(bytes)) {
-            consumer.accept(in, new RecordingStreamClient.TransferredFile(sentAs, bytes.length));
+            consumer.accept(in, new FileStreamClient.TransferredFile(sentAs, bytes.length));
         }
         return null;
     }
@@ -281,7 +288,7 @@ class RemoteRecordingsDownloadManagerTest {
                     file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR)));
             doAnswer(invocation -> feedAs(
                     invocation.getArgument(1), "profile-1.jfr.lz4", invocation.getArgument(2)))
-                    .when(streamClient).streamRecordingFile(eq(SESSION_ID), any(), any());
+                    .when(streamClient).streamFile(eq(SESSION_ID), any(), any());
             ArgumentCaptor<List<Path>> recordingFiles = capturedRecordingFiles();
 
             manager.downloadSession(SESSION_ID);
@@ -306,7 +313,7 @@ class RemoteRecordingsDownloadManagerTest {
                     file("f-1", "profile-1.jfr", SupportedRecordingFile.JFR)));
             doAnswer(invocation -> feedAs(
                     invocation.getArgument(1), "../../escaped.jfr", invocation.getArgument(2)))
-                    .when(streamClient).streamRecordingFile(eq(SESSION_ID), any(), any());
+                    .when(streamClient).streamFile(eq(SESSION_ID), any(), any());
             ArgumentCaptor<List<Path>> recordingFiles = capturedRecordingFiles();
 
             manager.downloadSession(SESSION_ID);
@@ -334,9 +341,9 @@ class RemoteRecordingsDownloadManagerTest {
 
             manager.downloadSession(SESSION_ID);
 
-            verify(streamClient).streamRecordingFile(eq(SESSION_ID), eq("f-1"), any());
-            verify(streamClient).streamRecordingFile(eq(SESSION_ID), eq("f-2"), any());
-            verify(streamClient).streamRecordingFile(eq(SESSION_ID), eq("f-3"), any());
+            verify(streamClient).streamFile(eq(SESSION_ID), eq("f-1"), any());
+            verify(streamClient).streamFile(eq(SESSION_ID), eq("f-2"), any());
+            verify(streamClient).streamFile(eq(SESSION_ID), eq("f-3"), any());
             verify(recordingsManager).createDownloadedRecording(
                     any(), recordingFiles.capture(), anyList(), any());
 
@@ -357,7 +364,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             manager.downloadSession(SESSION_ID);
 
-            verify(streamClient).streamArtifactFile(eq(SESSION_ID), eq("f-4"), any());
+            verify(streamClient).streamFile(eq(SESSION_ID), eq("f-4"), any());
             verify(recordingsManager).createDownloadedRecording(any(), anyList(), artifacts.capture(), any());
             assertEquals(List.of("heap.hprof"), artifacts.getValue().stream()
                     .map(path -> path.getFileName().toString())
@@ -380,7 +387,7 @@ class RemoteRecordingsDownloadManagerTest {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
             servesEveryFile();
             doThrow(new IllegalStateException("hub went away"))
-                    .when(streamClient).streamRecordingFile(eq(SESSION_ID), eq("f-2"), any());
+                    .when(streamClient).streamFile(eq(SESSION_ID), eq("f-2"), any());
 
             assertThrows(CompletionException.class, () -> manager.downloadSession(SESSION_ID));
 
@@ -419,7 +426,7 @@ class RemoteRecordingsDownloadManagerTest {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());
             servesEveryFile();
             doThrow(new IllegalStateException("no heap dump here"))
-                    .when(streamClient).streamArtifactFile(eq(SESSION_ID), eq("f-4"), any());
+                    .when(streamClient).streamFile(eq(SESSION_ID), eq("f-4"), any());
             ArgumentCaptor<List<Path>> artifacts = capturedRecordingFiles();
 
             assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
@@ -448,10 +455,10 @@ class RemoteRecordingsDownloadManagerTest {
                     new ChunkWindow(CREATED_AT.plusSeconds(25), CREATED_AT.plusSeconds(35)));
 
             assertEquals(RECORDING_ID, recordingId);
-            verify(streamClient).streamRecordingFile(eq(SESSION_ID), eq("f-2"), any());
-            verify(streamClient, never()).streamRecordingFile(eq(SESSION_ID), eq("f-1"), any());
-            verify(streamClient, never()).streamRecordingFile(eq(SESSION_ID), eq("f-3"), any());
-            verify(streamClient, never()).streamArtifactFile(any(), any(), any());
+            verify(streamClient).streamFile(eq(SESSION_ID), eq("f-2"), any());
+            verify(streamClient, never()).streamFile(eq(SESSION_ID), eq("f-1"), any());
+            verify(streamClient, never()).streamFile(eq(SESSION_ID), eq("f-3"), any());
+            verify(streamClient, never()).streamFile(eq(SESSION_ID), eq("f-4"), any());
         }
 
         @Test
@@ -507,7 +514,7 @@ class RemoteRecordingsDownloadManagerTest {
                     () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2", "f-mistyped")));
 
             assertTrue(e.getMessage().contains("f-mistyped"), e.getMessage());
-            verify(streamClient, never()).streamRecordingFile(any(), any(), any());
+            verify(streamClient, never()).streamFile(any(), any(), any());
             verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
         }
 
@@ -525,7 +532,7 @@ class RemoteRecordingsDownloadManagerTest {
                     () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2")));
 
             assertTrue(e.getMessage().contains("f-2"), e.getMessage());
-            verify(streamClient, never()).streamRecordingFile(any(), any(), any());
+            verify(streamClient, never()).streamFile(any(), any(), any());
         }
 
         /**
@@ -541,7 +548,7 @@ class RemoteRecordingsDownloadManagerTest {
                     () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-3")));
 
             assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
-            verify(streamClient, never()).streamRecordingFile(any(), any(), any());
+            verify(streamClient, never()).streamFile(any(), any(), any());
             verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
         }
 
@@ -553,7 +560,7 @@ class RemoteRecordingsDownloadManagerTest {
             assertThrows(IllegalArgumentException.class, () -> manager.downloadRecordingsWithProgress(
                     SESSION_ID, List.of("f-1", "f-3"), progress));
 
-            verify(streamClient, never()).streamRecordingFile(any(), any(), any());
+            verify(streamClient, never()).streamFile(any(), any(), any());
             verify(progress, never()).onStart(anyInt(), anyLong());
         }
 

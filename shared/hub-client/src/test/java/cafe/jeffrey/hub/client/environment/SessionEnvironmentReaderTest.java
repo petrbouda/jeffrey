@@ -25,7 +25,7 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -213,18 +213,12 @@ class SessionEnvironmentReaderTest {
         }
 
         @Override
-        public StreamedRecordingFile streamFile(String sessionId, String fileId) {
-            throw new UnsupportedOperationException(
-                    "the reader holds the chunk already and must not make the hub list the session twice");
-        }
-
-        @Override
-        public StreamedRecordingFile streamFile(String sessionId, RepositoryFile file) {
+        public StreamedFile streamFile(String sessionId, String fileId) {
             if (failStreaming) {
-                throw new IllegalStateException("download failed: " + file.id());
+                throw new IllegalStateException("download failed: " + fileId);
             }
-            streamed.add(file.id());
-            return new StreamedRecordingFile(file.name(), fixtureJfr(), () -> cleanedUp = true);
+            streamed.add(fileId);
+            return new StreamedFile(fileId, fixtureJfr(), () -> cleanedUp = true);
         }
 
         @Override

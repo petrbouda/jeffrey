@@ -21,7 +21,7 @@ package cafe.jeffrey.recordings.core;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
-import cafe.jeffrey.hub.client.RecordingStreamClient;
+import cafe.jeffrey.hub.client.FileStreamClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
@@ -57,10 +57,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.notification.NotificationCategory;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
 
 public class RemoteRecordingsDownloadManager implements RecordingsDownloadManager {
 
@@ -88,7 +86,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static final Set<String> NOT_A_FILE_NAME = Set.of(".", "..");
 
     private final TempDirProvider tempDirProvider;
-    private final RecordingStreamClient recordingStreamClient;
+    private final FileStreamClient fileStreamClient;
     private final RepositoryClient repositoryClient;
     private final RecordingsCoreManager recordingsManager;
     private final OriginContext originContext;
@@ -96,14 +94,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     public RemoteRecordingsDownloadManager(
             TempDirProvider tempDirProvider,
-            RecordingStreamClient recordingStreamClient,
+            FileStreamClient fileStreamClient,
             RepositoryClient repositoryClient,
             RecordingsCoreManager recordingsManager,
             OriginContext originContext,
             String projectName) {
 
         this.tempDirProvider = tempDirProvider;
-        this.recordingStreamClient = recordingStreamClient;
+        this.fileStreamClient = fileStreamClient;
         this.repositoryClient = repositoryClient;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
@@ -272,16 +270,15 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         Semaphore downloadSemaphore = new Semaphore(MAX_CONCURRENT_DOWNLOADS);
 
         try (TempDirectory tempDir = tempDirProvider.newTempDir()) {
-            // Recordings and artifacts go down the same bounded-parallel path and differ only in
-            // what a failure means, which is the next two blocks.
+            // One transfer for both, now that the hub serves every kind of file through one call.
+            // What still separates them is what a failure means, which is the two blocks below: a
+            // missing recording fails the download, a missing artifact is noted and skipped.
             List<CompletableFuture<Path>> recordingDownloads = recordingFiles.stream()
-                    .map(file -> fetch(file, recordingSessionId, tempDir, downloadSemaphore, progressCallback,
-                            recordingStreamClient::streamRecordingFile))
+                    .map(file -> fetch(file, recordingSessionId, tempDir, downloadSemaphore, progressCallback))
                     .toList();
 
             List<CompletableFuture<Path>> artifactDownloads = artifactFiles.stream()
-                    .map(file -> fetch(file, recordingSessionId, tempDir, downloadSemaphore, progressCallback,
-                            recordingStreamClient::streamArtifactFile)
+                    .map(file -> fetch(file, recordingSessionId, tempDir, downloadSemaphore, progressCallback)
                             .exceptionally(throwable -> artifactMissing(file, recordingSessionId, throwable, progressCallback)))
                     .toList();
 
@@ -367,8 +364,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             String recordingSessionId,
             TempDirectory tempDir,
             Semaphore downloadSemaphore,
-            ProgressCallback progressCallback,
-            FileTransfer transfer) {
+            ProgressCallback progressCallback) {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -387,10 +383,10 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 // bytes arriving are then the archive's. The progress channel keeps saying the
                 // name the reader chose, which is the one it was shown.
                 AtomicReference<Path> landed = new AtomicReference<>();
-                transfer.stream(recordingSessionId, file.id(), (inputStream, transferred) -> {
+                fileStreamClient.streamFile(recordingSessionId, file.id(), (inputStream, transferred) -> {
                     long actualSize = transferred.size() > 0 ? transferred.size() : file.size();
                     progressCallback.onFileStart(file.name(), actualSize);
-                    Path target = targetIn(tempDir, transferred.nameOr(file.name()));
+                    Path target = targetIn(tempDir, transferred.name());
                     streamToFileWithProgress(inputStream, target, file.name(), progressCallback);
                     landed.set(target);
                 });
@@ -469,14 +465,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         }
     }
 
-    /**
-     * Pulls one file of a session onto this disk -- {@code streamRecordingFile} or
-     * {@code streamArtifactFile}, which differ only in which of the hub's RPCs they call.
-     */
-    @FunctionalInterface
-    private interface FileTransfer {
-        void stream(String sessionId, String fileId, RecordingStreamClient.InputStreamConsumer consumer);
-    }
 
 
     private static void streamToFileWithProgress(

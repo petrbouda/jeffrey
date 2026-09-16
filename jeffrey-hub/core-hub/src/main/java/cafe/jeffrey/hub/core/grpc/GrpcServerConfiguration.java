@@ -98,7 +98,7 @@ public class GrpcServerConfiguration {
     }
 
     @Bean
-    public BindableService recordingDownloadGrpcService(GrpcLookups grpcLookups) {
-        return new RecordingDownloadGrpcService(grpcLookups);
+    public BindableService fileDownloadGrpcService(GrpcLookups grpcLookups) {
+        return new FileDownloadGrpcService(grpcLookups);
     }
 }

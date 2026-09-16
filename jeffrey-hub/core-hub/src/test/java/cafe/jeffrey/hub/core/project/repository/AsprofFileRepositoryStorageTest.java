@@ -30,6 +30,7 @@ import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
@@ -45,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -148,12 +150,15 @@ class AsprofFileRepositoryStorageTest {
     }
 
     /**
-     * Handing a session's recordings over. A lookup and nothing else: what the reader receives
-     * must be the file the listing named, because the download carries the bytes and their
-     * length and no name at all.
+     * Handing one file of a session over — a chunk, a log, a dump, through the same call.
+     *
+     * <p>A lookup and nothing else: what the reader receives must be the file the listing named,
+     * because the download carries the bytes and their length and no name at all. And a refusal
+     * rather than an empty answer, because a caller that named one file and got nothing back
+     * cannot tell which of five reasons applied.
      */
     @Nested
-    class Recordings {
+    class OneFile {
 
         private static final String SESSION_ID = "session-1";
         private static final String PROJECT = "project";
@@ -189,8 +194,8 @@ class AsprofFileRepositoryStorageTest {
             return Files.write(dir.resolve(name), content.getBytes(StandardCharsets.UTF_8));
         }
 
-        private static List<String> namesOf(List<Path> paths) {
-            return paths.stream().map(path -> path.getFileName().toString()).toList();
+        private static String refusal(Executable call) {
+            return assertThrows(IllegalArgumentException.class, call).getMessage();
         }
 
         /**
@@ -199,55 +204,89 @@ class AsprofFileRepositoryStorageTest {
          * the file's name under a reader that had already been told the old one.
          */
         @Test
-        void handOverTheFileTheListingNamed() throws IOException {
+        void isHandedOverAsTheListingNamedIt() throws IOException {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr", "chunk one");
 
-            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
+            Path served = finishedSession().file(SESSION_ID, "profile-20260220-120000");
 
-            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths));
+            assertEquals("profile-20260220-120000.jfr", served.getFileName().toString());
             assertTrue(Files.exists(session.resolve("profile-20260220-120000.jfr")),
                     "reading a session must not rewrite it");
             assertFalse(Files.exists(session.resolve("profile-20260220-120000.jfr.lz4")));
         }
 
+        /**
+         * One call for every kind. What a file's category decides is what the reader does with the
+         * bytes, not whether the hub hands them over — and the reader knows the category already.
+         */
         @Test
-        void areOldestFirstWhenEveryRecordingIsAsked() throws IOException {
+        void servesAnArtifactThroughTheSameCall() throws IOException {
             Path session = sessionDir();
-            write(session, "profile-20260220-120500.jfr", "second");
-            write(session, "profile-20260220-120000.jfr", "first");
-            write(session, "service-app.log", "not a recording");
+            write(session, "service-app.log", "a line");
 
-            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of());
-
-            assertEquals(
-                    List.of("profile-20260220-120000.jfr", "profile-20260220-120500.jfr"),
-                    namesOf(paths));
+            assertEquals("service-app.log",
+                    finishedSession().file(SESSION_ID, "service-app.log").getFileName().toString());
         }
 
         @Test
-        void leaveOutTheChunkTheProfilerIsStillWriting() throws IOException {
+        void refusesAnIdTheSessionDoesNotHold() throws IOException {
+            sessionDir();
+
+            assertTrue(refusal(() -> finishedSession().file(SESSION_ID, "profile-20260220-999999"))
+                    .contains("holds no file with id"));
+        }
+
+        @Test
+        void refusesTheChunkTheProfilerIsStillWriting() throws IOException {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr", "closed");
             write(session, "profile-20260220-120500.jfr", "still being written");
 
-            List<Path> paths = storage(null).recordings(SESSION_ID, List.of());
-
-            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths));
+            assertTrue(refusal(() -> storage(null).file(SESSION_ID, "profile-20260220-120500"))
+                    .contains("still writing"));
         }
 
         /**
          * A profiler stopped before it wrote an event leaves a zero-byte recording. It used to be
-         * dropped by the compression that ran here; it is dropped by its listed size now.
+         * dropped by the compression that ran here, and a caller was told "not found".
          */
         @Test
-        void leaveOutAnEmptyRecording() throws IOException {
+        void refusesAnEmptyRecordingAndSaysSo() throws IOException {
             Path session = sessionDir();
             Files.createFile(session.resolve("profile-20260220-120000.jfr"));
 
-            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of());
+            assertTrue(refusal(() -> finishedSession().file(SESSION_ID, "profile-20260220-120000"))
+                    .contains("is empty"));
+        }
 
-            assertEquals(List.of(), paths);
+        /**
+         * Emptiness is a statement about parsing, so it is asked of recordings only. A log with
+         * nothing in it is an answer — a reader that asked for one wants the nothing it holds,
+         * not a refusal it has to interpret.
+         */
+        @Test
+        void servesAnEmptyArtifact() throws IOException {
+            Path session = sessionDir();
+            Files.createFile(session.resolve("service-app.log"));
+
+            Path served = finishedSession().file(SESSION_ID, "service-app.log");
+
+            assertEquals("service-app.log", served.getFileName().toString());
+            assertEquals(0, Files.size(served));
+        }
+
+        /**
+         * async-profiler deletes its {@code .jfr.N~} cache as it goes, so it is never a file a
+         * reader can be handed.
+         */
+        @Test
+        void refusesATransientFile() throws IOException {
+            Path session = sessionDir();
+            write(session, "profile-20260220-120000.jfr.1~", "cache");
+
+            assertTrue(refusal(() -> finishedSession().file(SESSION_ID, "profile-20260220-120000.jfr.1~"))
+                    .contains("transient"));
         }
 
         /**
@@ -256,25 +295,22 @@ class AsprofFileRepositoryStorageTest {
          * archive at that moment may still be being written into.
          */
         @Test
-        void handOverTheRecordingRatherThanAnArchiveStillBeingWritten() throws IOException {
+        void prefersTheRecordingOverAnArchiveStillBeingWritten() throws IOException {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr", "the whole chunk");
             write(session, "profile-20260220-120000.jfr.lz4", "half an archive");
 
-            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
-
-            assertEquals(List.of("profile-20260220-120000.jfr"), namesOf(paths),
-                    "one id, one file - and the one that cannot be half-written");
+            assertEquals("profile-20260220-120000.jfr",
+                    finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
         }
 
         @Test
-        void handOverTheArchiveOnceTheRecordingIsGone() throws IOException {
+        void servesTheArchiveOnceTheRecordingIsGone() throws IOException {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr.lz4", "the archive");
 
-            List<Path> paths = finishedSession().recordings(SESSION_ID, List.of("profile-20260220-120000"));
-
-            assertEquals(List.of("profile-20260220-120000.jfr.lz4"), namesOf(paths));
+            assertEquals("profile-20260220-120000.jfr.lz4",
+                    finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
         }
     }
 

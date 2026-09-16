@@ -33,7 +33,7 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.shared.common.model.repository.StreamedFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.io.ByteArrayOutputStream;
@@ -53,7 +53,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class RecordingDownloadGrpcServiceTest {
+class FileDownloadGrpcServiceTest {
 
     private static final String PROJECT_ID = "proj-1";
     private static final String SESSION_ID = "session-1";
@@ -61,10 +61,10 @@ class RecordingDownloadGrpcServiceTest {
 
     private InProcessGrpcServer grpc;
 
-    private RecordingDownloadServiceGrpc.RecordingDownloadServiceStub startServer(
-            RecordingDownloadGrpcService service) {
+    private FileDownloadServiceGrpc.FileDownloadServiceStub startServer(
+            FileDownloadGrpcService service) {
         grpc = InProcessGrpcServer.start(service);
-        return RecordingDownloadServiceGrpc.newStub(grpc.channel());
+        return FileDownloadServiceGrpc.newStub(grpc.channel());
     }
 
     @AfterEach
@@ -75,101 +75,93 @@ class RecordingDownloadGrpcServiceTest {
     }
 
 
+    /**
+     * One RPC for every kind of file. There were two — one for recordings, one for artifacts —
+     * and they differed only in the word in their refusal, so the pair of near-identical nested
+     * classes that used to be here are one too.
+     */
     @Nested
-    class DownloadRecordingFile {
+    class DownloadFile {
 
         @Test
         void sessionNotFound_returnsNotFound() throws Exception {
             var stub = startServer(serviceWithNoSession());
             var observer = new TestStreamObserver();
 
-            stub.downloadRecordingFile(
-                    DownloadRecordingFileRequest.newBuilder()
-                            .setSessionId("non-existent")
-                            .setFileId(FILE_ID)
-                            .build(),
-                    observer);
+            stub.downloadFile(request("non-existent", FILE_ID), observer);
 
             assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
             assertStatus(Status.Code.NOT_FOUND, observer.error);
         }
 
         @Test
-        void streamsFileChunks(@TempDir Path tempDir) throws Exception {
-            byte[] content = "JFR recording file content for testing".getBytes();
-            Path tempFile = tempDir.resolve("recording.jfr");
-            Files.write(tempFile, content);
+        void streamsARecordingChunk(@TempDir Path tempDir) throws Exception {
+            assertStreams(tempDir, "recording.jfr", "JFR recording file content for testing");
+        }
+
+        /**
+         * The same call, an artifact rather than a chunk. What the kind decides is what the
+         * reader does with the bytes, not which door they come through.
+         */
+        @Test
+        void streamsAnArtifactThroughTheSameCall(@TempDir Path tempDir) throws Exception {
+            assertStreams(tempDir, "heapdump.hprof", "heap dump artifact content");
+        }
+
+        /**
+         * A file with no bytes still has to say what it is. Without the header chunk the reader
+         * is handed a stream with no name and no size, and has to fall back on what it asked
+         * for — which is the very thing the name on the wire exists to replace.
+         */
+        @Test
+        void anEmptyFileStillArrivesAsOneChunkThatNamesIt(@TempDir Path tempDir) throws Exception {
+            Path empty = Files.createFile(tempDir.resolve("service-app.log"));
 
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamRecordingFile(SESSION_ID, FILE_ID))
-                    .thenReturn(new StreamedRecordingFile("recording.jfr", tempFile));
+            when(repoManager.streamFile(SESSION_ID, FILE_ID))
+                    .thenReturn(new StreamedFile("service-app.log", empty));
 
             var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
 
-            stub.downloadRecordingFile(
-                    DownloadRecordingFileRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .setFileId(FILE_ID)
-                            .build(),
-                    observer);
+            stub.downloadFile(request(SESSION_ID, FILE_ID), observer);
+
+            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
+            assertNull(observer.error, "Stream should complete without error");
+            assertEquals(1, observer.chunks.size(), "an empty file is exactly one header chunk");
+            assertEquals("service-app.log", observer.chunks.getFirst().getFilename());
+            assertEquals(0, observer.chunks.getFirst().getTotalSize());
+            assertEquals(0, observer.chunks.getFirst().getData().size());
+        }
+
+        private void assertStreams(Path tempDir, String filename, String body) throws Exception {
+            byte[] content = body.getBytes();
+            Path tempFile = Files.write(tempDir.resolve(filename), content);
+
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.streamFile(SESSION_ID, FILE_ID))
+                    .thenReturn(new StreamedFile(filename, tempFile));
+
+            var stub = startServer(serviceWithSession(repoManager));
+            var observer = new TestStreamObserver();
+
+            stub.downloadFile(request(SESSION_ID, FILE_ID), observer);
 
             assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
             assertNull(observer.error, "Stream should complete without error");
             assertFalse(observer.chunks.isEmpty(), "Should receive at least one chunk");
 
             assertTotalSizeOnFirstChunkOnly(observer.chunks, content.length);
+            assertEquals(filename, observer.chunks.getFirst().getFilename(),
+                    "the receiver is told the name the file has here, not the one it asked for");
             assertArrayEquals(content, reassemble(observer.chunks));
         }
-    }
 
-    // ========== DownloadArtifactFile ==========
-
-    @Nested
-    class DownloadArtifactFile {
-
-        @Test
-        void sessionNotFound_returnsNotFound() throws Exception {
-            var stub = startServer(serviceWithNoSession());
-            var observer = new TestStreamObserver();
-
-            stub.downloadArtifactFile(
-                    DownloadArtifactFileRequest.newBuilder()
-                            .setSessionId("non-existent")
-                            .setFileId(FILE_ID)
-                            .build(),
-                    observer);
-
-            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
-            assertStatus(Status.Code.NOT_FOUND, observer.error);
-        }
-
-        @Test
-        void streamsFileChunks(@TempDir Path tempDir) throws Exception {
-            byte[] content = "heap dump artifact content".getBytes();
-            Path tempFile = tempDir.resolve("heapdump.hprof");
-            Files.write(tempFile, content);
-
-            var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamArtifactFile(SESSION_ID, FILE_ID))
-                    .thenReturn(new StreamedRecordingFile("heapdump.hprof", tempFile));
-
-            var stub = startServer(serviceWithSession(repoManager));
-            var observer = new TestStreamObserver();
-
-            stub.downloadArtifactFile(
-                    DownloadArtifactFileRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .setFileId(FILE_ID)
-                            .build(),
-                    observer);
-
-            assertTrue(observer.completeLatch.await(5, TimeUnit.SECONDS));
-            assertNull(observer.error, "Stream should complete without error");
-            assertFalse(observer.chunks.isEmpty(), "Should receive at least one chunk");
-
-            assertTotalSizeOnFirstChunkOnly(observer.chunks, content.length);
-            assertArrayEquals(content, reassemble(observer.chunks));
+        private DownloadFileRequest request(String sessionId, String fileId) {
+            return DownloadFileRequest.newBuilder()
+                    .setSessionId(sessionId)
+                    .setFileId(fileId)
+                    .build();
         }
     }
 
@@ -196,7 +188,7 @@ class RecordingDownloadGrpcServiceTest {
                 List.of(chunk("f1", 0), chunk("f2", 10), chunk("f3", 20)), false);
     }
 
-    private RecordingDownloadGrpcService serviceWithSession(RepositoryManager repoManager) {
+    private FileDownloadGrpcService serviceWithSession(RepositoryManager repoManager) {
         when(repoManager.findRecordingSessions(SESSION_ID)).thenReturn(Optional.of(threeChunks()));
 
         var sessionWithRepo = mock(SessionWithRepository.class);
@@ -208,19 +200,19 @@ class RecordingDownloadGrpcServiceTest {
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
 
-        return new RecordingDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
+        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
     }
 
     /**
      * Creates a service where {@code findSessionWithRepositoryById("non-existent")} returns empty.
      */
-    private RecordingDownloadGrpcService serviceWithNoSession() {
+    private FileDownloadGrpcService serviceWithNoSession() {
         var platformRepositories = mock(HubPlatformRepositories.class);
         when(platformRepositories.findSessionWithRepositoryById("non-existent")).thenReturn(Optional.empty());
 
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-        return new RecordingDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
+        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
     }
 
     private static void assertStatus(Status.Code expected, Throwable error) {
