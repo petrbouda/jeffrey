@@ -28,7 +28,6 @@ import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
 import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.AsprofFileRepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
@@ -154,20 +153,13 @@ public class HubAppConfiguration {
             Clock applicationClock,
             RepositoryStorage.Factory repositoryStorageFactory,
             HubPlatformRepositories platformRepositories,
-            InstanceEnvironmentParser instanceEnvironmentParser,
             TransactionOperations hubTransactionOperations) {
         return projectInfo -> new HubProjectManager(
                 applicationClock,
                 projectInfo,
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
-                instanceEnvironmentParser,
                 hubTransactionOperations);
-    }
-
-    @Bean
-    public InstanceEnvironmentParser instanceEnvironmentParser(HubJeffreyDirs jeffreyDirs) {
-        return new InstanceEnvironmentParser(jeffreyDirs);
     }
 
     @Bean
@@ -175,7 +167,6 @@ public class HubAppConfiguration {
             Clock applicationClock,
             RepositoryStorage.Factory repositoryStorageFactory,
             HubPlatformRepositories platformRepositories,
-            InstanceEnvironmentParser instanceEnvironmentParser,
             TransactionOperations hubTransactionOperations) {
         return projectInfo -> new RepositoryManagerImpl(
                 applicationClock,
@@ -183,7 +174,6 @@ public class HubAppConfiguration {
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 platformRepositories.newProjectInstanceRepository(projectInfo.id()),
                 repositoryStorageFactory.apply(projectInfo),
-                instanceEnvironmentParser,
                 hubTransactionOperations);
     }
 

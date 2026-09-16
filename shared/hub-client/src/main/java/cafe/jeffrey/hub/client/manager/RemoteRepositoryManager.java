@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.FileCategory;
+import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
@@ -83,25 +84,30 @@ public class RemoteRepositoryManager implements RepositoryManager {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("File not found: " + fileId));
 
+        return streamFile(sessionId, RepositoryFileResponse.from(fileResponse));
+    }
+
+    @Override
+    public StreamedRecordingFile streamFile(String sessionId, RepositoryFile file) {
         TempDirectory tempDir = tempDirProvider.newTempDir();
-        Path tempFile = tempDir.resolve(fileResponse.name());
+        Path tempFile = tempDir.resolve(file.name());
 
         try {
             RecordingStreamClient.InputStreamConsumer consumer = (inputStream, _) -> {
                 Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
             };
 
-            if (fileResponse.fileType().fileCategory() == FileCategory.RECORDING) {
-                recordingStreamClient.streamRecordingFile(sessionId, fileId, consumer);
+            if (file.fileType().fileCategory() == FileCategory.RECORDING) {
+                recordingStreamClient.streamRecordingFile(sessionId, file.id(), consumer);
             } else {
-                recordingStreamClient.streamArtifactFile(sessionId, fileId, consumer);
+                recordingStreamClient.streamArtifactFile(sessionId, file.id(), consumer);
             }
         } catch (Exception e) {
             tempDir.close();
             throw e;
         }
 
-        return new StreamedRecordingFile(fileResponse.name(), tempFile, tempDir::close);
+        return new StreamedRecordingFile(file.name(), tempFile, tempDir::close);
     }
 
     @Override

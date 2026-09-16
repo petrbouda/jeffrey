@@ -18,14 +18,12 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import tools.jackson.databind.node.ObjectNode;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
@@ -34,7 +32,6 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -163,18 +160,11 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
             RepositoryManager repoManager = lookups.repositoryManagerForProject(instance.projectId());
             Set<String> failedSessionIds = failedSessionIds(repoManager);
 
-            boolean expectShutdown = sessionInfo.finishedAt() != null;
-            Optional<ObjectNode> environment = repoManager.sessionEnvironment(sessionId, expectShutdown);
-
-            String environmentJson = environment.map(Json::toString).orElse("");
-
-            LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={} envTypes={}",
-                    instanceId, sessionId,
-                    environment.map(node -> List.copyOf(node.propertyNames())).orElse(List.of()));
+            LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={}",
+                    instanceId, sessionId);
 
             return GetInstanceSessionDetailResponse.newBuilder()
                     .setSession(toSessionProto(sessionInfo, clock, failedSessionIds))
-                    .setEnvironmentJsonFields(environmentJson)
                     .build();
         });
     }

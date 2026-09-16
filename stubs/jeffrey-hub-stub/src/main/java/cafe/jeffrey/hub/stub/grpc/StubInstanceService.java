@@ -31,7 +31,6 @@ import cafe.jeffrey.hub.api.v1.ListInstanceSessionsResponse;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
 import cafe.jeffrey.hub.stub.data.StubDataset;
-import cafe.jeffrey.hub.stub.data.StubSessionEnvironment;
 import io.grpc.stub.StreamObserver;
 
 import java.util.Optional;
@@ -118,7 +117,6 @@ public class StubInstanceService extends InstanceServiceGrpc.InstanceServiceImpl
                 found -> {
                     responseObserver.onNext(GetInstanceSessionDetailResponse.newBuilder()
                             .setSession(StubProtoMappers.instanceSessionInfo(found))
-                            .setEnvironmentJsonFields(StubSessionEnvironment.forSession(found))
                             .build());
                     responseObserver.onCompleted();
                 },

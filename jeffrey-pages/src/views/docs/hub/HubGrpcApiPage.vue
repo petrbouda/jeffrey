@@ -203,7 +203,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>GetInstanceSessionDetail</code>
                 </div>
-                <p>Per-session detail: session metadata plus the JFR one-shot environment events from the session's latest finished chunk, serialised as a JSON map keyed by event type name (<code>jdk.JVMInformation</code>, <code>jdk.GCConfiguration</code>, <code>jdk.Shutdown</code>, …)</p>
+                <p>Per-session detail: the session's metadata, and nothing read out of its recording. The hub holds no JFR parser — the one-shot environment events shown beside the session (<code>jdk.JVMInformation</code>, <code>jdk.GCConfiguration</code>, <code>jdk.Shutdown</code>, …) are read by Microscope, which downloads the session's newest closed chunk and parses it there</p>
               </div>
             </div>
           </div>

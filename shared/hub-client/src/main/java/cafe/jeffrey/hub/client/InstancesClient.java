@@ -20,16 +20,13 @@ package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.microscope.grpc.client.*;
 
-import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
-import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionResponse;
 import cafe.jeffrey.hub.client.dto.InstanceStatsResponse;
 import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.shared.common.Json;
 
 import java.util.List;
 
@@ -85,22 +82,22 @@ public class InstancesClient {
                         response.getStats().getTotalSizeBytes()));
     }
 
-    public InstanceSessionDetailResponse instanceSessionDetail(String instanceId, String sessionId) {
+    /**
+     * The hub's metadata for one session of an instance. Carries no JFR data: the environment
+     * events shown beside it are read from the session's chunk on this side, by
+     * {@code SessionEnvironmentReader}, because the hub holds no JFR reader.
+     */
+    public InstanceSessionResponse instanceSessionDetail(String instanceId, String sessionId) {
         GetInstanceSessionDetailResponse response = stub.getInstanceSessionDetail(
                 GetInstanceSessionDetailRequest.newBuilder()
                         .setInstanceId(instanceId)
                         .setSessionId(sessionId)
                         .build());
 
-        String json = response.getEnvironmentJsonFields();
-        JsonNode env = (json == null || json.isBlank())
-                ? null
-                : Json.readTree(json);
+        LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={}",
+                instanceId, sessionId);
 
-        LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={} envTypes={}",
-                instanceId, sessionId, env == null ? 0 : env.size());
-
-        return new InstanceSessionDetailResponse(toSessionResponse(response.getSession()), env);
+        return toSessionResponse(response.getSession());
     }
 
     public List<InstanceSessionResponse> projectInstanceSessions(String instanceId) {

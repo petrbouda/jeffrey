@@ -68,6 +68,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -348,7 +349,7 @@ class HubsArtifactsMcpToolsTest {
 
             assertEquals(fetched.toString(), answer.path("path").asText());
             assertTrue(answer.path("alreadyHere").asBoolean());
-            verify(repository, never()).streamFile(any(), any());
+            verify(repository, never()).streamFile(anyString(), anyString());
         }
 
         @Test

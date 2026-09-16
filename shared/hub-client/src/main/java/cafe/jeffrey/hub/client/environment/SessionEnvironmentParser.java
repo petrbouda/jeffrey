@@ -16,19 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.project.repository;
+package cafe.jeffrey.hub.client.environment;
 
-import tools.jackson.databind.node.ObjectNode;
-import jdk.jfr.consumer.EventStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.jfr.EventFieldsToJsonMapper;
 import cafe.jeffrey.shared.common.jfr.MappedFields;
 import cafe.jeffrey.shared.common.model.EventTypeName;
+import jdk.jfr.consumer.EventStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -37,16 +37,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Reads a single JFR chunk and extracts the fixed set of one-shot
- * configuration / environment events we expose on the session-detail
- * endpoint. The result is an {@link ObjectNode} keyed by JFR event type name
- * whose values are the raw field maps emitted by
- * {@link EventFieldsToJsonMapper}. Each key is optional — it appears only if
- * the corresponding event was present in the chunk.
+ * Reads a single JFR chunk and extracts the fixed set of one-shot configuration / environment
+ * events the session-detail page shows. The result is an {@link ObjectNode} keyed by JFR event
+ * type name whose values are the raw field maps emitted by {@link EventFieldsToJsonMapper}. Each
+ * key is optional — it appears only if the corresponding event was present in the chunk.
+ *
+ * <p>This runs in Microscope, on a chunk pulled off the hub, rather than on the hub itself. The
+ * hub serves the file and knows nothing about what is in it: it holds no parser, and the only
+ * consumer of this data was ever Microscope's hub browser, so parsing it there put a JFR reader
+ * on the hub purely to answer someone else's question. The same reasoning retired the hub's
+ * replay stream and event-activity scan.
  */
-public class InstanceEnvironmentParser {
+public class SessionEnvironmentParser {
 
-    private static final Logger LOG = LoggerFactory.getLogger(InstanceEnvironmentParser.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SessionEnvironmentParser.class);
 
     private static final Set<String> ONE_SHOT_TYPES = Set.of(
             EventTypeName.JVM_INFORMATION,
@@ -58,28 +62,26 @@ public class InstanceEnvironmentParser {
             EventTypeName.CONTAINER_CONFIGURATION,
             EventTypeName.VIRTUALIZATION_INFORMATION);
 
-    private final HubJeffreyDirs hubJeffreyDirs;
+    private final TempDirFactory tempDirFactory;
     private final Lz4Compressor lz4Compressor;
 
-    public InstanceEnvironmentParser(HubJeffreyDirs hubJeffreyDirs) {
-        this.hubJeffreyDirs = hubJeffreyDirs;
-        this.lz4Compressor = new Lz4Compressor(hubJeffreyDirs);
+    public SessionEnvironmentParser(TempDirFactory tempDirFactory) {
+        this.tempDirFactory = tempDirFactory;
+        this.lz4Compressor = new Lz4Compressor(tempDirFactory);
     }
 
     /**
-     * Parses the given JFR chunk and returns the extracted events. Accepts
-     * both raw {@code .jfr} and LZ4-compressed {@code .jfr.lz4} files —
-     * compressed chunks are decompressed into a scoped {@link TempDirectory}
-     * that is wiped on return.
+     * Parses the given JFR chunk and returns the extracted events. Accepts both raw {@code .jfr}
+     * and LZ4-compressed {@code .jfr.lz4} files — the hub compresses a finished chunk, and
+     * {@link EventStream} cannot open one, so a compressed chunk is decompressed into a scoped
+     * {@link TempDirectory} that is wiped on return.
      *
-     * @param jfrPath path to a JFR chunk on disk
-     * @param expectShutdown when {@code true}, also looks for the
-     *                       {@code jdk.Shutdown} event (present only in the
-     *                       final chunk of a FINISHED session).
-     * @return an outer ObjectNode keyed by JFR event type name; always
-     *         non-null. Keys are present only for events found in the chunk,
-     *         so the node may be empty if the chunk carried none of the
-     *         one-shot types or if parsing failed.
+     * @param jfrPath        path to a JFR chunk on disk
+     * @param expectShutdown when {@code true}, also looks for the {@code jdk.Shutdown} event,
+     *                       which is present only in the final chunk of a FINISHED session
+     * @return an outer ObjectNode keyed by JFR event type name; always non-null. Keys are present
+     * only for events found in the chunk, so the node may be empty if the chunk carried none of
+     * the one-shot types or if parsing failed.
      */
     public ObjectNode parse(Path jfrPath, boolean expectShutdown) {
         Set<String> needed = expectShutdown
@@ -88,7 +90,7 @@ public class InstanceEnvironmentParser {
                 : ONE_SHOT_TYPES;
 
         if (Lz4Compressor.isLz4Compressed(jfrPath)) {
-            try (TempDirectory td = hubJeffreyDirs.newTempDir()) {
+            try (TempDirectory td = tempDirFactory.newTempDir()) {
                 Path decompressed = lz4Compressor.decompressToDir(jfrPath, td.path());
                 return readOneShotEvents(decompressed, needed);
             } catch (RuntimeException e) {
@@ -107,15 +109,14 @@ public class InstanceEnvironmentParser {
             for (String type : needed) {
                 stream.onEvent(type, e -> {
                     ObjectNode node = toFullTree(mapper.map(e));
-                    // Drop the inherited jdk.jfr.Event fields — the environment
-                    // cards show configuration data, not event-emission
-                    // metadata. Without this, jdk.JVMInformation ends up with
-                    // two "Start Time" rows (the JVM's real jvmStartTime plus
-                    // the event's own startTime) that collide in the UI.
+                    // Drop the inherited jdk.jfr.Event fields — the environment cards show
+                    // configuration data, not event-emission metadata. Without this,
+                    // jdk.JVMInformation ends up with two "Start Time" rows (the JVM's real
+                    // jvmStartTime plus the event's own startTime) that collide in the UI.
                     node.remove("startTime");
                     node.remove("duration");
-                    // jdk.Shutdown has no wall-clock field of its own, so we
-                    // re-inject the event's startTime under a dedicated key.
+                    // jdk.Shutdown has no wall-clock field of its own, so we re-inject the
+                    // event's startTime under a dedicated key.
                     if (EventTypeName.SHUTDOWN.equals(type)) {
                         node.put("eventTime", e.getStartTime().toEpochMilli());
                     }
@@ -124,9 +125,8 @@ public class InstanceEnvironmentParser {
             }
             stream.start();
         } catch (IOException | RuntimeException e) {
-            // Preserve whatever was already mapped — earlier chunks' config
-            // events are still valid even if a later chunk trips the JDK
-            // ChunkParser (e.g. NPE in logConstant).
+            // Preserve whatever was already mapped — earlier chunks' config events are still
+            // valid even if a later chunk trips the JDK ChunkParser (e.g. NPE in logConstant).
             LOG.warn("Stopped reading JFR chunk at error — returning partial environment: path={} parsed_types={}",
                     path, iterableKeys(result), e);
         }
