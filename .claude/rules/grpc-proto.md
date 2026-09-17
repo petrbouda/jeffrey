@@ -2,43 +2,30 @@
 paths:
   - "**/*.proto"
   - "**/*GrpcService.java"
-  - "**/client/Remote*.java"
+  - "**/*GrpcServiceTest.java"
+  - "jeffrey-microscope/grpc-client/**"
+  - "jeffrey-microscope/hub-client/**"
 ---
 
 ## gRPC and Proto Rules
 
-### Proto File Conventions
-- Syntax: `proto3`
-- Package: `jeffrey.api.v1`
-- Java package: `cafe.jeffrey.api.v1` (via `option java_package`)
-- Always set `option java_multiple_files = true`
-- Location: `shared/hub-api/src/main/proto/jeffrey/api/v1/`
+### Proto files
+- `proto3`, package `jeffrey.hub.api.v1`, `option java_package = "cafe.jeffrey.hub.api.v1"`, `option java_multiple_files = true`.
+- Location: `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/` — `workspace_service`, `project_service`, `instance_service`, `file_download_service`, `repository_service`, `profiler_settings_service`. Protos only; no Java in that module.
+- Request/Response pair per RPC; `repeated` for collections; `workspace_id`/`project_id` on resource-scoped requests.
 
-### Backward Compatibility (IMPORTANT)
-- **Default: no backward compatibility** — when removing or renaming fields, just delete them and reuse field numbers freely. Do NOT use the `reserved` keyword.
-- **Always ask** before making breaking proto changes: "Should we keep backward compatibility for this change, or is it okay to break it (default)?"
-- If backward compatibility IS required: use `reserved` for removed field numbers/names, never reuse old field numbers, follow standard protobuf evolution rules
+### No `reserved` fields — hub and Microscope ship as one release
+- A removed field's number is reused and survivors renumbered contiguously. No gaps, no `reserved` lines.
+- This is accepted because the two are never deployed at different versions of `shared/hub-api` (a proto3 field that moves defaults silently on an older peer). Should they ever diverge, flip the rule: keep numbers, reserve removals.
+- Proto changes are reflected in `jeffrey-pages/.../docs/hub/HubGrpcApiPage.vue`.
 
-### Message Design
-- Use Request/Response pairs for each RPC (e.g., `GetWorkspaceRequest`, `GetWorkspaceResponse`)
-- Include `workspace_id` and `project_id` in requests that operate on specific resources
-- Use `repeated` for collections, not wrapper messages
-- Field numbering: sequential
+### Services (`jeffrey-hub/core-hub/.../grpc/`)
+- Map domain exceptions to status at the service boundary with `GrpcExceptions` (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`). Domain code never throws a gRPC status.
+- `GrpcExceptions.toStatus` belongs to `GrpcUnary`; a **streaming** RPC maps for itself (`FileDownloadGrpcService.downloadFile`: pass `StatusRuntimeException` through, `IllegalArgumentException` → `INVALID_ARGUMENT` with its own message, then `INTERNAL`).
 
-### gRPC Service Implementation
-- Implementations go in `jeffrey-hub/core-hub/.../grpc/`
-- Must handle errors with proper gRPC status codes: `NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`
-- Use `GrpcExceptions` utility for common status patterns
-- Map domain exceptions to gRPC status at the service boundary, not in domain code
+### Clients
+- Clients live in `jeffrey-microscope/grpc-client/`, aggregated by the `HubClients` record in `jeffrey-microscope/hub-client/` (`DiscoveryClient`, `RepositoryClient`, `FileStreamClient`, `ProfilerClient`, `InstancesClient`, `ProjectsClient`). Add a new client to the record and its factory.
+- Blocking stubs for request/response, async stubs for streaming. Wire values (session ids, file names) are validated and reduced to one path element in the receiving record's compact constructor (`FileStreamClient.TransferredFile`).
 
-### gRPC Clients
-- Clients go in `jeffrey-microscope/core-microscope/.../client/`
-- Use blocking stubs for request-response, async stubs for streaming
-- Add new clients to the `HubClients` record
-- Update the factory method that creates `HubClients`
-
-### Testing
-- Every gRPC service must have an in-process integration test
-- Use `InProcessServerBuilder` / `InProcessChannelBuilder`
-- Test validation errors (status codes) and end-to-end streaming
-- Reference pattern: `FileDownloadGrpcServiceTest`
+### Tests
+- Every gRPC service has an in-process test (`InProcessServerBuilder`/`InProcessChannelBuilder`, `grpc-inprocess`), covering status codes and end-to-end streaming. Reference: `FileDownloadGrpcServiceTest` (server-streaming errors arrive via `onError` — await an `errorLatch`); unary reference: `RepositoryGrpcServiceTest` (`assertThrows` on the blocking stub).

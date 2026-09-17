@@ -61,6 +61,8 @@ package-lock.json
 # .claude/** otherwise is. The directory has to be re-included before its contents can be.
 !.claude/agents/
 !.claude/agents/**
+!.claude/rules/
+!.claude/rules/**
 **/dependency-reduced-pom.xml
 profile.jfr
 
