@@ -334,7 +334,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         </table>
 
         <DocsCallout type="info">
-          <strong>Architecture detection:</strong> the auto-resolved <code>profiler-path</code> reads <code>os.arch</code> at startup and looks for <code>libasyncProfiler-amd64.so</code> on x86_64 or <code>libasyncProfiler-arm64.so</code> on aarch64. On any other architecture (e.g. <code>ppc64le</code>, <code>s390x</code>) the provisioner logs a warning and skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached. Set <code>profiler-path</code> explicitly if you have a custom build.
+          <strong>Architecture:</strong> the provisioner does not detect it and discovers nothing on disk. In a JIB-built image the extension bakes <code>JEFFREY_PROFILER_PATH</code> for the platform it built, and on a multi-platform image the entrypoint wrapper expands an <code>&#123;arch&#125;</code> placeholder from <code>uname -m</code> before the provisioner runs. Everywhere else, <code>profiler-path</code> names the <code>libasyncProfiler.so</code> you shipped for that architecture. When no path resolves the provisioner skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached.
         </DocsCallout>
 
         <h2 id="features">Features</h2>
