@@ -238,7 +238,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>profiler-path</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROFILER_PATH</code></td>
-              <td>Path to <code>libasyncProfiler.so</code>. Normally baked into the image as <code>JEFFREY_PROFILER_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Set it explicitly only when you supply your own async-profiler; nothing is discovered on disk, and when no path resolves the application simply starts without profiling.</td>
+              <td>Path to <code>libasyncProfiler.so</code>. Normally baked into the image as <code>JEFFREY_PROFILER_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Set it explicitly only when you supply your own async-profiler &mdash; see <router-link to="/docs/jib/configuration#custom-async-profiler">Using Your Own async-profiler</router-link> for the agent options your build must accept. Nothing is discovered on disk: when no path resolves the application starts without profiling, but a path that resolves to the wrong library stops the JVM.</td>
             </tr>
             <tr>
               <td><code>project.instance-name</code></td>

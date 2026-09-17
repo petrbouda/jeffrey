@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -26,8 +27,31 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'properties', text: 'Properties', level: 2 },
+  { id: 'custom-async-profiler', text: 'Using Your Own async-profiler', level: 2 },
   { id: 'build-time-vs-runtime', text: 'Build-time vs Runtime', level: 2 }
 ];
+
+const customProfilerMaven = `<configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+    <payloadVersion>\${jeffrey-jib.version}</payloadVersion>
+    <profilerPath>/opt/async-profiler/libasyncProfiler.so</profilerPath>
+</configuration>`;
+
+const customProfilerGradle = `properties = mapOf(
+  "payloadVersion" to "0.14.0",
+  "profilerPath" to "/opt/async-profiler/libasyncProfiler.so",
+)`;
+
+const customProfilerMultiArch = `"profilerPath" to "/opt/async-profiler/libasyncProfiler-{arch}.so"`;
+
+const customProfilerRuntime = `env:
+  - name: JEFFREY_PROFILER_PATH
+    value: /opt/async-profiler/libasyncProfiler.so`;
+
+const defaultAgentCommand = `-agentpath:<profiler-path>=start,alloc,lock,event=ctimer,jfrsync=default,\
+loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
+
+const customProfilerConfig = `profiler-config = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=itimer,\
+file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -112,6 +136,75 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
+
+        <h2 id="custom-async-profiler">Using Your Own async-profiler</h2>
+        <p>Jeffrey bakes the async-profiler build it was released with, but you can supply your own
+          &mdash; a version you have qualified, a build with custom patches, or one your base image
+          already ships. Point <code>profilerPath</code> at it. That declares <em>this image already
+          has that library</em>, so the extension neither resolves nor bakes its own copy and the
+          second one costs you nothing in image size:</p>
+
+        <DocsCodeBlock
+          language="xml"
+          :code="customProfilerMaven"
+        />
+
+        <DocsCodeBlock
+          language="kotlin"
+          :code="customProfilerGradle"
+        />
+
+        <p>On a multi-architecture image, write the path once with the
+          <code>&#123;arch&#125;</code> placeholder the entrypoint wrapper expands from
+          <code>uname -m</code> at container start. It works for any value of the variable, not only
+          the ones the extension bakes:</p>
+
+        <DocsCodeBlock
+          language="kotlin"
+          :code="customProfilerMultiArch"
+        />
+
+        <p>You can also swap the library at deploy time on an image that was built with Jeffrey's,
+          since a pod-level variable overrides the baked default. The image still carries the copy it
+          was built with, so prefer <code>profilerPath</code> at build time when you know you will
+          never use it:</p>
+
+        <DocsCodeBlock
+          language="yaml"
+          :code="customProfilerRuntime"
+        />
+
+        <h3>What your build has to support</h3>
+        <p>The path is only half the contract. The provisioner generates a fixed agent command, and
+          your library has to accept every option in it:</p>
+
+        <DocsCodeBlock
+          language="text"
+          :code="defaultAgentCommand"
+        />
+
+        <p><code>event=ctimer</code>, <code>jfrsync=default</code> and <code>chunksize</code> are the
+          ones to check against an older build. Jeffrey currently pins async-profiler 4.1, and the
+          build log names the exact version it baked, so a custom library of a comparable generation
+          is the safe choice. If yours needs different options, replace the whole command with
+          <code>profiler-config</code> rather than fighting the default &mdash; the
+          <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code> and
+          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholders keep it portable:</p>
+
+        <DocsCodeBlock
+          language="hocon"
+          :code="customProfilerConfig"
+        />
+
+        <DocsCallout type="warning">
+          <strong>A wrong library stops the application.</strong> The fail-open guarantee covers the
+          provisioner, not the agent: a missing provisioner is detected before the argfile exists, so
+          the application simply starts unprofiled. A <code>profilerPath</code> that is mistyped,
+          built for another architecture, or unhappy with one of the options above fails later
+          &mdash; the argfile is already written, the JVM starts with an <code>-agentpath</code> it
+          cannot load, and it exits. The path you name is never checked at build time or by
+          <code>provisioner init</code>. Start one container after the change before rolling it out.
+        </DocsCallout>
 
         <h2 id="build-time-vs-runtime">Build-time vs Runtime</h2>
         <p>There are two layers of control. <code>enabled</code> is a <strong>build-time</strong> gate
