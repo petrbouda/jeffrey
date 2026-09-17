@@ -156,7 +156,6 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
                 .setName(file.name())
                 .setCreatedAt(file.createdAt() != null ? file.createdAt().toEpochMilli() : 0)
                 .setSize(file.size() != null ? file.size() : 0)
-                .setFileType(file.fileType() != null ? file.fileType().name() : "")
                 .setIsRecording(file.isRecordingFile())
                 .build();
     }

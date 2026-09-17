@@ -27,7 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.ui.hub.controller.RecordingsController;
 

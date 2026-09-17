@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
@@ -610,7 +611,7 @@ public class HubsMcpTools {
                 project.info().name(),
                 ref.sessionId(),
                 (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
-                (int) finished.stream().filter(RepositoryFile::isArtifactFile).count(),
+                (int) finished.stream().filter(RepositoryFiles::isArtifact).count(),
                 session.totalSizeBytes(),
                 null,
                 null,
@@ -933,7 +934,7 @@ public class HubsMcpTools {
             }
             return finished.stream()
                     .filter(file -> fileIds.contains(file.id()))
-                    .filter(RepositoryFile::isArtifactFile)
+                    .filter(RepositoryFiles::isArtifact)
                     .toList();
         }
 

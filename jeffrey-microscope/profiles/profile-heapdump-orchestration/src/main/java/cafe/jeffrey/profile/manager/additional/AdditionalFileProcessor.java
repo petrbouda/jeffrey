@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager.additional;
 
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
 import java.nio.file.Path;
 import java.util.Optional;

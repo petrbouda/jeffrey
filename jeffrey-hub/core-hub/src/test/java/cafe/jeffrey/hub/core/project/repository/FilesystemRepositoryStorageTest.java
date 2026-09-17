@@ -22,11 +22,9 @@ import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -43,7 +41,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,47 +53,6 @@ class FilesystemRepositoryStorageTest {
 
     /** Long enough that LZ4 has something to do with it, short enough to read in a failure. */
     private static final String CHUNK_BODY = "a chunk of events, repeated so the frame compresses".repeat(20);
-
-    /**
-     * Which files cost a round trip to the share. Every open here is paid per file, per session,
-     * on every listing of the project, so the cases that read from the listing are as much the
-     * contract as the case that does not.
-     */
-    @Nested
-    class SizeReader {
-
-        @Test
-        void opensTheRecordingOfASessionThatIsStillRecording() {
-            assertSame(FileSizeReader.LIVE_FILE,
-                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR));
-        }
-
-        @Test
-        void opensTheLogsAndCachesOfASessionThatIsStillRecording() {
-            assertSame(FileSizeReader.LIVE_FILE,
-                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JVM_LOG));
-            assertSame(FileSizeReader.LIVE_FILE,
-                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.ASPROF_TEMP));
-        }
-
-        @Test
-        void readsACompressedRecordingFromTheListingEvenWhileTheSessionRecords() {
-            // This hub wrote and closed it, so no other client holds it open and the listing is
-            // final. A long session accumulates one of these every chunk, and opening each would
-            // grow the cost of a listing without bound.
-            assertSame(FileSizeReader.FILE_ATTRIBUTES,
-                    FilesystemRepositoryStorage.sizeReader(RecordingStatus.ACTIVE, ManagedFile.JFR_LZ4));
-        }
-
-        @Test
-        void readsEveryFileOfAFinishedSessionFromTheListing() {
-            for (ManagedFile fileType : ManagedFile.values()) {
-                assertSame(FileSizeReader.FILE_ATTRIBUTES,
-                        FilesystemRepositoryStorage.sizeReader(RecordingStatus.FINISHED, fileType),
-                        "file type: " + fileType);
-            }
-        }
-    }
 
     @Nested
     class Describe {
@@ -122,12 +78,12 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Path file = Files.write(session.resolve("gc.jvm-log"), CONTENT);
 
-            RepositoryFile described = storage().describe(file, RecordingStatus.ACTIVE, session);
+            RepositoryFile described = storage().describe(file, session);
 
             assertNotNull(described);
             assertEquals("gc.jvm-log", described.name());
             assertEquals(CONTENT.length, described.size());
-            assertEquals(ManagedFile.JVM_LOG, described.fileType());
+            assertFalse(described.isRecordingFile());
         }
 
         @Test
@@ -138,7 +94,7 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Path vanished = session.resolve("profile-20260912-121559.jfr.1~");
 
-            assertNull(storage().describe(vanished, RecordingStatus.ACTIVE, session));
+            assertNull(storage().describe(vanished, session));
         }
 
         @Test
@@ -146,7 +102,7 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Path vanished = session.resolve("profile-20260912-121559.jfr");
 
-            assertNull(storage().describe(vanished, RecordingStatus.FINISHED, session));
+            assertNull(storage().describe(vanished, session));
         }
     }
 
@@ -278,16 +234,16 @@ class FilesystemRepositoryStorageTest {
         }
 
         /**
-         * async-profiler deletes its {@code .jfr.N~} cache as it goes, so it is never a file a
-         * reader can be handed.
+         * The hub has no name for the profiler's {@code .jfr.N~} cache file and does not refuse
+         * it: what kind of file is worth taking is Microscope's judgement, made from the name it
+         * was given. What the hub judges is only whether the file is there to be taken.
          */
         @Test
-        void refusesATransientFile() throws IOException {
+        void servesTheProfilersCacheFileLikeAnyOther() throws IOException {
             Path session = sessionDir();
-            write(session, "profile-20260220-120000.jfr.1~", "cache");
+            Path cache = write(session, "profile-20260220-120000.jfr.1~", "cache");
 
-            assertTrue(refusal(() -> finishedSession().file(SESSION_ID, "profile-20260220-120000.jfr.1~"))
-                    .contains("transient"));
+            assertEquals(cache, finishedSession().file(SESSION_ID, "profile-20260220-120000.jfr.1~"));
         }
 
         /**

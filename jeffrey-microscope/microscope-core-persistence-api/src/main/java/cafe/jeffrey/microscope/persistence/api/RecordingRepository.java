@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.microscope.persistence.api;
 
-import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 
 import java.util.List;
 import java.util.Optional;

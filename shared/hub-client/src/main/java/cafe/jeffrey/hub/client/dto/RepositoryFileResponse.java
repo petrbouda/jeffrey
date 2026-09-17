@@ -22,7 +22,8 @@ import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.client.RepositoryFiles;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
 public record RepositoryFileResponse(
         String id,
@@ -48,7 +49,7 @@ public record RepositoryFileResponse(
                 file.name(),
                 InstantUtils.toEpochMilli(file.createdAt()),
                 file.size(),
-                file.fileType(),
+                RepositoryFiles.typeOf(file),
                 session.isOpen(file) ? session.status() : RecordingStatus.FINISHED,
                 file.isRecordingFile());
     }
@@ -59,7 +60,7 @@ public record RepositoryFileResponse(
                 response.name(),
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 response.size(),
-                response.fileType(),
+                response.isRecording(),
                 null);
     }
 }

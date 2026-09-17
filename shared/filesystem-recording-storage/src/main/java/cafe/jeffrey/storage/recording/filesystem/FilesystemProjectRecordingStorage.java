@@ -21,14 +21,17 @@ package cafe.jeffrey.storage.recording.filesystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiPredicate;
+import java.util.stream.Stream;
 
 public class FilesystemProjectRecordingStorage implements ProjectRecordingStorage {
 
@@ -82,12 +85,22 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
 
     private Optional<Path> findRecordingFile(Path recordingFolder) {
         for (ManagedFile recordingType : recordingTypes) {
-            Optional<Path> recordingOpt = FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingType);
+            Optional<Path> recordingOpt = findFileOfType(recordingFolder, recordingType);
             if (recordingOpt.isPresent()) {
                 return recordingOpt;
             }
         }
         return Optional.empty();
+    }
+
+    private static Optional<Path> findFileOfType(Path dir, ManagedFile recordingType) {
+        BiPredicate<Path, BasicFileAttributes> matcher = (path, _) -> recordingType.matches(path.getFileName());
+        try (Stream<Path> stream = Files.find(dir, 1, matcher)) {
+            return stream.findFirst();
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Searching in directory failed: directory=" + dir + " supported_file_type=" + recordingType, e);
+        }
     }
 
     @Override

@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

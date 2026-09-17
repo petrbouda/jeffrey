@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.storage.recording.api.file;
 
 /**
  * Classifies files found in a recording session directory.

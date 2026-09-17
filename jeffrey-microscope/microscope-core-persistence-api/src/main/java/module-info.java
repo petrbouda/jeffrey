@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.persistence.api {
     requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.shared.storage.recording.api;
     requires transitive cafe.jeffrey.shared.persistence;
     requires tools.jackson.databind;
 

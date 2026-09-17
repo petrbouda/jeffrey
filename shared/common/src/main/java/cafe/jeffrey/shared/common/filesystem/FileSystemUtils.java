@@ -22,7 +22,6 @@ import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -37,7 +36,6 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
 public abstract class FileSystemUtils {
@@ -129,24 +127,15 @@ public abstract class FileSystemUtils {
         }
     }
 
-    public static Optional<Path> findSupportedFileInDir(Path dir, ManagedFile recordingFileType) {
-        BiPredicate<Path, BasicFileAttributes> matcher = (path, _) -> recordingFileType.matches(path.getFileName());
-        try (var stream = Files.find(dir, 1, matcher)) {
-            return stream.findFirst();
-        } catch (IOException e) {
-            throw new RuntimeException(
-                    "Searching in directory failed: directory=" + dir + " supported_file_type=" + recordingFileType, e);
-        }
-    }
-
     /**
-     * Size of a file from its attributes, which is what a local filesystem always reports
-     * correctly and a network mount reports correctly for a file nobody else holds open.
-     * A caller measuring a file another process may still be writing wants
-     * {@link FileSizeReader#OPEN_HANDLE} instead.
+     * @throws RuntimeException when the file cannot be read, wrapping the {@link IOException}
      */
     public static long size(Path path) {
-        return FileSizeReader.FILE_ATTRIBUTES.size(path);
+        try {
+            return Files.size(path);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot get size of file: " + path, e);
+        }
     }
 
     /**

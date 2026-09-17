@@ -149,29 +149,23 @@ public record StubDataset(List<Workspace> workspaces) {
     }
 
     /**
-     * File classification. {@code fileType} is the wire string the hub sends — it MUST be a
-     * {@code ManagedFile} enum name, because the client resolves it with
-     * {@code ManagedFile.valueOf(...)} (an unknown name yields a null fileType and
-     * a downstream NPE). {@code recording} distinguishes JFR recordings from artifacts.
+     * File classification. Only {@code recording} reaches the wire: the hub says whether a file
+     * is a recording chunk and nothing finer, and Microscope classifies the name itself — so the
+     * names the factory gives these files ({@code gc.jvm-log}, {@code heapdump.hprof}) are what
+     * decide how the client reads them.
      */
     public enum FileKind {
-        JFR("JFR", true),
-        HEAP_DUMP("HEAP_DUMP", false),
-        GC_LOG("JVM_LOG", false),
-        HS_ERR_LOG("HS_JVM_ERROR_LOG", false),
-        APP_LOG("APP_LOG", false),
-        OTHER("UNKNOWN", false);
+        JFR(true),
+        HEAP_DUMP(false),
+        GC_LOG(false),
+        HS_ERR_LOG(false),
+        APP_LOG(false),
+        OTHER(false);
 
-        private final String fileType;
         private final boolean recording;
 
-        FileKind(String fileType, boolean recording) {
-            this.fileType = fileType;
+        FileKind(boolean recording) {
             this.recording = recording;
-        }
-
-        public String fileType() {
-            return fileType;
         }
 
         public boolean recording() {

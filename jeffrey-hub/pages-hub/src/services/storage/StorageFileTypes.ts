@@ -1,24 +1,19 @@
 import type { FileTypeUsage } from '@/services/api/model/StorageOverview';
 
 /**
- * Visual grouping of the backend's ManagedFile types for the
- * storage breakdown (category bars, legend, drawer sections).
+ * Visual grouping of the kinds the hub tells apart for the storage breakdown
+ * (category bars, legend, drawer sections). The hub reads none of the files it
+ * stores, so it knows a flight recording — plain or compressed — from everything
+ * else, and nothing finer: a heap dump, a log and a pprof profile are all "other".
  */
-export type StorageGroupKey =
-    | 'recordings'
-    | 'profiles'
-    | 'heapDumps'
-    | 'logs'
-    | 'diagnostics'
-    | 'temporary'
-    | 'unrecognized';
+export type StorageGroupKey = 'recordings' | 'other';
 
 export interface StorageGroup {
     key: StorageGroupKey;
     label: string;
     /**
      * CSS `background` value usable directly in style bindings — a design-token
-     * colour for a real kind of file, a hatch for the group that is none.
+     * colour for the recordings, a hatch for the group the hub does not classify.
      */
     fill: string;
 }
@@ -31,59 +26,36 @@ export interface StorageFileTypeMeta {
 }
 
 /**
- * Files the hub could not classify are not a kind of file, so their group is
- * drawn as a hatch over the bar's own background rather than as a seventh colour.
+ * Files the hub does not classify are not a kind of file, so their group is
+ * drawn as a hatch over the bar's own background rather than as a second colour.
  */
-const UNRECOGNIZED_FILL =
+const OTHER_FILL =
     'repeating-linear-gradient(135deg, var(--color-slate-muted) 0 2px, transparent 2px 5px), var(--color-grey-bg)';
 
 export const STORAGE_GROUPS: StorageGroup[] = [
     { key: 'recordings', label: 'Flight recordings', fill: 'var(--color-primary)' },
-    { key: 'profiles', label: 'Profiles', fill: 'var(--color-purple)' },
-    { key: 'heapDumps', label: 'Heap dumps', fill: 'var(--color-orange)' },
-    { key: 'logs', label: 'Logs', fill: 'var(--color-teal)' },
-    { key: 'diagnostics', label: 'Diagnostics', fill: 'var(--color-amber)' },
-    { key: 'temporary', label: 'Temporary', fill: 'var(--color-slate-light)' },
-    { key: 'unrecognized', label: 'Unrecognized', fill: UNRECOGNIZED_FILL }
+    { key: 'other', label: 'Other files', fill: OTHER_FILL }
 ];
 
-/** Keyed by the ManagedFile enum name sent by the backend. */
+/** Keyed by the kind name sent by the backend. */
 export const STORAGE_FILE_TYPES: Record<string, StorageFileTypeMeta> = {
     JFR: { label: 'JDK Flight Recording', extension: '.jfr', group: 'recordings' },
-    JFR_LZ4: { label: 'LZ4 Compressed JFR', extension: '.jfr.lz4', group: 'recordings' },
-    PPROF: { label: 'pprof Profile', extension: '.pprof · .pb.gz', group: 'profiles' },
-    OTLP_PROFILE: { label: 'OpenTelemetry Profiles', extension: '.otlp', group: 'profiles' },
-    HEAP_DUMP: { label: 'Heap Dump', extension: '.hprof', group: 'heapDumps' },
-    HEAP_DUMP_GZ: { label: 'GZ Compressed Heap Dump', extension: '.hprof.gz', group: 'heapDumps' },
-    JVM_LOG: { label: 'JVM Log', extension: '.jvm-log', group: 'logs' },
-    APP_LOG: { label: 'Application Log', extension: '.log (+ rotated, compressed)', group: 'logs' },
-    HS_JVM_ERROR_LOG: { label: 'HotSpot JVM Error Log', extension: 'hs-jvm-err.log', group: 'logs' },
-    PERF_COUNTERS: { label: 'HotSpot Performance Counters', extension: '.hsperfdata', group: 'diagnostics' },
-    ASPROF_TEMP: { label: 'Async Profiler Cache', extension: '.jfr.*~', group: 'temporary' }
+    JFR_LZ4: { label: 'LZ4 Compressed JFR', extension: '.jfr.lz4', group: 'recordings' }
 };
 
 /**
- * The backend's UNKNOWN bucket, and any type name this catalogue has not caught
- * up with yet. It belongs to no real group: the hub already keeps it apart in
- * its own FileCategory.UNRECOGNIZED, and the breakdown does the same.
+ * The backend's OTHER bucket — heap dumps, logs, perf counters, pprof and OTLP
+ * profiles, the profiler's scratch files — and any kind name this catalogue has
+ * not caught up with yet.
  */
-const UNKNOWN_FILE_TYPE: StorageFileTypeMeta = {
-    label: 'Unrecognized files',
-    extension: '',
-    group: 'unrecognized'
+const OTHER_FILE_TYPE: StorageFileTypeMeta = {
+    label: 'Other files',
+    extension: 'logs · heap dumps · diagnostics',
+    group: 'other'
 };
 
 export function fileTypeMeta(type: string): StorageFileTypeMeta {
-    return STORAGE_FILE_TYPES[type] ?? UNKNOWN_FILE_TYPE;
-}
-
-export function isRecognizedFileType(type: string): boolean {
-    return type in STORAGE_FILE_TYPES;
-}
-
-/** How many of the catalogued file types a project actually holds; the unknown bucket is not one of them. */
-export function recognizedFileTypeCount(fileTypes: FileTypeUsage[]): number {
-    return fileTypes.filter(usage => isRecognizedFileType(usage.type)).length;
+    return STORAGE_FILE_TYPES[type] ?? OTHER_FILE_TYPE;
 }
 
 export interface GroupUsage {
@@ -110,5 +82,3 @@ export function groupUsages(fileTypes: FileTypeUsage[]): GroupUsage[] {
         })
         .filter(usage => usage.fileTypes.length > 0);
 }
-
-export const STORAGE_FILE_TYPE_COUNT = Object.keys(STORAGE_FILE_TYPES).length;

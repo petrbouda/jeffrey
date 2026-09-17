@@ -22,10 +22,10 @@ import cafe.jeffrey.microscope.persistence.api.*;
 
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 
 import java.sql.ResultSet;

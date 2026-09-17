@@ -19,7 +19,7 @@
 package cafe.jeffrey.storage.recording.filesystem;
 
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 

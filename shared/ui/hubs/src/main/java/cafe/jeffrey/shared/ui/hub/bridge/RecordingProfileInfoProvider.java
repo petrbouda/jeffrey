@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.shared.ui.hub.bridge;
 
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 
 /**
  * Optional enrichment SPI for the shared recordings list. Supplies the per-recording profile

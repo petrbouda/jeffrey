@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.recordings.core.manager;
 
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 
 /**
  * Optional SPI invoked when a recording is being deleted, so deployments that attach analysis

@@ -45,6 +45,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>recording-storage-api</artifactId>
+        </dependency>
         <!-- ManagedChannel + Netty -->
         <dependency>
             <groupId>io.grpc</groupId>

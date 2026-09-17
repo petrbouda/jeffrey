@@ -32,7 +32,6 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -79,7 +78,7 @@ class RepositoryGrpcServiceTest {
                             null,
                             List.of(new RepositoryFile(
                                     "file-1", "recording.jfr", FIXED_TIME, 1024L,
-                                    ManagedFile.JFR,
+                                    true,
                                     null)),
                             false),
                     new cafe.jeffrey.shared.common.model.repository.RecordingSession(

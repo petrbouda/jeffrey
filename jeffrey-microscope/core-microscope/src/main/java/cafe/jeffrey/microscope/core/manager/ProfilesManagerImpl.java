@@ -30,7 +30,7 @@ import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.nio.file.Path;

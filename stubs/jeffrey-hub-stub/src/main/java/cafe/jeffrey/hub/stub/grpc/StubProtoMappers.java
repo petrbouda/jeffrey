@@ -134,7 +134,6 @@ final class StubProtoMappers {
                 .setName(file.name())
                 .setCreatedAt(file.createdAt().toEpochMilli())
                 .setSize(file.size())
-                .setFileType(file.kind().fileType())
                 .setIsRecording(file.kind().recording())
                 .build();
     }

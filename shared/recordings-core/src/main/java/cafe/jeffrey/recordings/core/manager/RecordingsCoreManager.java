@@ -20,7 +20,7 @@ package cafe.jeffrey.recordings.core.manager;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 
 import java.io.InputStream;
 import java.nio.file.Path;

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import org.junit.jupiter.api.Nested;
@@ -50,16 +50,8 @@ class TimestampResolverTest {
 
         @Test
         void aRecordingReadsItsOwnName() {
-            assertSame(TimestampResolver.RECORDING_NAME, ManagedFile.JFR.timestampResolver());
-            assertSame(TimestampResolver.RECORDING_NAME, ManagedFile.JFR_LZ4.timestampResolver());
-        }
-
-        @Test
-        void everythingElseAsksTheFilesystem() {
-            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.PPROF.timestampResolver());
-            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.OTLP_PROFILE.timestampResolver());
-            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.APP_LOG.timestampResolver());
-            assertSame(TimestampResolver.FILESYSTEM, ManagedFile.HEAP_DUMP.timestampResolver());
+            assertSame(TimestampResolver.RECORDING_NAME, HubManagedFile.JFR.timestampResolver());
+            assertSame(TimestampResolver.RECORDING_NAME, HubManagedFile.JFR_LZ4.timestampResolver());
         }
     }
 

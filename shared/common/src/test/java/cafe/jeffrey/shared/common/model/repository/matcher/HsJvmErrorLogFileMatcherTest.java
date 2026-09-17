@@ -18,11 +18,9 @@
 
 package cafe.jeffrey.shared.common.model.repository.matcher;
 
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -79,24 +77,5 @@ class HsJvmErrorLogFileMatcherTest {
     @Test
     void nullIsNotAFileName() {
         assertFalse(matcher.test(null));
-    }
-
-    /**
-     * The point of the second spelling: both end in {@code .log}, so without it the JVM's own crash
-     * file was filed as an application log — listed under the wrong badge, and named as an
-     * application log by {@code hubs_files} when an agent went looking for the crash.
-     */
-    @Nested
-    class ThroughManagedFile {
-
-        @Test
-        void theJvmDefaultIsACrashLogNotAnAppLog() {
-            assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("hs_err_pid123.log"));
-        }
-
-        @Test
-        void caseIsIgnoredLikeEverywhereElse() {
-            assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("HS_ERR_PID123.LOG"));
-        }
     }
 }

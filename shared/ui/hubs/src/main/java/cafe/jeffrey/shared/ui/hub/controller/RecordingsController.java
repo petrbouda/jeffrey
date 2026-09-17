@@ -39,7 +39,7 @@ import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
 import cafe.jeffrey.shared.ui.hub.dto.RecordingGroupResponse;
 import cafe.jeffrey.shared.ui.hub.dto.RecordingResponse;

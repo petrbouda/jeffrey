@@ -16,32 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.hub.core.project.repository;
 
 import java.nio.file.Path;
 
 /**
- * The answer for a type nothing compresses, for either of the two reasons a type can have.
- *
- * <p>{@link Compression#NONE} is the type that must be left as it is, because no compressed form
- * of it would still be recognised as the same file — not because nobody has written one yet.
- * {@link Compression#ARCHIVE} is the type that already is a compressed form: there is equally
- * nothing to do, but its name is one a compression produced, and that is what decides whether the
- * extension comes off when the file's id is taken.
- *
- * @param archive whether this speaks for the product of a compression rather than for a file
- *                compression must not touch
+ * The answer for a type that must be left as it is, because no compressed form of it would still
+ * be recognised as the same file — not because nobody has written one yet.
  */
-record NoCompression(boolean archive) implements Compression {
+record NoCompression() implements Compression {
 
     @Override
     public boolean isSupported() {
         return false;
-    }
-
-    @Override
-    public boolean isArchive() {
-        return archive;
     }
 
     @Override

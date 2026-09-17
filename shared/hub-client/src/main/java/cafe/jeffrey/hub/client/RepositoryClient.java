@@ -28,7 +28,7 @@ import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
 import java.util.List;
 
@@ -150,6 +150,10 @@ public class RepositoryClient {
      * {@link RecordingSessionResponse#withResolvedFileStatuses()} before the session leaves
      * {@link #toSessionResponse}: the wire carries no status, and a file on its own cannot
      * answer for one.
+     *
+     * <p>Its type is classified from the name here: the wire carries none, because the hub
+     * reads none of the files it serves and has nothing to say about a log or a heap dump
+     * beyond that it is not a recording.
      */
     private static RepositoryFileResponse toFileResponse(RepositoryFile proto) {
         return new RepositoryFileResponse(
@@ -157,19 +161,8 @@ public class RepositoryClient {
                 proto.getName(),
                 proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
-                parseFileType(proto.getFileType()),
+                ManagedFile.of(proto.getName()),
                 RecordingStatus.FINISHED,
                 proto.getIsRecording());
-    }
-
-    private static ManagedFile parseFileType(String fileType) {
-        if (fileType == null || fileType.isEmpty()) {
-            return null;
-        }
-        try {
-            return ManagedFile.valueOf(fileType);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
     }
 }

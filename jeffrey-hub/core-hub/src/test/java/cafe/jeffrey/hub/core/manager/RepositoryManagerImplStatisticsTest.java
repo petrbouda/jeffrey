@@ -22,7 +22,7 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.core.project.repository.HubManagedFile;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -53,8 +53,8 @@ class RepositoryManagerImplStatisticsTest {
 
     private final RepositoryStorage repositoryStorage = mock(RepositoryStorage.class);
 
-    private static RepositoryFile file(String name, ManagedFile type, Long size) {
-        return new RepositoryFile(name, name, T0, size, type, null);
+    private static RepositoryFile file(String name, Long size) {
+        return new RepositoryFile(name, name, T0, size, HubManagedFile.of(name).isPresent(), null);
     }
 
     private static RecordingSession session(String id, RecordingStatus status, List<RepositoryFile> files) {
@@ -77,10 +77,10 @@ class RepositoryManagerImplStatisticsTest {
     void sumsEveryFileOfEverySession() {
         RepositoryManagerImpl manager = managerOf(List.of(
                 session("s-1", RecordingStatus.FINISHED, List.of(
-                        file("profile-1.jfr.lz4", ManagedFile.JFR_LZ4, 1_000L),
-                        file("heap.hprof", ManagedFile.HEAP_DUMP, 20_000L))),
+                        file("profile-1.jfr.lz4", 1_000L),
+                        file("heap.hprof", 20_000L))),
                 session("s-2", RecordingStatus.ACTIVE, List.of(
-                        file("profile-2.jfr", ManagedFile.JFR, 300L)))));
+                        file("profile-2.jfr", 300L)))));
 
         assertEquals(new RepositoryStatistics(21_300L), manager.calculateRepositoryStatistics());
     }
@@ -89,8 +89,8 @@ class RepositoryManagerImplStatisticsTest {
     void countsAFileWithNoReadableSizeAsZero() {
         RepositoryManagerImpl manager = managerOf(List.of(
                 session("s-1", RecordingStatus.ACTIVE, List.of(
-                        file("profile-1.jfr", ManagedFile.JFR, 500L),
-                        file("profile-2.jfr", ManagedFile.JFR, null)))));
+                        file("profile-1.jfr", 500L),
+                        file("profile-2.jfr", null)))));
 
         assertEquals(new RepositoryStatistics(500L), manager.calculateRepositoryStatistics());
     }

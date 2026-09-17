@@ -16,8 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.hub.core.project.repository;
 
+import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,7 @@ import java.util.UUID;
 
 /**
  * LZ4, appended to the name the file already has, so {@code profile-1.jfr} becomes
- * {@code profile-1.jfr.lz4} — a name {@link ManagedFile} classifies as JFR_LZ4, which
+ * {@code profile-1.jfr.lz4} — a name {@link HubManagedFile} classifies as JFR_LZ4, which
  * strips to the same id and carries the same timestamp.
  *
  * <p>Written to a scratch file beside the target and renamed onto it, so the target's name never
@@ -59,11 +60,6 @@ final class Lz4Compression implements Compression {
     @Override
     public boolean isSupported() {
         return true;
-    }
-
-    @Override
-    public boolean isArchive() {
-        return false;
     }
 
     @Override

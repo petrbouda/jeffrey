@@ -38,7 +38,7 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.core.project.repository.HubManagedFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
@@ -131,14 +131,14 @@ class StorageManagerImplTest {
         void collectsPerFileTypeStatisticsAcrossSessions() {
             mockSingleProject(List.of(
                     session("session-1", List.of(
-                            file("recording-1.jfr", ManagedFile.JFR, 700L, CREATED_AT),
-                            file("recording-2.jfr.lz4", ManagedFile.JFR_LZ4, 300L, CREATED_AT),
-                            file("heapdump.hprof.gz", ManagedFile.HEAP_DUMP_GZ, 200L, CREATED_AT))),
+                            file("recording-1.jfr", 700L, CREATED_AT),
+                            file("recording-2.jfr.lz4", 300L, CREATED_AT),
+                            file("heapdump.hprof.gz", 200L, CREATED_AT))),
                     session("session-2", List.of(
-                            file("recording-3.jfr", ManagedFile.JFR, 500L, LAST_ACTIVITY),
-                            file("service.jvm-log", ManagedFile.JVM_LOG, 40L, CREATED_AT),
-                            file("service-app.log", ManagedFile.APP_LOG, 30L, CREATED_AT),
-                            file("cpu.pprof", ManagedFile.PPROF, 10L, CREATED_AT)))));
+                            file("recording-3.jfr", 500L, LAST_ACTIVITY),
+                            file("service.jvm-log", 40L, CREATED_AT),
+                            file("service-app.log", 30L, CREATED_AT),
+                            file("cpu.pprof", 10L, CREATED_AT)))));
 
             StorageOverview overview = storageManager.overview();
 
@@ -153,14 +153,12 @@ class StorageManagerImplTest {
             assertThat(project.totalFiles()).isEqualTo(7);
             assertThat(project.lastActivityTimeMillis()).isEqualTo(LAST_ACTIVITY.toEpochMilli());
 
-            // Sorted by size, JFR aggregated across both sessions
+            // Sorted by size, JFR aggregated across both sessions; the hub tells a JFR from its
+            // archive and lumps everything it does not read — dump, logs, pprof — into OTHER
             assertThat(project.fileTypes()).containsExactly(
-                    new FileTypeUsage(ManagedFile.JFR, 1200L, 2),
-                    new FileTypeUsage(ManagedFile.JFR_LZ4, 300L, 1),
-                    new FileTypeUsage(ManagedFile.HEAP_DUMP_GZ, 200L, 1),
-                    new FileTypeUsage(ManagedFile.JVM_LOG, 40L, 1),
-                    new FileTypeUsage(ManagedFile.APP_LOG, 30L, 1),
-                    new FileTypeUsage(ManagedFile.PPROF, 10L, 1));
+                    new FileTypeUsage("JFR", 1200L, 2),
+                    new FileTypeUsage("JFR_LZ4", 300L, 1),
+                    new FileTypeUsage(FileTypeUsage.OTHER_FILES, 280L, 4));
 
             assertThat(project.largestFiles()).containsExactly(
                     new StoredFile("recording-1.jfr", 700L),
@@ -187,8 +185,8 @@ class StorageManagerImplTest {
         void countsFilesWithUnknownSizeAsZeroBytes() {
             mockSingleProject(List.of(
                     session("session-1", List.of(
-                            file("recording-1.jfr", ManagedFile.JFR, 700L, CREATED_AT),
-                            file("recording-2.jfr", ManagedFile.JFR, null, CREATED_AT)))));
+                            file("recording-1.jfr", 700L, CREATED_AT),
+                            file("recording-2.jfr", null, CREATED_AT)))));
 
             StorageOverview overview = storageManager.overview();
 
@@ -196,7 +194,7 @@ class StorageManagerImplTest {
             assertThat(project.totalSizeBytes()).isEqualTo(700L);
             assertThat(project.totalFiles()).isEqualTo(2);
             assertThat(project.fileTypes()).containsExactly(
-                    new FileTypeUsage(ManagedFile.JFR, 700L, 2));
+                    new FileTypeUsage("JFR", 700L, 2));
         }
 
         private void mockSingleProject(List<RecordingSession> sessions) {
@@ -222,8 +220,8 @@ class StorageManagerImplTest {
                     RecordingStatus.FINISHED, null, files, false);
         }
 
-        private RepositoryFile file(String name, ManagedFile fileType, Long size, Instant createdAt) {
-            return new RepositoryFile(name, name, createdAt, size, fileType, null);
+        private RepositoryFile file(String name, Long size, Instant createdAt) {
+            return new RepositoryFile(name, name, createdAt, size, HubManagedFile.of(name).isPresent(), null);
         }
     }
 }

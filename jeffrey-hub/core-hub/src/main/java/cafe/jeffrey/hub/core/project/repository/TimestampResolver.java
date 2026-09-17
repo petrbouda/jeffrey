@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.hub.core.project.repository;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -27,7 +27,7 @@ import java.time.Instant;
  * still open is a maximum over it.
  *
  * <p>Where that answer comes from is a property of the file's type, which is why a
- * {@link ManagedFile} carries one of these. A JFR written by async-profiler states the
+ * {@link HubManagedFile} carries one of these. A JFR written by async-profiler states the
  * instant in its own name and is the only kind that does; everything else has to be asked of the
  * filesystem.
  *

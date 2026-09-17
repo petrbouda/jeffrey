@@ -16,7 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model;
+package cafe.jeffrey.storage.recording.api.file;
+
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.time.Duration;
 import java.time.Instant;

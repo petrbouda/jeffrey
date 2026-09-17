@@ -41,7 +41,7 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
@@ -51,7 +51,8 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.FileCategory;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import io.grpc.Context;
@@ -117,7 +118,7 @@ class HubsMcpToolsTest {
     }
 
     private static RepositoryFile file(String id, String name, ManagedFile type) {
-        return new RepositoryFile(id, name, NOW, 1024L, type, null);
+        return new RepositoryFile(id, name, NOW, 1024L, type.fileCategory() == FileCategory.RECORDING, null);
     }
 
     private static RecordingSession session(String id, Instant createdAt, RepositoryFile... files) {
@@ -703,10 +704,10 @@ class HubsMcpToolsTest {
 
         private RecordingSession fourChunks() {
             return session(SESSION_ID, NOW,
-                    new RepositoryFile("c0", "profile-0.jfr", NOW, 100L, ManagedFile.JFR, null),
-                    new RepositoryFile("c1", "profile-1.jfr", NOW.plusSeconds(150), 100L, ManagedFile.JFR, null),
-                    new RepositoryFile("c2", "profile-2.jfr", NOW.plusSeconds(300), 100L, ManagedFile.JFR, null),
-                    new RepositoryFile("c3", "profile-3.jfr", NOW.plusSeconds(450), 100L, ManagedFile.JFR, null),
+                    new RepositoryFile("c0", "profile-0.jfr", NOW, 100L, true, null),
+                    new RepositoryFile("c1", "profile-1.jfr", NOW.plusSeconds(150), 100L, true, null),
+                    new RepositoryFile("c2", "profile-2.jfr", NOW.plusSeconds(300), 100L, true, null),
+                    new RepositoryFile("c3", "profile-3.jfr", NOW.plusSeconds(450), 100L, true, null),
                     file("log", "app.log", ManagedFile.APP_LOG));
         }
 

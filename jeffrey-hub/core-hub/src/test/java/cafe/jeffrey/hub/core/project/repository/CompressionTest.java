@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.hub.core.project.repository;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,30 +47,22 @@ class CompressionTest {
 
         @Test
         void aRecordingThatStaysOneAfterwards() {
-            assertTrue(ManagedFile.JFR.compression().isSupported());
+            assertTrue(HubManagedFile.JFR.compression().isSupported());
         }
 
-        /**
-         * Not an algorithm nobody has written yet: a compressed pprof matches nothing, so the
-         * file would stop being a recording, change id, and lose its original.
-         */
         @Test
-        void nothingElse() {
-            for (ManagedFile type : ManagedFile.values()) {
-                if (type != ManagedFile.JFR) {
-                    assertFalse(type.compression().isSupported(), "type: " + type);
-                }
-            }
+        void notItsArchive() {
+            assertFalse(HubManagedFile.JFR_LZ4.compression().isSupported());
         }
 
         @Test
         void refusesToActWhenItSaysItCannot() {
-            Path file = dir.resolve("app.pprof");
+            Path file = dir.resolve("profile-1.jfr.lz4");
 
             assertThrows(UnsupportedOperationException.class,
-                    () -> ManagedFile.PPROF.compression().target(file));
+                    () -> Compression.NONE.target(file));
             assertThrows(UnsupportedOperationException.class,
-                    () -> ManagedFile.PPROF.compression().compress(file, file));
+                    () -> Compression.NONE.compress(file, file));
         }
     }
 
@@ -86,44 +78,32 @@ class CompressionTest {
             Path source = Files.write(
                     dir.resolve("profile-20260220-120500.jfr"), "x".getBytes(StandardCharsets.UTF_8));
 
-            Path target = ManagedFile.JFR.compression().target(source);
-            ManagedFile.JFR.compression().compress(source, target);
+            Path target = HubManagedFile.JFR.compression().target(source);
+            HubManagedFile.JFR.compression().compress(source, target);
 
             assertEquals("profile-20260220-120500.jfr.lz4", target.getFileName().toString());
             assertTrue(Files.isRegularFile(target));
 
-            ManagedFile archived = ManagedFile.of(target);
-            assertEquals(ManagedFile.JFR_LZ4, archived);
-            assertEquals(FileCategory.RECORDING, archived.fileCategory());
+            HubManagedFile archived = HubManagedFile.of(target).orElseThrow();
+            assertEquals(HubManagedFile.JFR_LZ4, archived);
             assertTrue(archived.isArchive());
             assertEquals(
-                    ManagedFile.JFR.timestampResolver().resolve(source),
+                    HubManagedFile.JFR.timestampResolver().resolve(source),
                     archived.timestampResolver().resolve(target),
                     "the archive answers with the instant the profiler opened the chunk");
             assertEquals(
-                    ManagedFile.JFR.idOf(source),
+                    HubManagedFile.JFR.idOf(source),
                     archived.idOf(target),
                     "and to the id a reader took from the listing before the rewrite");
         }
 
         @Test
-        void andCannotBeCompressedAgain() {
-            assertFalse(ManagedFile.JFR_LZ4.compression().isSupported());
-        }
-
-        /**
-         * The pair has to be declared, not spelled. Read off the extension, the answer was
-         * whatever a name happened to end in, so a type nothing here compresses could claim an
-         * archive's guarantees — and JFR_LZ4 had to be told it was uncompressible by a constant
-         * that also means "rewriting this would destroy it", which of an archive is untrue.
-         */
-        @Test
         void andIsTheOnlyTypeThatCountsAsOne() {
-            List<ManagedFile> archives = Stream.of(ManagedFile.values())
-                    .filter(ManagedFile::isArchive)
+            List<HubManagedFile> archives = Stream.of(HubManagedFile.values())
+                    .filter(HubManagedFile::isArchive)
                     .toList();
 
-            assertEquals(List.of(ManagedFile.JFR_LZ4), archives);
+            assertEquals(List.of(HubManagedFile.JFR_LZ4), archives);
         }
     }
 
@@ -142,9 +122,9 @@ class CompressionTest {
         @Test
         void theTargetNameNeverNamesAPartialFile() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
-            Path target = ManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().target(source);
 
-            ManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().compress(source, target);
 
             assertTrue(Files.isRegularFile(target));
             assertTrue(Files.size(target) > 0);
@@ -160,8 +140,8 @@ class CompressionTest {
         void leavesTheRecordingItWasMadeFrom() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
 
-            ManagedFile.JFR.compression().compress(
-                    source, ManagedFile.JFR.compression().target(source));
+            HubManagedFile.JFR.compression().compress(
+                    source, HubManagedFile.JFR.compression().target(source));
 
             assertTrue(Files.isRegularFile(source));
         }
@@ -175,11 +155,11 @@ class CompressionTest {
         @Test
         void aSecondRunOverTheSameFileLandsAWholeArchive() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
-            Path target = ManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().target(source);
 
-            ManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().compress(source, target);
             long firstSize = Files.size(target);
-            ManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().compress(source, target);
 
             assertEquals(firstSize, Files.size(target));
             assertEquals(List.of(), scratchFiles());
@@ -196,12 +176,12 @@ class CompressionTest {
         @Test
         void anEmptyRecordingStillCompressesIntoARealArchive() throws IOException {
             Path source = Files.createFile(dir.resolve("profile-20260220-120500.jfr"));
-            Path target = ManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().target(source);
 
-            ManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().compress(source, target);
 
             assertTrue(Files.size(target) > 0, "the frame's own header");
-            assertEquals(ManagedFile.JFR_LZ4, ManagedFile.of(target));
+            assertEquals(HubManagedFile.JFR_LZ4, HubManagedFile.of(target).orElseThrow());
             assertEquals(List.of(), scratchFiles());
         }
 
@@ -213,12 +193,12 @@ class CompressionTest {
         @Test
         void theScratchFileIsHidden() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
-            Path target = ManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().target(source);
 
             // Nothing to observe mid-flight from here, so the name is asserted where it is
             // built: a compression that fails leaves its scratch file behind only if it is not
             // cleaned up, and the one thing always true of the name is its leading dot.
-            ManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().compress(source, target);
 
             assertFalse(target.getFileName().toString().startsWith("."),
                     "what is published is not hidden");

@@ -20,6 +20,7 @@ package cafe.jeffrey.recordings.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.hub.client.FileStreamClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
@@ -265,7 +266,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         }
 
         List<RepositoryFile> artifactFiles = files.stream()
-                .filter(RepositoryFile::isArtifactFile)
+                .filter(RepositoryFiles::isArtifact)
                 .toList();
 
         long totalBytes = files.stream().mapToLong(RepositoryFile::size).sum();

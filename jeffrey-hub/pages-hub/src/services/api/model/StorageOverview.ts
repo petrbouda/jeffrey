@@ -1,5 +1,5 @@
 export interface FileTypeUsage {
-    /** ManagedFile enum name, e.g. JFR, HEAP_DUMP_GZ */
+    /** The kind the hub tells apart: JFR, JFR_LZ4 or OTHER */
     type: string;
     sizeBytes: number;
     fileCount: number;

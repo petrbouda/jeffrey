@@ -44,9 +44,7 @@
     </div>
 
     <div class="drawer-section">
-      <div class="section-label">
-        Composition · {{ recognizedTypeCount }} of {{ STORAGE_FILE_TYPE_COUNT }} file types
-      </div>
+      <div class="section-label">Composition</div>
       <div class="composition-bar">
         <span
             v-for="usage in groups"
@@ -105,12 +103,7 @@
 import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import type { ProjectStorage } from '@/services/api/model/StorageOverview';
-import {
-  fileTypeMeta,
-  groupUsages,
-  recognizedFileTypeCount,
-  STORAGE_FILE_TYPE_COUNT
-} from '@/services/storage/StorageFileTypes';
+import { fileTypeMeta, groupUsages } from '@/services/storage/StorageFileTypes';
 
 const props = defineProps<{
   project: ProjectStorage;
@@ -131,7 +124,6 @@ const displayName = computed(() => {
 });
 
 const groups = computed(() => groupUsages(props.project.fileTypes));
-const recognizedTypeCount = computed(() => recognizedFileTypeCount(props.project.fileTypes));
 
 const barWidth = (sizeBytes: number) => {
   if (props.project.totalSizeBytes === 0) {

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.hub.core.project.repository;
 
 import java.nio.file.Path;
 
@@ -24,7 +24,7 @@ import java.nio.file.Path;
  * How a file of a given type is compressed, if it can be at all.
  *
  * <p>Compressing a file rewrites it under a new name, and a name is how everything downstream
- * decides what a file is: its {@link ManagedFile type}, the id it is known by, and —
+ * decides what a file is: its {@link HubManagedFile type}, the id it is known by, and —
  * for a recording — when it was opened. So a type may only be compressed when the compressed name
  * is one that still answers all three the same way. {@code profile-1.jfr} becomes
  * {@code profile-1.jfr.lz4}, which is a JFR_LZ4, still a recording, still the same id with the
@@ -44,19 +44,6 @@ public sealed interface Compression permits Lz4Compression, NoCompression {
      * {@link #compress} anyway gets an exception rather than a quietly broken file.
      */
     boolean isSupported();
-
-    /**
-     * Whether this type's own name is one a compression produced — the far end of a rewrite
-     * rather than the near one.
-     *
-     * <p>Declared here rather than read back out of the extension, because it is the same
-     * question as {@link #isSupported()} asked from the other side and the pair has to agree: a
-     * file is renamed by compression when it is either compressed or the result of compressing,
-     * and those two are exactly the types whose id drops its extension. Derived from the name, it
-     * answered for any type that happened to end in the compressed suffix, whether or not
-     * anything here had written it.
-     */
-    boolean isArchive();
 
     /** Where the compressed form of this file belongs, beside the file itself. */
     Path target(Path source);
@@ -78,15 +65,8 @@ public sealed interface Compression permits Lz4Compression, NoCompression {
      */
     Path compress(Path source, Path target);
 
-    /** For every type whose compressed form nothing could classify. */
-    Compression NONE = new NoCompression(false);
-
-    /**
-     * For a type that already is a compressed form. Nothing to compress either way, so it
-     * refuses exactly as {@link #NONE} does; what it says in addition is that the name came from
-     * a compression, which is what makes it strip to the same id as the recording it holds.
-     */
-    Compression ARCHIVE = new NoCompression(true);
+    /** For every type whose compressed form nothing could classify, and for the archive itself. */
+    Compression NONE = new NoCompression();
 
     /** LZ4, for recordings the rest of the tree can read compressed. */
     Compression LZ4 = new Lz4Compression();

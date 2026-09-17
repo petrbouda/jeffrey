@@ -30,13 +30,19 @@ import java.time.Instant;
  * instead meant every producer of a listing had to work it out and every consumer had to trust
  * that it had.
  *
+ * <p>Nor does it carry a type. The hub, which lists a session, and Microscope, which reads the
+ * listing, each classify a file's name with an enum of their own — the hub's says what it does to
+ * the file, Microscope's says what it can read — and the one fact they must agree on is whether
+ * the file is a recording, because that is what a download takes and a session's window spans.
+ * That fact travels as a flag; everything else either side wants it takes from the name.
+ *
  * @param id        the file's identity within its session: its own name with the recording
  *                  extension stripped, so it survives the hub compressing the file
  * @param name      the file's name, relative to the session directory
  * @param createdAt when the profiler opened the file — the timestamp in its own name for a chunk
  *                  that follows the naming convention, its filesystem creation time otherwise
  * @param size      the file's size in bytes, or {@code null} when it could not be read
- * @param fileType  what the name says the file is
+ * @param recording whether the file is a recording chunk rather than an artifact beside one
  * @param filePath  the absolute path, or {@code null} for a file described from the wire
  */
 public record RepositoryFile(
@@ -44,15 +50,11 @@ public record RepositoryFile(
         String name,
         Instant createdAt,
         Long size,
-        ManagedFile fileType,
+        boolean recording,
         Path filePath) {
 
     public boolean isRecordingFile() {
-        return fileType.fileCategory() == FileCategory.RECORDING;
-    }
-
-    public boolean isArtifactFile() {
-        return fileType.fileCategory() == FileCategory.ARTIFACT;
+        return recording;
     }
 
     /**

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.storage.recording.api.file;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -64,6 +64,17 @@ class ManagedFileTest {
         @Test
         void theCrashLogIsNotAnApplicationLog() {
             assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("hs-jvm-err.log"));
+        }
+
+        /**
+         * The JVM's own default spelling ends in {@code .log} too, so without the matcher being
+         * asked first the crash file was filed as an application log — listed under the wrong
+         * badge, and named as one by {@code hubs_files} when an agent went looking for the crash.
+         */
+        @Test
+        void theJvmDefaultCrashLogIsNotAnApplicationLogEither() {
+            assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("hs_err_pid123.log"));
+            assertEquals(ManagedFile.HS_JVM_ERROR_LOG, ManagedFile.of("HS_ERR_PID123.LOG"));
         }
 
         /**
@@ -122,48 +133,6 @@ class ManagedFileTest {
         void holdsForThePatternMatchersToo() {
             assertEquals(ManagedFile.ASPROF_TEMP, ManagedFile.of("RUN.JFR.1~"));
             assertEquals(ManagedFile.JVM_LOG, ManagedFile.of("GC.JVM-LOG"));
-        }
-    }
-
-    /**
-     * What a file is known by within its session. An id is not simply the name because a
-     * recording gets renamed underneath its readers when the compression job reaches it.
-     */
-    @Nested
-    class Ids {
-
-        @Test
-        void aRecordingDropsItsExtensionSoTheIdSurvivesCompression() {
-            assertEquals("profile-20260220-120500",
-                    ManagedFile.JFR.idOf(Path.of("s", "profile-20260220-120500.jfr")));
-            assertEquals("profile-20260220-120500",
-                    ManagedFile.JFR_LZ4.idOf(Path.of("s", "profile-20260220-120500.jfr.lz4")));
-        }
-
-        /**
-         * Nothing renames these, so dropping the extension would buy nothing and would collide
-         * two files of one session that differ only by it.
-         */
-        @Test
-        void everythingElseKeepsItsWholeName() {
-            assertEquals("service-app.log",
-                    ManagedFile.APP_LOG.idOf(Path.of("s", "service-app.log")));
-            assertEquals("heap.hprof",
-                    ManagedFile.HEAP_DUMP.idOf(Path.of("s", "heap.hprof")));
-            assertEquals("app.pprof",
-                    ManagedFile.PPROF.idOf(Path.of("s", "app.pprof")));
-            assertEquals("notes.txt",
-                    ManagedFile.UNKNOWN.idOf(Path.of("s", "notes.txt")));
-        }
-
-        @Test
-        void aRecordingAndItsArchiveAreOneId() {
-            Path plain = Path.of("s", "profile-1.jfr");
-            Path archive = Path.of("s", "profile-1.jfr.lz4");
-
-            assertEquals(
-                    ManagedFile.of(plain).idOf(plain),
-                    ManagedFile.of(archive).idOf(archive));
         }
     }
 
