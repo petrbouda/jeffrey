@@ -7,8 +7,8 @@ option java_multiple_files = true;
 
 import "jeffrey/hub/api/v1/common.proto";
 
-// Manages the recording repository — JFR files, heap dumps, and other artifacts
-// organized into recording sessions. Provides session listing, statistics, and deletion.
+// Manages a project's repository — the files its sessions produced, whatever they are,
+// organized into sessions. Provides session listing, statistics, and deletion.
 service RepositoryService {
   // Lists the recording sessions of a project, newest first. An optional filter narrows the
   // listing to sessions that were recording inside a time window, to one status, or to the
@@ -71,27 +71,18 @@ message GetRepositoryStatisticsRequest {
 
 // What a project's repository occupies on the hub, in bytes.
 //
-// One number, because one number is all anything asked for. This carried a status, a session
-// count, a file count, a last-activity timestamp, a biggest-session size, and a count and a size
-// for each of six file-type buckets. The buckets made the hub decide what every file type means,
-// and it decided wrong for pprof and OTLP, which arrived as "other"; of the rest, the status had
-// no reader at all and the others were either shown beside the same figure computed elsewhere or
-// answered a question nobody was asking.
+// One number, and deliberately no per-file-type breakdown: a bucket per kind would make the hub
+// decide what every file type means, which is the reader's job and not the hub's.
 //
-// There is deliberately no capacity to divide this by. The shared volume the hub reads is
+// There is deliberately no capacity to divide this by either. The shared volume the hub reads is
 // ReadWriteMany — hostPath, NFS or EFS in these docs — and on none of those does the filesystem
 // report the claim's size: NFS reports the whole export, EFS reports an enormous constant, and
 // hostPath reports the node's own disk. A percentage built on any of those would be fiction.
 message GetRepositoryStatisticsResponse {
   // Total size in bytes of every file in every session of the project.
-  //
-  // Field 4, as it was when seventeen others sat around it: a shipped field keeps its number.
-  // Renumbered to 1, an older Microscope would have read field 4, found nothing, and shown a
-  // project occupying zero bytes — a proto3 field that moves does not fail, it defaults.
   int64 total_size = 4;
 
-  // The status, session count, last-activity time, file count, biggest-session size and the
-  // six per-kind buckets this message carried. Do not reuse the numbers.
+  // Numbers held by fields this message no longer carries. Do not reuse them.
   reserved 1 to 3, 5 to 18;
   reserved "total_sessions", "session_status", "last_activity_time", "total_files",
       "biggest_session_size", "jfr_files", "jfr_size", "heap_dump_files", "heap_dump_size",
@@ -137,39 +128,37 @@ message RecordingSession {
   optional int64 finished_at = 5;
   // Current status.
   RecordingStatus status = 6;
-  // Files produced during this session (JFR recordings, heap dumps, logs).
+  // Files produced during this session, of every kind.
   repeated RepositoryFile files = 7;
   // Whether this session is exempt from retention jobs.
   bool retained = 8;
 }
 
-// A single file within a recording session.
+// A single file within a session.
 //
 // A file carries no status of its own. Whether one is still being written is a fact about the
-// session — a session that is still recording holds exactly one chunk open, and it is the newest
+// session — a session that is still recording holds exactly one file open, and it is the newest
 // one by created_at — so the reader derives it from the enclosing RecordingSession rather than
 // being told. The hub's part is to say which files exist and when each was opened.
 message RepositoryFile {
   // Unique identifier for the file.
   string id = 1;
-  // Filename (e.g., "recording-2025-01-15.jfr").
+  // The file's name, as it is on the hub's disk.
   string name = 2;
-  // When the profiler opened the file (epoch millis). For a chunk following the naming
-  // convention this is the timestamp in its own name, and it survives the hub compressing it.
+  // When the file was opened (epoch millis). A type whose timestamp is carried in its own name
+  // reports that one, and it survives the hub renaming the file; every other type reports what
+  // the filesystem says.
   int64 created_at = 3;
   // File size in bytes.
   int64 size = 4;
-  // File type identifier: a ManagedFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
-  // JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, ...).
+  // What the hub classified the file as: a ManagedFile name. The hub reports the type and never
+  // interprets it — what it means is the caller's to decide.
   string file_type = 5;
-  // Whether the file is a recording (true) or an artifact such as a log or heap dump (false).
-  // The file's category, not its format: a pprof and an OTLP profile are recordings too.
+  // Whether the file is a recording (true) or an artifact (false). A category, not a format:
+  // several formats fall on either side of it.
   bool is_recording = 7;
 
-  // Was `RecordingStatus status`, which the hub resolved by reaching back into its own listing.
-  // The number stays reserved rather than being taken by is_recording: an older Microscope reads
-  // field 7, and were the bool moved to 6 it would find nothing there and read every file as an
-  // artifact — every chunk refused by hubs_download, with no error anywhere saying why.
+  // Held by a per-file status this message no longer carries. Do not reuse it.
   reserved 6;
   reserved "status";
 }

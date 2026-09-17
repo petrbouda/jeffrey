@@ -65,7 +65,7 @@ message GetInstanceDetailRequest {
 message GetInstanceDetailResponse {
   // Identity, lifecycle, and sessions. Sessions are always populated in this response.
   InstanceInfo instance = 1;
-  // Filesystem-backed aggregates for the instance's recordings.
+  // Filesystem-backed aggregates over every file of the instance's sessions.
   InstanceStats stats = 2;
 }
 
@@ -85,10 +85,8 @@ message GetInstanceSessionDetailResponse {
   // Metadata for the requested session, and nothing read out of its recording.
   InstanceSessionInfo session = 1;
 
-  // Field 2 carried the session's one-shot JFR environment events, parsed from the
-  // recording on the hub. The hub no longer reads a recording for a client: Microscope
-  // downloads the session's newest closed chunk and parses it there, the same way the
-  // JFR replay stream and the event-activity scan were retired. Do not reuse the number.
+  // Held by the session's JFR environment events, which the hub does not read: Microscope
+  // downloads the session's newest closed chunk and parses it there. Do not reuse the number.
   reserved 2;
   reserved "environment_json_fields";
 }
@@ -123,7 +121,7 @@ message InstanceInfo {
 message InstanceSessionInfo {
   // Unique identifier for the session.
   string id = 1;
-  // ID of the repository storing the session's recording files.
+  // ID of the repository storing the session's files.
   string repository_id = 2;
   // Timestamp when the session started (epoch millis).
   int64 created_at = 3;

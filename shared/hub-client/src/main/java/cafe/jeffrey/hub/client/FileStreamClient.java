@@ -40,12 +40,9 @@ public class FileStreamClient {
      * What the hub said it was sending, before a byte of it is written.
      *
      * @param name the name the file has on the hub — which is the name the receiver writes, not
-     *             the one it asked for. A caller's listing is older than its request, and the
-     *             compression job may have replaced {@code x.jfr} with {@code x.jfr.lz4} since.
-     *             Written under the remembered name, an LZ4 frame sits in a file called
-     *             {@code .jfr}, and compression is recognised by the extension — nothing sniffs
-     *             the frame — so every reader treats it as a raw recording and fails on the
-     *             chunk magic.
+     *             the one it asked for. A caller's listing is older than its request, and the hub
+     *             may have renamed the file since; written under the remembered name, the bytes
+     *             land as something a reader going by the name reads wrongly.
      * @param size the file's size, or {@link #UNKNOWN_CONTENT_LENGTH} when the hub sent none
      */
     public record TransferredFile(String name, long size) {
@@ -84,12 +81,11 @@ public class FileStreamClient {
     }
 
     /**
-     * Pulls one file of a session onto this machine, whatever kind it is.
+     * Pulls one file of a session onto this machine, whatever that file is.
      *
-     * <p>One call for every kind. There were two, and they differed only in the RPC they named:
-     * the hub looked the file up, checked its category and streamed the bytes either way. What
-     * the category decides is what the caller does with the file afterwards, and the caller read
-     * it off the listing that gave it this id.
+     * <p>The hub looks the file up and streams the bytes without interpreting them. What the file
+     * is decides what the caller does with it afterwards, and the caller read that off the
+     * listing that gave it this id.
      */
     public void streamFile(String sessionId, String fileId, InputStreamConsumer consumer) {
         DownloadFileRequest request = DownloadFileRequest.newBuilder()

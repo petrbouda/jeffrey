@@ -78,9 +78,8 @@ public class RemoteRepositoryManager implements RepositoryManager {
      * hub gave it — and hands back both, so the caller can release the directory when it is done
      * reading.
      *
-     * <p>This used to list the whole session first, only to read the file's name out of the entry
-     * and hand it on as the name to write. The transfer carries the name now, so the listing was
-     * a gRPC round trip spent on an answer already on its way.
+     * <p>The session is not listed first: the transfer itself carries the name to write, so no
+     * gRPC round trip is spent on an answer already on its way.
      */
     @Override
     public StreamedFile streamFile(String sessionId, String fileId) {

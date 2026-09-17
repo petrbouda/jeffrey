@@ -65,12 +65,10 @@ public interface RepositoryManager {
     void setSessionRetained(String recordingSessionId, boolean retained);
 
     /**
-     * Downloads one of the session's files — a recording chunk, a heap dump, a log — by its id.
+     * Downloads one of the session's files by its id, whatever that file is.
      *
-     * <p>There was a second overload taking the {@code RepositoryFile} a caller already held,
-     * because resolving an id cost a whole session listing and a listing walks the session
-     * directory, opening each recording file to ask the share its current size. The id is all
-     * the hub needs now, so the one that took the file saved nothing.
+     * <p>The id is all the hub needs: it resolves the file itself, so no caller has to hold the
+     * listing entry and nothing walks the session directory to find one.
      */
     StreamedFile streamFile(String sessionId, String fileId);
 }
