@@ -31,6 +31,12 @@ Add it to your Dockerfile:
 # Copy Jeffrey Provisioner and Async Profiler
 COPY provisioner.jar /opt/jeffrey/provisioner.jar
 COPY libasyncProfiler.so /opt/jeffrey/libasyncProfiler.so
+
+# Tell the provisioner where the library is. It never searches the filesystem,
+# so without this (or a profiler-path in the config) the application starts
+# with no profiler attached. Images built with the Jeffrey JIB extension get
+# this variable baked in automatically.
+ENV JEFFREY_PROFILER_PATH=/opt/jeffrey/libasyncProfiler.so
 ```
 
 Create an entrypoint script:
@@ -45,7 +51,7 @@ java -jar /opt/jeffrey/provisioner.jar \
 exec java @/tmp/jvm.args -jar /app/my-service.jar
 ```
 
-The provisioner reads the configuration, generates an `@argfile` with all necessary JVM flags (Async Profiler agent path, output directory, profiling events, JFR sync), and creates the directory structure on shared storage.
+The provisioner reads the configuration, generates an `@argfile` with all necessary JVM flags (the Async Profiler agent path from `JEFFREY_PROFILER_PATH`, output directory, profiling events, JFR sync), and creates the directory structure on shared storage. It fails open: a missing profiler path or a broken config means the application still starts, just without profiling.
 
 A typical configuration enables:
 
