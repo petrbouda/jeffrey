@@ -2,6 +2,11 @@ name: Docker Microscope Images (Jib)
 
 on:
   workflow_call:
+    inputs:
+      version:
+        description: 'Release version without the leading v (e.g. 0.13.22). Resolved by the caller from the tag or from the manually entered version.'
+        required: true
+        type: string
 
 jobs:
   docker-microscope:
@@ -11,10 +16,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-
-    - name: Extract version
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
     # Clone seed recordings repo into the examples module's Jib extraDirectories source.
     # Jib convention: src/main/jib/jeffrey-examples/ → /jeffrey-examples/ in the image.
@@ -30,7 +31,7 @@ jobs:
     # reactor up to the two jib modules first, then run jib:build scoped to each.
     - name: Install reactor up to build-microscope-{,examples-}jib
       env:
-        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+        JEFFREY_TAG_VERSION: ${{ inputs.version }}
       run: mvn -pl build/build-microscope-jib,build/build-microscope-examples-jib -am -DskipTests=true install
 
     # docker/login-action shells out to `docker login`; the petrbouda/jeffrey-builder:25
@@ -49,11 +50,11 @@ jobs:
     - name: Build & push microscope
       run: |
         mvn -pl build/build-microscope-jib compile jib:build \
-          -Djib.to.image=petrbouda/microscope:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.image=petrbouda/microscope:${{ inputs.version }} \
           -Djib.to.tags=latest
 
     - name: Build & push microscope-examples (with seed recordings)
       run: |
         mvn -pl build/build-microscope-examples-jib compile jib:build \
-          -Djib.to.image=petrbouda/microscope-examples:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.image=petrbouda/microscope-examples:${{ inputs.version }} \
           -Djib.to.tags=latest

@@ -2,6 +2,11 @@ name: Docker Server Image (Jib)
 
 on:
   workflow_call:
+    inputs:
+      version:
+        description: 'Release version without the leading v (e.g. 0.13.22). Resolved by the caller from the tag or from the manually entered version.'
+        required: true
+        type: string
 
 jobs:
   docker-server:
@@ -11,10 +16,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-
-    - name: Extract version
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
     # The jeffrey-jib extension bakes the provisioner and async-profiler into the hub image from the
     # jeffrey-jib-payload-* artifacts. Those are built here, in this reactor, from THIS release's
@@ -36,18 +37,18 @@ jobs:
     # the reactor up to build-hub-jib first, then run jib:build scoped to that module.
     - name: Install reactor up to build-hub-jib
       env:
-        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+        JEFFREY_TAG_VERSION: ${{ inputs.version }}
       run: mvn -pl build/build-hub-jib -am -DskipTests=true install
 
     # The payload modules live behind the `payload` profile and are not part of the reactor above.
     # -am pulls in their parent pom; jeffrey.release is recorded in each payload's manifest.
     - name: Install the payload artifacts the hub image bakes
       env:
-        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+        JEFFREY_TAG_VERSION: ${{ inputs.version }}
       run: |
         mvn -P payload \
           -pl utilities/jeffrey-jib/jeffrey-jib-payload-jar,utilities/jeffrey-jib/jeffrey-jib-payload-profiler -am \
-          -DskipTests=true -Djeffrey.release=v${{ steps.version.outputs.VERSION }} install
+          -DskipTests=true -Djeffrey.release=v${{ inputs.version }} install
 
     # docker/login-action shells out to `docker login`; the petrbouda/jeffrey-builder:25
     # container has no docker CLI, so we write ~/.docker/config.json directly. Jib reads it
@@ -65,5 +66,5 @@ jobs:
     - name: Build & push image with Jib
       run: |
         mvn -pl build/build-hub-jib compile jib:build \
-          -Djib.to.image=petrbouda/jeffrey-hub:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.image=petrbouda/jeffrey-hub:${{ inputs.version }} \
           -Djib.to.tags=latest

@@ -1,14 +1,53 @@
+# Two ways in:
+#   * push a tag vX.Y.Z[-bN] - the usual path, the version comes from the tag;
+#   * Actions -> Release Jeffrey -> Run workflow - the version is typed into the form and
+#     the tag is created by the create-release job right before JReleaser runs (JReleaser
+#     itself has skipTag: true, it never creates tags). The push that creates the tag uses
+#     the workflow's GITHUB_TOKEN, and pushes made with GITHUB_TOKEN do not start another
+#     workflow run, so a manual run cannot trigger a second, tag-driven release of itself.
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+-b[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-b[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version, with or without the leading v (e.g. 0.13.22, v0.13.22-b5). Must match the tag patterns above.'
+        required: true
+        type: string
 
 name: Release Jeffrey
 
 jobs:
+  # Single source of the release version for every job and reusable workflow below:
+  # the typed input on a manual run, the tag otherwise. Nothing downstream reads
+  # GITHUB_REF any more, because on a manual run it points at a branch, not a tag.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.VERSION }}
+    steps:
+    - name: Resolve version
+      id: resolve
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        if [ -n "${INPUT_VERSION}" ]; then
+          VERSION="${INPUT_VERSION#v}"
+        else
+          VERSION="${GITHUB_REF#refs/tags/v}"
+        fi
+        if [[ ! "${VERSION}" =~ ^([0-9]+\.[0-9]+-b[0-9]+|[0-9]+\.[0-9]+\.[0-9]+(-b[0-9]+)?)$ ]]; then
+          echo "ERROR: version '${VERSION}' does not match [0-9]+.[0-9]+-b[0-9]+ or [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?" >&2
+          exit 1
+        fi
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Releasing version ${VERSION}"
+
   build:
+    needs: [version]
     runs-on: ubuntu-latest
     container:
       image: petrbouda/jeffrey-builder:25
@@ -17,13 +56,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: Extract version
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
     - name: Build with Maven
       env:
-        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+        JEFFREY_TAG_VERSION: ${{ needs.version.outputs.version }}
       run: mvn clean verify
 
     - name: Upload microscope.jar
@@ -45,22 +80,29 @@ jobs:
         path: ./build/build-provisioner/target/provisioner.jar
 
   provisioner-native:
+    needs: [version]
     uses: ./.github/workflows/release-provisioner.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
 
   docker-microscope:
-    needs: [build]
+    needs: [version, build]
     uses: ./.github/workflows/release-microscope.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
     secrets: inherit
 
   docker-hub:
     # No longer needs provisioner-native: the hub image gets its provisioner from the
     # jeffrey-jib payload artifacts, not from binaries staged into the image at build time.
-    needs: [build]
+    needs: [version, build]
     uses: ./.github/workflows/release-hub.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
     secrets: inherit
 
   create-release:
-    needs: [docker-microscope, docker-hub, provisioner-native]
+    needs: [version, docker-microscope, docker-hub, provisioner-native]
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -104,16 +146,30 @@ jobs:
         mv ./artifacts/native-arm64/provisioner ./artifacts/provisioner-arm64
         rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
 
-    - name: Extract version
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    # A tag-triggered run already has its tag; a manual run does not, and JReleaser
+    # (skipTag: true) never creates one. Tagging the commit that was checked out keeps
+    # both paths identical from JReleaser's point of view. An existing tag is left
+    # alone so that re-running a release does not move it.
+    - name: Create tag for a manual run
+      if: github.event_name == 'workflow_dispatch'
+      env:
+        TAG: v${{ needs.version.outputs.version }}
+      run: |
+        if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+          echo "Tag ${TAG} already exists, keeping it as it is."
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "refs/tags/${TAG}"
+        fi
 
     - name: Create Release
       uses: jreleaser/release-action@v2
       with:
         arguments: full-release
       env:
-        JRELEASER_PROJECT_VERSION: ${{ steps.version.outputs.VERSION }}
+        JRELEASER_PROJECT_VERSION: ${{ needs.version.outputs.version }}
         JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
