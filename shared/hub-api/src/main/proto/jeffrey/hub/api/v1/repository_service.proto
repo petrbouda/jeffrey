@@ -145,16 +145,17 @@ message RepositoryFile {
   string id = 1;
   // The file's name, as it is on the hub's disk.
   string name = 2;
-  // When the profiler opened the file (epoch millis). For a chunk following the naming
-  // convention this is the timestamp in its own name, and it survives the hub compressing it.
+  // When the file was opened (epoch millis). A type whose timestamp is carried in its own name
+  // reports that one, and it survives the hub renaming the file; every other type reports what
+  // the filesystem says.
   int64 created_at = 3;
   // File size in bytes.
   int64 size = 4;
-  // File type identifier: a ManagedFile name (JFR, JFR_LZ4, HEAP_DUMP, HEAP_DUMP_GZ, PERF_COUNTERS,
-  // JVM_LOG, HS_JVM_ERROR_LOG, APP_LOG, PPROF, OTLP_PROFILE, ...).
+  // What the hub classified the file as: a ManagedFile name. The hub reports the type and never
+  // interprets it — what it means is the caller's to decide.
   string file_type = 5;
-  // Whether the file is a recording (true) or an artifact such as a log or heap dump (false).
-  // The file's category, not its format: a pprof and an OTLP profile are recordings too.
+  // Whether the file is a recording (true) or an artifact (false). A category, not a format:
+  // several formats fall on either side of it.
   bool is_recording = 7;
 
   // Held by a per-file status this message no longer carries. Do not reuse it.
