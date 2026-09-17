@@ -150,11 +150,10 @@ comparisons. No rebuild required.
 |---|---|---|
 | `enabled` | — | `true` (build-time gate) |
 | `payloadVersion` | — | **required** — see below |
-| `provisionerSource` | `JEFFREY_PROVISIONER_KIND` | `native` (also baked for an explicit `provisionerPath`) |
+| `provisionerSource` | `JEFFREY_PROVISIONER_KIND` | `native` |
 | `jeffreyHome` | `JEFFREY_HOME` | unset (the provisioner also accepts `JEFFREY_WORKSPACES_DIR`) |
 | `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` (optional file) |
 | `overrideConfig` | `JEFFREY_OVERRIDE_CONFIG` | `/jeffrey/jeffrey-overrides.conf` (optional) |
-| `provisionerPath` | `JEFFREY_PROVISIONER_PATH` | baked: `/opt/jeffrey/provisioner`, or `provisioner.jar` |
 | `profilerPath` | `JEFFREY_PROFILER_PATH` | baked: `/opt/jeffrey/libasyncProfiler.so` |
 | `argFile` | `JEFFREY_ARG_FILE` | `/tmp/jvm.args` |
 | `projectName` | `JEFFREY_PROJECT_NAME` | Maven artifactId / Gradle project name |
@@ -168,7 +167,7 @@ start, because JIB layers are not per-platform and each architecture's file need
 
 ### `payloadVersion` is required
 
-It names the **jeffrey-jib release** whose `jeffrey-jib-payload-*` artifacts the image carries —
+Every image carries a provisioner, so this is never optional. It names the **jeffrey-jib release** whose `jeffrey-jib-payload-*` artifacts the image carries —
 normally the same version as the extension itself, since the payloads are published with every
 jeffrey-jib release. It is *not* a Jeffrey release number: jeffrey-jib releases on its own cadence,
 and which Jeffrey release's provisioner (and which async-profiler) a given jeffrey-jib release bundles
@@ -187,17 +186,21 @@ chose. The build stops and tells you to set it.
 <payloadVersion>${jeffrey-jib.version}</payloadVersion>
 ```
 
-### Bringing your own binaries
+### Bringing your own async-profiler
 
-Setting `provisionerPath` or `profilerPath` means *this image already has that binary*. The
-matching payload is then not resolved at all, so a base image that already ships async-profiler
-pays nothing for a second copy. Setting both skips the payload layer entirely: `payloadVersion` is
-no longer required, the build system's artifact resolver is never touched, and the target platform
-is not checked — an image that brings its own binaries may target whatever it likes.
+Setting `profilerPath` means *this image already has async-profiler*. That payload is then not
+resolved at all, so a base image that already ships the library pays nothing for a second copy.
+Your library has to accept the agent command the provisioner generates, which uses
+`event=ctimer`, `jfrsync=default` and `chunksize`; if yours needs different options, replace the
+whole command with the provisioner's `profiler-config`.
 
-If the provisioner you bring is the jar rather than the native binary, say so with
-`provisionerSource=jar`: the wrapper tells the two apart only by `JEFFREY_PROVISIONER_KIND`, which
-the extension bakes from that property whether the provisioner is ours or yours.
+**There is no `provisionerPath`.** The provisioner is not a third-party component you can
+substitute. It is Jeffrey's own binary, and the session layout and workspace events it writes are
+the protocol Jeffrey Hub reads. Neither side version-checks that protocol, so an image carrying
+someone else's copy would drift from it silently, with nothing recording which copy it had. The
+extension therefore always bakes the provisioner, and `provisionerSource` chooses only which build
+of it. A build still setting `provisionerPath` through the string `properties` DSL is warned and
+the value ignored.
 
 ### Where the files go during the build
 
@@ -271,8 +274,8 @@ The native provisioner has none of these concerns: it is not a JVM and ignores a
   configured with) at build time, so the build needs to reach them. They resolve through the
   *project's* repositories (`<repositories>` on Maven, the project `repositories {}` on Gradle),
   not the plugin or `buildscript` ones — relevant behind split enterprise mirrors. An air-gapped
-  build either mirrors the three `jeffrey-jib-payload-*` artifacts or sets `provisionerPath` and
-  `profilerPath` at binaries the base image already provides.
+  build mirrors the `jeffrey-jib-payload-*` artifacts it uses; `profilerPath` removes the
+  async-profiler one from that list, but the provisioner payload is always needed.
 - On Gradle the resolution happens at task execution time through the `Project`, which the
   configuration cache does not allow; JIB's own extension hook has the same limitation.
 - `provisionerSource=jar` needs the application's JVM to be able to read the provisioner jar's

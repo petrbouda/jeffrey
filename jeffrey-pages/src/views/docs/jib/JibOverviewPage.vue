@@ -210,10 +210,10 @@ onMounted(() => {
             <div><strong>Resolves the payload artifacts at build time</strong> from Maven Central, or
               whatever repositories your build is configured with &mdash; the <em>project's</em>
               repositories, not the plugin or <code>buildscript</code> ones, which matters behind split
-              enterprise mirrors. An air-gapped build either mirrors the three
-              <code>jeffrey-jib-payload-*</code> artifacts or points <code>provisionerPath</code> and
-              <code>profilerPath</code> at binaries the base image already provides; with both set, no
-              resolver is touched and no platform is checked.</div>
+              enterprise mirrors. An air-gapped build mirrors the
+              <code>jeffrey-jib-payload-*</code> artifacts it uses; pointing
+              <code>profilerPath</code> at a library the base image already provides removes the
+              async-profiler one, but the provisioner payload is always needed.</div>
           </div>
         </div>
       </div>

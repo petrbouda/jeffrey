@@ -24,13 +24,15 @@ package cafe.jeffrey.jib;
  * JavaBean accessors, which is why this is a plain class rather than a record).
  *
  * <p>Every string field is optional except {@code payloadVersion}, which has no sensible default
- * and is required whenever a payload is baked. Null means "do not set an image-level ENV default
+ * and is always required, since every image carries a provisioner. Null means "do not set an image-level ENV default
  * for this key" — the wrapper script's hardcoded fallback applies at container start, or the
  * operator provides the value via a pod-level env var.
  *
- * <p>{@code provisionerPath} and {@code profilerPath} carry a second meaning: setting one declares
- * that the image already provides that binary, so the extension neither resolves nor bakes the
- * matching payload.
+ * <p>{@code profilerPath} carries a second meaning: setting it declares that the image already
+ * provides async-profiler, so the extension neither resolves nor bakes that payload. The
+ * provisioner has no such property. It is Jeffrey's own binary and the protocol it writes is the
+ * one Jeffrey Hub reads, so the extension always bakes it and {@code provisionerSource} chooses
+ * only which build.
  */
 public class JeffreyJibConfig {
 
@@ -45,7 +47,6 @@ public class JeffreyJibConfig {
     public static final String JEFFREY_HOME = "jeffreyHome";
     public static final String BASE_CONFIG = "baseConfig";
     public static final String OVERRIDE_CONFIG = "overrideConfig";
-    public static final String PROVISIONER_PATH = "provisionerPath";
     public static final String ARG_FILE = "argFile";
     public static final String PROFILER_PATH = "profilerPath";
     public static final String PROJECT_NAME = "projectName";
@@ -56,7 +57,6 @@ public class JeffreyJibConfig {
     private String jeffreyHome;
     private String baseConfig;
     private String overrideConfig;
-    private String provisionerPath;
     private String argFile;
     private String profilerPath;
     private String projectName;
@@ -93,14 +93,6 @@ public class JeffreyJibConfig {
 
     public void setOverrideConfig(String overrideConfig) {
         this.overrideConfig = overrideConfig;
-    }
-
-    public String getProvisionerPath() {
-        return provisionerPath;
-    }
-
-    public void setProvisionerPath(String provisionerPath) {
-        this.provisionerPath = provisionerPath;
     }
 
     public String getArgFile() {

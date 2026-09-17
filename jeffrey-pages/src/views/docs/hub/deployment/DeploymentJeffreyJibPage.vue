@@ -264,8 +264,8 @@ const moduleClient = `<plugin>
         handoff. A pod no longer has to wait for Jeffrey Hub to publish binaries before it can
         start profiling, which removes the startup race that used to leave a pod running
         unprofiled until someone restarted it. The cost is that a provisioner fix now arrives with
-        an image rebuild rather than a Hub upgrade. Pods that already carry their own binaries can keep them: setting
-        <code>provisionerPath</code> or <code>profilerPath</code> skips that payload entirely.
+        an image rebuild rather than a Hub upgrade. An image whose base already ships async-profiler
+        can keep it by setting <code>profilerPath</code>, which skips that payload entirely.
       </DocsCallout>
     </div>
 

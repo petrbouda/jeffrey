@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Fetches the payloads a {@link PayloadPlan} asks for and turns them into one image layer.
@@ -69,19 +68,17 @@ public final class PayloadInstaller {
         List<PayloadRequest> requests = new ArrayList<>();
         Map<String, String> environment = new LinkedHashMap<>();
 
-        if (plan.bakeProvisioner()) {
-            PayloadSpec spec = plan.source().spec();
-            requests.addAll(spec.requestsFor(plan.architectures(), payloadVersion));
-            environment.put(ENV_PROVISIONER_PATH, spec.envPath(plan.architectures()));
-            environment.put(ENV_PROVISIONER_KIND, plan.source().kind());
-        }
+        PayloadSpec provisioner = plan.source().spec();
+        requests.addAll(provisioner.requestsFor(plan.architectures(), payloadVersion));
+        environment.put(ENV_PROVISIONER_PATH, provisioner.envPath(plan.architectures()));
+        environment.put(ENV_PROVISIONER_KIND, plan.source().kind());
+
         if (plan.bakeProfiler()) {
             requests.addAll(Payloads.PROFILER.requestsFor(plan.architectures(), payloadVersion));
             environment.put(ENV_PROFILER_PATH, Payloads.PROFILER.envPath(plan.architectures()));
         }
 
-        FileEntriesLayer layer = buildLayer(requests);
-        return new PayloadInstallation(Optional.of(layer), environment);
+        return new PayloadInstallation(buildLayer(requests), environment);
     }
 
     private FileEntriesLayer buildLayer(List<PayloadRequest> requests) throws PayloadResolutionException {

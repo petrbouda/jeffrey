@@ -21,26 +21,22 @@ package cafe.jeffrey.jib.payload;
 import com.google.cloud.tools.jib.api.buildplan.FileEntriesLayer;
 
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * The outcome of installing a {@link PayloadPlan}: the image layer to add, and the environment
  * defaults that tell the entrypoint what was installed.
  *
- * @param layer       empty when the plan baked nothing
- * @param environment the {@code JEFFREY_*} defaults, which an explicit build configuration value
- *                    still overrides
+ * <p>There is always a layer. Every image carries a provisioner, so a plan never installs nothing.
+ *
+ * @param environment the {@code JEFFREY_*} defaults, which an explicit {@code profilerPath} still
+ *                    overrides
  */
-public record PayloadInstallation(Optional<FileEntriesLayer> layer, Map<String, String> environment) {
+public record PayloadInstallation(FileEntriesLayer layer, Map<String, String> environment) {
 
     public PayloadInstallation {
         if (layer == null) {
             throw new IllegalArgumentException("Payload layer must not be null");
         }
         environment = Map.copyOf(environment);
-    }
-
-    public static PayloadInstallation empty() {
-        return new PayloadInstallation(Optional.empty(), Map.of());
     }
 }

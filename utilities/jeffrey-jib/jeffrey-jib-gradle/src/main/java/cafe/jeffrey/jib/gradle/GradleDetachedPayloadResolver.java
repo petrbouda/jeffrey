@@ -62,8 +62,8 @@ final class GradleDetachedPayloadResolver implements PayloadResolver {
 
     private static final String CONFIGURATION_CACHE_HINT =
             "Gradle refused the resolution (this is usually the configuration cache, which JIB's "
-                    + "extension hook is not compatible with). Set provisionerPath and profilerPath "
-                    + "to binaries the base image already provides to build without payload resolution.";
+                    + "extension hook is not compatible with). Turn the configuration cache off for the "
+                    + "jib task, or set enabled=false to build an image without Jeffrey profiling.";
 
     private final GradleData gradleData;
 

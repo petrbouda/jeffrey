@@ -104,12 +104,6 @@ onMounted(() => {
                 <td>Path to per-service override HOCON. The wrapper only passes it to <code>provisioner init</code> if the file actually exists, so it's effectively optional at runtime.</td>
               </tr>
               <tr>
-                <td><code>provisionerPath</code></td>
-                <td><code>JEFFREY_PROVISIONER_PATH</code></td>
-                <td>baked: <code>/opt/jeffrey/provisioner</code> &mdash; <code>provisioner.jar</code> for <code>provisionerSource=jar</code>, and <code>provisioner-&#123;arch&#125;</code> on a multi-platform build</td>
-                <td>Explicit provisioner path. Setting it means the image already carries one, so the extension skips resolving and baking that payload entirely.</td>
-              </tr>
-              <tr>
                 <td><code>profilerPath</code></td>
                 <td><code>JEFFREY_PROFILER_PATH</code></td>
                 <td>baked: <code>/opt/jeffrey/libasyncProfiler.so</code>, or <code>libasyncProfiler-&#123;arch&#125;.so</code> on a multi-platform build</td>
@@ -119,13 +113,13 @@ onMounted(() => {
                 <td><code>payloadVersion</code></td>
                 <td>&mdash;</td>
                 <td>&mdash; <span class="prop-type">(required)</span></td>
-                <td>The jeffrey-jib release whose <code>jeffrey-jib-payload-*</code> artifacts the image carries &mdash; normally the extension's own version, e.g. <code>${jeffrey-jib.version}</code>. It is <em>not</em> a Jeffrey release number: which Jeffrey release's provisioner and which async-profiler a jeffrey-jib release bundles was decided when it was cut, is recorded in each payload's manifest and is printed in the build log. No default, because a guess would silently pin your image to a provisioner nobody chose. Not required when both paths above are set.</td>
+                <td>The jeffrey-jib release whose <code>jeffrey-jib-payload-*</code> artifacts the image carries &mdash; normally the extension's own version, e.g. <code>${jeffrey-jib.version}</code>. It is <em>not</em> a Jeffrey release number: which Jeffrey release's provisioner and which async-profiler a jeffrey-jib release bundles was decided when it was cut, is recorded in each payload's manifest and is printed in the build log. Always required, because every image carries a provisioner, and there is no default: a guess would silently pin your image to a provisioner nobody chose.</td>
               </tr>
               <tr>
                 <td><code>provisionerSource</code></td>
                 <td><code>JEFFREY_PROVISIONER_KIND</code></td>
                 <td><code>native</code></td>
-                <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM &mdash; isolated from <code>JDK_JAVA_OPTIONS</code>, <code>JAVA_TOOL_OPTIONS</code> and <code>_JAVA_OPTIONS</code>, see <router-link to="/docs/jib#jar-provisioner-environment">the JVM environment</router-link>. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index. Also baked when <code>provisionerPath</code> names a binary you bring yourself, so the wrapper knows how to run it.</td>
+                <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM &mdash; isolated from <code>JDK_JAVA_OPTIONS</code>, <code>JAVA_TOOL_OPTIONS</code> and <code>_JAVA_OPTIONS</code>, see <router-link to="/docs/jib#jar-provisioner-environment">the JVM environment</router-link>. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index. This is the only choice you have over the provisioner: its path is not configurable, because the layout it writes is the protocol Jeffrey Hub reads.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>
@@ -142,7 +136,10 @@ onMounted(() => {
           &mdash; a version you have qualified, a build with custom patches, or one your base image
           already ships. Point <code>profilerPath</code> at it. That declares <em>this image already
           has that library</em>, so the extension neither resolves nor bakes its own copy and the
-          second one costs you nothing in image size:</p>
+          second one costs you nothing in image size. async-profiler is the only binary you can
+          substitute this way: the provisioner has no such property, because the session layout and
+          workspace events it writes are the protocol Jeffrey Hub reads, and neither side
+          version-checks it.</p>
 
         <DocsCodeBlock
           language="xml"

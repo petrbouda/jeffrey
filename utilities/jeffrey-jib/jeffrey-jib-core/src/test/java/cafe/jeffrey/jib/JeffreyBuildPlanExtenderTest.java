@@ -289,7 +289,7 @@ class JeffreyBuildPlanExtenderTest {
             config.setJeffreyHome("/mnt/data/jeffrey");
             config.setBaseConfig("/etc/jeffrey/base.conf");
             config.setOverrideConfig("/etc/jeffrey/override.conf");
-            config.setProvisionerPath("/opt/jeffrey/bin/provisioner");
+            config.setProfilerPath("/opt/vendor/libasyncProfiler.so");
             config.setArgFile("/var/jeffrey/jvm.args");
             config.setProjectName("my-service");
 
@@ -298,18 +298,18 @@ class JeffreyBuildPlanExtenderTest {
             assertEquals("/mnt/data/jeffrey", env.get("JEFFREY_HOME"));
             assertEquals("/etc/jeffrey/base.conf", env.get("JEFFREY_BASE_CONFIG"));
             assertEquals("/etc/jeffrey/override.conf", env.get("JEFFREY_OVERRIDE_CONFIG"));
-            assertEquals("/opt/jeffrey/bin/provisioner", env.get("JEFFREY_PROVISIONER_PATH"));
+            assertEquals("/opt/vendor/libasyncProfiler.so", env.get("JEFFREY_PROFILER_PATH"));
             assertEquals("/var/jeffrey/jvm.args", env.get("JEFFREY_ARG_FILE"));
             assertEquals("my-service", env.get("JEFFREY_PROJECT_NAME"));
 
-            // Naming a provisioner path says the image already carries one, so that payload is
-            // not fetched at all; async-profiler was not named, so it still is.
+            // Naming a profiler path says the image already carries async-profiler, so that payload
+            // is not fetched at all. The provisioner always is: it has no such property.
             assertTrue(resolver.requested.stream()
-                            .noneMatch(c -> c.artifactId().contains("native")),
-                    "An explicit provisionerPath must not resolve a provisioner payload");
+                            .noneMatch(c -> c.artifactId().contains("profiler")),
+                    "An explicit profilerPath must not resolve an async-profiler payload");
             assertTrue(resolver.requested.stream()
-                            .anyMatch(c -> c.artifactId().contains("profiler")),
-                    "profilerPath was not set, so async-profiler must still be baked");
+                            .anyMatch(c -> c.artifactId().contains("native")),
+                    "The provisioner is never supplied by the image, so it must still be baked");
         }
 
         @Test
@@ -505,88 +505,49 @@ class JeffreyBuildPlanExtenderTest {
         }
 
         @Test
-        void noPayloadLayerWhenBothPathsAreSupplied() throws Exception {
+        void theProvisionerIsBakedEvenWhenTheProfilerIsSupplied() throws Exception {
+            // provisionerPath does not exist: the provisioner writes the layout Jeffrey Hub reads,
+            // so every image gets the one the extension fetched, and only its build is a choice.
             JeffreyJibConfig config = config();
-            config.setProvisionerPath("/usr/bin/provisioner");
+            config.setProvisionerSource("jar");
             config.setProfilerPath("/usr/lib/libasyncProfiler.so");
 
             ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
 
-            assertTrue(result.getLayers().stream().noneMatch(l -> PAYLOAD_LAYER.equals(l.getName())),
-                    "An image that supplies both binaries pays for no payload layer");
-            assertTrue(resolver.requested.isEmpty());
+            assertEquals(
+                    Set.of("/opt/jeffrey/provisioner.jar"),
+                    entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet());
+            Map<String, String> env = result.getEnvironment();
+            assertEquals("/opt/jeffrey/provisioner.jar", env.get("JEFFREY_PROVISIONER_PATH"));
+            assertEquals("jar", env.get("JEFFREY_PROVISIONER_KIND"));
+            assertEquals("/usr/lib/libasyncProfiler.so", env.get("JEFFREY_PROFILER_PATH"));
         }
 
         @Test
-        void payloadVersionIsNotRequiredWhenNothingIsBaked() throws Exception {
-            JeffreyJibConfig config = new JeffreyJibConfig();
-            config.setProvisionerPath("/usr/bin/provisioner");
-            config.setProfilerPath("/usr/lib/libasyncProfiler.so");
-
-            ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
-
-            assertEquals(List.of("/usr/local/bin/jeffrey-entrypoint"), result.getEntrypoint());
-        }
-
-        @Test
-        void namesTheBinariesTheImageSupplies() throws Exception {
+        void namesTheProfilerTheImageSupplies() throws Exception {
             JeffreyJibConfig config = config();
-            config.setProvisionerPath("/opt/vendor/provisioner");
             config.setProfilerPath("/usr/lib/libasyncProfiler.so");
 
             extender.extend(planFor("amd64").build(), config, logger);
 
             assertTrue(logger.messages.stream().anyMatch(m ->
                             m.message.contains("neither fetched nor version-checked")
-                                    && m.message.contains("provisioner=/opt/vendor/provisioner (kind=native)")
-                                    && m.message.contains("profiler=/usr/lib/libasyncProfiler.so")),
-                    "A supplied binary has no provenance to print, so the log must name it: " + logger.messages);
+                                    && m.message.contains("/usr/lib/libasyncProfiler.so")),
+                    "A supplied library has no provenance to print, so the log must name it: "
+                            + logger.messages);
         }
 
         @Test
-        void warnsWhenASuppliedProvisionerDoesNotMatchItsKind() throws Exception {
+        void warnsThatProvisionerPathIsNoLongerConfigurable() {
             JeffreyJibConfig config = config();
-            config.setProvisionerPath("/opt/vendor/provisioner.jar");
 
-            extender.extend(planFor("amd64").build(), config, logger);
+            JeffreyBuildPlanExtender.applyProperties(
+                    config, Map.of("provisionerPath", "/opt/vendor/provisioner"), logger);
 
             assertTrue(logger.messages.stream().anyMatch(m -> m.level == LogLevel.WARN
-                            && m.message.contains("Set provisionerSource=jar")),
-                    "A jar left on the native default fails open at container start: " + logger.messages);
-        }
-
-        @Test
-        void explicitJarProvisionerPathStillBakesTheJarKind() throws Exception {
-            // The entrypoint can only tell a jar from a native binary by JEFFREY_PROVISIONER_KIND.
-            // Bringing your own jar must declare it the same way baking ours does, or the wrapper
-            // would run the executable-bit check against a jar and fail open.
-            JeffreyJibConfig config = config();
-            config.setProvisionerSource("jar");
-            config.setProvisionerPath("/opt/vendor/provisioner.jar");
-
-            ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
-
-            Map<String, String> env = result.getEnvironment();
-            assertEquals("/opt/vendor/provisioner.jar", env.get("JEFFREY_PROVISIONER_PATH"));
-            assertEquals("jar", env.get("JEFFREY_PROVISIONER_KIND"));
-            assertEquals(
-                    Set.of("/opt/jeffrey/libasyncProfiler.so"),
-                    entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet(),
-                    "Only the profiler is still baked");
-        }
-
-        @Test
-        void platformsAreNotInspectedWhenNothingIsBaked() throws Exception {
-            // An image that brings both binaries may target whatever Jeffrey has no payload for;
-            // the platform check exists to refuse baking a payload that does not exist.
-            JeffreyJibConfig config = new JeffreyJibConfig();
-            config.setProvisionerPath("/usr/bin/provisioner");
-            config.setProfilerPath("/usr/lib/libasyncProfiler.so");
-
-            ContainerBuildPlan result = extender.extend(planFor("s390x").build(), config, logger);
-
-            assertEquals(List.of("/usr/local/bin/jeffrey-entrypoint"), result.getEntrypoint());
-            assertTrue(resolver.requested.isEmpty());
+                            && m.message.contains("provisionerPath")
+                            && m.message.contains("provisionerSource")),
+                    "A build still setting the removed property must be told: " + logger.messages);
         }
 
         @Test

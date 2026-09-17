@@ -14,8 +14,7 @@
 #                    and exec the JIB command verbatim — no provisioner init, no argfile.
 #
 # Environment:
-#   JEFFREY_PROVISIONER_PATH  the provisioner baked by the extension, or one an operator points
-#                             at a binary already present in the base image
+#   JEFFREY_PROVISIONER_PATH  the provisioner, baked by the extension at build time
 #   JEFFREY_PROVISIONER_KIND  native | jar — which build the path above refers to. Baked by the
 #                             extension alongside the path; setting it by hand without a matching
 #                             binary only fails open.
@@ -83,7 +82,7 @@ PROVISIONER_KIND="${JEFFREY_PROVISIONER_KIND:-native}"
 
 if [ -z "$PROVISIONER" ]; then
   echo "jeffrey-jib: profiling DISABLED: JEFFREY_PROVISIONER_PATH is not set, so this image carries no provisioner." >&2
-  echo "jeffrey-jib: build the image with the jeffrey-jib extension (it bakes one under /opt/jeffrey), or set JEFFREY_PROVISIONER_PATH." >&2
+  echo "jeffrey-jib: build the image with the jeffrey-jib extension, which bakes one under /opt/jeffrey." >&2
   exec "$JAVA_BIN" "$@"
 fi
 

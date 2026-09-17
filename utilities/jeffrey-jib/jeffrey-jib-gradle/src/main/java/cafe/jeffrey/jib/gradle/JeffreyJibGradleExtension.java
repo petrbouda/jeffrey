@@ -63,14 +63,15 @@ import java.util.Optional;
  *   <li>{@code payloadVersion} — <strong>required</strong> whenever a payload is baked: the
  *       jeffrey-jib release whose payload artifacts the image carries, normally the same version
  *       as this extension.
- *   <li>{@code provisionerSource} — {@code native} (default) or {@code jar}; which provisioner
- *       build to bake, or which one an explicit {@code provisionerPath} points at.
+ *   <li>{@code provisionerSource} — {@code native} (default) or {@code jar}; which build of the
+ *       provisioner to bake. The provisioner itself is always baked and its path is not
+ *       configurable: it writes the layout Jeffrey Hub reads.
  *   <li>{@code jeffreyHome} — root of the shared volume the application writes its recordings to.
  *   <li>{@code baseConfig} — default {@code /jeffrey/jeffrey-base.conf}.
  *   <li>{@code overrideConfig} — optional per-deploy override, default
  *       {@code /jeffrey/jeffrey-overrides.conf}.
- *   <li>{@code provisionerPath} / {@code profilerPath} — the image already carries that binary;
- *       the matching payload is neither resolved nor baked.
+ *   <li>{@code profilerPath} — the image already carries async-profiler; that payload is neither
+ *       resolved nor baked.
  *   <li>{@code argFile} — location of the generated JVM argfile, default {@code /tmp/jvm.args}.
  *   <li>{@code projectName} — Jeffrey project name baked as {@code JEFFREY_PROJECT_NAME};
  *       defaults to the Gradle project name. Pod-level env still overrides it.

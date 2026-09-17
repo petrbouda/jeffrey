@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -55,8 +54,9 @@ import java.util.Set;
  * wrapper runs {@code provisioner init} and then execs the original command with the
  * provisioner-produced argfile prepended.
  *
- * <p>It also bakes the binaries that run needs — the provisioner and async-profiler — into a second
- * layer under {@code /opt/jeffrey}, fetched through the running build's own dependency resolution.
+ * <p>It also bakes the binaries that run needs — the provisioner, and async-profiler unless the
+ * image supplies its own — into a second layer under {@code /opt/jeffrey}, fetched through the
+ * running build's own dependency resolution.
  * An image built this way is self-contained: it needs a shared volume for the recordings it writes,
  * never to find its own tooling.
  *
@@ -82,9 +82,8 @@ public final class JeffreyBuildPlanExtender {
     private static final FilePermissions EXEC_PERMS = FilePermissions.fromOctalString("755");
     private static final String LAYER_NAME = "jeffrey-entrypoint";
 
-    private static final String ENV_PROVISIONER_KIND = "JEFFREY_PROVISIONER_KIND";
-    private static final String JAR_EXTENSION = ".jar";
-    private static final String SUPPLIED_SEPARATOR = ", ";
+    /** Removed property, still named so a build that sets it is told rather than quietly ignored. */
+    private static final String REMOVED_PROVISIONER_PATH = "provisionerPath";
     private static final String LINUX_OS = "linux";
     private static final Set<String> SUPPORTED_ARCHITECTURES = Set.of("amd64", "arm64");
 
@@ -148,7 +147,7 @@ public final class JeffreyBuildPlanExtender {
                 .build();
 
         PayloadInstallation payload = installPayload(buildPlan, config, source, logger);
-        Map<String, String> extraEnv = collectEnvDefaults(config, source);
+        Map<String, String> extraEnv = collectEnvDefaults(config);
 
         logger.log(LogLevel.LIFECYCLE,
                 "jeffrey-jib: wrapping entrypoint with " + ENTRYPOINT_PATH
@@ -162,7 +161,7 @@ public final class JeffreyBuildPlanExtender {
 
         // The payload is its own layer so the entrypoint layer stays a single small file and the
         // binaries show up as a distinct, individually cacheable line in `docker history`.
-        payload.layer().ifPresent(builder::addLayer);
+        builder.addLayer(payload.layer());
 
         // Merge our env on top of whatever the build plan already had (user-set JIB
         // container.environment survives; our keys win only for the specific keys we set). The
@@ -179,11 +178,9 @@ public final class JeffreyBuildPlanExtender {
     }
 
     /**
-     * Fetches and installs the binaries the entrypoint needs. A build configuration that already
-     * names {@code provisionerPath} or {@code profilerPath} says the image supplies that binary
-     * itself, so the matching payload is not resolved at all and costs nothing. When both are
-     * named nothing is resolved, no version is needed and the target platforms are not even
-     * inspected: an image that brings its own binaries may target whatever platform it likes.
+     * Fetches and installs the binaries the entrypoint needs. The provisioner is always baked;
+     * only async-profiler can be left out, by a {@code profilerPath} saying the image already
+     * provides one, in which case that payload is not resolved at all and costs nothing.
      */
     private PayloadInstallation installPayload(
             ContainerBuildPlan buildPlan,
@@ -191,67 +188,19 @@ public final class JeffreyBuildPlanExtender {
             ProvisionerSource source,
             ExtensionLogger logger) throws JibPluginExtensionException {
 
-        boolean bakeProvisioner = isBlank(config.getProvisionerPath());
         boolean bakeProfiler = isBlank(config.getProfilerPath());
-        logSuppliedBinaries(config, source, logger);
-        if (!bakeProvisioner && !bakeProfiler) {
-            return PayloadInstallation.empty();
+        if (!bakeProfiler) {
+            logger.log(LogLevel.LIFECYCLE,
+                    "jeffrey-jib: using the async-profiler this image already provides, neither fetched "
+                            + "nor version-checked: " + config.getProfilerPath());
         }
 
-        PayloadPlan plan = new PayloadPlan(source, linuxArchitectures(buildPlan), bakeProvisioner, bakeProfiler);
+        PayloadPlan plan = new PayloadPlan(source, linuxArchitectures(buildPlan), bakeProfiler);
         try {
             return new PayloadInstaller(payloadResolver, payloadVersion(config), workDirectory, logger)
                     .install(plan);
         } catch (PayloadResolutionException e) {
             throw new JibPluginExtensionException(extensionClass, e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Says what the image will run when the operator supplied it. A baked payload announces the
-     * release it came from; a path this build did not fetch has no such record, so naming it is all
-     * the log can do — and the log saying nothing is how an image ends up running a binary nobody
-     * can identify later.
-     */
-    private static void logSuppliedBinaries(
-            JeffreyJibConfig config, ProvisionerSource source, ExtensionLogger logger) {
-
-        List<String> supplied = new ArrayList<>();
-        if (!isBlank(config.getProvisionerPath())) {
-            supplied.add("provisioner=" + config.getProvisionerPath() + " (kind=" + source.kind() + ")");
-            warnOnKindMismatch(config.getProvisionerPath(), source, logger);
-        }
-        if (!isBlank(config.getProfilerPath())) {
-            supplied.add("profiler=" + config.getProfilerPath());
-        }
-        if (supplied.isEmpty()) {
-            return;
-        }
-        logger.log(LogLevel.LIFECYCLE,
-                "jeffrey-jib: using binaries this image already provides, neither fetched nor "
-                        + "version-checked: " + String.join(SUPPLIED_SEPARATOR, supplied));
-    }
-
-    /**
-     * The one mistake in a supplied provisioner that is visible from here and silent at container
-     * start: the entrypoint tells a jar from a native binary only by the kind, so a mismatch fails
-     * open and the application runs unprofiled.
-     */
-    private static void warnOnKindMismatch(String path, ProvisionerSource source, ExtensionLogger logger) {
-        boolean looksLikeJar = path.endsWith(JAR_EXTENSION);
-        if (looksLikeJar == (source == ProvisionerSource.JAR)) {
-            return;
-        }
-        if (looksLikeJar) {
-            logger.log(LogLevel.WARN,
-                    "jeffrey-jib: provisionerPath '" + path + "' looks like a jar but provisionerSource is '"
-                            + source.kind() + "', so the entrypoint will test it for the executable bit and "
-                            + "start the application unprofiled. Set provisionerSource=jar.");
-        } else {
-            logger.log(LogLevel.WARN,
-                    "jeffrey-jib: provisionerPath '" + path + "' is not a jar but provisionerSource is '"
-                            + source.kind() + "', so the entrypoint will hand it to the JVM with -jar and "
-                            + "start the application unprofiled. Set provisionerSource=native.");
         }
     }
 
@@ -264,7 +213,8 @@ public final class JeffreyBuildPlanExtender {
     }
 
     /**
-     * There is no default. The payload artifacts are published with each jeffrey-jib release, and
+     * There is no default, and no image is exempt: every one carries a provisioner. The payload
+     * artifacts are published with each jeffrey-jib release, and
      * which Jeffrey release's binaries a given jeffrey-jib release bundles is a choice made when it
      * was cut — so a guessed version would silently pin an image to a provisioner nobody chose,
      * which is worse than a build that stops and asks.
@@ -280,8 +230,7 @@ public final class JeffreyBuildPlanExtender {
                         + "jeffrey-jib release whose payload artifacts this image should carry — normally "
                         + "the same version as the extension itself (for example 0.14.0); each payload "
                         + "records the Jeffrey release and async-profiler version it bundles, and the "
-                        + "build log prints them. Alternatively set provisionerPath and profilerPath to "
-                        + "point at binaries the base image already provides.");
+                        + "build log prints them.");
     }
 
     /**
@@ -313,20 +262,15 @@ public final class JeffreyBuildPlanExtender {
     }
 
     /**
-     * The explicit configuration, baked as image ENV. An explicit {@code provisionerPath} also
-     * bakes the provisioner kind: the entrypoint runs a native binary and a jar differently, and
-     * it can only tell them apart by {@code JEFFREY_PROVISIONER_KIND}, so an operator who brings
-     * their own jar declares it with {@code provisionerSource=jar} exactly as one who bakes ours.
+     * The explicit configuration, baked as image ENV. The provisioner's own path and kind are not
+     * here: they describe what the extension installed, so they come from the payload installation
+     * and nothing in the build configuration can contradict them.
      */
-    private static Map<String, String> collectEnvDefaults(JeffreyJibConfig config, ProvisionerSource source) {
+    private static Map<String, String> collectEnvDefaults(JeffreyJibConfig config) {
         Map<String, String> env = new LinkedHashMap<>();
         putIfPresent(env, "JEFFREY_HOME", config.getJeffreyHome());
         putIfPresent(env, "JEFFREY_BASE_CONFIG", config.getBaseConfig());
         putIfPresent(env, "JEFFREY_OVERRIDE_CONFIG", config.getOverrideConfig());
-        putIfPresent(env, "JEFFREY_PROVISIONER_PATH", config.getProvisionerPath());
-        if (!isBlank(config.getProvisionerPath())) {
-            env.put(ENV_PROVISIONER_KIND, source.kind());
-        }
         putIfPresent(env, "JEFFREY_ARG_FILE", config.getArgFile());
         putIfPresent(env, "JEFFREY_PROFILER_PATH", config.getProfilerPath());
         putIfPresent(env, "JEFFREY_PROJECT_NAME", config.getProjectName());
@@ -351,9 +295,9 @@ public final class JeffreyBuildPlanExtender {
      *
      * <p>Recognised keys map one-to-one to the {@link JeffreyJibConfig} setters:
      * {@code enabled}, {@code jeffreyHome}, {@code baseConfig}, {@code overrideConfig},
-     * {@code provisionerPath}, {@code argFile}, {@code profilerPath}, {@code projectName},
-     * {@code provisionerSource}, {@code payloadVersion}. Null / empty values are ignored; unknown
-     * keys are logged at WARN and otherwise ignored.
+     * {@code argFile}, {@code profilerPath}, {@code projectName}, {@code provisionerSource},
+     * {@code payloadVersion}. Null / empty values are ignored; unknown keys, and the removed
+     * {@code provisionerPath}, are logged at WARN and otherwise ignored.
      */
     public static void applyProperties(
             JeffreyJibConfig config,
@@ -374,7 +318,11 @@ public final class JeffreyBuildPlanExtender {
                 case JeffreyJibConfig.JEFFREY_HOME -> config.setJeffreyHome(value);
                 case JeffreyJibConfig.BASE_CONFIG -> config.setBaseConfig(value);
                 case JeffreyJibConfig.OVERRIDE_CONFIG -> config.setOverrideConfig(value);
-                case JeffreyJibConfig.PROVISIONER_PATH -> config.setProvisionerPath(value);
+                case REMOVED_PROVISIONER_PATH -> logger.log(
+                        LogLevel.WARN,
+                        "jeffrey-jib: 'provisionerPath' is no longer configurable and is ignored. The "
+                                + "extension always bakes the provisioner, because the layout it writes is "
+                                + "the one Jeffrey Hub reads; 'provisionerSource' chooses native or jar.");
                 case JeffreyJibConfig.ARG_FILE -> config.setArgFile(value);
                 case JeffreyJibConfig.PROFILER_PATH -> config.setProfilerPath(value);
                 case JeffreyJibConfig.PROJECT_NAME -> config.setProjectName(value);

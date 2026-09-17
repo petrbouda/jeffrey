@@ -121,9 +121,9 @@ final class AetherPayloadResolver implements PayloadResolver {
             throw new PayloadResolutionException(
                     coordinates,
                     "this Maven (" + session.getClass().getName() + ") does not expose its artifact "
-                            + "resolver to the extension. Set provisionerPath and profilerPath to "
-                            + "binaries the base image already provides to build without payload "
-                            + "resolution",
+                            + "resolver to the extension. Mirror the jeffrey-jib-payload-* artifacts into a "
+                            + "repository this build can reach, or set enabled=false to build an image "
+                            + "without Jeffrey profiling",
                     e);
         }
     }

@@ -24,23 +24,17 @@ import java.util.Set;
 /**
  * What to bake into one image.
  *
- * <p>A plan always bakes something. An image that supplies both binaries itself never gets as far
- * as a plan: it has no architectures to resolve for and no version to resolve at, so the extender
- * skips the payload step entirely rather than describe an empty one.
+ * <p>The provisioner is not optional and so is not a field: it is Jeffrey's own binary, the
+ * protocol it writes is the one Jeffrey Hub reads, and an image that carried someone else's copy
+ * would drift from that protocol with nothing recording which one it had. Only async-profiler,
+ * a third-party library an image may legitimately already ship, can be left out.
  *
- * @param source          which provisioner build to install
- * @param architectures   the Linux architectures the build plan targets, in declaration order
- * @param bakeProvisioner false when the build configuration already names a provisioner path, in
- *                        which case the operator has put one in the base image themselves and
- *                        baking a second copy would only cost image size
- * @param bakeProfiler    false when the build configuration already names a profiler path; setting
- *                        {@code profilerPath} has always meant "use my async-profiler" and still does
+ * @param source        which provisioner build to install
+ * @param architectures the Linux architectures the build plan targets, in declaration order
+ * @param bakeProfiler  false when the build configuration already names a profiler path; setting
+ *                      {@code profilerPath} has always meant "use my async-profiler" and still does
  */
-public record PayloadPlan(
-        ProvisionerSource source,
-        Set<String> architectures,
-        boolean bakeProvisioner,
-        boolean bakeProfiler) {
+public record PayloadPlan(ProvisionerSource source, Set<String> architectures, boolean bakeProfiler) {
 
     public PayloadPlan {
         if (source == null) {
@@ -48,9 +42,6 @@ public record PayloadPlan(
         }
         if (architectures == null || architectures.isEmpty()) {
             throw new IllegalArgumentException("At least one target architecture is required");
-        }
-        if (!bakeProvisioner && !bakeProfiler) {
-            throw new IllegalArgumentException("A payload plan must bake at least one payload");
         }
         architectures = new LinkedHashSet<>(architectures);
     }
