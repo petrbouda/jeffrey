@@ -31,7 +31,6 @@ const headings = [
   { id: 'chart-structure', text: 'Chart Structure', level: 2 },
   { id: 'configure-server', text: 'Configuring Jeffrey Hub', level: 2 },
   { id: 'configure-app', text: 'Configuring the Monitored Application', level: 2 },
-  { id: 'init-container', text: 'Init Container Ordering', level: 2 },
   { id: 'side-by-side', text: 'Side-by-Side: direct vs dom', level: 2 },
   { id: 'installing', text: 'Installing the Stack', level: 2 },
   { id: 'tearing-down', text: 'Tearing Down', level: 2 }
@@ -45,7 +44,7 @@ const chartStructure = `helm/
 ├── jeffrey-hub/
 │   ├── Chart.yaml
 │   ├── values.yaml                   # image tag, sharedVolume, ports, ingress, probes
-│   ├── application.properties        # Spring Boot config (copy-libs, home.dir)
+│   ├── application.properties        # Spring Boot config (home.dir)
 │   ├── jeffrey-base.conf             # provisioner init config for self-profiling
 │   └── templates/
 │       ├── deployment.yaml
@@ -62,7 +61,7 @@ const chartStructure = `helm/
 │   ├── values.yaml                   # mode toggle, sharedVolume, jeffrey env, probes
 │   ├── jeffrey-base.conf             # provisioner init config for the monitored service
 │   └── templates/
-│       ├── deployment.yaml           # JIB image + wait-for-jeffrey-hub init container
+│       ├── deployment.yaml           # JIB image, shared-volume mount, jeffrey env
 │       ├── service.yaml              # HTTP 8080
 │       ├── configmap.yaml            # application.properties
 │       ├── jeffrey-base-configmap.yaml
@@ -146,31 +145,6 @@ const testappEnv = `env:
   - name: JEFFREY_TESTAPP_MODE
     value: {{ .Values.mode | quote }}`;
 
-const initContainer = `# Block the main container until jeffrey-hub reports ready via its actuator
-# readiness endpoint. By the time the readiness probe passes, jeffrey-hub's
-# copy-libs has published the provisioner bundle to the shared volume, so the JIB
-# entrypoint finds provisioner + agent + libasyncProfiler on first start
-# instead of fail-opening (no profiling) for the first minute or two.
-initContainers:
-  - name: wait-for-jeffrey-hub
-    image: busybox:1.37
-    command:
-      - sh
-      - -c
-      - |
-        until wget -q --spider "http://\${JEFFREY_HUB_HOST}/actuator/health/readiness"; do
-          echo "waiting for http://\${JEFFREY_HUB_HOST}/actuator/health/readiness ..."
-          sleep 2
-        done
-        echo "jeffrey-hub is ready, starting application."
-    env:
-      - name: JEFFREY_HUB_HOST
-        value: {{ .Values.jeffrey.hubHost | quote }}
-    # requests == limits keeps the pod in QoS class Guaranteed.
-    resources:
-      limits:   { cpu: 50m, memory: 32Mi }
-      requests: { cpu: 50m, memory: 32Mi }`;
-
 const sideBySide = `# Two flavours from one chart — same image, different values.mode:
 helm upgrade --install direct helm/jeffrey-testapp-server --set mode=direct
 helm upgrade --install dom    helm/jeffrey-testapp-server --set mode=dom
@@ -179,7 +153,7 @@ helm upgrade --install dom    helm/jeffrey-testapp-server --set mode=dom
 #   direct-jeffrey-testapp-server   (efficient PersonService)
 #   dom-jeffrey-testapp-server      (inefficient PersonService)`;
 
-const installCommands = `# 1) Jeffrey Hub — creates the shared PVC and runs copy-libs.
+const installCommands = `# 1) Jeffrey Hub — creates the shared PVC the recordings land in.
 helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
   --namespace jeffrey-testapp --create-namespace
 
@@ -230,7 +204,7 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         <tbody>
           <tr>
             <td><code>helm/jeffrey-hub/</code></td>
-            <td>Jeffrey Hub itself. Owns the shared PVC, runs <code>copy-libs</code>, exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</td>
+            <td>Jeffrey Hub itself. Owns the shared PVC, exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</td>
             <td><code>jeffrey-hub</code></td>
           </tr>
           <tr>
@@ -281,12 +255,11 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         :code="serverImage"
       />
 
-      <p>Two lines of <code>application.properties</code> activate <code>copy-libs</code>:</p>
+      <p>One line of <code>application.properties</code> points Jeffrey Hub at the shared volume:</p>
 
       <DocsCodeBlock
         language="properties"
-        code="jeffrey.hub.copy-libs.enabled=true
-jeffrey.hub.home.dir=\${JEFFREY_HOME}"
+        code="jeffrey.hub.home.dir=\${JEFFREY_HOME}"
       />
 
       <p>The Service exposes both protocols on a single ClusterIP:</p>
@@ -338,25 +311,6 @@ jeffrey.hub.home.dir=\${JEFFREY_HOME}"
         its bootstrap SQL.
       </DocsCallout>
 
-      <h2 id="init-container">Init Container Ordering</h2>
-      <p>
-        Because the application image relies on the shared volume, every monitored pod
-        carries a tiny init container that blocks startup until Jeffrey Hub is ready
-        and <code>copy-libs</code> has populated the volume:
-      </p>
-
-      <DocsCodeBlock
-        language="yaml"
-        :code="initContainer"
-      />
-
-      <p>
-        Without this gate, the JIB entrypoint runs <code>provisioner init</code> against
-        a half-populated <code>libs/current/</code> the first time the pod schedules,
-        fail-opens to plain <code>java</code> (no profiling), and stays that way until
-        you restart the pod manually.
-      </p>
-
       <h2 id="side-by-side">Side-by-Side: direct vs dom</h2>
       <p>
         The headline value of this layout: one chart, two distinct projects in Jeffrey
@@ -380,10 +334,10 @@ jeffrey.hub.home.dir=\${JEFFREY_HOME}"
 
       <h2 id="installing">Installing the Stack</h2>
       <p>
-        Four <code>helm upgrade --install</code> calls — one per release. Order doesn't
-        matter; the testapp pods carry an init container that polls Jeffrey Hub's
-        <code>/actuator/health/readiness</code> so nothing starts until
-        <code>copy-libs</code> has populated the shared volume.
+        Four <code>helm upgrade --install</code> calls — one per release. Order doesn't matter:
+        each application image carries its own provisioner and async-profiler, so a pod that
+        starts before Jeffrey Hub still profiles from the first second. It simply writes its
+        recordings to the shared volume for the Hub to pick up whenever it arrives.
       </p>
 
       <DocsCodeBlock
@@ -427,7 +381,7 @@ helm uninstall jeffrey-hub         --namespace jeffrey-testapp"
         The default <code>reclaimPolicy</code> for a manually-created PV is
         <code>Retain</code>, so the directory on the cluster node (e.g.
         <code>/tmp/jeffrey-data</code> on OrbStack) keeps the contents Jeffrey Hub
-        wrote into it. The next install would inherit a stale provisioner bundle. On dev
+        wrote into it. The next install would inherit stale recordings and session directories. On dev
         clusters, wipe the directory yourself before re-installing. On real clusters
         with a dynamic RWX provisioner, the <code>StorageClass</code> owns the reclaim
         policy and the cleanup is automatic.

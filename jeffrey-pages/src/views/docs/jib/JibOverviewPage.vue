@@ -27,8 +27,13 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'how-it-works', text: 'How It Works', level: 2 },
   { id: 'runtime-kill-switch', text: 'Runtime Kill Switch', level: 2 },
+  { id: 'jar-provisioner-environment', text: 'The Jar Provisioner and the JVM Environment', level: 2 },
   { id: 'limitations', text: 'Limitations', level: 2 }
 ];
+
+const provisionerJvmOptions = `env:
+  - name: JEFFREY_PROVISIONER_JAVA_OPTIONS
+    value: "-Xmx96m -Dfile.encoding=UTF-8"`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -83,19 +88,22 @@ onMounted(() => {
           </div>
         </div>
 
-        <p>At container start, the wrapper runs <code>provisioner init</code> &mdash; resolved from
-          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on a shared volume populated by
-          Jeffrey Hub's <code>copy-libs</code> feature &mdash; and then <code>exec</code>s the original JIB
-          command with the provisioner-produced argfile inserted right after the <code>java</code> binary.
-          If the shared-volume root is not configured at runtime (neither <code>JEFFREY_HOME</code> nor
-          <code>JEFFREY_PROVISIONER_PATH</code> is set), the wrapper logs a warning and skips init entirely &mdash;
-          see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
+        <p>At container start, the wrapper runs <code>provisioner init</code> from
+          <code>/opt/jeffrey</code> &mdash; where the extension installed it at build time &mdash; and then
+          <code>exec</code>s the original JIB command with the provisioner-produced argfile inserted right
+          after the <code>java</code> binary. Nothing is downloaded, copied or waited for at container
+          start. If no provisioner is present (neither baked nor named by
+          <code>JEFFREY_PROVISIONER_PATH</code>), the wrapper logs one line and starts the application
+          without profiling &mdash; see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
 
         <DocsCallout type="info">
-          <strong>Why a shared volume?</strong> The extension does <strong>not</strong> bake Jeffrey
-          binaries into your image. It relies on a Jeffrey Hub running elsewhere in the cluster
-          with <code>copy-libs.enabled=true</code> to populate the shared <code>jeffrey-home</code>
-          volume that your app pods also mount. Keeps the extension JAR tiny and versioning automatic.
+          <strong>The image is self-contained.</strong> The extension fetches the provisioner and
+          async-profiler through your build's own dependency resolution and installs them under
+          <code>/opt/jeffrey</code> in their own layer. The shared volume is still needed &mdash; but only
+          for the recordings your application writes to it, never to find its own tooling. Set
+          <code>payloadVersion</code> to the jeffrey-jib release whose payload artifacts the image
+          should carry &mdash; normally the extension's own version. The build log prints which
+          Jeffrey release and async-profiler version those payloads bundle.
         </DocsCallout>
 
         <h2 id="runtime-kill-switch">Runtime Kill Switch</h2>
@@ -108,18 +116,78 @@ onMounted(() => {
         <p>Useful for emergency disablement, per-pod opt-out, dev/local runs without the shared
           volume, and A/B comparisons.</p>
 
-        <p><strong>Implicit fallthrough (fail-open).</strong> If neither <code>JEFFREY_HOME</code> nor
-          <code>JEFFREY_PROVISIONER_PATH</code> is set at container start, the wrapper logs a warning to
-          stderr (&ldquo;Jeffrey is disabled, starting application without profiling&rdquo;) and
-          <code>exec</code>s the JIB command verbatim. Misconfiguration can never prevent an app
-          from booting &mdash; the worst case is profiling silently turning off, which the warning
-          surfaces in the pod logs.</p>
+        <p><strong>Implicit fallthrough (fail-open).</strong> If <code>JEFFREY_PROVISIONER_PATH</code>
+          is unset at container start, the wrapper logs
+          &ldquo;profiling DISABLED: JEFFREY_PROVISIONER_PATH is not set, so this image carries no
+          provisioner&rdquo; and <code>exec</code>s the JIB command verbatim. The same happens when the
+          binary it points at is missing or unreadable, when
+          <code>JEFFREY_PROVISIONER_KIND</code> is neither <code>native</code> nor <code>jar</code>,
+          and when <code>provisioner init</code> fails or produces no argfile. Misconfiguration can
+          never prevent an app from booting &mdash; the worst case is profiling turning off, which
+          one greppable <code>profiling DISABLED:</code> line surfaces in the pod logs.</p>
 
         <DocsCallout type="info">
           The &ldquo;app still starts&rdquo; guarantee holds only when a downstream command is
           actually present in the container. If the JIB CMD is missing entirely, the wrapper has
           nothing to exec and still exits non-zero &mdash; a configuration error, not a profiling
           concern.
+        </DocsCallout>
+
+        <h2 id="jar-provisioner-environment">The Jar Provisioner and the JVM Environment</h2>
+        <p>With <code>provisionerSource=jar</code> the provisioner runs on the application's own
+          <code>java</code>, as a short-lived second JVM before the application starts. Every JVM in the
+          container reads the same environment, and three variables are honoured by any
+          <code>java</code> launcher or HotSpot without being asked: <code>JDK_JAVA_OPTIONS</code> (the
+          launcher, JDK&nbsp;9+), <code>JAVA_TOOL_OPTIONS</code> (every HotSpot JVM) and
+          <code>_JAVA_OPTIONS</code> (every HotSpot JVM, applied last). Operators use them precisely
+          because they reach the application JVM without touching the command line &mdash; which is
+          also why they would reach the provisioner JVM:</p>
+
+        <div class="feature-list feature-list-warning">
+          <div class="feature-item feature-item-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div><strong>A <code>-javaagent:</code> is loaded twice.</strong> An OpenTelemetry or APM
+              agent in <code>JDK_JAVA_OPTIONS</code> instruments the provisioner too: slower init, and a
+              second, short-lived instance of the service registering with the agent's backend on every
+              pod start.</div>
+          </div>
+          <div class="feature-item feature-item-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div><strong>Memory sized for the application is claimed by a JVM that needs 64&nbsp;MB.</strong>
+              An <code>-Xmx</code> or <code>-XX:MaxRAMPercentage</code> meant for the application applies
+              to the provisioner as well; with <code>-XX:+AlwaysPreTouch</code> it is touched at once and
+              can push the pod over its memory limit before the application has even started.</div>
+          </div>
+          <div class="feature-item feature-item-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div><strong>Diagnostics run twice.</strong> <code>-XX:StartFlightRecording</code>, GC logging
+              or heap-dump settings produce a second set of output files from the provisioner, and
+              <code>JDK_JAVA_OPTIONS</code> adds a <code>NOTE: Picked up JDK_JAVA_OPTIONS:</code> line to
+              the startup log.</div>
+          </div>
+        </div>
+
+        <p>For that reason the wrapper <strong>unsets all three variables for the provisioner JVM
+          only</strong>, in a subshell, so the application's <code>exec</code> still sees them
+          untouched. The provisioner does no network I/O and reads none of those settings, so nothing
+          is lost. Options genuinely meant for the provisioner JVM go in the variable that exists for
+          exactly that; it is a whitespace-separated list appended after the wrapper's own
+          <code>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Xmx64m</code>, so a later
+          <code>-Xmx</code> wins:</p>
+
+        <div class="code-block">
+          <pre><code>{{ provisionerJvmOptions }}</code></pre>
+        </div>
+
+        <DocsCallout type="info">
+          <strong>Two things this cannot fix.</strong> The jar is compiled for the JDK the Jeffrey
+          release targets (currently 25); an older application JVM fails with
+          <code>UnsupportedClassVersionError</code>, the wrapper prints a hint naming that error and
+          starts the application unprofiled &mdash; use <code>native</code> there. And the
+          <code>JEFFREY_*</code> variables, <code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code> included, are
+          <em>configuration</em> the provisioner reads and writes into the argfile for the application;
+          they are never options for the provisioner's own JVM. The native provisioner is not a JVM
+          and has none of these concerns.
         </DocsCallout>
 
         <h2 id="limitations">Limitations</h2>
@@ -132,10 +200,20 @@ onMounted(() => {
           </div>
           <div class="feature-item feature-item-warning">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <div><strong>Requires Jeffrey Hub elsewhere in the cluster</strong> with
-              <code>copy-libs.enabled=true</code>, writing to the shared <code>jeffrey-home</code>
-              volume your app pods mount. Without it, the wrapper cannot locate
-              <code>provisioner-&lt;arch&gt;</code> at runtime.</div>
+            <div><strong>Fails the build on an unsupported target platform.</strong> Payloads exist for
+              <code>linux/amd64</code> and <code>linux/arm64</code>; any other architecture, or a build
+              plan with no Linux platform at all, stops the build rather than producing an image that
+              cannot profile itself.</div>
+          </div>
+          <div class="feature-item feature-item-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div><strong>Resolves the payload artifacts at build time</strong> from Maven Central, or
+              whatever repositories your build is configured with &mdash; the <em>project's</em>
+              repositories, not the plugin or <code>buildscript</code> ones, which matters behind split
+              enterprise mirrors. An air-gapped build mirrors the
+              <code>jeffrey-jib-payload-*</code> artifacts it uses; pointing
+              <code>profilerPath</code> at a library the base image already provides removes the
+              async-profiler one, but the provisioner payload is always needed.</div>
           </div>
         </div>
       </div>

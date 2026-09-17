@@ -58,7 +58,6 @@ const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned l
 - name: JEFFREY_ADDITIONAL_JVM_OPTIONS
   value: >-
     -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
-    -Djeffrey.hub.copy-libs.enabled=true
     -Djeffrey.hub.home.dir=<<ENV:JEFFREY_HOME>>
     -Dlogging.level.cafe.jeffrey=TRACE
     -Dlogging.threshold.console=INFO
@@ -73,13 +72,13 @@ const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-
   jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
   jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,...`;
 
-const minimalConfig = `jeffrey-home = "/opt/jeffrey"
+const minimalConfig = `jeffrey-home = "/mnt/jeffrey"
 project {
     workspace-ref-id = "production"
     name = "my-service"
 }`;
 
-const fullConfig = `jeffrey-home = "/opt/jeffrey"
+const fullConfig = `jeffrey-home = "/mnt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
 heartbeat { enabled = true }
 arg-file = "/tmp/jvm.args"
@@ -239,7 +238,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>profiler-path</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROFILER_PATH</code></td>
-              <td>Path to <code>libasyncProfiler.so</code>. When unset, auto-resolved from <code>libs/current/libasyncProfiler-&#123;arch&#125;.so</code> under <code>jeffrey-home</code> — the <code>&#123;arch&#125;</code> suffix is detected from the JVM's <code>os.arch</code> (<code>amd64</code> or <code>arm64</code>).</td>
+              <td>Path to <code>libasyncProfiler.so</code>. Normally baked into the image as <code>JEFFREY_PROFILER_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Set it explicitly only when you supply your own async-profiler &mdash; see <router-link to="/docs/jib/configuration#custom-async-profiler">Using Your Own async-profiler</router-link> for the agent options your build must accept. Nothing is discovered on disk: when no path resolves the application starts without profiling, but a path that resolves to the wrong library stops the JVM.</td>
             </tr>
             <tr>
               <td><code>project.instance-name</code></td>
@@ -335,7 +334,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         </table>
 
         <DocsCallout type="info">
-          <strong>Architecture detection:</strong> the auto-resolved <code>profiler-path</code> reads <code>os.arch</code> at startup and looks for <code>libasyncProfiler-amd64.so</code> on x86_64 or <code>libasyncProfiler-arm64.so</code> on aarch64. On any other architecture (e.g. <code>ppc64le</code>, <code>s390x</code>) the provisioner logs a warning and skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached. Set <code>profiler-path</code> explicitly if you have a custom build.
+          <strong>Architecture:</strong> the provisioner does not detect it and discovers nothing on disk. In a JIB-built image the extension bakes <code>JEFFREY_PROFILER_PATH</code> for the platform it built, and on a multi-platform image the entrypoint wrapper expands an <code>&#123;arch&#125;</code> placeholder from <code>uname -m</code> before the provisioner runs. Everywhere else, <code>profiler-path</code> names the <code>libasyncProfiler.so</code> you shipped for that architecture. When no path resolves the provisioner skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached.
         </DocsCallout>
 
         <h2 id="features">Features</h2>

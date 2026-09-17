@@ -13,7 +13,7 @@ Jeffrey splits profiling into distinct responsibilities:
 ![Jeffrey Local + Server architecture](images/release-notes/server-recording/01-architecture.png)
 *Split architecture: Server collects in the cloud, Local analyzes on your machine.*
 
-**Jeffrey Provisioner** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and registers the application instance with Jeffrey Hub. It runs once before your Java application starts.
+**Jeffrey Provisioner** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and announces the new instance by writing a pointer into `.pending/` on that storage for Jeffrey Hub to pick up. It runs once before your Java application starts.
 
 **Jeffrey Hub** runs as a service in your Kubernetes cluster. It watches shared storage for new JFR files and metadata, tracks recording sessions, manages instance lifecycles, and exposes a gRPC API for remote access. It collects — it doesn't analyze.
 
@@ -29,8 +29,14 @@ Add it to your Dockerfile:
 
 ```dockerfile
 # Copy Jeffrey Provisioner and Async Profiler
-COPY provisioner.jar /data/jeffrey/libs/current/provisioner.jar
-COPY libasyncProfiler.so /data/jeffrey/libs/current/libasyncProfiler.so
+COPY provisioner.jar /opt/jeffrey/provisioner.jar
+COPY libasyncProfiler.so /opt/jeffrey/libasyncProfiler.so
+
+# Tell the provisioner where the library is. It never searches the filesystem,
+# so without this (or a profiler-path in the config) the application starts
+# with no profiler attached. Images built with the Jeffrey JIB extension get
+# this variable baked in automatically.
+ENV JEFFREY_PROFILER_PATH=/opt/jeffrey/libasyncProfiler.so
 ```
 
 Create an entrypoint script:
@@ -38,14 +44,14 @@ Create an entrypoint script:
 ```bash
 #!/bin/sh
 # Initialize profiling configuration
-java -jar /data/jeffrey/libs/current/provisioner.jar \
+java -jar /opt/jeffrey/provisioner.jar \
   init --base-config /mnt/config/jeffrey-init.conf
 
 # Start the application with generated JVM arguments
 exec java @/tmp/jvm.args -jar /app/my-service.jar
 ```
 
-The provisioner reads the configuration, generates an `@argfile` with all necessary JVM flags (Async Profiler agent path, output directory, profiling events, JFR sync), and creates the directory structure on shared storage.
+The provisioner reads the configuration, generates an `@argfile` with all necessary JVM flags (the Async Profiler agent path from `JEFFREY_PROFILER_PATH`, output directory, profiling events, JFR sync), and creates the directory structure on shared storage. It fails open: a missing profiler path or a broken config means the application still starts, just without profiling.
 
 A typical configuration enables:
 
@@ -72,7 +78,7 @@ In Kubernetes, this typically means a shared PersistentVolumeClaim (PVC) or NFS 
 
 Jeffrey Hub exposes two ports:
 
-- **HTTP (8081)** — A minimal web UI for browsing workspaces and sessions directly
+- **HTTP (8080)** — A minimal web UI for browsing workspaces and sessions directly
 - **gRPC (9090)** — The primary API used by Jeffrey Local to connect remotely
 
 The Server watches the shared storage directory structure and automatically discovers:

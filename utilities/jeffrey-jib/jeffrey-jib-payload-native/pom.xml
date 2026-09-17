@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cafe.jeffrey-analyst</groupId>
+        <artifactId>jeffrey-jib</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>jeffrey-jib-payload-native</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Native provisioner binaries baked into application images by the Jeffrey JIB extension.</description>
+    <url>https://github.com/petrbouda/jeffrey</url>
+
+    <!--
+      One classified jar per architecture, each carrying a single file under jeffrey-payload/.
+      CI stages the binaries into src/main/payload/linux-<arch>/jeffrey-payload/ before packaging;
+      the directory is not a resource root, so nothing filters or rewrites a binary.
+
+      The main (unclassified) jar carries only the holder class. It exists because Maven Central
+      requires a pom plus sources and javadoc jars for every artifact; the extension never resolves
+      it, because an arch-scoped payload is always requested with a classifier.
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven-enforcer-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>payload-staged</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!-- A release that forgot to stage a binary must fail here rather
+                                     than publish an empty payload that breaks every consumer. -->
+                                <requireFilesExist>
+                                    <files>
+                                        <file>${project.basedir}/src/main/payload/linux-amd64/jeffrey-payload/provisioner</file>
+                                        <file>${project.basedir}/src/main/payload/linux-arm64/jeffrey-payload/provisioner</file>
+                                    </files>
+                                </requireFilesExist>
+                                <!-- Recorded in the payload jar manifest (Jeffrey-Payload-Provenance) and
+                                     printed by the extension at build time: the only place a consumer can
+                                     see which Jeffrey release a jeffrey-jib payload actually bundles. -->
+                                <requireProperty>
+                                    <property>jeffrey.release</property>
+                                    <regex>^v[0-9][0-9A-Za-z.+-]*$</regex>
+                                    <regexMessage>jeffrey.release must be the Jeffrey release tag the provisioner was downloaded from, e.g. -Djeffrey.release=v0.13.22</regexMessage>
+                                </requireProperty>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+                <configuration>
+                    <!-- The .gitkeep that pins the staging directory in git is not a payload. -->
+                    <excludes>
+                        <exclude>.gitkeep</exclude>
+                    </excludes>
+                    <archive>
+                        <manifestEntries>
+                            <Jeffrey-Payload-Provenance>jeffrey ${jeffrey.release}</Jeffrey-Payload-Provenance>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>payload-linux-amd64</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>linux-amd64</classifier>
+                            <classesDirectory>${project.basedir}/src/main/payload/linux-amd64</classesDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>payload-linux-arm64</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>linux-arm64</classifier>
+                            <classesDirectory>${project.basedir}/src/main/payload/linux-arm64</classesDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

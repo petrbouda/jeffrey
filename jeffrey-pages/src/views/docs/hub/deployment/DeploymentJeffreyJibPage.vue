@@ -31,7 +31,7 @@ const headings = [
   { id: 'parent-pom', text: 'Parent pom.xml', level: 2 },
   { id: 'module-pom', text: 'Per-Module Override', level: 2 },
   { id: 'build-commands', text: 'Build Commands', level: 2 },
-  { id: 'no-baked-binaries', text: 'No Profiler in the Image', level: 2 }
+  { id: 'self-contained-image', text: 'A Self-Contained Image', level: 2 }
 ];
 
 onMounted(() => {
@@ -61,6 +61,9 @@ const parentPom = `<plugin>
         <pluginExtensions>
             <pluginExtension>
                 <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+                <properties>
+                    <payloadVersion>\${jeffrey-jib.version}</payloadVersion>
+                </properties>
             </pluginExtension>
         </pluginExtensions>
     </configuration>
@@ -69,7 +72,7 @@ const parentPom = `<plugin>
 const properties = `<properties>
     <springboot.version>4.0.6</springboot.version>
     <jib.version>3.5.1</jib.version>
-    <jeffrey-jib.version>0.1.0</jeffrey-jib.version>
+    <jeffrey-jib.version>0.14.0</jeffrey-jib.version>
 </properties>`;
 
 const moduleServer = `<plugin>
@@ -114,8 +117,9 @@ const moduleClient = `<plugin>
         that, when launched in a pod with <code>JEFFREY_ENABLED=true</code> and a populated
         <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
         the JVM starts and boots with the right async-profiler flags and
-        <code>-Djeffrey.heartbeat.*</code> properties. There is no Dockerfile, no shell script,
-        and no profiler binary baked into the image.
+        <code>-Djeffrey.heartbeat.*</code> properties. There is no Dockerfile and no shell script to
+        maintain; the provisioner and async-profiler are installed by the extension under
+        <code>/opt/jeffrey</code>.
       </p>
 
       <h2 id="what-it-does">What the Extension Does</h2>
@@ -141,15 +145,12 @@ const moduleClient = `<plugin>
       </div>
 
       <p>
-        At container start, the wrapper runs <code>provisioner init</code> — resolved from
-        <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on the shared
-        volume populated by Jeffrey Hub's
-        <router-link to="/docs/hub/deployment/shared-volume">copy-libs</router-link>
-        feature — and then <code>exec</code>s the original JIB command with the
-        profiler-agent flags merged in. If the shared-volume root is not configured at
-        runtime (neither <code>JEFFREY_HOME</code> nor <code>JEFFREY_PROVISIONER_PATH</code> is
-        set), the wrapper logs a warning and skips init entirely — useful for "build once,
-        ship to dev/prod with profiling, ship to CI without".
+        At container start, the wrapper runs <code>provisioner init</code> from
+        <code>/opt/jeffrey</code>, where the extension installed it at build time, and then
+        <code>exec</code>s the original JIB command with the profiler-agent flags merged in.
+        Nothing is downloaded or waited for. Set <code>JEFFREY_ENABLED=false</code> to skip
+        profiling entirely — useful for "build once, ship to dev/prod with profiling, ship to
+        CI without".
       </p>
 
       <h2 id="parent-pom">Parent pom.xml</h2>
@@ -180,8 +181,9 @@ const moduleClient = `<plugin>
 
       <DocsCallout type="info">
         <strong>Coordinates.</strong> The extension lives at
-        <code>cafe.jeffrey-analyst:jeffrey-jib-maven</code>, currently version
-        <code>0.0.1-b3</code>. JIB itself stays at the standard
+        <code>cafe.jeffrey-analyst:jeffrey-jib-maven</code>, pinned above as
+        <code>jeffrey-jib.version</code> and reused as <code>payloadVersion</code> so the image
+        carries the payloads of the same release. JIB itself stays at the standard
         <code>com.google.cloud.tools:jib-maven-plugin:3.5.1</code> — no fork, no patched
         plugin.
       </DocsCallout>
@@ -248,24 +250,23 @@ const moduleClient = `<plugin>
         <code>JIB_REGISTRY_USER</code> / <code>JIB_REGISTRY_PASS</code> env vars.
       </p>
 
-      <h2 id="no-baked-binaries">No Profiler in the Image</h2>
+      <h2 id="self-contained-image">A Self-Contained Image</h2>
       <p>
-        A deliberate property of the testapp setup: <strong>the application image contains
-        only the entrypoint wrapper</strong>. The provisioner binary and async-profiler
-        library are not baked into the image — they are delivered to every monitored pod at
-        runtime via the shared <code>jeffrey-pvc</code>, populated by Jeffrey Hub's
-        <code>copy-libs</code> feature.
+        The extension bakes everything the image needs to profile itself: the entrypoint wrapper at
+        <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner and async-profiler under
+        <code>/opt/jeffrey</code>. The payloads are ordinary Maven artifacts, resolved through your
+        build's own repositories and cache; <code>payloadVersion</code> names the jeffrey-jib release
+        they ship with, and the build log prints which Jeffrey release and async-profiler version
+        that release bundles.
       </p>
 
       <DocsCallout type="tip">
-        <strong>Why bother?</strong> One Jeffrey Hub upgrade publishes a new provisioner bundle
-        for every monitored pod in the namespace — you never rebuild your application
-        image to pick up an agent fix. The trade-off is a runtime dependency on the
-        shared volume (and on Jeffrey Hub having finished publishing into it before the
-        application starts), which the testapp Helm chart handles with an init container
-        that polls Jeffrey Hub's <code>/actuator/health/readiness</code>. See
-        <router-link to="/docs/hub/deployment/helm-chart">Helm Chart</router-link> for
-        the wiring.
+        <strong>Why bother?</strong> The shared volume goes back to being just the recording
+        handoff. A pod no longer has to wait for Jeffrey Hub to publish binaries before it can
+        start profiling, which removes the startup race that used to leave a pod running
+        unprofiled until someone restarted it. The cost is that a provisioner fix now arrives with
+        an image rebuild rather than a Hub upgrade. An image whose base already ships async-profiler
+        can keep it by setting <code>profilerPath</code>, which skips that payload entirely.
       </DocsCallout>
     </div>
 

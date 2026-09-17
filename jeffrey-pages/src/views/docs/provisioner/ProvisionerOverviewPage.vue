@@ -210,12 +210,22 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
         </div>
 
         <h2 id="installation">Installation</h2>
-        <p>Jeffrey Provisioner is included in the Jeffrey Docker image. For standalone use:</p>
+        <p>For a container image built with JIB, you install nothing: the
+          <router-link to="/docs/jib/setup">Jeffrey JIB extension</router-link> puts the provisioner and
+          async-profiler into the image under <code>/opt/jeffrey</code> at build time. Pick the build
+          with <code>provisionerSource</code> (<code>native</code> or <code>jar</code>) and pin the
+          binaries with <code>payloadVersion</code>, the jeffrey-jib release whose payloads the image
+          carries.</p>
+
+        <p>For everything else &mdash; a hand-written Dockerfile, a VM, bare metal:</p>
 
         <ol>
-          <li>Download <code>provisioner.jar</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
+          <li>Download <code>provisioner.jar</code>, or the native <code>provisioner-amd64</code> /
+            <code>provisioner-arm64</code>, from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
           <li>Place it in your application's deployment package</li>
-          <li>For async-profiler support, also include <code>libasyncProfiler.so</code></li>
+          <li>For async-profiler support, also include <code>libasyncProfiler.so</code> and point
+            <code>profiler-path</code> (or <code>JEFFREY_PROFILER_PATH</code>) at it &mdash; nothing is
+            discovered on disk</li>
         </ol>
 
         <h3>Basic Usage</h3>

@@ -35,6 +35,7 @@ const headings = [
   { id: 'jvm-crash-logs', text: 'JVM Crash Logs', level: 3 },
   { id: 'heartbeat-recovery', text: 'Hub Restart', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
+  { id: 'retained-sessions', text: 'Retained Sessions', level: 2 },
 ];
 
 onMounted(() => {

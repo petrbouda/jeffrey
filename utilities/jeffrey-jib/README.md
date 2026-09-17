@@ -11,13 +11,36 @@ without forcing operators to override the container `command:` in Kubernetes YAM
 | `jeffrey-jib-core` | `cafe.jeffrey-analyst:jeffrey-jib-core` | Shared `ContainerBuildPlan` transformation (pulled transitively). |
 | `jeffrey-jib-gradle` | `cafe.jeffrey-analyst:jeffrey-jib-gradle` | `JibGradlePluginExtension` implementation. |
 | `jeffrey-jib-maven` | `cafe.jeffrey-analyst:jeffrey-jib-maven` | `JibMavenPluginExtension` implementation. |
+| `jeffrey-jib-payload-native` | `cafe.jeffrey-analyst:jeffrey-jib-payload-native` | The GraalVM provisioner, one classified jar per architecture. Resolved by the extension; its manifest records the Jeffrey release it came from. |
+| `jeffrey-jib-payload-jar` | `cafe.jeffrey-analyst:jeffrey-jib-payload-jar` | The provisioner jar, architecture-neutral. Resolved by the extension. |
+| `jeffrey-jib-payload-profiler` | `cafe.jeffrey-analyst:jeffrey-jib-payload-profiler` | async-profiler, one classified jar per architecture. Resolved by the extension. |
 
 The extension installs `/usr/local/bin/jeffrey-entrypoint` into a new image layer, makes it
-the `ENTRYPOINT`, and moves JIB's auto-derived `java -cp … <MainClass>` into `CMD`. At
-container start the wrapper runs `provisioner init` (resolved from
-`$JEFFREY_HOME/libs/current/` — populated by `jeffrey-hub`'s `copy-libs` feature on a
-shared volume) and `exec`s the JIB command with the provisioner-produced argfile inserted right
-after the `java` binary.
+the `ENTRYPOINT`, and moves JIB's auto-derived `java -cp … <MainClass>` into `CMD`. It also
+fetches the binaries that run needs — the provisioner and async-profiler — through the build's
+own dependency resolution and installs them under `/opt/jeffrey` in a second layer. At container
+start the wrapper runs `provisioner init` and `exec`s the JIB command with the
+provisioner-produced argfile inserted right after the `java` binary.
+
+**The image is self-contained.** Nothing is fetched, copied or waited for at container start, and
+the shared volume is needed only for the recordings the application writes to it.
+
+## Choosing a provisioner build
+
+`provisionerSource` picks which build of the provisioner the image carries:
+
+| | `native` (default) | `jar` |
+|---|---|---|
+| What ships | GraalVM binary, one per architecture | One architecture-neutral jar |
+| Size | ~44 MB per architecture | ~4 MB total |
+| Runs on | itself | the application's own JVM |
+| Start-up | milliseconds | one short JVM boot before the app |
+| Requires | nothing of the application | the app's JVM must be able to read the jar's class files |
+
+Prefer `native` for a single-architecture image, or when the application's JVM is older than the
+one the provisioner was compiled with. Prefer `jar` for a multi-architecture image: JIB layers are
+not per-platform, so `native` ships *every* architecture's binary in *every* image of the index —
+two platforms means ~86 MB, where the jar stays one ~4 MB file.
 
 ## Zero-config setup
 
@@ -25,14 +48,14 @@ The config file is optional. Without `/jeffrey/jeffrey-base.conf` the provisione
 itself from `JEFFREY_*` environment variables, and the extension bakes
 `JEFFREY_PROJECT_NAME` into the image (from the `projectName` property, defaulting to the
 Maven artifactId / Gradle project name). An image built with this extension is therefore
-fully self-identifying — the only Kubernetes YAML an application needs is the shared-volume
-mount:
+fully self-identifying — the only Kubernetes YAML an application needs is the mount of the volume
+the recordings are written to:
 
 ```yaml
 containers:
   - name: app                       # image built with jeffrey-jib
     volumeMounts:
-      - { name: jeffrey, mountPath: /mnt/jeffrey }   # = JEFFREY_HOME
+      - { name: jeffrey, mountPath: /mnt/jeffrey }   # = JEFFREY_HOME, where recordings are written
 volumes:
   - { name: jeffrey, persistentVolumeClaim: { claimName: jeffrey-pvc } }
 ```
@@ -61,8 +84,11 @@ from starting: a missing provisioner binary, a broken or missing config, or a fa
 `provisioner init` all log one `profiling DISABLED: <reason>` line and `exec` the original
 command. On success the provisioner logs a single greppable verdict:
 `Jeffrey profiling ENABLED: project=… workspace=… instance=… session=… profiler_source=…`.
-Set `JEFFREY_WAIT_FOR_LIBS=<seconds>` to wait for the hub's copy-libs to populate the shared
-volume on fresh clusters (default `0`).
+
+The guarantee is about container start only. **At build time the opposite rule applies**: a payload
+that cannot be resolved, an unknown `provisionerSource`, an unsupported target architecture or a
+missing `payloadVersion` all fail the build. An image that silently lacks a profiler looks healthy
+and profiles nothing, which is the failure this design exists to remove.
 
 ## Gradle usage
 
@@ -73,6 +99,7 @@ jib {
       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
       configuration(Action<cafe.jeffrey.jib.JeffreyJibConfig> {
         enabled = project.hasProperty("jeffreyProfiling")
+        payloadVersion = "0.14.0"
         jeffreyHome = "/mnt/azure/runtime/shared/jeffrey"
         baseConfig = "/jeffrey/jeffrey-base.conf"
         overrideConfig = "/jeffrey/jeffrey-overrides.conf"
@@ -100,6 +127,7 @@ jib {
       <pluginExtension>
         <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
         <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+          <payloadVersion>0.14.0</payloadVersion>
           <jeffreyHome>/mnt/azure/runtime/shared/jeffrey</jeffreyHome>
           <baseConfig>/jeffrey/jeffrey-base.conf</baseConfig>
         </configuration>
@@ -118,26 +146,141 @@ comparisons. No rebuild required.
 
 ## Configuration properties
 
-| Property | Image ENV set | Default fallback (wrapper) |
+| Property | Image ENV set | Default |
 |---|---|---|
 | `enabled` | — | `true` (build-time gate) |
-| `jeffreyHome` | `JEFFREY_HOME` | `/mnt/azure/runtime/shared/jeffrey` |
+| `payloadVersion` | — | **required** — see below |
+| `provisionerSource` | `JEFFREY_PROVISIONER_KIND` | `native` |
+| `jeffreyHome` | `JEFFREY_HOME` | unset (the provisioner also accepts `JEFFREY_WORKSPACES_DIR`) |
 | `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` (optional file) |
 | `overrideConfig` | `JEFFREY_OVERRIDE_CONFIG` | `/jeffrey/jeffrey-overrides.conf` (optional) |
-| `provisionerPath` | `JEFFREY_PROVISIONER_PATH` | `${JEFFREY_HOME}/libs/current/provisioner-<arch>` |
+| `profilerPath` | `JEFFREY_PROFILER_PATH` | baked: `/opt/jeffrey/libasyncProfiler.so` |
 | `argFile` | `JEFFREY_ARG_FILE` | `/tmp/jvm.args` |
 | `projectName` | `JEFFREY_PROJECT_NAME` | Maven artifactId / Gradle project name |
 
-All string properties are optional. Non-null values are baked as image-level ENV defaults;
-Kubernetes pod-level env vars still override them.
+All string properties except `payloadVersion` are optional. Non-null values are baked as
+image-level ENV defaults; Kubernetes pod-level env vars still override them.
+
+On a multi-platform build the baked paths carry an `{arch}` placeholder
+(`/opt/jeffrey/libasyncProfiler-{arch}.so`) that the wrapper expands from `uname -m` at container
+start, because JIB layers are not per-platform and each architecture's file needs a distinct name.
+
+### `payloadVersion` is required
+
+Every image carries a provisioner, so this is never optional. It names the **jeffrey-jib release** whose `jeffrey-jib-payload-*` artifacts the image carries —
+normally the same version as the extension itself, since the payloads are published with every
+jeffrey-jib release. It is *not* a Jeffrey release number: jeffrey-jib releases on its own cadence,
+and which Jeffrey release's provisioner (and which async-profiler) a given jeffrey-jib release bundles
+was decided when it was cut. That choice is recorded in each payload jar's manifest
+(`Jeffrey-Payload-Provenance`) and the extension prints it during the build:
+
+```
+jeffrey-jib: baking 2 payload file(s) into the image layer 'jeffrey-payload' (45 MB):
+  [/opt/jeffrey/provisioner (jeffrey v0.13.22), /opt/jeffrey/libasyncProfiler.so (async-profiler 4.1)]
+```
+
+There is no default, because a guessed version would silently pin an image to a provisioner nobody
+chose. The build stops and tells you to set it.
+
+```xml
+<payloadVersion>${jeffrey-jib.version}</payloadVersion>
+```
+
+### Bringing your own async-profiler
+
+Setting `profilerPath` means *this image already has async-profiler*. That payload is then not
+resolved at all, so a base image that already ships the library pays nothing for a second copy.
+Your library has to accept the agent command the provisioner generates, which uses
+`event=ctimer`, `jfrsync=default` and `chunksize`; if yours needs different options, replace the
+whole command with the provisioner's `profiler-config`.
+
+**There is no `provisionerPath`.** The provisioner is not a third-party component you can
+substitute. It is Jeffrey's own binary, and the session layout and workspace events it writes are
+the protocol Jeffrey Hub reads. Neither side version-checks that protocol, so an image carrying
+someone else's copy would drift from it silently, with nothing recording which copy it had. The
+extension therefore always bakes the provisioner, and `provisionerSource` chooses only which build
+of it. A build still setting `provisionerPath` through the string `properties` DSL is warned and
+the value ignored.
+
+### Where the files go during the build
+
+The extension unpacks the payloads and the wrapper script under the build's own output directory
+(`target/jeffrey-jib/` on Maven, `build/jeffrey-jib/` on Gradle) and rewrites them only when their
+content changes. JIB keys its layer cache on each source file's path and modification time, so the
+payload layer is archived and hashed once and then served from the cache; `mvn clean` /
+`gradle clean` removes the files like any other build output.
+
+## `provisionerSource=jar` and the JVM environment
+
+The jar provisioner runs on the application's own `java`, as a short-lived second JVM before the
+application starts. Every JVM in the container reads the same environment, and three variables are
+honoured by any `java` launcher or HotSpot without being asked:
+
+| Variable | Read by | Typical content |
+|---|---|---|
+| `JDK_JAVA_OPTIONS` | the `java` launcher (JDK 9+) | `-javaagent:…`, `-Xmx…`, `-XX:…` |
+| `JAVA_TOOL_OPTIONS` | every HotSpot JVM (and other tools such as `jar`, `javac`) | truststores, proxies, `-XX:MaxRAMPercentage` |
+| `_JAVA_OPTIONS` | every HotSpot JVM, applied last | anything, usually by mistake |
+
+Operators use them precisely because they reach the application JVM without touching the command
+line — which is also why they would reach the provisioner JVM. The consequences are not cosmetic:
+
+- **A `-javaagent:` is loaded twice.** An OpenTelemetry or APM agent in `JDK_JAVA_OPTIONS`
+  instruments the provisioner too: slower init, and a second, short-lived instance of the service
+  registering with the agent's backend on every pod start.
+- **Memory sized for the application is claimed by a JVM that needs 64 MB.** `-Xmx` or
+  `-XX:MaxRAMPercentage` meant for the application applies to the provisioner as well; with
+  `-XX:+AlwaysPreTouch` that memory is touched immediately and can push the pod over its limit
+  before the application has even started.
+- **Diagnostics run twice.** `-XX:StartFlightRecording`, GC logging or heap-dump settings in those
+  variables produce a second set of output files from the provisioner, and `JDK_JAVA_OPTIONS`
+  additionally prints a `NOTE: Picked up JDK_JAVA_OPTIONS:` line into the startup log.
+- **The application's own `-Xshare` / CDS archive is not the provisioner's**, so an
+  `-XX:SharedArchiveFile` pointing at an archive built for the application fails to map and logs a
+  warning from the provisioner JVM.
+
+For that reason the wrapper **unsets all three variables for the provisioner JVM only** — in a
+subshell, so the application's `exec` still sees them untouched. The provisioner does no network
+I/O and reads none of those settings, so nothing is lost. If you do need to pass options to the
+provisioner JVM (a `-Duser.timezone`, a debugging flag), use the variable that exists for exactly
+that:
+
+```yaml
+env:
+  - name: JEFFREY_PROVISIONER_JAVA_OPTIONS
+    value: "-Xmx96m -Dfile.encoding=UTF-8"
+```
+
+It is a whitespace-separated list appended after the wrapper's own `-XX:TieredStopAtLevel=1
+-XX:+UseSerialGC -Xmx64m`, so a later `-Xmx` wins. Two things it cannot fix:
+
+- **The class-file version floor.** `provisioner.jar` is compiled for the JDK the Jeffrey release
+  targets (currently 25). An older application JVM fails with `UnsupportedClassVersionError`, the
+  wrapper prints a hint naming that error and starts the application unprofiled. Use
+  `provisionerSource=native` for such applications.
+- **The application's own JVM is still shared.** `JEFFREY_ADDITIONAL_JVM_OPTIONS` and the other
+  `JEFFREY_*` variables are read by the provisioner as *configuration* and written into the
+  argfile for the application; they are not options for the provisioner JVM, and the three
+  variables above are not read by the provisioner at all.
+
+The native provisioner has none of these concerns: it is not a JVM and ignores all of them.
 
 ## Limitations
 
 - Requires a POSIX shell in the base image. True distroless images (`gcr.io/distroless/java-*`)
   lack `/bin/sh` and are incompatible — use the status-quo Kubernetes `command:` pattern
   instead.
-- Requires a running `jeffrey-hub` elsewhere in the cluster with `copy-libs.enabled=true`
-  to populate `${JEFFREY_HOME}/libs/current/` on the shared volume.
+- Resolves the payload artifacts from Maven Central (or whatever repositories the build is
+  configured with) at build time, so the build needs to reach them. They resolve through the
+  *project's* repositories (`<repositories>` on Maven, the project `repositories {}` on Gradle),
+  not the plugin or `buildscript` ones — relevant behind split enterprise mirrors. An air-gapped
+  build mirrors the `jeffrey-jib-payload-*` artifacts it uses; `profilerPath` removes the
+  async-profiler one from that list, but the provisioner payload is always needed.
+- On Gradle the resolution happens at task execution time through the `Project`, which the
+  configuration cache does not allow; JIB's own extension hook has the same limitation.
+- `provisionerSource=jar` needs the application's JVM to be able to read the provisioner jar's
+  class files. When it cannot, the wrapper fails open and the application starts unprofiled — use
+  `native` for applications on older JVMs.
 
 ## License
 

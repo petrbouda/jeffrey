@@ -17,3 +17,8 @@ buildNumber.properties
 .classpath
 
 .idea
+
+# Payload binaries, staged by CI from published releases and never committed.
+jeffrey-jib-payload-native/src/main/payload/*/jeffrey-payload/provisioner
+jeffrey-jib-payload-profiler/src/main/payload/*/jeffrey-payload/libasyncProfiler.so
+jeffrey-jib-payload-jar/src/main/resources/jeffrey-payload/provisioner.jar

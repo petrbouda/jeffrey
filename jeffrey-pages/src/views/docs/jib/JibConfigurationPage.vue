@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -26,8 +27,31 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'properties', text: 'Properties', level: 2 },
+  { id: 'custom-async-profiler', text: 'Using Your Own async-profiler', level: 2 },
   { id: 'build-time-vs-runtime', text: 'Build-time vs Runtime', level: 2 }
 ];
+
+const customProfilerMaven = `<configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+    <payloadVersion>\${jeffrey-jib.version}</payloadVersion>
+    <profilerPath>/opt/async-profiler/libasyncProfiler.so</profilerPath>
+</configuration>`;
+
+const customProfilerGradle = `properties = mapOf(
+  "payloadVersion" to "0.14.0",
+  "profilerPath" to "/opt/async-profiler/libasyncProfiler.so",
+)`;
+
+const customProfilerMultiArch = `"profilerPath" to "/opt/async-profiler/libasyncProfiler-{arch}.so"`;
+
+const customProfilerRuntime = `env:
+  - name: JEFFREY_PROFILER_PATH
+    value: /opt/async-profiler/libasyncProfiler.so`;
+
+const defaultAgentCommand = `-agentpath:<profiler-path>=start,alloc,lock,event=ctimer,jfrsync=default,\
+loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
+
+const customProfilerConfig = `profiler-config = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=itimer,\
+file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -65,7 +89,7 @@ onMounted(() => {
                 <td><code>jeffreyHome</code></td>
                 <td><code>JEFFREY_HOME</code></td>
                 <td>&mdash; <span class="prop-type">(must be set)</span></td>
-                <td>Shared-volume root. Wrapper resolves the provisioner at <code>&lt;home&gt;/libs/current/provisioner-&lt;arch&gt;</code>. If neither this nor <code>provisionerPath</code> is set, the wrapper warns and falls through &mdash; the container still starts, just without profiling.</td>
+                <td>Root of the shared volume the application writes recordings to, under <code>&lt;home&gt;/workspaces/</code>. The provisioner also accepts <code>JEFFREY_WORKSPACES_DIR</code> as an alternative that names the recordings directory directly.</td>
               </tr>
               <tr>
                 <td><code>baseConfig</code></td>
@@ -80,10 +104,28 @@ onMounted(() => {
                 <td>Path to per-service override HOCON. The wrapper only passes it to <code>provisioner init</code> if the file actually exists, so it's effectively optional at runtime.</td>
               </tr>
               <tr>
-                <td><code>provisionerPath</code></td>
-                <td><code>JEFFREY_PROVISIONER_PATH</code></td>
-                <td>derived from <code>jeffreyHome</code></td>
-                <td>Explicit provisioner binary path. Bypasses the <code>&lt;home&gt;/libs/current/*</code> resolution when you bundle the provisioner into your image yourself.</td>
+                <td><code>profilerPath</code></td>
+                <td><code>JEFFREY_PROFILER_PATH</code></td>
+                <td>baked: <code>/opt/jeffrey/libasyncProfiler.so</code>, or <code>libasyncProfiler-&#123;arch&#125;.so</code> on a multi-platform build</td>
+                <td>Explicit async-profiler path. Setting it declares that the image already provides the library, so the extension neither resolves nor bakes its own copy &mdash; see <a href="#custom-async-profiler">Using Your Own async-profiler</a>.</td>
+              </tr>
+              <tr>
+                <td><code>payloadVersion</code></td>
+                <td>&mdash;</td>
+                <td>&mdash; <span class="prop-type">(required)</span></td>
+                <td>The jeffrey-jib release whose <code>jeffrey-jib-payload-*</code> artifacts the image carries &mdash; normally the extension's own version, e.g. <code>${jeffrey-jib.version}</code>. It is <em>not</em> a Jeffrey release number: which Jeffrey release's provisioner and which async-profiler a jeffrey-jib release bundles was decided when it was cut, is recorded in each payload's manifest and is printed in the build log. Always required, because every image carries a provisioner, and there is no default: a guess would silently pin your image to a provisioner nobody chose.</td>
+              </tr>
+              <tr>
+                <td><code>provisionerSource</code></td>
+                <td><code>JEFFREY_PROVISIONER_KIND</code></td>
+                <td><code>native</code></td>
+                <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM &mdash; isolated from <code>JDK_JAVA_OPTIONS</code>, <code>JAVA_TOOL_OPTIONS</code> and <code>_JAVA_OPTIONS</code>, see <router-link to="/docs/jib#jar-provisioner-environment">the JVM environment</router-link>. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index. This is the only choice you have over the provisioner: its path is not configurable, because the layout it writes is the protocol Jeffrey Hub reads.</td>
+              </tr>
+              <tr>
+                <td><code>projectName</code></td>
+                <td><code>JEFFREY_PROJECT_NAME</code></td>
+                <td>the Maven artifactId or Gradle project name</td>
+                <td>The Jeffrey project name. It is a stable identity: it keys the project directory on the shared volume and links every session to the same project on Jeffrey Hub, so pin it here if you ever rename the module. Only the label is safe to change freely.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>
@@ -95,12 +137,88 @@ onMounted(() => {
           </table>
         </div>
 
+        <h2 id="custom-async-profiler">Using Your Own async-profiler</h2>
+        <p>Jeffrey bakes the async-profiler build it was released with, but you can supply your own
+          &mdash; a version you have qualified, a build with custom patches, or one your base image
+          already ships. Point <code>profilerPath</code> at it. That declares <em>this image already
+          has that library</em>, so the extension neither resolves nor bakes its own copy and the
+          second one costs you nothing in image size. async-profiler is the only binary you can
+          substitute this way: the provisioner has no such property, because the session layout and
+          workspace events it writes are the protocol Jeffrey Hub reads, and neither side
+          version-checks it.</p>
+
+        <DocsCodeBlock
+          language="xml"
+          :code="customProfilerMaven"
+        />
+
+        <DocsCodeBlock
+          language="kotlin"
+          :code="customProfilerGradle"
+        />
+
+        <p>On a multi-architecture image, write the path once with the
+          <code>&#123;arch&#125;</code> placeholder the entrypoint wrapper expands from
+          <code>uname -m</code> at container start. It works for any value of the variable, not only
+          the ones the extension bakes:</p>
+
+        <DocsCodeBlock
+          language="kotlin"
+          :code="customProfilerMultiArch"
+        />
+
+        <p>You can also swap the library at deploy time on an image that was built with Jeffrey's,
+          since a pod-level variable overrides the baked default. The image still carries the copy it
+          was built with, so prefer <code>profilerPath</code> at build time when you know you will
+          never use it:</p>
+
+        <DocsCodeBlock
+          language="yaml"
+          :code="customProfilerRuntime"
+        />
+
+        <h3>What your build has to support</h3>
+        <p>The path is only half the contract. The provisioner generates a fixed agent command, and
+          your library has to accept every option in it:</p>
+
+        <DocsCodeBlock
+          language="text"
+          :code="defaultAgentCommand"
+        />
+
+        <p><code>event=ctimer</code>, <code>jfrsync=default</code> and <code>chunksize</code> are the
+          ones to check against an older build. Jeffrey currently pins async-profiler 4.1, and the
+          build log names the exact version it baked, so a custom library of a comparable generation
+          is the safe choice. If yours needs different options, replace the whole command with
+          <code>profiler-config</code> rather than fighting the default &mdash; the
+          <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code> and
+          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholders keep it portable:</p>
+
+        <DocsCodeBlock
+          language="hocon"
+          :code="customProfilerConfig"
+        />
+
+        <DocsCallout type="warning">
+          <strong>A wrong library stops the application.</strong> The fail-open guarantee covers the
+          provisioner, not the agent: a missing provisioner is detected before the argfile exists, so
+          the application simply starts unprofiled. A <code>profilerPath</code> that is mistyped,
+          built for another architecture, or unhappy with one of the options above fails later
+          &mdash; the argfile is already written, the JVM starts with an <code>-agentpath</code> it
+          cannot load, and it exits. The path you name is never checked at build time or by
+          <code>provisioner init</code>. Start one container after the change before rolling it out.
+        </DocsCallout>
+
         <h2 id="build-time-vs-runtime">Build-time vs Runtime</h2>
         <p>There are two layers of control. <code>enabled</code> is a <strong>build-time</strong> gate
           evaluated by the extension when the image is assembled &mdash; setting it to <code>false</code>
-          produces a plain JIB image with no wrapper at all. The remaining properties become image-level
-          <code>ENV</code> defaults that the entrypoint wrapper reads at container start, and every one of
-          them can be overridden at runtime by a pod-level environment variable of the same name.</p>
+          produces a plain JIB image with no wrapper at all. <code>payloadVersion</code> and
+          <code>provisionerSource</code> are build-time too: they decide what is baked, and
+          <code>provisionerSource</code> leaves its trace in the image only as the
+          <code>JEFFREY_PROVISIONER_KIND</code> the extension writes. The remaining properties become
+          image-level <code>ENV</code> defaults that the entrypoint wrapper reads at container start,
+          and each of those can be overridden at runtime by a pod-level environment variable of the
+          same name.</p>
 
         <DocsCallout type="info">
           <strong>Runtime kill switch.</strong> Independently of the build-time <code>enabled</code> gate,

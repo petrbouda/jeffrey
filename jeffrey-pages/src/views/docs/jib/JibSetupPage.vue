@@ -42,16 +42,23 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Wire the extension into your JIB build. The one property that must always be reachable is
-          <code>jeffreyHome</code> &mdash; either baked as an image <code>ENV</code> default at build
-          time (shown below) or provided at runtime via a <code>JEFFREY_HOME</code> env var on the pod.
-          See <router-link to="/docs/jib/configuration">Configuration</router-link> for the full
+        <p>Wire the extension into your JIB build. The one property that is strictly required is
+          <code>payloadVersion</code>: it names the jeffrey-jib release whose payload artifacts
+          (provisioner and async-profiler) the image will carry &mdash; normally the extension's own
+          version &mdash; it has no default, and the build fails without it. Which Jeffrey release
+          and async-profiler those payloads bundle is recorded in their manifests and printed by
+          the build.
+          <code>jeffreyHome</code> also has to be reachable, but it may arrive at runtime instead
+          &mdash; either baked as an image <code>ENV</code> default (shown below) or set as a
+          <code>JEFFREY_HOME</code> env var on the pod. See
+          <router-link to="/docs/jib/configuration">Configuration</router-link> for the full
           property reference.</p>
 
         <h2 id="gradle-setup">Gradle Setup</h2>
         <p>Add the extension as a dependency of the JIB Gradle plugin, then reference it from
           <code>pluginExtensions</code>. If <code>jeffreyHome</code> is reachable neither here nor at
-          runtime, the wrapper logs a warning and starts the app without profiling.</p>
+          runtime, <code>provisioner init</code> refuses the configuration and the wrapper starts the
+          app without profiling.</p>
 
         <div class="code-block">
           <pre><code>jib {
@@ -59,6 +66,7 @@ onMounted(() => {
     pluginExtension {
       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
       properties = mapOf(
+        "payloadVersion" to "0.14.0",
         "jeffreyHome" to "/shared/disk/jeffrey",
       )
     }
@@ -66,19 +74,19 @@ onMounted(() => {
 }</code></pre>
         </div>
 
-        <p>This builds an image whose wrapper resolves the provisioner from
-          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on the shared volume you
-          mount at that path. Every other property has a sensible default; you only set them to
+        <p>This builds an image that carries its own provisioner and async-profiler under
+          <code>/opt/jeffrey</code>, installed by the extension at build time. Besides
+          <code>payloadVersion</code>, every property has a sensible default; you only set them to
           override.</p>
 
         <DocsCallout type="warning">
           <strong><code>jeffreyHome</code> must point at a shared volume / disk.</strong>
-          Jeffrey Hub (with <code>copy-libs.enabled=true</code>) writes the provisioner binaries and
-          libs to this path, and every monitored application pod must mount the <em>same</em>
-          volume at the <em>same</em> path so its entrypoint wrapper can resolve
-          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> at container start. A
-          host-local directory or a per-pod ephemeral volume will not work &mdash; both endpoints
-          need to see the bytes Jeffrey Hub published.
+          It is no longer where the binaries come from &mdash; those are in the image &mdash; but it is
+          still where the application writes its recordings, under
+          <code>${JEFFREY_HOME}/workspaces/</code>, and where Jeffrey Hub reads them from. Every
+          monitored pod and the Hub must see the same bytes, so a host-local directory or a per-pod
+          ephemeral volume will not work. An application that only needs the recording path can set
+          <code>JEFFREY_WORKSPACES_DIR</code> instead and never reference the Hub's home layout at all.
         </DocsCallout>
 
         <p>Add explicit overrides via the string <code>properties</code> DSL &mdash; for example,
@@ -95,6 +103,7 @@ jib {
     pluginExtension {
       implementation = JeffreyJibGradleExtension::class.java.name
       properties = mapOf(
+        JeffreyJibConfig.PAYLOAD_VERSION to "0.14.0",
         JeffreyJibConfig.JEFFREY_HOME to "/shared/disk/jeffrey",
         JeffreyJibConfig.OVERRIDE_CONFIG to "/jeffrey/jeffrey-overrides.conf",
       )
@@ -120,10 +129,9 @@ jib {
 
         <h2 id="maven-setup">Maven Setup</h2>
         <p>Attach the extension as a plugin dependency and reference it from
-          <code>pluginExtensions</code>. As with Gradle, <code>jeffreyHome</code> must be reachable
-          either here (baked as an image <code>ENV</code> default) or at runtime via a
-          <code>JEFFREY_HOME</code> env var &mdash; otherwise the wrapper warns and starts the app
-          without profiling.</p>
+          <code>pluginExtensions</code>. As with Gradle, <code>payloadVersion</code> is required at
+          build time, and <code>jeffreyHome</code> must be reachable either here (baked as an image
+          <code>ENV</code> default) or at runtime via a <code>JEFFREY_HOME</code> env var.</p>
 
         <div class="code-block">
           <pre><code>&lt;plugin&gt;
@@ -141,6 +149,7 @@ jib {
       &lt;pluginExtension&gt;
         &lt;implementation&gt;cafe.jeffrey.jib.maven.JeffreyJibMavenExtension&lt;/implementation&gt;
         &lt;properties&gt;
+          &lt;payloadVersion&gt;0.14.0&lt;/payloadVersion&gt;
           &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
         &lt;/properties&gt;
       &lt;/pluginExtension&gt;
@@ -155,6 +164,8 @@ jib {
         <div class="code-block">
           <pre><code>&lt;properties&gt;
   &lt;enabled&gt;true&lt;/enabled&gt;
+  &lt;payloadVersion&gt;0.14.0&lt;/payloadVersion&gt;
+  &lt;provisionerSource&gt;jar&lt;/provisionerSource&gt;
   &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
   &lt;overrideConfig&gt;/jeffrey/jeffrey-overrides.conf&lt;/overrideConfig&gt;
 &lt;/properties&gt;</code></pre>

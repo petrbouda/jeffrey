@@ -194,8 +194,8 @@ const ecosystem: EcoProduct[] = [
     name: 'Jeffrey JIB',
     role: 'Standalone · Build-time',
     icon: 'bi-box-seam',
-    desc: 'A Jib (Gradle/Maven) extension that wraps your container entrypoint so Jeffrey profiling starts before your app does — no command override, no binaries baked into the image.',
-    chips: ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'],
+    desc: 'A Jib (Gradle/Maven) extension that wraps your container entrypoint so Jeffrey profiling starts before your app does — no command override, and the provisioner and async-profiler ride along in their own image layer.',
+    chips: ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'],
     to: '/docs/jib'
   }
 ];

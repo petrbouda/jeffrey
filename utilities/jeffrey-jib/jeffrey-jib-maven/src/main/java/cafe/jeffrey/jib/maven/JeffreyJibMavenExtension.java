@@ -20,32 +20,36 @@ package cafe.jeffrey.jib.maven;
 
 import cafe.jeffrey.jib.JeffreyBuildPlanExtender;
 import cafe.jeffrey.jib.JeffreyJibConfig;
+import cafe.jeffrey.jib.WorkDirectories;
 import com.google.cloud.tools.jib.api.buildplan.ContainerBuildPlan;
 import com.google.cloud.tools.jib.maven.extension.JibMavenPluginExtension;
 import com.google.cloud.tools.jib.maven.extension.MavenData;
 import com.google.cloud.tools.jib.plugins.extension.ExtensionLogger;
 import com.google.cloud.tools.jib.plugins.extension.JibPluginExtensionException;
+import org.apache.maven.project.MavenProject;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 
 /**
  * JIB Maven plugin extension that wraps the image entrypoint so Jeffrey profiling is initialised
  * before the app starts, without forcing operators to override the container {@code command:} in
- * Kubernetes YAML.
+ * Kubernetes YAML, and bakes the provisioner and async-profiler into the image.
  *
- * <p>Consumer side (Maven):
+ * <p>Consumer side (Maven). {@code payloadVersion} is the one required property; it is normally the
+ * same version as the extension, since the payload artifacts ship with each jeffrey-jib release:
  * <pre>{@code
  * <plugin>
  *   <groupId>com.google.cloud.tools</groupId>
  *   <artifactId>jib-maven-plugin</artifactId>
  *   <dependencies>
  *     <dependency>
- *       <groupId>cafe.jeffrey</groupId>
+ *       <groupId>cafe.jeffrey-analyst</groupId>
  *       <artifactId>jeffrey-jib-maven</artifactId>
- *       <version>${jeffrey.version}</version>
+ *       <version>jib.version</version>
  *     </dependency>
  *   </dependencies>
  *   <configuration>
@@ -53,6 +57,7 @@ import java.util.Optional;
  *       <pluginExtension>
  *         <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
  *         <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+ *           <payloadVersion>jib.version</payloadVersion>
  *           <jeffreyHome>/mnt/azure/runtime/shared/jeffrey</jeffreyHome>
  *           <baseConfig>/jeffrey/jeffrey-base.conf</baseConfig>
  *         </configuration>
@@ -61,6 +66,9 @@ import java.util.Optional;
  *   </configuration>
  * </plugin>
  * }</pre>
+ *
+ * <p>Payloads are resolved through the project's {@code <repositories>} (not
+ * {@code <pluginRepositories>}), with the build's mirrors, proxies and local repository applied.
  */
 @Named
 @Singleton
@@ -82,14 +90,35 @@ public class JeffreyJibMavenExtension implements JibMavenPluginExtension<Jeffrey
         JeffreyJibConfig effective = config.orElseGet(JeffreyJibConfig::new);
         JeffreyBuildPlanExtender.applyProperties(effective, properties, logger);
 
+        Optional<MavenProject> project = mavenProject(mavenData);
+
         // Default the Jeffrey project name to the Maven artifactId — baked as the
         // JEFFREY_PROJECT_NAME image ENV, it makes the image self-identifying so the
         // container needs no config file and no per-pod env for the common case.
         // A pod-level JEFFREY_PROJECT_NAME still overrides the baked default.
-        if (effective.getProjectName() == null && mavenData != null && mavenData.getMavenProject() != null) {
-            effective.setProjectName(mavenData.getMavenProject().getArtifactId());
+        if (effective.getProjectName() == null) {
+            project.map(MavenProject::getArtifactId).ifPresent(effective::setProjectName);
         }
 
-        return new JeffreyBuildPlanExtender(getClass()).extend(buildPlan, effective, logger);
+        return new JeffreyBuildPlanExtender(
+                getClass(), new AetherPayloadResolver(mavenData), workDirectory(project, logger))
+                .extend(buildPlan, effective, logger);
+    }
+
+    private static Optional<MavenProject> mavenProject(MavenData mavenData) {
+        if (mavenData == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(mavenData.getMavenProject());
+    }
+
+    /** {@code target/jeffrey-jib}, so JIB sees the same payload paths on every build. */
+    private Path workDirectory(Optional<MavenProject> project, ExtensionLogger logger)
+            throws JibPluginExtensionException {
+
+        if (project.isPresent()) {
+            return WorkDirectories.under(Path.of(project.get().getBuild().getDirectory()));
+        }
+        return WorkDirectories.temporary(getClass(), logger);
     }
 }

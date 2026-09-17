@@ -25,9 +25,9 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Heap dump', 'MCP server', 'Events'];
-const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agent'];
+const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Heartbeat'];
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
-const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
+const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
 const mcpComponents = ['102 read-only tools', 'Claude Code, Codex & Gemini', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
 const tracingComponents = ['Tracer API', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
@@ -81,7 +81,7 @@ onMounted(() => {
           to="/docs/jib"
           title="Jeffrey JIB"
           role="Standalone · Build-time"
-          description="A Jib (Gradle/Maven) plugin extension that wraps the container entrypoint so Jeffrey profiling initialises before your app starts — no Kubernetes command: override and no binaries baked into your image."
+          description="A Jib (Gradle/Maven) plugin extension that wraps the container entrypoint so Jeffrey profiling initialises before your app starts — no Kubernetes command: override, and the provisioner and async-profiler ride along in their own image layer."
           icon="bi bi-box-seam"
           :components="jibComponents"
           cta-text="Open JIB docs"

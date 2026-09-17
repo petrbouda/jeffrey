@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'requirements', text: 'Target IDE', level: 2 },
   { id: 'port-range', text: 'Scan Port Range', level: 2 },
+  { id: 'timeouts', text: 'Two Sets of Timeouts', level: 2 },
   { id: 'trusted-projects', text: 'Trusted Projects', level: 2 },
   { id: 'settings-panel', text: 'The Settings Panel', level: 2 },
   { id: 'ide-mode', text: 'Choosing a Different Bridge', level: 2 }
