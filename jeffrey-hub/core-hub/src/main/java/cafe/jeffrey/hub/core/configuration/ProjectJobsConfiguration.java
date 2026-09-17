@@ -36,7 +36,7 @@ import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleaner
 import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.session.lifecycle.SessionFinisher;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.time.Clock;
 import java.time.Duration;

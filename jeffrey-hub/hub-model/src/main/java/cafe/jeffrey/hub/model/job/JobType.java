@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.job;
+package cafe.jeffrey.hub.model.job;
 
 public enum JobType {
     WORKSPACE_RECONCILER(ExecutionLevel.GLOBAL),

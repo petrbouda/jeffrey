@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2026 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model;
+package cafe.jeffrey.hub.model;
 
-import java.time.Instant;
-import java.util.Map;
+/**
+ * Represents the effective profiler settings for a project, resolved from the hierarchy.
+ *
+ * @param agentSettings The effective agent settings value
+ * @param level         The level where settings come from (PROJECT, WORKSPACE, GLOBAL, or NONE)
+ */
+public record EffectiveProfilerSettings(
+        String agentSettings,
+        SettingsLevel level) {
 
-public record CreateProject(
-        String originProjectId,
-        String projectName,
-        String projectLabel,
-        String namespace,
-        Instant originCreatedAt,
-        Map<String, String> attributes) {
+    public enum SettingsLevel {
+        PROJECT,
+        WORKSPACE,
+        GLOBAL,
+        NONE
+    }
+
+    public static EffectiveProfilerSettings none() {
+        return new EffectiveProfilerSettings(null, SettingsLevel.NONE);
+    }
 }

@@ -22,8 +22,8 @@ import cafe.jeffrey.hub.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
 
 import java.util.function.Function;
 

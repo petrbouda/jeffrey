@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.hub.persistence.api;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
 
 /**
  * A session paired with its parent repository and project, returned by lookups that need to

@@ -20,8 +20,8 @@ package cafe.jeffrey.hub.core.manager;
 
 import cafe.jeffrey.hub.core.EffectiveSettingsResolver;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
+import cafe.jeffrey.hub.model.ProfilerInfo;
 
 import java.util.List;
 

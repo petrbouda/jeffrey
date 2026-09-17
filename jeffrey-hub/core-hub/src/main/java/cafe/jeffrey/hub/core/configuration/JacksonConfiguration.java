@@ -22,12 +22,6 @@ import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.shared.common.serde.RelativeTimeRangeDeserializer;
-import cafe.jeffrey.shared.common.serde.RelativeTimeRangeSerializer;
-import cafe.jeffrey.shared.common.serde.TypeDeserializer;
-import cafe.jeffrey.shared.common.serde.TypeSerializer;
 
 @Configuration
 public class JacksonConfiguration {
@@ -35,10 +29,6 @@ public class JacksonConfiguration {
     @Bean
     public JacksonModule customSerializer() {
         SimpleModule module = new SimpleModule();
-        module.addSerializer(new TypeSerializer());
-        module.addSerializer(new RelativeTimeRangeSerializer());
-        module.addDeserializer(Type.class, new TypeDeserializer());
-        module.addDeserializer(RelativeTimeRange.class, new RelativeTimeRangeDeserializer());
         return module;
     }
 }

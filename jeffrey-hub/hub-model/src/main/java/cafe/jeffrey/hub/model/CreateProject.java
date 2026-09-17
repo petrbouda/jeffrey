@@ -16,13 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.hub.model;
 
-/**
- * Aggregated storage statistics for a single project instance.
- * Computed by walking the instance's session directories on disk.
- */
-public record InstanceStats(int fileCount, long totalSizeBytes) {
+import java.time.Instant;
+import java.util.Map;
 
-    public static final InstanceStats EMPTY = new InstanceStats(0, 0L);
+public record CreateProject(
+        String originProjectId,
+        String projectName,
+        String projectLabel,
+        String namespace,
+        Instant originCreatedAt,
+        Map<String, String> attributes) {
 }

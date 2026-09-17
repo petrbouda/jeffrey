@@ -30,10 +30,10 @@ import cafe.jeffrey.hub.core.scheduler.job.descriptor.SessionFinishedDetectorPro
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.nio.file.Path;
 import java.time.Duration;

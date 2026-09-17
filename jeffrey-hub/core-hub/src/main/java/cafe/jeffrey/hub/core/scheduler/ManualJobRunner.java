@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.time.Clock;
 import java.time.Instant;

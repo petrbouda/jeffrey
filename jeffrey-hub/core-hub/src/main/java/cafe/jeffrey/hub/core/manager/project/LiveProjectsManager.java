@@ -20,9 +20,9 @@ package cafe.jeffrey.hub.core.manager.project;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.project.pipeline.Pipeline;
-import cafe.jeffrey.shared.common.model.CreateProject;
+import cafe.jeffrey.hub.model.CreateProject;
 import cafe.jeffrey.hub.core.project.pipeline.CreateProjectContext;
 import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;

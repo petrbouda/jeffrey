@@ -20,8 +20,8 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.JobContext;

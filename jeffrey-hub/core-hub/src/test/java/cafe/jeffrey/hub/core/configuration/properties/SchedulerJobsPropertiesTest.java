@@ -21,7 +21,7 @@ package cafe.jeffrey.hub.core.configuration.properties;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.time.Duration;
 import java.util.Map;

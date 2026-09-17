@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
+import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
 
 /**
  * Manager for profiler settings at project level.

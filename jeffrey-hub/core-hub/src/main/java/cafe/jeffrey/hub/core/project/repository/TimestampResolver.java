@@ -23,8 +23,8 @@ import java.time.Instant;
 
 /**
  * When a file was opened by whatever wrote it, which is the timestamp a session is ordered by:
- * {@code ChunkWindow} tiles a recording with it, retention ages files by it, and which chunk is
- * still open is a maximum over it.
+ * Microscope's chunk-window selection tiles a recording with it, retention ages files by it, and
+ * which chunk is still open is a maximum over it.
  *
  * <p>Where that answer comes from is a property of the file's type, which is why a
  * {@link HubManagedFile} carries one of these. A JFR written by async-profiler states the

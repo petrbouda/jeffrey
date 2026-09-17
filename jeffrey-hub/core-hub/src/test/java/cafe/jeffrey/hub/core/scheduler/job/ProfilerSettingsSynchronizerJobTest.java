@@ -34,13 +34,13 @@ import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchroniz
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.ProfilerSettings;
 import cafe.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceLocation;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceLocation;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 
 import java.nio.file.Path;
 import java.time.Duration;

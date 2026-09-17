@@ -23,9 +23,9 @@ import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.SessionFilter;
 import cafe.jeffrey.hub.api.v1.SettingsLevel;
 import cafe.jeffrey.hub.api.v1.WorkspaceStatus;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
 import java.time.Instant;
 
@@ -41,7 +41,7 @@ public abstract class ProtoMappers {
     }
 
     public static RecordingStatus recordingStatus(
-            cafe.jeffrey.shared.common.model.repository.RecordingStatus status) {
+            cafe.jeffrey.hub.model.repository.RecordingStatus status) {
         if (status == null) {
             return RecordingStatus.RECORDING_STATUS_UNKNOWN;
         }
@@ -65,17 +65,17 @@ public abstract class ProtoMappers {
         return new RecordingSessionFilter(activeFrom, activeTo, statusFilter(filter.getStatus()), filter.getLimit());
     }
 
-    private static cafe.jeffrey.shared.common.model.repository.RecordingStatus statusFilter(RecordingStatus status) {
+    private static cafe.jeffrey.hub.model.repository.RecordingStatus statusFilter(RecordingStatus status) {
         return switch (status) {
-            case RECORDING_STATUS_ACTIVE -> cafe.jeffrey.shared.common.model.repository.RecordingStatus.ACTIVE;
-            case RECORDING_STATUS_FINISHED -> cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED;
-            case RECORDING_STATUS_UNKNOWN -> cafe.jeffrey.shared.common.model.repository.RecordingStatus.UNKNOWN;
+            case RECORDING_STATUS_ACTIVE -> cafe.jeffrey.hub.model.repository.RecordingStatus.ACTIVE;
+            case RECORDING_STATUS_FINISHED -> cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED;
+            case RECORDING_STATUS_UNKNOWN -> cafe.jeffrey.hub.model.repository.RecordingStatus.UNKNOWN;
             case RECORDING_STATUS_UNSPECIFIED, UNRECOGNIZED -> null;
         };
     }
 
     public static WorkspaceStatus workspaceStatus(
-            cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus status) {
+            cafe.jeffrey.hub.model.workspace.WorkspaceStatus status) {
         return switch (status) {
             case AVAILABLE -> WorkspaceStatus.WORKSPACE_STATUS_AVAILABLE;
             case UNAVAILABLE -> WorkspaceStatus.WORKSPACE_STATUS_UNAVAILABLE;

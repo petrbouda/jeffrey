@@ -19,12 +19,12 @@
 package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;

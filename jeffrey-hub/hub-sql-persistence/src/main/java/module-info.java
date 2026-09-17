@@ -18,6 +18,7 @@
 module cafe.jeffrey.hub.persistence.sql {
     requires transitive cafe.jeffrey.hub.persistence.api;
     requires transitive cafe.jeffrey.shared.persistence;
+    requires transitive cafe.jeffrey.hub.model;
     requires cafe.jeffrey.shared.common;
     requires java.sql;
     requires spring.jdbc;

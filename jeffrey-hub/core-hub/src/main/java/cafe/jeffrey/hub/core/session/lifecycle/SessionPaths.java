@@ -19,8 +19,8 @@
 package cafe.jeffrey.hub.core.session.lifecycle;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
 
 import java.nio.file.Path;
 

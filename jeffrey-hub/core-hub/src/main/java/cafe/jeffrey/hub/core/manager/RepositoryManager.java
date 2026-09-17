@@ -18,14 +18,14 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.repository.InstanceStats;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.StreamedFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.repository.InstanceStats;
+import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
+import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.util.List;
 import java.util.Optional;

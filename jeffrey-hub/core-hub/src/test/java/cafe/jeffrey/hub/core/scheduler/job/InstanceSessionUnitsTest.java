@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;

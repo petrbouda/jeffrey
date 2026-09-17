@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.core.scheduler;
 
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.time.Duration;
 

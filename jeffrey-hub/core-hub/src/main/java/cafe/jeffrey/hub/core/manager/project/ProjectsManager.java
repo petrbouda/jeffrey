@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.hub.core.manager.project;
 
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.model.CreateProject;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.CreateProject;
 
 import java.util.List;
 import java.util.Optional;

@@ -18,8 +18,6 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.shared.common.model.repository.FileExtensions;
-
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -50,16 +48,19 @@ import java.util.function.Predicate;
 public enum HubManagedFile {
     // JFR_LZ4 must be before JFR so that .jfr.lz4 is matched first
     JFR_LZ4(
-            FileExtensions.JFR_LZ4,
-            filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
+            HubManagedFile.JFR_LZ4_EXTENSION,
+            filename -> filename.endsWith("." + HubManagedFile.JFR_LZ4_EXTENSION),
             TimestampResolver.RECORDING_NAME
     ),
     JFR(
-            FileExtensions.JFR,
-            filename -> filename.endsWith("." + FileExtensions.JFR),
+            HubManagedFile.JFR_EXTENSION,
+            filename -> filename.endsWith("." + HubManagedFile.JFR_EXTENSION),
             TimestampResolver.RECORDING_NAME,
             Compression.LZ4
     );
+
+    private static final String JFR_EXTENSION = "jfr";
+    private static final String JFR_LZ4_EXTENSION = "jfr.lz4";
 
     private static final List<HubManagedFile> IN_MATCHING_ORDER = Arrays.asList(values());
 

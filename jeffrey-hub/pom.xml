@@ -32,6 +32,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>hub-model</module>
         <module>pages-hub</module>
         <module>hub-persistence-api</module>
         <module>hub-sql-persistence</module>
@@ -48,6 +49,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>hub-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

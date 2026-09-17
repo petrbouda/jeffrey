@@ -22,7 +22,7 @@ import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.ProfilerInfo;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;

@@ -27,8 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
 import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
-import cafe.jeffrey.shared.common.model.job.JobInfo;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobInfo;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.util.List;
 

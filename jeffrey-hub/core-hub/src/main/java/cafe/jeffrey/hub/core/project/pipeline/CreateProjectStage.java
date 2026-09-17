@@ -20,9 +20,9 @@ package cafe.jeffrey.hub.core.project.pipeline;
 
 import cafe.jeffrey.shared.common.Config;
 import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.model.GraphVisualization;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.GraphVisualization;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.configuration.properties.ProjectProperties;
 import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
 import cafe.jeffrey.hub.persistence.api.CreateProject;
@@ -55,7 +55,7 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
         var graphVisualization = new GraphVisualization(
                 Config.parseDouble(params, "graph-visualization.flamegraph-min-width", 0.00));
 
-        cafe.jeffrey.shared.common.model.CreateProject project = context.createProject();
+        cafe.jeffrey.hub.model.CreateProject project = context.createProject();
 
         ProjectInfo projectInfo = new ProjectInfo(
                 IDGenerator.generate(),

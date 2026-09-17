@@ -31,7 +31,7 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.repository.StreamedFile;
+import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.io.Closeable;
 import java.io.IOException;

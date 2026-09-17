@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.hub.persistence.api;
 
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 
 import java.time.Instant;
 import java.util.List;

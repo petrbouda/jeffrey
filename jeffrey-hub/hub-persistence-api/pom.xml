@@ -38,5 +38,9 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>persistence</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hub-model</artifactId>
+        </dependency>
     </dependencies>
 </project>

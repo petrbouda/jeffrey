@@ -28,13 +28,13 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -483,7 +483,7 @@ class InstanceGrpcServiceTest {
 
             var repoManager = mock(RepositoryManager.class);
             when(repoManager.instanceStats(INSTANCE_ID))
-                    .thenReturn(new cafe.jeffrey.shared.common.model.repository.InstanceStats(5, 12_345_678L));
+                    .thenReturn(new cafe.jeffrey.hub.model.repository.InstanceStats(5, 12_345_678L));
             when(repoManager.listRecordingSessions(true)).thenReturn(List.of(
                     repositorySession("session-2", true)));
             RepositoryManager.Factory factory = p -> repoManager;

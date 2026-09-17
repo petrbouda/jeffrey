@@ -22,8 +22,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.hub.persistence.api.WorkspacesRepository;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 
 import java.time.Clock;
 import java.time.Instant;

@@ -31,7 +31,7 @@ import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchroniz
 import cafe.jeffrey.hub.core.session.lifecycle.SessionFinisher;
 import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,8 +52,8 @@ final class RecordingNameTimestamp implements TimestampResolver {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final String PREFIX = "profile-";
-    private static final String RECORDING_SUFFIX = "." + FileExtensions.JFR;
-    private static final String COMPRESSED_SUFFIX = "." + FileExtensions.LZ4;
+    private static final String RECORDING_SUFFIX = ".jfr";
+    private static final String COMPRESSED_SUFFIX = ".lz4";
 
     @Override
     public Instant resolve(Path file) {

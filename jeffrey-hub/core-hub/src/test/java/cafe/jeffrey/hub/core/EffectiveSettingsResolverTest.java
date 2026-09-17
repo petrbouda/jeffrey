@@ -20,9 +20,9 @@ package cafe.jeffrey.hub.core;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
+import cafe.jeffrey.hub.model.EffectiveProfilerSettings.SettingsLevel;
+import cafe.jeffrey.hub.model.ProfilerInfo;
 
 import java.util.List;
 

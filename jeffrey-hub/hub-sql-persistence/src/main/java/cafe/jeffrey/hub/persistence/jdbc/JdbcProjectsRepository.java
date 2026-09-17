@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.persistence.api.CreateProject;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;

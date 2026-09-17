@@ -30,10 +30,10 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverview.StoredFile;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.core.project.repository.HubManagedFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 
 import java.io.IOException;
 import java.nio.file.FileStore;

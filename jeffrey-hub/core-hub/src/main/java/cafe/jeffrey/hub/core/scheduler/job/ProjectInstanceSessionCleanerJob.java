@@ -28,10 +28,10 @@ import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
-import cafe.jeffrey.shared.common.model.job.JobType;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.hub.model.job.JobType;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.time.Clock;
 import java.time.Duration;

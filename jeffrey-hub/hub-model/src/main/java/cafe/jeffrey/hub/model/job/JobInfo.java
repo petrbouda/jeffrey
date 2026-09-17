@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.job;
+package cafe.jeffrey.hub.model.job;
 
 import java.time.Duration;
 import java.util.Map;

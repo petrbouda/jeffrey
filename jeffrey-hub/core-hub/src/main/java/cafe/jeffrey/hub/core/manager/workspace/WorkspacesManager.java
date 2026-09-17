@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceLocation;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceLocation;
+import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
 
 import java.util.List;
 import java.util.Optional;

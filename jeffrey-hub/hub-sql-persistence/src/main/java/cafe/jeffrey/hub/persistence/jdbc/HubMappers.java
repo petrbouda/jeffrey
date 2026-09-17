@@ -20,11 +20,9 @@ package cafe.jeffrey.hub.persistence.jdbc;
 
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
 
 import java.nio.file.Path;

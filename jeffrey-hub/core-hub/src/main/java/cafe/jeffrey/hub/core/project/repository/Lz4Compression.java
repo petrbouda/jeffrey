@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +45,7 @@ final class Lz4Compression implements Compression {
 
     private static final Logger LOG = LoggerFactory.getLogger(Lz4Compression.class);
 
-    private static final String SUFFIX = "." + FileExtensions.LZ4;
+    private static final String SUFFIX = ".lz4";
 
     /**
      * A leading dot keeps the scratch file out of every listing — {@code _listRepositoryFiles}
