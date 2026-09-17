@@ -5,27 +5,21 @@ package jeffrey.hub.api.v1;
 option java_package = "cafe.jeffrey.hub.api.v1";
 option java_multiple_files = true;
 
-// Provides a server-streaming RPC for downloading a file of a recording session — a recording
-// chunk, a heap dump, a log or a crash file alike.
+// Downloads a file of a recording session, whatever that file is.
 //
-// Files are streamed in 64KB chunks to support efficient transfer of large files
-// (JFR recordings, heap dumps) without loading them entirely into memory.
+// Files are streamed in 64KB chunks, so a file of any size transfers without being held in
+// memory on either side.
 //
-// One file per call, always. A session's recording is several rotated chunk files and
-// the client fetches them separately, in parallel, keeping them separate afterwards:
-// each is a self-contained JFR and the parser reads them independently. The hub never
-// joins them.
+// One file per call, always. A caller that wants several asks for each of them separately, in
+// parallel, and keeps them separate: the hub never joins files.
 service FileDownloadService {
-  // Streams one file of a session, whatever kind it is — a recording chunk, a heap dump, a log,
-  // a crash file.
+  // Streams the file the id names.
   //
-  // One RPC for every kind. What a file's category decides is what a reader does with it
-  // afterwards, and the reader already knows it: every listing carries `file_type` and
-  // `is_recording`.
+  // The hub hands the bytes over and does not interpret them. What a file is decides what the
+  // caller does with it afterwards, and the caller read that off the listing that gave it the id.
   //
-  // The hub refuses what it cannot meaningfully hand over, naming the reason: a file the session
-  // does not hold, a transient one (async-profiler's `.jfr.N~` cache, which appears and vanishes
-  // under a reader), the chunk the profiler is still writing, and an empty file.
+  // What the hub does refuse, each naming its reason: a file the session does not hold, a
+  // transient one, one that is still being written, and one that is empty.
   rpc DownloadFile(DownloadFileRequest) returns (stream DataChunk);
 }
 
@@ -45,9 +39,8 @@ message DataChunk {
   int64 total_size = 2;
   // The name the file has on the hub at the moment it is sent, which is what the receiver must
   // write it as. Not the name the caller asked for: a caller holds a listing taken some time
-  // earlier, and the compression job may have rewritten `x.jfr` as `x.jfr.lz4` since. Written
-  // under the old name, an LZ4 archive is read as a raw recording and fails on the chunk magic,
-  // because compression is recognised by the extension and nothing sniffs the frame.
+  // earlier, and the hub may have renamed the file since. Written under the remembered name, the
+  // bytes arrive as something a reader going by the name reads wrongly.
   //
   // Sent on the first chunk only. A file with no bytes is one chunk carrying just this and the
   // size.

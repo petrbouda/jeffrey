@@ -50,7 +50,7 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
     }
 
     /**
-     * Streams one file of a session, whatever kind it is.
+     * Streams one file of a session, whatever that file is.
      *
      * <p>The gate is attached here, on the gRPC handler thread and before this method returns:
      * gRPC rejects {@code setOnReadyHandler} / {@code setOnCancelHandler} once the observer has
@@ -76,10 +76,10 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
                 // not there — passes through as it is.
                 observer.onError(e);
             } catch (IllegalArgumentException e) {
-                // Everything the lookup refuses: an id the session does not hold, a transient
-                // file, the chunk the profiler is still writing, an empty recording. Each is a
-                // statement about what was asked for, so it travels as INVALID_ARGUMENT carrying
-                // its own sentence rather than as a hub failure.
+                // Everything the lookup refuses: a file the session does not hold, a transient
+                // one, one still being written, one that is empty. Each is a statement about what
+                // was asked for, so it travels as INVALID_ARGUMENT carrying its own sentence
+                // rather than as a hub failure.
                 LOG.debug("Refusing to stream a file: sessionId={} fileId={} reason={}",
                         request.getSessionId(), request.getFileId(), e.getMessage());
                 observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
@@ -96,11 +96,10 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
      * byte of it could be read.
      *
      * <p>That is the compression job and nothing else: it publishes an archive and removes the
-     * recording it was made from, and a request that resolved the recording a moment earlier is
-     * left holding a path to a file that no longer exists. The id survives the rewrite — that is
-     * what stripping the extension is for — so asking again names the archive, and the name
-     * travelling on the first chunk tells the reader which of the two it is getting. Once only:
-     * a second miss is a file that is genuinely not there.
+     * file it was made from, and a request that resolved that file a moment earlier is left
+     * holding a path to something no longer there. The id survives the rewrite, so asking again
+     * names the archive, and the name travelling on the first chunk tells the reader which of the
+     * two it is getting. Once only: a second miss is a file that is genuinely not there.
      *
      * <p>Before anything is sent, so the retry is invisible to the caller. Once the first chunk
      * is on its way there is no going back, and nothing can take the file away from an open
