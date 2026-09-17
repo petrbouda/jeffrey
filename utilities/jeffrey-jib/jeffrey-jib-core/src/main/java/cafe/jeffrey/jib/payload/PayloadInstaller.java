@@ -49,22 +49,23 @@ public final class PayloadInstaller {
 
     private final PayloadResolver resolver;
     private final String payloadVersion;
+    private final Path workDirectory;
     private final ExtensionLogger logger;
 
-    public PayloadInstaller(PayloadResolver resolver, String payloadVersion, ExtensionLogger logger) {
+    /**
+     * @param workDirectory where payloads are unpacked; stable across builds so JIB can reuse the
+     *                      cached layer (see {@link PayloadJars})
+     */
+    public PayloadInstaller(
+            PayloadResolver resolver, String payloadVersion, Path workDirectory, ExtensionLogger logger) {
+
         this.resolver = resolver;
         this.payloadVersion = payloadVersion;
+        this.workDirectory = workDirectory;
         this.logger = logger;
     }
 
     public PayloadInstallation install(PayloadPlan plan) throws PayloadResolutionException {
-        if (!plan.bakesAnything()) {
-            logger.log(LogLevel.LIFECYCLE,
-                    "jeffrey-jib: provisionerPath and profilerPath are both set; no payload is baked"
-                            + " and the image must supply both binaries itself");
-            return PayloadInstallation.empty();
-        }
-
         List<PayloadRequest> requests = new ArrayList<>();
         Map<String, String> environment = new LinkedHashMap<>();
 
@@ -85,19 +86,23 @@ public final class PayloadInstaller {
 
     private FileEntriesLayer buildLayer(List<PayloadRequest> requests) throws PayloadResolutionException {
         FileEntriesLayer.Builder builder = FileEntriesLayer.builder().setName(LAYER_NAME);
+        List<String> installed = new ArrayList<>(requests.size());
         long totalBytes = 0;
 
         for (PayloadRequest request : requests) {
             Path payloadJar = resolver.resolve(request.coordinates());
-            Path payload = PayloadJars.extractSingleEntry(payloadJar, request.coordinates());
-            builder.addEntry(payload, request.installPath(), request.permissions());
-            totalBytes += sizeOf(payload);
+            UnpackedPayload payload = PayloadJars.unpack(payloadJar, request.coordinates(), workDirectory);
+            builder.addEntry(payload.file(), request.installPath(), request.permissions());
+            totalBytes += sizeOf(payload.file());
+            installed.add(payload.describe(request.installPath()));
         }
 
+        // The provenance in parentheses is the only place a build log says which Jeffrey release
+        // and async-profiler an image actually carries: payloadVersion names a jeffrey-jib release,
+        // and the mapping to the binaries inside it lives in each payload jar's manifest.
         logger.log(LogLevel.LIFECYCLE,
                 "jeffrey-jib: baking " + requests.size() + " payload file(s) into the image layer '"
-                        + LAYER_NAME + "' (" + totalBytes / BYTES_PER_MEGABYTE + " MB): "
-                        + installPaths(requests));
+                        + LAYER_NAME + "' (" + totalBytes / BYTES_PER_MEGABYTE + " MB): " + installed);
         return builder.build();
     }
 
@@ -111,11 +116,5 @@ public final class PayloadInstaller {
         } catch (IOException e) {
             return 0;
         }
-    }
-
-    private static List<String> installPaths(List<PayloadRequest> requests) {
-        return requests.stream()
-                .map(request -> request.installPath().toString())
-                .toList();
     }
 }

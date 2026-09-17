@@ -311,9 +311,10 @@ volumes:
 
       <p>
         Because the JIB extension bakes both paths at image build time, the conf file stays small
-        and the same template works for every monitored pod. Each image states which Jeffrey release
-        its binaries came from through <code>payloadVersion</code>, so two applications can run
-        different provisioner versions side by side against the same Hub.
+        and the same template works for every monitored pod. Each image pins its binaries through
+        <code>payloadVersion</code> (a jeffrey-jib release, whose payloads record the Jeffrey release
+        they bundle), so two applications can run different provisioner versions side by side
+        against the same Hub.
       </p>
     </div>
 

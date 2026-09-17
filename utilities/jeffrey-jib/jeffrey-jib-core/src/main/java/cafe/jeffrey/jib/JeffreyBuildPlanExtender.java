@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -74,21 +75,35 @@ import java.util.Set;
 public final class JeffreyBuildPlanExtender {
 
     private static final String ENTRYPOINT_RESOURCE = "/cafe/jeffrey/jib/jeffrey-entrypoint.sh";
+    private static final String ENTRYPOINT_FILE_NAME = "jeffrey-entrypoint.sh";
     private static final AbsoluteUnixPath ENTRYPOINT_PATH =
             AbsoluteUnixPath.get("/usr/local/bin/jeffrey-entrypoint");
     private static final FilePermissions EXEC_PERMS = FilePermissions.fromOctalString("755");
     private static final String LAYER_NAME = "jeffrey-entrypoint";
 
+    private static final String ENV_PROVISIONER_KIND = "JEFFREY_PROVISIONER_KIND";
     private static final String LINUX_OS = "linux";
     private static final Set<String> SUPPORTED_ARCHITECTURES = Set.of("amd64", "arm64");
 
     private final Class<? extends JibPluginExtension> extensionClass;
     private final PayloadResolver payloadResolver;
+    private final Path workDirectory;
 
+    /**
+     * @param payloadResolver fetches payload artifacts through the build system; only called when
+     *                        the configuration actually bakes something, so a build that supplies
+     *                        its own binaries never touches the build system's resolver
+     * @param workDirectory   where the entrypoint script and payloads are unpacked before JIB
+     *                        reads them; see {@link WorkDirectories}
+     */
     public JeffreyBuildPlanExtender(
-            Class<? extends JibPluginExtension> extensionClass, PayloadResolver payloadResolver) {
+            Class<? extends JibPluginExtension> extensionClass,
+            PayloadResolver payloadResolver,
+            Path workDirectory) {
+
         this.extensionClass = extensionClass;
         this.payloadResolver = payloadResolver;
+        this.workDirectory = workDirectory;
     }
 
     /**
@@ -122,14 +137,15 @@ public final class JeffreyBuildPlanExtender {
                             + "override container.entrypoint.");
         }
 
+        ProvisionerSource source = provisionerSource(config);
         Path wrapperScript = extractEntrypointScript();
         FileEntriesLayer wrapperLayer = FileEntriesLayer.builder()
                 .setName(LAYER_NAME)
                 .addEntry(wrapperScript, ENTRYPOINT_PATH, EXEC_PERMS)
                 .build();
 
-        PayloadInstallation payload = installPayload(buildPlan, config, logger);
-        Map<String, String> extraEnv = collectEnvDefaults(config);
+        PayloadInstallation payload = installPayload(buildPlan, config, source, logger);
+        Map<String, String> extraEnv = collectEnvDefaults(config, source);
 
         logger.log(LogLevel.LIFECYCLE,
                 "jeffrey-jib: wrapping entrypoint with " + ENTRYPOINT_PATH
@@ -162,21 +178,29 @@ public final class JeffreyBuildPlanExtender {
     /**
      * Fetches and installs the binaries the entrypoint needs. A build configuration that already
      * names {@code provisionerPath} or {@code profilerPath} says the image supplies that binary
-     * itself, so the matching payload is not resolved at all and costs nothing.
+     * itself, so the matching payload is not resolved at all and costs nothing. When both are
+     * named nothing is resolved, no version is needed and the target platforms are not even
+     * inspected: an image that brings its own binaries may target whatever platform it likes.
      */
     private PayloadInstallation installPayload(
             ContainerBuildPlan buildPlan,
             JeffreyJibConfig config,
+            ProvisionerSource source,
             ExtensionLogger logger) throws JibPluginExtensionException {
 
-        PayloadPlan plan = new PayloadPlan(
-                provisionerSource(config),
-                linuxArchitectures(buildPlan),
-                config.getProvisionerPath() == null,
-                config.getProfilerPath() == null);
+        boolean bakeProvisioner = isBlank(config.getProvisionerPath());
+        boolean bakeProfiler = isBlank(config.getProfilerPath());
+        if (!bakeProvisioner && !bakeProfiler) {
+            logger.log(LogLevel.LIFECYCLE,
+                    "jeffrey-jib: provisionerPath and profilerPath are both set; no payload is baked"
+                            + " and the image must supply both binaries itself");
+            return PayloadInstallation.empty();
+        }
 
+        PayloadPlan plan = new PayloadPlan(source, linuxArchitectures(buildPlan), bakeProvisioner, bakeProfiler);
         try {
-            return new PayloadInstaller(payloadResolver, payloadVersion(config, plan), logger).install(plan);
+            return new PayloadInstaller(payloadResolver, payloadVersion(config), workDirectory, logger)
+                    .install(plan);
         } catch (PayloadResolutionException e) {
             throw new JibPluginExtensionException(extensionClass, e.getMessage(), e);
         }
@@ -191,26 +215,24 @@ public final class JeffreyBuildPlanExtender {
     }
 
     /**
-     * There is no default. This extension versions independently of the Jeffrey release whose
-     * provisioner it installs, so a guessed version would silently pin an image to a provisioner
-     * nobody chose — worse than a build that stops and asks.
+     * There is no default. The payload artifacts are published with each jeffrey-jib release, and
+     * which Jeffrey release's binaries a given jeffrey-jib release bundles is a choice made when it
+     * was cut — so a guessed version would silently pin an image to a provisioner nobody chose,
+     * which is worse than a build that stops and asks.
      */
-    private String payloadVersion(JeffreyJibConfig config, PayloadPlan plan)
-            throws JibPluginExtensionException {
-
+    private String payloadVersion(JeffreyJibConfig config) throws JibPluginExtensionException {
         String version = config.getPayloadVersion();
-        if (version != null && !version.isBlank()) {
+        if (!isBlank(version)) {
             return version;
-        }
-        if (!plan.bakesAnything()) {
-            return "";
         }
         throw new JibPluginExtensionException(
                 extensionClass,
-                "jeffrey-jib: '" + JeffreyJibConfig.PAYLOAD_VERSION + "' is required. Set it to the Jeffrey "
-                        + "release whose provisioner and async-profiler this image should carry "
-                        + "(for example 0.13.22), or set provisionerPath and profilerPath to point "
-                        + "at binaries the base image already provides.");
+                "jeffrey-jib: '" + JeffreyJibConfig.PAYLOAD_VERSION + "' is required. Set it to the "
+                        + "jeffrey-jib release whose payload artifacts this image should carry — normally "
+                        + "the same version as the extension itself (for example 0.14.0); each payload "
+                        + "records the Jeffrey release and async-profiler version it bundles, and the "
+                        + "build log prints them. Alternatively set provisionerPath and profilerPath to "
+                        + "point at binaries the base image already provides.");
     }
 
     /**
@@ -241,12 +263,21 @@ public final class JeffreyBuildPlanExtender {
         return architectures;
     }
 
-    private static Map<String, String> collectEnvDefaults(JeffreyJibConfig config) {
+    /**
+     * The explicit configuration, baked as image ENV. An explicit {@code provisionerPath} also
+     * bakes the provisioner kind: the entrypoint runs a native binary and a jar differently, and
+     * it can only tell them apart by {@code JEFFREY_PROVISIONER_KIND}, so an operator who brings
+     * their own jar declares it with {@code provisionerSource=jar} exactly as one who bakes ours.
+     */
+    private static Map<String, String> collectEnvDefaults(JeffreyJibConfig config, ProvisionerSource source) {
         Map<String, String> env = new LinkedHashMap<>();
         putIfPresent(env, "JEFFREY_HOME", config.getJeffreyHome());
         putIfPresent(env, "JEFFREY_BASE_CONFIG", config.getBaseConfig());
         putIfPresent(env, "JEFFREY_OVERRIDE_CONFIG", config.getOverrideConfig());
         putIfPresent(env, "JEFFREY_PROVISIONER_PATH", config.getProvisionerPath());
+        if (!isBlank(config.getProvisionerPath())) {
+            env.put(ENV_PROVISIONER_KIND, source.kind());
+        }
         putIfPresent(env, "JEFFREY_ARG_FILE", config.getArgFile());
         putIfPresent(env, "JEFFREY_PROFILER_PATH", config.getProfilerPath());
         putIfPresent(env, "JEFFREY_PROJECT_NAME", config.getProjectName());
@@ -254,9 +285,13 @@ public final class JeffreyBuildPlanExtender {
     }
 
     private static void putIfPresent(Map<String, String> env, String key, String value) {
-        if (value != null && !value.isEmpty()) {
+        if (!isBlank(value)) {
             env.put(key, value);
         }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /**
@@ -303,7 +338,11 @@ public final class JeffreyBuildPlanExtender {
         }
     }
 
-
+    /**
+     * Writes the wrapper script into the work directory, and only when it differs from what a
+     * previous build left there: JIB's layer cache keys on the file's modification time, so
+     * rewriting identical bytes would still cost a cache miss.
+     */
     private Path extractEntrypointScript() throws JibPluginExtensionException {
         try (InputStream in = JeffreyBuildPlanExtender.class.getResourceAsStream(ENTRYPOINT_RESOURCE)) {
             if (in == null) {
@@ -311,11 +350,12 @@ public final class JeffreyBuildPlanExtender {
                         extensionClass,
                         "jeffrey-entrypoint.sh not found on classpath at " + ENTRYPOINT_RESOURCE);
             }
-            Path tempDir = Files.createTempDirectory("jeffrey-jib-");
-            tempDir.toFile().deleteOnExit();
-            Path target = tempDir.resolve("jeffrey-entrypoint.sh");
-            Files.copy(in, target);
-            target.toFile().deleteOnExit();
+            byte[] script = in.readAllBytes();
+            Files.createDirectories(workDirectory);
+            Path target = workDirectory.resolve(ENTRYPOINT_FILE_NAME);
+            if (!Files.isRegularFile(target) || !Arrays.equals(Files.readAllBytes(target), script)) {
+                Files.write(target, script);
+            }
             return target;
         } catch (IOException e) {
             throw new JibPluginExtensionException(

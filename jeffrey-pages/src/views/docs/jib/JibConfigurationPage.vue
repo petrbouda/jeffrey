@@ -95,13 +95,13 @@ onMounted(() => {
                 <td><code>payloadVersion</code></td>
                 <td>&mdash;</td>
                 <td>&mdash; <span class="prop-type">(required)</span></td>
-                <td>The Jeffrey release whose provisioner and async-profiler the image carries. No default: jeffrey-jib releases on its own cadence, so a guess would silently pin your image to a provisioner nobody chose. Not required when both paths above are set.</td>
+                <td>The jeffrey-jib release whose <code>jeffrey-jib-payload-*</code> artifacts the image carries &mdash; normally the extension's own version, e.g. <code>${jeffrey-jib.version}</code>. It is <em>not</em> a Jeffrey release number: which Jeffrey release's provisioner and which async-profiler a jeffrey-jib release bundles was decided when it was cut, is recorded in each payload's manifest and is printed in the build log. No default, because a guess would silently pin your image to a provisioner nobody chose. Not required when both paths above are set.</td>
               </tr>
               <tr>
                 <td><code>provisionerSource</code></td>
                 <td><code>JEFFREY_PROVISIONER_KIND</code></td>
                 <td><code>native</code></td>
-                <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index.</td>
+                <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM &mdash; isolated from <code>JDK_JAVA_OPTIONS</code>, <code>JAVA_TOOL_OPTIONS</code> and <code>_JAVA_OPTIONS</code>, see <router-link to="/docs/jib#jar-provisioner-environment">the JVM environment</router-link>. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index. Also baked when <code>provisionerPath</code> names a binary you bring yourself, so the wrapper knows how to run it.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>

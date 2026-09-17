@@ -24,6 +24,10 @@ import java.util.Set;
 /**
  * What to bake into one image.
  *
+ * <p>A plan always bakes something. An image that supplies both binaries itself never gets as far
+ * as a plan: it has no architectures to resolve for and no version to resolve at, so the extender
+ * skips the payload step entirely rather than describe an empty one.
+ *
  * @param source          which provisioner build to install
  * @param architectures   the Linux architectures the build plan targets, in declaration order
  * @param bakeProvisioner false when the build configuration already names a provisioner path, in
@@ -45,11 +49,9 @@ public record PayloadPlan(
         if (architectures == null || architectures.isEmpty()) {
             throw new IllegalArgumentException("At least one target architecture is required");
         }
+        if (!bakeProvisioner && !bakeProfiler) {
+            throw new IllegalArgumentException("A payload plan must bake at least one payload");
+        }
         architectures = new LinkedHashSet<>(architectures);
-    }
-
-    /** Whether anything at all is baked; an image may legitimately supply both paths itself. */
-    public boolean bakesAnything() {
-        return bakeProvisioner || bakeProfiler;
     }
 }

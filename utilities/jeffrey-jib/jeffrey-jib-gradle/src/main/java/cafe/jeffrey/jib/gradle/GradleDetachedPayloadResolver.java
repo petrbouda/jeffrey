@@ -21,6 +21,7 @@ package cafe.jeffrey.jib.gradle;
 import cafe.jeffrey.jib.payload.ArtifactCoordinates;
 import cafe.jeffrey.jib.payload.PayloadResolutionException;
 import cafe.jeffrey.jib.payload.PayloadResolver;
+import com.google.cloud.tools.jib.gradle.extension.GradleData;
 
 import java.io.File;
 import java.lang.reflect.Array;
@@ -32,14 +33,13 @@ import java.util.Collection;
  * Resolves payload artifacts through a Gradle detached configuration, so payloads obey the build's
  * own repositories and cache.
  *
- * <p>Every Gradle call here is reflective. This module is built with Maven, where the Gradle API is
- * not a compile dependency — the same reason {@code JeffreyJibGradleExtension} reads the project
- * name reflectively. Three details make or break it:
+ * <p>The Gradle project is only reached on the first {@link #resolve} call. A build that bakes
+ * nothing never needs it, and must not fail for lack of it.
+ *
+ * <p>Every Gradle call here is reflective, for the reasons {@link GradleProjects} explains. Two
+ * further details make or break the detached configuration:
  *
  * <ul>
- *   <li>Methods are looked up on the Gradle <em>interface</em>, not on the instance's class.
- *       Gradle hands back decorated subclasses whose declaring class is often not public, and
- *       invoking a method found on one of those fails with an access error.
  *   <li>{@code ConfigurationContainer.detachedConfiguration} is a varargs
  *       {@code Dependency...}, whose reflective parameter type is an array class this module
  *       cannot name — it has to be built with {@link Array#newInstance}.
@@ -48,6 +48,7 @@ import java.util.Collection;
  */
 final class GradleDetachedPayloadResolver implements PayloadResolver {
 
+    private static final String PROJECT_TYPE = "org.gradle.api.Project";
     private static final String DEPENDENCY_HANDLER_TYPE = "org.gradle.api.artifacts.dsl.DependencyHandler";
     private static final String CONFIGURATION_CONTAINER_TYPE = "org.gradle.api.artifacts.ConfigurationContainer";
     private static final String CONFIGURATION_TYPE = "org.gradle.api.artifacts.Configuration";
@@ -64,20 +65,20 @@ final class GradleDetachedPayloadResolver implements PayloadResolver {
                     + "extension hook is not compatible with). Set provisionerPath and profilerPath "
                     + "to binaries the base image already provides to build without payload resolution.";
 
-    private final Object project;
-    private final ClassLoader gradleClassLoader;
+    private final GradleData gradleData;
 
-    GradleDetachedPayloadResolver(Object project) {
-        this.project = project;
-        this.gradleClassLoader = project.getClass().getClassLoader();
+    GradleDetachedPayloadResolver(GradleData gradleData) {
+        this.gradleData = gradleData;
     }
 
     @Override
     public Path resolve(ArtifactCoordinates coordinates) throws PayloadResolutionException {
+        Object project = GradleProjects.project(gradleData).orElseThrow(() -> new PayloadResolutionException(
+                coordinates, "no Gradle project is available to resolve it through"));
         try {
-            Object dependency = createDependency(coordinates);
-            Object configuration = detachedConfiguration(dependency);
-            return singleFile(configuration, coordinates);
+            Object dependency = createDependency(project, coordinates);
+            Object configuration = detachedConfiguration(project, dependency);
+            return singleFile(project, configuration, coordinates);
         } catch (PayloadResolutionException e) {
             throw e;
         } catch (ReflectiveOperationException | RuntimeException e) {
@@ -85,29 +86,31 @@ final class GradleDetachedPayloadResolver implements PayloadResolver {
         }
     }
 
-    private Object createDependency(ArtifactCoordinates coordinates) throws ReflectiveOperationException {
-        Object dependencies = invokeOnInterface(project, "org.gradle.api.Project", GET_DEPENDENCIES_METHOD);
-        Method create = type(DEPENDENCY_HANDLER_TYPE).getMethod(CREATE_METHOD, Object.class);
+    private static Object createDependency(Object project, ArtifactCoordinates coordinates)
+            throws ReflectiveOperationException {
+
+        Object dependencies = invokeOnInterface(project, PROJECT_TYPE, GET_DEPENDENCIES_METHOD);
+        Method create = GradleProjects.type(project, DEPENDENCY_HANDLER_TYPE).getMethod(CREATE_METHOD, Object.class);
         return create.invoke(dependencies, coordinates.gradleNotation());
     }
 
-    private Object detachedConfiguration(Object dependency) throws ReflectiveOperationException {
-        Object configurations =
-                invokeOnInterface(project, "org.gradle.api.Project", GET_CONFIGURATIONS_METHOD);
-        Object dependencyArray = Array.newInstance(type(DEPENDENCY_TYPE), 1);
+    private static Object detachedConfiguration(Object project, Object dependency)
+            throws ReflectiveOperationException {
+
+        Object configurations = invokeOnInterface(project, PROJECT_TYPE, GET_CONFIGURATIONS_METHOD);
+        Object dependencyArray = Array.newInstance(GradleProjects.type(project, DEPENDENCY_TYPE), 1);
         Array.set(dependencyArray, 0, dependency);
 
-        Method detached = type(CONFIGURATION_CONTAINER_TYPE)
+        Method detached = GradleProjects.type(project, CONFIGURATION_CONTAINER_TYPE)
                 .getMethod(DETACHED_CONFIGURATION_METHOD, dependencyArray.getClass());
         return detached.invoke(configurations, (Object) dependencyArray);
     }
 
-    private Path singleFile(Object configuration, ArtifactCoordinates coordinates)
+    private static Path singleFile(Object project, Object configuration, ArtifactCoordinates coordinates)
             throws ReflectiveOperationException, PayloadResolutionException {
 
-        Method resolve = type(CONFIGURATION_TYPE).getMethod(RESOLVE_METHOD);
-        Object resolved = resolve.invoke(configuration);
-        Collection<?> files = (Collection<?>) resolved;
+        Method resolve = GradleProjects.type(project, CONFIGURATION_TYPE).getMethod(RESOLVE_METHOD);
+        Collection<?> files = (Collection<?>) resolve.invoke(configuration);
         if (files.size() != 1) {
             throw new PayloadResolutionException(
                     coordinates, "expected exactly one resolved file but Gradle returned " + files);
@@ -115,13 +118,9 @@ final class GradleDetachedPayloadResolver implements PayloadResolver {
         return ((File) files.iterator().next()).toPath();
     }
 
-    private Object invokeOnInterface(Object target, String interfaceName, String methodName)
+    private static Object invokeOnInterface(Object target, String interfaceName, String methodName)
             throws ReflectiveOperationException {
 
-        return type(interfaceName).getMethod(methodName).invoke(target);
-    }
-
-    private Class<?> type(String name) throws ClassNotFoundException {
-        return Class.forName(name, false, gradleClassLoader);
+        return GradleProjects.type(target, interfaceName).getMethod(methodName).invoke(target);
     }
 }

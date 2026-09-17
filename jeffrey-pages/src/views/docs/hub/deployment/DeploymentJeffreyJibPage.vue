@@ -251,10 +251,12 @@ const moduleClient = `<plugin>
 
       <h2 id="no-baked-binaries">A Self-Contained Image</h2>
       <p>
-        The extension bakes everything the image needs to profile itself: the entrypoint wrapper,
-        the provisioner and async-profiler, all under <code>/opt/jeffrey</code>. The payloads are
-        ordinary Maven artifacts, resolved through your build's own repositories and cache, and
-        <code>payloadVersion</code> names the Jeffrey release they come from.
+        The extension bakes everything the image needs to profile itself: the entrypoint wrapper at
+        <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner and async-profiler under
+        <code>/opt/jeffrey</code>. The payloads are ordinary Maven artifacts, resolved through your
+        build's own repositories and cache; <code>payloadVersion</code> names the jeffrey-jib release
+        they ship with, and the build log prints which Jeffrey release and async-profiler version
+        that release bundles.
       </p>
 
       <DocsCallout type="tip">

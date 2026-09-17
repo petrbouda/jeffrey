@@ -43,8 +43,11 @@ onMounted(() => {
 
       <div class="docs-content">
         <p>Wire the extension into your JIB build. The one property that is strictly required is
-          <code>payloadVersion</code>: it names the Jeffrey release whose provisioner and
-          async-profiler the image will carry, it has no default, and the build fails without it.
+          <code>payloadVersion</code>: it names the jeffrey-jib release whose payload artifacts
+          (provisioner and async-profiler) the image will carry &mdash; normally the extension's own
+          version &mdash; it has no default, and the build fails without it. Which Jeffrey release
+          and async-profiler those payloads bundle is recorded in their manifests and printed by
+          the build.
           <code>jeffreyHome</code> also has to be reachable, but it may arrive at runtime instead
           &mdash; either baked as an image <code>ENV</code> default (shown below) or set as a
           <code>JEFFREY_HOME</code> env var on the pod. See

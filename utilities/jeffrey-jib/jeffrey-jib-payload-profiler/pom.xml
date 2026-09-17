@@ -72,6 +72,17 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>${maven-jar-plugin.version}</version>
+                <configuration>
+                    <!-- The .gitkeep that pins the staging directory in git is not a payload. -->
+                    <excludes>
+                        <exclude>.gitkeep</exclude>
+                    </excludes>
+                    <archive>
+                        <manifestEntries>
+                            <Jeffrey-Payload-Provenance>async-profiler ${async-profiler.version}</Jeffrey-Payload-Provenance>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
                 <executions>
                     <execution>
                         <id>payload-linux-amd64</id>

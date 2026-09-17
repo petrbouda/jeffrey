@@ -144,10 +144,11 @@ public class JeffreyJibConfig {
     }
 
     /**
-     * The version of the payload artifacts to fetch, which tracks the Jeffrey release the
-     * provisioner binaries were built from. Mandatory: there is no sensible default, because this
-     * extension versions independently of the Jeffrey release whose binaries it installs, and
-     * guessing would pin an image to a provisioner nobody chose.
+     * The jeffrey-jib release whose payload artifacts to fetch — normally the same version as the
+     * extension, since the payloads are published alongside it. Which Jeffrey release and
+     * async-profiler version a payload bundles is recorded in its manifest and printed by the
+     * build. Mandatory: there is no sensible default, because guessing would pin an image to a
+     * provisioner nobody chose.
      */
     public void setPayloadVersion(String payloadVersion) {
         this.payloadVersion = payloadVersion;

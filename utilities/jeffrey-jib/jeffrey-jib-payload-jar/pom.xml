@@ -59,10 +59,33 @@
                                         <file>${project.basedir}/src/main/resources/jeffrey-payload/provisioner.jar</file>
                                     </files>
                                 </requireFilesExist>
+                                <!-- Recorded in the payload jar manifest (Jeffrey-Payload-Provenance) and
+                                     printed by the extension at build time: the only place a consumer can
+                                     see which Jeffrey release a jeffrey-jib payload actually bundles. -->
+                                <requireProperty>
+                                    <property>jeffrey.release</property>
+                                    <regex>^v[0-9][0-9A-Za-z.+-]*$</regex>
+                                    <regexMessage>jeffrey.release must be the Jeffrey release tag the provisioner was downloaded from, e.g. -Djeffrey.release=v0.13.22</regexMessage>
+                                </requireProperty>
                             </rules>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>.gitkeep</exclude>
+                    </excludes>
+                    <archive>
+                        <manifestEntries>
+                            <Jeffrey-Payload-Provenance>jeffrey ${jeffrey.release}</Jeffrey-Payload-Provenance>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

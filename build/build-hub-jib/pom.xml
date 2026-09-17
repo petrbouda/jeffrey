@@ -33,9 +33,11 @@
         <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
         <finalName>jeffrey-hub</finalName>
         <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
-        <!-- The jeffrey-jib release this image is built with. The payload artifacts carrying the
-             provisioner and async-profiler ship from the same release, so they share this version;
-             which Jeffrey release those binaries came from was decided when jeffrey-jib was cut. -->
+        <!-- The jeffrey-jib version this image is built with, and therefore the payloadVersion the
+             extension resolves. Both come from this reactor: release-hub.yml installs the extension
+             and, behind the `payload` profile, the jeffrey-jib-payload-jar / -profiler artifacts
+             built from THIS release's own provisioner.jar and the pinned async-profiler — the hub
+             image never waits on a jeffrey-jib release reaching Maven Central. -->
         <jeffrey-jib-maven.version>1.0-SNAPSHOT</jeffrey-jib-maven.version>
         <image.from>eclipse-temurin:25-jdk</image.from>
         <image.to>petrbouda/jeffrey-hub:${project.version}</image.to>

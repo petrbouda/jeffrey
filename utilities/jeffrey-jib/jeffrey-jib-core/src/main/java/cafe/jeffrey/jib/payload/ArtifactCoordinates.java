@@ -29,7 +29,8 @@ package cafe.jeffrey.jib.payload;
  * @param classifier {@code linux-amd64} / {@code linux-arm64}, or empty for an arch-neutral payload
  * @param extension  the packaging; payloads are jars carrying a single file
  * @param version    the payload version, which the consumer states explicitly via
- *                   {@code payloadVersion} — it tracks the Jeffrey release the binaries came from
+ *                   {@code payloadVersion} — a jeffrey-jib release; the Jeffrey release the
+ *                   binaries came from is recorded inside the payload jar, not in its version
  */
 public record ArtifactCoordinates(
         String groupId, String artifactId, String classifier, String extension, String version) {

@@ -31,6 +31,11 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      # jeffrey-jib adds the `payload` profile so the payload modules are versioned and deployed
+      # with the extension; jeffrey-events-parent has no such profile. Maven only warns about a
+      # profile it does not know, but keeping the list exact keeps the log clean.
+      MAVEN_PROFILES: ${{ inputs.module == 'jeffrey-jib' && 'release,payload' || 'release' }}
     defaults:
       run:
         working-directory: utilities/${{ inputs.module }}
@@ -53,8 +58,9 @@ jobs:
       # The payload modules ship the provisioner and async-profiler that jeffrey-jib bakes into
       # application images. The provisioner comes from a published Jeffrey release rather than a
       # build of this repository, because jeffrey-jib releases on its own cadence: which Jeffrey
-      # release an extension carries is a choice, stated here and again by every consumer as
-      # payloadVersion.
+      # release an extension carries is a choice, stated here, recorded in each payload jar's
+      # manifest (Jeffrey-Payload-Provenance) and printed by the extension at build time.
+      # Consumers name the jeffrey-jib release through payloadVersion.
       - name: Stage provisioner payloads
         if: inputs.module == 'jeffrey-jib'
         env:
@@ -73,45 +79,22 @@ jobs:
           install -Dm644 /tmp/payload/provisioner.jar \
             jeffrey-jib-payload-jar/src/main/resources/jeffrey-payload/provisioner.jar
 
-      # async-profiler is pinned by the async-profiler.version property rather than resolved from
-      # the "latest release" API: this library is loaded into every profiled JVM, so which version
-      # ships is a decision that belongs in the pom, and an API that rate-limits must not silently
-      # produce an empty download.
+      # async-profiler is pinned by the async-profiler.version property in the jeffrey-jib pom; the
+      # script fails on a missing release rather than staging an empty download.
       - name: Stage async-profiler payloads
         if: inputs.module == 'jeffrey-jib'
-        run: |
-          AP_VERSION=$(mvn -q -N -DforceStdout help:evaluate -Dexpression=async-profiler.version)
-          echo "Bundling async-profiler ${AP_VERSION}"
-          for AP_ARCH_PAIR in "x64:amd64" "arm64:arm64"; do
-            AP_ARCH="${AP_ARCH_PAIR%%:*}"
-            OUT_ARCH="${AP_ARCH_PAIR##*:}"
-            curl -fL --retry 3 \
-              "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
-              | tar -xz -C /tmp
-            install -Dm644 "/tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}/lib/libasyncProfiler.so" \
-              "jeffrey-jib-payload-profiler/src/main/payload/linux-${OUT_ARCH}/jeffrey-payload/libasyncProfiler.so"
-            rm -rf "/tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}"
-          done
+        run: ../../build/scripts/stage-async-profiler-payload.sh .
 
+      # The payload modules live behind the `payload` profile, so for jeffrey-jib every Maven
+      # invocation activates it — otherwise versions:set would leave them at 1.0-SNAPSHOT and
+      # deploy would skip them. One deploy builds every module exactly once.
       - name: Set version
-        if: inputs.module != 'jeffrey-jib'
-        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DprocessAllModules=true
-
-      # The payload modules live behind the `payload` profile, so they only get the new version
-      # when that profile is active — otherwise they would deploy as 1.0-SNAPSHOT.
-      - name: Set version
-        if: inputs.module == 'jeffrey-jib'
-        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DprocessAllModules=true -P payload
+        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DprocessAllModules=true -P ${{ env.MAVEN_PROFILES }}
 
       - name: Stage artifacts into local staging repository
         run: |
-          mvn -P release --batch-mode deploy -DskipTests \
-            -DaltDeploymentRepository=local::file:$PWD/target/staging-deploy
-
-      - name: Stage payload artifacts into local staging repository
-        if: inputs.module == 'jeffrey-jib'
-        run: |
-          mvn -P release,payload --batch-mode deploy -DskipTests \
+          mvn -P ${{ env.MAVEN_PROFILES }} --batch-mode deploy -DskipTests \
+            -Djeffrey.release=${{ inputs.jeffreyRelease }} \
             -DaltDeploymentRepository=local::file:$PWD/target/staging-deploy
 
       - name: Sign and deploy to Maven Central with JReleaser

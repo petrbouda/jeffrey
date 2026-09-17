@@ -25,6 +25,11 @@
 #                             JEFFREY_PROJECT_NAME and JEFFREY_WORKSPACE_REF_ID)
 #   JEFFREY_OVERRIDE_CONFIG   default /jeffrey/jeffrey-overrides.conf (optional)
 #   JEFFREY_ARG_FILE          default /tmp/jvm.args
+#   JEFFREY_PROVISIONER_JAVA_OPTIONS
+#                             jar kind only: extra options for the JVM that runs the provisioner
+#                             jar, appended after the built-in ones. This is the ONLY way to pass
+#                             options to that JVM: JDK_JAVA_OPTIONS, JAVA_TOOL_OPTIONS and
+#                             _JAVA_OPTIONS are deliberately withheld from it (see run_provisioner).
 #
 # Fail-open guarantee: any misconfiguration (missing binaries, broken config, failed init)
 # starts the application WITHOUT profiling instead of preventing it from starting.
@@ -115,13 +120,32 @@ rm -f "$ARG_FILE"
 # The jar build runs on the application's own JVM: it is the binary JIB put in CMD, so it is
 # guaranteed present and needs no JAVA_HOME discovery. The flags keep that second JVM cheap —
 # it does nothing but write an argfile.
+#
+# That JVM must NOT inherit the application's environment options. JDK_JAVA_OPTIONS,
+# JAVA_TOOL_OPTIONS and _JAVA_OPTIONS are read by every java launcher / HotSpot in the container,
+# so whatever an operator set there for the application would also apply to the provisioner:
+#   - a -javaagent: (OpenTelemetry, APM, ...) would load into the provisioner JVM too, slowing
+#     init and registering a phantom instance of the service with the agent's backend;
+#   - -Xmx / -XX:MaxRAMPercentage sized for the application would be claimed by a JVM that
+#     needs 64 MB, and could push the pod over its memory limit before the application starts;
+#   - a -XX:StartFlightRecording or GC-logging option would write its output twice, and with
+#     JDK_JAVA_OPTIONS the launcher additionally prints a "NOTE: Picked up ..." line.
+# The provisioner does no network I/O and reads nothing from those variables, so they are unset
+# in a subshell for its JVM only; the application's own exec below still sees them untouched.
+# Options meant for the provisioner JVM go in JEFFREY_PROVISIONER_JAVA_OPTIONS instead (unquoted
+# on purpose: it is a whitespace-separated option list).
 run_provisioner() {
   case "$PROVISIONER_KIND" in
     native)
       "$PROVISIONER" "$@"
       ;;
     jar)
-      "$JAVA_BIN" -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Xmx64m -jar "$PROVISIONER" "$@"
+      (
+        unset JDK_JAVA_OPTIONS JAVA_TOOL_OPTIONS _JAVA_OPTIONS
+        # shellcheck disable=SC2086
+        exec "$JAVA_BIN" -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Xmx64m \
+          ${JEFFREY_PROVISIONER_JAVA_OPTIONS:-} -jar "$PROVISIONER" "$@"
+      )
       ;;
   esac
 }

@@ -39,14 +39,18 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
+import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -66,12 +70,14 @@ class JeffreyBuildPlanExtenderTest {
     private JeffreyBuildPlanExtender extender;
     private CapturingLogger logger;
     private StubPayloadResolver resolver;
+    private Path workDirectory;
 
     @BeforeEach
     void setUp() throws IOException {
         logger = new CapturingLogger();
         resolver = new StubPayloadResolver(payloadJar("payload.bin"));
-        extender = new JeffreyBuildPlanExtender(StubExtension.class, resolver);
+        workDirectory = tempDir.resolve("work");
+        extender = new JeffreyBuildPlanExtender(StubExtension.class, resolver, workDirectory);
     }
 
     /**
@@ -86,9 +92,15 @@ class JeffreyBuildPlanExtenderTest {
 
     /** A real jar carrying one file under the prefix the extension unpacks from. */
     private Path payloadJar(String... entryNames) throws IOException {
+        return payloadJar(new Manifest(), entryNames);
+    }
+
+    /** As above, with a manifest — how a published payload states where its binary came from. */
+    private Path payloadJar(Manifest manifest, String... entryNames) throws IOException {
         Path jar = Files.createTempFile(tempDir, "payload-", ".jar");
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         try (OutputStream out = Files.newOutputStream(jar);
-             JarOutputStream jarOut = new JarOutputStream(out)) {
+             JarOutputStream jarOut = new JarOutputStream(out, manifest)) {
             for (String entryName : entryNames) {
                 jarOut.putNextEntry(new JarEntry(PAYLOAD_ENTRY_PREFIX + entryName));
                 jarOut.write(new byte[] {1, 2, 3, 4});
@@ -514,6 +526,87 @@ class JeffreyBuildPlanExtenderTest {
             ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
 
             assertEquals(List.of("/usr/local/bin/jeffrey-entrypoint"), result.getEntrypoint());
+        }
+
+        @Test
+        void explicitJarProvisionerPathStillBakesTheJarKind() throws Exception {
+            // The entrypoint can only tell a jar from a native binary by JEFFREY_PROVISIONER_KIND.
+            // Bringing your own jar must declare it the same way baking ours does, or the wrapper
+            // would run the executable-bit check against a jar and fail open.
+            JeffreyJibConfig config = config();
+            config.setProvisionerSource("jar");
+            config.setProvisionerPath("/opt/vendor/provisioner.jar");
+
+            ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
+
+            Map<String, String> env = result.getEnvironment();
+            assertEquals("/opt/vendor/provisioner.jar", env.get("JEFFREY_PROVISIONER_PATH"));
+            assertEquals("jar", env.get("JEFFREY_PROVISIONER_KIND"));
+            assertEquals(
+                    Set.of("/opt/jeffrey/libasyncProfiler.so"),
+                    entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet(),
+                    "Only the profiler is still baked");
+        }
+
+        @Test
+        void platformsAreNotInspectedWhenNothingIsBaked() throws Exception {
+            // An image that brings both binaries may target whatever Jeffrey has no payload for;
+            // the platform check exists to refuse baking a payload that does not exist.
+            JeffreyJibConfig config = new JeffreyJibConfig();
+            config.setProvisionerPath("/usr/bin/provisioner");
+            config.setProfilerPath("/usr/lib/libasyncProfiler.so");
+
+            ContainerBuildPlan result = extender.extend(planFor("s390x").build(), config, logger);
+
+            assertEquals(List.of("/usr/local/bin/jeffrey-entrypoint"), result.getEntrypoint());
+            assertTrue(resolver.requested.isEmpty());
+        }
+
+        @Test
+        void unpacksIntoTheWorkDirectoryAndLeavesAnUnchangedPayloadAlone() throws Exception {
+            // JIB keys its layer cache on the source path and modification time, so the second
+            // build must hand it the very same file, untouched.
+            ContainerBuildPlan first = extender.extend(planFor("amd64").build(), config(), logger);
+            Path unpacked = layerNamed(first, PAYLOAD_LAYER).getEntries().get(0).getSourceFile();
+            assertTrue(unpacked.startsWith(workDirectory), "Unpacked under the work directory: " + unpacked);
+            assertTrue(unpacked.toString().contains("jeffrey-jib-payload-native-" + PAYLOAD_VERSION + "-linux-amd64"),
+                    "Path keyed by coordinates so versions never collide: " + unpacked);
+
+            FileTime sentinel = FileTime.fromMillis(0);
+            Files.setLastModifiedTime(unpacked, sentinel);
+
+            ContainerBuildPlan second = extender.extend(planFor("amd64").build(), config(), logger);
+
+            assertEquals(unpacked, layerNamed(second, PAYLOAD_LAYER).getEntries().get(0).getSourceFile());
+            assertEquals(sentinel, Files.getLastModifiedTime(unpacked), "Identical content must not be rewritten");
+        }
+
+        @Test
+        void rewritesAPayloadWhoseContentChanged() throws Exception {
+            ContainerBuildPlan first = extender.extend(planFor("amd64").build(), config(), logger);
+            Path unpacked = layerNamed(first, PAYLOAD_LAYER).getEntries().get(0).getSourceFile();
+            Files.write(unpacked, new byte[] {9, 9, 9, 9});
+
+            extender.extend(planFor("amd64").build(), config(), logger);
+
+            assertArrayEquals(new byte[] {1, 2, 3, 4}, Files.readAllBytes(unpacked),
+                    "A stale file of the same size is detected by checksum and replaced");
+        }
+
+        @Test
+        void logsWhereEachPayloadCameFrom() throws Exception {
+            // payloadVersion names a jeffrey-jib release; the Jeffrey release and async-profiler
+            // version inside it are only knowable from the payload manifests, so the build log
+            // has to say them.
+            Manifest manifest = new Manifest();
+            manifest.getMainAttributes().putValue("Jeffrey-Payload-Provenance", "jeffrey v0.13.22");
+            resolver.returnJar(payloadJar(manifest, "provisioner"));
+
+            extender.extend(planFor("amd64").build(), config(), logger);
+
+            assertTrue(logger.messages.stream().anyMatch(m ->
+                            m.message.contains("/opt/jeffrey/provisioner (jeffrey v0.13.22)")),
+                    "Expected the provenance next to the install path; got: " + logger.messages);
         }
     }
 
