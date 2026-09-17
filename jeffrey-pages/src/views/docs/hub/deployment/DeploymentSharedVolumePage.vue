@@ -31,6 +31,7 @@ const headings = [
   { id: 'pvc-contract', text: 'PVC Contract', level: 2 },
   { id: 'pvc-template', text: 'PVC Template', level: 2 },
   { id: 'hostpath-fallback', text: 'OrbStack / minikube Fallback', level: 2 },
+  { id: 'hub-home', text: 'Pointing Jeffrey Hub at the Volume', level: 2 },
   { id: 'on-disk-layout', text: 'On-Disk Layout', level: 2 }
 ];
 
@@ -250,9 +251,11 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         directory yourself before re-installing on dev clusters.
       </DocsCallout>
 
+      <h2 id="hub-home">Pointing Jeffrey Hub at the Volume</h2>
       <p>The chart's Deployment injects <code>JEFFREY_HOME</code> from
-        <code>sharedVolume.mountPath</code>, so Jeffrey Hub and the applications agree on the
-        path without either side hard-coding it:</p>
+        <code>sharedVolume.mountPath</code>, so Jeffrey Hub and the applications agree on the path
+        without either side hard-coding it. One line of <code>application.properties</code> then
+        points Jeffrey Hub's home directory at it:</p>
 
       <DocsCodeBlock
         language="properties"

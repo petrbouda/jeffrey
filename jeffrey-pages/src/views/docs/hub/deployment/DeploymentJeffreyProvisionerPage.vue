@@ -136,7 +136,7 @@ volumes:
 
       <h2 id="init-flow">Init Flow at Container Start</h2>
       <ol>
-        <li>The wrapped entrypoint checks <code>JEFFREY_ENABLED</code>. If it's not <code>true</code>, it skips profiling entirely and <code>exec</code>s the original <code>java</code> command.</li>
+        <li>The wrapped entrypoint checks <code>JEFFREY_ENABLED</code>. If it is set to <code>false</code>, <code>0</code>, <code>no</code> or <code>off</code> (case-insensitive), it skips profiling entirely and <code>exec</code>s the original <code>java</code> command. Anything else, including leaving it unset, means profiling stays on.</li>
         <li>It reads <code>JEFFREY_BASE_CONFIG</code> (the path to the HOCON config inside the container).</li>
         <li>It reads <code>JEFFREY_PROVISIONER_PATH</code>, baked by the JIB extension to point at <code>/opt/jeffrey</code> in this image. On a multi-architecture image the path carries an <code>&#123;arch&#125;</code> placeholder the wrapper expands from <code>uname -m</code>.</li>
         <li>It calls <code>provisioner init</code>, which reads the HOCON config, takes the profiler path from <code>JEFFREY_PROFILER_PATH</code>, and emits a JVM-arg response file.</li>
@@ -298,9 +298,8 @@ volumes:
 
       <h2 id="omitted-paths">Why Paths Are Omitted</h2>
       <p>
-        The conf file deliberately leaves out <code>jeffrey-home</code>,
-        <code>profiler-path</code> and <code>cli-path</code>.
-        That's because:
+        The conf file deliberately leaves out <code>jeffrey-home</code> and
+        <code>profiler-path</code>. That's because:
       </p>
 
       <ul>

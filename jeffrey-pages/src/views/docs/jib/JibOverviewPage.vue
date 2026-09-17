@@ -172,7 +172,7 @@ onMounted(() => {
           untouched. The provisioner does no network I/O and reads none of those settings, so nothing
           is lost. Options genuinely meant for the provisioner JVM go in the variable that exists for
           exactly that; it is a whitespace-separated list appended after the wrapper's own
-          <code>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xmx64m</code>, so a later
+          <code>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Xmx64m</code>, so a later
           <code>-Xmx</code> wins:</p>
 
         <div class="code-block">

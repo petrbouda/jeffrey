@@ -34,6 +34,7 @@ const headings = [
   { id: 'attribution', text: 'How an Event Finds Its Span', level: 2 },
   { id: 'payload', text: 'The Event Payload Survives', level: 2 },
   { id: 'reading', text: 'Reading Promoted Spans in the Waterfall', level: 2 },
+  { id: 'class-loading', text: 'Class-loading reads', level: 3 },
   { id: 'drill-down', text: 'Everything Else: Events in Span', level: 2 },
   { id: 'thresholds', text: 'Recording Thresholds', level: 2 }
 ];

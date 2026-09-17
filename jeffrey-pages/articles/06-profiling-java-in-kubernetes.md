@@ -13,7 +13,7 @@ Jeffrey splits profiling into distinct responsibilities:
 ![Jeffrey Local + Server architecture](images/release-notes/server-recording/01-architecture.png)
 *Split architecture: Server collects in the cloud, Local analyzes on your machine.*
 
-**Jeffrey Provisioner** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and registers the application instance with Jeffrey Hub. It runs once before your Java application starts.
+**Jeffrey Provisioner** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and announces the new instance by writing a pointer into `.pending/` on that storage for Jeffrey Hub to pick up. It runs once before your Java application starts.
 
 **Jeffrey Hub** runs as a service in your Kubernetes cluster. It watches shared storage for new JFR files and metadata, tracks recording sessions, manages instance lifecycles, and exposes a gRPC API for remote access. It collects — it doesn't analyze.
 
@@ -78,7 +78,7 @@ In Kubernetes, this typically means a shared PersistentVolumeClaim (PVC) or NFS 
 
 Jeffrey Hub exposes two ports:
 
-- **HTTP (8081)** — A minimal web UI for browsing workspaces and sessions directly
+- **HTTP (8080)** — A minimal web UI for browsing workspaces and sessions directly
 - **gRPC (9090)** — The primary API used by Jeffrey Local to connect remotely
 
 The Server watches the shared storage directory structure and automatically discovers:

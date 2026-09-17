@@ -107,7 +107,7 @@ onMounted(() => {
                 <td><code>profilerPath</code></td>
                 <td><code>JEFFREY_PROFILER_PATH</code></td>
                 <td>baked: <code>/opt/jeffrey/libasyncProfiler.so</code>, or <code>libasyncProfiler-&#123;arch&#125;.so</code> on a multi-platform build</td>
-                <td>Explicit async-profiler path. As above &mdash; bring your own and no second copy is shipped.</td>
+                <td>Explicit async-profiler path. Setting it declares that the image already provides the library, so the extension neither resolves nor bakes its own copy &mdash; see <a href="#custom-async-profiler">Using Your Own async-profiler</a>.</td>
               </tr>
               <tr>
                 <td><code>payloadVersion</code></td>
@@ -120,6 +120,12 @@ onMounted(() => {
                 <td><code>JEFFREY_PROVISIONER_KIND</code></td>
                 <td><code>native</code></td>
                 <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM &mdash; isolated from <code>JDK_JAVA_OPTIONS</code>, <code>JAVA_TOOL_OPTIONS</code> and <code>_JAVA_OPTIONS</code>, see <router-link to="/docs/jib#jar-provisioner-environment">the JVM environment</router-link>. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index. This is the only choice you have over the provisioner: its path is not configurable, because the layout it writes is the protocol Jeffrey Hub reads.</td>
+              </tr>
+              <tr>
+                <td><code>projectName</code></td>
+                <td><code>JEFFREY_PROJECT_NAME</code></td>
+                <td>the Maven artifactId or Gradle project name</td>
+                <td>The Jeffrey project name. It is a stable identity: it keys the project directory on the shared volume and links every session to the same project on Jeffrey Hub, so pin it here if you ever rename the module. Only the label is safe to change freely.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>
@@ -206,9 +212,13 @@ onMounted(() => {
         <h2 id="build-time-vs-runtime">Build-time vs Runtime</h2>
         <p>There are two layers of control. <code>enabled</code> is a <strong>build-time</strong> gate
           evaluated by the extension when the image is assembled &mdash; setting it to <code>false</code>
-          produces a plain JIB image with no wrapper at all. The remaining properties become image-level
-          <code>ENV</code> defaults that the entrypoint wrapper reads at container start, and every one of
-          them can be overridden at runtime by a pod-level environment variable of the same name.</p>
+          produces a plain JIB image with no wrapper at all. <code>payloadVersion</code> and
+          <code>provisionerSource</code> are build-time too: they decide what is baked, and
+          <code>provisionerSource</code> leaves its trace in the image only as the
+          <code>JEFFREY_PROVISIONER_KIND</code> the extension writes. The remaining properties become
+          image-level <code>ENV</code> defaults that the entrypoint wrapper reads at container start,
+          and each of those can be overridden at runtime by a pod-level environment variable of the
+          same name.</p>
 
         <DocsCallout type="info">
           <strong>Runtime kill switch.</strong> Independently of the build-time <code>enabled</code> gate,

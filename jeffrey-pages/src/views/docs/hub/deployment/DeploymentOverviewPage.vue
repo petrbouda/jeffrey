@@ -184,7 +184,7 @@ onMounted(() => {
           <div class="step-number">1</div>
           <div class="step-content">
             <h4><i class="bi bi-box-seam"></i> Build the image</h4>
-            <p>The application's <code>pom.xml</code> wires the <strong>Jeffrey JIB extension</strong> into the <code>jib-maven-plugin</code>. <code>mvn jib:dockerBuild</code> produces an image whose entrypoint is wrapped to invoke <code>provisioner init</code> at container start. No profiler binaries get baked in. <router-link to="/docs/hub/deployment/jeffrey-jib">→ Jeffrey JIB Extension</router-link></p>
+            <p>The application's <code>pom.xml</code> wires the <strong>Jeffrey JIB extension</strong> into the <code>jib-maven-plugin</code>. <code>mvn jib:dockerBuild</code> produces an image whose entrypoint is wrapped to invoke <code>provisioner init</code> at container start. The provisioner and async-profiler are installed into the image under <code>/opt/jeffrey</code> in their own layer. <router-link to="/docs/hub/deployment/jeffrey-jib">→ Jeffrey JIB Extension</router-link></p>
           </div>
         </div>
         <div class="lifecycle-step">

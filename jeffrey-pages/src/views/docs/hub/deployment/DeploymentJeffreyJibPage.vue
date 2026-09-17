@@ -31,7 +31,7 @@ const headings = [
   { id: 'parent-pom', text: 'Parent pom.xml', level: 2 },
   { id: 'module-pom', text: 'Per-Module Override', level: 2 },
   { id: 'build-commands', text: 'Build Commands', level: 2 },
-  { id: 'no-baked-binaries', text: 'A Self-Contained Image', level: 2 }
+  { id: 'self-contained-image', text: 'A Self-Contained Image', level: 2 }
 ];
 
 onMounted(() => {
@@ -72,7 +72,7 @@ const parentPom = `<plugin>
 const properties = `<properties>
     <springboot.version>4.0.6</springboot.version>
     <jib.version>3.5.1</jib.version>
-    <jeffrey-jib.version>0.1.0</jeffrey-jib.version>
+    <jeffrey-jib.version>0.14.0</jeffrey-jib.version>
 </properties>`;
 
 const moduleServer = `<plugin>
@@ -181,8 +181,9 @@ const moduleClient = `<plugin>
 
       <DocsCallout type="info">
         <strong>Coordinates.</strong> The extension lives at
-        <code>cafe.jeffrey-analyst:jeffrey-jib-maven</code>, currently version
-        <code>0.0.1-b3</code>. JIB itself stays at the standard
+        <code>cafe.jeffrey-analyst:jeffrey-jib-maven</code>, pinned above as
+        <code>jeffrey-jib.version</code> and reused as <code>payloadVersion</code> so the image
+        carries the payloads of the same release. JIB itself stays at the standard
         <code>com.google.cloud.tools:jib-maven-plugin:3.5.1</code> — no fork, no patched
         plugin.
       </DocsCallout>
@@ -249,7 +250,7 @@ const moduleClient = `<plugin>
         <code>JIB_REGISTRY_USER</code> / <code>JIB_REGISTRY_PASS</code> env vars.
       </p>
 
-      <h2 id="no-baked-binaries">A Self-Contained Image</h2>
+      <h2 id="self-contained-image">A Self-Contained Image</h2>
       <p>
         The extension bakes everything the image needs to profile itself: the entrypoint wrapper at
         <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner and async-profiler under
