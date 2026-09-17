@@ -2,6 +2,11 @@ name: Build Native Provisioner
 
 on:
   workflow_call:
+    inputs:
+      version:
+        description: 'Release version without the leading v (e.g. 0.13.22). Resolved by the caller from the tag or from the manually entered version.'
+        required: true
+        type: string
 
 jobs:
   build-provisioner-native:
@@ -23,13 +28,9 @@ jobs:
         java-version: '25'
         distribution: 'graalvm-community'
 
-    - name: Extract version
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
     - name: Build native provisioner
       env:
-        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+        JEFFREY_TAG_VERSION: ${{ inputs.version }}
       run: mvn -e -pl build/build-provisioner-native -am -Pnative package -DskipTests
 
     - name: Upload native provisioner
