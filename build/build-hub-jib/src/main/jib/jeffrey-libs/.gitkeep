@@ -1,5 +1,0 @@
-# Placeholder: keeps the directory tracked in git so Jib's extraDirectories has
-# a valid source path locally. CI stages the real artifacts here before jib:build:
-#   provisioner.jar, jeffrey-agent.jar,
-#   provisioner-amd64, provisioner-arm64,
-#   libasyncProfiler-amd64.so, libasyncProfiler-arm64.so

@@ -64,8 +64,16 @@
         <maven.compiler.release>21</maven.compiler.release>
         <jib.extension.version>0.4.0</jib.extension.version>
         <maven-core.version>3.9.9</maven-core.version>
+        <maven-resolver.version>1.9.18</maven-resolver.version>
         <junit.version>5.14.3</junit.version>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+        <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
+        <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <!-- The async-profiler release whose libasyncProfiler.so the payload modules bundle.
+             Pinned on purpose: this library is loaded into every profiled JVM, so which version
+             ships is a decision, not whatever happened to be latest on the day of the build. -->
+        <async-profiler.version>4.1</async-profiler.version>
     </properties>
 
     <dependencyManagement>
@@ -89,6 +97,11 @@
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-core</artifactId>
                 <version>${maven-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven.resolver</groupId>
+                <artifactId>maven-resolver-api</artifactId>
+                <version>${maven-resolver.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
@@ -115,6 +128,19 @@
     </build>
 
     <profiles>
+        <!--
+          The payload modules package binaries that CI stages from a published Jeffrey release and
+          from async-profiler. They are built only when those files are present, so an ordinary
+          `mvn test` of the extension itself needs no downloads.
+        -->
+        <profile>
+            <id>payload</id>
+            <modules>
+                <module>jeffrey-jib-payload-native</module>
+                <module>jeffrey-jib-payload-jar</module>
+                <module>jeffrey-jib-payload-profiler</module>
+            </modules>
+        </profile>
         <profile>
             <id>release</id>
             <!--

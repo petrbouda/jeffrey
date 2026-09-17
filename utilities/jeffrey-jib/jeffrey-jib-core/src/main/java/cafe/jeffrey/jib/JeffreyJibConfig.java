@@ -23,9 +23,14 @@ package cafe.jeffrey.jib;
  * Gradle plugin DSL via bean-style setters (JIB's reflection-based config binding requires
  * JavaBean accessors, which is why this is a plain class rather than a record).
  *
- * <p>All string fields are optional. Null means "do not set an image-level ENV default for
- * this key" — the wrapper script's hardcoded fallback applies at container start, or the
+ * <p>Every string field is optional except {@code payloadVersion}, which has no sensible default
+ * and is required whenever a payload is baked. Null means "do not set an image-level ENV default
+ * for this key" — the wrapper script's hardcoded fallback applies at container start, or the
  * operator provides the value via a pod-level env var.
+ *
+ * <p>{@code provisionerPath} and {@code profilerPath} carry a second meaning: setting one declares
+ * that the image already provides that binary, so the extension neither resolves nor bakes the
+ * matching payload.
  */
 public class JeffreyJibConfig {
 
@@ -44,6 +49,8 @@ public class JeffreyJibConfig {
     public static final String ARG_FILE = "argFile";
     public static final String PROFILER_PATH = "profilerPath";
     public static final String PROJECT_NAME = "projectName";
+    public static final String PROVISIONER_SOURCE = "provisionerSource";
+    public static final String PAYLOAD_VERSION = "payloadVersion";
 
     private boolean enabled = true;
     private String jeffreyHome;
@@ -53,6 +60,8 @@ public class JeffreyJibConfig {
     private String argFile;
     private String profilerPath;
     private String projectName;
+    private String provisionerSource;
+    private String payloadVersion;
 
     public boolean isEnabled() {
         return enabled;
@@ -116,5 +125,31 @@ public class JeffreyJibConfig {
 
     public void setProjectName(String projectName) {
         this.projectName = projectName;
+    }
+
+    public String getProvisionerSource() {
+        return provisionerSource;
+    }
+
+    /**
+     * Which provisioner build to bake: {@code native} (default) or {@code jar}. See
+     * {@code cafe.jeffrey.jib.payload.ProvisionerSource} for the trade-off.
+     */
+    public void setProvisionerSource(String provisionerSource) {
+        this.provisionerSource = provisionerSource;
+    }
+
+    public String getPayloadVersion() {
+        return payloadVersion;
+    }
+
+    /**
+     * The version of the payload artifacts to fetch, which tracks the Jeffrey release the
+     * provisioner binaries were built from. Mandatory: there is no sensible default, because this
+     * extension versions independently of the Jeffrey release whose binaries it installs, and
+     * guessing would pin an image to a provisioner nobody chose.
+     */
+    public void setPayloadVersion(String payloadVersion) {
+        this.payloadVersion = payloadVersion;
     }
 }

@@ -31,7 +31,6 @@ const headings = [
   { id: 'pvc-contract', text: 'PVC Contract', level: 2 },
   { id: 'pvc-template', text: 'PVC Template', level: 2 },
   { id: 'hostpath-fallback', text: 'OrbStack / minikube Fallback', level: 2 },
-  { id: 'copy-libs', text: 'copy-libs Properties', level: 2 },
   { id: 'on-disk-layout', text: 'On-Disk Layout', level: 2 }
 ];
 
@@ -87,16 +86,16 @@ spec:
   hostPath:
     path: {{ .Values.sharedVolume.hostPath.path | quote }}                # /tmp/jeffrey-data`;
 
-const copyLibsProperties = `# helm/jeffrey-hub/application.properties
-jeffrey.hub.copy-libs.enabled=true
-jeffrey.hub.home.dir=\${JEFFREY_HOME}`;
-
 const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME (from sharedVolume.mountPath)
-└── libs/
-    └── current/                             # symlink → versioned bundle
-        ├── provisioner-amd64                # per-arch provisioner binary
-        ├── provisioner-aarch64
-        └── libasyncProfiler.so              # async-profiler shared library`;
+├── jeffrey-data.db                          # Jeffrey Hub's own database
+├── temp/
+└── workspaces/
+    └── <workspace-ref-id>/
+        ├── .pending/                        # provisioner-declared work for the Hub
+        ├── .settings/                       # Hub-pushed profiler settings
+        └── <project-name>/
+            └── <instance-id>/
+                └── <session-id>/            # the JFR recordings land here`;
 </script>
 
 <template>
@@ -109,24 +108,23 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
     <div class="docs-content">
       <p>
         Jeffrey Hub and the monitored applications coordinate through a single
-        <strong>ReadWriteMany</strong> PersistentVolumeClaim. Jeffrey Hub writes the
-        provisioner bundle into <code>${JEFFREY_HOME}/libs/current/</code>; every monitored
-        pod mounts the same PVC and reads the bundle when its
-        <router-link to="/docs/hub/deployment/jeffrey-jib">JIB-wrapped entrypoint</router-link>
-        runs <code>provisioner init</code>.
+        <strong>ReadWriteMany</strong> PersistentVolumeClaim. Every monitored pod writes its
+        recordings into <code>${JEFFREY_HOME}/workspaces/</code>; Jeffrey Hub mounts the same PVC
+        and reconciles what it finds there.
       </p>
 
       <h2 id="why-shared">Why a Shared Volume?</h2>
       <p>
-        The application image deliberately contains <strong>no</strong> provisioner binary or
-        profiler library — those are owned by Jeffrey Hub and delivered at
-        runtime. Upgrading Jeffrey Hub upgrades the provisioner / profiler for every
-        monitored pod in the namespace; no rebuild of your application image is required.
+        It is the recording handoff, and nothing else. The provisioner never talks to Jeffrey Hub
+        directly — it writes files, and the Hub reads them. Binaries do not travel this way: each
+        application image carries its own provisioner and async-profiler, baked in at build time by
+        the <router-link to="/docs/hub/deployment/jeffrey-jib">JIB extension</router-link>, so a pod
+        that starts before Jeffrey Hub still profiles from its first second.
       </p>
 
       <DocsCallout type="info">
-        <strong><code>ReadWriteMany</code> is mandatory.</strong> Multiple pods read the
-        bundle concurrently while Jeffrey Hub writes new versions to it. RWO won't work
+        <strong><code>ReadWriteMany</code> is mandatory.</strong> Every monitored pod writes to the
+        volume while Jeffrey Hub reads and compresses what lands there. RWO won't work
         beyond a single application replica on the same node. In production: NFS, EFS,
         Azure Files, or any other RWX-capable <code>StorageClass</code>. In dev: a
         <code>hostPath</code> PV (see below). File sizes are read off the directory listing,
@@ -252,45 +250,17 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         directory yourself before re-installing on dev clusters.
       </DocsCallout>
 
-      <h2 id="copy-libs">copy-libs Properties</h2>
-      <p>
-        Jeffrey Hub's <code>copy-libs</code> feature publishes the provisioner bundle into the
-        shared volume after the JVM has started. Activate it with two lines in
-        <a href="https://github.com/petrbouda/jeffrey-testapp/blob/main/helm/jeffrey-hub/application.properties" target="_blank" rel="noopener">
-          <code>helm/jeffrey-hub/application.properties</code></a>:
-      </p>
+      <p>The chart's Deployment injects <code>JEFFREY_HOME</code> from
+        <code>sharedVolume.mountPath</code>, so Jeffrey Hub and the applications agree on the
+        path without either side hard-coding it:</p>
 
       <DocsCodeBlock
         language="properties"
-        :code="copyLibsProperties"
+        code="jeffrey.hub.home.dir=${JEFFREY_HOME}"
       />
-
-      <p>The chart's Deployment injects <code>JEFFREY_HOME</code> from
-        <code>sharedVolume.mountPath</code>:</p>
-
-      <DocsCodeBlock
-        language="yaml"
-        code="env:
-  - name: SPRING_CONFIG_LOCATION
-    value: /jeffrey/application.properties
-  - name: JEFFREY_HOME
-    value: {{ .Values.sharedVolume.mountPath | quote }}     # /mnt/jeffrey
-  - name: JEFFREY_ENABLED
-    value: {{ .Values.selfProfile.enabled | quote }}        # true"
-      />
-
-      <p>Source-vs-target conventions (from the in-image <code>jeffrey-libs/</code> bundle
-        to the shared volume), with all defaults documented on the
-        <router-link to="/docs/hub/configuration">Configuration</router-link> page:</p>
-
-      <ul>
-        <li><code>jeffrey.copy-libs.source</code> — defaults to <code>/jeffrey-libs</code>; the in-image bundle.</li>
-        <li><code>jeffrey.copy-libs.target</code> — defaults to <code>${jeffrey.home.dir}/libs</code>; on the shared volume.</li>
-        <li><code>jeffrey.copy-libs.max-kept-versions</code> — defaults to <code>10</code>; older bundles are pruned automatically.</li>
-      </ul>
 
       <h2 id="on-disk-layout">On-Disk Layout</h2>
-      <p>What ends up on the shared volume after Jeffrey Hub has started successfully:</p>
+      <p>What the two sides write to the shared volume:</p>
 
       <DocsCodeBlock
         language="text"
@@ -298,10 +268,10 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
       />
 
       <p>
-        The wrapped entrypoint resolves <code>provisioner-&lt;arch&gt;</code> against
-        <code>uname -m</code> at container start; the testapp Helm charts assume
-        <code>amd64</code> on x86_64 nodes and <code>aarch64</code> on ARM64 (no operator
-        intervention needed).
+        The layout is a contract between the provisioner that writes it and the Hub that reads it;
+        both resolve every name from a single shared class, so neither side can drift. See
+        <router-link to="/docs/provisioner/directory-structure">Directory Structure</router-link>
+        for what each marker file carries.
       </p>
     </div>
 

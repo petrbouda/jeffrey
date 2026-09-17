@@ -54,9 +54,9 @@ onMounted(() => {
           The pages in this section walk through the
           <a href="https://github.com/petrbouda/jeffrey-testapp" target="_blank" rel="noopener">jeffrey-testapp</a>
           repository — a two-module Spring Boot 4 setup deployed via three Helm charts. It
-          shows the full collection pipeline: the Jeffrey JIB extension at build time, the
-          shared-volume <code>copy-libs</code> pattern at deploy time, and the provisioner-driven init
-          flow at container start. Every YAML, <code>pom.xml</code>, and <code>jeffrey-base.conf</code>
+          shows the full collection pipeline: the Jeffrey JIB extension baking the profiling
+          binaries at build time, the shared volume carrying recordings at deploy time, and the
+          provisioner-driven init flow at container start. Every YAML, <code>pom.xml</code>, and <code>jeffrey-base.conf</code>
           snippet on the following pages is taken verbatim from that repo.
         </p>
         <div class="hero-actions">
@@ -82,7 +82,7 @@ onMounted(() => {
           <div class="release-icon"><i class="bi bi-cloud"></i></div>
           <div class="release-body">
             <h3>jeffrey-hub</h3>
-            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code>; <code>copy-libs</code> publishes the provisioner bundle and async-profiler library into the shared volume for the testapp pods to consume. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
+            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code> and reconciles the recordings the testapp pods write into it. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
           </div>
         </div>
         <div class="release-tile tile-direct">
@@ -119,10 +119,10 @@ onMounted(() => {
       <h2 id="topology">Topology</h2>
       <p>
         The diagram below shows the runtime topology — one PVC, four pods, one direction of
-        data flow per arrow. <code>jeffrey-hub</code> publishes the provisioner bundle into
-        <code>/mnt/jeffrey/libs/current/</code>; the three monitored pods read it back when
-        their JIB-wrapped entrypoints run <code>provisioner init</code>; profile data flows
-        back to <code>jeffrey-hub</code> over gRPC <code>9090</code>.
+        data flow per arrow. The three monitored pods profile themselves with the binaries baked
+        into their images and write recordings into <code>/mnt/jeffrey/workspaces/</code>;
+        <code>jeffrey-hub</code> reads them from the same PVC, and profile data also flows back
+        to it over gRPC <code>9090</code>.
       </p>
 
       <div class="cluster-diagram">
@@ -132,23 +132,23 @@ onMounted(() => {
           <div class="cluster-pod pod-server">
             <div class="pod-header"><i class="bi bi-cloud"></i><span>jeffrey-hub</span></div>
             <div class="pod-meta">HTTP 8080 · gRPC 9090</div>
-            <div class="pod-tag">copy-libs writer</div>
+            <div class="pod-tag">recording reader</div>
           </div>
         </div>
 
         <div class="diagram-arrow-block">
           <div class="diagram-arrow up"><i class="bi bi-arrow-up"></i><small>gRPC ingestion</small></div>
-          <div class="diagram-arrow down"><i class="bi bi-arrow-down"></i><small>copy-libs writes</small></div>
+          <div class="diagram-arrow down"><i class="bi bi-arrow-down"></i><small>reconciles recordings</small></div>
         </div>
 
         <div class="cluster-pvc">
           <i class="bi bi-hdd-stack"></i>
           <span>jeffrey-pvc</span>
-          <small>RWX · /mnt/jeffrey · libs/current/{provisioner, agent, libasyncProfiler}</small>
+          <small>RWX · /mnt/jeffrey · workspaces/&lt;workspace&gt;/&lt;project&gt;/&lt;instance&gt;/&lt;session&gt;</small>
         </div>
 
         <div class="diagram-arrow-block">
-          <div class="diagram-arrow up"><i class="bi bi-arrow-up"></i><small>read at startup</small></div>
+          <div class="diagram-arrow up"><i class="bi bi-arrow-up"></i><small>writes recordings</small></div>
         </div>
 
         <div class="diagram-row bottom-row">
@@ -191,7 +191,7 @@ onMounted(() => {
           <div class="step-number">2</div>
           <div class="step-content">
             <h4><i class="bi bi-hdd-stack"></i> Provision the shared volume</h4>
-            <p><code>jeffrey-hub</code>'s Helm chart creates a <code>ReadWriteMany</code> PVC; <code>copy-libs</code> populates <code>libs/current/</code> with the per-arch provisioner binary and async-profiler library. <router-link to="/docs/hub/deployment/shared-volume">→ Shared Volume</router-link></p>
+            <p><code>jeffrey-hub</code>'s Helm chart creates a <code>ReadWriteMany</code> PVC. It carries recordings only — the profiling binaries are already in each application image. <router-link to="/docs/hub/deployment/shared-volume">→ Shared Volume</router-link></p>
           </div>
         </div>
         <div class="lifecycle-step">
@@ -205,7 +205,7 @@ onMounted(() => {
           <div class="step-number">4</div>
           <div class="step-content">
             <h4><i class="bi bi-file-earmark-code"></i> Deploy with Helm</h4>
-            <p>Three Helm charts (<code>jeffrey-hub</code> + two flavours of the testapp) installed with vanilla <code>helm upgrade --install</code>. An init container on the testapp pods polls <code>jeffrey-hub</code>'s readiness probe so <code>copy-libs</code> always finishes before the JIB entrypoint looks for the provisioner. <router-link to="/docs/hub/deployment/helm-chart">→ Helm Chart</router-link></p>
+            <p>Three Helm charts (<code>jeffrey-hub</code> + two flavours of the testapp) installed with vanilla <code>helm upgrade --install</code>. Install order does not matter: each application image carries its own provisioner, so a pod that starts first profiles from its first second. <router-link to="/docs/hub/deployment/helm-chart">→ Helm Chart</router-link></p>
           </div>
         </div>
       </div>
@@ -231,7 +231,7 @@ onMounted(() => {
         <router-link class="next-card" to="/docs/hub/deployment/shared-volume">
           <div class="next-icon"><i class="bi bi-hdd-stack"></i></div>
           <h4>Shared Volume</h4>
-          <p>The <code>copy-libs</code> pattern, PVC contract, and OrbStack/minikube fallback.</p>
+          <p>The recording handoff, PVC contract, and OrbStack/minikube fallback.</p>
         </router-link>
         <router-link class="next-card" to="/docs/hub/deployment/jeffrey-provisioner">
           <div class="next-icon"><i class="bi bi-terminal"></i></div>

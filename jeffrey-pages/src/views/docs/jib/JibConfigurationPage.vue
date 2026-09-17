@@ -65,7 +65,7 @@ onMounted(() => {
                 <td><code>jeffreyHome</code></td>
                 <td><code>JEFFREY_HOME</code></td>
                 <td>&mdash; <span class="prop-type">(must be set)</span></td>
-                <td>Shared-volume root. Wrapper resolves the provisioner at <code>&lt;home&gt;/libs/current/provisioner-&lt;arch&gt;</code>. If neither this nor <code>provisionerPath</code> is set, the wrapper warns and falls through &mdash; the container still starts, just without profiling.</td>
+                <td>Root of the shared volume the application writes recordings to, under <code>&lt;home&gt;/workspaces/</code>. The provisioner also accepts <code>JEFFREY_WORKSPACES_DIR</code> as an alternative that names the recordings directory directly.</td>
               </tr>
               <tr>
                 <td><code>baseConfig</code></td>
@@ -82,8 +82,26 @@ onMounted(() => {
               <tr>
                 <td><code>provisionerPath</code></td>
                 <td><code>JEFFREY_PROVISIONER_PATH</code></td>
-                <td>derived from <code>jeffreyHome</code></td>
-                <td>Explicit provisioner binary path. Bypasses the <code>&lt;home&gt;/libs/current/*</code> resolution when you bundle the provisioner into your image yourself.</td>
+                <td>baked: <code>/opt/jeffrey/provisioner</code></td>
+                <td>Explicit provisioner path. Setting it means the image already carries one, so the extension skips resolving and baking that payload entirely.</td>
+              </tr>
+              <tr>
+                <td><code>profilerPath</code></td>
+                <td><code>JEFFREY_PROFILER_PATH</code></td>
+                <td>baked: <code>/opt/jeffrey/libasyncProfiler.so</code></td>
+                <td>Explicit async-profiler path. As above &mdash; bring your own and no second copy is shipped.</td>
+              </tr>
+              <tr>
+                <td><code>payloadVersion</code></td>
+                <td>&mdash;</td>
+                <td>&mdash; <span class="prop-type">(required)</span></td>
+                <td>The Jeffrey release whose provisioner and async-profiler the image carries. No default: jeffrey-jib releases on its own cadence, so a guess would silently pin your image to a provisioner nobody chose. Not required when both paths above are set.</td>
+              </tr>
+              <tr>
+                <td><code>provisionerSource</code></td>
+                <td><code>JEFFREY_PROVISIONER_KIND</code></td>
+                <td><code>native</code></td>
+                <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>

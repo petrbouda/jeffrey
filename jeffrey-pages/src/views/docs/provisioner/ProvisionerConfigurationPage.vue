@@ -58,7 +58,6 @@ const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned l
 - name: JEFFREY_ADDITIONAL_JVM_OPTIONS
   value: >-
     -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
-    -Djeffrey.hub.copy-libs.enabled=true
     -Djeffrey.hub.home.dir=<<ENV:JEFFREY_HOME>>
     -Dlogging.level.cafe.jeffrey=TRACE
     -Dlogging.threshold.console=INFO
@@ -239,7 +238,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>profiler-path</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROFILER_PATH</code></td>
-              <td>Path to <code>libasyncProfiler.so</code>. When unset, auto-resolved from <code>libs/current/libasyncProfiler-&#123;arch&#125;.so</code> under <code>jeffrey-home</code> — the <code>&#123;arch&#125;</code> suffix is detected from the JVM's <code>os.arch</code> (<code>amd64</code> or <code>arm64</code>).</td>
+              <td>Path to <code>libasyncProfiler.so</code>. Normally baked into the image as <code>JEFFREY_PROFILER_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Set it explicitly only when you supply your own async-profiler; nothing is discovered on disk, and when no path resolves the application simply starts without profiling.</td>
             </tr>
             <tr>
               <td><code>project.instance-name</code></td>

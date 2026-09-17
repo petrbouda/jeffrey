@@ -83,19 +83,20 @@ onMounted(() => {
           </div>
         </div>
 
-        <p>At container start, the wrapper runs <code>provisioner init</code> &mdash; resolved from
-          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on a shared volume populated by
-          Jeffrey Hub's <code>copy-libs</code> feature &mdash; and then <code>exec</code>s the original JIB
-          command with the provisioner-produced argfile inserted right after the <code>java</code> binary.
-          If the shared-volume root is not configured at runtime (neither <code>JEFFREY_HOME</code> nor
-          <code>JEFFREY_PROVISIONER_PATH</code> is set), the wrapper logs a warning and skips init entirely &mdash;
-          see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
+        <p>At container start, the wrapper runs <code>provisioner init</code> from
+          <code>/opt/jeffrey</code> &mdash; where the extension installed it at build time &mdash; and then
+          <code>exec</code>s the original JIB command with the provisioner-produced argfile inserted right
+          after the <code>java</code> binary. Nothing is downloaded, copied or waited for at container
+          start. If no provisioner is present (neither baked nor named by
+          <code>JEFFREY_PROVISIONER_PATH</code>), the wrapper logs one line and starts the application
+          without profiling &mdash; see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
 
         <DocsCallout type="info">
-          <strong>Why a shared volume?</strong> The extension does <strong>not</strong> bake Jeffrey
-          binaries into your image. It relies on a Jeffrey Hub running elsewhere in the cluster
-          with <code>copy-libs.enabled=true</code> to populate the shared <code>jeffrey-home</code>
-          volume that your app pods also mount. Keeps the extension JAR tiny and versioning automatic.
+          <strong>The image is self-contained.</strong> The extension fetches the provisioner and
+          async-profiler through your build's own dependency resolution and installs them under
+          <code>/opt/jeffrey</code> in their own layer. The shared volume is still needed &mdash; but only
+          for the recordings your application writes to it, never to find its own tooling. Set
+          <code>payloadVersion</code> to the Jeffrey release whose binaries the image should carry.
         </DocsCallout>
 
         <h2 id="runtime-kill-switch">Runtime Kill Switch</h2>
@@ -132,10 +133,10 @@ onMounted(() => {
           </div>
           <div class="feature-item feature-item-warning">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <div><strong>Requires Jeffrey Hub elsewhere in the cluster</strong> with
-              <code>copy-libs.enabled=true</code>, writing to the shared <code>jeffrey-home</code>
-              volume your app pods mount. Without it, the wrapper cannot locate
-              <code>provisioner-&lt;arch&gt;</code> at runtime.</div>
+            <div><strong>Resolves the payload artifacts at build time</strong> from Maven Central, or
+              whatever repositories your build is configured with. An air-gapped build either mirrors the
+              three <code>jeffrey-jib-payload-*</code> artifacts or sets <code>provisionerPath</code> and
+              <code>profilerPath</code> at binaries the base image already provides.</div>
           </div>
         </div>
       </div>

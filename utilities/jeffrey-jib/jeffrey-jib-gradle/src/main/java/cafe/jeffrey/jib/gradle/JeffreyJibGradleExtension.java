@@ -95,28 +95,50 @@ public class JeffreyJibGradleExtension implements JibGradlePluginExtension<Jeffr
         // JEFFREY_PROJECT_NAME image ENV, it makes the image self-identifying so the
         // container needs no config file and no per-pod env for the common case.
         // A pod-level JEFFREY_PROJECT_NAME still overrides the baked default.
+        Object project = resolveGradleProject(gradleData);
         if (effective.getProjectName() == null) {
-            resolveGradleProjectName(gradleData, logger).ifPresent(effective::setProjectName);
+            resolveGradleProjectName(project, logger).ifPresent(effective::setProjectName);
         }
 
-        return new JeffreyBuildPlanExtender(getClass()).extend(buildPlan, effective, logger);
+        return new JeffreyBuildPlanExtender(getClass(), new GradleDetachedPayloadResolver(project))
+                .extend(buildPlan, effective, logger);
     }
 
     /**
-     * Reads {@code gradleData.getProject().getName()} reflectively. This module is built with
-     * Maven, where the Gradle API ({@code org.gradle.api.Project}) is not available as a compile
-     * dependency — at runtime inside a Gradle build the type is always present. Any reflective
-     * failure only skips the default; an explicit {@code projectName} property always works.
+     * Reads {@code gradleData.getProject()} reflectively. This module is built with Maven, where
+     * the Gradle API ({@code org.gradle.api.Project}) is not available as a compile dependency — at
+     * runtime inside a Gradle build the type is always present.
+     *
+     * <p>Unlike the project name, which merely supplies a default, the project is what the payload
+     * resolver resolves through. Its absence is therefore fatal rather than a warning.
      */
-    private static Optional<String> resolveGradleProjectName(GradleData gradleData, ExtensionLogger logger) {
+    private static Object resolveGradleProject(GradleData gradleData) throws JibPluginExtensionException {
         if (gradleData == null) {
-            return Optional.empty();
+            throw new JibPluginExtensionException(
+                    JeffreyJibGradleExtension.class,
+                    "jeffrey-jib: no Gradle project available, so the Jeffrey payloads cannot be resolved.");
         }
         try {
             Object project = GradleData.class.getMethod("getProject").invoke(gradleData);
             if (project == null) {
-                return Optional.empty();
+                throw new JibPluginExtensionException(
+                        JeffreyJibGradleExtension.class,
+                        "jeffrey-jib: the Gradle project is null, so the Jeffrey payloads cannot be resolved.");
             }
+            return project;
+        } catch (ReflectiveOperationException e) {
+            throw new JibPluginExtensionException(
+                    JeffreyJibGradleExtension.class,
+                    "jeffrey-jib: could not read the Gradle project from JIB's extension data.", e);
+        }
+    }
+
+    /**
+     * Reads {@code project.getName()} reflectively, for the same reason as above. Any failure only
+     * skips the default; an explicit {@code projectName} property always works.
+     */
+    private static Optional<String> resolveGradleProjectName(Object project, ExtensionLogger logger) {
+        try {
             Object name = project.getClass().getMethod("getName").invoke(project);
             return Optional.ofNullable(name).map(Object::toString);
         } catch (ReflectiveOperationException e) {

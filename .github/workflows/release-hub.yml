@@ -16,50 +16,6 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-    # Stage the bundled /jeffrey-libs/ artifacts into Jib's extraDirectories source.
-    # Jib's convention: build/build-hub-jib/src/main/jib/<path> → /<path> in the image.
-    - name: Download provisioner.jar
-      uses: actions/download-artifact@v8
-      with:
-        name: provisioner-jar
-        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs
-
-    - name: Download native provisioner (amd64)
-      uses: actions/download-artifact@v8
-      with:
-        name: provisioner-amd64
-        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-dl-amd64
-
-    - name: Download native provisioner (arm64)
-      uses: actions/download-artifact@v8
-      with:
-        name: provisioner-arm64
-        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-dl-arm64
-
-    - name: Download async-profiler (linux/amd64 + linux/arm64)
-      run: |
-        AP_VERSION=$(curl -s https://api.github.com/repos/async-profiler/async-profiler/releases/latest \
-          | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
-        for AP_ARCH_PAIR in "x64:amd64" "arm64:arm64"; do
-          AP_ARCH="${AP_ARCH_PAIR%%:*}"
-          OUT_ARCH="${AP_ARCH_PAIR##*:}"
-          curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
-            | tar -xz -C /tmp
-          cp /tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}/lib/libasyncProfiler.so \
-             ./build/build-hub-jib/src/main/jib/jeffrey-libs/libasyncProfiler-${OUT_ARCH}.so
-          rm -rf /tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}
-        done
-
-    - name: Stage native provisioner binaries
-      run: |
-        mv ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-dl-amd64/provisioner \
-           ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-amd64
-        rm -rf ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-dl-amd64
-        mv ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-dl-arm64/provisioner \
-           ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-arm64
-        rm -rf ./build/build-hub-jib/src/main/jib/jeffrey-libs/provisioner-dl-arm64
-        ls -la ./build/build-hub-jib/src/main/jib/jeffrey-libs/
-
     # Two-step: jib: prefix goal can only be invoked at the project level, so we install
     # the reactor up to build-hub-jib first, then run jib:build scoped to that module.
     - name: Install reactor up to build-hub-jib

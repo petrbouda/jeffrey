@@ -20,8 +20,6 @@ package cafe.jeffrey.provisioner;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provisioner.config.ConfigLayers;
 import cafe.jeffrey.provisioner.config.ConfigPaths;
 import cafe.jeffrey.provisioner.config.EnvironmentLayer;
@@ -61,44 +59,11 @@ import java.util.regex.Pattern;
  */
 public class InitConfig {
 
-    private static final Logger LOG = LoggerFactory.getLogger(InitConfig.class);
-
-    private static final String BUNDLED_PROFILER_DIR = "libs/current";
-    private static final String BUNDLED_PROFILER_PREFIX = "libasyncProfiler-";
-    private static final String BUNDLED_PROFILER_SUFFIX = ".so";
-
     /** Names the instance after the container when nothing else does. */
     private static final String ENV_HOSTNAME = "HOSTNAME";
 
     private static final Pattern PROJECT_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]+$");
 
-
-    /**
-     * Detected runtime arch, null on unsupported platforms. Computed once at class load so
-     * the warning is logged at most once per JVM. When null, profiler auto-resolve is skipped
-     * and {@link #getProfilerPath()} returns null — the application starts without profiling
-     * rather than failing.
-     */
-    private static final String DETECTED_ARCH = detectArch();
-
-    /**
-     * Maps the JVM's os.arch to the binary suffix used for bundled native artifacts
-     * (provisioner-${arch}, libasyncProfiler-${arch}.so). Mirrors the case mapping in
-     * jeffrey-entrypoint.sh so the auto-resolved path matches what CopyLibsInitializer
-     * places in the shared volume. Returns null on unsupported platforms.
-     */
-    static String detectArch() {
-        String osArch = System.getProperty("os.arch");
-        return switch (osArch) {
-            case "x86_64", "amd64" -> "amd64";
-            case "aarch64", "arm64" -> "arm64";
-            default -> {
-                LOG.warn("Unsupported os.arch for bundled native profiler: os_arch={} - "
-                        + "Jeffrey profiling is disabled, application will start without profiling", osArch);
-                yield null;
-            }
-        };
-    }
 
     // Default configuration with all optional fields
     private static final String DEFAULTS = """
@@ -182,8 +147,8 @@ public class InitConfig {
 
     /**
      * Stacks the three sources into one configuration. Precedence is expressed by the order of the
-     * layers and nowhere else, so every setting obeys the same rule: what a file declares wins,
-     * the environment fills the rest, built-in defaults answer what is left.
+     * layers and nowhere else, so every setting obeys the same rule: what the environment declares
+     * wins, a configuration file fills the rest, built-in defaults answer what is left.
      */
     private static InitConfig merge(Config files, Function<String, String> envLookup) {
         Config defaults = ConfigFactory.parseString(DEFAULTS);
@@ -265,8 +230,10 @@ public class InitConfig {
         this.additionalJvmOptions =
                 nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.ADDITIONAL_JVM_OPTIONS)));
 
-        this.profilerPath = resolveProfilerPath(
-                placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_PATH)), jeffreyHome);
+        // Null when nothing named a profiler: the application then starts without profiling rather
+        // than failing. The path itself is baked into the image by the jeffrey-jib build extension,
+        // or named explicitly by whoever provides their own async-profiler.
+        this.profilerPath = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_PATH)));
         this.heartbeatEnabled = resolved.getBoolean(ConfigPaths.HEARTBEAT_ENABLED);
 
         this.projectName = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_NAME)));
@@ -295,24 +262,6 @@ public class InitConfig {
     }
 
     // ==================== Resolution ====================
-
-    /**
-     * The explicit path, or the profiler bundled under {@code jeffrey-home} for this machine's
-     * architecture. Null when neither is available — the application then starts without profiling
-     * rather than failing.
-     */
-    private static String resolveProfilerPath(String explicitPath, String jeffreyHome) {
-        String explicit = nullIfBlank(explicitPath);
-        if (explicit != null) {
-            return explicit;
-        }
-        if (jeffreyHome == null || DETECTED_ARCH == null) {
-            return null;
-        }
-        Path candidate = Path.of(jeffreyHome).resolve(BUNDLED_PROFILER_DIR)
-                .resolve(BUNDLED_PROFILER_PREFIX + DETECTED_ARCH + BUNDLED_PROFILER_SUFFIX);
-        return Files.exists(candidate) ? candidate.toString() : null;
-    }
 
     /**
      * Reference ID of the workspace on the target Jeffrey server. The workspace must already

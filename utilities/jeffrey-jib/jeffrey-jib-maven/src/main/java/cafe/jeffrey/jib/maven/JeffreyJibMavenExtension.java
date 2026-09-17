@@ -90,6 +90,7 @@ public class JeffreyJibMavenExtension implements JibMavenPluginExtension<Jeffrey
             effective.setProjectName(mavenData.getMavenProject().getArtifactId());
         }
 
-        return new JeffreyBuildPlanExtender(getClass()).extend(buildPlan, effective, logger);
+        return new JeffreyBuildPlanExtender(getClass(), AetherPayloadResolver.from(mavenData, getClass()))
+                .extend(buildPlan, effective, logger);
     }
 }

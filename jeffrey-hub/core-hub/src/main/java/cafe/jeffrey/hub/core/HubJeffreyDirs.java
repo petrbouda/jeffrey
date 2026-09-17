@@ -26,7 +26,6 @@ import java.nio.file.Path;
 public class HubJeffreyDirs {
 
     private static final String TMP_DIR = "temp";
-    private static final String LIBS_DIR = "libs";
 
     private final Path homeDir;
     private final Path tempDir;
@@ -56,9 +55,5 @@ public class HubJeffreyDirs {
 
     public Path temp() {
         return tempDir;
-    }
-
-    public Path libs() {
-        return homeDir.resolve(LIBS_DIR);
     }
 }

@@ -33,6 +33,9 @@
         <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
         <finalName>jeffrey-hub</finalName>
         <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
+        <!-- The jeffrey-jib release this image is built with. The payload artifacts carrying the
+             provisioner and async-profiler ship from the same release, so they share this version;
+             which Jeffrey release those binaries came from was decided when jeffrey-jib was cut. -->
         <jeffrey-jib-maven.version>1.0-SNAPSHOT</jeffrey-jib-maven.version>
         <image.from>eclipse-temurin:25-jdk</image.from>
         <image.to>petrbouda/jeffrey-hub:${project.version}</image.to>
@@ -61,11 +64,10 @@
                 <configuration>
                     <from>
                         <image>${image.from}</image>
-                        <!-- Multi-arch manifest. The bundled native provisioner + libasyncProfiler are
-                             arch-suffixed (provisioner-{amd64,arm64}, libasyncProfiler-{amd64,arm64}.so);
-                             the runtime wrapper and provisioner pick the matching binary via uname -m
-                             / os.arch, so applications profiled via the shared volume can be either arch
-                             regardless of which arch jeffrey-hub itself runs on. -->
+                        <!-- Multi-arch manifest. Jib layers are not per-platform, so whatever the
+                             jeffrey-jib extension bakes ships in both images; that is why this image
+                             uses the arch-neutral provisioner jar rather than the native binary
+                             (see the extension configuration below). -->
                         <platforms>
                             <platform>
                                 <architecture>amd64</architecture>
@@ -103,40 +105,19 @@
                                      jeffreyHome / configs remain unset — those are deployment-specific (shared
                                      volume mount, ConfigMap path) and provided by the operator via pod env.
 
-                                     provisionerPath / profilerPath point at the in-image /jeffrey-libs/ bundle
-                                     so jeffrey-hub's own self-profiling does not depend on the shared volume
-                                     being populated at startup. The {arch} placeholder is expanded at container
-                                     start by jeffrey-entrypoint.sh after `uname -m` detects the running platform
-                                     — both arch variants of the provisioner binary and async-profiler .so ship in every
-                                     per-platform image. -->
-                                <provisionerPath>/jeffrey-libs/provisioner-{arch}</provisionerPath>
-                                <profilerPath>/jeffrey-libs/libasyncProfiler-{arch}.so</profilerPath>
+                                     The extension bakes the provisioner and async-profiler under /opt/jeffrey,
+                                     so jeffrey-hub's self-profiling needs nothing from the shared volume.
+
+                                     provisionerSource=jar rather than the `native` default: this image is
+                                     multi-arch and Jib layers are not per-platform, so the native binary would
+                                     ship both architectures (~86 MB) in every image. The jar is one arch-neutral
+                                     file of ~4 MB, and it runs on the application's own JVM — which here is the
+                                     JDK 25 base image, exactly what the jar is compiled for. -->
+                                <provisionerSource>jar</provisionerSource>
+                                <payloadVersion>${jeffrey-jib-maven.version}</payloadVersion>
                             </configuration>
                         </pluginExtension>
                     </pluginExtensions>
-                    <!--
-                      Bundled accessory artifacts under /jeffrey-libs/. CI stages these files into
-                      src/main/jib/jeffrey-libs/ before running jib:build:
-                        - provisioner.jar
-                        - provisioner-amd64, provisioner-arm64 (native GraalVM binaries; need 0755)
-                        - libasyncProfiler-amd64.so, libasyncProfiler-arm64.so
-                      All four arch variants ship in every per-platform image (~6MB extra) — Jib's
-                      extraDirectories aren't per-platform, and the wrapper / InitConfig pick the
-                      arch-matching files at runtime via uname -m / os.arch.
-                      Jib's default extraDirectories convention copies src/main/jib/<path> → /<path>.
-                    -->
-                    <extraDirectories>
-                        <permissions>
-                            <permission>
-                                <file>/jeffrey-libs/provisioner-amd64</file>
-                                <mode>755</mode>
-                            </permission>
-                            <permission>
-                                <file>/jeffrey-libs/provisioner-arm64</file>
-                                <mode>755</mode>
-                            </permission>
-                        </permissions>
-                    </extraDirectories>
                 </configuration>
             </plugin>
         </plugins>

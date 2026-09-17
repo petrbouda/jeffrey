@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.appinitializer.CopyLibsInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
@@ -32,14 +31,12 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.jdbc.DuckDBHubPersistenceProvider;
-import cafe.jeffrey.shared.common.JeffreyVersion;
 import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,7 +50,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * Configuration beans specific to HUB mode: scheduling, CopyLibs.
+ * Configuration beans specific to HUB mode: scheduling and reconciliation.
  */
 @Configuration
 @Import({
@@ -165,24 +162,6 @@ public class HubAppConfiguration {
                 platformRepositories.newProjectInstanceRepository(projectInfo.id()),
                 repositoryStorageFactory.apply(projectInfo),
                 hubTransactionOperations);
-    }
-
-    @Bean
-    @ConditionalOnProperty(value = "jeffrey.hub.copy-libs.enabled", havingValue = "true", matchIfMissing = false)
-    public CopyLibsInitializer copyLibsInitializer(
-            HubJeffreyDirs jeffreyDirs,
-            @Value("${jeffrey.hub.copy-libs.source:/jeffrey-libs}") String source,
-            @Value("${jeffrey.hub.copy-libs.target:}") String target,
-            @Value("${jeffrey.hub.copy-libs.max-kept-versions:10}") int maxKeptVersions) {
-
-        String resolvedTarget = StringUtils.isNullOrBlank(target)
-                ? jeffreyDirs.libs().toString()
-                : target;
-
-        // A build with no version stamp copies into the target itself rather than a versioned subdirectory
-        String version = JeffreyVersion.version().orElse(null);
-
-        return new CopyLibsInitializer(Path.of(source), Path.of(resolvedTarget), version, maxKeptVersions);
     }
 
 }

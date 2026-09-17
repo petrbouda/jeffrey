@@ -29,8 +29,8 @@ Add it to your Dockerfile:
 
 ```dockerfile
 # Copy Jeffrey Provisioner and Async Profiler
-COPY provisioner.jar /data/jeffrey/libs/current/provisioner.jar
-COPY libasyncProfiler.so /data/jeffrey/libs/current/libasyncProfiler.so
+COPY provisioner.jar /opt/jeffrey/provisioner.jar
+COPY libasyncProfiler.so /opt/jeffrey/libasyncProfiler.so
 ```
 
 Create an entrypoint script:
@@ -38,7 +38,7 @@ Create an entrypoint script:
 ```bash
 #!/bin/sh
 # Initialize profiling configuration
-java -jar /data/jeffrey/libs/current/provisioner.jar \
+java -jar /opt/jeffrey/provisioner.jar \
   init --base-config /mnt/config/jeffrey-init.conf
 
 # Start the application with generated JVM arguments

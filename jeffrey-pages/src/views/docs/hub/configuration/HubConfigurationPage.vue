@@ -38,7 +38,6 @@ const headings = [
   { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
   { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
-  { id: 'container', text: 'Container Deployment', level: 2 }
 ];
 
 onMounted(() => {
@@ -50,7 +49,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
 - name: JEFFREY_ADDITIONAL_JVM_OPTIONS
   value: >-
     -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
-    -Djeffrey.hub.copy-libs.enabled=true
     -Djeffrey.hub.home.dir=<<ENV:JEFFREY_HOME>>
     -Dlogging.level.cafe.jeffrey=TRACE
     -Dlogging.threshold.console=INFO
@@ -75,7 +73,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         <code>application.properties</code> file. All properties have sensible code defaults,
         so you only need to override what you want to change. Frequently-tuned settings
         (ports, directories, gRPC) come first; advanced tuning (jobs, storage paths, profiler
-        defaults, database, container deployment) follows.
+        defaults and database) follows.
       </p>
 
       <DocsCallout type="info">
@@ -511,40 +509,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         </tbody>
       </table>
 
-      <h2 id="container">Container Deployment</h2>
-      <p>Settings for running Jeffrey Hub in containers.</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.hub.copy-libs.enabled</code></td>
-            <td><code>false</code></td>
-            <td>Enable copying libraries from container image</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.copy-libs.source</code></td>
-            <td><code>/jeffrey-libs</code></td>
-            <td>Source path for libraries (inside container)</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.copy-libs.target</code></td>
-            <td><code>${jeffrey.hub.home.dir}/libs</code></td>
-            <td>Target path for copied libraries</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.copy-libs.max-kept-versions</code></td>
-            <td><code>10</code></td>
-            <td>Maximum number of versioned library directories to keep</td>
-          </tr>
-        </tbody>
-      </table>
     </div>
 
     <DocsNavFooter />

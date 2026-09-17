@@ -49,6 +49,14 @@
             <artifactId>maven-core</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- Aether, used to resolve the payload artifacts through the running build's own
+             repositories, mirrors and local cache. Supplied by the Maven running the build, never
+             shipped; declared explicitly rather than relied on transitively via maven-core. -->
+        <dependency>
+            <groupId>org.apache.maven.resolver</groupId>
+            <artifactId>maven-resolver-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -66,19 +66,19 @@ onMounted(() => {
 }</code></pre>
         </div>
 
-        <p>This builds an image whose wrapper resolves the provisioner from
-          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on the shared volume you
-          mount at that path. Every other property has a sensible default; you only set them to
+        <p>This builds an image that carries its own provisioner and async-profiler under
+          <code>/opt/jeffrey</code>, installed by the extension at build time. Besides
+          <code>payloadVersion</code>, every property has a sensible default; you only set them to
           override.</p>
 
         <DocsCallout type="warning">
           <strong><code>jeffreyHome</code> must point at a shared volume / disk.</strong>
-          Jeffrey Hub (with <code>copy-libs.enabled=true</code>) writes the provisioner binaries and
-          libs to this path, and every monitored application pod must mount the <em>same</em>
-          volume at the <em>same</em> path so its entrypoint wrapper can resolve
-          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> at container start. A
-          host-local directory or a per-pod ephemeral volume will not work &mdash; both endpoints
-          need to see the bytes Jeffrey Hub published.
+          It is no longer where the binaries come from &mdash; those are in the image &mdash; but it is
+          still where the application writes its recordings, under
+          <code>${JEFFREY_HOME}/workspaces/</code>, and where Jeffrey Hub reads them from. Every
+          monitored pod and the Hub must see the same bytes, so a host-local directory or a per-pod
+          ephemeral volume will not work. An application that only needs the recording path can set
+          <code>JEFFREY_WORKSPACES_DIR</code> instead and never reference the Hub's home layout at all.
         </DocsCallout>
 
         <p>Add explicit overrides via the string <code>properties</code> DSL &mdash; for example,
