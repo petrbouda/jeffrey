@@ -529,6 +529,33 @@ class JeffreyBuildPlanExtenderTest {
         }
 
         @Test
+        void namesTheBinariesTheImageSupplies() throws Exception {
+            JeffreyJibConfig config = config();
+            config.setProvisionerPath("/opt/vendor/provisioner");
+            config.setProfilerPath("/usr/lib/libasyncProfiler.so");
+
+            extender.extend(planFor("amd64").build(), config, logger);
+
+            assertTrue(logger.messages.stream().anyMatch(m ->
+                            m.message.contains("neither fetched nor version-checked")
+                                    && m.message.contains("provisioner=/opt/vendor/provisioner (kind=native)")
+                                    && m.message.contains("profiler=/usr/lib/libasyncProfiler.so")),
+                    "A supplied binary has no provenance to print, so the log must name it: " + logger.messages);
+        }
+
+        @Test
+        void warnsWhenASuppliedProvisionerDoesNotMatchItsKind() throws Exception {
+            JeffreyJibConfig config = config();
+            config.setProvisionerPath("/opt/vendor/provisioner.jar");
+
+            extender.extend(planFor("amd64").build(), config, logger);
+
+            assertTrue(logger.messages.stream().anyMatch(m -> m.level == LogLevel.WARN
+                            && m.message.contains("Set provisionerSource=jar")),
+                    "A jar left on the native default fails open at container start: " + logger.messages);
+        }
+
+        @Test
         void explicitJarProvisionerPathStillBakesTheJarKind() throws Exception {
             // The entrypoint can only tell a jar from a native binary by JEFFREY_PROVISIONER_KIND.
             // Bringing your own jar must declare it the same way baking ours does, or the wrapper

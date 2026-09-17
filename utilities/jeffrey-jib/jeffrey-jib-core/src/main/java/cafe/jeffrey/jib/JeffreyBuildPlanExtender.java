@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -82,6 +83,8 @@ public final class JeffreyBuildPlanExtender {
     private static final String LAYER_NAME = "jeffrey-entrypoint";
 
     private static final String ENV_PROVISIONER_KIND = "JEFFREY_PROVISIONER_KIND";
+    private static final String JAR_EXTENSION = ".jar";
+    private static final String SUPPLIED_SEPARATOR = ", ";
     private static final String LINUX_OS = "linux";
     private static final Set<String> SUPPORTED_ARCHITECTURES = Set.of("amd64", "arm64");
 
@@ -190,10 +193,8 @@ public final class JeffreyBuildPlanExtender {
 
         boolean bakeProvisioner = isBlank(config.getProvisionerPath());
         boolean bakeProfiler = isBlank(config.getProfilerPath());
+        logSuppliedBinaries(config, source, logger);
         if (!bakeProvisioner && !bakeProfiler) {
-            logger.log(LogLevel.LIFECYCLE,
-                    "jeffrey-jib: provisionerPath and profilerPath are both set; no payload is baked"
-                            + " and the image must supply both binaries itself");
             return PayloadInstallation.empty();
         }
 
@@ -203,6 +204,54 @@ public final class JeffreyBuildPlanExtender {
                     .install(plan);
         } catch (PayloadResolutionException e) {
             throw new JibPluginExtensionException(extensionClass, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Says what the image will run when the operator supplied it. A baked payload announces the
+     * release it came from; a path this build did not fetch has no such record, so naming it is all
+     * the log can do — and the log saying nothing is how an image ends up running a binary nobody
+     * can identify later.
+     */
+    private static void logSuppliedBinaries(
+            JeffreyJibConfig config, ProvisionerSource source, ExtensionLogger logger) {
+
+        List<String> supplied = new ArrayList<>();
+        if (!isBlank(config.getProvisionerPath())) {
+            supplied.add("provisioner=" + config.getProvisionerPath() + " (kind=" + source.kind() + ")");
+            warnOnKindMismatch(config.getProvisionerPath(), source, logger);
+        }
+        if (!isBlank(config.getProfilerPath())) {
+            supplied.add("profiler=" + config.getProfilerPath());
+        }
+        if (supplied.isEmpty()) {
+            return;
+        }
+        logger.log(LogLevel.LIFECYCLE,
+                "jeffrey-jib: using binaries this image already provides, neither fetched nor "
+                        + "version-checked: " + String.join(SUPPLIED_SEPARATOR, supplied));
+    }
+
+    /**
+     * The one mistake in a supplied provisioner that is visible from here and silent at container
+     * start: the entrypoint tells a jar from a native binary only by the kind, so a mismatch fails
+     * open and the application runs unprofiled.
+     */
+    private static void warnOnKindMismatch(String path, ProvisionerSource source, ExtensionLogger logger) {
+        boolean looksLikeJar = path.endsWith(JAR_EXTENSION);
+        if (looksLikeJar == (source == ProvisionerSource.JAR)) {
+            return;
+        }
+        if (looksLikeJar) {
+            logger.log(LogLevel.WARN,
+                    "jeffrey-jib: provisionerPath '" + path + "' looks like a jar but provisionerSource is '"
+                            + source.kind() + "', so the entrypoint will test it for the executable bit and "
+                            + "start the application unprofiled. Set provisionerSource=jar.");
+        } else {
+            logger.log(LogLevel.WARN,
+                    "jeffrey-jib: provisionerPath '" + path + "' is not a jar but provisionerSource is '"
+                            + source.kind() + "', so the entrypoint will hand it to the JVM with -jar and "
+                            + "start the application unprofiled. Set provisionerSource=native.");
         }
     }
 
