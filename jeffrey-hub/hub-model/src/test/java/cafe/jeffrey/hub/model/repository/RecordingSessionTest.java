@@ -113,6 +113,36 @@ class RecordingSessionTest {
             assertFalse(recordingSession.isOpen(older));
         }
 
+        /**
+         * The listing arrives sorted by filename for presentation, and the two orders part
+         * company as soon as a file's name does not carry a parseable timestamp. Every reader of
+         * these files goes by the timestamp, so this one does too.
+         */
+        @Test
+        void isPickedByTimestampRatherThanByPositionInTheListing() {
+            RecordingSession recordingSession = session(
+                    null,
+                    recording("zzz-oldest", CREATED_AT),
+                    recording("aaa-newest", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("aaa-newest", recordingSession.openRecording().orElseThrow().name());
+        }
+
+        /**
+         * A compressed archive is a recording file like any other and is a candidate here. What
+         * keeps it from being mistaken for the open chunk is that it keeps the timestamp from its
+         * own name when the hub rewrites it, rather than taking the time of the rewrite.
+         */
+        @Test
+        void isNotTheArchiveWrittenBesideAnEarlierChunk() {
+            RepositoryFile archive = new RepositoryFile(
+                    "c1", "c1.jfr.lz4", CREATED_AT, 1L, true, null);
+            RecordingSession recordingSession = session(
+                    null, archive, recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("c2", recordingSession.openRecording().orElseThrow().name());
+        }
+
         @Test
         void isNeverAnArtifactHoweverNewItIs() {
             RepositoryFile chunk = recording("profile-1.jfr", CREATED_AT);
@@ -129,6 +159,16 @@ class RecordingSessionTest {
 
             assertEquals(Optional.empty(), recordingSession.openRecording());
             assertFalse(recordingSession.isOpen(chunk));
+        }
+
+        @Test
+        void isEmptyForALiveSessionThatHasNoRecordingYet() {
+            assertTrue(session(null, artifact("app.log", CREATED_AT)).openRecording().isEmpty());
+        }
+
+        @Test
+        void isEmptyForASessionLoadedWithoutFiles() {
+            assertTrue(session(null).openRecording().isEmpty());
         }
     }
 
