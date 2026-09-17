@@ -65,7 +65,7 @@ message GetInstanceDetailRequest {
 message GetInstanceDetailResponse {
   // Identity, lifecycle, and sessions. Sessions are always populated in this response.
   InstanceInfo instance = 1;
-  // Filesystem-backed aggregates for the instance's recordings.
+  // Filesystem-backed aggregates over every file of the instance's sessions.
   InstanceStats stats = 2;
 }
 
@@ -121,7 +121,7 @@ message InstanceInfo {
 message InstanceSessionInfo {
   // Unique identifier for the session.
   string id = 1;
-  // ID of the repository storing the session's recording files.
+  // ID of the repository storing the session's files.
   string repository_id = 2;
   // Timestamp when the session started (epoch millis).
   int64 created_at = 3;

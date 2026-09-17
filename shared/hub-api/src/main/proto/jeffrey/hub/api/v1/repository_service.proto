@@ -7,8 +7,8 @@ option java_multiple_files = true;
 
 import "jeffrey/hub/api/v1/common.proto";
 
-// Manages the recording repository — JFR files, heap dumps, and other artifacts
-// organized into recording sessions. Provides session listing, statistics, and deletion.
+// Manages a project's repository — the files its sessions produced, whatever they are,
+// organized into sessions. Provides session listing, statistics, and deletion.
 service RepositoryService {
   // Lists the recording sessions of a project, newest first. An optional filter narrows the
   // listing to sessions that were recording inside a time window, to one status, or to the
@@ -128,22 +128,22 @@ message RecordingSession {
   optional int64 finished_at = 5;
   // Current status.
   RecordingStatus status = 6;
-  // Files produced during this session (JFR recordings, heap dumps, logs).
+  // Files produced during this session, of every kind.
   repeated RepositoryFile files = 7;
   // Whether this session is exempt from retention jobs.
   bool retained = 8;
 }
 
-// A single file within a recording session.
+// A single file within a session.
 //
 // A file carries no status of its own. Whether one is still being written is a fact about the
-// session — a session that is still recording holds exactly one chunk open, and it is the newest
+// session — a session that is still recording holds exactly one file open, and it is the newest
 // one by created_at — so the reader derives it from the enclosing RecordingSession rather than
 // being told. The hub's part is to say which files exist and when each was opened.
 message RepositoryFile {
   // Unique identifier for the file.
   string id = 1;
-  // Filename (e.g., "recording-2025-01-15.jfr").
+  // The file's name, as it is on the hub's disk.
   string name = 2;
   // When the profiler opened the file (epoch millis). For a chunk following the naming
   // convention this is the timestamp in its own name, and it survives the hub compressing it.
