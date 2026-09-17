@@ -23,43 +23,48 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>cafe.jeffrey</groupId>
-        <artifactId>shared</artifactId>
+        <artifactId>jeffrey-microscope</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>hub-client</artifactId>
+    <artifactId>hubs</artifactId>
 
     <dependencies>
-        <!-- Proto stubs (InstanceServiceGrpc, RepositoryServiceGrpc, etc.) -->
+        <!-- Remote gRPC client wrappers + DTOs + managers (RemoteInstancesManager, RepositoryManager, ...) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hub-api</artifactId>
+            <artifactId>hub-client</artifactId>
         </dependency>
-        <!-- GrpcHubConnection and the per-service clients -->
+        <!-- RecordingsCoreManager + download machinery (DownloadTask, DownloadTaskRegistry, ...) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>grpc-client</artifactId>
+            <artifactId>recordings-core</artifactId>
         </dependency>
-        <!-- Domain models (ProjectInfo, RecordingSession, EffectiveProfilerSettings, InstantUtils, ...) -->
+        <!-- RecordingGroup / RecordingTag persistence model types used by the recordings DTOs -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-core-persistence-api</artifactId>
+        </dependency>
+        <!-- Models (Recording, ProjectInstanceInfo, ...), IDGenerator, Exceptions, Schedulers -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <!-- Spring Web: ResponseEntity, Resource, MultipartFile, SseEmitter, StreamingResponseBody -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>recording-storage-api</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
         </dependency>
-        <!-- ManagedChannel + Netty -->
         <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
         </dependency>
-        <!-- StatusRuntimeException -->
+        <!-- @Configuration / @Bean for HubsFeatureConfiguration -->
         <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-stub</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
         </dependency>
-        <!-- JsonNode (InstanceSessionDetailResponse environment) -->
+        <!-- Jackson 3 (tools.jackson) for JSON binding of request/response DTOs -->
         <dependency>
             <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -69,16 +74,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+        <!-- Test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- In-process gRPC server for the client tests -->
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-inprocess</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -17,9 +17,7 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../../shared/ui/common/src/*"],
-      "@hubs/*": ["../../shared/ui/hubs/ui/*"],
-      "@instances/*": ["../../shared/ui/instances/src/*"]
+      "@shared/*": ["../../shared/ui/common/src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/vite-env.d.ts"],

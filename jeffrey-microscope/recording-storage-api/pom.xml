@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ Jeffrey
-  ~ Copyright (C) 2026 Petr Bouda
+  ~ Copyright (C) 2024 Petr Bouda
   ~
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU Affero General Public License as published by
@@ -21,37 +21,24 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>cafe.jeffrey</groupId>
-        <artifactId>shared</artifactId>
+        <artifactId>jeffrey-microscope</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>notifications</artifactId>
-    <description>
-        What Jeffrey says about its own work, as jeffrey.Notification events in its own recording.
-
-        Its own module rather than a package of shared/common: this needs jeffrey-events, and because
-        a JPMS `requires` has to resolve for every module that reads it, folding it into common would
-        put that dependency on the module path of two dozen modules that never emit anything --
-        including the hub's. Here it reaches only the handful with something to say.
-    </description>
+    <artifactId>recording-storage-api</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
 </project>

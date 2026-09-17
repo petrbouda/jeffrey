@@ -32,6 +32,12 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>notifications</module>
+        <module>recording-storage-api</module>
+        <module>filesystem-recording-storage</module>
+        <module>hub-client</module>
+        <module>recordings-core</module>
+        <module>ui-hubs</module>
         <module>microscope-core-persistence-api</module>
         <module>microscope-core-sql-persistence</module>
         <module>grpc-client</module>

@@ -19,11 +19,11 @@ export default defineConfig({
     alias: [
       {
         find: '@instances',
-        replacement: fileURLToPath(new URL('../../shared/ui/instances/src', import.meta.url))
+        replacement: fileURLToPath(new URL('../ui-instances/src', import.meta.url))
       },
       {
         find: '@hubs',
-        replacement: fileURLToPath(new URL('../../shared/ui/hubs/ui', import.meta.url))
+        replacement: fileURLToPath(new URL('../ui-hubs/ui', import.meta.url))
       },
       {
         find: '@shared',
@@ -50,7 +50,12 @@ export default defineConfig({
     // The app's own tests plus the shared UI modules' — shared/ui has no test runner of its own, so
     // its specs run here, next to the only environment configured to resolve them. The glob stays
     // module-root-agnostic because the shared modules disagree on it (common uses src/, workspaces ui/).
-    include: ['src/**/*.{test,spec}.ts', '../../shared/ui/**/*.{test,spec}.ts'],
+    include: [
+      'src/**/*.{test,spec}.ts',
+      '../../shared/ui/**/*.{test,spec}.ts',
+      '../ui-hubs/**/*.{test,spec}.ts',
+      '../ui-instances/**/*.{test,spec}.ts'
+    ],
     globals: true,
     environment: 'node'
   }
