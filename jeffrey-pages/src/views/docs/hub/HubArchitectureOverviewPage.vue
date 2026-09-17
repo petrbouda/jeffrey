@@ -121,7 +121,7 @@ onMounted(() => {
 
       <h2 id="storage">Storage</h2>
       <p>
-        Server stores its catalog (workspaces, projects, instances, sessions, scheduler jobs)
+        Server stores its catalog (workspaces, projects, instances, sessions)
         in a single embedded DuckDB file, and stores the JFR recordings themselves on a shared
         filesystem laid out by workspace and project. There is no managed database, no object
         store, and no per-profile databases. See the

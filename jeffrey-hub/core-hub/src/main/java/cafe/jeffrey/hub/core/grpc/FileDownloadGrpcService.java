@@ -29,11 +29,11 @@ import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
 import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
-import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.io.Closeable;
+import java.util.concurrent.Executor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.NoSuchFileException;
@@ -44,9 +44,14 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
     private static final int CHUNK_SIZE = 64 * 1024; // 64KB
 
     private final GrpcLookups lookups;
+    private final Executor streamingExecutor;
 
-    public FileDownloadGrpcService(GrpcLookups lookups) {
+    /**
+     * @param streamingExecutor where the bytes are read and pushed, off the gRPC handler thread
+     */
+    public FileDownloadGrpcService(GrpcLookups lookups, Executor streamingExecutor) {
         this.lookups = lookups;
+        this.streamingExecutor = streamingExecutor;
     }
 
     /**
@@ -61,11 +66,11 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
         ServerCallStreamObserver<DataChunk> observer = (ServerCallStreamObserver<DataChunk>) responseObserver;
         ReadyGate gate = ReadyGate.attach(observer);
 
-        Schedulers.streamingExecutor().execute(() -> {
+        streamingExecutor.execute(() -> {
             try {
                 RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
 
-                LOG.debug("Streaming file via gRPC: sessionId={} fileId={}",
+                LOG.debug("Streaming file via gRPC: session_id={} file_id={}",
                         request.getSessionId(), request.getFileId());
 
                 try (OpenFile file = open(repoManager, request.getSessionId(), request.getFileId())) {
@@ -80,11 +85,11 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
                 // being written, one that is empty. Each is a statement about what was asked
                 // for, so it travels as INVALID_ARGUMENT carrying its own sentence rather than
                 // as a hub failure.
-                LOG.debug("Refusing to stream a file: sessionId={} fileId={} reason={}",
+                LOG.debug("Refusing to stream a file: session_id={} file_id={} reason={}",
                         request.getSessionId(), request.getFileId(), e.getMessage());
                 observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
             } catch (Exception e) {
-                LOG.error("Failed to stream file: sessionId={} fileId={}",
+                LOG.error("Failed to stream file: session_id={} file_id={}",
                         request.getSessionId(), request.getFileId(), e);
                 observer.onError(GrpcExceptions.internal(e));
             }
@@ -115,7 +120,7 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
                 throw e;
             }
             LOG.debug("The file this id named was replaced before it could be opened, resolving it again: "
-                    + "sessionId={} fileId={}", sessionId, fileId);
+                    + "session_id={} file_id={}", sessionId, fileId);
             return OpenFile.of(repoManager.streamFile(sessionId, fileId));
         }
     }

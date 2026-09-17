@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.core.manager.workspace;
 
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceLocation;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
 
 import java.util.List;
@@ -27,83 +26,15 @@ import java.util.Optional;
 
 public interface WorkspacesManager {
 
-    record CreateWorkspaceRequest(
-            String workspaceId,
-            String referenceId,
-            String name,
-            WorkspaceLocation location,
-            WorkspaceLocation baseLocation) {
+    /**
+     * What a workspace is created from: the reference id the provisioner names it by on the
+     * volume, and a display name. It once carried a location and a base location too, which no
+     * caller ever set — a workspace's directory is derived from its repository id.
+     */
+    record CreateWorkspaceRequest(String referenceId, String name) {
 
         public CreateWorkspaceRequest {
             WorkspaceReferenceId.validate(referenceId);
-        }
-
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public static class Builder {
-            private String workspaceId;
-            private String referenceId;
-            private String name;
-            private String location;
-            private WorkspaceLocation workspaceLocation;
-            private String baseLocation;
-            private WorkspaceLocation workspaceBaseLocation;
-
-            public Builder workspaceId(String workspaceId) {
-                this.workspaceId = workspaceId;
-                return this;
-            }
-
-            public Builder referenceId(String referenceId) {
-                this.referenceId = referenceId;
-                return this;
-            }
-
-            public Builder name(String name) {
-                this.name = name;
-                return this;
-            }
-
-            public Builder location(String location) {
-                this.location = location;
-                return this;
-            }
-
-            public Builder location(WorkspaceLocation location) {
-                this.workspaceLocation = location;
-                return this;
-            }
-
-            public Builder baseLocation(String baseLocation) {
-                this.baseLocation = baseLocation;
-                return this;
-            }
-
-            public Builder baseLocation(WorkspaceLocation baseLocation) {
-                this.workspaceBaseLocation = baseLocation;
-                return this;
-            }
-
-            public CreateWorkspaceRequest build() {
-                WorkspaceLocation location = this.workspaceLocation;
-                if (location == null && this.location != null) {
-                    location = WorkspaceLocation.of(this.location);
-                }
-
-                WorkspaceLocation baseLocation = this.workspaceBaseLocation;
-                if (baseLocation == null && this.baseLocation != null) {
-                    baseLocation = WorkspaceLocation.of(this.baseLocation);
-                }
-
-                return new CreateWorkspaceRequest(
-                        workspaceId,
-                        referenceId,
-                        name,
-                        location,
-                        baseLocation);
-            }
         }
     }
 
@@ -120,7 +51,7 @@ public interface WorkspacesManager {
      *
      * @return list of all workspaces
      */
-    List<? extends WorkspaceManager> findAll();
+    List<WorkspaceManager> findAll();
 
     /**
      * Get a workspace by its ID.

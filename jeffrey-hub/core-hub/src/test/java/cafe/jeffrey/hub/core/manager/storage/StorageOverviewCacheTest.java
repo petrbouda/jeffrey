@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.DiskSpace;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.InfrastructureUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
 
@@ -44,17 +43,15 @@ class StorageOverviewCacheTest {
     private static final Instant SECOND_TICK = Instant.parse("2026-08-10T10:05:00Z");
 
     private static final StorageOverview FIRST_OVERVIEW = new StorageOverview(
-            new DiskSpace(512_000_000_000L, 387_000_000_000L),
             new InfrastructureUsage(2_900_000_000L, 1_300_000_000L),
             List.of());
 
     private static final StorageOverview SECOND_OVERVIEW = new StorageOverview(
-            new DiskSpace(512_000_000_000L, 350_000_000_000L),
             new InfrastructureUsage(3_000_000_000L, 900_000_000L),
             List.of());
 
     @Mock
-    StorageManager storageManager;
+    HubStorageManager storageManager;
 
     @Mock
     Clock clock;

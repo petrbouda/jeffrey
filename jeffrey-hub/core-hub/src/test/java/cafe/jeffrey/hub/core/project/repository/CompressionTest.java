@@ -47,22 +47,12 @@ class CompressionTest {
 
         @Test
         void aRecordingThatStaysOneAfterwards() {
-            assertTrue(HubManagedFile.JFR.compression().isSupported());
+            assertTrue(HubManagedFile.JFR.compression().isPresent());
         }
 
         @Test
         void notItsArchive() {
-            assertFalse(HubManagedFile.JFR_LZ4.compression().isSupported());
-        }
-
-        @Test
-        void refusesToActWhenItSaysItCannot() {
-            Path file = dir.resolve("profile-1.jfr.lz4");
-
-            assertThrows(UnsupportedOperationException.class,
-                    () -> Compression.NONE.target(file));
-            assertThrows(UnsupportedOperationException.class,
-                    () -> Compression.NONE.compress(file, file));
+            assertTrue(HubManagedFile.JFR_LZ4.compression().isEmpty());
         }
     }
 
@@ -78,8 +68,8 @@ class CompressionTest {
             Path source = Files.write(
                     dir.resolve("profile-20260220-120500.jfr"), "x".getBytes(StandardCharsets.UTF_8));
 
-            Path target = HubManagedFile.JFR.compression().target(source);
-            HubManagedFile.JFR.compression().compress(source, target);
+            Path target = HubManagedFile.JFR.compression().orElseThrow().target(source);
+            HubManagedFile.JFR.compression().orElseThrow().compress(source, target);
 
             assertEquals("profile-20260220-120500.jfr.lz4", target.getFileName().toString());
             assertTrue(Files.isRegularFile(target));
@@ -122,9 +112,9 @@ class CompressionTest {
         @Test
         void theTargetNameNeverNamesAPartialFile() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
-            Path target = HubManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().orElseThrow().target(source);
 
-            HubManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().orElseThrow().compress(source, target);
 
             assertTrue(Files.isRegularFile(target));
             assertTrue(Files.size(target) > 0);
@@ -140,8 +130,8 @@ class CompressionTest {
         void leavesTheRecordingItWasMadeFrom() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
 
-            HubManagedFile.JFR.compression().compress(
-                    source, HubManagedFile.JFR.compression().target(source));
+            HubManagedFile.JFR.compression().orElseThrow().compress(
+                    source, HubManagedFile.JFR.compression().orElseThrow().target(source));
 
             assertTrue(Files.isRegularFile(source));
         }
@@ -155,11 +145,11 @@ class CompressionTest {
         @Test
         void aSecondRunOverTheSameFileLandsAWholeArchive() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
-            Path target = HubManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().orElseThrow().target(source);
 
-            HubManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().orElseThrow().compress(source, target);
             long firstSize = Files.size(target);
-            HubManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().orElseThrow().compress(source, target);
 
             assertEquals(firstSize, Files.size(target));
             assertEquals(List.of(), scratchFiles());
@@ -176,9 +166,9 @@ class CompressionTest {
         @Test
         void anEmptyRecordingStillCompressesIntoARealArchive() throws IOException {
             Path source = Files.createFile(dir.resolve("profile-20260220-120500.jfr"));
-            Path target = HubManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().orElseThrow().target(source);
 
-            HubManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().orElseThrow().compress(source, target);
 
             assertTrue(Files.size(target) > 0, "the frame's own header");
             assertEquals(HubManagedFile.JFR_LZ4, HubManagedFile.of(target).orElseThrow());
@@ -193,12 +183,12 @@ class CompressionTest {
         @Test
         void theScratchFileIsHidden() throws IOException {
             Path source = Files.write(dir.resolve("profile-20260220-120500.jfr"), body());
-            Path target = HubManagedFile.JFR.compression().target(source);
+            Path target = HubManagedFile.JFR.compression().orElseThrow().target(source);
 
             // Nothing to observe mid-flight from here, so the name is asserted where it is
             // built: a compression that fails leaves its scratch file behind only if it is not
             // cleaned up, and the one thing always true of the name is its leading dot.
-            HubManagedFile.JFR.compression().compress(source, target);
+            HubManagedFile.JFR.compression().orElseThrow().compress(source, target);
 
             assertFalse(target.getFileName().toString().startsWith("."),
                     "what is published is not hidden");

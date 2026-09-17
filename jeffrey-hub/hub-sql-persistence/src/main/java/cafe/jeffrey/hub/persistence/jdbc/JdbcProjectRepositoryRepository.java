@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,7 +21,6 @@ package cafe.jeffrey.hub.persistence.jdbc;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.shared.persistence.GroupLabel;
@@ -30,14 +29,16 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcProjectRepositoryRepository implements ProjectRepositoryRepository {
 
-    // ON CONFLICT DO NOTHING keeps the insert idempotent: the workspace-event pipeline
-    // delivers at-least-once, so a replayed event must not fail on the primary key
+    // ON CONFLICT DO NOTHING keeps the insert idempotent under the caller's own id: the
+    // reconciler may propose the same repository twice, and the second insert must be a no-op
+    // rather than a second row — which it silently was while the id was generated here
     //language=sql
     private static final String INSERT_REPOSITORY = """
             INSERT INTO repositories (project_id, repository_id, repository_type, workspaces_path, relative_workspace_path, relative_project_path)
@@ -117,13 +118,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             WHERE session_id = :session_id
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
-    //language=SQL
-    private static final String SELECT_LATEST_SESSION_ID = """
-            SELECT rs.session_id FROM project_instance_sessions rs
-            JOIN repositories r ON rs.repository_id = r.repository_id
-            WHERE r.project_id = :project_id
-            ORDER BY rs.origin_created_at DESC LIMIT 1""";
-
     private final String projectId;
     private final DatabaseClient databaseClient;
     private final Clock clock;
@@ -140,7 +134,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     public void insert(RepositoryInfo repositoryInfo) {
         SqlParameterSource params = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
-                .addValue("repository_id", IDGenerator.generate())
+                .addValue("repository_id", repositoryInfo.id())
                 .addValue("repository_type", repositoryInfo.repositoryType().name())
                 .addValue("workspaces_path", repositoryInfo.workspacesPath())
                 .addValue("relative_workspace_path", repositoryInfo.relativeWorkspacePath())
@@ -263,7 +257,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     @Override
-    public void markSessionFinished(String sessionId, java.time.Instant finishedAt) {
+    public void markSessionFinished(String sessionId, Instant finishedAt) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
                 .addValue("session_id", sessionId)
@@ -282,16 +276,5 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         databaseClient.update(StatementLabel.UPDATE_SESSION_RETAINED, UPDATE_SESSION_RETAINED, paramSource);
     }
 
-    @Override
-    public Optional<String> findLatestSessionId() {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId);
-
-        return databaseClient.querySingle(
-                StatementLabel.FIND_LATEST_SESSION_ID,
-                SELECT_LATEST_SESSION_ID,
-                paramSource,
-                (rs, _) -> rs.getString("session_id"));
-    }
 
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.core.manager.workspace;
 
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.core.repository.RemoteWorkspaceRepository;
+import cafe.jeffrey.hub.core.workspace.settings.WorkspaceSettingsPublisher;
 
 import java.util.function.Function;
 
@@ -64,5 +64,5 @@ public interface WorkspaceManager {
      *
      * @return the remote workspace repository
      */
-    RemoteWorkspaceRepository remoteWorkspaceRepository();
+    WorkspaceSettingsPublisher settingsPublisher();
 }

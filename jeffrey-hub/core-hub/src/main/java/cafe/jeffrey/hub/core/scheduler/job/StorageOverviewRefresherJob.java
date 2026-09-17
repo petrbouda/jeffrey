@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.Jo
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
 import cafe.jeffrey.hub.core.scheduler.Job;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.ManuallyTriggerable;
 import cafe.jeffrey.shared.common.BytesUtils;
 import cafe.jeffrey.hub.model.job.JobType;
@@ -46,7 +45,7 @@ public class StorageOverviewRefresherJob implements Job, ManuallyTriggerable {
     }
 
     @Override
-    public void execute(JobContext context) {
+    public void execute() {
         storageOverviewCache.refresh();
     }
 

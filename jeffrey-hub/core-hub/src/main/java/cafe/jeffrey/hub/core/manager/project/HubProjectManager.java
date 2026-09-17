@@ -18,14 +18,12 @@
 
 package cafe.jeffrey.hub.core.manager.project;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
-import cafe.jeffrey.hub.core.manager.LiveProfilerSettingsManager;
-import cafe.jeffrey.hub.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
@@ -34,7 +32,6 @@ import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 
-import java.time.Clock;
 import java.util.List;
 
 /**
@@ -49,22 +46,21 @@ public class HubProjectManager implements ProjectManager {
     private final ProjectRepository projectRepository;
     private final HubPlatformRepositories platformRepositories;
     private final RepositoryStorage repositoryStorage;
-    private final Clock clock;
+    private final RepositoryManager.Factory repositoryManagerFactory;
     private final TransactionOperations transactionOperations;
 
     public HubProjectManager(
-            Clock clock,
             ProjectInfo projectInfo,
             HubPlatformRepositories platformRepositories,
             RepositoryStorage repositoryStorage,
+            RepositoryManager.Factory repositoryManagerFactory,
             TransactionOperations transactionOperations) {
 
-        this.clock = clock;
-        String projectId = projectInfo.id();
         this.projectInfo = projectInfo;
-        this.projectRepository = platformRepositories.newProjectRepository(projectId);
+        this.projectRepository = platformRepositories.newProjectRepository(projectInfo.id());
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
+        this.repositoryManagerFactory = repositoryManagerFactory;
         this.transactionOperations = transactionOperations;
     }
 
@@ -75,21 +71,7 @@ public class HubProjectManager implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RepositoryManagerImpl(
-                clock,
-                projectInfo,
-                platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
-                platformRepositories.newProjectInstanceRepository(projectInfo.id()),
-                repositoryStorage,
-                transactionOperations);
-    }
-
-    @Override
-    public ProfilerSettingsManager profilerSettingsManager() {
-        return new LiveProfilerSettingsManager(
-                platformRepositories.newProfilerRepository(),
-                projectInfo.workspaceId(),
-                projectInfo.id());
+        return repositoryManagerFactory.apply(projectInfo);
     }
 
     @Override
@@ -105,24 +87,21 @@ public class HubProjectManager implements ProjectManager {
     @Override
     public DetailedProjectInfo detailedInfo() {
         List<RecordingSession> recordingSessions = repositoryManager()
-                .listRecordingSessions(false);
+                .listRecordingSessions(SessionDetail.HEADERS);
 
-        RecordingStatus recordingStatus = recordingSessions.stream()
-                .limit(1)
-                .findAny()
-                .map(RecordingSession::status).orElse(null);
+        RecordingStatus recordingStatus = recordingSessions.isEmpty()
+                ? null
+                : recordingSessions.stream().anyMatch(session -> session.status() == RecordingStatus.ACTIVE)
+                        ? RecordingStatus.ACTIVE
+                        : RecordingStatus.FINISHED;
 
-        return new DetailedProjectInfo(
-                projectInfo,
-                recordingStatus,
-                recordingSessions.size(),
-                projectInfo.deletedAt() != null);
+        return new DetailedProjectInfo(projectInfo, recordingStatus, recordingSessions.size());
     }
 
     @Override
     public void restore() {
         projectRepository.restore();
-        LOG.info("Restored project: projectId={}", projectInfo.id());
+        LOG.info("Restored project: project_id={}", projectInfo.id());
     }
 
     /**
@@ -134,7 +113,7 @@ public class HubProjectManager implements ProjectManager {
      */
     @Override
     public void delete() {
-        LOG.debug("Deleting project: projectId={}", info().id());
+        LOG.debug("Deleting project: project_id={}", info().id());
 
         transactionOperations.executeWithoutResult(_ -> {
             // SQL cascade deletes all project metadata (instances, sessions, schedulers, etc.)
@@ -144,10 +123,10 @@ public class HubProjectManager implements ProjectManager {
         try {
             repositoryStorage.deleteProjectDirectory();
         } catch (Exception e) {
-            LOG.warn("Failed to delete project directory: projectId={}", projectInfo.id(), e);
+            LOG.warn("Failed to delete project directory: project_id={}", projectInfo.id(), e);
         }
 
-        LOG.info("Deleted project: projectId={}", projectInfo.id());
+        LOG.info("Deleted project: project_id={}", projectInfo.id());
         JfrNotificationEmitter.projectDeleted(projectInfo.id());
     }
 }

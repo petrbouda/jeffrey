@@ -27,6 +27,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -51,7 +54,7 @@ class ManualJobRunnerTest {
         }
 
         @Override
-        public void execute(JobContext context) {
+        public void execute() {
         }
 
         @Override
@@ -89,15 +92,14 @@ class ManualJobRunnerTest {
         void reportsOnlyJobsThatImplementTheInterface() {
             var runner = new ManualJobRunner(List.of(
                     new TriggerableJob(JobType.WORKSPACE_RECONCILER, "2 entities"),
-                    new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), FIXED_CLOCK);
+                    new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), new JobLocks(), FIXED_CLOCK);
 
             assertEquals(Set.of(JobType.WORKSPACE_RECONCILER), runner.supportedTypes());
         }
 
         @Test
         void reportsNothingWhenNoJobOptedIn() {
-            var runner = new ManualJobRunner(
-                    List.of(new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), new JobLocks(), FIXED_CLOCK);
 
             assertTrue(runner.supportedTypes().isEmpty());
         }
@@ -109,7 +111,7 @@ class ManualJobRunnerTest {
         @Test
         void runsTheJobAndReturnsItsOwnSummary() {
             var job = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "3 entities from 2 workspaces");
-            var runner = new ManualJobRunner(List.of(job), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(job), new JobLocks(), FIXED_CLOCK);
 
             ManualJobRunner.Result result = runner.run(JobType.WORKSPACE_RECONCILER);
 
@@ -125,7 +127,7 @@ class ManualJobRunnerTest {
         void routesToTheRequestedJobOnly() {
             var reconciler = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "reconciled");
             var storage = new TriggerableJob(JobType.STORAGE_OVERVIEW_REFRESHER, "refreshed");
-            var runner = new ManualJobRunner(List.of(reconciler, storage), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(reconciler, storage), new JobLocks(), FIXED_CLOCK);
 
             assertEquals("refreshed", runner.run(JobType.STORAGE_OVERVIEW_REFRESHER).summary());
             assertEquals(0, reconciler.runs.get());
@@ -133,8 +135,7 @@ class ManualJobRunnerTest {
 
         @Test
         void rejectsAJobThatDoesNotOfferAManualRun() {
-            var runner = new ManualJobRunner(
-                    List.of(new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), new JobLocks(), FIXED_CLOCK);
 
             var e = assertThrows(ManualJobRunner.ManualRunNotSupportedException.class,
                     () -> runner.run(JobType.EXPIRED_INSTANCE_CLEANER));
@@ -144,7 +145,7 @@ class ManualJobRunnerTest {
 
         @Test
         void rejectsAJobTypeThatHasNoRegisteredJob() {
-            var runner = new ManualJobRunner(List.of(), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(), new JobLocks(), FIXED_CLOCK);
 
             assertThrows(ManualJobRunner.ManualRunNotSupportedException.class,
                     () -> runner.run(JobType.WORKSPACE_RECONCILER));
@@ -158,9 +159,40 @@ class ManualJobRunnerTest {
                     throw new IllegalStateException("volume unavailable");
                 }
             };
-            var runner = new ManualJobRunner(List.of(failing), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(failing), new JobLocks(), FIXED_CLOCK);
 
             assertThrows(IllegalStateException.class, () -> runner.run(JobType.WORKSPACE_RECONCILER));
+        }
+
+        /**
+         * A manual run and the scheduler's tick take the same lock, so an operator's run waits
+         * for a tick in flight instead of walking the same tree beside it.
+         */
+        @Test
+        void waitsForTheJobsScheduledTickToFinish() throws Exception {
+            var job = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "done");
+            var locks = new JobLocks();
+            var runner = new ManualJobRunner(List.of(job), locks, FIXED_CLOCK);
+            var tickRunning = new CountDownLatch(1);
+            var releaseTick = new CountDownLatch(1);
+            Thread tick = new Thread(() -> locks.exclusively(job, () -> {
+                tickRunning.countDown();
+                try {
+                    releaseTick.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return null;
+            }));
+            tick.start();
+            assertTrue(tickRunning.await(5, TimeUnit.SECONDS));
+
+            var manual = CompletableFuture.supplyAsync(() -> runner.run(JobType.WORKSPACE_RECONCILER));
+
+            assertFalse(manual.isDone(), "the manual run must wait for the tick");
+            releaseTick.countDown();
+            assertEquals("done", manual.get(5, TimeUnit.SECONDS).summary());
+            tick.join();
         }
     }
 }

@@ -26,17 +26,8 @@ import java.util.List;
  * the filesystem at the time of the call — the hub database stores no size columns.
  */
 public record StorageOverview(
-        DiskSpace disk,
         InfrastructureUsage infrastructure,
         List<ProjectStorage> projects) {
-
-    /**
-     * Capacity of the volume holding the hub's home directory.
-     */
-    public record DiskSpace(long totalBytes, long usableBytes) {
-
-        public static final DiskSpace UNKNOWN = new DiskSpace(0L, 0L);
-    }
 
     /**
      * Storage used by the hub itself, outside of project repositories.
@@ -45,9 +36,9 @@ public record StorageOverview(
     }
 
     /**
-     * Storage used by a single project's recording repository, broken down by the kinds the hub
-     * tells apart: plain recordings, compressed ones, and everything else. Kinds with no stored
-     * files are omitted from {@code fileTypes}.
+     * Storage used by a single project's recording repository: the bytes and the file count over
+     * every session, and the newest file's timestamp. The hub does not read the files it stores,
+     * so there is deliberately no breakdown by kind.
      */
     public record ProjectStorage(
             String workspaceId,
@@ -57,24 +48,6 @@ public record StorageOverview(
             String projectLabel,
             long totalSizeBytes,
             int totalFiles,
-            long lastActivityTimeMillis,
-            List<FileTypeUsage> fileTypes,
-            List<StoredFile> largestFiles) {
-    }
-
-    /**
-     * Aggregated usage of one kind of file within one project repository: a
-     * {@code HubManagedFile} name for a recording, {@link #OTHER_FILES} for anything the hub does
-     * not classify.
-     */
-    public record FileTypeUsage(String type, long sizeBytes, int fileCount) {
-
-        public static final String OTHER_FILES = "OTHER";
-    }
-
-    /**
-     * A single stored file, used for the per-project largest-files listing.
-     */
-    public record StoredFile(String fileName, long sizeBytes) {
+            long lastActivityTimeMillis) {
     }
 }

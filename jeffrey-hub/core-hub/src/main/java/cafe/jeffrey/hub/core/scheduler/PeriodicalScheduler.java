@@ -20,13 +20,14 @@ package cafe.jeffrey.hub.core.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.CompletableFutures;
 import cafe.jeffrey.shared.common.Schedulers;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Schedules jobs on two executors split by {@link Job.ExecutorGroup}:
@@ -37,34 +38,35 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p>Jobs are scheduled with fixed <em>delay</em> semantics: the period is
  * measured from the end of one run to the start of the next, so a run that
  * overruns its period never produces back-to-back catch-up executions.
- * A per-job lock additionally guarantees that the same job never runs
- * concurrently, even when an on-demand {@link #submit} races a periodic tick
- * on the fan-out pool.</p>
+ * A per-job lock ({@link JobLocks}) additionally guarantees that the same job never runs
+ * concurrently, even when an operator's manual run races a periodic tick.</p>
  */
-public class PeriodicalScheduler implements Scheduler {
+public class PeriodicalScheduler implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(PeriodicalScheduler.class);
 
-    private static final Duration DEFAULT_POLLING_DURATION = Duration.ofMillis(10);
+    /** How long {@link #close()} waits for a running tick before letting the context go down under it. */
+    private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(30);
+
     private static final int DEFAULT_FAN_OUT_POOL_SIZE = 1;
 
     private final List<? extends Job> jobs;
     private final int fanOutPoolSize;
-    private final ConcurrentMap<Job, ReentrantLock> jobLocks = new ConcurrentHashMap<>();
+    private final JobLocks jobLocks;
 
     private ScheduledExecutorService globalScheduler;
     private ScheduledExecutorService fanOutScheduler;
 
     public PeriodicalScheduler(List<? extends Job> jobs) {
-        this(jobs, DEFAULT_FAN_OUT_POOL_SIZE);
+        this(jobs, DEFAULT_FAN_OUT_POOL_SIZE, new JobLocks());
     }
 
-    public PeriodicalScheduler(List<? extends Job> jobs, int fanOutPoolSize) {
+    public PeriodicalScheduler(List<? extends Job> jobs, int fanOutPoolSize, JobLocks jobLocks) {
         this.jobs = jobs;
         this.fanOutPoolSize = fanOutPoolSize;
+        this.jobLocks = jobLocks;
     }
 
-    @Override
     public void start() {
         if (globalScheduler == null) {
             globalScheduler = Executors.newSingleThreadScheduledExecutor(
@@ -74,31 +76,35 @@ public class PeriodicalScheduler implements Scheduler {
 
             for (Job job : jobs) {
                 executorFor(job).scheduleWithFixedDelay(
-                        executedJob(job, JobContext.EMPTY), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
+                        executedJob(job), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
             }
         }
     }
 
-    @Override
-    public CompletableFuture<Void> submit(Job job, JobContext context) {
-        if (globalScheduler == null) {
-            LOG.warn("Scheduler is not started, cannot execute job immediately: job_type={}", job.jobType());
-            return CompletableFuture.failedFuture(
-                    new IllegalStateException("Scheduler is not started: job_type=" + job.jobType()));
-        }
-
-        ScheduledExecutorService executor = executorFor(job);
-        Future<Void> future = executor.submit(executedJob(job, context), null);
-
-        LOG.debug("Submitted job immediately: job_type={} context={}", job.jobType(), context.parameters());
-        return CompletableFutures.from(future, executor, DEFAULT_POLLING_DURATION);
-    }
-
+    /**
+     * Stops both pools and waits for the tick in flight, because the beans a tick works on —
+     * the DuckDB provider first of all — are destroyed right after this one, and a session
+     * deletion or a compression rename cut off half-way is exactly the state every job is
+     * written to never leave behind.
+     */
     @Override
     public void close() {
-        if (globalScheduler != null) {
-            globalScheduler.shutdown();
-            fanOutScheduler.shutdown();
+        if (globalScheduler == null) {
+            return;
+        }
+        globalScheduler.shutdownNow();
+        fanOutScheduler.shutdownNow();
+        awaitTermination(globalScheduler, "global");
+        awaitTermination(fanOutScheduler, "fan-out");
+    }
+
+    private static void awaitTermination(ExecutorService executor, String name) {
+        try {
+            if (!executor.awaitTermination(SHUTDOWN_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+                LOG.warn("Scheduler did not stop within the shutdown timeout: executor={} timeout={}", name, SHUTDOWN_TIMEOUT);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -106,27 +112,26 @@ public class PeriodicalScheduler implements Scheduler {
         return job.executorGroup() == Job.ExecutorGroup.PROJECT_FAN_OUT ? fanOutScheduler : globalScheduler;
     }
 
-    private ExecutedJob executedJob(Job job, JobContext context) {
-        ReentrantLock lock = jobLocks.computeIfAbsent(job, j -> new ReentrantLock());
-        return new ExecutedJob(job, context, lock);
+    private ExecutedJob executedJob(Job job) {
+        return new ExecutedJob(job, jobLocks);
     }
 
-    private record ExecutedJob(Job job, JobContext context, ReentrantLock lock) implements Runnable {
+    private record ExecutedJob(Job job, JobLocks locks) implements Runnable {
         @Override
         public void run() {
-            // Serializes periodic and on-demand executions of the same job on the
-            // fan-out pool; fixed-delay already prevents periodic self-overlap.
-            lock.lock();
-            try {
-                job.execute(context);
-            } catch (Throwable t) {
-                // Deliberately Throwable, not Exception: anything escaping run() makes
-                // scheduleWithFixedDelay silently cancel this job for the rest of the process
-                // lifetime. A single bad tick must never unschedule a job.
-                LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), t);
-            } finally {
-                lock.unlock();
-            }
+            // Serializes periodic, on-demand and manual executions of the same job; fixed-delay
+            // already prevents periodic self-overlap.
+            locks.exclusively(job, () -> {
+                try {
+                    job.execute();
+                } catch (Throwable t) {
+                    // Deliberately Throwable, not Exception: anything escaping run() makes
+                    // scheduleWithFixedDelay silently cancel this job for the rest of the process
+                    // lifetime. A single bad tick must never unschedule a job.
+                    LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), t);
+                }
+                return null;
+            });
         }
     }
 }

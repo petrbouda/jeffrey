@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.model;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 
 public record ProjectInstanceInfo(
@@ -32,23 +31,7 @@ public record ProjectInstanceInfo(
         Instant expiringAt,
         Instant expiredAt,
         int sessionCount,
-        String activeSessionId,
-        List<ProjectInstanceSessionInfo> sessions) {
-
-    public ProjectInstanceInfo(
-            String id,
-            String projectId,
-            String instanceName,
-            ProjectInstanceStatus status,
-            Instant startedAt,
-            Instant finishedAt,
-            Instant expiringAt,
-            Instant expiredAt,
-            int sessionCount,
-            String activeSessionId) {
-        this(id, projectId, instanceName, status, startedAt, finishedAt, expiringAt, expiredAt,
-                sessionCount, activeSessionId, List.of());
-    }
+        String activeSessionId) {
 
     public enum ProjectInstanceStatus {
         PENDING, ACTIVE, FINISHED, EXPIRED;

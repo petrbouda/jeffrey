@@ -18,18 +18,17 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.repository.InstanceStats;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,21 +40,17 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
     private final HubPlatformRepositories platformRepositories;
     private final GrpcLookups lookups;
-    private final Clock clock;
 
-    public InstanceGrpcService(
-            HubPlatformRepositories platformRepositories,
-            GrpcLookups lookups,
-            Clock clock) {
+    public InstanceGrpcService(HubPlatformRepositories platformRepositories, GrpcLookups lookups) {
         this.platformRepositories = platformRepositories;
         this.lookups = lookups;
-        this.clock = clock;
     }
 
     @Override
     public void listInstances(ListInstancesRequest request, StreamObserver<ListInstancesResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            String projectId = request.getProjectId();
+            // Resolved first so an unknown project is NOT_FOUND whatever include_sessions says
+            String projectId = lookups.projectInfo(request.getProjectId()).id();
             List<ProjectInstanceInfo> rawInstances = platformRepositories
                     .newProjectInstanceRepository(projectId).findAll();
 
@@ -64,18 +59,19 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
             if (request.getIncludeSessions()) {
                 sessionsByInstanceId = platformRepositories.findSessionsByProjectId(projectId).stream()
                         .collect(Collectors.groupingBy(ProjectInstanceSessionInfo::instanceId));
-                failedSessionIds = failedSessionIds(lookups.repositoryManagerForProject(projectId));
+                failedSessionIds = failedSessionIds(lookups.repositoryManagerForProject(projectId)
+                        .listRecordingSessions(SessionDetail.WITH_FILES));
             } else {
                 sessionsByInstanceId = Map.of();
                 failedSessionIds = Set.of();
             }
 
             List<InstanceInfo> instances = rawInstances.stream()
-                    .map(info -> toProto(
-                            info, sessionsByInstanceId.getOrDefault(info.id(), List.of()), clock, failedSessionIds))
+                    .map(info -> ProtoMappers.instance(
+                            info, sessionsByInstanceId.getOrDefault(info.id(), List.of()), failedSessionIds))
                     .toList();
 
-            LOG.debug("Listed instances via gRPC: projectId={} count={} include_sessions={}",
+            LOG.debug("Listed instances via gRPC: project_id={} count={} include_sessions={}",
                     projectId, instances.size(), request.getIncludeSessions());
 
             return ListInstancesResponse.newBuilder()
@@ -89,10 +85,10 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
         GrpcUnary.respond(responseObserver, () -> {
             ProjectInstanceInfo instance = lookups.instanceById(request.getInstanceId());
 
-            LOG.debug("Fetched instance via gRPC: instanceId={}", request.getInstanceId());
+            LOG.debug("Fetched instance via gRPC: instance_id={}", request.getInstanceId());
 
             return GetInstanceResponse.newBuilder()
-                    .setInstance(toProto(instance, List.of(), clock, Set.of()))
+                    .setInstance(ProtoMappers.instance(instance, List.of(), Set.of()))
                     .build();
         });
     }
@@ -102,14 +98,14 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
         GrpcUnary.respond(responseObserver, () -> {
             ProjectInstanceInfo instance = lookups.instanceById(request.getInstanceId());
             Set<String> failedSessionIds = failedSessionIds(
-                    lookups.repositoryManagerForProject(instance.projectId()));
+                    lookups.repositoryManagerForProject(instance.projectId()).instanceSessions(instance.id()));
 
             List<InstanceSessionInfo> sessions = platformRepositories
                     .findSessionsByInstanceId(request.getInstanceId()).stream()
-                    .map(s -> toSessionProto(s, clock, failedSessionIds))
+                    .map(s -> ProtoMappers.instanceSession(s, failedSessionIds))
                     .toList();
 
-            LOG.debug("Listed instance sessions via gRPC: instanceId={} count={}",
+            LOG.debug("Listed instance sessions via gRPC: instance_id={} count={}",
                     request.getInstanceId(), sessions.size());
 
             return ListInstanceSessionsResponse.newBuilder()
@@ -127,16 +123,18 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
             List<ProjectInstanceSessionInfo> sessions = platformRepositories.findSessionsByInstanceId(instanceId);
 
-            RepositoryManager repoManager = lookups.repositoryManagerForProject(info.projectId());
-            InstanceStats stats = repoManager.instanceStats(instanceId);
-            Set<String> failedSessionIds = failedSessionIds(repoManager);
+            // One walk of the instance's directories answers both the statistics and the failed set
+            List<RecordingSession> instanceSessions =
+                    lookups.repositoryManagerForProject(info.projectId()).instanceSessions(instanceId);
+            InstanceStats stats = InstanceStats.of(instanceSessions);
+            Set<String> failedSessionIds = failedSessionIds(instanceSessions);
 
-            LOG.debug("Fetched instance detail via gRPC: instanceId={} sessions={} files={} totalSize={}",
+            LOG.debug("Fetched instance detail via gRPC: instance_id={} sessions={} files={} total_size={}",
                     instanceId, sessions.size(), stats.fileCount(), stats.totalSizeBytes());
 
             return GetInstanceDetailResponse.newBuilder()
-                    .setInstance(toProto(info, sessions, clock, failedSessionIds))
-                    .setStats(toProtoStats(stats))
+                    .setInstance(ProtoMappers.instance(info, sessions, failedSessionIds))
+                    .setStats(ProtoMappers.instanceStats(stats))
                     .build();
         });
     }
@@ -157,82 +155,32 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
                     .orElseThrow(() -> GrpcExceptions.notFound(
                             "Session not found in instance: instanceId=" + instanceId + " sessionId=" + sessionId));
 
-            RepositoryManager repoManager = lookups.repositoryManagerForProject(instance.projectId());
-            Set<String> failedSessionIds = failedSessionIds(repoManager);
+            // Only this session's directory, not every session of the project
+            Set<String> failedSessionIds = lookups.repositoryManagerForProject(instance.projectId())
+                    .findRecordingSessions(sessionId)
+                    .filter(RecordingSession::isFailedEmpty)
+                    .map(session -> Set.of(session.id()))
+                    .orElse(Set.of());
 
-            LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={}",
+            LOG.debug("Fetched instance session detail via gRPC: instance_id={} session_id={}",
                     instanceId, sessionId);
 
             return GetInstanceSessionDetailResponse.newBuilder()
-                    .setSession(toSessionProto(sessionInfo, clock, failedSessionIds))
+                    .setSession(ProtoMappers.instanceSession(sessionInfo, failedSessionIds))
                     .build();
         });
     }
 
-    private static cafe.jeffrey.hub.api.v1.InstanceStats toProtoStats(InstanceStats stats) {
-        return cafe.jeffrey.hub.api.v1.InstanceStats.newBuilder()
-                .setFileCount(stats.fileCount())
-                .setTotalSizeBytes(stats.totalSizeBytes())
-                .build();
-    }
 
     /**
-     * IDs of failed sessions — finished without producing any data. Requires a walk of the
-     * repository's session directories (file sizes are not persisted in the database).
+     * IDs of the failed sessions among these — finished without producing any data, which only
+     * the files on the volume can say, so the sessions must have been loaded with them.
      */
-    private static Set<String> failedSessionIds(RepositoryManager repositoryManager) {
-        return repositoryManager.listRecordingSessions(true).stream()
+    private static Set<String> failedSessionIds(List<RecordingSession> sessions) {
+        return sessions.stream()
                 .filter(RecordingSession::isFailedEmpty)
                 .map(RecordingSession::id)
                 .collect(Collectors.toSet());
     }
 
-    private static InstanceInfo toProto(
-            ProjectInstanceInfo info,
-            List<ProjectInstanceSessionInfo> sessions,
-            Clock clock,
-            Set<String> failedSessionIds) {
-        InstanceInfo.Builder builder = InstanceInfo.newBuilder()
-                .setId(info.id())
-                .setInstanceName(ProtoMappers.orEmpty(info.instanceName()))
-                .setStatus(ProtoMappers.instanceStatus(info.status()))
-                .setCreatedAt(info.startedAt().toEpochMilli())
-                .setSessionCount(info.sessionCount());
-
-        if (info.finishedAt() != null) {
-            builder.setFinishedAt(info.finishedAt().toEpochMilli());
-        }
-        if (info.expiringAt() != null) {
-            builder.setExpiringAt(info.expiringAt().toEpochMilli());
-        }
-        if (info.expiredAt() != null) {
-            builder.setExpiredAt(info.expiredAt().toEpochMilli());
-        }
-        if (info.activeSessionId() != null) {
-            builder.setActiveSessionId(info.activeSessionId());
-        }
-
-        for (ProjectInstanceSessionInfo session : sessions) {
-            builder.addSessions(toSessionProto(session, clock, failedSessionIds));
-        }
-
-        return builder.build();
-    }
-
-    private static InstanceSessionInfo toSessionProto(
-            ProjectInstanceSessionInfo info, Clock clock, Set<String> failedSessionIds) {
-
-        InstanceSessionInfo.Builder builder = InstanceSessionInfo.newBuilder()
-                .setId(info.sessionId())
-                .setRepositoryId(ProtoMappers.orEmpty(info.repositoryId()))
-                .setCreatedAt(info.createdAt().toEpochMilli())
-                .setIsActive(info.finishedAt() == null)
-                .setFailed(failedSessionIds.contains(info.sessionId()));
-
-        if (info.finishedAt() != null) {
-            builder.setFinishedAt(info.finishedAt().toEpochMilli());
-        }
-
-        return builder.build();
-    }
 }

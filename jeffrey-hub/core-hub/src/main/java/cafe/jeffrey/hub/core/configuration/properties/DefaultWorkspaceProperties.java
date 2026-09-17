@@ -19,7 +19,13 @@
 package cafe.jeffrey.hub.core.configuration.properties;
 
 import cafe.jeffrey.shared.common.CliConstants;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * {@code jeffrey.hub.default-workspace.*}: the workspace every hub starts with. Bound by Boot,
+ * which is why it is a mutable bean; the two-argument constructor is for tests.
+ */
+@ConfigurationProperties("jeffrey.hub.default-workspace")
 public class DefaultWorkspaceProperties {
 
     private String referenceId = CliConstants.DEFAULT_WORKSPACE_REF_ID;

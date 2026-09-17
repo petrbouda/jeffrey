@@ -57,16 +57,14 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     @Override
     public void listWorkspaces(ListWorkspacesRequest request, StreamObserver<ListWorkspacesResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            List<cafe.jeffrey.hub.api.v1.WorkspaceInfo> workspaces = workspacesManager.findAll().stream()
-                    .map(WorkspaceManager::resolveInfo)
-                    .map(WorkspaceGrpcService::toProto)
-                    .toList();
+            ListWorkspacesResponse.Builder response = ListWorkspacesResponse.newBuilder();
+            for (WorkspaceManager workspace : workspacesManager.findAll()) {
+                response.addWorkspaces(ProtoMappers.workspace(workspace.resolveInfo()));
+            }
 
-            LOG.debug("Listed workspaces via gRPC: count={}", workspaces.size());
+            LOG.debug("Listed workspaces via gRPC: count={}", response.getWorkspacesCount());
 
-            return ListWorkspacesResponse.newBuilder()
-                    .addAllWorkspaces(workspaces)
-                    .build();
+            return response.build();
         });
     }
 
@@ -75,10 +73,10 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
         GrpcUnary.respond(responseObserver, () -> {
             WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
 
-            LOG.debug("Fetched workspace via gRPC: workspaceId={}", request.getWorkspaceId());
+            LOG.debug("Fetched workspace via gRPC: workspace_id={}", request.getWorkspaceId());
 
             return GetWorkspaceResponse.newBuilder()
-                    .setWorkspace(toProto(workspace.resolveInfo()))
+                    .setWorkspace(ProtoMappers.workspace(workspace.resolveInfo()))
                     .build();
         });
     }
@@ -94,16 +92,14 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
             }
 
             WorkspaceInfo created = workspacesManager.create(
-                    WorkspacesManager.CreateWorkspaceRequest.builder()
-                            .referenceId(request.getReferenceId())
-                            .name(request.getName())
-                            .build());
+                    new WorkspacesManager.CreateWorkspaceRequest(request.getReferenceId(), request.getName()));
 
             LOG.info("Created workspace via gRPC: workspace_id={} reference_id={} name={}",
                     created.id(), created.referenceId(), created.name());
 
+            // The row carries no status; the manager resolves one from the workspace's directory
             return CreateWorkspaceResponse.newBuilder()
-                    .setWorkspace(toProto(created))
+                    .setWorkspace(ProtoMappers.workspace(findWorkspace(created.id()).resolveInfo()))
                     .build();
         });
     }
@@ -124,7 +120,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
 
             workspace.delete();
 
-            LOG.info("Deleted workspace via gRPC: workspaceId={}", request.getWorkspaceId());
+            LOG.info("Deleted workspace via gRPC: workspace_id={}", request.getWorkspaceId());
 
             return DeleteWorkspaceResponse.getDefaultInstance();
         });
@@ -135,15 +131,4 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
                 .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + workspaceId));
     }
 
-    static cafe.jeffrey.hub.api.v1.WorkspaceInfo toProto(WorkspaceInfo info) {
-        var builder = cafe.jeffrey.hub.api.v1.WorkspaceInfo.newBuilder()
-                .setId(info.id())
-                .setName(info.name())
-                .setReferenceId(ProtoMappers.orEmpty(info.referenceId()))
-                .setCreatedAt(info.createdAt().toEpochMilli())
-                .setProjectCount(info.projectCount())
-                .setStatus(ProtoMappers.workspaceStatus(info.status()));
-
-        return builder.build();
-    }
 }

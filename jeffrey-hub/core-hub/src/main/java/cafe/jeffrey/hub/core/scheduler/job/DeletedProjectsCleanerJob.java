@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.scheduler.Job;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
 import cafe.jeffrey.hub.model.job.JobType;
 
@@ -59,7 +58,7 @@ public class DeletedProjectsCleanerJob implements Job {
     }
 
     @Override
-    public void execute(JobContext context) {
+    public void execute() {
         Instant cutoff = clock.instant().minus(retention);
         int purged = projectsRepository.purgeDeletedProjects(cutoff);
         if (purged > 0) {

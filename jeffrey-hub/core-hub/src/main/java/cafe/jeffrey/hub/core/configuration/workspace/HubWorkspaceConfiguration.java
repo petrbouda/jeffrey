@@ -18,46 +18,61 @@
 
 package cafe.jeffrey.hub.core.configuration.workspace;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.hub.core.configuration.properties.ProjectProperties;
-import cafe.jeffrey.hub.core.manager.project.LiveProjectsManager;
+import cafe.jeffrey.hub.core.HubJeffreyDirs;
+import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
+import cafe.jeffrey.hub.core.manager.project.ProjectCreator;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.core.project.pipeline.CreateProjectContext;
-import cafe.jeffrey.hub.core.project.pipeline.CreateProjectStage;
-import cafe.jeffrey.hub.core.project.pipeline.Pipeline;
-import cafe.jeffrey.hub.core.project.pipeline.ProjectCreatePipeline;
-import cafe.jeffrey.hub.core.project.pipeline.ProjectPipelineCustomizer;
+import cafe.jeffrey.hub.core.manager.workspace.HubWorkspaceManager;
+import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 
 import java.time.Clock;
 
+/**
+ * Wires the workspace tree: the one {@link HubWorkspacesManager} at the root, and the factories
+ * it builds a {@link WorkspaceManager} and its {@link ProjectsManager} from, one per workspace.
+ */
 @Configuration
 public class HubWorkspaceConfiguration {
 
-    public static final String COMMON_PROJECTS_TYPE = "COMMON_PROJECTS_FACTORY_TYPE";
-
-    @Bean(COMMON_PROJECTS_TYPE)
+    @Bean
     public ProjectsManager.Factory projectsManagerFactory(
-            ProjectProperties projectProperties,
             HubPlatformRepositories platformRepositories,
             ProjectManager.Factory projectManagerFactory,
-            ObjectProvider<ProjectPipelineCustomizer> pipelineCustomizer,
             Clock clock) {
 
+        return workspaceInfo -> new HubProjectsManager(
+                workspaceInfo,
+                new ProjectCreator(workspaceInfo, platformRepositories.newProjectsRepository(), clock),
+                platformRepositories,
+                projectManagerFactory);
+    }
+
+    @Bean
+    public WorkspaceManager.Factory workspaceManagerFactory(
+            Clock applicationClock,
+            HubJeffreyDirs jeffreyDirs,
+            HubPlatformRepositories platformRepositories,
+            ProjectsManager.Factory projectsManagerFactory) {
+
         return workspaceInfo -> {
-            Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
-                    .addStage(new CreateProjectStage(workspaceInfo, platformRepositories.newProjectsRepository(), projectProperties, clock));
-
-            pipelineCustomizer.ifAvailable(customizer -> customizer.customize(createProjectPipeline));
-
-            return new LiveProjectsManager(
-                    workspaceInfo,
-                    createProjectPipeline,
-                    platformRepositories,
-                    projectManagerFactory);
+            WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
+            return new HubWorkspaceManager(
+                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
         };
+    }
+
+    @Bean
+    public HubWorkspacesManager workspacesManager(
+            Clock applicationClock,
+            HubPlatformRepositories platformRepositories,
+            WorkspaceManager.Factory workspaceManagerFactory) {
+
+        return new HubWorkspacesManager(applicationClock, platformRepositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 }

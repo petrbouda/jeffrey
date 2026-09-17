@@ -22,8 +22,6 @@ import cafe.jeffrey.hub.api.v1.GetProfilerSettingsRequest;
 import cafe.jeffrey.hub.api.v1.GetProfilerSettingsResponse;
 import cafe.jeffrey.hub.api.v1.GetWorkspaceEffectiveSettingsRequest;
 import cafe.jeffrey.hub.api.v1.GetWorkspaceEffectiveSettingsResponse;
-import cafe.jeffrey.hub.api.v1.ListAllProfilerSettingsRequest;
-import cafe.jeffrey.hub.api.v1.ListAllProfilerSettingsResponse;
 import cafe.jeffrey.hub.api.v1.ProfilerSettingsServiceGrpc;
 import cafe.jeffrey.hub.api.v1.SettingsLevel;
 import io.grpc.stub.StreamObserver;
@@ -44,15 +42,6 @@ public class StubProfilerSettingsService extends ProfilerSettingsServiceGrpc.Pro
                 .setAgentSettings("")
                 .setLevel(SettingsLevel.SETTINGS_LEVEL_GLOBAL)
                 .build());
-        responseObserver.onCompleted();
-    }
-
-    @Override
-    public void listAllSettings(
-            ListAllProfilerSettingsRequest request,
-            StreamObserver<ListAllProfilerSettingsResponse> responseObserver) {
-
-        responseObserver.onNext(ListAllProfilerSettingsResponse.getDefaultInstance());
         responseObserver.onCompleted();
     }
 

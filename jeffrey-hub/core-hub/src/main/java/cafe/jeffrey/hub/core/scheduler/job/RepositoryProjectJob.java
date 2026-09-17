@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2026 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,32 +21,21 @@ package cafe.jeffrey.hub.core.scheduler.job;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptor;
 
 /**
- * Base class for PROJECT-level jobs that operate on repository storage.
- * Extends ProjectJob and provides access to RemoteRepositoryStorage.
+ * Base class for project jobs that work on the project's repository storage — the one the
+ * project's manager already holds, rather than a second one built per project per tick.
  */
-public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends ProjectJob<T> {
+public abstract class RepositoryProjectJob extends ProjectJob {
 
-    private final RepositoryStorage.Factory remoteRepositoryManagerFactory;
-
-    protected RepositoryProjectJob(
-            WorkspacesManager workspacesManager,
-            RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            T jobDescriptor) {
-
-        super(workspacesManager, jobDescriptor);
-        this.remoteRepositoryManagerFactory = remoteRepositoryManagerFactory;
+    protected RepositoryProjectJob(WorkspacesManager workspacesManager) {
+        super(workspacesManager);
     }
 
     @Override
-    protected void execute(ProjectManager manager, T jobDescriptor, JobContext context) {
-        RepositoryStorage repositoryStorage = remoteRepositoryManagerFactory.apply(manager.info());
-        executeOnRepository(manager, repositoryStorage, jobDescriptor, context);
+    protected void execute(ProjectManager manager) {
+        executeOnRepository(manager, manager.repositoryStorage());
     }
 
-    protected abstract void executeOnRepository(
-            ProjectManager manager, RepositoryStorage repositoryStorage, T jobDescriptor, JobContext context);
+    protected abstract void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage);
 }

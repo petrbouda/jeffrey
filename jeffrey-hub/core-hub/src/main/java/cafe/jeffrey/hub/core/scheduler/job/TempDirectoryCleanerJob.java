@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.scheduler.Job;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.hub.model.job.JobType;
 
@@ -61,7 +60,7 @@ public class TempDirectoryCleanerJob implements Job {
     }
 
     @Override
-    public void execute(JobContext context) {
+    public void execute() {
         if (!FileSystemUtils.isDirectory(tempDir)) {
             return;
         }

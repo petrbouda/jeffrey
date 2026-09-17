@@ -36,11 +36,10 @@ public interface Job {
     }
 
     /**
-     * Executes the job with the given context.
-     *
-     * @param context the execution context containing runtime parameters
+     * One tick of the job. Every parameter a job needs is fixed at construction from its
+     * {@code JobConfig}; there is no per-run input.
      */
-    void execute(JobContext context);
+    void execute();
 
     /**
      * The period between executions for periodic jobs.

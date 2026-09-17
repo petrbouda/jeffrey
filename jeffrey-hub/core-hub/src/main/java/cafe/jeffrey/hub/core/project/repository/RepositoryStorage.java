@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -44,30 +44,36 @@ public interface RepositoryStorage {
      * Lists of files for the given session.
      *
      * @param sessionId id of the session to list files for
-     * @param withFiles if true, includes associated files in the session metadata
+     * @param detail    whether to walk the session directory for its files too
      * @return list of recordings for the given session
      */
-    Optional<RecordingSession> singleSession(String sessionId, boolean withFiles);
+    Optional<RecordingSession> singleSession(String sessionId, SessionDetail detail);
 
     /**
      * Lists all recording sessions available in the repository.
      *
-     * @param withFiles if true, includes associated files in the session metadata
+     * @param detail    whether to walk the session directory for its files too
      *                  (e.g., recordings, metadata files)
      * @return a list of all recording sessions, each containing metadata and
      * associated recordings
      */
-    List<RecordingSession> listSessions(boolean withFiles);
+    List<RecordingSession> listSessions(SessionDetail detail);
+
+    /**
+     * The same session loaded with its files — for a session picked from a headers listing,
+     * so that a filtered listing walks only the directories of the sessions it keeps.
+     */
+    RecordingSession withFiles(RecordingSession session);
 
     /**
      * Lists recording sessions that belong to the given instance. Walks only
      * the matching sessions' directories — does not scan the whole repository.
      *
      * @param instanceId the instance whose sessions should be returned
-     * @param withFiles  if true, includes associated files in the session metadata
+     * @param detail     whether to walk the session directory for its files too
      * @return recording sessions for the instance, newest first
      */
-    List<RecordingSession> listSessionsByInstanceId(String instanceId, boolean withFiles);
+    List<RecordingSession> listSessionsByInstanceId(String instanceId, SessionDetail detail);
 
     /**
      * Deletes specific repository files from the repository.
@@ -102,19 +108,6 @@ public interface RepositoryStorage {
      */
     void deleteProjectDirectory();
 
-    /**
-     * Lists every session directory physically present under this project's repository
-     * path, regardless of whether the database knows about it.
-     * <p>
-     * This is deliberately the only method here that reads the filesystem without
-     * consulting the database first — everything else resolves paths from session rows
-     * and therefore cannot observe a directory the database has lost track of. Callers
-     * diff this against {@link #listSessions(boolean)} to find orphans; deciding what
-     * counts as an orphan is the caller's policy, not the storage's.
-     *
-     * @return absolute paths of directories that look like session directories
-     */
-    List<Path> listSessionDirectoriesOnDisk();
 
 
     // ========== Files ==========

@@ -34,7 +34,7 @@ class RecordingSessionTest {
     private static final Instant CREATED_AT = Instant.parse("2026-02-20T12:00:00Z");
     private static final Instant FINISHED_AT = CREATED_AT.plusSeconds(60);
 
-    private static RepositoryFile file(Long size) {
+    private static RepositoryFile file(long size) {
         return new RepositoryFile(
                 "file-1", "file-1", CREATED_AT, size, true, null);
     }
@@ -55,15 +55,15 @@ class RecordingSessionTest {
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         return new RecordingSession(
                 "session-1", "session-1", "inst-1", CREATED_AT, finishedAt,
-                status, null, List.of(files), false);
+                status, List.of(files), false);
     }
 
     @Nested
     class TotalSizeBytes {
 
         @Test
-        void sumsFileSizesTreatingUnknownAsZero() {
-            RecordingSession recordingSession = session(FINISHED_AT, file(100L), file(null), file(50L));
+        void sumsFileSizes() {
+            RecordingSession recordingSession = session(FINISHED_AT, file(100L), file(50L));
 
             assertEquals(150L, recordingSession.totalSizeBytes());
         }
@@ -79,7 +79,7 @@ class RecordingSessionTest {
 
         @Test
         void finishedSessionWithOnlyZeroSizeFilesIsFailed() {
-            assertTrue(session(FINISHED_AT, file(0L), file(null)).isFailedEmpty());
+            assertTrue(session(FINISHED_AT, file(0L), file(0L)).isFailedEmpty());
         }
 
         @Test

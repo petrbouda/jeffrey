@@ -25,6 +25,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import cafe.jeffrey.hub.core.manager.HubRepositoryManager;
+import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -73,12 +75,16 @@ class HubProjectManagerDeleteIntegrationTest {
         var provider = new DatabaseClientProvider(dataSource);
         var platformRepositories = new JdbcHubPlatformRepositories(provider, FIXED_CLOCK);
 
-        var manager = new HubProjectManager(
+        var transactions = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
+        RepositoryManager.Factory repositoryManagerFactory = projectInfo -> new HubRepositoryManager(
                 FIXED_CLOCK,
-                PROJECT_INFO,
-                platformRepositories,
+                projectInfo,
+                platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
+                platformRepositories.newProjectInstanceRepository(projectInfo.id()),
                 repositoryStorage,
-                new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
+                transactions);
+        var manager = new HubProjectManager(
+                PROJECT_INFO, platformRepositories, repositoryStorage, repositoryManagerFactory, transactions);
 
         return new Fixture(manager, platformRepositories);
     }

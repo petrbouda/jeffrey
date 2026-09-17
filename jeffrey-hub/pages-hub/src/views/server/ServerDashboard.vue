@@ -51,13 +51,6 @@
           <div class="total-sub">
             {{ totalProjects }} {{ totalProjects === 1 ? 'project' : 'projects' }}
             · {{ totalFiles.toLocaleString() }} files
-            <template v-if="overview && overview.diskTotalBytes > 0">
-              · {{ formatBytes(overview.diskUsableBytes) }} free
-            </template>
-          </div>
-          <div v-if="overview && overview.diskTotalBytes > 0" class="volume-bar">
-            <div class="volume-jeffrey" :style="{ width: volumeJeffreyPct + '%' }"></div>
-            <div class="volume-others" :style="{ width: volumeOthersPct + '%' }"></div>
           </div>
         </div>
 
@@ -75,22 +68,12 @@
               <span class="project-count">{{ row.projects.length }}</span>
             </div>
             <div class="workspace-item-bottom">
-              <span class="mini-bar">
-                <span
-                    v-for="usage in row.groups"
-                    :key="usage.group.key"
-                    :style="{ width: miniBarWidth(row, usage), background: usage.group.fill }"
-                ></span>
+              <span class="share-track">
+                <span class="share-fill" :style="{ width: shareOfHubValue(row) + '%' }"></span>
               </span>
               <span class="workspace-size">{{ formatBytes(row.totalSizeBytes) }}</span>
             </div>
           </div>
-        </div>
-
-        <div class="rail-legend">
-          <span v-for="group in STORAGE_GROUPS" :key="group.key" class="legend-item">
-            <span class="legend-swatch" :style="{ background: group.fill }"></span>{{ group.label }}
-          </span>
         </div>
       </aside>
 
@@ -137,42 +120,30 @@
               <th class="sortable text-end" @click="sortBy('files')">
                 Files <span class="sort-arrow">{{ sortArrow('files') }}</span>
               </th>
-              <th>Categories</th>
-              <th class="text-end">% of workspace</th>
+              <th class="sortable text-end" @click="sortBy('activity')">
+                Last activity <span class="sort-arrow">{{ sortArrow('activity') }}</span>
+              </th>
             </tr>
             </thead>
             <tbody>
-            <tr
-                v-for="row in sortedProjects"
-                :key="row.projectId"
-                class="project-row"
-                @click="openDrawer(row)"
-            >
+            <tr v-for="row in sortedProjects" :key="row.projectId">
               <td>
                 <span class="project-cell">
                   <span class="status-dot" :class="{ inactive: !row.active }"></span>
                   <span class="project-name" :class="{ inactive: !row.active }">{{ row.name }}</span>
                 </span>
               </td>
-              <td class="text-end size-cell">{{ formatBytes(row.totalSizeBytes) }}</td>
-              <td class="text-end files-cell">{{ row.totalFiles.toLocaleString() }}</td>
               <td>
-                <span class="category-bar">
-                  <span
-                      v-for="usage in row.groups"
-                      :key="usage.group.key"
-                      :style="{ width: categoryWidth(row, usage), background: usage.group.fill }"
-                  ></span>
-                </span>
-              </td>
-              <td>
-                <span class="share-cell">
+                <span class="size-cell">
                   <span class="share-track">
                     <span class="share-fill" :style="{ width: shareOfLargestPct(row) + '%' }"></span>
                   </span>
+                  <span class="size-value">{{ formatBytes(row.totalSizeBytes) }}</span>
                   <span class="share-value">{{ shareOfWorkspacePct(row) }}</span>
                 </span>
               </td>
+              <td class="text-end files-cell">{{ row.totalFiles.toLocaleString() }}</td>
+              <td class="text-end activity-cell">{{ lastActivity(row) }}</td>
             </tr>
             </tbody>
           </table>
@@ -185,14 +156,6 @@
         </div>
       </section>
     </div>
-
-    <ProjectStorageDrawer
-        v-if="drawerProject"
-        :project="drawerProject.storage"
-        :active="drawerProject.active"
-        :workspace-share="shareOfWorkspacePct(drawerProject)"
-        @close="drawerProject = null"
-    />
   </div>
 </template>
 
@@ -200,7 +163,6 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import HubPageHeader from '@/components/HubPageHeader.vue';
-import ProjectStorageDrawer from '@/components/ProjectStorageDrawer.vue';
 import StorageClient from '@/services/api/StorageClient';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient';
@@ -209,9 +171,8 @@ import type Workspace from '@/services/api/model/Workspace';
 import type Project from '@/services/api/model/Project';
 import ProjectModel from '@/services/api/model/Project';
 import type { ProjectStorage, StorageOverview } from '@/services/api/model/StorageOverview';
-import { groupUsages, STORAGE_GROUPS, type GroupUsage } from '@/services/storage/StorageFileTypes';
 
-type SortColumn = 'project' | 'size' | 'files';
+type SortColumn = 'project' | 'size' | 'files' | 'activity';
 type SortDirection = 'asc' | 'desc';
 
 /** One project row in the detail table: the live project merged with its storage figures. */
@@ -221,7 +182,7 @@ interface ProjectRow {
   active: boolean;
   totalSizeBytes: number;
   totalFiles: number;
-  groups: GroupUsage[];
+  lastActivityTimeMillis: number;
   storage: ProjectStorage;
 }
 
@@ -230,7 +191,6 @@ interface WorkspaceRow {
   projects: ProjectRow[];
   totalSizeBytes: number;
   totalFiles: number;
-  groups: GroupUsage[];
 }
 
 /** How often the "computed X ago" label re-evaluates while the page stays open. */
@@ -246,7 +206,6 @@ let relativeTimeTimer: number | null = null;
 const overview = ref<StorageOverview | null>(null);
 const workspaceRows = ref<WorkspaceRow[]>([]);
 const selectedWorkspaceId = ref<string | null>(null);
-const drawerProject = ref<ProjectRow | null>(null);
 const sortColumn = ref<SortColumn>('size');
 const sortDirection = ref<SortDirection>('desc');
 
@@ -267,9 +226,7 @@ const emptyStorage = (workspace: Workspace, project: Project): ProjectStorage =>
   projectLabel: project.label,
   totalSizeBytes: 0,
   totalFiles: 0,
-  lastActivityTimeMillis: 0,
-  fileTypes: [],
-  largestFiles: []
+  lastActivityTimeMillis: 0
 });
 
 const toProjectRow = (storage: ProjectStorage, project: Project | undefined): ProjectRow => ({
@@ -279,7 +236,7 @@ const toProjectRow = (storage: ProjectStorage, project: Project | undefined): Pr
   active: project?.status === RecordingStatus.ACTIVE,
   totalSizeBytes: storage.totalSizeBytes,
   totalFiles: storage.totalFiles,
-  groups: groupUsages(storage.fileTypes),
+  lastActivityTimeMillis: storage.lastActivityTimeMillis,
   storage
 });
 
@@ -302,13 +259,11 @@ const buildWorkspaceRow = (
     }
   }
 
-  const allFileTypes = rows.flatMap(row => row.storage.fileTypes);
   return {
     workspace,
     projects: rows,
     totalSizeBytes: rows.reduce((sum, row) => sum + row.totalSizeBytes, 0),
-    totalFiles: rows.reduce((sum, row) => sum + row.totalFiles, 0),
-    groups: groupUsages(allFileTypes)
+    totalFiles: rows.reduce((sum, row) => sum + row.totalFiles, 0)
   };
 };
 
@@ -318,11 +273,16 @@ const selectedWorkspace = computed(() => {
 
 const selectWorkspace = (workspaceId: string) => {
   selectedWorkspaceId.value = workspaceId;
-  drawerProject.value = null;
 };
 
-const openDrawer = (row: ProjectRow) => {
-  drawerProject.value = row;
+/** "3 minutes ago" for a project that has recorded something, a dash for one that never has. */
+const lastActivity = (row: ProjectRow) => {
+  // The tick dependency re-evaluates the labels periodically so they age in place
+  relativeTimeTick.value;
+  if (row.lastActivityTimeMillis === 0) {
+    return '—';
+  }
+  return FormattingService.formatRelativeTime(row.lastActivityTimeMillis);
 };
 
 const projectsTotalBytes = computed(() => {
@@ -346,47 +306,15 @@ const totalFiles = computed(() => {
   return workspaceRows.value.reduce((sum, row) => sum + row.totalFiles, 0);
 });
 
-const volumeUsedBytes = computed(() => {
-  if (!overview.value) {
+const shareOfHubValue = (row: WorkspaceRow) => {
+  if (projectsTotalBytes.value === 0) {
     return 0;
   }
-  return Math.max(0, overview.value.diskTotalBytes - overview.value.diskUsableBytes);
-});
-
-const volumeJeffreyPct = computed(() => {
-  if (!overview.value || overview.value.diskTotalBytes === 0) {
-    return 0;
-  }
-  return (totalUsedBytes.value / overview.value.diskTotalBytes) * 100;
-});
-
-const volumeOthersPct = computed(() => {
-  if (!overview.value || overview.value.diskTotalBytes === 0) {
-    return 0;
-  }
-  const othersBytes = Math.max(0, volumeUsedBytes.value - totalUsedBytes.value);
-  return (othersBytes / overview.value.diskTotalBytes) * 100;
-});
-
-const miniBarWidth = (row: WorkspaceRow, usage: GroupUsage) => {
-  if (row.totalSizeBytes === 0) {
-    return '0%';
-  }
-  return (usage.sizeBytes / row.totalSizeBytes * 100) + '%';
-};
-
-const categoryWidth = (row: ProjectRow, usage: GroupUsage) => {
-  if (row.totalSizeBytes === 0) {
-    return '0%';
-  }
-  return (usage.sizeBytes / row.totalSizeBytes * 100) + '%';
+  return (row.totalSizeBytes / projectsTotalBytes.value) * 100;
 };
 
 const shareOfHubPct = (row: WorkspaceRow) => {
-  if (projectsTotalBytes.value === 0) {
-    return FormattingService.formatPercentValue(0);
-  }
-  return FormattingService.formatPercentValue((row.totalSizeBytes / projectsTotalBytes.value) * 100);
+  return FormattingService.formatPercentValue(shareOfHubValue(row));
 };
 
 const maxProjectBytes = computed(() => {
@@ -422,6 +350,8 @@ const sortedProjects = computed(() => {
         return direction * a.name.localeCompare(b.name);
       case 'files':
         return direction * (a.totalFiles - b.totalFiles);
+      case 'activity':
+        return direction * (a.lastActivityTimeMillis - b.lastActivityTimeMillis);
       default:
         return direction * (a.totalSizeBytes - b.totalSizeBytes);
     }
@@ -597,24 +527,6 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.volume-bar {
-  display: flex;
-  gap: 2px;
-  height: 10px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--color-grey-bg);
-  margin-top: 9px;
-}
-
-.volume-jeffrey {
-  background: var(--color-primary);
-}
-
-.volume-others {
-  background: var(--color-slate-light);
-}
-
 /* Rail: workspace list */
 .workspace-item {
   display: flex;
@@ -672,19 +584,8 @@ onUnmounted(() => {
   gap: 10px;
 }
 
-.mini-bar {
-  display: flex;
-  gap: 1px;
+.workspace-item-bottom .share-track {
   flex: 1;
-  height: 8px;
-  border-radius: 3px;
-  overflow: hidden;
-  background: var(--color-grey-bg);
-}
-
-.mini-bar span {
-  display: block;
-  height: 100%;
 }
 
 .workspace-size {
@@ -692,31 +593,6 @@ onUnmounted(() => {
   color: var(--color-slate-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-}
-
-/* Rail: legend */
-.rail-legend {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 7px;
-  margin: 12px 4px 0;
-  font-size: 0.73rem;
-  color: var(--color-slate-muted);
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-swatch {
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  display: inline-block;
-  flex-shrink: 0;
 }
 
 /* Detail: header */
@@ -797,11 +673,7 @@ onUnmounted(() => {
   border-bottom: none;
 }
 
-.project-row {
-  cursor: pointer;
-}
-
-.project-row:hover td {
+.projects-table tbody tr:hover td {
   background: var(--color-light);
 }
 
@@ -832,40 +704,31 @@ onUnmounted(() => {
   font-weight: 400;
 }
 
+/* Size column: bar scaled to the workspace's largest project, the bytes, the share of the workspace */
 .size-cell {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.files-cell {
-  color: var(--color-slate-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.category-bar {
-  display: flex;
-  gap: 1px;
-  width: 130px;
-  height: 8px;
-  border-radius: 3px;
-  overflow: hidden;
-  background: var(--color-grey-bg);
-}
-
-.category-bar span {
-  display: block;
-  height: 100%;
-}
-
-.share-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
 }
 
+.size-cell .share-track {
+  width: 90px;
+}
+
+.size-value {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.files-cell,
+.activity-cell {
+  color: var(--color-slate-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .share-track {
-  width: 70px;
   height: 6px;
   border-radius: 3px;
   background: var(--color-grey-bg);

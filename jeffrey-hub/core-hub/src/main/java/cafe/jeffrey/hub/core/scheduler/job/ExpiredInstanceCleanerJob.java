@@ -18,14 +18,12 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobDescriptor;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
@@ -45,40 +43,29 @@ import java.time.Instant;
  * next scan. Row first, directory second — a crash in between briefly resurrects the
  * instance, and this job then deletes it again on a later tick (the loop converges).</p>
  */
-public class ExpiredInstanceCleanerJob extends RepositoryProjectJob<ExpiredInstanceCleanerJobDescriptor> {
+public class ExpiredInstanceCleanerJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExpiredInstanceCleanerJob.class);
 
-    private final Duration period;
-    private final Clock clock;
-    private final HubPlatformRepositories platformRepositories;
+    private static final String PARAM_RETENTION = "retention";
 
-    public ExpiredInstanceCleanerJob(
-            WorkspacesManager workspacesManager,
-            RepositoryStorage.Factory repositoryStorageFactory,
-            ExpiredInstanceCleanerJobDescriptor jobDescriptor,
-            Duration period,
-            Clock clock,
-            HubPlatformRepositories platformRepositories) {
-        super(workspacesManager, repositoryStorageFactory, jobDescriptor);
-        this.period = period;
+    private final Duration period;
+    private final Duration retentionPeriod;
+    private final Clock clock;
+
+    public ExpiredInstanceCleanerJob(WorkspacesManager workspacesManager, JobConfig config, Clock clock) {
+        super(workspacesManager);
+        this.period = config.period();
+        this.retentionPeriod = config.durationParam(PARAM_RETENTION);
         this.clock = clock;
-        this.platformRepositories = platformRepositories;
     }
 
     @Override
-    protected void executeOnRepository(
-            ProjectManager projectManager,
-            RepositoryStorage repositoryStorage,
-            ExpiredInstanceCleanerJobDescriptor jobDescriptor,
-            JobContext context) {
-
-        String projectId = projectManager.info().id();
+    protected void executeOnRepository(ProjectManager projectManager, RepositoryStorage repositoryStorage) {
         String projectName = projectManager.info().name();
-        Duration retentionPeriod = jobDescriptor.toDuration();
         Instant currentTime = clock.instant();
 
-        ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
+        ProjectInstanceRepository instanceRepo = projectManager.projectInstanceRepository();
 
         int deletedCount = 0;
         for (ProjectInstanceInfo instance : instanceRepo.findByStatus(ProjectInstanceStatus.EXPIRED)) {
@@ -86,13 +73,13 @@ public class ExpiredInstanceCleanerJob extends RepositoryProjectJob<ExpiredInsta
                     && currentTime.isAfter(instance.expiredAt().plus(retentionPeriod))) {
                 deleteInstance(instanceRepo, repositoryStorage, instance.id());
                 deletedCount++;
-                LOG.info("Deleted expired instance: project='{}' instanceId={} expiredAt={}",
+                LOG.info("Deleted expired instance: project_name={} instance_id={} expired_at={}",
                         projectName, instance.id(), instance.expiredAt());
             }
         }
 
         if (deletedCount > 0) {
-            LOG.debug("Expired instance cleanup completed: project='{}' deleted={}", projectName, deletedCount);
+            LOG.debug("Expired instance cleanup completed: project_name={} deleted={}", projectName, deletedCount);
         }
 
         // An abandoned PENDING instance has no sessions — a session materialization flips the
@@ -110,7 +97,7 @@ public class ExpiredInstanceCleanerJob extends RepositoryProjectJob<ExpiredInsta
             }
         }
         if (stalePending > 0) {
-            LOG.info("Deleted abandoned PENDING instances: project='{}' count={} retention={}",
+            LOG.info("Deleted abandoned PENDING instances: project_name={} count={} retention={}",
                     projectName, stalePending, retentionPeriod);
         }
     }
@@ -123,7 +110,7 @@ public class ExpiredInstanceCleanerJob extends RepositoryProjectJob<ExpiredInsta
         } catch (Exception e) {
             // The reconciler resurrects the instance from the leftover directory and this job
             // deletes it again next tick — log rather than fail the sweep
-            LOG.warn("Failed to delete instance directory: instanceId={}", instanceId, e);
+            LOG.warn("Failed to delete instance directory: instance_id={}", instanceId, e);
         }
     }
 

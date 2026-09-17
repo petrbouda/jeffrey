@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,6 +21,5 @@ package cafe.jeffrey.hub.core.jfr;
 public enum NotificationCategory {
     PROJECT,
     INSTANCE,
-    SESSION,
-    SYSTEM
+    SESSION
 }

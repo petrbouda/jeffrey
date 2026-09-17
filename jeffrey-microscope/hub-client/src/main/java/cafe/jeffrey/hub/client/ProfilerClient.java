@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.model.EffectiveProfilerSettings;
 import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
 import cafe.jeffrey.microscope.model.ProfilerInfo;
 
-import java.util.List;
 
 public class ProfilerClient {
 
@@ -71,21 +70,6 @@ public class ProfilerClient {
                         .build());
 
         LOG.debug("Deleted profiler settings via gRPC: projectId={}", projectId);
-    }
-
-    public List<ProfilerInfo> listAllSettings() {
-        ListAllProfilerSettingsResponse response = stub.listAllSettings(
-                ListAllProfilerSettingsRequest.getDefaultInstance());
-
-        List<ProfilerInfo> result = response.getSettingsList().stream()
-                .map(entry -> new ProfilerInfo(
-                        ClientProtoMappers.nullIfEmpty(entry.getWorkspaceId()),
-                        ClientProtoMappers.nullIfEmpty(entry.getProjectId()),
-                        ClientProtoMappers.nullIfEmpty(entry.getAgentSettings())))
-                .toList();
-
-        LOG.debug("Listed all profiler settings via gRPC: count={}", result.size());
-        return result;
     }
 
     public void upsertSettingsAtLevel(String workspaceId, String projectId, String agentSettings) {

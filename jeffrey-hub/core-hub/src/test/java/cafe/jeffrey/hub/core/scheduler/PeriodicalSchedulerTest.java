@@ -59,7 +59,7 @@ class PeriodicalSchedulerTest {
     private static Job testJob(Runnable action, Duration period, JobType jobType, Job.ExecutorGroup executorGroup) {
         return new Job() {
             @Override
-            public void execute(JobContext context) {
+            public void execute() {
                 action.run();
             }
 
@@ -137,36 +137,13 @@ class PeriodicalSchedulerTest {
         }
     }
 
-    @Nested
-    class Submit {
 
-        @Test
-        void submitsJobImmediately_whenSchedulerStarted() throws Exception {
-            CountDownLatch latch = new CountDownLatch(1);
-            Job periodicJob = testJob(() -> {}, Duration.ofSeconds(60));
-            Job immediateJob = testJob(latch::countDown, Duration.ofSeconds(60));
-
-            scheduler = new PeriodicalScheduler(List.of(periodicJob));
-            scheduler.start();
-
-            CompletableFuture<Void> future = scheduler.submit(immediateJob);
-            assertNotNull(future);
-            assertTrue(latch.await(2, TimeUnit.SECONDS));
-        }
-
-        @Test
-        void returnsFailedFuture_whenSchedulerNotStarted() {
-            Job job = testJob(() -> {}, Duration.ofSeconds(60));
-            scheduler = new PeriodicalScheduler(List.of());
-
-            CompletableFuture<Void> result = scheduler.submit(job);
-
-            // Never null — callers chain orTimeout()/whenComplete() directly on the result
-            assertNotNull(result);
-            assertTrue(result.isCompletedExceptionally());
-            ExecutionException e = assertThrows(ExecutionException.class, result::get);
-            assertInstanceOf(IllegalStateException.class, e.getCause());
-        }
+    /** What ManualJobRunner does: one execution of the job under its lock, off the scheduler's threads. */
+    private static CompletableFuture<Void> manualRun(JobLocks locks, Job job) {
+        return CompletableFuture.runAsync(() -> locks.exclusively(job, () -> {
+            job.execute();
+            return null;
+        }));
     }
 
     @Nested
@@ -205,12 +182,12 @@ class PeriodicalSchedulerTest {
                 }
             }, Duration.ofMillis(20));
 
-            scheduler = new PeriodicalScheduler(List.of(job));
+            JobLocks locks = new JobLocks();
+            scheduler = new PeriodicalScheduler(List.of(job), 1, locks);
             scheduler.start();
 
-            // Fire on-demand executions while the periodic schedule is running
-            CompletableFuture<Void> submitted = scheduler.submit(job);
-            submitted.get(5, TimeUnit.SECONDS);
+            // A manual run takes the same lock while the periodic schedule is running
+            manualRun(locks, job).get(5, TimeUnit.SECONDS);
 
             await().atMost(2, SECONDS).until(() -> maxConcurrent.get() >= 1);
             assertEquals(1, maxConcurrent.get(), "The same job type must be serialized");
@@ -232,7 +209,7 @@ class PeriodicalSchedulerTest {
             }, Duration.ofMillis(10));
             Job fastGlobal = testJob(globalTicks::incrementAndGet, Duration.ofMillis(50));
 
-            scheduler = new PeriodicalScheduler(List.of(slowFanOut, fastGlobal), 1);
+            scheduler = new PeriodicalScheduler(List.of(slowFanOut, fastGlobal), 1, new JobLocks());
             scheduler.start();
 
             // On a shared single thread the 500ms fan-out job would starve the global job
@@ -257,7 +234,7 @@ class PeriodicalSchedulerTest {
             Job first = fanOutTestJob(overlapping, Duration.ofMillis(20));
             Job second = fanOutTestJob(overlapping, Duration.ofMillis(20));
 
-            scheduler = new PeriodicalScheduler(List.of(first, second), 2);
+            scheduler = new PeriodicalScheduler(List.of(first, second), 2, new JobLocks());
             scheduler.start();
 
             await().atMost(2, SECONDS).until(() -> maxConcurrent.get() >= 2);
@@ -281,12 +258,12 @@ class PeriodicalSchedulerTest {
                 }
             }, Duration.ofMillis(20));
 
-            scheduler = new PeriodicalScheduler(List.of(job), 4);
+            JobLocks locks = new JobLocks();
+            scheduler = new PeriodicalScheduler(List.of(job), 4, locks);
             scheduler.start();
 
-            // Race an on-demand execution against the periodic schedule on the pool
-            CompletableFuture<Void> submitted = scheduler.submit(job);
-            submitted.get(5, TimeUnit.SECONDS);
+            // Race a manual run against the periodic schedule on the pool
+            manualRun(locks, job).get(5, TimeUnit.SECONDS);
 
             await().atMost(2, SECONDS).until(() -> executions.get() >= 3);
             assertEquals(1, maxConcurrent.get(), "The same job must be serialized even on a pool");

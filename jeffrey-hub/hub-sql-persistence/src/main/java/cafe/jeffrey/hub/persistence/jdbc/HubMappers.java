@@ -21,6 +21,8 @@ package cafe.jeffrey.hub.persistence.jdbc;
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
@@ -52,6 +54,43 @@ public abstract class HubMappers {
         };
     }
 
+    /**
+     * The instance row as every instance query selects it: the columns of {@code project_instances}
+     * plus the two the query derives, {@code session_count} and {@code active_session_id}.
+     * {@link #INSTANCE_WITH_COUNTS} is the SELECT that produces them; a query composes it with
+     * its own WHERE and ends with {@link #GROUP_BY_INSTANCE}.
+     */
+    //language=SQL
+    public static final String INSTANCE_WITH_COUNTS = """
+            SELECT i.*,
+                   COUNT(rs.session_id) as session_count,
+                   (SELECT rs2.session_id FROM project_instance_sessions rs2
+                    WHERE rs2.instance_id = i.instance_id AND rs2.finished_at IS NULL
+                    ORDER BY rs2.created_at DESC LIMIT 1) as active_session_id
+            FROM project_instances i
+            LEFT JOIN project_instance_sessions rs ON rs.instance_id = i.instance_id
+            """;
+
+    //language=SQL
+    public static final String GROUP_BY_INSTANCE = """
+            GROUP BY i.instance_id, i.project_id, i.instance_name, i.status,
+                     i.started_at, i.finished_at, i.expiring_at, i.expired_at
+            """;
+
+    public static RowMapper<ProjectInstanceInfo> projectInstanceMapper() {
+        return (rs, _) -> new ProjectInstanceInfo(
+                rs.getString("instance_id"),
+                rs.getString("project_id"),
+                rs.getString("instance_name"),
+                ProjectInstanceStatus.valueOf(rs.getString("status")),
+                instant(rs, "started_at"),
+                instant(rs, "finished_at"),
+                instant(rs, "expiring_at"),
+                instant(rs, "expired_at"),
+                rs.getInt("session_count"),
+                rs.getString("active_session_id"));
+    }
+
     public static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
         return (rs, _) -> {
             return new ProjectInstanceSessionInfo(
@@ -64,8 +103,6 @@ public abstract class HubMappers {
                     HubMappers.instant(rs, "created_at"),
                     HubMappers.instant(rs, "finished_at"),
                     rs.getBoolean("retained"),
-                    // Derived, not persisted: computed against repository storage where needed
-                    false,
                     rs.getObject("heartbeat_expected", Boolean.class)
             );
         };

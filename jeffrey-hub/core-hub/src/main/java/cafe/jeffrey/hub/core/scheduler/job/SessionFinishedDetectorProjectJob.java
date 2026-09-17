@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,15 +18,15 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.session.lifecycle.SessionFinisher;
-import cafe.jeffrey.hub.core.session.lifecycle.SessionPaths;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
+import cafe.jeffrey.hub.core.project.session.SessionFinisher;
+import cafe.jeffrey.hub.core.project.session.SessionPaths;
+import cafe.jeffrey.hub.core.project.session.SessionRef;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
@@ -50,9 +50,14 @@ import java.util.List;
  * Only sessions that promised to report liveness are examined here; the rest are left alone and
  * closed by the reconciler when the instance's next session appears.
  */
-public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<SessionFinishedDetectorProjectJobDescriptor> {
+public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(SessionFinishedDetectorProjectJob.class);
+
+    /**
+     * How long after its last heartbeat a session that promised to report is taken as ended.
+     */
+    private static final String PARAM_HEARTBEAT_THRESHOLD = "heartbeat-threshold";
 
     private final Duration period;
     private final Duration heartbeatThreshold;
@@ -62,51 +67,37 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
 
     public SessionFinishedDetectorProjectJob(
             WorkspacesManager workspacesManager,
-            RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            Duration period,
-            Duration heartbeatThreshold,
+            JobConfig config,
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher) {
 
-        super(workspacesManager, remoteRepositoryManagerFactory, new SessionFinishedDetectorProjectJobDescriptor());
-        this.period = period;
-        this.heartbeatThreshold = heartbeatThreshold;
+        super(workspacesManager);
+        this.period = config.period();
+        this.heartbeatThreshold = config.durationParam(PARAM_HEARTBEAT_THRESHOLD);
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.sessionFinisher = sessionFinisher;
     }
 
     @Override
-    protected void executeOnRepository(
-            ProjectManager manager,
-            RepositoryStorage repositoryStorage,
-            SessionFinishedDetectorProjectJobDescriptor jobDescriptor,
-            JobContext context) {
-
+    protected void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage) {
         ProjectInfo projectInfo = manager.info();
         ProjectRepositoryRepository projectRepositoryRepository =
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id());
 
         List<ProjectInstanceSessionInfo> unfinishedSessions = projectRepositoryRepository.findUnfinishedSessions();
-
         if (unfinishedSessions.isEmpty()) {
             return;
         }
 
-        List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
-        if (repositoryInfos.isEmpty()) {
-            LOG.warn("No repository info found for project: projectId={}", projectInfo.id());
-            return;
-        }
-        RepositoryInfo repositoryInfo = repositoryInfos.getFirst();
+        // A session belongs to a repository, so one exists; the storage has it cached
+        RepositoryInfo repositoryInfo = repositoryStorage.repositoryInfo();
 
         for (ProjectInstanceSessionInfo sessionInfo : unfinishedSessions) {
             Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
 
-            sessionFinisher.tryFinishFromHeartbeat(
-                    projectRepositoryRepository, projectInfo, sessionInfo,
-                    sessionPath, heartbeatThreshold);
+            sessionFinisher.tryFinishFromHeartbeat(new SessionRef(projectInfo, sessionInfo, sessionPath), heartbeatThreshold);
         }
     }
 

@@ -21,17 +21,14 @@ package cafe.jeffrey.hub.core.configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.appinitializer.CopyLibsInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.configuration.properties.ProjectProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
+import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
+import cafe.jeffrey.hub.core.manager.HubRepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
-import cafe.jeffrey.hub.core.session.lifecycle.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.jdbc.DuckDBHubPersistenceProvider;
@@ -60,30 +57,27 @@ import java.time.Clock;
  */
 @Configuration
 @Import({
-        GlobalJobsConfiguration.class,
-        ProjectJobsConfiguration.class,
-        JobsConfiguration.class,
-        WebInfrastructureConfig.class,
+        SchedulerConfiguration.class,
+        ReconciliationConfiguration.class,
         VersionFeatureConfiguration.class
 })
-@EnableConfigurationProperties({ProjectProperties.class, SchedulerJobsProperties.class})
+@EnableConfigurationProperties({
+        SchedulerJobsProperties.class,
+        DefaultWorkspaceProperties.class,
+        WorkspacesProperties.class
+})
 @PropertySource("classpath:scheduler-defaults.properties")
 public class HubAppConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubAppConfiguration.class);
 
-    public static final String GLOBAL_SCHEDULER = "GLOBAL_SCHEDULER";
+    private static final String DUCKDB_URL_PREFIX = "jdbc:duckdb:";
+    /** Also the file {@code HubStorageManager} measures for the storage dashboard. */
+    private static final String DATABASE_FILE_NAME = "jeffrey-data.db";
 
     @Bean
     public Clock applicationClock() {
         return Clock.systemUTC();
-    }
-
-    @Bean
-    public DefaultWorkspaceProperties defaultWorkspaceProperties(
-            @Value("${jeffrey.hub.default-workspace.reference-id:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}") String referenceId,
-            @Value("${jeffrey.hub.default-workspace.name:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}") String name) {
-        return new DefaultWorkspaceProperties(referenceId, name);
     }
 
     @Bean
@@ -93,12 +87,10 @@ public class HubAppConfiguration {
             Clock clock) {
 
         String resolvedUrl = StringUtils.isNullOrBlank(databaseUrl)
-                ? "jdbc:duckdb:" + jeffreyDirs.homeDir().resolve("jeffrey-data.db")
+                ? DUCKDB_URL_PREFIX + jeffreyDirs.homeDir().resolve(DATABASE_FILE_NAME)
                 : databaseUrl;
 
-        DuckDBHubPersistenceProvider provider = new DuckDBHubPersistenceProvider();
-        provider.initialize(resolvedUrl, clock);
-        return provider;
+        return new DuckDBHubPersistenceProvider(resolvedUrl, clock);
     }
 
     @Bean
@@ -148,15 +140,15 @@ public class HubAppConfiguration {
 
     @Bean
     public ProjectManager.Factory projectManagerFactory(
-            Clock applicationClock,
             RepositoryStorage.Factory repositoryStorageFactory,
+            RepositoryManager.Factory repositoryManagerFactory,
             HubPlatformRepositories platformRepositories,
             TransactionOperations hubTransactionOperations) {
         return projectInfo -> new HubProjectManager(
-                applicationClock,
                 projectInfo,
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
+                repositoryManagerFactory,
                 hubTransactionOperations);
     }
 
@@ -166,7 +158,7 @@ public class HubAppConfiguration {
             RepositoryStorage.Factory repositoryStorageFactory,
             HubPlatformRepositories platformRepositories,
             TransactionOperations hubTransactionOperations) {
-        return projectInfo -> new RepositoryManagerImpl(
+        return projectInfo -> new HubRepositoryManager(
                 applicationClock,
                 projectInfo,
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
@@ -187,19 +179,10 @@ public class HubAppConfiguration {
                 ? jeffreyDirs.libs().toString()
                 : target;
 
-        String version = JeffreyVersion.resolveJeffreyVersion();
-        String resolvedVersion = version.startsWith("Cannot") ? null : version;
+        // A build with no version stamp copies into the target itself rather than a versioned subdirectory
+        String version = JeffreyVersion.version().orElse(null);
 
-        return new CopyLibsInitializer(Path.of(source), Path.of(resolvedTarget), resolvedVersion, maxKeptVersions);
+        return new CopyLibsInitializer(Path.of(source), Path.of(resolvedTarget), version, maxKeptVersions);
     }
 
-    @Bean
-    public FileHeartbeatReader fileHeartbeatReader() {
-        return new FileHeartbeatReader();
-    }
-
-    @Bean
-    public JobDescriptorFactory jobDescriptorFactory() {
-        return new JobDescriptorFactory();
-    }
 }

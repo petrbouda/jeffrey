@@ -153,7 +153,7 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="tip">
-        For production deployments, mount the shared volume <em>read-write</em> on the producer pods and <em>read-only</em> on the Server pod. Server only needs to read the JFR files.
+        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention jobs delete sessions and instance directories, the profiler-settings synchronizer publishes settings into each workspace, and the delete RPCs remove files on request. A read-only mount leaves every one of those failing quietly.
       </DocsCallout>
 
       <h2 id="directory-layout">Directory Layout</h2>
@@ -161,17 +161,20 @@ onMounted(() => {
 
       <div class="directory-structure">
         <pre><code>$JEFFREY_HOME/                        # Server home
-├── jeffrey-data.db                   # Platform database
-├── temp/                             # Temporary files
-└── recordings/                       # ── usually a shared volume (NFS / PVC) ──
-    └── {project-id}/
-        └── {session-id}/
-            ├── recording.jfr         # JFR (or recording.jfr.lz4)
-            └── ...                   # heap dumps, JVM logs, perf-counters</code></pre>
+├── jeffrey-data.db                   # Hub database
+├── temp/                             # Scratch files
+└── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
+    └── {workspace-ref-id}/
+        ├── .settings/                # profiler settings the Hub publishes for the provisioner
+        └── {project}/
+            └── {instance}/
+                └── {session}/
+                    ├── profile-20260220-120500.jfr      # a chunk (or .jfr.lz4 once compressed)
+                    └── ...                              # heap dumps, JVM logs, perf-counters</code></pre>
       </div>
 
       <DocsCallout type="tip">
-        Override the home directory with <code>jeffrey.hub.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_HUB_HOME_DIR</code> environment variable. The <code>recordings/</code> directory is typically mounted from a shared volume regardless of where the home itself lives.
+        Override the home directory with <code>jeffrey.hub.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_HUB_HOME_DIR</code> environment variable. The <code>workspaces/</code> directory is typically mounted from a shared volume regardless of where the home itself lives.
       </DocsCallout>
     </div>
 

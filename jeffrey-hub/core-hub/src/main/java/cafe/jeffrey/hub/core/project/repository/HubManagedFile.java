@@ -20,10 +20,7 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 /**
  * The two kinds of file the hub does anything to: the JFR it compresses, and the archive that
@@ -46,41 +43,19 @@ import java.util.function.Predicate;
  * would collide a {@code service.log} with a {@code service.hprof} beside it.
  */
 public enum HubManagedFile {
-    // JFR_LZ4 must be before JFR so that .jfr.lz4 is matched first
-    JFR_LZ4(
-            HubManagedFile.JFR_LZ4_EXTENSION,
-            filename -> filename.endsWith("." + HubManagedFile.JFR_LZ4_EXTENSION),
-            TimestampResolver.RECORDING_NAME
-    ),
-    JFR(
-            HubManagedFile.JFR_EXTENSION,
-            filename -> filename.endsWith("." + HubManagedFile.JFR_EXTENSION),
-            TimestampResolver.RECORDING_NAME,
-            Compression.LZ4
-    );
+    JFR_LZ4(HubManagedFile.JFR_LZ4_EXTENSION, TimestampResolver.RECORDING_NAME, null),
+    JFR(HubManagedFile.JFR_EXTENSION, TimestampResolver.RECORDING_NAME, Compression.LZ4);
 
     private static final String JFR_EXTENSION = "jfr";
     private static final String JFR_LZ4_EXTENSION = "jfr.lz4";
-
-    private static final List<HubManagedFile> IN_MATCHING_ORDER = Arrays.asList(values());
+    private static final String EXTENSION_SEPARATOR = ".";
 
     private final String fileExtension;
-    private final Predicate<String> filenameMatcher;
     private final TimestampResolver timestampResolver;
     private final Compression compression;
 
-    HubManagedFile(String fileExtension, Predicate<String> filenameMatcher, TimestampResolver timestampResolver) {
-        this(fileExtension, filenameMatcher, timestampResolver, Compression.NONE);
-    }
-
-    HubManagedFile(
-            String fileExtension,
-            Predicate<String> filenameMatcher,
-            TimestampResolver timestampResolver,
-            Compression compression) {
-
+    HubManagedFile(String fileExtension, TimestampResolver timestampResolver, Compression compression) {
         this.fileExtension = fileExtension;
-        this.filenameMatcher = filenameMatcher;
         this.timestampResolver = timestampResolver;
         this.compression = compression;
     }
@@ -90,23 +65,24 @@ public enum HubManagedFile {
     }
 
     /**
-     * The recording type of a file, or empty for a file the hub has no name for.
+     * The recording type of a file, or empty for a file the hub has no name for. The two
+     * extensions cannot both match one name — {@code .jfr.lz4} does not end with {@code .jfr}
+     * — so no order among the constants is load-bearing.
      */
     public static Optional<HubManagedFile> of(String filename) {
-        return IN_MATCHING_ORDER.stream()
+        return Arrays.stream(values())
                 .filter(type -> type.matches(filename))
                 .findFirst();
     }
 
     /**
-     * Whether a file of this name is of this type, ignoring the case of the name — a recording
-     * copied off a case-preserving share is the same recording.
+     * Whether a file of this name is of this type. Exact case: the profiler writes the extension
+     * in lower case, and so does the compression job, and {@link #idOf} and the timestamp parse
+     * strip the same suffix — matched loosely here and stripped exactly there, an upper-cased
+     * name was a recording whose id changed when it was compressed.
      */
     public boolean matches(String filename) {
-        if (filename == null) {
-            return false;
-        }
-        return filenameMatcher.test(filename.toLowerCase(Locale.ROOT));
+        return filename != null && filename.endsWith(suffix());
     }
 
     /** A compressed form this hub wrote and closed in one pass — the far end of a rewrite. */
@@ -118,8 +94,12 @@ public enum HubManagedFile {
         return timestampResolver;
     }
 
-    public Compression compression() {
-        return compression;
+    /**
+     * How a file of this type is compressed, or empty for one that must be left as it is — the
+     * archive, whose rewrite would be a second archive of an archive.
+     */
+    public Optional<Compression> compression() {
+        return Optional.ofNullable(compression);
     }
 
     /**
@@ -128,7 +108,11 @@ public enum HubManagedFile {
      */
     public String idOf(Path file) {
         String name = file.getFileName().toString();
-        String suffix = "." + fileExtension;
+        String suffix = suffix();
         return name.endsWith(suffix) ? name.substring(0, name.length() - suffix.length()) : name;
+    }
+
+    private String suffix() {
+        return EXTENSION_SEPARATOR + fileExtension;
     }
 }

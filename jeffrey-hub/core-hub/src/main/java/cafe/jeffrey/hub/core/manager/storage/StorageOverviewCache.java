@@ -43,12 +43,12 @@ public class StorageOverviewCache {
 
     private static final Logger LOG = LoggerFactory.getLogger(StorageOverviewCache.class);
 
-    private final StorageManager storageManager;
+    private final HubStorageManager storageManager;
     private final Clock clock;
 
     private volatile CachedOverview cached;
 
-    public StorageOverviewCache(StorageManager storageManager, Clock clock) {
+    public StorageOverviewCache(HubStorageManager storageManager, Clock clock) {
         this.storageManager = storageManager;
         this.clock = clock;
     }

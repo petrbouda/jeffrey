@@ -58,7 +58,8 @@ class DeleteCascadeTransactionTest {
         assertThrows(Exception.class,
                 () -> client.deleteCascade(StatementLabel.DELETE_WORKSPACE, cascade, params));
 
-        assertEquals(1, countRows(dataSource,
+        // The workspace's own row and its project's — both would have gone with the first statement
+        assertEquals(2, countRows(dataSource,
                 "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id = 'ws-001'"),
                 "The successful first statement must be rolled back with the failed cascade");
     }

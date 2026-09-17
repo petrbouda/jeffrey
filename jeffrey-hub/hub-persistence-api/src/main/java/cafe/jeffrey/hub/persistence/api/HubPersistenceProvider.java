@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.persistence.api;
 
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.time.Clock;
 
 /**
  * Provider for hub-level persistence operations.
@@ -29,17 +28,7 @@ import java.time.Clock;
 public interface HubPersistenceProvider {
 
     /**
-     * Initialize the persistence provider with the given database URL.
-     * Opens the database connection and runs migrations.
-     *
-     * @param databaseUrl the JDBC URL for the database
-     * @param clock clock for time-based operations
-     */
-    void initialize(String databaseUrl, Clock clock);
-
-    /**
      * Get the hub platform repositories factory.
-     * Must be called after {@link #initialize(String, Clock)}.
      *
      * @return hub platform repositories factory
      */
@@ -47,7 +36,6 @@ public interface HubPersistenceProvider {
 
     /**
      * Get the database client provider for direct database access.
-     * Must be called after {@link #initialize(String, Clock)}.
      *
      * @return database client provider
      */

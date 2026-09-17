@@ -24,6 +24,7 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.jfr.events.grpc.interceptor.JfrGrpcServerInterceptor;
+import cafe.jeffrey.shared.common.Schedulers;
 import io.grpc.BindableService;
 import io.grpc.ServerInterceptor;
 import org.springframework.context.annotation.Bean;
@@ -78,18 +79,15 @@ public class GrpcServerConfiguration {
     }
 
     @Bean
-    public BindableService instanceGrpcService(
-            HubPlatformRepositories platformRepositories,
-            GrpcLookups grpcLookups,
-            Clock clock) {
-        return new InstanceGrpcService(platformRepositories, grpcLookups, clock);
+    public BindableService instanceGrpcService(HubPlatformRepositories platformRepositories, GrpcLookups grpcLookups) {
+        return new InstanceGrpcService(platformRepositories, grpcLookups);
     }
 
     @Bean
     public BindableService profilerSettingsGrpcService(
             HubPlatformRepositories platformRepositories,
             GrpcLookups grpcLookups) {
-        return new ProfilerSettingsGrpcService(platformRepositories, grpcLookups);
+        return new ProfilerSettingsGrpcService(platformRepositories.newProfilerRepository(), grpcLookups);
     }
 
     @Bean
@@ -99,6 +97,6 @@ public class GrpcServerConfiguration {
 
     @Bean
     public BindableService fileDownloadGrpcService(GrpcLookups grpcLookups) {
-        return new FileDownloadGrpcService(grpcLookups);
+        return new FileDownloadGrpcService(grpcLookups, Schedulers.streamingExecutor());
     }
 }

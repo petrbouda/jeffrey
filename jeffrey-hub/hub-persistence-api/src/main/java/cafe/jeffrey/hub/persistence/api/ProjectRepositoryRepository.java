@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -99,13 +99,6 @@ public interface ProjectRepositoryRepository {
      * @param finishedAt the timestamp when the session was detected as finished
      */
     void markSessionFinished(String sessionId, Instant finishedAt);
-
-    /**
-     * Find the session ID of the latest session by original creation date.
-     *
-     * @return the latest session ID if any sessions exist, otherwise empty
-     */
-    Optional<String> findLatestSessionId();
 
     /**
      * Mark a session as retained or release it again. A retained session is exempt

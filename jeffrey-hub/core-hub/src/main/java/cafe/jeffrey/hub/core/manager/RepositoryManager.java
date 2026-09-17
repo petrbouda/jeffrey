@@ -18,12 +18,12 @@
 
 package cafe.jeffrey.hub.core.manager;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.hub.model.repository.InstanceStats;
 import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
 import cafe.jeffrey.hub.model.repository.StreamedFile;
 
@@ -48,21 +48,21 @@ public interface RepositoryManager {
     /**
      * Lists all recording sessions in the repository, newest first.
      *
-     * @param withFiles whether to include file details in the sessions
+     * @param detail whether to load each session's files as well
      * @return list of recording sessions
      */
-    default List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return listRecordingSessions(withFiles, RecordingSessionFilter.ALL);
+    default List<RecordingSession> listRecordingSessions(SessionDetail detail) {
+        return listRecordingSessions(detail, RecordingSessionFilter.ALL);
     }
 
     /**
      * Lists the recording sessions that satisfy the filter, newest first.
      *
-     * @param withFiles whether to include file details in the sessions
+     * @param detail    whether to load each session's files as well in the sessions
      * @param filter    the window, status and count constraints to apply
      * @return list of matching recording sessions
      */
-    List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter);
+    List<RecordingSession> listRecordingSessions(SessionDetail detail, RecordingSessionFilter filter);
 
     /**
      * Calculates comprehensive repository statistics including session counts,
@@ -73,13 +73,11 @@ public interface RepositoryManager {
     RepositoryStatistics calculateRepositoryStatistics();
 
     /**
-     * Aggregates storage statistics (file count and total size) for a single
-     * instance by walking only its session directories on disk.
-     *
-     * @param instanceId the instance to compute stats for
-     * @return file count and total size across all sessions of that instance
+     * One instance's sessions with their files, newest first: one walk of that instance's
+     * directories, from which a caller derives its statistics and which of its sessions
+     * finished empty.
      */
-    InstanceStats instanceStats(String instanceId);
+    List<RecordingSession> instanceSessions(String instanceId);
 
     /**
      * Create a new repository for the project.
@@ -97,7 +95,11 @@ public interface RepositoryManager {
 
     Optional<RepositoryInfo> info();
 
-    void deleteRecordingSession(String recordingSessionId);
+    /**
+     * @return whether a session of that id existed and was deleted; {@code false} names a
+     * session already gone, which a caller counting reclaimed bytes must not count
+     */
+    boolean deleteRecordingSession(String recordingSessionId);
 
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 

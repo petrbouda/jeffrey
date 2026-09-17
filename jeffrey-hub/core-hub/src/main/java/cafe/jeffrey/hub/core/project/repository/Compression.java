@@ -33,17 +33,11 @@ import java.nio.file.Path;
  * and a creation time from the moment of compression. That file is lost to every reader of it and
  * the original has been deleted.
  *
- * <p>Hence {@link #NONE}, and hence it being the answer for every type but one. It is not a gap
- * waiting to be filled with an algorithm — it is the statement that rewriting this type destroys
- * it, and the caller is expected to leave the file alone.
+ * <p>Hence {@link HubManagedFile#compression()} answering with an {@code Optional} that is empty
+ * for every type but one. That emptiness is not a gap waiting to be filled with an algorithm —
+ * it is the statement that rewriting this type destroys it, and the caller leaves the file alone.
  */
-public sealed interface Compression permits Lz4Compression, NoCompression {
-
-    /**
-     * Whether a file of this type may be compressed at all. A caller that ignores this and calls
-     * {@link #compress} anyway gets an exception rather than a quietly broken file.
-     */
-    boolean isSupported();
+public sealed interface Compression permits Lz4Compression {
 
     /** Where the compressed form of this file belongs, beside the file itself. */
     Path target(Path source);
@@ -64,9 +58,6 @@ public sealed interface Compression permits Lz4Compression, NoCompression {
      *                          target is left as it was and the source is untouched
      */
     Path compress(Path source, Path target);
-
-    /** For every type whose compressed form nothing could classify, and for the archive itself. */
-    Compression NONE = new NoCompression();
 
     /** LZ4, for recordings the rest of the tree can read compressed. */
     Compression LZ4 = new Lz4Compression();

@@ -18,70 +18,76 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import java.util.function.Function;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<ProjectInstanceSessionCleanerJobDescriptor> {
+public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstanceSessionCleanerJob.class);
 
-    private final Duration period;
-    private final Clock clock;
-    private final HubPlatformRepositories platformRepositories;
+    private static final String PARAM_RETENTION = "retention";
+    private static final String PARAM_MAX_SESSIONS = "max-sessions";
 
-    public ProjectInstanceSessionCleanerJob(
-            WorkspacesManager workspacesManager,
-            RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            ProjectInstanceSessionCleanerJobDescriptor jobDescriptor,
-            Duration period,
-            Clock clock,
-            HubPlatformRepositories platformRepositories) {
-        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptor);
-        this.period = period;
+    private final Duration period;
+    private final Duration duration;
+    private final int maxSessions;
+    private final Clock clock;
+
+    /**
+     * @param config carries two independent retention rules per instance: an age window
+     *               ({@code retention}) and a cap of {@code max-sessions} logical sessions,
+     *               where a consecutive run of failed-empty sessions (a crash loop) counts as one
+     */
+    public ProjectInstanceSessionCleanerJob(WorkspacesManager workspacesManager, JobConfig config, Clock clock) {
+        super(workspacesManager);
+        this.period = config.period();
+        this.duration = config.durationParam(PARAM_RETENTION);
+        this.maxSessions = config.intParam(PARAM_MAX_SESSIONS);
         this.clock = clock;
-        this.platformRepositories = platformRepositories;
+        if (maxSessions <= 0) {
+            throw new IllegalArgumentException(PARAM_MAX_SESSIONS + " must be positive: " + maxSessions);
+        }
     }
 
     @Override
-    protected void executeOnRepository(
-            ProjectManager manager,
-            RepositoryStorage repositoryStorage,
-            ProjectInstanceSessionCleanerJobDescriptor jobDescriptor,
-            JobContext context) {
-
-        String projectId = manager.info().id();
+    protected void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage) {
         String projectName = manager.info().name();
-        LOG.debug("Cleaning the project instance sessions: project='{}'", projectName);
-        Duration duration = jobDescriptor.toDuration();
-        int maxSessions = jobDescriptor.maxSessions();
+        LOG.debug("Cleaning the project instance sessions: project_name={}", projectName);
 
         Instant currentTime = clock.instant();
-        ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
+        ProjectInstanceRepository instanceRepo = manager.projectInstanceRepository();
+        // One query for every instance of the project rather than one per instance below
+        Map<String, ProjectInstanceInfo> instancesById = instanceRepo.findAll().stream()
+                .collect(Collectors.toMap(ProjectInstanceInfo::id, Function.identity()));
 
         // Group ALL non-retained sessions by instance — the still-active session must occupy
         // a slot of the max-sessions cap, so it stays in the list and is excluded only at
         // deletion time. Retained sessions are pinned evidence (a manual pin, or an auto-pin
         // from a detected JVM crash): they never expire and never consume a cap slot.
-        // Files must be loaded (listSessions(true)) so isFailedEmpty() sees real sizes.
-        Map<String, List<RecordingSession>> sessionsByInstance = repositoryStorage.listSessions(true).stream()
+        // Files must be loaded (listSessions(SessionDetail.WITH_FILES)) so isFailedEmpty() sees real sizes.
+        Map<String, List<RecordingSession>> sessionsByInstance = repositoryStorage.listSessions(SessionDetail.WITH_FILES).stream()
                 .filter(session -> !session.retained())
                 .collect(Collectors.groupingBy(RecordingSession::instanceId));
 
@@ -91,9 +97,8 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
             String instanceId = entry.getKey();
             InstanceSessionUnits units = InstanceSessionUnits.of(entry.getValue());
 
-            Optional<ProjectInstanceInfo> instanceOpt = instanceRepo.find(instanceId);
-            boolean isFinished = instanceOpt.isPresent()
-                    && instanceOpt.get().status() == ProjectInstanceStatus.FINISHED;
+            ProjectInstanceInfo instance = instancesById.get(instanceId);
+            boolean isFinished = instance != null && instance.status() == ProjectInstanceStatus.FINISHED;
 
             // Protection slot: the newest FINISHED session that actually produced data.
             // Failed/empty sessions (finished with zero bytes, e.g. a crash-looped container)
@@ -140,6 +145,36 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
         if (!candidatesForDeletion.isEmpty()) {
             JfrNotificationEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
         }
+
+        // The same window inside every session still recording: its closed chunks older than
+        // it go, the one its profiler holds open stays whatever its age
+        Instant cutoff = currentTime.minus(duration);
+        sessionsByInstance.values().stream()
+                .flatMap(List::stream)
+                .filter(session -> session.status() == RecordingStatus.ACTIVE)
+                .forEach(session -> trimOlderThan(repositoryStorage, session, cutoff, projectName));
+    }
+
+    /**
+     * Deletes the session's closed chunks created before {@code cutoff}. The chunk the profiler
+     * is still writing is never among them — {@link RecordingSession#finishedRecordings()} is
+     * what leaves it out.
+     */
+    private static void trimOlderThan(
+            RepositoryStorage repositoryStorage, RecordingSession session, Instant cutoff, String projectName) {
+
+        List<String> filesToDelete = session.finishedRecordings().stream()
+                .filter(file -> file.createdAt().isBefore(cutoff))
+                .map(RepositoryFile::id)
+                .toList();
+
+        if (filesToDelete.isEmpty()) {
+            return;
+        }
+
+        repositoryStorage.deleteRepositoryFiles(session.id(), filesToDelete);
+        LOG.info("Deleted expired recordings from live session: project_name={} session_id={} count={}",
+                projectName, session.id(), filesToDelete.size());
     }
 
     @Override

@@ -150,6 +150,9 @@ class WorkspaceGrpcServiceTest {
         void createsWorkspaceAndReturnsIt() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
+            var created = mock(WorkspaceManager.class);
+            when(created.resolveInfo()).thenReturn(testWorkspaceInfo().withStatus(WorkspaceStatus.UNAVAILABLE));
+            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(created));
 
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
@@ -161,6 +164,8 @@ class WorkspaceGrpcServiceTest {
 
             assertEquals(WORKSPACE_ID, response.getWorkspace().getId());
             assertEquals("Test Workspace", response.getWorkspace().getName());
+            // The row carries no status; the answer is the one the manager resolves from the directory
+            assertEquals(cafe.jeffrey.hub.api.v1.WorkspaceStatus.WORKSPACE_STATUS_UNAVAILABLE, response.getWorkspace().getStatus());
         }
 
         @Test
@@ -277,6 +282,9 @@ class WorkspaceGrpcServiceTest {
         void plainReferenceId_passesThroughToManager() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
+            var created = mock(WorkspaceManager.class);
+            when(created.resolveInfo()).thenReturn(testWorkspaceInfo());
+            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(created));
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             CreateWorkspaceRequest request = CreateWorkspaceRequest.newBuilder()

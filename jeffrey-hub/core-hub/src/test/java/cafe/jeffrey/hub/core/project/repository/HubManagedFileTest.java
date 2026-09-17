@@ -39,9 +39,14 @@ class HubManagedFileTest {
             assertEquals(Optional.of(HubManagedFile.JFR_LZ4), HubManagedFile.of("profile-20260220-120500.jfr.lz4"));
         }
 
+        /**
+         * The profiler writes the extension in lower case and nothing else names a recording.
+         * Matched loosely and stripped exactly, an upper-cased name was a JFR whose id changed
+         * from {@code PROFILE.JFR} to {@code PROFILE.JFR.lz4} when it was compressed.
+         */
         @Test
-        void anUpperCasedNameIsTheSameType() {
-            assertEquals(Optional.of(HubManagedFile.JFR), HubManagedFile.of("PROFILE.JFR"));
+        void anUpperCasedNameIsNotARecording() {
+            assertEquals(Optional.empty(), HubManagedFile.of("PROFILE.JFR"));
         }
 
         /**

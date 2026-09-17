@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
 import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
-import cafe.jeffrey.hub.model.job.JobInfo;
+import cafe.jeffrey.hub.core.web.response.JobResponse;
 import cafe.jeffrey.hub.model.job.JobType;
 
 import java.util.List;
@@ -51,8 +51,10 @@ public class SchedulerController {
     }
 
     @GetMapping("/jobs")
-    public List<JobInfo> jobs() {
-        return jobRegistry.all();
+    public List<JobResponse> jobs() {
+        return jobRegistry.all().stream()
+                .map(JobResponse::from)
+                .toList();
     }
 
     /**
@@ -65,11 +67,16 @@ public class SchedulerController {
      */
     @PostMapping("/jobs/{jobType}/run")
     public ManualJobRunner.Result run(@PathVariable("jobType") String jobType) {
+        JobType type;
         try {
-            return manualJobRunner.run(JobType.valueOf(jobType));
-        } catch (IllegalArgumentException | ManualJobRunner.ManualRunNotSupportedException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "No job that can be run manually: " + jobType, e);
+            type = JobType.valueOf(jobType);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No job that can be run manually: " + jobType, e);
+        }
+        try {
+            return manualJobRunner.run(type);
+        } catch (ManualJobRunner.ManualRunNotSupportedException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No job that can be run manually: " + jobType, e);
         }
     }
 }

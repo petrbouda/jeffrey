@@ -27,25 +27,18 @@ import javax.sql.DataSource;
 
 public class DuckDBHubDatabaseManager implements DatabaseManager {
 
-    private static final String DEFAULT_MIGRATIONS_LOCATION = "classpath:db/migration/hub";
+    private static final String MIGRATIONS_LOCATION = "classpath:db/migration/hub";
+
+    /** Named apart from Microscope's pool so the two are told apart in JFR pool metrics. */
+    private static final String POOL_NAME = "hub-database-pool";
 
     private static final int MAX_POOL_SIZE = 25;
-
-    private final String migrationsLocation;
-
-    public DuckDBHubDatabaseManager() {
-        this(DEFAULT_MIGRATIONS_LOCATION);
-    }
-
-    public DuckDBHubDatabaseManager(String migrationsLocation) {
-        this.migrationsLocation = migrationsLocation;
-    }
 
     @Override
     public DataSource open(String databaseUri) {
         DataSourceParams.Builder dataSourceParams = DataSourceParams.builder()
                 .url(databaseUri)
-                .poolName("core-database-pool")
+                .poolName(POOL_NAME)
                 .maxPoolSize(MAX_POOL_SIZE)
                 .enableMetrics(true);
 
@@ -58,7 +51,7 @@ public class DuckDBHubDatabaseManager implements DatabaseManager {
                 .dataSource(dataSource)
                 .validateOnMigrate(true)
                 .validateMigrationNaming(true)
-                .locations(migrationsLocation)
+                .locations(MIGRATIONS_LOCATION)
                 .sqlMigrationPrefix("V")
                 .sqlMigrationSeparator("__")
                 .load();

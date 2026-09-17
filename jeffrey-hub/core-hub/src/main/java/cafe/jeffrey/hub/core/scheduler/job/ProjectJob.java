@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2026 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,62 +18,30 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.scheduler.Job;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptor;
-import cafe.jeffrey.shared.common.measure.Measuring;
-
-import java.time.Duration;
 
 /**
- * Base class for jobs that fan out across all projects in all workspaces. The
- * descriptor is constant for the lifetime of the job (resolved at startup from
- * {@code application.properties}); each tick iterates the live project list and
- * invokes {@link #execute} once per project.
+ * Base class for jobs that fan out across all projects in all workspaces: each tick
+ * iterates the live project list and invokes {@link #execute(ProjectManager)} once per project.
  */
-public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
+public abstract class ProjectJob extends FanOutJob {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectJob.class);
-
-    private final WorkspacesManager workspacesManager;
-    protected final T jobDescriptor;
-
-    protected ProjectJob(WorkspacesManager workspacesManager, T jobDescriptor) {
-        this.workspacesManager = workspacesManager;
-        this.jobDescriptor = jobDescriptor;
+    protected ProjectJob(WorkspacesManager workspacesManager) {
+        super(workspacesManager);
     }
 
     @Override
-    public ExecutorGroup executorGroup() {
-        return ExecutorGroup.PROJECT_FAN_OUT;
-    }
-
-    @Override
-    public void execute(JobContext context) {
-        String simpleName = this.getClass().getSimpleName();
-
+    public void execute() {
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
+            String workspaceId = workspaceManager.resolveInfo().id();
             for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
-                // Isolate per-project failures: one broken project (vanished session directory,
-                // storage hiccup) must not abort the tick for every remaining project.
-                try {
-                    Duration elapsed = Measuring.r(() -> execute(projectManager, jobDescriptor, context));
-                    LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} project_id={}",
-                            simpleName, elapsed.toMillis(),
-                            workspaceManager.resolveInfo().id(), projectManager.info().id());
-                } catch (Exception e) {
-                    LOG.error("Job failed for project, continuing with remaining projects: " +
-                                    "job={} workspace_id={} project_id={}",
-                            simpleName, workspaceManager.resolveInfo().id(), projectManager.info().id(), e);
-                }
+                visit("workspace_id=" + workspaceId + " project_id=" + projectManager.info().id(),
+                        () -> execute(projectManager));
             }
         }
     }
 
-    protected abstract void execute(ProjectManager projectManager, T jobDescriptor, JobContext context);
+    protected abstract void execute(ProjectManager projectManager);
 }

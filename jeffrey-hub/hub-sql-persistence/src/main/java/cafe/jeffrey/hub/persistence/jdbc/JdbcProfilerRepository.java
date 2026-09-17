@@ -32,36 +32,39 @@ import java.util.List;
 
 public class JdbcProfilerRepository implements ProfilerRepository {
 
-    private static final String EMPTY = "$$EMPTY$$";
+    /**
+     * The UNIQUE key of a settings row, computed in SQL from the two scope ids so that the ids
+     * themselves can stay NULL where the scope has none. Spelled once and spliced into every
+     * statement that has to name a row.
+     */
+    private static final String SCOPE_KEY = "COALESCE(:workspace_id, '') || ':' || COALESCE(:project_id, '')";
 
     //language=SQL
     private static final String UPSERT_SETTINGS = """
-            INSERT INTO profiler_settings (workspace_id, project_id, agent_settings)
-            VALUES (:workspace_id, :project_id, :agent_settings)
-            ON CONFLICT (workspace_id, project_id) DO UPDATE SET agent_settings = EXCLUDED.agent_settings""";
+            INSERT INTO profiler_settings (workspace_id, project_id, scope_key, agent_settings)
+            VALUES (:workspace_id, :project_id, <SCOPE_KEY>, :agent_settings)
+            ON CONFLICT (scope_key) DO UPDATE SET agent_settings = EXCLUDED.agent_settings"""
+            .replace("<SCOPE_KEY>", SCOPE_KEY);
 
     //language=SQL
     private static final String FIND_WORKSPACE_SETTINGS = """
             SELECT * FROM profiler_settings
-            WHERE workspace_id = :workspace_id OR (workspace_id = '<EMPTY>' AND project_id = '<EMPTY>')"""
-            // to handle nulls
-            .replace("<EMPTY>", EMPTY);
-
-    //language=SQL
-    private static final String FIND_ALL_SETTINGS = "SELECT * FROM profiler_settings";
+            WHERE workspace_id = :workspace_id OR (workspace_id IS NULL AND project_id IS NULL)""";
 
     //language=SQL
     private static final String DELETE_SETTINGS = """
-            DELETE FROM profiler_settings
-            WHERE workspace_id = :workspace_id AND project_id = :project_id""";
+            DELETE FROM profiler_settings WHERE scope_key = <SCOPE_KEY>"""
+            .replace("<SCOPE_KEY>", SCOPE_KEY);
 
+    // The project's own row, its workspace's, and the global one — whichever of them exist.
+    // A NULL parameter matches nothing by equality, so a workspace-level query gets the
+    // workspace row and the global one, and a global query only the global one.
     //language=SQL
     private static final String FETCH_PROFILER_SETTINGS = """
             SELECT * FROM profiler_settings
             WHERE (workspace_id = :workspace_id AND project_id = :project_id)
-               OR (workspace_id = :workspace_id AND project_id = '<EMPTY>')
-               OR (workspace_id = '<EMPTY>' AND project_id = '<EMPTY>')"""
-            .replace("<EMPTY>", EMPTY);
+               OR (workspace_id = :workspace_id AND project_id IS NULL)
+               OR (workspace_id IS NULL AND project_id IS NULL)""";
 
     private final DatabaseClient databaseClient;
 
@@ -69,40 +72,12 @@ public class JdbcProfilerRepository implements ProfilerRepository {
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILER);
     }
 
-    /**
-     * Writes empty strings instead of nulls to the database because of UNIQUE constraints does not work with nulls.
-     *
-     * @param profiler the profiler info with possible nulls
-     * @return the profiler info with empty strings instead of nulls
-     */
-    private static ProfilerInfo writeEmpty(ProfilerInfo profiler) {
-        return new ProfilerInfo(
-                profiler.workspaceId() == null ? EMPTY : profiler.workspaceId(),
-                profiler.projectId() == null ? EMPTY : profiler.projectId(),
-                profiler.agentSettings());
-    }
-
-    /**
-     * Reads empty strings from the database and converts them to nulls.
-     *
-     * @param profiler the profiler info with possible empty strings
-     * @return the profiler info with nulls instead of empty strings
-     */
-    private static ProfilerInfo readEmpty(ProfilerInfo profiler) {
-        return new ProfilerInfo(
-                EMPTY.equals(profiler.workspaceId()) ? null : profiler.workspaceId(),
-                EMPTY.equals(profiler.projectId()) ? null : profiler.projectId(),
-                profiler.agentSettings());
-    }
-
     @Override
     public void upsertSettings(ProfilerInfo profiler) {
-        ProfilerInfo newProfiler = writeEmpty(profiler);
-
         SqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", newProfiler.workspaceId())
-                .addValue("project_id", newProfiler.projectId())
-                .addValue("agent_settings", newProfiler.agentSettings());
+                .addValue("workspace_id", profiler.workspaceId())
+                .addValue("project_id", profiler.projectId())
+                .addValue("agent_settings", profiler.agentSettings());
 
         databaseClient.insert(StatementLabel.UPSERT_PROFILER_SETTINGS, UPSERT_SETTINGS, paramSource);
     }
@@ -123,34 +98,22 @@ public class JdbcProfilerRepository implements ProfilerRepository {
                 .addValue("workspace_id", workspaceId);
 
         return databaseClient.query(
-                StatementLabel.FIND_PROFILER_SETTINGS, FIND_WORKSPACE_SETTINGS, paramSource, settingsMapper());
-    }
-
-    @Override
-    public List<ProfilerInfo> findAllSettings() {
-        return databaseClient.query(StatementLabel.FIND_PROFILER_SETTINGS, FIND_ALL_SETTINGS, settingsMapper());
+                StatementLabel.FIND_WORKSPACE_PROFILER_SETTINGS, FIND_WORKSPACE_SETTINGS, paramSource, settingsMapper());
     }
 
     @Override
     public void deleteSettings(String workspaceId, String projectId) {
-        ProfilerInfo profilerInfo = new ProfilerInfo(workspaceId, projectId, null);
-        ProfilerInfo newProfiler = writeEmpty(profilerInfo);
-
         SqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", newProfiler.workspaceId())
-                .addValue("project_id", newProfiler.projectId());
+                .addValue("workspace_id", workspaceId)
+                .addValue("project_id", projectId);
 
         databaseClient.delete(StatementLabel.DELETE_PROFILER_SETTINGS, DELETE_SETTINGS, paramSource);
     }
 
     private static RowMapper<ProfilerInfo> settingsMapper() {
-        return (rs, _) -> {
-            ProfilerInfo profilerInfo = new ProfilerInfo(
-                    rs.getString("workspace_id"),
-                    rs.getString("project_id"),
-                    rs.getString("agent_settings"));
-
-            return readEmpty(profilerInfo);
-        };
+        return (rs, _) -> new ProfilerInfo(
+                rs.getString("workspace_id"),
+                rs.getString("project_id"),
+                rs.getString("agent_settings"));
     }
 }

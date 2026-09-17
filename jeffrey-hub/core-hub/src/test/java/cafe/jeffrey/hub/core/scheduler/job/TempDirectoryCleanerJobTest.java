@@ -21,7 +21,6 @@ package cafe.jeffrey.hub.core.scheduler.job;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,7 +63,7 @@ class TempDirectoryCleanerJobTest {
         Path freshFile = Files.createFile(tempDir.resolve("in-flight-compression.lz4"));
         setModified(freshFile, NOW.minus(Duration.ofMinutes(10)));
 
-        job(tempDir).execute(JobContext.EMPTY);
+        job(tempDir).execute();
 
         assertFalse(Files.exists(expiredFile), "Expired file should be removed");
         assertFalse(Files.exists(expiredDir), "Expired directory should be removed recursively");
@@ -76,7 +75,7 @@ class TempDirectoryCleanerJobTest {
         Path boundaryFile = Files.createFile(tempDir.resolve("boundary.tmp"));
         setModified(boundaryFile, NOW.minus(RETENTION));
 
-        job(tempDir).execute(JobContext.EMPTY);
+        job(tempDir).execute();
 
         assertTrue(Files.exists(boundaryFile), "Entry exactly at the cutoff is not strictly older — keep it");
     }
@@ -85,6 +84,6 @@ class TempDirectoryCleanerJobTest {
     void toleratesMissingTempDirectory(@TempDir Path tempDir) {
         Path nonExistent = tempDir.resolve("does-not-exist");
 
-        assertDoesNotThrow(() -> job(nonExistent).execute(JobContext.EMPTY));
+        assertDoesNotThrow(() -> job(nonExistent).execute());
     }
 }

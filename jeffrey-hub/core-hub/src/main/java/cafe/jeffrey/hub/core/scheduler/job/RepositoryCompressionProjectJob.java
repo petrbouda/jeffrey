@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
@@ -26,8 +28,6 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.RepositoryCompressionProjectJobDescriptor;
 
 import java.time.Duration;
 import java.util.Comparator;
@@ -37,107 +37,51 @@ import java.util.Optional;
 /**
  * Scheduler job that compresses closed recording files using LZ4 compression.
  * <p>
- * When run without a specific session ID (periodic execution), this job processes:
- * - The ACTIVE session (if any)
- * - The latest FINISHED session
+ * Each tick compresses every session that is still recording — one per live instance of
+ * the project, and a project may have several — and the newest finished one. Older finished
+ * sessions were reached by an earlier tick and are skipped.
  * <p>
- * Older FINISHED sessions are assumed to be already compressed and are skipped.
- * <p>
- * Within a session there is nothing further to decide: every file up to the newest one is
- * compressed, and a session that is still recording keeps that newest chunk — the one the
- * profiler holds open — out of it. Whether a session is still recording is what the heartbeat
- * settles, and the answer reaches here as the session's status; the job itself does not read a
- * file to find out. Compressing the open chunk would compress a prefix of it and then delete the
- * file the profiler is writing into.
+ * Within a session there is nothing further to decide: every closed chunk is compressed, and a
+ * session that is still recording keeps the one chunk its profiler holds open out of it. Whether
+ * a session is still recording is a fact of the session ({@code finishedAt} is null, until the
+ * heartbeat, the reconciler or the expiry job stamps it), never of its position in the project's
+ * listing; the job itself does not read a file to find out. Compressing the open chunk would
+ * compress a prefix of it and then delete the file the profiler is writing into.
  */
-public class RepositoryCompressionProjectJob extends RepositoryProjectJob<RepositoryCompressionProjectJobDescriptor> {
+public class RepositoryCompressionProjectJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryCompressionProjectJob.class);
 
-    /**
-     * Parameter key for specifying a target session ID for on-demand compression.
-     */
-    public static final String PARAM_SESSION_ID = "sessionId";
-
     private final Duration period;
 
-    public RepositoryCompressionProjectJob(
-            WorkspacesManager workspacesManager,
-            RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            Duration period) {
-
-        super(workspacesManager, remoteRepositoryManagerFactory, new RepositoryCompressionProjectJobDescriptor());
-        this.period = period;
+    public RepositoryCompressionProjectJob(WorkspacesManager workspacesManager, JobConfig config) {
+        super(workspacesManager);
+        this.period = config.period();
     }
 
     @Override
-    protected void executeOnRepository(
-            ProjectManager manager,
-            RepositoryStorage repositoryStorage,
-            RepositoryCompressionProjectJobDescriptor jobDescriptor,
-            JobContext context) {
-
+    protected void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage) {
         String projectName = manager.info().name();
-        LOG.debug("Starting JFR compression check: project='{}'", projectName);
+        LOG.debug("Starting JFR compression check: project_name={}", projectName);
 
-        List<RecordingSession> sessions = repositoryStorage.listSessions(true);
-
+        // Headers only: compressSession loads the one session it works on with files itself
+        List<RecordingSession> sessions = repositoryStorage.listSessions(SessionDetail.HEADERS);
         if (sessions.isEmpty()) {
-            LOG.debug("No sessions found for compression: project='{}'", projectName);
+            LOG.debug("No sessions found for compression: project_name={}", projectName);
             return;
         }
 
-        // Check if a specific session ID is provided in context
-        Optional<String> targetSessionId = context.get(PARAM_SESSION_ID);
-
-        if (targetSessionId.isPresent()) {
-            // Targeted mode: compress files for specific session
-            compressSpecificSession(repositoryStorage, sessions, targetSessionId.get(), projectName);
-        } else {
-            // Default periodic mode: ACTIVE + latest FINISHED sessions
-            compressDefaultSessions(repositoryStorage, sessions, projectName);
-        }
-    }
-
-    private void compressSpecificSession(
-            RepositoryStorage repositoryStorage,
-            List<RecordingSession> sessions,
-            String sessionId,
-            String projectName) {
-
-        boolean sessionExists = sessions.stream()
-                .anyMatch(s -> s.id().equals(sessionId));
-
-        if (sessionExists) {
-            LOG.info("Compressing files for specific session: project='{}' sessionId='{}'", projectName, sessionId);
-            repositoryStorage.compressSession(sessionId);
-        } else {
-            LOG.warn("Target session not found for compression: project='{}' sessionId='{}'", projectName, sessionId);
-        }
-    }
-
-    private void compressDefaultSessions(
-            RepositoryStorage repositoryStorage,
-            List<RecordingSession> sessions,
-            String projectName) {
-
-        // Find ACTIVE session (if any)
-        Optional<RecordingSession> activeSession = sessions.stream()
-                .filter(s -> s.status() == RecordingStatus.ACTIVE)
-                .findFirst();
-
-        // Find latest FINISHED session by creation date
-        Optional<RecordingSession> latestFinishedSession = sessions.stream()
-                .filter(s -> s.status() == RecordingStatus.FINISHED)
+        List<RecordingSession> live = sessions.stream()
+                .filter(session -> session.status() == RecordingStatus.ACTIVE)
+                .toList();
+        Optional<RecordingSession> newestFinished = sessions.stream()
+                .filter(session -> session.status() == RecordingStatus.FINISHED)
                 .max(Comparator.comparing(RecordingSession::createdAt));
 
-        // Process ACTIVE session (compress only FINISHED files within it)
-        activeSession.ifPresent(session ->
-                repositoryStorage.compressSession(session.id()));
-
-        // Process latest FINISHED session
-        latestFinishedSession.ifPresent(session ->
-                repositoryStorage.compressSession(session.id()));
+        for (RecordingSession session : live) {
+            repositoryStorage.compressSession(session.id());
+        }
+        newestFinished.ifPresent(session -> repositoryStorage.compressSession(session.id()));
     }
 
     @Override

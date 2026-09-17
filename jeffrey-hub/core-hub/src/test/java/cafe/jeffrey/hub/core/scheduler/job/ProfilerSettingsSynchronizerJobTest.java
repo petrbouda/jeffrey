@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -26,11 +27,9 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.hub.core.manager.workspace.LiveWorkspacesManager;
+import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.hub.core.repository.RemoteWorkspaceRepository;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchronizerJobDescriptor;
+import cafe.jeffrey.hub.core.workspace.settings.WorkspaceSettingsPublisher;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
@@ -71,13 +70,13 @@ class ProfilerSettingsSynchronizerJobTest {
     ProfilerRepository profilerRepository;
 
     @Mock
-    LiveWorkspacesManager workspacesManager;
+    HubWorkspacesManager workspacesManager;
 
     @Mock
     WorkspaceManager workspaceManager;
 
     @Mock
-    RemoteWorkspaceRepository remoteWorkspaceRepository;
+    WorkspaceSettingsPublisher settingsPublisher;
 
     @Mock
     HubPlatformRepositories platformRepositories;
@@ -98,19 +97,18 @@ class ProfilerSettingsSynchronizerJobTest {
 
         doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
         when(workspaceManager.resolveInfo()).thenReturn(workspaceInfo);
-        when(workspaceManager.remoteWorkspaceRepository()).thenReturn(remoteWorkspaceRepository);
+        when(workspaceManager.settingsPublisher()).thenReturn(settingsPublisher);
 
         job = new ProfilerSettingsSynchronizerJob(
-                Duration.ofMinutes(5),
-                profilerRepository,
                 workspacesManager,
-                ProfilerSettingsSynchronizerJobDescriptor.of(Map.of("max-versions", "5")),
+                new JobConfig(true, Duration.ofMinutes(5), Map.of("max-versions", "5")),
+                profilerRepository,
                 platformRepositories);
     }
 
     private ProfilerSettings uploadedSettings() {
         ArgumentCaptor<RemoteWorkspaceSettings> captor = ArgumentCaptor.forClass(RemoteWorkspaceSettings.class);
-        verify(remoteWorkspaceRepository).uploadSettings(captor.capture());
+        verify(settingsPublisher).uploadSettings(captor.capture());
         return captor.getValue().profiler();
     }
 
@@ -128,7 +126,7 @@ class ProfilerSettingsSynchronizerJobTest {
             when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepository);
             when(projectRepository.find()).thenReturn(Optional.of(projectInfo(ORIGIN_PROJECT_ID, PROJECT_NAME)));
 
-            job.execute(JobContext.EMPTY);
+            job.execute();
 
             ProfilerSettings settings = uploadedSettings();
             assertEquals("project-cmd", settings.projectSettings().get(PROJECT_NAME));
@@ -142,7 +140,7 @@ class ProfilerSettingsSynchronizerJobTest {
             when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepository);
             when(projectRepository.find()).thenReturn(Optional.of(projectInfo(null, PROJECT_NAME)));
 
-            job.execute(JobContext.EMPTY);
+            job.execute();
 
             ProfilerSettings settings = uploadedSettings();
             assertEquals("project-cmd", settings.projectSettings().get(PROJECT_NAME));
@@ -158,7 +156,7 @@ class ProfilerSettingsSynchronizerJobTest {
             when(profilerRepository.findWorkspaceSettings(WORKSPACE_ID))
                     .thenReturn(List.of(GLOBAL_SETTINGS, WORKSPACE_SETTINGS));
 
-            job.execute(JobContext.EMPTY);
+            job.execute();
 
             ProfilerSettings settings = uploadedSettings();
             assertEquals("workspace-cmd", settings.defaultSettings());
@@ -170,7 +168,7 @@ class ProfilerSettingsSynchronizerJobTest {
             when(profilerRepository.findWorkspaceSettings(WORKSPACE_ID))
                     .thenReturn(List.of(GLOBAL_SETTINGS));
 
-            job.execute(JobContext.EMPTY);
+            job.execute();
 
             ProfilerSettings settings = uploadedSettings();
             assertEquals("global-cmd", settings.defaultSettings());

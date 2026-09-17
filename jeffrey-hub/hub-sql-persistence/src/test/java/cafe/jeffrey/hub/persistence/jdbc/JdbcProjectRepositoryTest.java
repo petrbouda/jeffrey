@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -30,6 +30,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +41,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @DuckDBTest(migration = "classpath:db/migration/hub")
 class JdbcProjectRepositoryTest {
 
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC);
+
     @Nested
     class FindMethod {
 
@@ -45,7 +50,7 @@ class JdbcProjectRepositoryTest {
         void returnsProject_whenExists(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
+            JdbcProjectRepository repository = new JdbcProjectRepository(FIXED_CLOCK, "proj-001", provider);
 
             Optional<ProjectInfo> result = repository.find();
 
@@ -56,7 +61,7 @@ class JdbcProjectRepositoryTest {
         @Test
         void returnsEmpty_whenNotExists(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcProjectRepository repository = new JdbcProjectRepository("non-existent", provider);
+            JdbcProjectRepository repository = new JdbcProjectRepository(FIXED_CLOCK, "non-existent", provider);
 
             Optional<ProjectInfo> result = repository.find();
 
@@ -71,7 +76,7 @@ class JdbcProjectRepositoryTest {
         void returnsSoftDeletedProject(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
+            JdbcProjectRepository repository = new JdbcProjectRepository(FIXED_CLOCK, "proj-001", provider);
 
             repository.delete();
 
@@ -85,7 +90,7 @@ class JdbcProjectRepositoryTest {
         @Test
         void returnsEmpty_whenNotExists(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcProjectRepository repository = new JdbcProjectRepository("non-existent", provider);
+            JdbcProjectRepository repository = new JdbcProjectRepository(FIXED_CLOCK, "non-existent", provider);
 
             assertTrue(repository.findIncludingDeleted().isEmpty());
         }
@@ -98,7 +103,7 @@ class JdbcProjectRepositoryTest {
         void restoresSoftDeletedProject(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
+            JdbcProjectRepository repository = new JdbcProjectRepository(FIXED_CLOCK, "proj-001", provider);
 
             repository.delete();
             assertTrue(repository.find().isEmpty());
@@ -112,30 +117,13 @@ class JdbcProjectRepositoryTest {
     }
 
     @Nested
-    class UpdateProjectNameMethod {
-
-        @Test
-        void updatesName(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
-
-            repository.updateProjectName("Updated Name");
-
-            Optional<ProjectInfo> result = repository.find();
-            assertTrue(result.isPresent());
-            assertEquals("Updated Name", result.get().name());
-        }
-    }
-
-    @Nested
     class DeleteMethod {
 
         @Test
         void softDeletesProject_andHardDeletesRelatedData(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
+            JdbcProjectRepository repository = new JdbcProjectRepository(FIXED_CLOCK, "proj-001", provider);
 
             repository.delete();
 

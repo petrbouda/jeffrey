@@ -23,10 +23,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
+import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.core.session.lifecycle.SessionFinisher;
-import cafe.jeffrey.hub.core.session.lifecycle.SessionPaths;
+import cafe.jeffrey.hub.core.project.session.SessionFinisher;
+import cafe.jeffrey.hub.core.project.session.SessionPaths;
+import cafe.jeffrey.hub.core.project.session.SessionRef;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.JeffreyLayout;
@@ -37,6 +39,7 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
@@ -76,6 +79,9 @@ import java.util.stream.Stream;
 public class WorkspaceReconciler {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceReconciler.class);
+
+    /** A directory named this way is the hub's or the profiler's own, never an announced entity. */
+    private static final String HIDDEN_PREFIX = ".";
 
     private final Clock clock;
     private final HubJeffreyDirs jeffreyDirs;
@@ -163,14 +169,24 @@ public class WorkspaceReconciler {
 
         // The repository row can be missing when a project row was created without one
         // (interrupted earlier run) — repair it independently of project creation
-        if (projectManager.repositoryManager().info().isEmpty()) {
-            transactionOperations.executeWithoutResult(_ -> materializeRepository(projectManager, marker));
+        RepositoryManager repositoryManager = projectManager.repositoryManager();
+        if (repositoryManager.info().isEmpty()) {
+            transactionOperations.executeWithoutResult(_ -> materializeRepository(repositoryManager, projectManager, marker));
+        }
+        Optional<RepositoryInfo> repositoryInfo = repositoryManager.info();
+        if (repositoryInfo.isEmpty()) {
+            LOG.warn("Project has no repository after repair, skipping its instances: project_id={}",
+                    projectManager.info().id());
+            return materialized;
         }
 
-        KnownEntities known = readKnownEntities(projectManager);
+        // Resolved once per project and carried down: the manager, the repository and what the
+        // database already knows are the same for every instance and session under it
+        ReconciledProject project = new ReconciledProject(
+                projectManager, repositoryManager, repositoryInfo.get(), readKnownEntities(projectManager));
 
         for (Path instanceDir : childDirectories(projectDir)) {
-            materialized += reconcileInstance(projectManager, instanceDir, known);
+            materialized += reconcileInstance(project, instanceDir);
         }
         return materialized;
     }
@@ -219,15 +235,16 @@ public class WorkspaceReconciler {
         return projectManager;
     }
 
-    private void materializeRepository(ProjectManager projectManager, RemoteProject marker) {
+    private void materializeRepository(
+            RepositoryManager repositoryManager, ProjectManager projectManager, RemoteProject marker) {
         RepositoryInfo projectRepository = new RepositoryInfo(
-                null,
+                IDGenerator.generate(),
                 marker.repositoryType(),
                 marker.workspacesPath(),
                 marker.relativeWorkspacePath(),
                 marker.relativeProjectPath());
 
-        projectManager.repositoryManager().create(projectRepository);
+        repositoryManager.create(projectRepository);
         LOG.info("Repository created for project: project_id={}", projectManager.info().id());
     }
 
@@ -235,7 +252,9 @@ public class WorkspaceReconciler {
      * The instance directory is named by its instance id, so an already-known instance is
      * recognized from the directory name alone — its marker file is never opened.
      */
-    private int reconcileInstance(ProjectManager projectManager, Path instanceDir, KnownEntities known) {
+    private int reconcileInstance(ReconciledProject project, Path instanceDir) {
+        ProjectManager projectManager = project.manager();
+        KnownEntities known = project.known();
 
         int materialized = 0;
         String instanceId = instanceDir.getFileName().toString();
@@ -259,7 +278,7 @@ public class WorkspaceReconciler {
             instanceId = marker.instanceId();
         }
 
-        materialized += reconcileSessions(projectManager, instanceDir, instanceId, known);
+        materialized += reconcileSessions(project, instanceDir, instanceId);
         return materialized;
     }
 
@@ -284,10 +303,8 @@ public class WorkspaceReconciler {
         JfrNotificationEmitter.instanceCreated(marker.instanceId(), projectManager.info().name(), projectManager.info().id());
     }
 
-    private int reconcileSessions(
-            ProjectManager projectManager, Path instanceDir, String instanceId, KnownEntities known) {
-
-        Set<String> knownSessionIds = known.sessionIdsByInstance().getOrDefault(instanceId, Set.of());
+    private int reconcileSessions(ReconciledProject project, Path instanceDir, String instanceId) {
+        Set<String> knownSessionIds = project.known().sessionIdsByInstance().getOrDefault(instanceId, Set.of());
 
         // Oldest-first so force-finishing prior unfinished sessions sees the same order the
         // sessions were originally created in
@@ -301,27 +318,22 @@ public class WorkspaceReconciler {
 
         for (RemoteProjectInstanceSession session : newSessions) {
             transactionOperations.executeWithoutResult(_ ->
-                    materializeSession(projectManager, session));
+                    materializeSession(project, session));
         }
         return newSessions.size();
     }
 
-    private void materializeSession(ProjectManager projectManager, RemoteProjectInstanceSession marker) {
-
+    private void materializeSession(ReconciledProject project, RemoteProjectInstanceSession marker) {
+        ProjectManager projectManager = project.manager();
         ProjectInfo projectInfo = projectManager.info();
-        Optional<RepositoryInfo> repositoryInfo = projectManager.repositoryManager().info();
-        if (repositoryInfo.isEmpty()) {
-            LOG.warn("Cannot materialize session, project repository not found: session_id={} project_id={}",
-                    marker.sessionId(), projectInfo.id());
-            return;
-        }
+        RepositoryInfo repositoryInfo = project.repositoryInfo();
 
         Instant originCreatedAt = Instant.ofEpochMilli(marker.createdAt());
         ProjectRepositoryRepository repositoryRepository =
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id());
 
         int closedCount = closeUnfinishedSessions(
-                repositoryRepository, projectInfo, repositoryInfo.get(), marker.instanceId(), originCreatedAt);
+                repositoryRepository, projectInfo, repositoryInfo, marker.instanceId(), originCreatedAt);
         if (closedCount > 0) {
             LOG.info("Auto-closed unfinished sessions for instance before creating new session: "
                             + "project_id={} instance_id={} closed={}",
@@ -330,7 +342,7 @@ public class WorkspaceReconciler {
 
         ProjectInstanceSessionInfo sessionInfo = ProjectInstanceSessionInfo.notRetained(
                 marker.sessionId(),
-                repositoryInfo.get().id(),
+                repositoryInfo.id(),
                 marker.instanceId(),
                 marker.order(),
                 Path.of(marker.relativeSessionPath()),
@@ -339,7 +351,7 @@ public class WorkspaceReconciler {
                 null)
                 .withHeartbeatExpected(marker.heartbeatExpected());
 
-        projectManager.repositoryManager().createSession(sessionInfo);
+        project.repositoryManager().createSession(sessionInfo);
 
         // Transition instance to ACTIVE (handles PENDING→ACTIVE, FINISHED→ACTIVE, EXPIRED→ACTIVE)
         projectManager.projectInstanceRepository().updateStatus(marker.instanceId(), ProjectInstanceStatus.ACTIVE);
@@ -375,7 +387,7 @@ public class WorkspaceReconciler {
                     ? unfinished.get(i + 1).originCreatedAt()
                     : newSessionCreatedAt;
 
-            sessionFinisher.forceFinish(repositoryRepository, projectInfo, session, sessionPath, fallback);
+            sessionFinisher.forceFinish(new SessionRef(projectInfo, session, sessionPath), fallback);
         }
 
         return unfinished.size();
@@ -401,6 +413,17 @@ public class WorkspaceReconciler {
      * @param instanceIds          ids of every instance row of the project
      * @param sessionIdsByInstance session ids of the project, grouped by instance id
      */
+    /**
+     * One project as a scan works on it: its manager, its repository and the row that describes
+     * where its files are, and everything the database already knows under it.
+     */
+    private record ReconciledProject(
+            ProjectManager manager,
+            RepositoryManager repositoryManager,
+            RepositoryInfo repositoryInfo,
+            KnownEntities known) {
+    }
+
     private record KnownEntities(
             Set<String> instanceIds,
             Map<String, Set<String>> sessionIdsByInstance) {
@@ -413,7 +436,7 @@ public class WorkspaceReconciler {
         try (Stream<Path> children = Files.list(parent)) {
             return children
                     .filter(Files::isDirectory)
-                    .filter(path -> !path.getFileName().toString().startsWith("."))
+                    .filter(path -> !path.getFileName().toString().startsWith(HIDDEN_PREFIX))
                     .sorted()
                     .toList();
         } catch (IOException e) {

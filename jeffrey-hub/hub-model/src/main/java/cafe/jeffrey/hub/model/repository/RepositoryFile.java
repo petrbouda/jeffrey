@@ -41,15 +41,16 @@ import java.time.Instant;
  * @param name      the file's name, relative to the session directory
  * @param createdAt when the profiler opened the file — the timestamp in its own name for a chunk
  *                  that follows the naming convention, its filesystem creation time otherwise
- * @param size      the file's size in bytes, or {@code null} when it could not be read
+ * @param size      the file's size in bytes — a file whose size cannot be read is left out of
+ *                  the listing altogether rather than described with a size it does not have
  * @param recording whether the file is a recording chunk rather than an artifact beside one
- * @param filePath  the absolute path, or {@code null} for a file described from the wire
+ * @param filePath  the absolute path of the file on this hub's volume
  */
 public record RepositoryFile(
         String id,
         String name,
         Instant createdAt,
-        Long size,
+        long size,
         boolean recording,
         Path filePath) {
 
@@ -65,12 +66,10 @@ public record RepositoryFile(
      * something any reader can parse. The hub refuses to serve one and a download must not ask
      * for one; the question is asked here so the two cannot come to different answers.
      *
-     * <p>A size that could not be read at all counts as content: that is the one case where
-     * nothing here can tell, and treating it as empty would withhold a recording that may be
-     * whole. Worth asking of a recording only — an empty log is an answer, and a reader wanting
+     * <p>Worth asking of a recording only — an empty log is an answer, and a reader wanting
      * one wants to be handed the nothing it holds.
      */
     public boolean hasContent() {
-        return size == null || size > 0;
+        return size > 0;
     }
 }

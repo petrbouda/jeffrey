@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -136,8 +137,7 @@ class FilesystemRepositoryStorageTest {
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
                     SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, finishedAt, false, false, null)));
-            when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
+                    T0, T0, finishedAt, false, null)));
 
             return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class), workspacesDir, repository);
@@ -314,8 +314,7 @@ class FilesystemRepositoryStorageTest {
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
                     SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, finishedAt, false, false, null)));
-            when(repository.findLatestSessionId()).thenReturn(Optional.of(SESSION_ID));
+                    T0, T0, finishedAt, false, null)));
 
             return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class), workspacesDir, repository);
@@ -370,6 +369,40 @@ class FilesystemRepositoryStorageTest {
                     List.of("profile-20260220-120000.jfr.lz4", "profile-20260220-121000.jfr"),
                     names(session),
                     "the newest chunk of a live session is untouched");
+        }
+
+        /**
+         * Two instances of one project record at once, so only one of the two live sessions is
+         * the project's newest — and that must change nothing. Whether a session still holds a
+         * chunk open is a fact of the session ({@code finishedAt} is null), not of its place in
+         * the project's listing; read off the position, the older instance's live session came
+         * back FINISHED, reported no open chunk, and had the file its profiler was still writing
+         * compressed and deleted.
+         */
+        @Test
+        void everyUnfinishedSessionIsLiveWhateverItsPosition() throws IOException {
+            Path older = sessionDir();
+            write(older, "profile-20260220-120000.jfr");
+            write(older, "profile-20260220-121000.jfr");
+            Path newer = Files.createDirectories(
+                    workspacesDir.resolve("ws").resolve(PROJECT).resolve("instance-2").resolve("session-2"));
+            write(newer, "profile-20260220-123000.jfr");
+            FilesystemRepositoryStorage storage = liveSession();
+            when(repository.findAllSessions()).thenReturn(List.of(
+                    new ProjectInstanceSessionInfo(
+                            "session-2", "repo-1", "instance-2", 0, Path.of("instance-2", "session-2"),
+                            T0.plusSeconds(1800), T0.plusSeconds(1800), null, false, null),
+                    new ProjectInstanceSessionInfo(
+                            SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                            T0, T0, null, false, null)));
+
+            List<RecordingSession> sessions = storage.listSessions(SessionDetail.WITH_FILES);
+
+            assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.ACTIVE),
+                    sessions.stream().map(RecordingSession::status).toList());
+            assertEquals(List.of("profile-20260220-123000.jfr", "profile-20260220-121000.jfr"),
+                    sessions.stream().map(session -> session.openRecording().orElseThrow().name()).toList(),
+                    "each live session holds its own newest chunk open");
         }
 
         /**
@@ -451,7 +484,7 @@ class FilesystemRepositoryStorageTest {
                     "half an archive".getBytes(StandardCharsets.UTF_8));
 
             List<RepositoryFile> files = finishedSession()
-                    .singleSession(SESSION_ID, true)
+                    .singleSession(SESSION_ID, SessionDetail.WITH_FILES)
                     .orElseThrow()
                     .files();
 
@@ -488,7 +521,7 @@ class FilesystemRepositoryStorageTest {
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
                     SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, null, false, false, null)));
+                    T0, T0, null, false, null)));
 
             return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class), workspacesDir, repository);

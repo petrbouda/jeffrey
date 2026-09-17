@@ -23,10 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
 import cafe.jeffrey.hub.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.core.EffectiveSettingsResolver;
 
 import java.util.List;
 
@@ -37,18 +37,19 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     private final GrpcLookups lookups;
     private final ProfilerRepository profilerRepository;
 
-    public ProfilerSettingsGrpcService(HubPlatformRepositories platformRepositories, GrpcLookups lookups) {
+    public ProfilerSettingsGrpcService(ProfilerRepository profilerRepository, GrpcLookups lookups) {
+        this.profilerRepository = profilerRepository;
         this.lookups = lookups;
-        this.profilerRepository = platformRepositories.newProfilerRepository();
     }
 
     @Override
     public void getSettings(GetProfilerSettingsRequest request, StreamObserver<GetProfilerSettingsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = lookups.projectManager(request.getProjectId());
-            EffectiveProfilerSettings settings = project.profilerSettingsManager().fetchEffectiveSettings();
+            ProjectInfo project = lookups.projectInfo(request.getProjectId());
+            EffectiveProfilerSettings settings = EffectiveSettingsResolver.resolve(
+                    profilerRepository.fetchProfilerSettings(project.workspaceId(), project.id()));
 
-            LOG.debug("Fetched profiler settings via gRPC: projectId={}", request.getProjectId());
+            LOG.debug("Fetched profiler settings via gRPC: project_id={}", request.getProjectId());
 
             return GetProfilerSettingsResponse.newBuilder()
                     .setAgentSettings(ProtoMappers.orEmpty(settings.agentSettings()))
@@ -60,10 +61,10 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     @Override
     public void upsertSettings(UpsertProfilerSettingsRequest request, StreamObserver<UpsertProfilerSettingsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = lookups.projectManager(request.getProjectId());
-            project.profilerSettingsManager().upsertSettings(request.getAgentSettings());
+            ProjectInfo project = lookups.projectInfo(request.getProjectId());
+            profilerRepository.upsertSettings(new ProfilerInfo(project.workspaceId(), project.id(), request.getAgentSettings()));
 
-            LOG.debug("Upserted profiler settings via gRPC: projectId={}", request.getProjectId());
+            LOG.debug("Upserted profiler settings via gRPC: project_id={}", request.getProjectId());
 
             return UpsertProfilerSettingsResponse.getDefaultInstance();
         });
@@ -72,49 +73,26 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     @Override
     public void deleteSettings(DeleteProfilerSettingsRequest request, StreamObserver<DeleteProfilerSettingsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = lookups.projectManager(request.getProjectId());
-            project.profilerSettingsManager().deleteSettings();
+            ProjectInfo project = lookups.projectInfo(request.getProjectId());
+            profilerRepository.deleteSettings(project.workspaceId(), project.id());
 
-            LOG.debug("Deleted profiler settings via gRPC: projectId={}", request.getProjectId());
+            LOG.debug("Deleted profiler settings via gRPC: project_id={}", request.getProjectId());
 
             return DeleteProfilerSettingsResponse.getDefaultInstance();
         });
     }
 
     @Override
-    public void listAllSettings(ListAllProfilerSettingsRequest request, StreamObserver<ListAllProfilerSettingsResponse> responseObserver) {
-        GrpcUnary.respond(responseObserver, () -> {
-            List<ProfilerInfo> allSettings = profilerRepository.findAllSettings();
-
-            ListAllProfilerSettingsResponse.Builder responseBuilder = ListAllProfilerSettingsResponse.newBuilder();
-            for (ProfilerInfo info : allSettings) {
-                responseBuilder.addSettings(ProfilerSettingsEntry.newBuilder()
-                        .setWorkspaceId(ProtoMappers.orEmpty(info.workspaceId()))
-                        .setProjectId(ProtoMappers.orEmpty(info.projectId()))
-                        .setAgentSettings(ProtoMappers.orEmpty(info.agentSettings()))
-                        .build());
-            }
-
-            LOG.debug("Listed all profiler settings via gRPC: count={}", allSettings.size());
-
-            return responseBuilder.build();
-        });
-    }
-
-    @Override
     public void upsertSettingsAtLevel(UpsertProfilerSettingsAtLevelRequest request, StreamObserver<UpsertProfilerSettingsAtLevelResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            String workspaceId = request.getWorkspaceId().isEmpty() ? null : request.getWorkspaceId();
-            String projectId = request.getProjectId().isEmpty() ? null : request.getProjectId();
+            SettingsScope scope = SettingsScope.of(request.getWorkspaceId(), request.getProjectId());
+            lookups.requireExists(scope);
 
-            if (projectId != null && workspaceId == null) {
-                throw GrpcExceptions.invalidArgument("Workspace ID is required when Project ID is provided");
-            }
+            profilerRepository.upsertSettings(
+                    new ProfilerInfo(scope.workspaceId(), scope.projectId(), request.getAgentSettings()));
 
-            ProfilerInfo profilerInfo = new ProfilerInfo(workspaceId, projectId, request.getAgentSettings());
-            profilerRepository.upsertSettings(profilerInfo);
-
-            LOG.debug("Upserted profiler settings at level via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+            LOG.debug("Upserted profiler settings at level via gRPC: workspace_id={} project_id={}",
+                    scope.workspaceId(), scope.projectId());
 
             return UpsertProfilerSettingsAtLevelResponse.getDefaultInstance();
         });
@@ -154,7 +132,7 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
                 builder.setGlobalAgentSettings(globalSettings);
             }
 
-            LOG.debug("Fetched workspace effective profiler settings via gRPC: workspaceId={} workspaceSet={} globalSet={}",
+            LOG.debug("Fetched workspace effective profiler settings via gRPC: workspace_id={} workspace_set={} global_set={}",
                     workspaceId, workspaceSettings != null, globalSettings != null);
 
             return builder.build();
@@ -164,16 +142,13 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     @Override
     public void deleteSettingsAtLevel(DeleteProfilerSettingsAtLevelRequest request, StreamObserver<DeleteProfilerSettingsAtLevelResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            String workspaceId = request.getWorkspaceId().isEmpty() ? null : request.getWorkspaceId();
-            String projectId = request.getProjectId().isEmpty() ? null : request.getProjectId();
+            SettingsScope scope = SettingsScope.of(request.getWorkspaceId(), request.getProjectId());
+            lookups.requireExists(scope);
 
-            if (projectId != null && workspaceId == null) {
-                throw GrpcExceptions.invalidArgument("Workspace ID is required when Project ID is provided");
-            }
+            profilerRepository.deleteSettings(scope.workspaceId(), scope.projectId());
 
-            profilerRepository.deleteSettings(workspaceId, projectId);
-
-            LOG.debug("Deleted profiler settings at level via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+            LOG.debug("Deleted profiler settings at level via gRPC: workspace_id={} project_id={}",
+                    scope.workspaceId(), scope.projectId());
 
             return DeleteProfilerSettingsAtLevelResponse.getDefaultInstance();
         });

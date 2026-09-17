@@ -37,4 +37,10 @@ public record ProfilerSettings(
         String defaultSettingsLevel,
         Map<String, String> projectSettings,
         Map<String, String> projectSettingsById) {
+
+    /** {@code defaultSettingsLevel} when the default came from the workspace's own row. */
+    public static final String WORKSPACE_LEVEL = "WORKSPACE";
+
+    /** {@code defaultSettingsLevel} when the default fell through to the hub-wide row. */
+    public static final String GLOBAL_LEVEL = "GLOBAL";
 }

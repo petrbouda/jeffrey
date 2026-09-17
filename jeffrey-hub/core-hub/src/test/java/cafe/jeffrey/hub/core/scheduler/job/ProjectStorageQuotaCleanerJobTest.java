@@ -18,12 +18,13 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import java.util.Map;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleanerJobDescriptor;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
@@ -42,7 +43,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -63,9 +66,6 @@ class ProjectStorageQuotaCleanerJobTest {
     WorkspacesManager workspacesManager;
 
     @Mock
-    RepositoryStorage.Factory storageFactory;
-
-    @Mock
     RepositoryStorage storage;
 
     @Mock
@@ -83,18 +83,18 @@ class ProjectStorageQuotaCleanerJobTest {
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-        when(storageFactory.apply(any())).thenReturn(storage);
+        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(true);
+        when(projectManager.repositoryStorage()).thenReturn(storage);
 
-        job = new ProjectStorageQuotaCleanerJob(
-                workspacesManager,
-                storageFactory,
-                new ProjectStorageQuotaCleanerJobDescriptor(BUDGET),
-                Duration.ofMinutes(15));
+        job = new ProjectStorageQuotaCleanerJob(workspacesManager, config(BUDGET + ""));
+    }
+
+    private static JobConfig config(String maxSize) {
+        return new JobConfig(true, Duration.ofMinutes(15), Map.of("max-size", maxSize));
     }
 
     private void execute() {
-        job.executeOnRepository(
-                projectManager, storage, new ProjectStorageQuotaCleanerJobDescriptor(BUDGET), JobContext.EMPTY);
+        job.executeOnRepository(projectManager, storage);
     }
 
     /**
@@ -110,13 +110,13 @@ class ProjectStorageQuotaCleanerJobTest {
 
         return new RecordingSession(
                 id, id, "inst-1", createdAt, createdAt.plusSeconds(60),
-                RecordingStatus.FINISHED, null, List.of(files), retained);
+                RecordingStatus.FINISHED, List.of(files), retained);
     }
 
     private static RecordingSession activeSession(String id, Instant createdAt, RepositoryFile... files) {
         return new RecordingSession(
                 id, id, "inst-1", createdAt, null,
-                RecordingStatus.ACTIVE, null, List.of(files), false);
+                RecordingStatus.ACTIVE, List.of(files), false);
     }
 
     @Nested
@@ -124,7 +124,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
         @Test
         void deletesNothing() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     finishedSession("s1", NOW.minusSeconds(3600), false,
                             recording("f1", NOW.minusSeconds(3600), 10 * MB))));
 
@@ -140,7 +140,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
         @Test
         void deletesOldestFinishedSessionsUntilUnderBudget() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     finishedSession("oldest", NOW.minusSeconds(9000), false,
                             recording("f1", NOW.minusSeconds(9000), 60 * MB)),
                     finishedSession("middle", NOW.minusSeconds(6000), false,
@@ -160,7 +160,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
         @Test
         void stopsAsSoonAsItFitsTheBudget() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     finishedSession("oldest", NOW.minusSeconds(9000), false,
                             recording("f1", NOW.minusSeconds(9000), 80 * MB)),
                     finishedSession("newest", NOW.minusSeconds(3000), false,
@@ -172,9 +172,27 @@ class ProjectStorageQuotaCleanerJobTest {
             verify(repositoryManager, never()).deleteRecordingSession("newest");
         }
 
+        /**
+         * A session gone between the listing and the delete freed nothing. Counted as reclaimed
+         * anyway, the job stopped early and reported the project within budget while it was not.
+         */
+        @Test
+        void doesNotCountASessionThatWasAlreadyGone() {
+            RecordingSession vanished = finishedSession("vanished", NOW.minusSeconds(4000), false,
+                    recording("v", NOW.minusSeconds(4000), 80 * MB));
+            RecordingSession next = finishedSession("next", NOW.minusSeconds(3000), false,
+                    recording("n", NOW.minusSeconds(3000), 80 * MB));
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(vanished, next));
+            when(repositoryManager.deleteRecordingSession("vanished")).thenReturn(false);
+
+            execute();
+
+            verify(repositoryManager).deleteRecordingSession("next");
+        }
+
         @Test
         void neverDeletesRetainedSessions() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     finishedSession("pinned", NOW.minusSeconds(9000), true,
                             recording("f1", NOW.minusSeconds(9000), 90 * MB)),
                     finishedSession("normal", NOW.minusSeconds(3000), false,
@@ -191,7 +209,7 @@ class ProjectStorageQuotaCleanerJobTest {
             RepositoryFile oldChunk = recording("chunk-old", NOW.minusSeconds(2000), 70 * MB);
             RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 60 * MB);
 
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     activeSession("live", NOW.minusSeconds(2500), oldChunk, liveChunk)));
 
             execute();
@@ -207,12 +225,35 @@ class ProjectStorageQuotaCleanerJobTest {
         void leavesLiveChunkAloneEvenWhenStillOverBudget() {
             RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 500 * MB);
 
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     activeSession("live", NOW.minusSeconds(2500), liveChunk)));
 
             execute();
 
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
+        }
+
+        /**
+         * Two instances of one project record at once. Both sessions are live, so both are
+         * trimmed — the older one first — and neither loses the chunk its profiler holds open.
+         */
+        @Test
+        void trimsEveryLiveSessionOldestFirstAndKeepsEachOpenChunk() {
+            RepositoryFile firstOld = recording("first-old", NOW.minusSeconds(3000), 60 * MB);
+            RepositoryFile firstOpen = recording("first-open", NOW.minusSeconds(200), 60 * MB);
+            RepositoryFile secondOld = recording("second-old", NOW.minusSeconds(1500), 60 * MB);
+            RepositoryFile secondOpen = recording("second-open", NOW.minusSeconds(100), 60 * MB);
+
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    activeSession("second", NOW.minusSeconds(1600), secondOld, secondOpen),
+                    activeSession("first", NOW.minusSeconds(3100), firstOld, firstOpen)));
+
+            execute();
+
+            verify(storage).deleteRepositoryFiles("first", List.of("first-old"));
+            verify(storage).deleteRepositoryFiles("second", List.of("second-old"));
+            verify(storage, never()).deleteRepositoryFiles(eq("first"), eq(List.of("first-open")));
+            verify(storage, never()).deleteRepositoryFiles(eq("second"), eq(List.of("second-open")));
         }
 
         @Test
@@ -221,9 +262,9 @@ class ProjectStorageQuotaCleanerJobTest {
 
             RecordingSession pinnedActive = new RecordingSession(
                     "live", "live", "inst-1", NOW.minusSeconds(2500), null,
-                    RecordingStatus.ACTIVE, null, List.of(oldChunk), true);
+                    RecordingStatus.ACTIVE, List.of(oldChunk), true);
 
-            when(storage.listSessions(true)).thenReturn(List.of(pinnedActive));
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(pinnedActive));
 
             execute();
 
@@ -235,40 +276,26 @@ class ProjectStorageQuotaCleanerJobTest {
     class DegenerateInput {
 
         @Test
-        void toleratesFilesWithUnknownSize() {
-            RepositoryFile unsized = new RepositoryFile(
-                    "f1", "f1", NOW.minusSeconds(3600), null,
-                    true, null);
-
-            when(storage.listSessions(true)).thenReturn(List.of(
-                    finishedSession("s1", NOW.minusSeconds(3600), false, unsized)));
-
-            // A file whose size could not be determined must count as zero, not blow up the sweep
-            org.junit.jupiter.api.Assertions.assertDoesNotThrow(this::run);
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
-        }
-
-        private void run() {
-            ProjectStorageQuotaCleanerJobTest.this.execute();
-        }
-
-        @Test
         void toleratesEmptyRepository() {
-            when(storage.listSessions(true)).thenReturn(List.of());
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
 
-            org.junit.jupiter.api.Assertions.assertDoesNotThrow(this::run);
+            assertDoesNotThrow(ProjectStorageQuotaCleanerJobTest.this::execute);
         }
     }
 
     @Nested
-    class DescriptorValidation {
+    class BudgetValidation {
 
         @Test
         void rejectsNonPositiveBudget() {
-            assertTrue(org.junit.jupiter.api.Assertions.assertThrows(
-                            IllegalArgumentException.class,
-                            () -> new ProjectStorageQuotaCleanerJobDescriptor(0))
-                    .getMessage().contains("must be positive"));
+            assertThrows(IllegalArgumentException.class,
+                    () -> new ProjectStorageQuotaCleanerJob(workspacesManager, config("0")));
         }
+
+        @Test
+        void readsBinaryUnits() {
+            assertDoesNotThrow(() -> new ProjectStorageQuotaCleanerJob(workspacesManager, config("20G")));
+        }
+
     }
 }
