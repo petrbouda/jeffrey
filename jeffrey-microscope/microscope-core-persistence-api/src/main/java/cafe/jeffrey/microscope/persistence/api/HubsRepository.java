@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.persistence.api;
 
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 
 import java.util.List;
 import java.util.Optional;

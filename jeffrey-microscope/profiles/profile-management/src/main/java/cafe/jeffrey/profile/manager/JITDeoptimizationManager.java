@@ -22,7 +22,7 @@ import cafe.jeffrey.profile.common.event.JITDeoptimizationEvent;
 import cafe.jeffrey.profile.common.event.JITDeoptimizationMethodAggregate;
 import cafe.jeffrey.profile.common.event.JITDeoptimizationReasonCount;
 import cafe.jeffrey.profile.common.event.JITDeoptimizationStats;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

@@ -19,8 +19,8 @@
 package cafe.jeffrey.profile.settings;
 
 import tools.jackson.core.type.TypeReference;
-import cafe.jeffrey.shared.common.settings.ActiveSetting;
-import cafe.jeffrey.shared.common.settings.ActiveSettings;
+import cafe.jeffrey.microscope.model.settings.ActiveSetting;
+import cafe.jeffrey.microscope.model.settings.ActiveSettings;
 import cafe.jeffrey.shared.common.CacheKey;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;

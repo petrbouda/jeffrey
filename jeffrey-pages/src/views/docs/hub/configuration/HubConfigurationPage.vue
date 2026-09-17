@@ -199,16 +199,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td><code>7</code></td>
             <td>How many archived log files to keep</td>
           </tr>
-          <tr>
-            <td><code>jeffrey.hub.logging.jfr-events.application.enabled</code></td>
-            <td><code>false</code></td>
-            <td>Enable internal JFR event logging for HTTP and JDBC latency</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.logging.jfr-events.application.threshold</code></td>
-            <td><em>none</em></td>
-            <td>Only log events taking longer than this; unset means no threshold, so everything is logged</td>
-          </tr>
         </tbody>
       </table>
 

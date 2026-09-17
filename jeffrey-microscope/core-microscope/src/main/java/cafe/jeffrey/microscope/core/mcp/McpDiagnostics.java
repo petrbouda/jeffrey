@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.profile.mcp.McpToolMetrics;
 import cafe.jeffrey.profile.mcp.McpToolProvider;

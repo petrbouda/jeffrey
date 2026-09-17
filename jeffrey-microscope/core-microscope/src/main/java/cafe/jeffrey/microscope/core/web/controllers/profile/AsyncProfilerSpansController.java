@@ -42,13 +42,13 @@ import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.resources.request.GenerateSingleSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
-import cafe.jeffrey.shared.common.GraphType;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
-import cafe.jeffrey.shared.common.model.SpanInterval;
-import cafe.jeffrey.shared.common.model.SpanScope;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.shared.common.model.time.UndefinedTimeRange;
+import cafe.jeffrey.microscope.model.GraphType;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfilingStartEnd;
+import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.UndefinedTimeRange;
 
 import java.util.List;
 

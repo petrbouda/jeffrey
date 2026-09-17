@@ -19,8 +19,8 @@
 package cafe.jeffrey.provider.profile.api;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;
 

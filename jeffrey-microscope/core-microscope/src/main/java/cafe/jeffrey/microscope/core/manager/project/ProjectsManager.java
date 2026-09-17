@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;

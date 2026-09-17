@@ -81,13 +81,12 @@ public record StorageOverviewResponse(
     }
 
     /**
-     * Usage of a single file type; {@code type} is the
-     * {@code ManagedFile} enum name (e.g. {@code JFR}, {@code HEAP_DUMP_GZ}).
+     * Usage of one kind of file; {@code type} is {@code JFR}, {@code JFR_LZ4} or {@code OTHER}.
      */
     public record FileTypeUsageResponse(String type, long sizeBytes, int fileCount) {
 
         public static FileTypeUsageResponse from(StorageOverview.FileTypeUsage usage) {
-            return new FileTypeUsageResponse(usage.fileType().name(), usage.sizeBytes(), usage.fileCount());
+            return new FileTypeUsageResponse(usage.type(), usage.sizeBytes(), usage.fileCount());
         }
     }
 

@@ -22,7 +22,7 @@ import com.google.perftools.profiles.ProfileProto.Profile;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

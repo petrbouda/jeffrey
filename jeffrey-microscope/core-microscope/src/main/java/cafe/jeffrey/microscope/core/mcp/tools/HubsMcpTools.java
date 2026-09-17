@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
@@ -40,13 +41,13 @@ import cafe.jeffrey.profile.mcp.McpOutputSchema;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.ArrayNode;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
-import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -610,7 +611,7 @@ public class HubsMcpTools {
                 project.info().name(),
                 ref.sessionId(),
                 (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
-                (int) finished.stream().filter(RepositoryFile::isArtifactFile).count(),
+                (int) finished.stream().filter(RepositoryFiles::isArtifact).count(),
                 session.totalSizeBytes(),
                 null,
                 null,
@@ -933,7 +934,7 @@ public class HubsMcpTools {
             }
             return finished.stream()
                     .filter(file -> fileIds.contains(file.id()))
-                    .filter(RepositoryFile::isArtifactFile)
+                    .filter(RepositoryFiles::isArtifact)
                     .toList();
         }
 

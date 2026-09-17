@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.profile.manager.thread;
 
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;

@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.common.event.JITCompilationStats;
 import cafe.jeffrey.profile.common.event.JITLongCompilation;
 import cafe.jeffrey.profile.manager.model.jit.CodeCacheData;

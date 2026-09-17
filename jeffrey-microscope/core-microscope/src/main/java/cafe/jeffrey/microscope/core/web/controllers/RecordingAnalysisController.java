@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.web.dto.response.AnalyzeResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 
 import java.nio.file.Path;
 

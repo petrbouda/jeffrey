@@ -1,0 +1,541 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.microscope.model.jfr;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
+import jdk.jfr.AnnotationElement;
+import jdk.jfr.Event;
+import jdk.jfr.EventType;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+import jdk.jfr.Percentage;
+import jdk.jfr.Recording;
+import jdk.jfr.StackTrace;
+import jdk.jfr.Timespan;
+import jdk.jfr.Timestamp;
+import jdk.jfr.ValueDescriptor;
+import jdk.jfr.consumer.RecordedClass;
+import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordedMethod;
+import jdk.jfr.consumer.RecordedThread;
+import jdk.jfr.consumer.RecordingFile;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.model.RecordedClassMapper;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
+/**
+ * Verifies that the plan-based {@link EventFieldsToJsonMapper} produces JSON
+ * that is semantically identical to the original per-event implementation.
+ * The original algorithm is kept here verbatim as a reference and every event
+ * of a real JFR recording is compared node-by-node against it.
+ */
+class EventFieldsToJsonMapperTest {
+
+    private static final String PROBE_EVENT_NAME = "test.jeffrey.MapperProbe";
+    private static final String ACTIVE_SETTING_EVENT_NAME = "jdk.ActiveSetting";
+
+    @Name(PROBE_EVENT_NAME)
+    @Label("Mapper Probe")
+    @StackTrace(false)
+    static class MapperProbeEvent extends Event {
+
+        @Timestamp(Timestamp.MILLISECONDS_SINCE_EPOCH)
+        long markedTimestamp;
+
+        @Timespan(Timespan.NANOSECONDS)
+        long markedTimespan;
+
+        @Percentage
+        float markedPercentage;
+
+        long longValue;
+
+        int intValue;
+
+        boolean boolValue;
+
+        String stringValue;
+
+        Class<?> classValue;
+
+        Thread threadValue;
+    }
+
+    private static List<RecordedEvent> recordedEvents;
+    private static List<EventType> recordedEventTypes;
+
+    @BeforeAll
+    static void recordEvents() throws IOException {
+        Path dumpFile = Files.createTempFile("event-fields-mapper-test", ".jfr");
+        try (Recording recording = new Recording()) {
+            recording.enable(MapperProbeEvent.class);
+            recording.enable(ACTIVE_SETTING_EVENT_NAME);
+            recording.start();
+
+            MapperProbeEvent event = new MapperProbeEvent();
+            event.markedTimestamp = 1_750_000_000_123L;
+            event.markedTimespan = 1_234_567L;
+            event.markedPercentage = 0.42f;
+            event.longValue = 42L;
+            event.intValue = 7;
+            event.boolValue = true;
+            event.stringValue = "hello-jeffrey";
+            event.classValue = String.class;
+            event.threadValue = Thread.currentThread();
+            event.commit();
+
+            recording.stop();
+            recording.dump(dumpFile);
+        }
+
+        recordedEvents = RecordingFile.readAllEvents(dumpFile);
+        recordedEventTypes = recordedEvents.stream()
+                .map(RecordedEvent::getEventType)
+                .distinct()
+                .toList();
+        Files.deleteIfExists(dumpFile);
+    }
+
+    private static RecordedEvent probeEvent() {
+        return recordedEvents.stream()
+                .filter(e -> PROBE_EVENT_NAME.equals(e.getEventType().getName()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Probe event was not recorded"));
+    }
+
+    @Nested
+    class ProbeEventFields {
+
+        @Test
+        void mapsAnnotatedAndPrimitiveFields() {
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(recordedEventTypes);
+
+            ObjectNode node = fullTree(mapper.map(probeEvent()));
+
+            assertEquals(1_750_000_000_123L, node.get("markedTimestamp").asLong());
+            assertEquals(1_234_567L, node.get("markedTimespan").asLong());
+            assertEquals(0.42f, node.get("markedPercentage").floatValue());
+            assertEquals(42L, node.get("longValue").asLong());
+            assertEquals(7L, node.get("intValue").asLong());
+            assertTrue(node.get("boolValue").asBoolean());
+            assertEquals("hello-jeffrey", node.get("stringValue").asString());
+            assertEquals(RecordedClassMapper.map(String.class.getName()), node.get("classValue").asString());
+            assertTrue(node.has("threadValue"));
+            assertTrue(node.has("startTime"));
+        }
+
+        @Test
+        void ignoresStacktraceField() {
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(recordedEventTypes);
+
+            ObjectNode node = fullTree(mapper.map(probeEvent()));
+
+            assertFalse(node.has("stackTrace"));
+        }
+
+        @Test
+        void buildsPlanLazilyWithoutMetadataUpdate() {
+            EventFieldsToJsonMapper withMetadata = new EventFieldsToJsonMapper();
+            withMetadata.update(recordedEventTypes);
+
+            EventFieldsToJsonMapper withoutMetadata = new EventFieldsToJsonMapper();
+
+            assertEquals(fullTree(withMetadata.map(probeEvent())), fullTree(withoutMetadata.map(probeEvent())));
+        }
+    }
+
+    @Nested
+    class ConformanceWithLegacyImplementation {
+
+        /**
+         * Compares the stored text, not a re-parsed tree: {@code 3415} read back out of JSON is an
+         * int node where the tree had a long one, so trees that serialize identically are not equal.
+         * The text is what lands in the database and what every reader sees, so that is the thing
+         * that has to be unchanged.
+         * <p>
+         * The expectation replays what the old pipeline did in two steps — build the whole tree,
+         * then lift the largest poolable string out of it — against what the mapper now does in one.
+         */
+        @Test
+        void everyRecordedEventMapsIdenticallyToLegacyAlgorithm() {
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(recordedEventTypes);
+
+            LegacyEventFieldsMapper legacy = new LegacyEventFieldsMapper();
+            legacy.update(recordedEventTypes);
+
+            for (RecordedEvent event : recordedEvents) {
+                ObjectNode legacyNode = legacy.map(event);
+                LegacyPooledValue pooled = legacyExtractLargest(legacyNode);
+                String expectedJson = legacyNode.toString();
+
+                MappedFields actual = mapper.map(event);
+
+                assertEquals(expectedJson, actual.json(),
+                        () -> "JSON mismatch for event type: " + event.getEventType().getName());
+                assertEquals(pooled == null ? null : pooled.field(), actual.pooledField(),
+                        () -> "Pooled field mismatch for event type: " + event.getEventType().getName());
+                assertEquals(pooled == null ? null : pooled.text(), actual.pooledText(),
+                        () -> "Pooled text mismatch for event type: " + event.getEventType().getName());
+            }
+        }
+
+        @Test
+        void activeSettingEventsCarryIdAndLabel() {
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(recordedEventTypes);
+
+            List<RecordedEvent> activeSettings = recordedEvents.stream()
+                    .filter(e -> ACTIVE_SETTING_EVENT_NAME.equals(e.getEventType().getName()))
+                    .toList();
+            assertFalse(activeSettings.isEmpty(), "Recording is expected to contain jdk.ActiveSetting events");
+
+            for (RecordedEvent event : activeSettings) {
+                ObjectNode node = fullTree(mapper.map(event));
+                assertTrue(node.has("id"));
+                assertTrue(node.has("label"));
+            }
+        }
+    }
+
+    @Nested
+    class ModuleStructFields {
+
+        @Test
+        void flattensModuleAndPackageStructsToTheirName() throws IOException {
+            Path dumpFile = Files.createTempFile("module-events-mapper-test", ".jfr");
+            List<RecordedEvent> moduleEvents;
+            List<EventType> eventTypes;
+            try (Recording recording = new Recording()) {
+                recording.enable("jdk.ModuleRequire");
+                recording.enable("jdk.ModuleExport");
+                recording.start();
+                recording.stop();
+                recording.dump(dumpFile);
+            }
+            moduleEvents = RecordingFile.readAllEvents(dumpFile);
+            eventTypes = moduleEvents.stream().map(RecordedEvent::getEventType).distinct().toList();
+            Files.deleteIfExists(dumpFile);
+
+            List<RecordedEvent> requires = moduleEvents.stream()
+                    .filter(e -> "jdk.ModuleRequire".equals(e.getEventType().getName()))
+                    .toList();
+            // The module graph is dumped at chunk start; bail out gracefully if a JVM does not emit it.
+            assumeFalse(requires.isEmpty(), "Recording is expected to contain jdk.ModuleRequire events");
+
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(eventTypes);
+
+            boolean sawJavaBase = false;
+            for (RecordedEvent event : requires) {
+                ObjectNode node = fullTree(mapper.map(event));
+                // requiredModule is a Module struct; it must flatten to a plain name, not a RecordedObject dump.
+                if (node.hasNonNull("requiredModule")) {
+                    String required = node.get("requiredModule").asString();
+                    assertFalse(required.contains("{"), "Module struct must not be a toString() blob: " + required);
+                    assertFalse(required.contains("="), "Module struct must not be a toString() blob: " + required);
+                    sawJavaBase = sawJavaBase || "java.base".equals(required);
+                }
+            }
+            assertTrue(sawJavaBase, "Every module requires java.base, so it should appear as a flattened name");
+        }
+    }
+
+    @Nested
+    class AbsentClassFields {
+
+        /**
+         * A JFR {@code java.lang.Class} field can be absent — {@code jdk.ThreadPark.parkedClass} is
+         * null whenever {@code LockSupport.park()} is called with no blocker. Reading it used to
+         * dereference the missing class and fail the whole recording.
+         */
+        @Test
+        void mapsAnAbsentClassFieldToNullInsteadOfFailing() throws IOException {
+            Path dumpFile = Files.createTempFile("null-class-mapper-test", ".jfr");
+            List<RecordedEvent> events;
+            List<EventType> eventTypes;
+            try (Recording recording = new Recording()) {
+                recording.enable(MapperProbeEvent.class);
+                recording.start();
+
+                MapperProbeEvent event = new MapperProbeEvent();
+                event.stringValue = "no-class-here";
+                event.classValue = null;
+                event.threadValue = null;
+                event.commit();
+
+                recording.stop();
+                recording.dump(dumpFile);
+            }
+            events = RecordingFile.readAllEvents(dumpFile);
+            eventTypes = events.stream().map(RecordedEvent::getEventType).distinct().toList();
+            Files.deleteIfExists(dumpFile);
+
+            RecordedEvent probe = events.stream()
+                    .filter(e -> PROBE_EVENT_NAME.equals(e.getEventType().getName()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Probe event was not recorded"));
+
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(eventTypes);
+
+            ObjectNode node = fullTree(mapper.map(probe));
+
+            assertTrue(node.has("classValue"), "an absent class must still be reported as a field");
+            assertTrue(node.get("classValue").isNull(), "an absent class must map to a JSON null");
+            assertEquals("no-class-here", node.get("stringValue").asString());
+        }
+    }
+
+    @Nested
+    class G1EvacuationStatisticsStructFields {
+
+        @Test
+        void flattensG1EvacuationStatisticsStructToDottedNumericKeys() throws IOException {
+            // The G1 evacuation events only fire under the G1 collector; on other collectors no events
+            // are produced and the test skips at the assumeFalse below.
+            Path dumpFile = Files.createTempFile("g1-plab-mapper-test", ".jfr");
+            List<RecordedEvent> events;
+            List<EventType> eventTypes;
+            try (Recording recording = new Recording()) {
+                recording.enable("jdk.G1EvacuationYoungStatistics");
+                recording.enable("jdk.G1EvacuationOldStatistics");
+                recording.start();
+                // Allocate enough short-lived garbage to force at least one young collection.
+                List<byte[]> sink = new ArrayList<>();
+                for (int i = 0; i < 256; i++) {
+                    sink.add(new byte[1024 * 1024]);
+                    if (sink.size() > 8) {
+                        sink.clear();
+                    }
+                }
+                System.gc();
+                recording.stop();
+                recording.dump(dumpFile);
+            }
+            events = RecordingFile.readAllEvents(dumpFile);
+            eventTypes = events.stream().map(RecordedEvent::getEventType).distinct().toList();
+            Files.deleteIfExists(dumpFile);
+
+            List<RecordedEvent> evacuations = events.stream()
+                    .filter(e -> "jdk.G1EvacuationYoungStatistics".equals(e.getEventType().getName()))
+                    .toList();
+            assumeFalse(evacuations.isEmpty(), "No young evacuation occurred during the test run");
+
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(eventTypes);
+
+            ObjectNode node = fullTree(mapper.map(evacuations.getFirst()));
+            // The nested struct must be flattened to dotted numeric keys, not a toString() blob.
+            assertTrue(node.has("statistics.allocated"), "expected flattened statistics.allocated key");
+            assertTrue(node.get("statistics.allocated").isNumber(), "statistics.allocated must be numeric");
+            assertTrue(node.has("statistics.gcId"), "expected flattened statistics.gcId key");
+            assertFalse(node.has("statistics"), "the raw struct field must not survive as a blob");
+        }
+    }
+
+    /**
+     * Verbatim copy of the original per-event implementation, used as the
+     * behavioral reference for the conformance test above.
+     */
+
+
+    /** The size threshold the old extractor used, mirrored here so the oracle is self-contained. */
+    private static final int LEGACY_MIN_POOLED_LENGTH = 64;
+
+    private record LegacyPooledValue(String field, String text) {
+    }
+
+    /**
+     * The pooling step as it was: walk the finished tree, take the largest string at or over the
+     * threshold, remove it. Kept here as the other half of the legacy oracle now that the mapper
+     * decides this while it reads the fields instead of afterwards.
+     */
+    private static LegacyPooledValue legacyExtractLargest(ObjectNode eventFields) {
+        String largestField = null;
+        String largestText = null;
+        for (Map.Entry<String, JsonNode> property : eventFields.properties()) {
+            JsonNode value = property.getValue();
+            if (!value.isString()) {
+                continue;
+            }
+            String text = value.asString();
+            if (text.length() < LEGACY_MIN_POOLED_LENGTH) {
+                continue;
+            }
+            if (largestText == null || text.length() > largestText.length()) {
+                largestField = property.getKey();
+                largestText = text;
+            }
+        }
+
+        if (largestField == null) {
+            return null;
+        }
+        eventFields.remove(largestField);
+        return new LegacyPooledValue(largestField, largestText);
+    }
+
+    /**
+     * The complete field tree the mapper produced: its JSON with the pooled value spliced back under
+     * the key it was lifted from. That splice is what the {@code events} view does at read time, so
+     * comparing this against the legacy tree compares what a reader actually sees.
+     */
+    private static ObjectNode fullTree(MappedFields mapped) {
+        ObjectNode node = (ObjectNode) Json.mapper().readTree(mapped.json());
+        if (mapped.hasPooledField()) {
+            node.put(mapped.pooledField(), mapped.pooledText());
+        }
+        return node;
+    }
+
+    private static final class LegacyEventFieldsMapper {
+
+        private static final String TIMESTAMP_TYPE_NAME = Timestamp.class.getTypeName();
+        private static final String PERCENTAGE_TYPE_NAME = Percentage.class.getTypeName();
+        private static final String TIMESPAN_TYPE_NAME = Timespan.class.getTypeName();
+
+        private final Map<Long, EventType> eventTypes = new HashMap<>();
+
+        void update(List<EventType> eventTypes) {
+            eventTypes.forEach(e -> this.eventTypes.put(e.getId(), e));
+        }
+
+        ObjectNode map(RecordedEvent event) {
+            ObjectNode node = Json.createObject();
+            for (ValueDescriptor field : event.getFields()) {
+                if (!EventFieldsToJsonMapper.IGNORED_FIELDS.contains(field.getName())) {
+                    if (handleByAnnotation(field, event, node)) {
+                        // Handled by annotation, skip further processing
+                        continue;
+                    }
+
+                    if ("java.lang.Thread".equals(field.getTypeName())) {
+                        RecordedThread value = event.getThread(field.getName());
+                        node.put(field.getName(), safeThreadToString(value));
+                    } else if ("java.lang.Class".equals(field.getTypeName())) {
+                        RecordedClass clazz = event.getClass(field.getName());
+                        node.put(field.getName(), RecordedClassMapper.map(clazz.getName()));
+                    } else if ("jdk.types.Method".equals(field.getTypeName())) {
+                        RecordedMethod method = event.getValue(field.getName());
+                        if (method != null) {
+                            node.put(field.getName(), method.getType().getName() + "#" + method.getName());
+                        }
+                    } else if ("jdk.ActiveSetting".equals(event.getEventType().getName())
+                            && "id".equals(field.getName())) {
+                        long eventId = event.getValue(field.getName());
+                        node.put(field.getName(), eventId);
+                        node.put("label", activeSettingValue(eventId));
+                    } else if ("long".equals(field.getTypeName()) || "int".equals(field.getTypeName())) {
+                        long value = event.getLong(field.getName());
+                        node.put(field.getName(), value);
+                    } else if ("boolean".equals(field.getTypeName())) {
+                        boolean value = event.getBoolean(field.getName());
+                        node.put(field.getName(), value);
+                    } else {
+                        String value = safeToString(event.getValue(field.getName()));
+                        node.put(field.getName(), value);
+                    }
+                }
+            }
+
+            return node;
+        }
+
+        private static boolean handleByAnnotation(ValueDescriptor field, RecordedEvent event, ObjectNode node) {
+            for (AnnotationElement annotation : field.getAnnotationElements()) {
+                String typeName = annotation.getTypeName();
+                if (typeName.equals(TIMESTAMP_TYPE_NAME)) {
+                    Instant instant = event.getInstant(field.getName());
+                    node.put(field.getName(), safeToLongMillis(instant));
+                    return true;
+                } else if (typeName.equals(PERCENTAGE_TYPE_NAME)) {
+                    float value = event.getFloat(field.getName());
+                    node.put(field.getName(), value);
+                    return true;
+                } else if (typeName.equals(TIMESPAN_TYPE_NAME)) {
+                    Duration value = event.getDuration(field.getName());
+                    node.put(field.getName(), safeDurationToLongNanos(value));
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private String activeSettingValue(long eventId) {
+            EventType eventType = eventTypes.get(eventId);
+            return eventType == null ? "Unknown (eventId=" + eventId + ")" : eventType.getLabel();
+        }
+
+        private static String safeToString(Object val) {
+            return val == null ? null : val.toString();
+        }
+
+        private static Long safeToLongNanos(Duration value) {
+            return value.isNegative() ? null : value.toNanos();
+        }
+
+        private static Long safeDurationToLongNanos(Duration value) {
+            if (value.getSeconds() == Long.MAX_VALUE) {
+                return Long.MAX_VALUE;
+            } else if (value == Duration.ZERO) {
+                return null;
+            } else {
+                return safeToLongNanos(value);
+            }
+        }
+
+        private static Long safeToLongMillis(Instant value) {
+            return value == Instant.MIN ? null : value.toEpochMilli();
+        }
+
+        private static String safeThreadToString(RecordedThread value) {
+            if (value == null) {
+                return null;
+            }
+
+            String threadName = value.getJavaName() == null ? value.getOSName() : value.getJavaName();
+            if (value.isVirtual()) {
+                threadName = threadName + " (Virtual)";
+            }
+
+            return threadName;
+        }
+    }
+}

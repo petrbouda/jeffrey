@@ -41,7 +41,7 @@ import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
 import cafe.jeffrey.profile.thread.ThreadWindowEvents;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.ThreadInfo;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
 

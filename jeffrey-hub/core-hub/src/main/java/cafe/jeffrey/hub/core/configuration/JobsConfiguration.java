@@ -18,15 +18,12 @@
 
 package cafe.jeffrey.hub.core.configuration;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.hub.core.appinitializer.JfrEventListenerInitializer;
 import cafe.jeffrey.hub.core.appinitializer.SchedulerInitializer;
 import cafe.jeffrey.hub.core.scheduler.Scheduler;
 
-import java.time.Duration;
 import java.util.List;
 
 /**
@@ -43,12 +40,5 @@ public class JobsConfiguration {
     @ConditionalOnProperty(name = "jeffrey.hub.job.scheduler.enabled", havingValue = "true", matchIfMissing = true)
     public SchedulerInitializer schedulerInitializer(List<Scheduler> schedulers) {
         return new SchedulerInitializer(schedulers);
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "jeffrey.hub.logging.jfr-events.application.enabled", havingValue = "true")
-    public JfrEventListenerInitializer jfrEventListenerInitializer(@Value("${jeffrey.hub.logging.jfr-events.application.threshold:}") Duration threshold) {
-        Duration resolvedThreshold = threshold == null || threshold.isNegative() ? Duration.ZERO : threshold;
-        return new JfrEventListenerInitializer(resolvedThreshold);
     }
 }

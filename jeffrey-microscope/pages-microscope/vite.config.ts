@@ -13,11 +13,11 @@ export default defineConfig({
     alias: [
       {
         find: '@instances',
-        replacement: fileURLToPath(new URL('../../shared/ui/instances/src', import.meta.url))
+        replacement: fileURLToPath(new URL('../ui-instances/src', import.meta.url))
       },
       {
         find: '@hubs',
-        replacement: fileURLToPath(new URL('../../shared/ui/hubs/ui', import.meta.url))
+        replacement: fileURLToPath(new URL('../ui-hubs/ui', import.meta.url))
       },
       {
         find: '@shared',

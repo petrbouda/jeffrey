@@ -22,8 +22,8 @@ import cafe.jeffrey.microscope.persistence.api.*;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;

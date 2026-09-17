@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.event.ContainerConfiguration;
 import cafe.jeffrey.profile.manager.builder.ContainerConfigurationEventBuilder;
 import cafe.jeffrey.profile.manager.builder.ContainerCpuThrottlingEventBuilder;

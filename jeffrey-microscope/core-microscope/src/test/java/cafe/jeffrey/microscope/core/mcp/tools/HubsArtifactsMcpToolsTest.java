@@ -32,19 +32,20 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorType;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.hub.HubSource;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubSource;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.StreamedFile;
+import cafe.jeffrey.storage.recording.api.file.FileCategory;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -108,7 +109,7 @@ class HubsArtifactsMcpToolsTest {
     }
 
     private static RepositoryFile file(String id, String name, ManagedFile type, Instant createdAt) {
-        return new RepositoryFile(id, name, createdAt, 2048L, type, null);
+        return new RepositoryFile(id, name, createdAt, 2048L, type.fileCategory() == FileCategory.RECORDING, null);
     }
 
     private static RepositoryFile finished(String id, String name, ManagedFile type) {
@@ -171,8 +172,9 @@ class HubsArtifactsMcpToolsTest {
     }
 
     /**
-     * The hub types a file with {@link ManagedFile#of(String)}, and hubs_fetchFile derives
-     * the type the same way when it answers off this disk. A fixture whose name does not classify to
+     * Microscope types a hub's file with {@link ManagedFile#of(String)} from the name the hub
+     * sent, and hubs_fetchFile derives the type the same way when it answers off this disk. A
+     * fixture whose name does not classify to
      * the type it is handed is a file Jeffrey could never produce, and a test over it proves nothing
      * about the real path - which is how a GC log once came to be documented under a name that
      * classified as UNKNOWN. The names here are the ones the provisioner writes ({@code gc.jvm-log},
@@ -487,12 +489,23 @@ class HubsArtifactsMcpToolsTest {
         }
 
         @Test
-        void anUnclassifiedFileIsRefusedWithTheReasonAHubWillNotServeIt() {
+        void anUnclassifiedFileIsRefusedAsNotAnArtifact() {
             hubHolds(session(finished("f-odd", "notes.txt", ManagedFile.UNKNOWN)));
 
             IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                     () -> tools.fetchFile(REF.encode(), "f-odd"));
 
+            assertTrue(refused.getMessage().contains("hubs_download"), refused.getMessage());
+        }
+
+        @Test
+        void theProfilersCacheFileIsRefusedAsNotAnArtifact() {
+            hubHolds(session(finished("f-cache", "profile-20260220-120000.jfr.1~", ManagedFile.ASPROF_TEMP)));
+
+            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                    () -> tools.fetchFile(REF.encode(), "f-cache"));
+
+            assertTrue(refused.getMessage().contains("profile-20260220-120000.jfr.1~"), refused.getMessage());
             assertTrue(refused.getMessage().contains("hubs_download"), refused.getMessage());
         }
 

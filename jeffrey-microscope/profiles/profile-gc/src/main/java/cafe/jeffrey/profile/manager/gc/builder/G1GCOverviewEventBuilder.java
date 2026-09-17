@@ -21,8 +21,8 @@ package cafe.jeffrey.profile.manager.gc.builder;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 public class G1GCOverviewEventBuilder extends ConcurrentGCOverviewEventBuilder {

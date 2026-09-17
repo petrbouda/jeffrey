@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
@@ -31,15 +32,14 @@ import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.RecordingFile;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.repository.FileCategory;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.StreamedFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -178,7 +178,7 @@ public class HubsArtifactsMcpTools {
         if (file.isRecordingFile()) {
             return Fetchability.DOWNLOAD.label();
         }
-        if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {
+        if (!RepositoryFiles.isArtifact(file)) {
             return Fetchability.NEVER.label();
         }
         return Fetchability.FETCH.label();
@@ -250,8 +250,8 @@ public class HubsArtifactsMcpTools {
             table.row(
                     file.id(),
                     file.name(),
-                    file.fileType().name(),
-                    file.fileType().fileCategory().name().toLowerCase(Locale.ROOT),
+                    RepositoryFiles.typeOf(file).name(),
+                    RepositoryFiles.typeOf(file).fileCategory().name().toLowerCase(Locale.ROOT),
                     statusOf(session, file),
                     ByteSizes.format(file.size()),
                     file.createdAt(),
@@ -482,11 +482,12 @@ public class HubsArtifactsMcpTools {
                     + "taken by hubs_download rather than fetched one chunk at a time. Call hubs_download "
                     + "with the same session_ref.");
         }
-        if (file.fileType().fileCategory() != FileCategory.ARTIFACT) {
-            // The hub's own streamArtifactFile refuses anything outside this category, so refusing it
-            // here keeps the sentence useful rather than turning it into a remote INVALID_ARGUMENT.
-            throw new IllegalArgumentException("File " + file.name() + " is " + file.fileType().description()
-                    + " (" + file.fileType().fileCategory().name().toLowerCase(Locale.ROOT)
+        if (!RepositoryFiles.isArtifact(file)) {
+            // Refused here rather than by the hub, which serves any file it holds: the sentence
+            // names what the file is, where a remote INVALID_ARGUMENT would not.
+            ManagedFile type = RepositoryFiles.typeOf(file);
+            throw new IllegalArgumentException("File " + file.name() + " is " + type.description()
+                    + " (" + type.fileCategory().name().toLowerCase(Locale.ROOT)
                     + "), and a hub serves only classified artifacts one at a time. Its `fetch` column in "
                     + "hubs_files reads `" + Fetchability.NEVER.label() + "`; hubs_download brings the whole "
                     + "session, this file included.");
@@ -649,7 +650,7 @@ public class HubsArtifactsMcpTools {
     }
 
     private static FetchedFile fetched(RepositoryFile file, Path path, boolean alreadyHere, LocalSession local) {
-        return fetched(file.name(), file.fileType(), file.size(), path, alreadyHere, local);
+        return fetched(file.name(), RepositoryFiles.typeOf(file), file.size(), path, alreadyHere, local);
     }
 
     private static FetchedFile fetched(

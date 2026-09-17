@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.persistence.api;
 
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.util.List;
 

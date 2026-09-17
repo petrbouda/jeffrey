@@ -29,7 +29,7 @@ import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver.ProjectContext;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
 
 import java.time.Instant;
 import java.util.Map;

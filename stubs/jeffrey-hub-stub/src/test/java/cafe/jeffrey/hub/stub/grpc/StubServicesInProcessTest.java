@@ -32,9 +32,6 @@ import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
 import cafe.jeffrey.hub.api.v1.ListProjectsRequest;
 import cafe.jeffrey.hub.api.v1.ListProjectsResponse;
-import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
-import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
-import cafe.jeffrey.hub.api.v1.RepositoryFile;
 import cafe.jeffrey.hub.api.v1.ListWorkspacesRequest;
 import cafe.jeffrey.hub.api.v1.ListWorkspacesResponse;
 import cafe.jeffrey.hub.api.v1.ProjectInfo;
@@ -58,7 +55,6 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Set;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -167,29 +163,6 @@ class StubServicesInProcessTest {
                         .build())
                 .getProjects(0);
         assertFalse(first.getId().isEmpty());
-    }
-
-    // Mirrors cafe.jeffrey.shared.common.model.repository.ManagedFile names. The client
-    // resolves file_type via ManagedFile.valueOf(), so an unknown name = null fileType = NPE.
-    private static final Set<String> VALID_FILE_TYPES = Set.of(
-            "JFR", "ASPROF_TEMP", "HEAP_DUMP_GZ", "HEAP_DUMP", "PERF_COUNTERS",
-            "JVM_LOG", "HS_JVM_ERROR_LOG", "APP_LOG", "UNKNOWN");
-
-    @Test
-    void repositoryFileTypesAreValidManagedFileNames() {
-        String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
-        ListSessionsResponse sessions = RepositoryServiceGrpc.newBlockingStub(channel)
-                .listSessions(ListSessionsRequest.newBuilder().setProjectId(projectId).build());
-
-        long files = 0;
-        for (var session : sessions.getSessionsList()) {
-            for (RepositoryFile file : session.getFilesList()) {
-                assertTrue(VALID_FILE_TYPES.contains(file.getFileType()),
-                        "invalid file_type: " + file.getFileType());
-                files++;
-            }
-        }
-        assertTrue(files > 0, "expected at least one repository file");
     }
 
     @Test

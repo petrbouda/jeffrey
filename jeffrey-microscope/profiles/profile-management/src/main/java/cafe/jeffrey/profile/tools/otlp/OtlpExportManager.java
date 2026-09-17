@@ -33,9 +33,9 @@ import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.provider.profile.api.SecondValue;
 import cafe.jeffrey.provider.profile.api.TimeseriesRecord;
-import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.time.Instant;
 import java.util.ArrayList;

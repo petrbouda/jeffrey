@@ -26,7 +26,7 @@ import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.math.BigDecimal;
 import java.util.List;

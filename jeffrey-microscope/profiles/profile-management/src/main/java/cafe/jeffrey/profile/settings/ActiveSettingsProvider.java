@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.profile.settings;
 
-import cafe.jeffrey.shared.common.settings.ActiveSettings;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.settings.ActiveSettings;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.util.function.Function;
 

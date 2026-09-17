@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.hub.persistence.api;
 
-import cafe.jeffrey.shared.common.model.GraphVisualization;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.hub.model.GraphVisualization;
+import cafe.jeffrey.hub.model.ProjectInfo;
 
 public record CreateProject(ProjectInfo projectInfo, GraphVisualization graphVisualization) {
 }

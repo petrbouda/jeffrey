@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.persistence.jdbc;
 
 import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;

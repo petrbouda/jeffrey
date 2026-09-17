@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.manager.model.gc.GCGenerationStats;
 import cafe.jeffrey.profile.manager.model.gc.GCHeader;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCPauseBucket;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.math.BigDecimal;
 import java.util.List;

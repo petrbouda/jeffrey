@@ -28,7 +28,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

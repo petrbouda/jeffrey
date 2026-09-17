@@ -19,8 +19,8 @@
 package cafe.jeffrey.profile.resources.request;
 
 import cafe.jeffrey.profile.TimeRangeRequest;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 
 

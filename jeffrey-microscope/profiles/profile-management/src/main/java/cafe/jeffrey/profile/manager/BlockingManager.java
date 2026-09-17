@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.manager.model.blocking.ContentionStat;
 import cafe.jeffrey.profile.manager.model.blocking.MonitorWaitStat;
 import cafe.jeffrey.profile.manager.model.blocking.PinnedThreadEntry;
 import cafe.jeffrey.profile.manager.model.blocking.SleepStat;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;

@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.core.resources.response;
 
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
 
 public record ProjectResponse(
         String id,

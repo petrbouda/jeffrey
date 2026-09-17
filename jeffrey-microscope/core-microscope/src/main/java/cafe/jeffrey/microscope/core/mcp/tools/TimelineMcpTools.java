@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TimeseriesManager;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.timeseries.SingleSerie;
 import tools.jackson.databind.JsonNode;
 import org.springframework.ai.tool.annotation.Tool;

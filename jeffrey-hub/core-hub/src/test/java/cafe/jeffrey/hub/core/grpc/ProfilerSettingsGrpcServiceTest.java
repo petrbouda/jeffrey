@@ -29,8 +29,8 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
+import cafe.jeffrey.hub.model.ProfilerInfo;
 
 import java.io.IOException;
 import java.util.List;
@@ -464,8 +464,8 @@ class ProfilerSettingsGrpcServiceTest {
 
     // ========== Helpers ==========
 
-    private static final cafe.jeffrey.shared.common.model.ProjectInfo TEST_PROJECT_INFO =
-            new cafe.jeffrey.shared.common.model.ProjectInfo(
+    private static final cafe.jeffrey.hub.model.ProjectInfo TEST_PROJECT_INFO =
+            new cafe.jeffrey.hub.model.ProjectInfo(
                     PROJECT_ID, null, null, null, null, null, null, null, null, null);
 
     /**

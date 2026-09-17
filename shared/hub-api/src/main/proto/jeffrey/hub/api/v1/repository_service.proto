@@ -151,11 +151,13 @@ message RepositoryFile {
   int64 created_at = 3;
   // File size in bytes.
   int64 size = 4;
-  // What the hub classified the file as: a ManagedFile name. The hub reports the type and never
-  // interprets it — what it means is the caller's to decide.
-  string file_type = 5;
-  // Whether the file is a recording (true) or an artifact (false). A category, not a format:
-  // several formats fall on either side of it.
+  // Number 5 was `string file_type`, a ManagedFile name the hub no longer has: it reads none of
+  // the files it serves and tells no kind apart beyond a recording. A caller wanting to know a
+  // heap dump from a log classifies `name` itself. Do not reuse the number.
+  //
+  // Whether the file is a recording chunk (true) or anything else beside one (false). A category,
+  // not a format — the one thing about a file's kind the hub decides, because it is what a
+  // download takes and what a session's window spans.
   bool is_recording = 7;
 
   // Held by a per-file status this message no longer carries. Do not reuse it.

@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.jfrparser.api.type.JfrClass;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;

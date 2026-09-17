@@ -23,8 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
+import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
 
 import java.util.List;
 
@@ -62,7 +62,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
 
-            cafe.jeffrey.shared.common.model.repository.RecordingSession session =
+            cafe.jeffrey.hub.model.repository.RecordingSession session =
                     repoManager.findRecordingSessions(request.getSessionId())
                             .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + request.getSessionId()));
 
@@ -127,7 +127,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     }
 
     static RecordingSession toProto(
-            cafe.jeffrey.shared.common.model.repository.RecordingSession session) {
+            cafe.jeffrey.hub.model.repository.RecordingSession session) {
 
         RecordingSession.Builder builder = RecordingSession.newBuilder()
                 .setId(session.id())
@@ -150,13 +150,12 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         return builder.build();
     }
 
-    private static RepositoryFile toFileProto(cafe.jeffrey.shared.common.model.repository.RepositoryFile file) {
+    private static RepositoryFile toFileProto(cafe.jeffrey.hub.model.repository.RepositoryFile file) {
         return RepositoryFile.newBuilder()
                 .setId(file.id())
                 .setName(file.name())
                 .setCreatedAt(file.createdAt() != null ? file.createdAt().toEpochMilli() : 0)
                 .setSize(file.size() != null ? file.size() : 0)
-                .setFileType(file.fileType() != null ? file.fileType().name() : "")
                 .setIsRecording(file.isRecordingFile())
                 .build();
     }

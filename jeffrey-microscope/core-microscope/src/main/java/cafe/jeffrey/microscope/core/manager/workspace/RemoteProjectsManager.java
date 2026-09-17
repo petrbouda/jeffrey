@@ -31,8 +31,8 @@ import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;

@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.hub.core.project.pipeline;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.CreateProject;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.CreateProject;
 
 public record CreateProjectContext(CreateProject createProject, ProjectInfo projectInfo) {
 

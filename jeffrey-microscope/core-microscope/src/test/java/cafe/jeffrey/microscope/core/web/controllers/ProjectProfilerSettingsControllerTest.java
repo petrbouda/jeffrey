@@ -30,8 +30,8 @@ import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver.ProjectContext;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;

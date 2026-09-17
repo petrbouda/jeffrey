@@ -45,9 +45,9 @@ import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient;
 import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.PortRange;
-import cafe.jeffrey.shared.common.FrameResolutionMode;
+import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 import cafe.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 

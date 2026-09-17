@@ -23,7 +23,7 @@ import cafe.jeffrey.provider.profile.api.*;
 import tools.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;
 import cafe.jeffrey.jfrparser.api.type.JfrMethodImpl;

@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.hub.core.scheduler.job.descriptor;
 
-import cafe.jeffrey.shared.common.model.job.JobInfo;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobInfo;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.util.Map;
 

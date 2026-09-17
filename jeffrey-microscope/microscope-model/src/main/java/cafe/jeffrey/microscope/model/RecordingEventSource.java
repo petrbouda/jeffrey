@@ -1,0 +1,65 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.microscope.model;
+
+public enum RecordingEventSource {
+    ASYNC_PROFILER(0, "Async-Profiler"),
+    JDK(1, "JDK"),
+    UNKNOWN(2, "Unknown"),
+    HEAP_DUMP(3, "Heap Dump"),
+    PPROF(4, "pprof"),
+    OPEN_TELEMETRY(5, "OpenTelemetry");
+
+    private final int id;
+    private final String label;
+
+    private static final RecordingEventSource[] VALUES = values();
+
+    RecordingEventSource(int id, String label) {
+        this.id = id;
+        this.label = label;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public static RecordingEventSource byId(int id) {
+        for (RecordingEventSource source : VALUES) {
+            if (source.id == id) {
+                return source;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Whether this source is an imported stack-sample profile format that Jeffrey only visualizes as
+     * flamegraphs ({@link #PPROF}, {@link #OPEN_TELEMETRY}) — as opposed to a JFR-based recording
+     * ({@link #JDK}, {@link #ASYNC_PROFILER}) that also feeds the JFR-specific analyses (event viewer,
+     * thread viewer, GC, …). Used to skip those analyses for profiles that cannot support them.
+     */
+    public boolean isFlamegraphOnlyImport() {
+        return this == PPROF || this == OPEN_TELEMETRY;
+    }
+}

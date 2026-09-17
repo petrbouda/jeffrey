@@ -20,7 +20,7 @@ package cafe.jeffrey.timeseries;
 
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;

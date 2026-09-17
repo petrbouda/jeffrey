@@ -22,7 +22,7 @@ import cafe.jeffrey.frameir.DiffFrame;
 import cafe.jeffrey.frameir.DiffTreeGenerator;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.profile.common.model.FrameType;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

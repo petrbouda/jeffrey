@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanInterval;
 
 import java.util.List;
 import java.util.Optional;

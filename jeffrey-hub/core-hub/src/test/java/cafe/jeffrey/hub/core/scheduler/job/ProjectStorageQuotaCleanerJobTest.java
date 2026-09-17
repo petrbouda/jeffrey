@@ -24,11 +24,10 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleanerJobDescriptor;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -103,7 +102,7 @@ class ProjectStorageQuotaCleanerJobTest {
      * decides, and the answer is its newest chunk while it records.
      */
     private static RepositoryFile recording(String id, Instant createdAt, long size) {
-        return new RepositoryFile(id, id, createdAt, size, ManagedFile.JFR, null);
+        return new RepositoryFile(id, id, createdAt, size, true, null);
     }
 
     private static RecordingSession finishedSession(
@@ -239,7 +238,7 @@ class ProjectStorageQuotaCleanerJobTest {
         void toleratesFilesWithUnknownSize() {
             RepositoryFile unsized = new RepositoryFile(
                     "f1", "f1", NOW.minusSeconds(3600), null,
-                    ManagedFile.JFR, null);
+                    true, null);
 
             when(storage.listSessions(true)).thenReturn(List.of(
                     finishedSession("s1", NOW.minusSeconds(3600), false, unsized)));

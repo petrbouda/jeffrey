@@ -22,7 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
 import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.*;
 import cafe.jeffrey.provider.profile.api.GenericRecord;

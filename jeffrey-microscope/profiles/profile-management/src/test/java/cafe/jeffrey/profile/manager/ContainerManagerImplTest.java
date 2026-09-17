@@ -25,7 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.builder.ContainerConfigurationEventBuilder;
 import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;

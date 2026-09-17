@@ -19,8 +19,8 @@
 package cafe.jeffrey.profile.manager.gc.builder;
 
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 
 public class NonConcurrentGCOverviewEventBuilder extends GCOverviewEventBuilder {

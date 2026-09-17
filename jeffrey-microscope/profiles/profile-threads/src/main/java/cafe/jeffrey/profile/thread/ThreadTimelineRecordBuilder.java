@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.thread;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.ThreadInfo;
 
 import java.util.ArrayList;
 import java.util.List;

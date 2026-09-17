@@ -26,7 +26,7 @@ import cafe.jeffrey.provider.profile.api.ProfileToolsRepository.FrameSample;
 import cafe.jeffrey.provider.profile.api.ProfileToolsRepository.StacktraceRecord;
 import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.jdbc.SingleThreadHasher;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.util.ArrayList;
 import java.util.HashMap;

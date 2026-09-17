@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.core.resources.response;
 
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 
 public record WorkspaceResponse(
         String id,

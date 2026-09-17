@@ -30,10 +30,10 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverview.StoredFile;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.core.project.repository.HubManagedFile;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 
 import java.io.IOException;
 import java.nio.file.FileStore;
@@ -118,8 +118,8 @@ public class StorageManagerImpl implements StorageManager {
     }
 
     private static List<FileTypeUsage> fileTypeUsages(List<RepositoryFile> files) {
-        Map<ManagedFile, List<RepositoryFile>> byType = files.stream()
-                .collect(Collectors.groupingBy(RepositoryFile::fileType));
+        Map<String, List<RepositoryFile>> byType = files.stream()
+                .collect(Collectors.groupingBy(StorageManagerImpl::kindOf));
 
         return byType.entrySet().stream()
                 .map(entry -> new FileTypeUsage(
@@ -128,6 +128,12 @@ public class StorageManagerImpl implements StorageManager {
                         entry.getValue().size()))
                 .sorted(Comparator.comparingLong(FileTypeUsage::sizeBytes).reversed())
                 .toList();
+    }
+
+    private static String kindOf(RepositoryFile file) {
+        return HubManagedFile.of(file.name())
+                .map(HubManagedFile::name)
+                .orElse(FileTypeUsage.OTHER_FILES);
     }
 
     private static List<StoredFile> largestFiles(List<RepositoryFile> files) {

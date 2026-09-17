@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.profile.manager.custom;
 
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
 import cafe.jeffrey.timeseries.SingleSerie;
 

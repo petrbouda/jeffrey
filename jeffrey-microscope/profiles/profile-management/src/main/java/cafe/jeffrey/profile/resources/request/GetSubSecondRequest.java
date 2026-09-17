@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.resources.request;
 
 import cafe.jeffrey.profile.TimeRangeRequest;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 public record GetSubSecondRequest(
         Type eventType,

@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
 import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOverview;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;

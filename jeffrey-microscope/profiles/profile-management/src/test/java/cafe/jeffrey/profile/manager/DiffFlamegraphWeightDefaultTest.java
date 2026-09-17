@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

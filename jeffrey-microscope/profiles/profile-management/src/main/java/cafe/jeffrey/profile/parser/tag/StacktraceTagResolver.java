@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.parser.tag;
 
 import jdk.jfr.consumer.RecordedStackTrace;
-import cafe.jeffrey.shared.common.model.StacktraceTag;
+import cafe.jeffrey.microscope.model.StacktraceTag;
 
 import java.util.function.Function;
 

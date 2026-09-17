@@ -23,17 +23,13 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.repository.Compression;
-import cafe.jeffrey.shared.common.model.repository.FileCategory;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,14 +50,14 @@ import java.util.stream.Stream;
  * directories under them, and the files a profiler left behind.
  *
  * <p>Named for async-profiler once, and that stopped being true. Nothing here is specific to a
- * profiler or to a kind of file: a file is classified by {@link ManagedFile#of(String)} and
- * everything this class then does to it — the id it is known by, where its timestamp comes from,
- * whether its size can be read from a directory listing, whether it may be compressed, whether it
- * may be handed over — is a property that type declares about itself. Add a constant to the enum
- * with its facets filled in and this class carries it without a line changing.
+ * profiler: a file is classified by {@link HubManagedFile#of(String)} and everything this class
+ * then does to it — the id it is known by, where its timestamp comes from, whether it may be
+ * compressed, whether it may be handed over — is a property that type declares about itself.
  *
- * <p>It is, however, the one class whose <em>behaviour</em> a file's type decides. Everywhere else
- * in the hub a type is either reported onward or used as a grouping key.
+ * <p>It is the one class whose <em>behaviour</em> a file's type decides, and the type is the
+ * hub's own two-way one: a JFR and its archive; everything else has no name here.
+ * The hub does not read a log or a heap dump and so does not need to tell them apart; Microscope
+ * classifies the name again on its side, with the enum that knows what it can read.
  *
  * <p>The one thing here that is about the layout rather than about a file is
  * {@link #NEWEST_BY_NAME}, the order a session directory is listed in.
@@ -192,7 +188,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
         List<RepositoryFile> repositoryFiles;
         if (withFiles) {
-            repositoryFiles = _listRepositoryFiles(recordingStatus, sessionPath);
+            repositoryFiles = _listRepositoryFiles(sessionPath);
         } else {
             repositoryFiles = List.of();
         }
@@ -218,20 +214,20 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      * recording with its archive, so a name this listing has just read can be gone by the time
      * its size or timestamp is asked for. Leaving such a file out is what the next listing will
      * say anyway; raising the failure instead would take the whole instance page down over one
-     * file that no longer exists. The race is old, but it used to be hidden: a {@code stat()}
-     * answered from the client's attribute cache still reports a file the share has already
-     * removed, where asking the share for a handle does not.
+     * file that no longer exists.
      */
-    RepositoryFile describe(Path file, RecordingStatus sessionStatus, Path sessionPath) {
+    RepositoryFile describe(Path file, Path sessionPath) {
         String sourceName = sessionPath.relativize(file).toString();
-        ManagedFile fileType = ManagedFile.of(sourceName);
+        Optional<HubManagedFile> recording = HubManagedFile.of(sourceName);
         try {
             return new RepositoryFile(
-                    fileType.idOf(file),
+                    fileId(file),
                     sourceName,
-                    fileType.timestampResolver().resolve(file),
-                    sizeReader(sessionStatus, fileType).size(file),
-                    fileType,
+                    recording.map(HubManagedFile::timestampResolver)
+                            .orElse(TimestampResolver.FILESYSTEM)
+                            .resolve(file),
+                    FileSystemUtils.size(file),
+                    recording.isPresent(),
                     file);
         } catch (RuntimeException e) {
             LOG.debug("Leaving out a repository file that can no longer be described: file={} reason={}",
@@ -249,24 +245,9 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      * matched back to the file it came from is an id that deletes nothing.
      */
     private static String fileId(Path file) {
-        return ManagedFile.of(file).idOf(file);
-    }
-
-    /**
-     * How one file's size is read, which on an SMB mount is the difference between a figure and
-     * a round trip. Only a session that is still recording has files open on another client, and
-     * the share answers a directory listing about such a file with the size it last saw rather
-     * than the size the file has; opening it asks the share for the current one. Every other file
-     * is measured from the listing at no cost: a finished session's writer has closed its files,
-     * and a compressed recording was written and closed by this hub, so both are final however
-     * old the listing is. That matters because a listing covers every session of a project, and
-     * an open apiece would be hundreds of round trips on one page load.
-     */
-    static FileSizeReader sizeReader(RecordingStatus sessionStatus, ManagedFile fileType) {
-        if (sessionStatus == RecordingStatus.FINISHED || fileType.isArchive()) {
-            return FileSizeReader.FILE_ATTRIBUTES;
-        }
-        return FileSizeReader.LIVE_FILE;
+        return HubManagedFile.of(file)
+                .map(type -> type.idOf(file))
+                .orElseGet(() -> file.getFileName().toString());
     }
 
     private RecordingStatus determineSessionStatus(ProjectInstanceSessionInfo sessionInfo, boolean isLatestSession) {
@@ -437,10 +418,12 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      * compress, and the path it names is the file the listing named.
      *
      * <p>Refuses rather than returning nothing. This used to be two methods returning lists, both
-     * called with a single id, and between them they filtered on five different grounds — so a
-     * caller that named an empty recording, or one that had vanished, or the chunk the profiler
-     * still holds, was told the same thing in each case: not found. Each of those now says what
-     * it is.
+     * called with a single id, and between them they filtered on several grounds — so a caller
+     * that named an empty recording, or one that had vanished, or the chunk the profiler still
+     * holds, was told the same thing in each case: not found. Each of those now says what it is.
+     * What the hub does not judge is what kind of file it is handing over: the profiler's own
+     * scratch file is served like any other, and it is Microscope, which knows the name, that
+     * declines to ask for it.
      */
     @Override
     public Path file(String sessionId, String fileId) {
@@ -460,10 +443,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
             throw new IllegalArgumentException("File " + file.name() + " is the chunk the profiler is "
                     + "still writing, and reading it would give a truncated answer. It can be taken "
                     + "once the profiler has rolled the next one.");
-        }
-        if (file.fileType().fileCategory() == FileCategory.TEMPORARY) {
-            throw new IllegalArgumentException("File " + file.name() + " is a transient "
-                    + file.fileType().description() + ", which the profiler deletes as it goes.");
         }
         if (!Files.isRegularFile(file.filePath())) {
             // Its own kind, because a caller holding the id can act on it: the compression job
@@ -492,7 +471,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      * reader that resolved it may find it gone before it opens it.
      */
     private static RepositoryFile theOneThatStays(RepositoryFile first, RepositoryFile second) {
-        return first.fileType().isArchive() ? first : second;
+        return HubManagedFile.of(first.name()).filter(HubManagedFile::isArchive).isPresent() ? first : second;
     }
 
     // ========== Session Compression ==========
@@ -542,13 +521,13 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      * call.
      */
     private Path compress(String sessionId, RepositoryFile file) {
-        Compression compression = file.fileType().compression();
+        // Every file here is a recording — finishedRecordings() saw to that — so the only way
+        // its type has no compression is that it is the archive already.
+        Compression compression = HubManagedFile.of(file.name())
+                .map(HubManagedFile::compression)
+                .orElse(Compression.NONE);
         if (!compression.isSupported()) {
-            // Either the file is already an archive, or it is a type that rewriting would
-            // destroy: a compressed pprof matches nothing, so it would come back UNKNOWN, stop
-            // being a recording, change id, and lose the original.
-            LOG.debug("Leaving a recording its type cannot compress alone: sessionId={} file={} file_type={}",
-                    sessionId, file.name(), file.fileType());
+            LOG.debug("Leaving an already compressed recording alone: sessionId={} file={}", sessionId, file.name());
             return file.filePath();
         }
 
@@ -570,16 +549,9 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 return compressedPath;
             }
 
-            // Capture original file size before compression. Through an open handle rather than a
-            // stat: this runs on a recording the profiler may still hold open, whose listed size
-            // on an SMB mount can be anything from zero to the last flush, and the guard below
-            // would drop a real recording on the strength of it. The open costs nothing here —
-            // compressing the file opens it a moment later regardless.
-            long originalSize = FileSizeReader.OPEN_HANDLE.size(sourcePath);
-
             // Skip empty recording files left when the profiler stops before writing events,
             // for example after a non-graceful shutdown.
-            if (originalSize == 0) {
+            if (FileSystemUtils.size(sourcePath) == 0) {
                 LOG.debug("Skipping empty recording file: sessionId={} file={}", sessionId, sourcePath);
                 return null;
             }
@@ -595,9 +567,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         }
     }
 
-    private List<RepositoryFile> _listRepositoryFiles(
-            RecordingStatus recordingStatus,
-            Path sessionPath) {
+    private List<RepositoryFile> _listRepositoryFiles(Path sessionPath) {
 
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
@@ -607,7 +577,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         return FileSystemUtils.sortedFilesInDirectory(sessionPath, NEWEST_BY_NAME).stream()
                 .filter(Files::isRegularFile)
                 .filter(FileSystemUtils::isNotHidden)
-                .map(file -> describe(file, recordingStatus, sessionPath))
+                .map(file -> describe(file, sessionPath))
                 .filter(Objects::nonNull)
                 .toList();
     }

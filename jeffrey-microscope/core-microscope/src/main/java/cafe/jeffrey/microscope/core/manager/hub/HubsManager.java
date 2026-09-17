@@ -20,10 +20,10 @@ package cafe.jeffrey.microscope.core.manager.hub;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
-import cafe.jeffrey.shared.common.model.hub.HubSource;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubSource;
 import cafe.jeffrey.shared.common.IDGenerator;
 
 import java.time.Clock;

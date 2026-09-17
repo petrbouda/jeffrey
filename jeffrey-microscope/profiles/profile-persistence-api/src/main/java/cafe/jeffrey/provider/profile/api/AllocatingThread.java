@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.ThreadInfo;
 
 /**
  * A thread that is allocating memory.

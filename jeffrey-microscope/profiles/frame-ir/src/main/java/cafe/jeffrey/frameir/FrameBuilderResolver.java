@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.frameir;
 
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.WeightUnit;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.WeightUnit;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.frameir.frame.AllocationTopFrameProcessor;
 import cafe.jeffrey.frameir.frame.BlockingTopFrameProcessor;

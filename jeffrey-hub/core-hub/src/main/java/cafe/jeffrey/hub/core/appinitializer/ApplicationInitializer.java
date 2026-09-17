@@ -22,7 +22,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import cafe.jeffrey.shared.common.CliConstants;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.ProfilerInfo;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 
 public class ApplicationInitializer implements ApplicationListener<ApplicationReadyEvent> {

@@ -30,8 +30,8 @@ import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
 import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.common.filesystem.FileSizeReader;
-import cafe.jeffrey.shared.common.model.repository.StreamedFile;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -76,10 +76,10 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
                 // not there — passes through as it is.
                 observer.onError(e);
             } catch (IllegalArgumentException e) {
-                // Everything the lookup refuses: a file the session does not hold, a transient
-                // one, one still being written, one that is empty. Each is a statement about what
-                // was asked for, so it travels as INVALID_ARGUMENT carrying its own sentence
-                // rather than as a hub failure.
+                // Everything the lookup refuses: a file the session does not hold, one still
+                // being written, one that is empty. Each is a statement about what was asked
+                // for, so it travels as INVALID_ARGUMENT carrying its own sentence rather than
+                // as a hub failure.
                 LOG.debug("Refusing to stream a file: sessionId={} fileId={} reason={}",
                         request.getSessionId(), request.getFileId(), e.getMessage());
                 observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
@@ -143,8 +143,7 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
     private record OpenFile(String name, long totalSize, InputStream stream) implements Closeable {
 
         static OpenFile of(StreamedFile file) throws IOException {
-            long totalSize = FileSizeReader.OPEN_HANDLE.size(file.path());
-            return new OpenFile(file.fileName(), totalSize, file.openStream());
+            return new OpenFile(file.fileName(), FileSystemUtils.size(file.path()), file.openStream());
         }
 
         @Override

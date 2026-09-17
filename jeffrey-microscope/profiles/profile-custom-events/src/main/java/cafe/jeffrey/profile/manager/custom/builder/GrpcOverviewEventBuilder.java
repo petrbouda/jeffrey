@@ -25,7 +25,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
 import cafe.jeffrey.profile.manager.custom.model.grpc.*;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 import java.math.BigDecimal;

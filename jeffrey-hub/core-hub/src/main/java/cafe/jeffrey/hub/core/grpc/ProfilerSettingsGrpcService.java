@@ -25,8 +25,8 @@ import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
+import cafe.jeffrey.hub.model.ProfilerInfo;
 
 import java.util.List;
 

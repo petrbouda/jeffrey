@@ -133,7 +133,7 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     }
 
     static ProjectInfo toProto(DetailedProjectInfo detail) {
-        cafe.jeffrey.shared.common.model.ProjectInfo info = detail.projectInfo();
+        cafe.jeffrey.hub.model.ProjectInfo info = detail.projectInfo();
 
         var builder = ProjectInfo.newBuilder()
                 .setId(info.id())

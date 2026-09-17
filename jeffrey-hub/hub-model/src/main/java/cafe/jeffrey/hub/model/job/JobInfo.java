@@ -1,0 +1,40 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.hub.model.job;
+
+import java.time.Duration;
+import java.util.Map;
+
+/**
+ * Read-only view of a configured scheduler job, resolved from
+ * {@code application.properties} at startup. There is exactly one
+ * {@code JobInfo} per {@link JobType}.
+ *
+ * @param manualTriggerSupported whether an operator may run this job on demand. A capability of
+ *                               the job itself, not a setting — the UI renders a control from
+ *                               this flag alone and so never needs to know which jobs they are.
+ */
+public record JobInfo(
+        JobType jobType,
+        JobType.ExecutionLevel executionLevel,
+        Duration period,
+        Map<String, String> params,
+        boolean enabled,
+        boolean manualTriggerSupported) {
+}

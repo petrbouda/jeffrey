@@ -27,8 +27,8 @@ import io.opentelemetry.proto.profiles.v1development.Function;
 import cafe.jeffrey.otlpparser.dictionary.OtlpDictionary;
 import cafe.jeffrey.profile.common.model.FrameType;
 import cafe.jeffrey.provider.profile.api.EventFrame;
-import cafe.jeffrey.shared.common.HiddenClassName;
-import cafe.jeffrey.shared.common.model.StacktraceType;
+import cafe.jeffrey.microscope.model.HiddenClassName;
+import cafe.jeffrey.microscope.model.StacktraceType;
 
 import java.util.ArrayList;
 import java.util.List;

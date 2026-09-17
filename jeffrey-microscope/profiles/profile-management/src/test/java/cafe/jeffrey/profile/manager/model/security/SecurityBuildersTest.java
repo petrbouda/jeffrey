@@ -28,8 +28,8 @@ import cafe.jeffrey.profile.manager.model.security.SecurityData.NamedCount;
 import cafe.jeffrey.profile.manager.model.security.SecurityData.ProviderServiceStat;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
 import java.time.Duration;
 import java.time.Instant;

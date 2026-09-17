@@ -26,13 +26,12 @@ import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -142,7 +141,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
     private static RepositoryFile recording(String id, Instant createdAt, long size) {
         return new RepositoryFile(
-                id, id, createdAt, size, ManagedFile.JFR, null);
+                id, id, createdAt, size, true, null);
     }
 
     /** A finished session that produced real data. */
@@ -521,7 +520,7 @@ class ProjectInstanceSessionCleanerJobTest {
         void treatsFilesWithUnknownSizeAsZeroBytes() {
             RepositoryFile unsized = new RepositoryFile(
                     "f1", "f1", NOW.minus(PAST_RETENTION), null,
-                    ManagedFile.JFR, null);
+                    true, null);
 
             RecordingSession unsizedSession = session(
                     "unsized", NOW.minus(PAST_RETENTION), NOW.minus(PAST_RETENTION).plusSeconds(5), false, unsized);

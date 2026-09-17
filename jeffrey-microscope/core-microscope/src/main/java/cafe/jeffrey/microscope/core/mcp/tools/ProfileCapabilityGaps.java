@@ -24,8 +24,8 @@ import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.ArrayList;
 import java.util.HashSet;

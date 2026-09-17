@@ -21,7 +21,7 @@ package cafe.jeffrey.flamegraph.diff;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.flamegraph.export.WeightContext;
 import cafe.jeffrey.frameir.DiffFrame;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.time.Duration;
 

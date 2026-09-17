@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.util.ArrayList;
 import java.util.Comparator;

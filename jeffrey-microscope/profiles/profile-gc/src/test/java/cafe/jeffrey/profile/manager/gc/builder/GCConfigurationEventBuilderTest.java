@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.common.event.*;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

@@ -24,7 +24,7 @@ import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.Jo
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.io.IOException;
 import java.nio.file.Files;

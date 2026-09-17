@@ -28,8 +28,8 @@ import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceAlreadyExistsException;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 
 import java.io.IOException;
 import java.time.Instant;

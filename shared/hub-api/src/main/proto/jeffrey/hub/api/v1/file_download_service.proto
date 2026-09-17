@@ -16,10 +16,12 @@ service FileDownloadService {
   // Streams the file the id names.
   //
   // The hub hands the bytes over and does not interpret them. What a file is decides what the
-  // caller does with it afterwards, and the caller read that off the listing that gave it the id.
+  // caller does with it afterwards, and the caller read that off the listing that gave it the id
+  // — every listing carries `name` and `is_recording`.
   //
-  // What the hub does refuse, each naming its reason: a file the session does not hold, a
-  // transient one, one that is still being written, and one that is empty.
+  // What the hub does refuse, each naming its reason: a file the session does not hold, one that
+  // is still being written, and one that is empty. What kind of file is worth taking —
+  // async-profiler's `.jfr.N~` cache is not — is the reader's judgement, made from the name.
   rpc DownloadFile(DownloadFileRequest) returns (stream DataChunk);
 }
 

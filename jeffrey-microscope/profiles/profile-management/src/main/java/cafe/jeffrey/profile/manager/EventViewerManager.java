@@ -19,8 +19,8 @@
 package cafe.jeffrey.profile.manager;
 
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.provider.profile.api.FieldDescription;
 

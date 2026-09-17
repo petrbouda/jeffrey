@@ -24,9 +24,9 @@ import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcServiceDetailData;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
 import java.util.function.Predicate;
 

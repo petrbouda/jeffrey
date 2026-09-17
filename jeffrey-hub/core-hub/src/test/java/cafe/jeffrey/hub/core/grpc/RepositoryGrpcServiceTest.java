@@ -28,11 +28,10 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -72,20 +71,20 @@ class RepositoryGrpcServiceTest {
         void returnsSessionList() throws Exception {
             var repoManager = mock(RepositoryManager.class);
             when(repoManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of(
-                    new cafe.jeffrey.shared.common.model.repository.RecordingSession(
+                    new cafe.jeffrey.hub.model.repository.RecordingSession(
                             SESSION_ID, "session-name", "inst-1",
                             FIXED_TIME, null,
-                            cafe.jeffrey.shared.common.model.repository.RecordingStatus.ACTIVE,
+                            cafe.jeffrey.hub.model.repository.RecordingStatus.ACTIVE,
                             null,
                             List.of(new RepositoryFile(
                                     "file-1", "recording.jfr", FIXED_TIME, 1024L,
-                                    ManagedFile.JFR,
+                                    true,
                                     null)),
                             false),
-                    new cafe.jeffrey.shared.common.model.repository.RecordingSession(
+                    new cafe.jeffrey.hub.model.repository.RecordingSession(
                             "session-2", "finished-session", null,
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600),
-                            cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
+                            cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
                             null,
                             List.of(), true)
             ));
@@ -155,12 +154,12 @@ class RepositoryGrpcServiceTest {
             var repoManager = mock(RepositoryManager.class);
             Instant from = FIXED_TIME.minus(Duration.ofHours(1));
             var expected = new RecordingSessionFilter(
-                    from, FIXED_TIME, cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED, 5);
+                    from, FIXED_TIME, cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED, 5);
             when(repoManager.listRecordingSessions(true, expected)).thenReturn(List.of(
-                    new cafe.jeffrey.shared.common.model.repository.RecordingSession(
+                    new cafe.jeffrey.hub.model.repository.RecordingSession(
                             SESSION_ID, "session-name", null,
                             from, FIXED_TIME,
-                            cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
+                            cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
                             null, List.of(), false)));
 
             var stub = startServer(serviceWithProject(repoManager));
@@ -232,10 +231,10 @@ class RepositoryGrpcServiceTest {
         void returnsSession() throws Exception {
             var repoManager = mock(RepositoryManager.class);
             when(repoManager.findRecordingSessions(SESSION_ID)).thenReturn(Optional.of(
-                    new cafe.jeffrey.shared.common.model.repository.RecordingSession(
+                    new cafe.jeffrey.hub.model.repository.RecordingSession(
                             SESSION_ID, "my-session", "inst-1",
                             FIXED_TIME, FIXED_TIME.plusSeconds(600),
-                            cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
+                            cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
                             null,
                             List.of(), false)
             ));

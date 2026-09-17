@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.util.function.Function;
 

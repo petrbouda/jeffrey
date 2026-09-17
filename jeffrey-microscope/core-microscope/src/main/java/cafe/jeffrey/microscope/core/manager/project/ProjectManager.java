@@ -20,9 +20,9 @@ package cafe.jeffrey.microscope.core.manager.project;
 
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;

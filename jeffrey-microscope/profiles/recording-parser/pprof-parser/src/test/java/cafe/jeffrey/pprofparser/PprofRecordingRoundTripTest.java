@@ -29,8 +29,8 @@ import cafe.jeffrey.provider.profile.jdbc.JdbcProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.jdbc.SQLEventWriter;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 

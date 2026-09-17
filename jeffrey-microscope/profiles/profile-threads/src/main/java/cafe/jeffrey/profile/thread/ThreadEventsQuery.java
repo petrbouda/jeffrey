@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.thread;
 
-import cafe.jeffrey.shared.common.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.ThreadInfo;
 
 import java.time.Duration;
 import java.util.List;

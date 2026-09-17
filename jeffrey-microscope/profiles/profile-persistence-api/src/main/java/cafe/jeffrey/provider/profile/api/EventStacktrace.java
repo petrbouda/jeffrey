@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.StacktraceTag;
-import cafe.jeffrey.shared.common.model.StacktraceType;
+import cafe.jeffrey.microscope.model.StacktraceTag;
+import cafe.jeffrey.microscope.model.StacktraceType;
 
 import java.util.HashSet;
 import java.util.List;

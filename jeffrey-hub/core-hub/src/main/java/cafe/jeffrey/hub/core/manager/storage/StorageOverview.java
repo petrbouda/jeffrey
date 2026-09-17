@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.manager.storage;
 
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.util.List;
 
@@ -46,9 +45,9 @@ public record StorageOverview(
     }
 
     /**
-     * Storage used by a single project's recording repository, broken down by every
-     * {@link ManagedFile} type present in it. Types with no stored files
-     * are omitted from {@code fileTypes}.
+     * Storage used by a single project's recording repository, broken down by the kinds the hub
+     * tells apart: plain recordings, compressed ones, and everything else. Kinds with no stored
+     * files are omitted from {@code fileTypes}.
      */
     public record ProjectStorage(
             String workspaceId,
@@ -64,9 +63,13 @@ public record StorageOverview(
     }
 
     /**
-     * Aggregated usage of a single file type within one project repository.
+     * Aggregated usage of one kind of file within one project repository: a
+     * {@code HubManagedFile} name for a recording, {@link #OTHER_FILES} for anything the hub does
+     * not classify.
      */
-    public record FileTypeUsage(ManagedFile fileType, long sizeBytes, int fileCount) {
+    public record FileTypeUsage(String type, long sizeBytes, int fileCount) {
+
+        public static final String OTHER_FILES = "OTHER";
     }
 
     /**

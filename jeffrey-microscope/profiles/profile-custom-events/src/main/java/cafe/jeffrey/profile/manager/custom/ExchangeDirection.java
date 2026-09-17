@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager.custom;
 
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.Locale;
 

@@ -19,7 +19,7 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.shared.common.model.SpanConventionKeys;
+import cafe.jeffrey.microscope.model.SpanConventionKeys;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import org.slf4j.Logger;

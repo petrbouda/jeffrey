@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core.manager;
 
 import cafe.jeffrey.hub.client.ProfilerClient;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings;
 
 /**
  * Remote implementation of ProfilerSettingsManager that calls a Jeffrey Hub.

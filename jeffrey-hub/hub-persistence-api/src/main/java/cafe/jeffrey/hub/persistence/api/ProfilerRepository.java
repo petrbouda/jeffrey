@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.persistence.api;
 
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.hub.model.ProfilerInfo;
 
 import java.util.List;
 

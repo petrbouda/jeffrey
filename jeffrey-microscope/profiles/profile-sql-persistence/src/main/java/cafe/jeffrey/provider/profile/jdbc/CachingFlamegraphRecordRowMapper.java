@@ -27,7 +27,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackFrameImpl;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
 import cafe.jeffrey.jfrparser.api.type.JfrThreadImpl;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.sql.Array;
 import java.sql.ResultSet;

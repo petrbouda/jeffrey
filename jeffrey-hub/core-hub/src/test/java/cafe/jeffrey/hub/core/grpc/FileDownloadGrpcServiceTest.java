@@ -30,12 +30,11 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.repository.StreamedFile;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -275,7 +274,7 @@ class FileDownloadGrpcServiceTest {
 
     private static RepositoryFile chunk(String id, long startMinute) {
         return new RepositoryFile(id, "profile-" + id + ".jfr", SESSION_START.plusSeconds(startMinute * 60),
-                10L, ManagedFile.JFR, null);
+                10L, true, null);
     }
 
     /** Three ten-minute chunks, f1 f2 f3, the session finished at +30. */

@@ -28,9 +28,9 @@ import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.nio.file.Path;

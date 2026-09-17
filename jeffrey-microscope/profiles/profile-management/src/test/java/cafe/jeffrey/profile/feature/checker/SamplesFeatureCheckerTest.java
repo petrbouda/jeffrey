@@ -21,8 +21,8 @@ package cafe.jeffrey.profile.feature.checker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureCheckResult;
 import cafe.jeffrey.profile.feature.FeatureType;
 

@@ -20,7 +20,7 @@ package cafe.jeffrey.flamegraph.export;
 
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.profile.common.model.FrameType;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.ArrayList;
 import java.util.Comparator;

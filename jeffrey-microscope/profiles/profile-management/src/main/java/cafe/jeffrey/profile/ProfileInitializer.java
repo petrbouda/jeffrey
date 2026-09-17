@@ -20,7 +20,7 @@ package cafe.jeffrey.profile;
 
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.nio.file.Path;
 import java.util.List;

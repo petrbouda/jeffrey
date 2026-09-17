@@ -25,7 +25,7 @@ import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingStat;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

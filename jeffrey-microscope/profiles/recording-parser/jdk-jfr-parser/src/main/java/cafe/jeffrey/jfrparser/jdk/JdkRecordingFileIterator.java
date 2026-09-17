@@ -19,7 +19,7 @@
 package cafe.jeffrey.jfrparser.jdk;
 
 import jdk.jfr.consumer.EventStream;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.io.IOException;
 import java.nio.file.Files;

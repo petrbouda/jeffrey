@@ -20,11 +20,11 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.*;
 
-import cafe.jeffrey.shared.common.model.EventSourceResolver;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.settings.ActiveSetting;
-import cafe.jeffrey.shared.common.settings.ActiveSettings;
+import cafe.jeffrey.microscope.model.EventSourceResolver;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.settings.ActiveSetting;
+import cafe.jeffrey.microscope.model.settings.ActiveSettings;
 import cafe.jeffrey.provider.profile.api.DatabaseWriter;
 import cafe.jeffrey.provider.profile.api.EventTypeBuilder;
 import cafe.jeffrey.provider.profile.api.EnhancedEventType;

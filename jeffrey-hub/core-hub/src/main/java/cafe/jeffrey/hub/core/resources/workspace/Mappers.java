@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.hub.core.resources.workspace;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.core.resources.response.ProjectResponse;
 import cafe.jeffrey.hub.core.resources.response.WorkspaceResponse;

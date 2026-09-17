@@ -21,7 +21,7 @@ package cafe.jeffrey.timeseries;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;

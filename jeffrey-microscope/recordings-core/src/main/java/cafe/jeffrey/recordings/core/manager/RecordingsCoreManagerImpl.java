@@ -1,0 +1,412 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.recordings.core.manager;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
+import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
+import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser.RecordingMetadata;
+import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Deployment-agnostic implementation of the recording store. Holds NO profile coupling — optional
+ * metadata enrichment is delegated to {@link RecordingMetadataParser} and profile cleanup on
+ * deletion to {@link RecordingProfileCleanup}, both of which default to no-ops.
+ */
+public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RecordingsCoreManagerImpl.class);
+
+    /**
+     * Between a recording's id and its file's own name, in the flat recordings directory.
+     */
+    private static final String STORAGE_NAME_SEPARATOR = "-";
+
+    private final Clock clock;
+    private final Path recordingsDir;
+    private final RecordingRepository recordingRepository;
+    private final RecordingTagsRepository recordingTagsRepository;
+    private final RecordingMetadataParser metadataParser;
+    private final RecordingProfileCleanup profileCleanup;
+
+    public RecordingsCoreManagerImpl(
+            Clock clock,
+            Path recordingsDir,
+            RecordingRepository recordingRepository,
+            RecordingTagsRepository recordingTagsRepository,
+            RecordingMetadataParser metadataParser,
+            RecordingProfileCleanup profileCleanup) {
+
+        this.clock = clock;
+        this.recordingsDir = recordingsDir;
+        this.recordingRepository = recordingRepository;
+        this.recordingTagsRepository = recordingTagsRepository;
+        this.metadataParser = metadataParser == null ? RecordingMetadataParser.NOOP : metadataParser;
+        this.profileCleanup = profileCleanup == null ? RecordingProfileCleanup.NOOP : profileCleanup;
+    }
+
+    // --- Group operations ---
+
+    @Override
+    public String createGroup(String groupName) {
+        String groupId = recordingRepository.insertGroup(groupName);
+        LOG.info("Quick analysis group created: groupId={} groupName={}", groupId, groupName);
+        return groupId;
+    }
+
+    @Override
+    public List<RecordingGroup> listGroups() {
+        return recordingRepository.findAllRecordingGroups();
+    }
+
+    @Override
+    public void deleteGroup(String groupId) {
+        List<Recording> recordings = recordingRepository.findRecordingsByGroupId(groupId);
+
+        for (Recording recording : recordings) {
+            deleteRecordingInternal(recording);
+            recordingTagsRepository.deleteForRecording(recording.id());
+        }
+
+        recordingRepository.deleteGroup(groupId);
+
+        LOG.info("Quick analysis group deleted: groupId={} recordingsDeleted={}", groupId, recordings.size());
+
+        // A cascade rather than one deliberate delete: one click took every recording in the group,
+        // so it is raised a level above RECORDING_DELETED even though each step was routine.
+        Notifications.of(NotificationType.RECORDING_GROUP_DELETED)
+                .attribute("groupId", groupId)
+                .attribute("recordingsDeleted", recordings.size())
+                .emit();
+    }
+
+    // --- Recording operations ---
+
+    @Override
+    public void moveRecordingToGroup(String recordingId, String groupId) {
+        LOG.debug("Moving quick recording to group: recordingId={} groupId={}", recordingId, groupId);
+        recordingRepository.updateRecordingGroup(recordingId, groupId);
+    }
+
+    @Override
+    public String uploadRecording(String filename, InputStream inputStream, String groupId) {
+        if (groupId != null && recordingRepository.findGroupById(groupId).isEmpty()) {
+            throw new IllegalArgumentException("Group not found: " + groupId);
+        }
+
+        String recordingId = IDGenerator.generate();
+        StoredFile stored = new StoredFile(filename, storagePath(recordingId, filename));
+
+        try {
+            Files.copy(inputStream, stored.path(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to save uploaded file", e);
+        }
+
+        persistRecording(recordingId, filename, List.of(stored), groupId, List.of(), Map.of());
+
+        LOG.info("Quick analysis recording uploaded: recordingId={} filename={} groupId={}", recordingId, filename, groupId);
+        return recordingId;
+    }
+
+    @Override
+    public String importRecordingFromPath(Path path) {
+        if (path == null) {
+            throw new IllegalArgumentException("Recording path is required");
+        }
+        if (!Files.isRegularFile(path)) {
+            throw new IllegalArgumentException("Recording file not found: " + path);
+        }
+
+        String filename = path.getFileName().toString();
+        if (ManagedFile.of(filename) == ManagedFile.UNKNOWN) {
+            throw new IllegalArgumentException("Unsupported recording file type: " + filename);
+        }
+
+        LOG.debug("Importing recording from local path: path={}", path);
+        try (InputStream inputStream = Files.newInputStream(path)) {
+            return uploadRecording(filename, inputStream, null);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read recording from path: " + path, e);
+        }
+    }
+
+    /**
+     * Stores a downloaded session as one recording holding the several files it arrived as.
+     * <p>
+     * The files are kept apart, each under the name the session gave it. Nothing joins them: the
+     * parser reads them as independent inputs, and the recording's window is taken across all of
+     * them rather than from any one.
+     */
+    @Override
+    public String createDownloadedRecording(
+            String recordingName,
+            List<Path> recordingFiles,
+            List<Path> artifactFiles,
+            Map<String, String> originTags) {
+
+        if (recordingFiles.isEmpty()) {
+            throw new IllegalArgumentException("A downloaded recording needs at least one recording file");
+        }
+
+        String recordingId = IDGenerator.generate();
+        List<StoredFile> storedFiles = recordingFiles.stream()
+                .map(file -> copyIntoStorage(recordingId, file))
+                .toList();
+
+        persistRecording(recordingId, recordingName, storedFiles, null, artifactFiles, originTags);
+
+        LOG.info("Quick analysis recording downloaded from project: recordingId={} recordingName={} "
+                        + "fileCount={} artifactCount={} tagCount={}",
+                recordingId, recordingName, storedFiles.size(), artifactFiles.size(), originTags.size());
+        return recordingId;
+    }
+
+    private StoredFile copyIntoStorage(String recordingId, Path source) {
+        String filename = source.getFileName().toString();
+        StoredFile stored = new StoredFile(filename, storagePath(recordingId, filename));
+        try {
+            Files.copy(source, stored.path(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to copy downloaded recording into QA storage", e);
+        }
+        return stored;
+    }
+
+    /**
+     * Shared persistence path for both manual uploads and downloaded recordings.
+     * Parses recording info over every recording file, inserts them, copies and inserts any
+     * artifact files, then writes the supplied origin/system tags.
+     *
+     * @param recordingName what the recording is called in the list — the file's own name for an
+     *                      upload, the session's name for a download, which is several files and
+     *                      so has no one file to be named after
+     * @param files         the recording files, already in storage
+     */
+    private void persistRecording(
+            String recordingId,
+            String recordingName,
+            List<StoredFile> files,
+            String groupId,
+            List<Path> artifactFiles,
+            Map<String, String> originTags) {
+
+        // The kind is decided by the first file. A recording is one format throughout — the files
+        // of a session are chunks of the same profiler run — so there is nothing to decide per file.
+        RecordingEventSource eventSource = detectEventSource(files.getFirst().filename());
+        Instant uploadedAt = clock.instant();
+
+        Instant profilingStartedAt = null;
+        Instant profilingFinishedAt = null;
+
+        if (eventSource != RecordingEventSource.HEAP_DUMP) {
+            Optional<RecordingMetadata> metadata = metadataParser.parse(files.stream().map(StoredFile::path).toList());
+            if (metadata.isPresent()) {
+                RecordingMetadata recordingInfo = metadata.get();
+                eventSource = recordingInfo.eventSource();
+                profilingStartedAt = recordingInfo.recordingStartedAt();
+                profilingFinishedAt = recordingInfo.recordingFinishedAt();
+            }
+        }
+
+        Recording recording = new Recording(
+                recordingId, recordingName, null, groupId, eventSource, uploadedAt,
+                profilingStartedAt, profilingFinishedAt,
+                false, null, null, List.of());
+
+        // The first file goes in with the recording row itself; the rest are ordinary rows beside
+        // it. There is no primary among them — which one is first only decides what a listing shows.
+        recordingRepository.insertRecording(recording, recordingFile(recordingId, files.getFirst(), uploadedAt));
+        files.stream()
+                .skip(1)
+                .map(stored -> recordingFile(recordingId, stored, uploadedAt))
+                .forEach(recordingRepository::insertRecordingFile);
+
+        for (Path artifact : artifactFiles) {
+            persistArtifact(recordingId, artifact, uploadedAt);
+        }
+
+        if (originTags != null && !originTags.isEmpty()) {
+            recordingTagsRepository.insert(recordingId, originTags);
+        }
+    }
+
+    /**
+     * One row describing a file already sitting in storage. Recording files and artifacts are the
+     * same row with a different {@code supported_type}, which is what the category is read off
+     * later — there is no flag saying which of a recording's files is the important one.
+     *
+     * <p>The row carries the file's <em>own</em> name, never the name it happens to sit under:
+     * {@link #resolveRecordingFilePath} puts the recording id back in front of it, so a row holding
+     * the storage name would resolve to a path with that prefix on it twice. That is what
+     * {@link StoredFile} exists to keep from being expressible.
+     */
+    private RecordingFile recordingFile(String recordingId, StoredFile stored, Instant uploadedAt) {
+        long sizeInBytes;
+        try {
+            sizeInBytes = Files.size(stored.path());
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to get file size: " + stored.filename(), e);
+        }
+
+        return new RecordingFile(
+                IDGenerator.generate(), recordingId, stored.filename(),
+                ManagedFile.of(stored.filename()),
+                uploadedAt, sizeInBytes);
+    }
+
+    private void persistArtifact(String recordingId, Path artifactPath, Instant uploadedAt) {
+        String artifactFilename = artifactPath.getFileName().toString();
+        StoredFile stored = new StoredFile(artifactFilename, storagePath(recordingId, artifactFilename));
+        try {
+            Files.copy(artifactPath, stored.path(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "Failed to copy artifact into QA storage: " + artifactFilename, e);
+        }
+
+        recordingRepository.insertRecordingFile(recordingFile(recordingId, stored, uploadedAt));
+    }
+
+    @Override
+    public List<Recording> listRecordings() {
+        return recordingRepository.findAllRecordings();
+    }
+
+    @Override
+    public Optional<Recording> findRecording(String recordingId) {
+        return recordingRepository.findRecording(recordingId);
+    }
+
+    @Override
+    public Map<String, List<RecordingTag>> tagsForRecordings(Collection<String> recordingIds) {
+        return recordingTagsRepository.listForRecordings(recordingIds);
+    }
+
+    @Override
+    public void deleteRecording(String recordingId) {
+        Recording recording = recordingRepository.findRecording(recordingId)
+                .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
+
+        deleteRecordingInternal(recording);
+        recordingRepository.deleteRecordingWithFiles(recordingId);
+        recordingTagsRepository.deleteForRecording(recordingId);
+
+        LOG.info("Quick analysis recording deleted: recordingId={}", recordingId);
+
+        // Said as well as logged, because this destroys files and cannot be undone: the log line is
+        // gone with the next rotation, and a notification is still in the recording afterwards.
+        Notifications.of(NotificationType.RECORDING_DELETED)
+                .attribute("recordingId", recordingId)
+                .attribute("recordingName", recording.recordingName())
+                .attribute("groupId", recording.groupId())
+                .attribute("fileCount", recording.files().size())
+                .attribute("hadProfile", recording.hasProfile())
+                .attribute("profileId", recording.profileId())
+                .emit();
+    }
+
+    @Override
+    public Optional<Path> findRecordingFile(String recordingId, String fileId) {
+        return recordingRepository.findRecording(recordingId)
+                .flatMap(rec -> rec.files().stream()
+                        .filter(f -> f.id().equals(fileId))
+                        .findFirst()
+                        .map(this::resolveRecordingFilePath));
+    }
+
+    // --- Internal helpers ---
+
+    private void deleteRecordingInternal(Recording recording) {
+        profileCleanup.onRecordingDeleted(recording);
+
+        for (RecordingFile file : recording.files()) {
+            FileSystemUtils.removeFile(resolveRecordingFilePath(file));
+        }
+    }
+
+    private Path resolveRecordingFilePath(RecordingFile file) {
+        return storagePath(file.recordingId(), file.filename());
+    }
+
+    /**
+     * Where a recording's file sits. The directory is flat and shared by every recording, so each
+     * file is prefixed with the id of the recording it belongs to; the prefix is storage's business
+     * and never part of the name the file is known by.
+     *
+     * <p>One method rather than the same concatenation at each of the four places that write or
+     * read a file, because they have to agree exactly: a writer that disagreed with this reader by
+     * one prefix would store files nothing could find again.
+     */
+    private Path storagePath(String recordingId, String filename) {
+        return recordingsDir.resolve(recordingId + STORAGE_NAME_SEPARATOR + filename);
+    }
+
+    /**
+     * A file of a recording: the name it is known by, and where it actually sits.
+     *
+     * <p>The two are deliberately carried together rather than derived from each other. They differ
+     * by the storage prefix {@link #storagePath} adds, so reading the name back off the path yields
+     * the prefixed name — which, put through the same method again, resolves to a path carrying the
+     * prefix twice. Keeping both means that mistake has nowhere to happen.
+     */
+    private record StoredFile(String filename, Path path) {
+    }
+
+    /**
+     * What kind of events a file holds, from its name.
+     *
+     * <p>Decided by {@link ManagedFile} rather than by suffix tests of its own: the heap
+     * dump branch used to carry its own copy of {@code .hprof} and {@code .hprof.gz}, which is one
+     * more place to update when a format is added and one more place to disagree about case.
+     */
+    private static RecordingEventSource detectEventSource(String filename) {
+        return switch (ManagedFile.of(filename)) {
+            case HEAP_DUMP, HEAP_DUMP_GZ -> RecordingEventSource.HEAP_DUMP;
+            case PPROF -> RecordingEventSource.PPROF;
+            case OTLP_PROFILE -> RecordingEventSource.OPEN_TELEMETRY;
+            default -> RecordingEventSource.UNKNOWN;
+        };
+    }
+}

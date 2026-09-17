@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.manager.custom;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcServiceDetailData;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 
 public interface GrpcManager {

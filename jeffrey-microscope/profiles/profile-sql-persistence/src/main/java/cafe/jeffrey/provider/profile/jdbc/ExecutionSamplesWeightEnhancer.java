@@ -22,12 +22,12 @@ import cafe.jeffrey.provider.profile.api.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.EventSubtype;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.EventSubtype;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.shared.common.DurationUtils;
-import cafe.jeffrey.shared.common.settings.ActiveSetting;
-import cafe.jeffrey.shared.common.settings.ActiveSettings;
+import cafe.jeffrey.microscope.model.settings.ActiveSetting;
+import cafe.jeffrey.microscope.model.settings.ActiveSettings;
 import cafe.jeffrey.provider.profile.api.EventTypeBuilder;
 
 import java.time.Duration;

@@ -21,8 +21,8 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.SpanScope;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.SpanScope;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 
 import java.util.List;

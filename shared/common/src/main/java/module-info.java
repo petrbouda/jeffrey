@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 module cafe.jeffrey.shared.common {
-    requires jdk.jfr;
     requires transitive org.slf4j;
     requires org.lz4.java;
     requires com.github.f4b6a3.uuid;
@@ -27,15 +26,7 @@ module cafe.jeffrey.shared.common {
     exports cafe.jeffrey.shared.common.compression;
     exports cafe.jeffrey.shared.common.exception;
     exports cafe.jeffrey.shared.common.filesystem;
-    exports cafe.jeffrey.shared.common.jfr;
     exports cafe.jeffrey.shared.common.measure;
     exports cafe.jeffrey.shared.common.model;
-    exports cafe.jeffrey.shared.common.model.hub;
-    exports cafe.jeffrey.shared.common.model.job;
     exports cafe.jeffrey.shared.common.model.repository;
-    exports cafe.jeffrey.shared.common.model.repository.matcher;
-    exports cafe.jeffrey.shared.common.model.time;
-    exports cafe.jeffrey.shared.common.model.workspace;
-    exports cafe.jeffrey.shared.common.serde;
-    exports cafe.jeffrey.shared.common.settings;
 }

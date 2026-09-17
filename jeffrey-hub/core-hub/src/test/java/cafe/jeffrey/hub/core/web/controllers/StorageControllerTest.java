@@ -31,7 +31,6 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.StoredFile;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
-import cafe.jeffrey.shared.common.model.repository.ManagedFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -58,10 +57,8 @@ class StorageControllerTest {
                         "prj-1", "order-service", null,
                         27_100_000_000L, 342, 1_775_000_000_000L,
                         List.of(
-                                new FileTypeUsage(ManagedFile.JFR, 20_000_000_000L, 300),
-                                new FileTypeUsage(ManagedFile.HEAP_DUMP_GZ, 5_000_000_000L, 2),
-                                new FileTypeUsage(ManagedFile.JVM_LOG, 1_600_000_000L, 30),
-                                new FileTypeUsage(ManagedFile.PPROF, 500_000_000L, 10)),
+                                new FileTypeUsage("JFR", 20_000_000_000L, 300),
+                                new FileTypeUsage(FileTypeUsage.OTHER_FILES, 7_100_000_000L, 42)),
                         List.of(
                                 new StoredFile("heapdump-01.hprof.gz", 4_000_000_000L),
                                 new StoredFile("recording-01.jfr", 900_000_000L)))));
@@ -85,7 +82,7 @@ class StorageControllerTest {
                 .hasPathSatisfying("$.projects[0].fileTypes[0].type", v -> assertThat(v).asString().isEqualTo("JFR"))
                 .hasPathSatisfying("$.projects[0].fileTypes[0].sizeBytes", v -> assertThat(v).asNumber().isEqualTo(20_000_000_000L))
                 .hasPathSatisfying("$.projects[0].fileTypes[0].fileCount", v -> assertThat(v).asNumber().isEqualTo(300))
-                .hasPathSatisfying("$.projects[0].fileTypes[1].type", v -> assertThat(v).asString().isEqualTo("HEAP_DUMP_GZ"))
+                .hasPathSatisfying("$.projects[0].fileTypes[1].type", v -> assertThat(v).asString().isEqualTo("OTHER"))
                 .hasPathSatisfying("$.projects[0].largestFiles[0].fileName", v -> assertThat(v).asString().isEqualTo("heapdump-01.hprof.gz"))
                 .hasPathSatisfying("$.projects[0].largestFiles[0].sizeBytes", v -> assertThat(v).asNumber().isEqualTo(4_000_000_000L));
     }

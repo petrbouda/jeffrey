@@ -20,7 +20,7 @@ package cafe.jeffrey.provider.profile.api;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 
 import java.util.List;

@@ -28,7 +28,7 @@ import cafe.jeffrey.otlpparser.mapping.OtelSemconv;
 import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
 import cafe.jeffrey.provider.profile.api.EventType;
-import cafe.jeffrey.shared.common.model.StacktraceType;
+import cafe.jeffrey.microscope.model.StacktraceType;
 
 import java.nio.file.Path;
 import java.time.Instant;

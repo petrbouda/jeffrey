@@ -183,7 +183,7 @@ class ProjectGrpcServiceTest {
 
         @Test
         void restoresSoftDeletedProject() throws IOException {
-            var deletedInfo = new cafe.jeffrey.shared.common.model.ProjectInfo(
+            var deletedInfo = new cafe.jeffrey.hub.model.ProjectInfo(
                     PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
                     WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
 
@@ -209,8 +209,8 @@ class ProjectGrpcServiceTest {
 
     // ========== Helpers ==========
 
-    private static final cafe.jeffrey.shared.common.model.ProjectInfo TEST_PROJECT_INFO =
-            new cafe.jeffrey.shared.common.model.ProjectInfo(
+    private static final cafe.jeffrey.hub.model.ProjectInfo TEST_PROJECT_INFO =
+            new cafe.jeffrey.hub.model.ProjectInfo(
                     PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
                     WORKSPACE_ID, FIXED_TIME, null, null, null);
 
@@ -256,7 +256,7 @@ class ProjectGrpcServiceTest {
      * deleted-inclusive listing fallback.
      */
     private ProjectGrpcService serviceWithDeletedWorkspaceProject() {
-        var deletedInfo = new cafe.jeffrey.shared.common.model.ProjectInfo(
+        var deletedInfo = new cafe.jeffrey.hub.model.ProjectInfo(
                 PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
                 WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
 
@@ -264,7 +264,7 @@ class ProjectGrpcServiceTest {
         when(projectManager.info()).thenReturn(deletedInfo);
         when(projectManager.detailedInfo()).thenReturn(new DetailedProjectInfo(
                 deletedInfo,
-                cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
+                cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
                 0, false));
 
         var projectsManager = mock(ProjectsManager.class);
@@ -279,7 +279,7 @@ class ProjectGrpcServiceTest {
      * so the workspace-scoped GetProject must not resolve it.
      */
     private ProjectGrpcService serviceWithProjectInAnotherWorkspace() {
-        var foreignInfo = new cafe.jeffrey.shared.common.model.ProjectInfo(
+        var foreignInfo = new cafe.jeffrey.hub.model.ProjectInfo(
                 PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
                 "other-workspace", FIXED_TIME, null, null, null);
 
@@ -357,7 +357,7 @@ class ProjectGrpcServiceTest {
      * exact state RestoreProject must be able to operate on.
      */
     private ProjectGrpcService serviceWithSoftDeletedProject(
-            cafe.jeffrey.shared.common.model.ProjectInfo deletedInfo, ProjectManager projectManager) {
+            cafe.jeffrey.hub.model.ProjectInfo deletedInfo, ProjectManager projectManager) {
 
         var projectRepo = mock(ProjectRepository.class);
         when(projectRepo.find()).thenReturn(Optional.empty());
@@ -394,7 +394,7 @@ class ProjectGrpcServiceTest {
     private static DetailedProjectInfo testDetailedInfo() {
         return new DetailedProjectInfo(
                 TEST_PROJECT_INFO,
-                cafe.jeffrey.shared.common.model.repository.RecordingStatus.ACTIVE,
+                cafe.jeffrey.hub.model.repository.RecordingStatus.ACTIVE,
                 5, false);
     }
 }

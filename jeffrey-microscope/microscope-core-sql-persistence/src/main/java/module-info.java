@@ -23,6 +23,7 @@ module cafe.jeffrey.microscope.persistence.jdbc {
     requires transitive cafe.jeffrey.microscope.persistence.api;
     requires transitive cafe.jeffrey.shared.persistence;
     requires cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
     requires transitive spring.jdbc;
     requires java.sql;
     requires duckdb.jdbc;

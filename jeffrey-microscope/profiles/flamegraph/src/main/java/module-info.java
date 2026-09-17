@@ -21,6 +21,7 @@
 @SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.flamegraph {
     requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.microscope.profile.frame.ir;
     requires transitive cafe.jeffrey.microscope.profile.timeseries;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;

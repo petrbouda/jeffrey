@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
+import cafe.jeffrey.microscope.model.ProfilerInfo;
 
 import java.util.List;
 

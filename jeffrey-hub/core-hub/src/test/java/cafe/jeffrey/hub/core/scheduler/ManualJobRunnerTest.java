@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.core.scheduler;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.time.Clock;
 import java.time.Duration;

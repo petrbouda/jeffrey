@@ -38,7 +38,7 @@ import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
 
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.nio.file.Path;
 

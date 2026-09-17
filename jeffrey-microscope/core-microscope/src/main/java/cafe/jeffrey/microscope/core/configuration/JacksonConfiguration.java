@@ -22,12 +22,12 @@ import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.shared.common.serde.RelativeTimeRangeDeserializer;
-import cafe.jeffrey.shared.common.serde.RelativeTimeRangeSerializer;
-import cafe.jeffrey.shared.common.serde.TypeDeserializer;
-import cafe.jeffrey.shared.common.serde.TypeSerializer;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.serde.RelativeTimeRangeDeserializer;
+import cafe.jeffrey.microscope.model.serde.RelativeTimeRangeSerializer;
+import cafe.jeffrey.microscope.model.serde.TypeDeserializer;
+import cafe.jeffrey.microscope.model.serde.TypeSerializer;
 
 @Configuration
 public class JacksonConfiguration {

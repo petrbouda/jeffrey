@@ -42,8 +42,8 @@ import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
 import cafe.jeffrey.profile.thread.ThreadWindowEvents;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.timeseries.SingleSerie;
 
 import java.time.Duration;

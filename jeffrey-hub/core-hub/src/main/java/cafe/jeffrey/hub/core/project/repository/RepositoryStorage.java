@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.nio.file.Path;
 import java.util.List;

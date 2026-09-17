@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.profile.manager.model.vmoperation.SafepointOffender;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOverview;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 import java.util.Set;

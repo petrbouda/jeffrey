@@ -20,9 +20,9 @@ package cafe.jeffrey.profile.manager.gc;
 
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.gc.builder.ConcurrentGCOverviewEventBuilder;
 import cafe.jeffrey.profile.manager.gc.builder.G1GCOverviewEventBuilder;
 import cafe.jeffrey.profile.manager.gc.builder.GCConfigurationEventBuilder;

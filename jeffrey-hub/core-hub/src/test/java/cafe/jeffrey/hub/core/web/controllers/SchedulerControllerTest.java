@@ -26,8 +26,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
 import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
-import cafe.jeffrey.shared.common.model.job.JobInfo;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobInfo;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.time.Duration;
 import java.time.Instant;

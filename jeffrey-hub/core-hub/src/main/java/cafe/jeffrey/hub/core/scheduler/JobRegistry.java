@@ -19,8 +19,8 @@
 package cafe.jeffrey.hub.core.scheduler;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
-import cafe.jeffrey.shared.common.model.job.JobInfo;
-import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.hub.model.job.JobInfo;
+import cafe.jeffrey.hub.model.job.JobType;
 
 import java.util.ArrayList;
 import java.util.List;

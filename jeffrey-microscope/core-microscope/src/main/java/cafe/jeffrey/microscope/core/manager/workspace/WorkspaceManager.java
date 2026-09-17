@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import java.util.Optional;
 

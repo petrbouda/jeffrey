@@ -20,9 +20,9 @@ package cafe.jeffrey.provider.profile.api;
 
 import tools.jackson.core.type.TypeReference;
 import cafe.jeffrey.shared.common.CacheKey;
-import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.SpanScope;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 import java.util.Map;
