@@ -72,13 +72,13 @@ const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-
   jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
   jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,...`;
 
-const minimalConfig = `jeffrey-home = "/opt/jeffrey"
+const minimalConfig = `jeffrey-home = "/mnt/jeffrey"
 project {
     workspace-ref-id = "production"
     name = "my-service"
 }`;
 
-const fullConfig = `jeffrey-home = "/opt/jeffrey"
+const fullConfig = `jeffrey-home = "/mnt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
 heartbeat { enabled = true }
 arg-file = "/tmp/jvm.args"

@@ -246,7 +246,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         <strong>Cleanup gotcha.</strong> Statically-defined hostPath PVs default to
         <code>reclaimPolicy=Retain</code>, so <code>helm uninstall</code> tears down the
         PV resource but leaves the contents on the node (e.g. <code>/tmp/jeffrey-data</code>
-        on OrbStack). The next install would inherit a stale provisioner bundle — wipe the host
+        on OrbStack). The next install would inherit stale recordings and session directories — wipe the host
         directory yourself before re-installing on dev clusters.
       </DocsCallout>
 

@@ -82,13 +82,13 @@ onMounted(() => {
               <tr>
                 <td><code>provisionerPath</code></td>
                 <td><code>JEFFREY_PROVISIONER_PATH</code></td>
-                <td>baked: <code>/opt/jeffrey/provisioner</code></td>
+                <td>baked: <code>/opt/jeffrey/provisioner</code> &mdash; <code>provisioner.jar</code> for <code>provisionerSource=jar</code>, and <code>provisioner-&#123;arch&#125;</code> on a multi-platform build</td>
                 <td>Explicit provisioner path. Setting it means the image already carries one, so the extension skips resolving and baking that payload entirely.</td>
               </tr>
               <tr>
                 <td><code>profilerPath</code></td>
                 <td><code>JEFFREY_PROFILER_PATH</code></td>
-                <td>baked: <code>/opt/jeffrey/libasyncProfiler.so</code></td>
+                <td>baked: <code>/opt/jeffrey/libasyncProfiler.so</code>, or <code>libasyncProfiler-&#123;arch&#125;.so</code> on a multi-platform build</td>
                 <td>Explicit async-profiler path. As above &mdash; bring your own and no second copy is shipped.</td>
               </tr>
               <tr>

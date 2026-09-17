@@ -61,6 +61,9 @@ const parentPom = `<plugin>
         <pluginExtensions>
             <pluginExtension>
                 <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+                <properties>
+                    <payloadVersion>\${jeffrey-jib.version}</payloadVersion>
+                </properties>
             </pluginExtension>
         </pluginExtensions>
     </configuration>
@@ -114,8 +117,9 @@ const moduleClient = `<plugin>
         that, when launched in a pod with <code>JEFFREY_ENABLED=true</code> and a populated
         <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
         the JVM starts and boots with the right async-profiler flags and
-        <code>-Djeffrey.heartbeat.*</code> properties. There is no Dockerfile, no shell script,
-        and no profiler binary baked into the image.
+        <code>-Djeffrey.heartbeat.*</code> properties. There is no Dockerfile and no shell script to
+        maintain; the provisioner and async-profiler are installed by the extension under
+        <code>/opt/jeffrey</code>.
       </p>
 
       <h2 id="what-it-does">What the Extension Does</h2>
@@ -257,9 +261,8 @@ const moduleClient = `<plugin>
         <strong>Why bother?</strong> The shared volume goes back to being just the recording
         handoff. A pod no longer has to wait for Jeffrey Hub to publish binaries before it can
         start profiling, which removes the startup race that used to leave a pod running
-        unprofiled until someone restarted it — and with it the readiness-gate init container.
-        The cost is that a provisioner fix now arrives with an image rebuild rather than a Hub
-        upgrade. Pods that already carry their own binaries can keep them: setting
+        unprofiled until someone restarted it. The cost is that a provisioner fix now arrives with
+        an image rebuild rather than a Hub upgrade. Pods that already carry their own binaries can keep them: setting
         <code>provisionerPath</code> or <code>profilerPath</code> skips that payload entirely.
       </DocsCallout>
     </div>

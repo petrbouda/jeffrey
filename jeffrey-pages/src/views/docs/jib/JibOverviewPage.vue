@@ -109,12 +109,15 @@ onMounted(() => {
         <p>Useful for emergency disablement, per-pod opt-out, dev/local runs without the shared
           volume, and A/B comparisons.</p>
 
-        <p><strong>Implicit fallthrough (fail-open).</strong> If neither <code>JEFFREY_HOME</code> nor
-          <code>JEFFREY_PROVISIONER_PATH</code> is set at container start, the wrapper logs a warning to
-          stderr (&ldquo;Jeffrey is disabled, starting application without profiling&rdquo;) and
-          <code>exec</code>s the JIB command verbatim. Misconfiguration can never prevent an app
-          from booting &mdash; the worst case is profiling silently turning off, which the warning
-          surfaces in the pod logs.</p>
+        <p><strong>Implicit fallthrough (fail-open).</strong> If <code>JEFFREY_PROVISIONER_PATH</code>
+          is unset at container start, the wrapper logs
+          &ldquo;profiling DISABLED: JEFFREY_PROVISIONER_PATH is not set, so this image carries no
+          provisioner&rdquo; and <code>exec</code>s the JIB command verbatim. The same happens when the
+          binary it points at is missing or unreadable, when
+          <code>JEFFREY_PROVISIONER_KIND</code> is neither <code>native</code> nor <code>jar</code>,
+          and when <code>provisioner init</code> fails or produces no argfile. Misconfiguration can
+          never prevent an app from booting &mdash; the worst case is profiling turning off, which
+          one greppable <code>profiling DISABLED:</code> line surfaces in the pod logs.</p>
 
         <DocsCallout type="info">
           The &ldquo;app still starts&rdquo; guarantee holds only when a downstream command is
@@ -133,9 +136,16 @@ onMounted(() => {
           </div>
           <div class="feature-item feature-item-warning">
             <i class="bi bi-exclamation-triangle-fill"></i>
+            <div><strong>Fails the build on an unsupported target platform.</strong> Payloads exist for
+              <code>linux/amd64</code> and <code>linux/arm64</code>; any other architecture, or a build
+              plan with no Linux platform at all, stops the build rather than producing an image that
+              cannot profile itself.</div>
+          </div>
+          <div class="feature-item feature-item-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
             <div><strong>Resolves the payload artifacts at build time</strong> from Maven Central, or
               whatever repositories your build is configured with. An air-gapped build either mirrors the
-              three <code>jeffrey-jib-payload-*</code> artifacts or sets <code>provisionerPath</code> and
+              three <code>jeffrey-jib-payload-*</code> artifacts or points <code>provisionerPath</code> and
               <code>profilerPath</code> at binaries the base image already provides.</div>
           </div>
         </div>

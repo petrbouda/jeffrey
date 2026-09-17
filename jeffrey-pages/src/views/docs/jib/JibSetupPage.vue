@@ -42,16 +42,20 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Wire the extension into your JIB build. The one property that must always be reachable is
-          <code>jeffreyHome</code> &mdash; either baked as an image <code>ENV</code> default at build
-          time (shown below) or provided at runtime via a <code>JEFFREY_HOME</code> env var on the pod.
-          See <router-link to="/docs/jib/configuration">Configuration</router-link> for the full
+        <p>Wire the extension into your JIB build. The one property that is strictly required is
+          <code>payloadVersion</code>: it names the Jeffrey release whose provisioner and
+          async-profiler the image will carry, it has no default, and the build fails without it.
+          <code>jeffreyHome</code> also has to be reachable, but it may arrive at runtime instead
+          &mdash; either baked as an image <code>ENV</code> default (shown below) or set as a
+          <code>JEFFREY_HOME</code> env var on the pod. See
+          <router-link to="/docs/jib/configuration">Configuration</router-link> for the full
           property reference.</p>
 
         <h2 id="gradle-setup">Gradle Setup</h2>
         <p>Add the extension as a dependency of the JIB Gradle plugin, then reference it from
           <code>pluginExtensions</code>. If <code>jeffreyHome</code> is reachable neither here nor at
-          runtime, the wrapper logs a warning and starts the app without profiling.</p>
+          runtime, <code>provisioner init</code> refuses the configuration and the wrapper starts the
+          app without profiling.</p>
 
         <div class="code-block">
           <pre><code>jib {
@@ -59,6 +63,7 @@ onMounted(() => {
     pluginExtension {
       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
       properties = mapOf(
+        "payloadVersion" to "0.14.0",
         "jeffreyHome" to "/shared/disk/jeffrey",
       )
     }
@@ -95,6 +100,7 @@ jib {
     pluginExtension {
       implementation = JeffreyJibGradleExtension::class.java.name
       properties = mapOf(
+        JeffreyJibConfig.PAYLOAD_VERSION to "0.14.0",
         JeffreyJibConfig.JEFFREY_HOME to "/shared/disk/jeffrey",
         JeffreyJibConfig.OVERRIDE_CONFIG to "/jeffrey/jeffrey-overrides.conf",
       )
@@ -120,10 +126,9 @@ jib {
 
         <h2 id="maven-setup">Maven Setup</h2>
         <p>Attach the extension as a plugin dependency and reference it from
-          <code>pluginExtensions</code>. As with Gradle, <code>jeffreyHome</code> must be reachable
-          either here (baked as an image <code>ENV</code> default) or at runtime via a
-          <code>JEFFREY_HOME</code> env var &mdash; otherwise the wrapper warns and starts the app
-          without profiling.</p>
+          <code>pluginExtensions</code>. As with Gradle, <code>payloadVersion</code> is required at
+          build time, and <code>jeffreyHome</code> must be reachable either here (baked as an image
+          <code>ENV</code> default) or at runtime via a <code>JEFFREY_HOME</code> env var.</p>
 
         <div class="code-block">
           <pre><code>&lt;plugin&gt;
@@ -141,6 +146,7 @@ jib {
       &lt;pluginExtension&gt;
         &lt;implementation&gt;cafe.jeffrey.jib.maven.JeffreyJibMavenExtension&lt;/implementation&gt;
         &lt;properties&gt;
+          &lt;payloadVersion&gt;0.14.0&lt;/payloadVersion&gt;
           &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
         &lt;/properties&gt;
       &lt;/pluginExtension&gt;
@@ -155,6 +161,8 @@ jib {
         <div class="code-block">
           <pre><code>&lt;properties&gt;
   &lt;enabled&gt;true&lt;/enabled&gt;
+  &lt;payloadVersion&gt;0.14.0&lt;/payloadVersion&gt;
+  &lt;provisionerSource&gt;jar&lt;/provisionerSource&gt;
   &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
   &lt;overrideConfig&gt;/jeffrey/jeffrey-overrides.conf&lt;/overrideConfig&gt;
 &lt;/properties&gt;</code></pre>

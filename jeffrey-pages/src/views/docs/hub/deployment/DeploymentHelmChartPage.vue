@@ -381,7 +381,7 @@ helm uninstall jeffrey-hub         --namespace jeffrey-testapp"
         The default <code>reclaimPolicy</code> for a manually-created PV is
         <code>Retain</code>, so the directory on the cluster node (e.g.
         <code>/tmp/jeffrey-data</code> on OrbStack) keeps the contents Jeffrey Hub
-        wrote into it. The next install would inherit a stale provisioner bundle. On dev
+        wrote into it. The next install would inherit stale recordings and session directories. On dev
         clusters, wipe the directory yourself before re-installing. On real clusters
         with a dynamic RWX provisioner, the <code>StorageClass</code> owns the reclaim
         policy and the cleanup is automatic.

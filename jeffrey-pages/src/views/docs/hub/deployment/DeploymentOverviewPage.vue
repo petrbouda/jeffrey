@@ -241,7 +241,7 @@ onMounted(() => {
         <router-link class="next-card" to="/docs/hub/deployment/helm-chart">
           <div class="next-icon"><i class="bi bi-file-earmark-code"></i></div>
           <h4>Helm Chart</h4>
-          <p>Full Kubernetes walkthrough: three charts, install scripts, init containers.</p>
+          <p>Full Kubernetes walkthrough: three charts, install scripts, the PVC contract.</p>
         </router-link>
       </div>
     </div>
