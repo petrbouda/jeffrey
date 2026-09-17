@@ -5,7 +5,7 @@ package jeffrey.hub.api.v1;
 option java_package = "cafe.jeffrey.hub.api.v1";
 option java_multiple_files = true;
 
-// Downloads a file of a recording session, whatever that file is.
+// Downloads a file of a session, whatever that file is.
 //
 // Files are streamed in 64KB chunks, so a file of any size transfers without being held in
 // memory on either side.
