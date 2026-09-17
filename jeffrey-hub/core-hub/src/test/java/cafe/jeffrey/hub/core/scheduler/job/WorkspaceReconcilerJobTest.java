@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,6 @@ import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
@@ -98,9 +98,15 @@ class WorkspaceReconcilerJobTest {
                 reconciler,
                 new HubJeffreyDirs(tempDir),
                 new DefaultWorkspaceProperties(DEFAULT_REF_ID, DEFAULT_REF_ID),
-                autoCreate,
+                workspacesProperties(autoCreate),
                 FIXED_CLOCK,
                 Duration.ofSeconds(2));
+    }
+
+    private static WorkspacesProperties workspacesProperties(boolean autoCreate) {
+        WorkspacesProperties properties = new WorkspacesProperties();
+        properties.setAutoCreate(autoCreate);
+        return properties;
     }
 
     private Path workspaceDir(String refId) {
@@ -158,7 +164,7 @@ class WorkspaceReconcilerJobTest {
         void workspaceWithoutPendingEntries_doesNothingAtAll() {
             workspaceDir(KNOWN_REF_ID);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verifyNoInteractions(workspacesManager, reconciler);
         }
@@ -167,7 +173,7 @@ class WorkspaceReconcilerJobTest {
         void listingPendingEntries_doesNotCreateTheDirectory() {
             Path wsDir = workspaceDir(KNOWN_REF_ID);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             assertFalse(Files.exists(wsDir.resolve(JeffreyLayout.PENDING_DIR)));
         }
@@ -183,7 +189,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(1, true);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verify(reconciler).reconcileProjectDirectory(projectsManager, wsDir.resolve(PROJECT_NAME));
         }
@@ -195,7 +201,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(1, true);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verify(reconciler).reconcileProjectDirectory(projectsManager, wsDir.resolve(PROJECT_NAME));
         }
@@ -209,7 +215,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(3, true);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verify(reconciler, times(1)).reconcileProjectDirectory(any(), any());
         }
@@ -222,7 +228,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(1, true);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verify(reconciler).reconcileProjectDirectory(projectsManager, wsDir.resolve("project-alpha"));
             verify(reconciler).reconcileProjectDirectory(projectsManager, wsDir.resolve("project-beta"));
@@ -240,7 +246,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(2, true);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             assertTrue(pendingEntries(wsDir).isEmpty());
         }
@@ -256,7 +262,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(0, false);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             assertEquals(1, pendingEntries(wsDir).size());
         }
@@ -268,7 +274,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(0, false);
 
-            assertDoesNotThrow(() -> job(false).execute(JobContext.EMPTY));
+            assertDoesNotThrow(() -> job(false).execute());
         }
 
         @Test
@@ -276,7 +282,7 @@ class WorkspaceReconcilerJobTest {
             Path wsDir = workspaceDir(KNOWN_REF_ID);
             announce(wsDir, "broken", "   ");
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verifyNoInteractions(reconciler);
         }
@@ -291,7 +297,7 @@ class WorkspaceReconcilerJobTest {
             announce(wsDir, "proj-001", PROJECT_NAME);
             when(workspacesManager.findByReferenceId(UNKNOWN_REF_ID)).thenReturn(Optional.empty());
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verify(workspacesManager, never()).create(any());
             verifyNoInteractions(reconciler);
@@ -309,7 +315,7 @@ class WorkspaceReconcilerJobTest {
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             reconcilerReports(1, true);
 
-            job(true).execute(JobContext.EMPTY);
+            job(true).execute();
 
             verify(workspacesManager).create(any());
             verify(reconciler).reconcileProjectDirectory(projectsManager, wsDir.resolve(PROJECT_NAME));
@@ -319,7 +325,7 @@ class WorkspaceReconcilerJobTest {
         void strayDirectoryThatAnnouncesNothing_neverBecomesAWorkspace() {
             workspaceDir(UNKNOWN_REF_ID);
 
-            job(true).execute(JobContext.EMPTY);
+            job(true).execute();
 
             verify(workspacesManager, never()).create(any());
             verifyNoInteractions(reconciler);
@@ -331,7 +337,7 @@ class WorkspaceReconcilerJobTest {
             announce(wsDir, "proj-001", PROJECT_NAME);
             when(workspacesManager.findByReferenceId(DEFAULT_REF_ID)).thenReturn(Optional.empty());
 
-            job(true).execute(JobContext.EMPTY);
+            job(true).execute();
 
             verify(workspacesManager, never()).create(any());
             verifyNoInteractions(reconciler);
@@ -348,7 +354,7 @@ class WorkspaceReconcilerJobTest {
             knownWorkspace();
             reconcilerReports(1, true);
 
-            job(false).execute(JobContext.EMPTY);
+            job(false).execute();
 
             verify(reconciler).reconcileProjectDirectory(eq(projectsManager), eq(healthy.resolve(PROJECT_NAME)));
         }

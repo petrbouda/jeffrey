@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.AfterEach;
@@ -70,12 +71,11 @@ class RepositoryGrpcServiceTest {
         @Test
         void returnsSessionList() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of(
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES, RecordingSessionFilter.ALL)).thenReturn(List.of(
                     new cafe.jeffrey.hub.model.repository.RecordingSession(
                             SESSION_ID, "session-name", "inst-1",
                             FIXED_TIME, null,
                             cafe.jeffrey.hub.model.repository.RecordingStatus.ACTIVE,
-                            null,
                             List.of(new RepositoryFile(
                                     "file-1", "recording.jfr", FIXED_TIME, 1024L,
                                     true,
@@ -85,7 +85,6 @@ class RepositoryGrpcServiceTest {
                             "session-2", "finished-session", null,
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600),
                             cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
-                            null,
                             List.of(), true)
             ));
 
@@ -124,7 +123,7 @@ class RepositoryGrpcServiceTest {
         @Test
         void returnsEmptyListWhenNoSessions() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of());
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES, RecordingSessionFilter.ALL)).thenReturn(List.of());
 
             var stub = startServer(serviceWithProject(repoManager));
 
@@ -155,12 +154,12 @@ class RepositoryGrpcServiceTest {
             Instant from = FIXED_TIME.minus(Duration.ofHours(1));
             var expected = new RecordingSessionFilter(
                     from, FIXED_TIME, cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED, 5);
-            when(repoManager.listRecordingSessions(true, expected)).thenReturn(List.of(
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES, expected)).thenReturn(List.of(
                     new cafe.jeffrey.hub.model.repository.RecordingSession(
                             SESSION_ID, "session-name", null,
                             from, FIXED_TIME,
                             cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
-                            null, List.of(), false)));
+                            List.of(), false)));
 
             var stub = startServer(serviceWithProject(repoManager));
 
@@ -176,19 +175,19 @@ class RepositoryGrpcServiceTest {
 
             assertEquals(1, response.getSessionsCount());
             assertEquals(SESSION_ID, response.getSessions(0).getId());
-            verify(repoManager).listRecordingSessions(true, expected);
+            verify(repoManager).listRecordingSessions(SessionDetail.WITH_FILES, expected);
         }
 
         @Test
         void absentFilterListsEverything() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of());
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES, RecordingSessionFilter.ALL)).thenReturn(List.of());
 
             var stub = startServer(serviceWithProject(repoManager));
 
             stub.listSessions(ListSessionsRequest.newBuilder().setProjectId(PROJECT_ID).build());
 
-            verify(repoManager).listRecordingSessions(true, RecordingSessionFilter.ALL);
+            verify(repoManager).listRecordingSessions(SessionDetail.WITH_FILES, RecordingSessionFilter.ALL);
         }
 
         @Test
@@ -235,7 +234,6 @@ class RepositoryGrpcServiceTest {
                             SESSION_ID, "my-session", "inst-1",
                             FIXED_TIME, FIXED_TIME.plusSeconds(600),
                             cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
-                            null,
                             List.of(), false)
             ));
 
@@ -389,6 +387,62 @@ class RepositoryGrpcServiceTest {
 
             assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
         }
+        /**
+         * The manager refuses the chunk the profiler still writes with an {@code IllegalArgumentException};
+         * at this boundary that must arrive as INVALID_ARGUMENT carrying the manager's own sentence,
+         * not as INTERNAL — which is what an unreachable hub gives, and what the client cannot act on.
+         */
+        @Test
+        void refusingTheOpenChunk_returnsInvalidArgumentWithTheReason() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            doThrow(new IllegalArgumentException("File profile-2.jfr is the chunk the profiler is still writing"))
+                    .when(repoManager).deleteFilesInSession(SESSION_ID, List.of("profile-2"));
+
+            var stub = startServer(serviceWithSession(repoManager));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.deleteFilesInSession(
+                            DeleteFilesInSessionRequest.newBuilder()
+                                    .setSessionId(SESSION_ID)
+                                    .addFileIds("profile-2")
+                                    .build()));
+
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+            assertTrue(ex.getStatus().getDescription().contains("still writing"));
+        }
+    }
+
+    @Nested
+    class SetSessionRetained {
+
+        @Test
+        void pinsAndReleasesTheSession() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            var stub = startServer(serviceWithSession(repoManager));
+
+            stub.setSessionRetained(SetSessionRetainedRequest.newBuilder()
+                    .setSessionId(SESSION_ID).setRetained(true).build());
+            stub.setSessionRetained(SetSessionRetainedRequest.newBuilder()
+                    .setSessionId(SESSION_ID).setRetained(false).build());
+
+            verify(repoManager).setSessionRetained(SESSION_ID, true);
+            verify(repoManager).setSessionRetained(SESSION_ID, false);
+        }
+
+        @Test
+        void sessionNotFound_returnsNotFound() throws Exception {
+            var platformRepositories = mock(HubPlatformRepositories.class);
+            when(platformRepositories.findSessionWithRepositoryById("non-existent")).thenReturn(Optional.empty());
+
+            var stub = startServer(new RepositoryGrpcService(
+                    new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.setSessionRetained(SetSessionRetainedRequest.newBuilder()
+                            .setSessionId("non-existent").setRetained(true).build()));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        }
     }
 
     // ========== Helpers ==========
@@ -416,11 +470,15 @@ class RepositoryGrpcServiceTest {
      * Creates a service where {@code repositoryManagerForSession(SESSION_ID)} succeeds.
      */
     private RepositoryGrpcService serviceWithSession(RepositoryManager repoManager) {
+        // The session names its project by id; the lookup then resolves the project itself
         var sessionWithRepo = mock(SessionWithRepository.class);
-        when(sessionWithRepo.projectInfo()).thenReturn(TEST_PROJECT_INFO);
+        when(sessionWithRepo.projectId()).thenReturn(PROJECT_ID);
+        var projectRepo = mock(ProjectRepository.class);
+        when(projectRepo.find()).thenReturn(Optional.of(TEST_PROJECT_INFO));
 
         var platformRepositories = mock(HubPlatformRepositories.class);
         when(platformRepositories.findSessionWithRepositoryById(SESSION_ID)).thenReturn(Optional.of(sessionWithRepo));
+        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
 
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);

@@ -20,9 +20,8 @@ service ProfilerSettingsService {
   // to workspace-level or global-level settings.
   rpc DeleteSettings(DeleteProfilerSettingsRequest) returns (DeleteProfilerSettingsResponse);
 
-  // Lists all profiler settings entries at all hierarchy levels on this server.
-  // Returns raw entries without inheritance resolution.
-  rpc ListAllSettings(ListAllProfilerSettingsRequest) returns (ListAllProfilerSettingsResponse);
+  // ListAllSettings was removed: no client ever called it. A removed RPC fails loudly
+  // (UNIMPLEMENTED) on an older peer, so nothing here needs reserving.
 
   // Creates or updates profiler settings at any hierarchy level.
   // The level is determined by which IDs are provided:
@@ -74,23 +73,6 @@ enum SettingsLevel {
   SETTINGS_LEVEL_WORKSPACE = 2;
   // Project-level settings, highest priority override.
   SETTINGS_LEVEL_PROJECT = 3;
-}
-
-message ListAllProfilerSettingsRequest {}
-
-message ListAllProfilerSettingsResponse {
-  // All settings entries across all levels, without inheritance resolution.
-  repeated ProfilerSettingsEntry settings = 1;
-}
-
-// A single profiler settings entry at a specific hierarchy level.
-message ProfilerSettingsEntry {
-  // Workspace ID (empty for global-level settings).
-  string workspace_id = 1;
-  // Project ID (empty for workspace-level or global-level settings).
-  string project_id = 2;
-  // The profiler agent command/settings string.
-  string agent_settings = 3;
 }
 
 message UpsertProfilerSettingsAtLevelRequest {

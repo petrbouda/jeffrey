@@ -23,6 +23,7 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 
 /**
@@ -77,7 +78,27 @@ public class GrpcLookups {
     public RepositoryManager repositoryManagerForSession(String sessionId) {
         SessionWithRepository session = platformRepositories.findSessionWithRepositoryById(sessionId)
                 .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + sessionId));
-        return repositoryManagerFactory.apply(session.projectInfo());
+        // A session's project is always active: a soft delete takes the project's sessions with it
+        return repositoryManagerFactory.apply(projectInfo(session.projectId()));
+    }
+
+    /**
+     * Checks that a settings scope names things that exist — the workspace, and the project as
+     * one of that workspace's — so that a mistyped id does not write a row no reader will find.
+     */
+    public void requireExists(SettingsScope scope) {
+        if (scope.isGlobal()) {
+            return;
+        }
+        WorkspaceInfo workspace = platformRepositories.newWorkspacesRepository().find(scope.workspaceId())
+                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + scope.workspaceId()));
+        if (scope.isProject()) {
+            ProjectInfo project = projectInfo(scope.projectId());
+            if (!workspace.id().equals(project.workspaceId())) {
+                throw GrpcExceptions.notFound(
+                        "Project not found in workspace: project_id=" + project.id() + " workspace_id=" + workspace.id());
+            }
+        }
     }
 
     public ProjectInstanceInfo instanceById(String instanceId) {

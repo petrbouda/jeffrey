@@ -24,11 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.DiskSpace;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.FileTypeUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.InfrastructureUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.StoredFile;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
 
@@ -50,18 +47,11 @@ class StorageControllerTest {
     @Test
     void returnsCachedStorageOverview() {
         StorageOverview overview = new StorageOverview(
-                new DiskSpace(512_000_000_000L, 387_000_000_000L),
                 new InfrastructureUsage(2_900_000_000L, 1_300_000_000L),
                 List.of(new ProjectStorage(
                         "ws-1", "production",
                         "prj-1", "order-service", null,
-                        27_100_000_000L, 342, 1_775_000_000_000L,
-                        List.of(
-                                new FileTypeUsage("JFR", 20_000_000_000L, 300),
-                                new FileTypeUsage(FileTypeUsage.OTHER_FILES, 7_100_000_000L, 42)),
-                        List.of(
-                                new StoredFile("heapdump-01.hprof.gz", 4_000_000_000L),
-                                new StoredFile("recording-01.jfr", 900_000_000L)))));
+                        27_100_000_000L, 342, 1_775_000_000_000L)));
         when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
 
         MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
@@ -70,8 +60,6 @@ class StorageControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .hasPathSatisfying("$.computedAtMillis", v -> assertThat(v).asNumber().isEqualTo(COMPUTED_AT.toEpochMilli()))
-                .hasPathSatisfying("$.diskTotalBytes", v -> assertThat(v).asNumber().isEqualTo(512_000_000_000L))
-                .hasPathSatisfying("$.diskUsableBytes", v -> assertThat(v).asNumber().isEqualTo(387_000_000_000L))
                 .hasPathSatisfying("$.databaseSizeBytes", v -> assertThat(v).asNumber().isEqualTo(2_900_000_000L))
                 .hasPathSatisfying("$.tempSizeBytes", v -> assertThat(v).asNumber().isEqualTo(1_300_000_000))
                 .hasPathSatisfying("$.projects[0].workspaceName", v -> assertThat(v).asString().isEqualTo("production"))
@@ -79,18 +67,13 @@ class StorageControllerTest {
                 .hasPathSatisfying("$.projects[0].totalSizeBytes", v -> assertThat(v).asNumber().isEqualTo(27_100_000_000L))
                 .hasPathSatisfying("$.projects[0].totalFiles", v -> assertThat(v).asNumber().isEqualTo(342))
                 .hasPathSatisfying("$.projects[0].lastActivityTimeMillis", v -> assertThat(v).asNumber().isEqualTo(1_775_000_000_000L))
-                .hasPathSatisfying("$.projects[0].fileTypes[0].type", v -> assertThat(v).asString().isEqualTo("JFR"))
-                .hasPathSatisfying("$.projects[0].fileTypes[0].sizeBytes", v -> assertThat(v).asNumber().isEqualTo(20_000_000_000L))
-                .hasPathSatisfying("$.projects[0].fileTypes[0].fileCount", v -> assertThat(v).asNumber().isEqualTo(300))
-                .hasPathSatisfying("$.projects[0].fileTypes[1].type", v -> assertThat(v).asString().isEqualTo("OTHER"))
-                .hasPathSatisfying("$.projects[0].largestFiles[0].fileName", v -> assertThat(v).asString().isEqualTo("heapdump-01.hprof.gz"))
-                .hasPathSatisfying("$.projects[0].largestFiles[0].sizeBytes", v -> assertThat(v).asNumber().isEqualTo(4_000_000_000L));
+                .doesNotHavePath("$.projects[0].fileTypes")
+                .doesNotHavePath("$.projects[0].largestFiles");
     }
 
     @Test
     void returnsEmptyProjectsWhenNothingIsStored() {
         StorageOverview overview = new StorageOverview(
-                DiskSpace.UNKNOWN,
                 new InfrastructureUsage(0L, 0L),
                 List.of());
         when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
@@ -100,7 +83,6 @@ class StorageControllerTest {
         assertThat(mvc.get().uri("/api/internal/storage"))
                 .hasStatusOk()
                 .bodyJson()
-                .hasPathSatisfying("$.diskTotalBytes", v -> assertThat(v).asNumber().isEqualTo(0))
                 .hasPathSatisfying("$.projects", v -> assertThat(v).asList().isEmpty());
     }
 }

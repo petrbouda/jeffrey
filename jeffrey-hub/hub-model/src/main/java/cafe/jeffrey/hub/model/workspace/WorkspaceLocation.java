@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,14 +18,17 @@
 
 package cafe.jeffrey.hub.model.workspace;
 
-import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
+/**
+ * Where a workspace lives, as a typed location string. A workspace with no location at all is
+ * a {@code null} on {@link WorkspaceInfo}, never a location with nothing in it — one spelling
+ * of "none", so that a reader checks one thing.
+ */
 public record WorkspaceLocation(String location, Type type) {
-
-    private static final WorkspaceLocation EMPTY_LOCATION = new WorkspaceLocation(null, null);
 
     public enum Type {
         FILE("file://"),
@@ -40,60 +43,45 @@ public record WorkspaceLocation(String location, Type type) {
             this.prefix = prefix;
         }
 
-        public static Optional<Type> fromLocation(String location) {
-            if (location == null || location.isBlank()) {
-                throw new IllegalArgumentException("Location is null or blank");
-            }
-
+        private static Optional<Type> fromLocation(String location) {
+            String lower = location.toLowerCase(Locale.ROOT);
             for (Type type : VALUES) {
-                if (location.toLowerCase().startsWith(type.prefix)) {
+                if (lower.startsWith(type.prefix)) {
                     return Optional.of(type);
                 }
             }
-
             return Optional.empty();
         }
     }
 
-    public static WorkspaceLocation of(URI uri) {
-        if (uri == null) {
-            return EMPTY_LOCATION;
+    public WorkspaceLocation {
+        if (location == null || location.isBlank()) {
+            throw new IllegalArgumentException("Location must not be blank");
         }
-        return of(uri.toString());
+        if (type == null) {
+            throw new IllegalArgumentException("Location must have a type: " + location);
+        }
     }
 
     public static WorkspaceLocation of(Path path) {
-        if (path == null) {
-            return EMPTY_LOCATION;
-        }
         return new WorkspaceLocation(path.toString(), Type.FILE);
     }
 
     public static WorkspaceLocation of(String location) {
         if (location == null || location.isBlank()) {
-            return EMPTY_LOCATION;
+            throw new IllegalArgumentException("Location must not be blank");
         }
-
-        Optional<Type> type = Type.fromLocation(location);
-        if (type.isPresent()) {
-            return new WorkspaceLocation(location.trim(), type.get());
-        } else {
-            throw new IllegalArgumentException("Location must start with: " + Type.VALUES);
-        }
-    }
-
-    public boolean isEmpty() {
-        return location == null || location.isBlank();
+        Type type = Type.fromLocation(location)
+                .orElseThrow(() -> new IllegalArgumentException("Location must start with one of: " + Type.VALUES));
+        return new WorkspaceLocation(location.trim(), type);
     }
 
     public Path toPath() {
         if (type == Type.FILE) {
             return Path.of(location);
-        } else {
-            throw new IllegalStateException("Location is not a file location: " + location);
         }
+        throw new IllegalStateException("Location is not a file location: " + location);
     }
-
 
     @Override
     public String toString() {

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -53,12 +53,31 @@ class JdbcProjectRepositoryRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
-            RepositoryInfo repoInfo = new RepositoryInfo(null, RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
+            RepositoryInfo repoInfo = new RepositoryInfo("repo-new", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
             repository.insert(repoInfo);
 
             List<RepositoryInfo> result = repository.getAll();
             assertEquals(1, result.size());
+            assertEquals("repo-new", result.get(0).id());
             assertEquals(RepositoryType.ASYNC_PROFILER, result.get(0).repositoryType());
+        }
+
+        /**
+         * The insert is idempotent under the caller's id. It generated its own before, so the
+         * ON CONFLICT it relied on never fired and a replayed reconcile left two rows for one
+         * project — of which {@code repositoryInfo()} then took whichever came first.
+         */
+        @Test
+        void insertingTheSameRepositoryTwiceKeepsOneRow(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+            RepositoryInfo repoInfo = new RepositoryInfo("repo-new", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
+
+            repository.insert(repoInfo);
+            repository.insert(repoInfo);
+
+            assertEquals(1, repository.getAll().size());
         }
 
         @Test
@@ -238,30 +257,6 @@ class JdbcProjectRepositoryRepositoryTest {
 
             // inst-001 has session-001 which is finished
             List<ProjectInstanceSessionInfo> result = repository.findUnfinishedSessionsByInstanceId("inst-001");
-
-            assertTrue(result.isEmpty());
-        }
-
-        @Test
-        void findLatestSessionId_returnsLatestSession(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
-            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
-
-            // session-002 has origin_created_at 2025-01-02 > session-001's 2025-01-01
-            Optional<String> result = repository.findLatestSessionId();
-
-            assertTrue(result.isPresent());
-            assertEquals("session-002", result.get());
-        }
-
-        @Test
-        void findLatestSessionId_returnsEmpty_whenNoSessions(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
-            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
-
-            Optional<String> result = repository.findLatestSessionId();
 
             assertTrue(result.isEmpty());
         }

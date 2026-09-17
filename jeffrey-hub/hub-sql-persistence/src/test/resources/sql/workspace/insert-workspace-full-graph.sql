@@ -7,11 +7,11 @@ VALUES
     ('ws-001', 'ref-001', NULL, 'Workspace One', NULL, NULL, '2025-01-01T10:00:00Z'),
     ('ws-002', 'ref-002', NULL, 'Workspace Two', NULL, NULL, '2025-01-01T10:00:00Z');
 
-INSERT INTO projects (project_id, origin_project_id, project_name, project_label, workspace_id, created_at, origin_created_at, attributes, graph_visualization, deleted_at)
+INSERT INTO projects (project_id, origin_project_id, project_name, project_label, workspace_id, created_at, origin_created_at, attributes, deleted_at)
 VALUES
-    ('proj-001', 'origin-001', 'Project One', NULL, 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}', '{}', NULL),
-    ('proj-002', 'origin-002', 'Project Deleted', NULL, 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}', '{}', '2025-01-02T11:00:00Z'),
-    ('proj-101', 'origin-101', 'Other Workspace Project', NULL, 'ws-002', '2025-01-01T11:00:00Z', NULL, '{}', '{}', NULL);
+    ('proj-001', 'origin-001', 'Project One', NULL, 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}', NULL),
+    ('proj-002', 'origin-002', 'Project Deleted', NULL, 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}', '2025-01-02T11:00:00Z'),
+    ('proj-101', 'origin-101', 'Other Workspace Project', NULL, 'ws-002', '2025-01-01T11:00:00Z', NULL, '{}', NULL);
 
 INSERT INTO repositories (project_id, repository_id, repository_type, workspaces_path, relative_workspace_path, relative_project_path)
 VALUES
@@ -29,10 +29,10 @@ VALUES
     ('sess-001', 'repo-001', 'inst-001', 1, 'sessions/sess-001', '2025-01-01T12:00:00Z', '2025-01-01T12:00:00Z'),
     ('sess-101', 'repo-101', 'inst-101', 1, 'sessions/sess-101', '2025-01-01T12:00:00Z', '2025-01-01T12:00:00Z');
 
-INSERT INTO profiler_settings (workspace_id, project_id, agent_settings)
+INSERT INTO profiler_settings (workspace_id, project_id, scope_key, agent_settings)
 VALUES
-    (NULL, NULL, 'global-settings'),
-    ('ws-001', NULL, 'workspace-settings'),
-    (NULL, 'proj-001', 'project-settings'),
-    ('ws-002', NULL, 'other-workspace-settings');
+    (NULL, NULL, ':', 'global-settings'),
+    ('ws-001', NULL, 'ws-001:', 'workspace-settings'),
+    ('ws-001', 'proj-001', 'ws-001:proj-001', 'project-settings'),
+    ('ws-002', NULL, 'ws-002:', 'other-workspace-settings');
 

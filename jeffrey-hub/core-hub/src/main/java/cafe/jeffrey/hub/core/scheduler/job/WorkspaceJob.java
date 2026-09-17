@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2026 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,72 +18,41 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.scheduler.Job;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptor;
-import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.time.Duration;
 
 /**
- * Base class for jobs that fan out across all workspaces. The descriptor is
- * constant for the lifetime of the job (resolved at startup from
- * {@code application.properties}); each tick iterates all workspaces and
- * invokes {@link #executeOnWorkspace} once per workspace.
+ * Base class for jobs that fan out across all workspaces: each tick iterates every workspace
+ * whose directory exists and invokes {@link #executeOnWorkspace} once per workspace.
  */
-public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
+public abstract class WorkspaceJob extends FanOutJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceJob.class);
 
-    private final WorkspacesManager workspacesManager;
-    protected final T jobDescriptor;
-
-    public WorkspaceJob(WorkspacesManager workspacesManager, T jobDescriptor) {
-        this.workspacesManager = workspacesManager;
-        this.jobDescriptor = jobDescriptor;
+    protected WorkspaceJob(WorkspacesManager workspacesManager) {
+        super(workspacesManager);
     }
 
     @Override
-    public ExecutorGroup executorGroup() {
-        return ExecutorGroup.PROJECT_FAN_OUT;
-    }
-
-    @Override
-    public void execute(JobContext context) {
-        String simpleName = this.getClass().getSimpleName();
-
+    public void execute() {
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
             WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
             Path workspacePath = workspaceInfo.location().toPath();
-
             if (!FileSystemUtils.isDirectory(workspacePath)) {
                 LOG.debug("Workspace dir does not exist, or is invalid: job={} workspace_path={}",
-                        simpleName, workspacePath);
+                        getClass().getSimpleName(), workspacePath);
                 continue;
             }
-
-            LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
-                    simpleName, workspaceInfo.id(), workspacePath);
-
-            // Isolate per-workspace failures: one broken workspace must not abort the tick
-            // for every remaining workspace.
-            try {
-                Duration elapsed = Measuring.r(() -> executeOnWorkspace(workspaceManager, jobDescriptor, context));
-                LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} workspace_dir={}",
-                        simpleName, elapsed.toMillis(), workspaceInfo.id(), workspacePath);
-            } catch (Exception e) {
-                LOG.error("Job failed for workspace, continuing with remaining workspaces: " +
-                        "job={} workspace_id={}", simpleName, workspaceInfo.id(), e);
-            }
+            visit("workspace_id=" + workspaceInfo.id() + " workspace_dir=" + workspacePath,
+                    () -> executeOnWorkspace(workspaceManager));
         }
     }
 
-    protected abstract void executeOnWorkspace(WorkspaceManager workspaceManager, T jobDescriptor, JobContext context);
+    protected abstract void executeOnWorkspace(WorkspaceManager workspaceManager);
 }

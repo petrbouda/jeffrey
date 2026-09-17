@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -50,12 +50,5 @@ public interface ProjectsManager {
      */
     Optional<ProjectManager> findByOriginProjectId(String originProjectId);
 
-    /**
-     * Find all distinct namespaces across all projects.
-     * Used by UI to provide namespace filtering options.
-     *
-     * @return list of distinct namespace names (excluding null values)
-     */
-    List<String> findAllNamespaces();
 
 }

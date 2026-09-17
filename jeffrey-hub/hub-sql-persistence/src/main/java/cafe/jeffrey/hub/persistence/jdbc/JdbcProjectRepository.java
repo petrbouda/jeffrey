@@ -26,6 +26,8 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,19 +35,15 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     //language=SQL
     private static final String SELECT_SINGLE_PROJECT = """
-            SELECT * FROM projects p
-            JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.project_id = :project_id AND p.deleted_at IS NULL""";
+            SELECT p.* FROM projects p
+            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
+              AND p.project_id = :project_id AND p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String SELECT_SINGLE_PROJECT_INCLUDING_DELETED = """
-            SELECT * FROM projects p
-            JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.project_id = :project_id""";
-
-    //language=SQL
-    private static final String UPDATE_PROJECTS_NAME =
-            "UPDATE projects SET project_name = :project_name WHERE project_id = :project_id";
+            SELECT p.* FROM projects p
+            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
+              AND p.project_id = :project_id""";
 
     //language=SQL
     private static final String RESTORE_PROJECT =
@@ -57,20 +55,24 @@ public class JdbcProjectRepository implements ProjectRepository {
             "DELETE FROM project_instances WHERE project_id = :project_id",
             "DELETE FROM repositories WHERE project_id = :project_id",
             "DELETE FROM profiler_settings WHERE project_id = :project_id",
-            "UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = :project_id");
+            "UPDATE projects SET deleted_at = :deleted_at WHERE project_id = :project_id");
 
+    private final Clock clock;
     private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectRepository(String projectId, DatabaseClientProvider databaseClientProvider) {
+    public JdbcProjectRepository(Clock clock, String projectId, DatabaseClientProvider databaseClientProvider) {
+        this.clock = clock;
         this.projectId = projectId;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.SINGLE_PROJECT);
     }
 
     @Override
     public void delete() {
+        // The application clock, not the database's: purgeDeletedProjects ages the stamp with the same one
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId);
+                .addValue("project_id", projectId)
+                .addValue("deleted_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.deleteCascade(StatementLabel.DELETE_PROJECT, DELETE_PROJECT_CASCADE, paramSource);
     }
@@ -94,15 +96,6 @@ public class JdbcProjectRepository implements ProjectRepository {
                 SELECT_SINGLE_PROJECT_INCLUDING_DELETED,
                 paramSource,
                 HubMappers.projectInfoMapper());
-    }
-
-    @Override
-    public void updateProjectName(String name) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("project_name", name);
-
-        databaseClient.update(StatementLabel.UPDATE_PROJECT_NAME, UPDATE_PROJECTS_NAME, paramSource);
     }
 
     @Override

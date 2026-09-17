@@ -55,11 +55,7 @@ final class Lz4Compression implements Compression {
      */
     private static final String SCRATCH_PREFIX = ".";
     private static final String SCRATCH_SUFFIX = ".tmp";
-
-    @Override
-    public boolean isSupported() {
-        return true;
-    }
+    private static final String SCRATCH_SEPARATOR = ".";
 
     @Override
     public Path target(Path source) {
@@ -127,7 +123,7 @@ final class Lz4Compression implements Compression {
      * the unique name gives up on knowing.
      */
     private static Path scratch(Path target) {
-        String name = SCRATCH_PREFIX + target.getFileName() + "." + UUID.randomUUID() + SCRATCH_SUFFIX;
+        String name = SCRATCH_PREFIX + target.getFileName() + SCRATCH_SEPARATOR + UUID.randomUUID() + SCRATCH_SUFFIX;
         return target.resolveSibling(name);
     }
 

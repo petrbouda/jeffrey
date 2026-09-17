@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.AfterEach;
@@ -45,7 +46,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class InstanceGrpcServiceTest {
@@ -71,18 +75,25 @@ class InstanceGrpcServiceTest {
     }
 
     /**
-     * Wires GrpcLookups' project resolution so repositoryManagerForProject(PROJECT_ID)
-     * resolves to the given RepositoryManager mock.
+     * Makes PROJECT_ID a project GrpcLookups can resolve; every other id stays unknown.
      */
-    private static RepositoryManager.Factory repositoryManagerFactory(
-            HubPlatformRepositories platformRepositories, RepositoryManager repoManager) {
-
+    private static void knownProject(HubPlatformRepositories platformRepositories) {
         ProjectInfo projectInfo = new ProjectInfo(
                 PROJECT_ID, null, "test-project", null, null, null,
                 FIXED_TIME, null, null, null);
         var projectRepo = mock(ProjectRepository.class);
         when(projectRepo.find()).thenReturn(Optional.of(projectInfo));
+        when(platformRepositories.newProjectRepository(any())).thenReturn(mock(ProjectRepository.class));
         when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
+    }
+
+    /**
+     * Wires GrpcLookups' project resolution so repositoryManagerForProject(PROJECT_ID)
+     * resolves to the given RepositoryManager mock.
+     */
+    private static RepositoryManager.Factory repositoryManagerFactory(
+            HubPlatformRepositories platformRepositories, RepositoryManager repoManager) {
+        knownProject(platformRepositories);
         return p -> repoManager;
     }
 
@@ -98,7 +109,7 @@ class InstanceGrpcServiceTest {
 
         return new RecordingSession(
                 id, id, INSTANCE_ID, FIXED_TIME, FIXED_TIME.plusSeconds(60),
-                RecordingStatus.FINISHED, null, files, false);
+                RecordingStatus.FINISHED, files, false);
     }
 
     // ========== ListInstances ==========
@@ -122,8 +133,9 @@ class InstanceGrpcServiceTest {
 
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
+            knownProject(platformRepositories);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -155,8 +167,9 @@ class InstanceGrpcServiceTest {
 
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
+            knownProject(platformRepositories);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -178,8 +191,9 @@ class InstanceGrpcServiceTest {
 
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
+            knownProject(platformRepositories);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -206,6 +220,7 @@ class InstanceGrpcServiceTest {
 
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
+            knownProject(platformRepositories);
             when(platformRepositories.findSessionsByProjectId(PROJECT_ID)).thenReturn(List.of(
                     ProjectInstanceSessionInfo.notRetained(
                             "session-active", "repo-1", INSTANCE_ID, 0,
@@ -221,10 +236,10 @@ class InstanceGrpcServiceTest {
             ));
 
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true)).thenReturn(List.of());
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
             var factory = repositoryManagerFactory(platformRepositories, repoManager);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -258,6 +273,7 @@ class InstanceGrpcServiceTest {
 
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
+            knownProject(platformRepositories);
             when(platformRepositories.findSessionsByProjectId(PROJECT_ID)).thenReturn(List.of(
                     ProjectInstanceSessionInfo.notRetained(
                             "session-real", "repo-1", INSTANCE_ID, 0,
@@ -271,12 +287,12 @@ class InstanceGrpcServiceTest {
 
             // Repository storage knows the file sizes: session-crashed has zero bytes
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true)).thenReturn(List.of(
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     repositorySession("session-real", false),
                     repositorySession("session-crashed", true)));
             var factory = repositoryManagerFactory(platformRepositories, repoManager);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -311,7 +327,7 @@ class InstanceGrpcServiceTest {
                             3, null)
             ));
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
 
             GetInstanceResponse response = stub.getInstance(
                     GetInstanceRequest.newBuilder()
@@ -338,13 +354,29 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.findInstanceById("non-existent")).thenReturn(Optional.empty());
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getInstance(
                             GetInstanceRequest.newBuilder()
                                     .setInstanceId("non-existent")
                                     .build()));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        }
+        /**
+         * One answer for an unknown project whatever {@code include_sessions} says — it used to
+         * be an empty list without sessions and NOT_FOUND with them.
+         */
+        @Test
+        void unknownProject_returnsNotFoundWithoutSessionsToo() throws Exception {
+            var platformRepositories = mock(HubPlatformRepositories.class);
+            knownProject(platformRepositories);
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.listInstances(ListInstancesRequest.newBuilder()
+                            .setProjectId("ghost").setIncludeSessions(false).build()));
 
             assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
         }
@@ -383,11 +415,11 @@ class InstanceGrpcServiceTest {
 
             // session-2 finished with zero bytes on disk — it must come back flagged as failed
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true)).thenReturn(List.of(
+            when(repoManager.instanceSessions(INSTANCE_ID)).thenReturn(List.of(
                     repositorySession("session-2", true)));
             var factory = repositoryManagerFactory(platformRepositories, repoManager);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
 
             ListInstanceSessionsResponse response = stub.listInstanceSessions(
                     ListInstanceSessionsRequest.newBuilder()
@@ -417,7 +449,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.findInstanceById("non-existent")).thenReturn(Optional.empty());
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.listInstanceSessions(
@@ -434,10 +466,10 @@ class InstanceGrpcServiceTest {
             when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of());
 
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true)).thenReturn(List.of());
+            when(repoManager.instanceSessions(INSTANCE_ID)).thenReturn(List.of());
             var factory = repositoryManagerFactory(platformRepositories, repoManager);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
 
             ListInstanceSessionsResponse response = stub.listInstanceSessions(
                     ListInstanceSessionsRequest.newBuilder()
@@ -481,15 +513,15 @@ class InstanceGrpcServiceTest {
             when(projectRepo.find()).thenReturn(Optional.of(projectInfo));
             when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
 
+            // session-1 holds one 1024-byte chunk, session-2 finished with nothing: 1 file, 1024 bytes, one failed
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.instanceStats(INSTANCE_ID))
-                    .thenReturn(new cafe.jeffrey.hub.model.repository.InstanceStats(5, 12_345_678L));
-            when(repoManager.listRecordingSessions(true)).thenReturn(List.of(
+            when(repoManager.instanceSessions(INSTANCE_ID)).thenReturn(List.of(
+                    repositorySession("session-1", false),
                     repositorySession("session-2", true)));
             RepositoryManager.Factory factory = p -> repoManager;
 
             var stub = startServer(new InstanceGrpcService(
-                    platformRepositories, new GrpcLookups(platformRepositories, factory, null), FIXED_CLOCK));
+                    platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
 
             GetInstanceDetailResponse response = stub.getInstanceDetail(
                     GetInstanceDetailRequest.newBuilder()
@@ -508,8 +540,8 @@ class InstanceGrpcServiceTest {
             assertTrue(instance.getSessions(1).getFailed());
 
             assertTrue(response.hasStats());
-            assertEquals(5, response.getStats().getFileCount());
-            assertEquals(12_345_678L, response.getStats().getTotalSizeBytes());
+            assertEquals(1, response.getStats().getFileCount());
+            assertEquals(1024L, response.getStats().getTotalSizeBytes());
         }
 
         @Test
@@ -518,12 +550,76 @@ class InstanceGrpcServiceTest {
             when(platformRepositories.findInstanceById("non-existent")).thenReturn(Optional.empty());
 
             var stub = startServer(new InstanceGrpcService(
-                    platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
+                    platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getInstanceDetail(
                             GetInstanceDetailRequest.newBuilder()
                                     .setInstanceId("non-existent")
+                                    .build()));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        }
+    }
+
+    @Nested
+    class GetInstanceSessionDetail {
+
+        private HubPlatformRepositories platformRepositoriesWithInstanceAndSession() {
+            var platformRepositories = mock(HubPlatformRepositories.class);
+            when(platformRepositories.findInstanceById(INSTANCE_ID)).thenReturn(Optional.of(
+                    new ProjectInstanceInfo(
+                            INSTANCE_ID, PROJECT_ID, "host-1",
+                            ProjectInstanceStatus.FINISHED, FIXED_TIME, FIXED_TIME.plusSeconds(700), null, null,
+                            1, null)));
+            when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
+                    ProjectInstanceSessionInfo.notRetained(
+                            "session-2", "repo-1", INSTANCE_ID, 0,
+                            Path.of("session-2"), null,
+                            FIXED_TIME, FIXED_TIME.plusSeconds(600))));
+            knownProject(platformRepositories);
+            return platformRepositories;
+        }
+
+        /**
+         * The failed flag of one session is read from that session's directory alone — it used
+         * to walk every session of the project to answer for one.
+         */
+        @Test
+        void readsTheFailedFlagFromTheOneSession() throws Exception {
+            var platformRepositories = platformRepositoriesWithInstanceAndSession();
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.findRecordingSessions("session-2"))
+                    .thenReturn(Optional.of(repositorySession("session-2", true)));
+            RepositoryManager.Factory factory = p -> repoManager;
+
+            var stub = startServer(new InstanceGrpcService(
+                    platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
+
+            GetInstanceSessionDetailResponse response = stub.getInstanceSessionDetail(
+                    GetInstanceSessionDetailRequest.newBuilder()
+                            .setInstanceId(INSTANCE_ID)
+                            .setSessionId("session-2")
+                            .build());
+
+            assertEquals("session-2", response.getSession().getId());
+            assertTrue(response.getSession().getFailed());
+            verify(repoManager, never()).listRecordingSessions(any());
+            verify(repoManager, never()).listRecordingSessions(any(), any());
+        }
+
+        @Test
+        void sessionOfAnotherInstance_returnsNotFound() throws Exception {
+            var platformRepositories = platformRepositoriesWithInstanceAndSession();
+
+            var stub = startServer(new InstanceGrpcService(
+                    platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null)));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.getInstanceSessionDetail(
+                            GetInstanceSessionDetailRequest.newBuilder()
+                                    .setInstanceId(INSTANCE_ID)
+                                    .setSessionId("someone-elses")
                                     .build()));
 
             assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());

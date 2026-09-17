@@ -30,6 +30,7 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
@@ -280,23 +281,27 @@ class FileDownloadGrpcServiceTest {
     /** Three ten-minute chunks, f1 f2 f3, the session finished at +30. */
     private static RecordingSession threeChunks() {
         return new RecordingSession("session-1", "session-1", "inst-1", SESSION_START, SESSION_END,
-                RecordingStatus.FINISHED, null,
+                RecordingStatus.FINISHED,
                 List.of(chunk("f1", 0), chunk("f2", 10), chunk("f3", 20)), false);
     }
 
     private FileDownloadGrpcService serviceWithSession(RepositoryManager repoManager) {
         when(repoManager.findRecordingSessions(SESSION_ID)).thenReturn(Optional.of(threeChunks()));
 
+        // The session names its project by id; the lookup then resolves the project itself
         var sessionWithRepo = mock(SessionWithRepository.class);
-        when(sessionWithRepo.projectInfo()).thenReturn(TEST_PROJECT_INFO);
+        when(sessionWithRepo.projectId()).thenReturn(PROJECT_ID);
+        var projectRepo = mock(ProjectRepository.class);
+        when(projectRepo.find()).thenReturn(Optional.of(TEST_PROJECT_INFO));
 
         var platformRepositories = mock(HubPlatformRepositories.class);
         when(platformRepositories.findSessionWithRepositoryById(SESSION_ID)).thenReturn(Optional.of(sessionWithRepo));
+        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
 
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
 
-        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
+        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null), Runnable::run);
     }
 
     /**
@@ -308,7 +313,7 @@ class FileDownloadGrpcServiceTest {
 
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
+        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null), Runnable::run);
     }
 
     private static void assertStatus(Status.Code expected, Throwable error) {

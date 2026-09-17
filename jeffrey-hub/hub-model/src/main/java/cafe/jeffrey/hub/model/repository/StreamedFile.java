@@ -18,27 +18,19 @@
 
 package cafe.jeffrey.hub.model.repository;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public record StreamedFile(String fileName, Path path, Closeable cleanup) {
+/**
+ * A file of a session handed over for streaming: the name the receiver should write it under —
+ * which is the archive's when a rewrite in flight replaced the recording the listing named —
+ * and where it is.
+ */
+public record StreamedFile(String fileName, Path path) {
 
-    public StreamedFile(String fileName, Path path) {
-        this(fileName, path, null);
-    }
-
-    /**
-     * Opens an InputStream for the file. If a cleanup action is present,
-     * it will be executed when the stream is closed.
-     */
     public InputStream openStream() throws IOException {
-        InputStream stream = Files.newInputStream(path);
-        if (cleanup != null) {
-            stream = new CleanupInputStream(stream, cleanup);
-        }
-        return stream;
+        return Files.newInputStream(path);
     }
 }

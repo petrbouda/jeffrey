@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,8 +20,6 @@ package cafe.jeffrey.hub.persistence.jdbc;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.hub.persistence.api.CreateProject;
-import cafe.jeffrey.hub.model.GraphVisualization;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
@@ -133,9 +131,8 @@ class JdbcProjectsRepositoryTest {
                     Map.of(),
                     null
             );
-            CreateProject createProject = new CreateProject(projectInfo, new GraphVisualization(0.1));
 
-            ProjectInfo result = repository.create(createProject);
+            ProjectInfo result = repository.create(projectInfo);
 
             assertEquals("new-proj-001", result.id());
             assertEquals("New Project", result.name());
@@ -165,41 +162,12 @@ class JdbcProjectsRepositoryTest {
                     Map.of(),
                     null
             );
-            CreateProject createProject = new CreateProject(projectInfo, new GraphVisualization(0.1));
 
-            repository.create(createProject);
+            repository.create(projectInfo);
 
             // Should still have only 2 projects
             List<ProjectInfo> all = repository.findAllProjects();
             assertEquals(2, all.size());
-        }
-    }
-
-    @Nested
-    class FindAllNamespacesMethod {
-
-        @Test
-        void returnsDistinctNamespaces_excludingNull(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-projects-with-namespaces.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            List<String> result = repository.findAllNamespaces();
-
-            assertEquals(2, result.size());
-            assertEquals(List.of("backend", "frontend"), result);
-        }
-
-        @Test
-        void returnsEmpty_whenAllNamespacesAreNull(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            // Both projects in this fixture have NULL namespace
-            List<String> result = repository.findAllNamespaces();
-
-            assertTrue(result.isEmpty());
         }
     }
 
@@ -291,20 +259,6 @@ class JdbcProjectsRepositoryTest {
         }
 
         @Test
-        void findAllNamespaces_excludesSoftDeleted(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-projects-with-namespaces.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            // Soft-delete the project with "frontend" namespace
-            softDeleteProject(dataSource, "proj-002");
-
-            List<String> result = repository.findAllNamespaces();
-            assertEquals(1, result.size());
-            assertEquals("backend", result.getFirst());
-        }
-
-        @Test
         void create_allowsReCreationAfterSoftDelete(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
@@ -317,9 +271,8 @@ class JdbcProjectsRepositoryTest {
             ProjectInfo newProject = new ProjectInfo(
                     "proj-003", "origin-002", "Recreated Project", null, null,
                     "ws-001", Instant.parse("2025-06-15T12:00:00Z"), null, Map.of(), null);
-            CreateProject createProject = new CreateProject(newProject, new GraphVisualization(0.1));
 
-            ProjectInfo result = repository.create(createProject);
+            ProjectInfo result = repository.create(newProject);
 
             assertEquals("Recreated Project", result.name());
             assertEquals("origin-002", result.originId());

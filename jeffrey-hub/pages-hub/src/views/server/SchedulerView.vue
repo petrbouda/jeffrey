@@ -247,7 +247,6 @@ const displayNames: Record<JobTypeName, string> = {
     STORAGE_OVERVIEW_REFRESHER: 'Storage Overview Refresher',
     PROFILER_SETTINGS_SYNCHRONIZER: 'Profiler Settings Synchronizer',
     PROJECT_INSTANCE_SESSION_CLEANER: 'Instance Session Cleaner',
-    PROJECT_INSTANCE_RECORDING_CLEANER: 'Instance Recording Cleaner',
     PROJECT_STORAGE_QUOTA_CLEANER: 'Storage Quota Cleaner',
     EXPIRED_INSTANCE_CLEANER: 'Expired Instance Cleaner',
     REPOSITORY_JFR_COMPRESSION: 'JFR Compression',
@@ -267,9 +266,7 @@ const descriptions: Record<JobTypeName, string> = {
     PROFILER_SETTINGS_SYNCHRONIZER:
         'Resolves the effective profiler settings (global → workspace → project) for every workspace and uploads them to the remote workspace, pruning legacy versions to the configured max-versions cap.',
     PROJECT_INSTANCE_SESSION_CLEANER:
-        'Removes Project Instance Sessions older than the configured duration, and caps each instance at max-sessions logical sessions — a consecutive run of failed (0-byte) sessions counts as one, the live session occupies a slot, retained sessions are exempt. Oldest logical sessions beyond the cap are removed even before the age window expires. Once a session is removed, all associated Recordings and Additional Files (HeapDump, PerfCounters, ...) are removed as well.',
-    PROJECT_INSTANCE_RECORDING_CLEANER:
-        'Removes only Recordings in the active (latest) Project Instance Session. It does not remove recordings in older sessions — it just ensures that rolling recordings in the latest session are bounded by age.',
+        'Ages recordings out under one retention window: a finished session is removed whole once older than it (with every recording and additional file — heap dumps, perf counters, ...), and a session still recording loses its closed chunks older than it one by one. Beside the window, each instance is capped at max-sessions logical sessions — a consecutive run of failed (0-byte) sessions counts as one, the live session occupies a slot, retained sessions are exempt — and the oldest beyond the cap go even before the window expires.',
     PROJECT_STORAGE_QUOTA_CLEANER:
         'Caps how much disk a single project may occupy. Age-based retention cannot bound disk usage on its own — a high-throughput service fills the volume long before anything ages out. Reclaims oldest-first: whole finished sessions, then finished chunks inside the live session. Retained sessions and the chunk currently being written are never touched.',
     EXPIRED_INSTANCE_CLEANER:
@@ -288,7 +285,6 @@ const icons: Record<JobTypeName, [string, string]> = {
     STORAGE_OVERVIEW_REFRESHER: ['bi-hdd-stack', 'job-icon-sync'],
     PROFILER_SETTINGS_SYNCHRONIZER: ['bi-cpu', 'job-icon-cpu'],
     PROJECT_INSTANCE_SESSION_CLEANER: ['bi-trash', 'job-icon-trash'],
-    PROJECT_INSTANCE_RECORDING_CLEANER: ['bi-trash', 'job-icon-trash'],
     PROJECT_STORAGE_QUOTA_CLEANER: ['bi-hdd', 'job-icon-trash'],
     EXPIRED_INSTANCE_CLEANER: ['bi-trash', 'job-icon-trash'],
     REPOSITORY_JFR_COMPRESSION: ['bi-file-zip', 'job-icon-zip'],

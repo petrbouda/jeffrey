@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,11 +18,9 @@
 
 package cafe.jeffrey.hub.model.repository;
 
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public record RecordingSession(
@@ -32,7 +30,6 @@ public record RecordingSession(
         Instant createdAt,
         Instant finishedAt,
         RecordingStatus status,
-        Path absolutePath,
         List<RepositoryFile> files,
         boolean retained) {
 
@@ -46,14 +43,11 @@ public record RecordingSession(
 
     /**
      * Total size in bytes of every file in this session. Zero when the session was
-     * loaded without files. Files whose size could not be determined count as zero
-     * rather than failing the whole sum.
+     * loaded without files.
      */
     public long totalSizeBytes() {
         return files.stream()
-                .map(RepositoryFile::size)
-                .filter(Objects::nonNull)
-                .mapToLong(Long::longValue)
+                .mapToLong(RepositoryFile::size)
                 .sum();
     }
 

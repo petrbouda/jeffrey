@@ -18,11 +18,11 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleanerJobDescriptor;
 import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
@@ -54,39 +54,31 @@ import java.util.List;
  * touched, so a project pinned entirely to retention may legitimately stay over
  * budget; that is reported as a warning rather than forced.</p>
  *
- * <p>Session deletion is published as a workspace event and applied asynchronously, so
- * the freed bytes are subtracted optimistically as deletions are requested. A tick that
- * runs while a previous batch is still draining would see those sessions again — in
- * practice the synchronizer drains far more often than this job runs, and a queue stalled
- * long enough to matter is a larger problem than the quota overshoot it could cause.</p>
  */
-public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob<ProjectStorageQuotaCleanerJobDescriptor> {
+public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectStorageQuotaCleanerJob.class);
 
+    private static final String PARAM_MAX_SIZE = "max-size";
+
     private final Duration period;
+    private final long budget;
 
-    public ProjectStorageQuotaCleanerJob(
-            WorkspacesManager workspacesManager,
-            RepositoryStorage.Factory repositoryStorageFactory,
-            ProjectStorageQuotaCleanerJobDescriptor jobDescriptor,
-            Duration period) {
-
-        super(workspacesManager, repositoryStorageFactory, jobDescriptor);
-        this.period = period;
+    /**
+     * @param config carries {@code max-size}, the per-project budget — {@code 20G}, {@code 512M},
+     *               or plain bytes — which must be positive
+     */
+    public ProjectStorageQuotaCleanerJob(WorkspacesManager workspacesManager, JobConfig config) {
+        super(workspacesManager);
+        this.period = config.period();
+        this.budget = config.bytesParam(PARAM_MAX_SIZE);
     }
 
     @Override
-    protected void executeOnRepository(
-            ProjectManager manager,
-            RepositoryStorage repositoryStorage,
-            ProjectStorageQuotaCleanerJobDescriptor jobDescriptor,
-            JobContext context) {
-
+    protected void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage) {
         String projectName = manager.info().name();
-        long budget = jobDescriptor.maxSizeBytes();
 
-        List<RecordingSession> sessions = repositoryStorage.listSessions(true);
+        List<RecordingSession> sessions = repositoryStorage.listSessions(SessionDetail.WITH_FILES);
         long totalSize = sessions.stream()
                 .mapToLong(RecordingSession::totalSizeBytes)
                 .sum();
@@ -95,17 +87,17 @@ public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob<ProjectS
             return;
         }
 
-        LOG.info("Project storage over budget, reclaiming oldest data: project='{}' total_bytes={} budget_bytes={}",
+        LOG.info("Project storage over budget, reclaiming oldest data: project_name={} total_bytes={} budget_bytes={}",
                 projectName, totalSize, budget);
 
         long remaining = reclaimFinishedSessions(manager, sessions, totalSize, budget);
         if (remaining > budget) {
-            remaining = trimActiveSession(repositoryStorage, sessions, remaining, budget, projectName);
+            remaining = trimLiveSessions(repositoryStorage, sessions, remaining, budget, projectName);
         }
 
         if (remaining > budget) {
             LOG.warn("Project still over storage budget after reclamation, remaining data is retained or in-flight: " +
-                            "project='{}' total_bytes={} budget_bytes={}",
+                            "project_name={} total_bytes={} budget_bytes={}",
                     projectName, remaining, budget);
         }
     }
@@ -128,62 +120,72 @@ public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob<ProjectS
             if (projected <= budget) {
                 break;
             }
-            manager.repositoryManager()
-                    .deleteRecordingSession(session.id());
+            // A session that was already gone freed nothing, so it must not count as reclaimed
+            if (!manager.repositoryManager().deleteRecordingSession(session.id())) {
+                continue;
+            }
             projected -= session.totalSizeBytes();
 
-            LOG.info("Deleted session to reclaim storage: project='{}' session={} freed_bytes={}",
+            LOG.info("Deleted session to reclaim storage: project_name={} session_id={} freed_bytes={}",
                     manager.info().name(), session.id(), session.totalSizeBytes());
         }
         return projected;
     }
 
     /**
-     * Trims closed chunks from the live session oldest-first. The chunk the profiler is still
-     * writing is never a candidate: {@link RecordingSession#finishedRecordings()} leaves it out.
+     * Trims closed chunks from the live sessions — one per live instance, oldest session first
+     * — until the projected total fits the budget. The chunk a profiler is still writing is
+     * never a candidate: {@link RecordingSession#finishedRecordings()} leaves it out.
      */
-    private long trimActiveSession(
+    private long trimLiveSessions(
             RepositoryStorage repositoryStorage,
             List<RecordingSession> sessions,
             long totalSize,
             long budget,
             String projectName) {
 
-        RecordingSession active = sessions.stream()
+        List<RecordingSession> live = sessions.stream()
                 .filter(session -> session.status() == RecordingStatus.ACTIVE)
                 .filter(session -> !session.retained())
-                .max(Comparator.comparing(RecordingSession::createdAt))
-                .orElse(null);
+                .sorted(Comparator.comparing(RecordingSession::createdAt))
+                .toList();
 
-        if (active == null) {
-            return totalSize;
+        long projected = totalSize;
+        for (RecordingSession session : live) {
+            if (projected <= budget) {
+                break;
+            }
+            projected = trimSession(repositoryStorage, session, projected, budget, projectName);
         }
+        return projected;
+    }
 
-        List<RepositoryFile> trimmable = active.finishedRecordings();
+    private long trimSession(
+            RepositoryStorage repositoryStorage,
+            RecordingSession session,
+            long totalSize,
+            long budget,
+            String projectName) {
 
         List<String> toDelete = new ArrayList<>();
         long projected = totalSize;
-        for (RepositoryFile file : trimmable) {
+        for (RepositoryFile file : session.finishedRecordings()) {
             if (projected <= budget) {
                 break;
             }
             toDelete.add(file.id());
-            projected -= fileSize(file);
+            projected -= file.size();
         }
 
         if (toDelete.isEmpty()) {
             return projected;
         }
 
-        repositoryStorage.deleteRepositoryFiles(active.id(), toDelete);
-        LOG.info("Trimmed recordings from active session to reclaim storage: project='{}' session={} count={}",
-                projectName, active.id(), toDelete.size());
+        repositoryStorage.deleteRepositoryFiles(session.id(), toDelete);
+        LOG.info("Trimmed recordings from live session to reclaim storage: project_name={} session_id={} count={}",
+                projectName, session.id(), toDelete.size());
 
         return projected;
-    }
-
-    private static long fileSize(RepositoryFile file) {
-        return file.size() != null ? file.size() : 0L;
     }
 
     @Override

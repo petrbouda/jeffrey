@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,8 +23,6 @@ public enum WorkspaceStatus {
     AVAILABLE,
     // The workspace is temporarily unavailable, possibly the workspace has been removed (remote or on live filesystem).
     UNAVAILABLE,
-    // The workspace is not reachable at the moment, possibly due to network issues.
-    OFFLINE,
     // The status of the workspace has not been already determined.
     UNKNOWN
 }

@@ -24,12 +24,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.hub.core.manager.ProfilerSettingsManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
+import java.time.Instant;
+import cafe.jeffrey.hub.persistence.api.WorkspacesRepository;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
 import cafe.jeffrey.hub.model.ProfilerInfo;
 
 import java.io.IOException;
@@ -68,11 +69,12 @@ class ProfilerSettingsGrpcServiceTest {
 
         @Test
         void returnsProjectLevelSettings() throws Exception {
-            var settingsManager = mock(ProfilerSettingsManager.class);
-            when(settingsManager.fetchEffectiveSettings()).thenReturn(
-                    new EffectiveProfilerSettings(AGENT_SETTINGS, EffectiveProfilerSettings.SettingsLevel.PROJECT));
+            var profilerRepo = mock(ProfilerRepository.class);
+            when(profilerRepo.fetchProfilerSettings(WORKSPACE_ID, PROJECT_ID)).thenReturn(List.of(
+                    new ProfilerInfo(WORKSPACE_ID, PROJECT_ID, AGENT_SETTINGS),
+                    new ProfilerInfo(null, null, "global-settings")));
 
-            var stub = startServer(serviceWithProject(settingsManager));
+            var stub = startServer(serviceWithProject(profilerRepo));
 
             GetProfilerSettingsResponse response = stub.getSettings(
                     GetProfilerSettingsRequest.newBuilder()
@@ -85,11 +87,11 @@ class ProfilerSettingsGrpcServiceTest {
 
         @Test
         void returnsGlobalLevelSettings() throws Exception {
-            var settingsManager = mock(ProfilerSettingsManager.class);
-            when(settingsManager.fetchEffectiveSettings()).thenReturn(
-                    new EffectiveProfilerSettings("global-settings", EffectiveProfilerSettings.SettingsLevel.GLOBAL));
+            var profilerRepo = mock(ProfilerRepository.class);
+            when(profilerRepo.fetchProfilerSettings(WORKSPACE_ID, PROJECT_ID)).thenReturn(List.of(
+                    new ProfilerInfo(null, null, "global-settings")));
 
-            var stub = startServer(serviceWithProject(settingsManager));
+            var stub = startServer(serviceWithProject(profilerRepo));
 
             GetProfilerSettingsResponse response = stub.getSettings(
                     GetProfilerSettingsRequest.newBuilder()
@@ -102,11 +104,10 @@ class ProfilerSettingsGrpcServiceTest {
 
         @Test
         void returnsNoneLevelWhenNoSettings() throws Exception {
-            var settingsManager = mock(ProfilerSettingsManager.class);
-            when(settingsManager.fetchEffectiveSettings()).thenReturn(
-                    EffectiveProfilerSettings.none());
+            var profilerRepo = mock(ProfilerRepository.class);
+            when(profilerRepo.fetchProfilerSettings(WORKSPACE_ID, PROJECT_ID)).thenReturn(List.of());
 
-            var stub = startServer(serviceWithProject(settingsManager));
+            var stub = startServer(serviceWithProject(profilerRepo));
 
             GetProfilerSettingsResponse response = stub.getSettings(
                     GetProfilerSettingsRequest.newBuilder()
@@ -138,8 +139,8 @@ class ProfilerSettingsGrpcServiceTest {
 
         @Test
         void savesSettings() throws Exception {
-            var settingsManager = mock(ProfilerSettingsManager.class);
-            var stub = startServer(serviceWithProject(settingsManager));
+            var profilerRepo = mock(ProfilerRepository.class);
+            var stub = startServer(serviceWithProject(profilerRepo));
 
             stub.upsertSettings(
                     UpsertProfilerSettingsRequest.newBuilder()
@@ -147,7 +148,7 @@ class ProfilerSettingsGrpcServiceTest {
                             .setAgentSettings(AGENT_SETTINGS)
                             .build());
 
-            verify(settingsManager).upsertSettings(AGENT_SETTINGS);
+            verify(profilerRepo).upsertSettings(new ProfilerInfo(WORKSPACE_ID, PROJECT_ID, AGENT_SETTINGS));
         }
 
         @Test
@@ -172,15 +173,15 @@ class ProfilerSettingsGrpcServiceTest {
 
         @Test
         void deletesSettings() throws Exception {
-            var settingsManager = mock(ProfilerSettingsManager.class);
-            var stub = startServer(serviceWithProject(settingsManager));
+            var profilerRepo = mock(ProfilerRepository.class);
+            var stub = startServer(serviceWithProject(profilerRepo));
 
             stub.deleteSettings(
                     DeleteProfilerSettingsRequest.newBuilder()
                             .setProjectId(PROJECT_ID)
                             .build());
 
-            verify(settingsManager).deleteSettings();
+            verify(profilerRepo).deleteSettings(WORKSPACE_ID, PROJECT_ID);
         }
 
         @Test
@@ -194,57 +195,6 @@ class ProfilerSettingsGrpcServiceTest {
                                     .build()));
 
             assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
-        }
-    }
-
-    // ========== ListAllSettings ==========
-
-    @Nested
-    class ListAllSettings {
-
-        @Test
-        void returnsAllSettings() throws Exception {
-            var profilerRepo = mock(ProfilerRepository.class);
-            when(profilerRepo.findAllSettings()).thenReturn(List.of(
-                    new ProfilerInfo(null, null, "global-settings"),
-                    new ProfilerInfo(WORKSPACE_ID, null, "workspace-settings"),
-                    new ProfilerInfo(WORKSPACE_ID, PROJECT_ID, AGENT_SETTINGS)
-            ));
-
-            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
-
-            ListAllProfilerSettingsResponse response = stub.listAllSettings(
-                    ListAllProfilerSettingsRequest.getDefaultInstance());
-
-            assertEquals(3, response.getSettingsCount());
-
-            ProfilerSettingsEntry global = response.getSettings(0);
-            assertEquals("", global.getWorkspaceId());
-            assertEquals("", global.getProjectId());
-            assertEquals("global-settings", global.getAgentSettings());
-
-            ProfilerSettingsEntry workspace = response.getSettings(1);
-            assertEquals(WORKSPACE_ID, workspace.getWorkspaceId());
-            assertEquals("", workspace.getProjectId());
-            assertEquals("workspace-settings", workspace.getAgentSettings());
-
-            ProfilerSettingsEntry project = response.getSettings(2);
-            assertEquals(WORKSPACE_ID, project.getWorkspaceId());
-            assertEquals(PROJECT_ID, project.getProjectId());
-            assertEquals(AGENT_SETTINGS, project.getAgentSettings());
-        }
-
-        @Test
-        void returnsEmptyListWhenNoSettings() throws Exception {
-            var profilerRepo = mock(ProfilerRepository.class);
-            when(profilerRepo.findAllSettings()).thenReturn(List.of());
-
-            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
-
-            ListAllProfilerSettingsResponse response = stub.listAllSettings(
-                    ListAllProfilerSettingsRequest.getDefaultInstance());
-
-            assertEquals(0, response.getSettingsCount());
         }
     }
 
@@ -308,6 +258,65 @@ class ProfilerSettingsGrpcServiceTest {
                                     .build()));
 
             assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+            verifyNoInteractions(profilerRepo);
+        }
+    }
+
+    @Nested
+    class SettingsAtLevelScopeValidation {
+
+        /**
+         * A mistyped id used to write a row that no reader would ever find — the effective
+         * settings are resolved from the project's real workspace, not from whatever id the
+         * row carries.
+         */
+        @Test
+        void unknownWorkspace_returnsNotFound() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.upsertSettingsAtLevel(
+                            UpsertProfilerSettingsAtLevelRequest.newBuilder()
+                                    .setWorkspaceId("ghost")
+                                    .setAgentSettings(AGENT_SETTINGS)
+                                    .build()));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+            verifyNoInteractions(profilerRepo);
+        }
+
+        @Test
+        void unknownProject_returnsNotFound() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.deleteSettingsAtLevel(
+                            DeleteProfilerSettingsAtLevelRequest.newBuilder()
+                                    .setWorkspaceId(WORKSPACE_ID)
+                                    .setProjectId("ghost")
+                                    .build()));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+            verifyNoInteractions(profilerRepo);
+        }
+
+        @Test
+        void projectOfAnotherWorkspace_returnsNotFound() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            var service = serviceWithProfilerRepository(profilerRepo);
+            var stub = startServer(service);
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.upsertSettingsAtLevel(
+                            UpsertProfilerSettingsAtLevelRequest.newBuilder()
+                                    .setWorkspaceId("other-workspace")
+                                    .setProjectId(PROJECT_ID)
+                                    .setAgentSettings(AGENT_SETTINGS)
+                                    .build()));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
             verifyNoInteractions(profilerRepo);
         }
     }
@@ -464,28 +473,18 @@ class ProfilerSettingsGrpcServiceTest {
 
     // ========== Helpers ==========
 
-    private static final cafe.jeffrey.hub.model.ProjectInfo TEST_PROJECT_INFO =
-            new cafe.jeffrey.hub.model.ProjectInfo(
-                    PROJECT_ID, null, null, null, null, null, null, null, null, null);
-
     /**
-     * Creates a service where findProject(PROJECT_ID) succeeds and returns the given settingsManager.
+     * Creates a service where PROJECT_ID resolves to a project of WORKSPACE_ID and settings
+     * are read from and written to the given repository.
      */
-    private ProfilerSettingsGrpcService serviceWithProject(ProfilerSettingsManager settingsManager) {
-        var projectManager = mock(ProjectManager.class);
-        when(projectManager.profilerSettingsManager()).thenReturn(settingsManager);
-
+    private ProfilerSettingsGrpcService serviceWithProject(ProfilerRepository profilerRepo) {
         var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.find()).thenReturn(Optional.of(TEST_PROJECT_INFO));
+        when(projectRepo.find()).thenReturn(Optional.of(PROJECT_IN_WORKSPACE));
 
         var platformRepositories = mock(HubPlatformRepositories.class);
         when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
-        when(platformRepositories.newProfilerRepository()).thenReturn(mock(ProfilerRepository.class));
 
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-        when(projectManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(projectManager);
-
-        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
+        return new ProfilerSettingsGrpcService(profilerRepo, new GrpcLookups(platformRepositories, null, null));
     }
 
     /**
@@ -497,22 +496,35 @@ class ProfilerSettingsGrpcServiceTest {
 
         var platformRepositories = mock(HubPlatformRepositories.class);
         when(platformRepositories.newProjectRepository(any())).thenReturn(projectRepo);
-        when(platformRepositories.newProfilerRepository()).thenReturn(mock(ProfilerRepository.class));
 
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-
-        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
+        return new ProfilerSettingsGrpcService(mock(ProfilerRepository.class), new GrpcLookups(platformRepositories, null, null));
     }
 
+    private static final WorkspaceInfo TEST_WORKSPACE_INFO = new WorkspaceInfo(
+            WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, "Workspace",
+            null, null, Instant.parse("2026-01-01T00:00:00Z"), WorkspaceStatus.AVAILABLE, 1);
+
+    private static final cafe.jeffrey.hub.model.ProjectInfo PROJECT_IN_WORKSPACE =
+            new cafe.jeffrey.hub.model.ProjectInfo(
+                    PROJECT_ID, null, null, null, null, WORKSPACE_ID, null, null, null, null);
+
     /**
-     * Creates a service with a specific ProfilerRepository (for list/upsert/delete at level tests).
+     * Creates a service with a specific ProfilerRepository (for list/upsert/delete at level tests),
+     * where WORKSPACE_ID exists and PROJECT_ID is one of its projects; any other id is unknown.
      */
     private ProfilerSettingsGrpcService serviceWithProfilerRepository(ProfilerRepository profilerRepo) {
+        var workspacesRepo = mock(WorkspacesRepository.class);
+        when(workspacesRepo.find(WORKSPACE_ID)).thenReturn(Optional.of(TEST_WORKSPACE_INFO));
+
+        var projectRepo = mock(ProjectRepository.class);
+        when(projectRepo.find()).thenReturn(Optional.of(PROJECT_IN_WORKSPACE));
+        var unknownProjectRepo = mock(ProjectRepository.class);
+
         var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.newProfilerRepository()).thenReturn(profilerRepo);
+        when(platformRepositories.newWorkspacesRepository()).thenReturn(workspacesRepo);
+        when(platformRepositories.newProjectRepository(any())).thenReturn(unknownProjectRepo);
+        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
 
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-
-        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
+        return new ProfilerSettingsGrpcService(profilerRepo, new GrpcLookups(platformRepositories, null, null));
     }
 }

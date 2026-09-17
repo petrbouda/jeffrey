@@ -80,14 +80,7 @@ message GetRepositoryStatisticsRequest {
 // hostPath reports the node's own disk. A percentage built on any of those would be fiction.
 message GetRepositoryStatisticsResponse {
   // Total size in bytes of every file in every session of the project.
-  int64 total_size = 4;
-
-  // Numbers held by fields this message no longer carries. Do not reuse them.
-  reserved 1 to 3, 5 to 18;
-  reserved "total_sessions", "session_status", "last_activity_time", "total_files",
-      "biggest_session_size", "jfr_files", "jfr_size", "heap_dump_files", "heap_dump_size",
-      "log_files", "log_size", "app_log_files", "app_log_size", "error_log_files",
-      "error_log_size", "other_files", "other_size";
+  int64 total_size = 1;
 }
 
 message DeleteSessionRequest {
@@ -151,16 +144,9 @@ message RepositoryFile {
   int64 created_at = 3;
   // File size in bytes.
   int64 size = 4;
-  // Number 5 was `string file_type`, a ManagedFile name the hub no longer has: it reads none of
-  // the files it serves and tells no kind apart beyond a recording. A caller wanting to know a
-  // heap dump from a log classifies `name` itself. Do not reuse the number.
-  //
   // Whether the file is a recording chunk (true) or anything else beside one (false). A category,
   // not a format — the one thing about a file's kind the hub decides, because it is what a
-  // download takes and what a session's window spans.
-  bool is_recording = 7;
-
-  // Held by a per-file status this message no longer carries. Do not reuse it.
-  reserved 6;
-  reserved "status";
+  // download takes and what a session's window spans. There is no file type: the hub reads none
+  // of the files it serves, and a caller wanting a heap dump from a log classifies `name` itself.
+  bool is_recording = 5;
 }

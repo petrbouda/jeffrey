@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -39,6 +39,9 @@ public class CopyLibsInitializer implements ApplicationListener<ApplicationReady
 
     private static final Logger LOG = LoggerFactory.getLogger(CopyLibsInitializer.class);
     private static final String CURRENT_SYMLINK = "current";
+    /** The symlink is swapped in atomically through a hidden scratch link beside it. */
+    private static final String SCRATCH_SYMLINK = "." + CURRENT_SYMLINK + "-tmp";
+    private static final String HIDDEN_PREFIX = ".";
 
     private final Path source;
     private final Path target;
@@ -86,7 +89,7 @@ public class CopyLibsInitializer implements ApplicationListener<ApplicationReady
 
     private void updateCurrentSymlink() {
         Path symlinkPath = target.resolve(CURRENT_SYMLINK);
-        Path tempSymlink = target.resolve("." + CURRENT_SYMLINK + "-tmp");
+        Path tempSymlink = target.resolve(SCRATCH_SYMLINK);
 
         try {
             Files.deleteIfExists(tempSymlink);
@@ -104,7 +107,7 @@ public class CopyLibsInitializer implements ApplicationListener<ApplicationReady
         try (DirectoryStream<Path> entries = Files.newDirectoryStream(target)) {
             for (Path entry : entries) {
                 String name = entry.getFileName().toString();
-                if (Files.isSymbolicLink(entry) || name.startsWith(".")) {
+                if (Files.isSymbolicLink(entry) || name.startsWith(HIDDEN_PREFIX)) {
                     continue;
                 }
                 if (Files.isDirectory(entry)) {

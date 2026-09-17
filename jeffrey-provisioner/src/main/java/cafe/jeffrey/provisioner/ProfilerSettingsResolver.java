@@ -47,7 +47,7 @@ public class ProfilerSettingsResolver {
     private static final String WORKSPACE_SETTINGS_PREFIX = JeffreyLayout.SETTINGS_FILE_PREFIX;
     private static final String WORKSPACE_SETTINGS_DIR = JeffreyLayout.SETTINGS_DIR;
 
-    private static final String HUB_WORKSPACE_LEVEL = "WORKSPACE";
+    private static final String HUB_WORKSPACE_LEVEL = ProfilerSettings.WORKSPACE_LEVEL;
 
     private static final char SETTINGS_FILENAME_TIMESTAMP_SEPARATOR = '-';
     private static final char SETTINGS_FILENAME_EXTENSION_SEPARATOR = '.';

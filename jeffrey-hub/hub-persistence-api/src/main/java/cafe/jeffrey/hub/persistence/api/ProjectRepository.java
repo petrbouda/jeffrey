@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -44,12 +44,6 @@ public interface ProjectRepository {
      */
     Optional<ProjectInfo> findIncludingDeleted();
 
-    /**
-     * Update the project name.
-     *
-     * @param name new project's name.
-     */
-    void updateProjectName(String name);
 
     /**
      * Restore a previously soft-deleted project, clearing the deleted_at timestamp.

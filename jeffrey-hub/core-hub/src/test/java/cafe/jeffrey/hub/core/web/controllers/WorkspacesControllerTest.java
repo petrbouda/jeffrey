@@ -19,6 +19,7 @@
 package cafe.jeffrey.hub.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -67,11 +68,7 @@ class WorkspacesControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspacesController(workspacesManager));
 
-        // The controller throws IllegalArgumentException, which JeffreyExceptionHandler
-        // maps to 500 INTERNAL_SERVER_ERROR by default in core-hub (no client-error path
-        // for IllegalArgumentException in the server-side handler — it falls into the
-        // generic catch).
         assertThat(mvc.get().uri("/api/internal/workspaces/ghost/projects"))
-                .hasStatus5xxServerError();
+                .hasStatus(HttpStatus.NOT_FOUND);
     }
 }

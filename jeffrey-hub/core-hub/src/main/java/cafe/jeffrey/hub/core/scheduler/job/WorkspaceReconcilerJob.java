@@ -22,10 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
+import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.Job;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.ManuallyTriggerable;
 import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.shared.common.JeffreyLayout;
@@ -66,6 +66,9 @@ public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceReconcilerJob.class);
 
+    /** An announced path that starts here would name a directory outside the workspace. */
+    private static final String PARENT_DIRECTORY = "..";
+
     /** Entries are plain relative paths; blank content is a not-yet-readable entry. */
     private static final PendingIndexEntryParser<String> RELATIVE_PATH =
             (_, content) -> Optional.of(content.trim()).filter(path -> !path.isEmpty());
@@ -74,7 +77,7 @@ public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
     private final WorkspaceReconciler reconciler;
     private final HubJeffreyDirs jeffreyDirs;
     private final DefaultWorkspaceProperties defaultWorkspaceProperties;
-    private final boolean autoCreateWorkspaces;
+    private final WorkspacesProperties workspacesProperties;
     private final Clock clock;
     private final Duration period;
 
@@ -83,7 +86,7 @@ public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
             WorkspaceReconciler reconciler,
             HubJeffreyDirs jeffreyDirs,
             DefaultWorkspaceProperties defaultWorkspaceProperties,
-            boolean autoCreateWorkspaces,
+            WorkspacesProperties workspacesProperties,
             Clock clock,
             Duration period) {
 
@@ -91,13 +94,13 @@ public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
         this.reconciler = reconciler;
         this.jeffreyDirs = jeffreyDirs;
         this.defaultWorkspaceProperties = defaultWorkspaceProperties;
-        this.autoCreateWorkspaces = autoCreateWorkspaces;
+        this.workspacesProperties = workspacesProperties;
         this.clock = clock;
         this.period = period;
     }
 
     @Override
-    public void execute(JobContext context) {
+    public void execute() {
         int materialized = 0;
         for (Path workspaceDir : WorkspaceReconciler.childDirectories(jeffreyDirs.workspaces())) {
             try {
@@ -186,7 +189,7 @@ public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
         Map<String, List<PendingIndexEntry<String>>> byProject = new LinkedHashMap<>();
         for (PendingIndexEntry<String> entry : entries) {
             Path announced = Path.of(entry.parsed()).normalize();
-            if (announced.getNameCount() == 0 || announced.startsWith("..")) {
+            if (announced.getNameCount() == 0 || announced.startsWith(PARENT_DIRECTORY)) {
                 LOG.warn("Ignoring pending entry that does not name a project: entry={} content={}",
                         entry.filename(), entry.parsed());
                 continue;
@@ -209,7 +212,7 @@ public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
             return Optional.empty();
         }
 
-        if (!autoCreateWorkspaces) {
+        if (!workspacesProperties.isAutoCreate()) {
             LOG.debug("Workspace not registered, skipping directory: reference_id={}", referenceId);
             return Optional.empty();
         }
@@ -217,10 +220,7 @@ public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
         // Pending entries are what makes a directory a workspace with content — a stray
         // directory under workspaces/ announces nothing and never becomes one
         WorkspaceInfo created = workspacesManager.create(
-                WorkspacesManager.CreateWorkspaceRequest.builder()
-                        .referenceId(referenceId)
-                        .name(referenceId)
-                        .build());
+                new WorkspacesManager.CreateWorkspaceRequest(referenceId, referenceId));
         LOG.info("Auto-created workspace for announced directory: reference_id={} workspace_id={}",
                 referenceId, created.id());
         return workspacesManager.findByReferenceId(referenceId);

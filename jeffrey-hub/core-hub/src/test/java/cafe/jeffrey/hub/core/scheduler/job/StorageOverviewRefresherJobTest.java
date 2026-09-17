@@ -26,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.scheduler.Job;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.model.job.JobType;
 
 import java.time.Duration;
@@ -54,7 +53,7 @@ class StorageOverviewRefresherJobTest {
 
     @Test
     void executeRefreshesTheCache() {
-        job.execute(JobContext.EMPTY);
+        job.execute();
 
         verify(storageOverviewCache).refresh();
     }

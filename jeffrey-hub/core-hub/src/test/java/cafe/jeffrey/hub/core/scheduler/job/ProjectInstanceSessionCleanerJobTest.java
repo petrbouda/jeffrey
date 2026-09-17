@@ -18,12 +18,12 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -75,9 +75,6 @@ class ProjectInstanceSessionCleanerJobTest {
     WorkspacesManager workspacesManager;
 
     @Mock
-    RepositoryStorage.Factory storageFactory;
-
-    @Mock
     RepositoryStorage storage;
 
     @Mock
@@ -101,32 +98,26 @@ class ProjectInstanceSessionCleanerJobTest {
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-        when(storageFactory.apply(any())).thenReturn(storage);
-        when(platformRepositories.newProjectInstanceRepository("proj-1")).thenReturn(instanceRepository);
-        when(instanceRepository.find(INSTANCE_ID)).thenReturn(Optional.of(instance(ProjectInstanceStatus.ACTIVE)));
+        when(projectManager.repositoryStorage()).thenReturn(storage);
+        when(projectManager.projectInstanceRepository()).thenReturn(instanceRepository);
+        when(instanceRepository.findAll()).thenReturn(List.of(instance(ProjectInstanceStatus.ACTIVE)));
 
-        ProjectInstanceSessionCleanerJobDescriptor descriptor =
-                new ProjectInstanceSessionCleanerJobDescriptor(RETENTION.toDays(), ChronoUnit.DAYS, MAX_SESSIONS);
+        job = job(MAX_SESSIONS);
+    }
 
-        job = new ProjectInstanceSessionCleanerJob(
-                workspacesManager,
-                storageFactory,
-                descriptor,
-                Duration.ofHours(1),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                platformRepositories);
+    private ProjectInstanceSessionCleanerJob job(int maxSessions) {
+        JobConfig config = new JobConfig(true, Duration.ofHours(1), Map.of(
+                "retention", RETENTION.toDays() + "d",
+                "max-sessions", Integer.toString(maxSessions)));
+        return new ProjectInstanceSessionCleanerJob(workspacesManager, config, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private void execute() {
-        execute(MAX_SESSIONS);
+        job.executeOnRepository(projectManager, storage);
     }
 
     private void execute(int maxSessions) {
-        job.executeOnRepository(
-                projectManager,
-                storage,
-                new ProjectInstanceSessionCleanerJobDescriptor(RETENTION.toDays(), ChronoUnit.DAYS, maxSessions),
-                JobContext.EMPTY);
+        job(maxSessions).executeOnRepository(projectManager, storage);
     }
 
     private static ProjectInstanceInfo instance(ProjectInstanceStatus status) {
@@ -172,7 +163,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         return new RecordingSession(
-                id, id, instanceId, createdAt, finishedAt, status, null, List.of(files), retained);
+                id, id, instanceId, createdAt, finishedAt, status, List.of(files), retained);
     }
 
     private List<String> deletedSessionIds() {
@@ -183,11 +174,56 @@ class ProjectInstanceSessionCleanerJobTest {
     }
 
     @Nested
+    class LiveSessionTrim {
+
+        /**
+         * The same window at the finer granularity: a session still recording keeps every
+         * chunk younger than it and the one the profiler holds open, whatever its age.
+         */
+        @Test
+        void trimsClosedChunksOlderThanTheWindowOutOfALiveSession() {
+            RepositoryFile old = recording("old", NOW.minus(PAST_RETENTION), 10 * MB);
+            RepositoryFile recent = recording("recent", NOW.minusSeconds(600), 10 * MB);
+            RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    session("live", NOW.minus(PAST_RETENTION.plusDays(1)), null, false, old, recent, open)));
+
+            execute();
+
+            verify(storage).deleteRepositoryFiles("live", List.of("old"));
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+        }
+
+        @Test
+        void leavesTheOpenChunkAloneEvenWhenItIsOlderThanTheWindow() {
+            RepositoryFile onlyChunk = recording("only", NOW.minus(PAST_RETENTION), 10 * MB);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    session("live", NOW.minus(PAST_RETENTION.plusDays(1)), null, false, onlyChunk)));
+
+            execute();
+
+            verify(storage, never()).deleteRepositoryFiles(anyString(), any());
+        }
+
+        @Test
+        void leavesARetainedLiveSessionAlone() {
+            RepositoryFile old = recording("old", NOW.minus(PAST_RETENTION), 10 * MB);
+            RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    session("pinned", NOW.minus(PAST_RETENTION.plusDays(1)), null, true, old, open)));
+
+            execute();
+
+            verify(storage, never()).deleteRepositoryFiles(anyString(), any());
+        }
+    }
+
+    @Nested
     class KeepNewestProtection {
 
         @Test
         void keepsNewestRealSessionOfLiveInstanceAndDeletesOlderOnes() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     realSession("newest", NOW.minus(PAST_RETENTION)),
                     realSession("older", NOW.minus(PAST_RETENTION.plusDays(1)))));
 
@@ -198,12 +234,12 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void loadsSessionsWithFilesSoSizesAreVisible() {
-            when(storage.listSessions(true)).thenReturn(List.of());
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
 
             execute();
 
-            verify(storage).listSessions(true);
-            verify(storage, never()).listSessions(false);
+            verify(storage).listSessions(SessionDetail.WITH_FILES);
+            verify(storage, never()).listSessions(SessionDetail.HEADERS);
         }
     }
 
@@ -214,7 +250,7 @@ class ProjectInstanceSessionCleanerJobTest {
         void emptySessionsNeverConsumeTheKeepNewestSlot() {
             // A crash-looped instance: the newest sessions are all failed empties.
             // The newest REAL session must survive even though it is not at index 0.
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     emptySession("empty-1", NOW.minus(PAST_RETENTION)),
                     emptySession("empty-2", NOW.minus(PAST_RETENTION.plusDays(1))),
                     emptySession("empty-3", NOW.minus(PAST_RETENTION.plusDays(2))),
@@ -227,7 +263,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void olderRealSessionIsStillDeletedWhenANewerRealSessionExists() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     emptySession("empty-1", NOW.minus(PAST_RETENTION)),
                     realSession("newest-real", NOW.minus(PAST_RETENTION.plusDays(1))),
                     realSession("older-real", NOW.minus(PAST_RETENTION.plusDays(2)))));
@@ -243,7 +279,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void deletesEveryPastAgeEmptySessionOfLiveInstance() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     emptySession("empty-1", NOW.minus(PAST_RETENTION)),
                     emptySession("empty-2", NOW.minus(PAST_RETENTION.plusDays(1)))));
 
@@ -258,9 +294,8 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void noProtectionForFinishedInstances() {
-            when(instanceRepository.find(INSTANCE_ID))
-                    .thenReturn(Optional.of(instance(ProjectInstanceStatus.FINISHED)));
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(instanceRepository.findAll()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     realSession("newest", NOW.minus(PAST_RETENTION)),
                     realSession("older", NOW.minus(PAST_RETENTION.plusDays(1)))));
 
@@ -275,7 +310,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void youngEmptySessionSurvivesUntilRetentionExpires() {
-            when(storage.listSessions(true)).thenReturn(List.of(
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     emptySession("young-empty", NOW.minus(Duration.ofDays(1))),
                     realSession("real", NOW.minus(Duration.ofDays(2)))));
 
@@ -293,7 +328,7 @@ class ProjectInstanceSessionCleanerJobTest {
             RecordingSession pinnedEmpty = session(
                     "pinned-empty", NOW.minus(PAST_RETENTION), NOW.minus(PAST_RETENTION).plusSeconds(5), true);
 
-            when(storage.listSessions(true)).thenReturn(List.of(pinnedEmpty));
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(pinnedEmpty));
 
             execute();
 
@@ -304,7 +339,7 @@ class ProjectInstanceSessionCleanerJobTest {
         void activeSessionIsNeverDeletedEvenWithZeroBytes() {
             RecordingSession activeEmpty = session("active-empty", NOW.minus(PAST_RETENTION), null, false);
 
-            when(storage.listSessions(true)).thenReturn(List.of(activeEmpty));
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(activeEmpty));
 
             execute();
 
@@ -350,7 +385,7 @@ class ProjectInstanceSessionCleanerJobTest {
             real("real-7");
             real("real-8");
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(10);
 
@@ -382,7 +417,7 @@ class ProjectInstanceSessionCleanerJobTest {
             empty("old-empty-2");
             real("old-real");
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(10);
 
@@ -397,7 +432,7 @@ class ProjectInstanceSessionCleanerJobTest {
             real("real-3");
             real("real-4");
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(3);
 
@@ -411,7 +446,7 @@ class ProjectInstanceSessionCleanerJobTest {
             real("real-2");
             real("real-3");
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(3);
 
@@ -424,7 +459,7 @@ class ProjectInstanceSessionCleanerJobTest {
             real("real-1");
             sessions.add(activeSession("stale-live", NOW.minus(Duration.ofHours(5))));
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(1);
 
@@ -441,7 +476,7 @@ class ProjectInstanceSessionCleanerJobTest {
             real("real-1");
             real("real-2");
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(2);
 
@@ -457,7 +492,7 @@ class ProjectInstanceSessionCleanerJobTest {
             real("real-1");
             empty("empty-2");
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(2);
 
@@ -467,15 +502,14 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void noProtectionFromTheCapForFinishedInstances() {
-            when(instanceRepository.find(INSTANCE_ID))
-                    .thenReturn(Optional.of(instance(ProjectInstanceStatus.FINISHED)));
+            when(instanceRepository.findAll()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
 
             sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
             empty("empty-1");
             real("real-1");
             empty("empty-2");
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(2);
 
@@ -484,8 +518,8 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void capAppliesPerInstanceIndependently() {
-            when(instanceRepository.find("inst-2"))
-                    .thenReturn(Optional.of(instance("inst-2", ProjectInstanceStatus.ACTIVE)));
+            when(instanceRepository.findAll()).thenReturn(List.of(
+                    instance(ProjectInstanceStatus.ACTIVE), instance("inst-2", ProjectInstanceStatus.ACTIVE)));
 
             real("real-1");
             real("real-2");
@@ -496,7 +530,7 @@ class ProjectInstanceSessionCleanerJobTest {
                         recording("other-file-" + i, createdAt, 10 * MB)));
             }
 
-            when(storage.listSessions(true)).thenReturn(sessions);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
 
             execute(4);
 
@@ -510,29 +544,10 @@ class ProjectInstanceSessionCleanerJobTest {
 
         @Test
         void toleratesEmptyRepository() {
-            when(storage.listSessions(true)).thenReturn(List.of());
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> execute());
             verify(repositoryManager, never()).deleteRecordingSession(anyString());
-        }
-
-        @Test
-        void treatsFilesWithUnknownSizeAsZeroBytes() {
-            RepositoryFile unsized = new RepositoryFile(
-                    "f1", "f1", NOW.minus(PAST_RETENTION), null,
-                    true, null);
-
-            RecordingSession unsizedSession = session(
-                    "unsized", NOW.minus(PAST_RETENTION), NOW.minus(PAST_RETENTION).plusSeconds(5), false, unsized);
-
-            when(storage.listSessions(true)).thenReturn(List.of(
-                    unsizedSession,
-                    realSession("real", NOW.minus(PAST_RETENTION.plusDays(1)))));
-
-            execute();
-
-            // The unsized session counts as empty — the real session keeps the protection slot
-            assertEquals(List.of("unsized"), deletedSessionIds());
         }
     }
 }

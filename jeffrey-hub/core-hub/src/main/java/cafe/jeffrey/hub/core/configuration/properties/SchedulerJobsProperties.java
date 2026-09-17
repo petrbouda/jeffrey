@@ -18,11 +18,11 @@
 
 package cafe.jeffrey.hub.core.configuration.properties;
 
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorUtils;
 import cafe.jeffrey.hub.model.job.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.convert.DurationStyle;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -48,6 +48,9 @@ public class SchedulerJobsProperties {
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-zA-Z0-9]");
 
     private static final int DEFAULT_FAN_OUT_POOL_SIZE = 2;
+
+    /** The period a job with no configuration at all reports; it is never scheduled anyway. */
+    private static final Duration UNCONFIGURED_JOB_PERIOD = Duration.ofMinutes(1);
 
     private Map<String, JobConfig> jobs = new HashMap<>();
 
@@ -75,7 +78,7 @@ public class SchedulerJobsProperties {
         if (config == null) {
             LOG.warn("No scheduler configuration found for job, it stays disabled: job={} expected_key={}",
                     jobType, toKey(jobType));
-            return new JobConfig(false, Duration.ofMinutes(1), Map.of());
+            return new JobConfig(false, UNCONFIGURED_JOB_PERIOD, Map.of());
         }
         return config;
     }
@@ -112,6 +115,12 @@ public class SchedulerJobsProperties {
     }
 
     public static class JobConfig {
+
+        private static final Map<Character, Long> SIZE_MULTIPLIERS = Map.of(
+                'K', 1024L,
+                'M', 1024L * 1024L,
+                'G', 1024L * 1024L * 1024L,
+                'T', 1024L * 1024L * 1024L * 1024L);
         private boolean enabled;
         private Duration period;
         private Map<String, String> params = new HashMap<>();
@@ -165,17 +174,44 @@ public class SchedulerJobsProperties {
          * Resolves a required duration param. Every job param has a built-in default in
          * {@code scheduler-defaults.properties} (the single source of default values), so a
          * missing key means a broken configuration — fail fast with a clear message instead
-         * of falling back to a value hidden in code. Supports the {@code 31d}/{@code 1h}/
-         * {@code 5m}/{@code 10s} shorthand notation in addition to ISO-8601.
-         */
-        /**
-         * Resolves a required duration param. Accepts the operator-friendly notation
-         * ({@code 31d}, {@code 5m}, {@code 1h}) as well as ISO-8601; the notation is parsed by
-         * {@link JobDescriptorUtils#parseDuration(String)} so descriptors built from stored
-         * params read these values identically.
+         * of falling back to a value hidden in code. Accepts the same notation Spring binds
+         * the job's {@code period} with: {@code 500ms}, {@code 10s}, {@code 5m}, {@code 1h},
+         * {@code 7d}, or ISO-8601.
          */
         public Duration durationParam(String name) {
-            return JobDescriptorUtils.parseDuration(requiredParam(name));
+            String value = requiredParam(name);
+            try {
+                return DurationStyle.detectAndParse(value.trim());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Scheduler job param is not a valid duration: param=" + name + " value=" + value, e);
+            }
+        }
+
+        /**
+         * Resolves a required byte-size param written either as a plain number of bytes
+         * ({@code 1048576}) or with a binary unit suffix ({@code 512K}, {@code 100M},
+         * {@code 20G}, {@code 2T}); binary units throughout, since that is how disk budgets
+         * are reasoned about operationally. Must be positive.
+         */
+        public long bytesParam(String name) {
+            String value = requiredParam(name).trim().toUpperCase(Locale.ROOT);
+            char suffix = value.charAt(value.length() - 1);
+            Long multiplier = SIZE_MULTIPLIERS.get(suffix);
+            long bytes;
+            try {
+                bytes = multiplier == null
+                        ? Long.parseLong(value)
+                        : Long.parseLong(value.substring(0, value.length() - 1).trim()) * multiplier;
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                        "Scheduler job param is not a valid size: param=" + name + " value=" + value, e);
+            }
+            if (bytes <= 0) {
+                throw new IllegalArgumentException(
+                        "Scheduler job param must be positive: param=" + name + " value=" + value);
+            }
+            return bytes;
         }
 
         /**

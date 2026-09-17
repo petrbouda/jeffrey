@@ -20,14 +20,12 @@ package cafe.jeffrey.hub.core;
 
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.nio.file.Path;
 
-public class HubJeffreyDirs implements TempDirFactory {
+public class HubJeffreyDirs {
 
-    private static final String TMP_DIR = "tmp";
+    private static final String TMP_DIR = "temp";
     private static final String LIBS_DIR = "libs";
 
     private final Path homeDir;
@@ -58,16 +56,6 @@ public class HubJeffreyDirs implements TempDirFactory {
 
     public Path temp() {
         return tempDir;
-    }
-
-    @Override
-    public TempDirectory newTempDir() {
-        return newTempDir(System.nanoTime() + "");
-    }
-
-    @Override
-    public TempDirectory newTempDir(String directory) {
-        return new TempDirectory(tempDir.resolve(directory));
     }
 
     public Path libs() {

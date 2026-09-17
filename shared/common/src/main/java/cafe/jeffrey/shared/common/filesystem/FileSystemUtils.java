@@ -25,6 +25,7 @@ import cafe.jeffrey.shared.common.Json;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -47,7 +48,7 @@ public abstract class FileSystemUtils {
         try {
             return !Files.isHidden(path);
         } catch (IOException e) {
-            throw new RuntimeException("Cannot recognize whether the file is hidden or not", e);
+            throw new UncheckedIOException("Cannot recognize whether the file is hidden or not", e);
         }
     }
 
@@ -63,7 +64,7 @@ public abstract class FileSystemUtils {
         try {
             return Files.getLastModifiedTime(path).toInstant();
         } catch (IOException e) {
-            throw new RuntimeException("Cannot read the last modification time: " + path, e);
+            throw new UncheckedIOException("Cannot read the last modification time: " + path, e);
         }
     }
 
@@ -71,7 +72,20 @@ public abstract class FileSystemUtils {
         try (Stream<Path> stream = Files.list(directory)) {
             return stream.sorted(comparator).toList();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read directory: " + directory, e);
+            throw new UncheckedIOException("Failed to read directory: " + directory, e);
+        }
+    }
+
+    /**
+     * One stat of the file — size, kind, timestamps — for a caller that will ask several of
+     * those questions; each {@code Files.size}/{@code isRegularFile}/{@code createdAt} is a stat
+     * of its own, and on a network mount every one is a round trip.
+     */
+    public static BasicFileAttributes readAttributes(Path path) {
+        try {
+            return Files.readAttributes(path, BasicFileAttributes.class);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read the attributes of the file: " + path, e);
         }
     }
 
@@ -81,7 +95,7 @@ public abstract class FileSystemUtils {
             FileTime fileTime = attr.creationTime();
             return fileTime.toInstant();
         } catch (IOException e) {
-            throw new RuntimeException("Cannot read the last creation time: " + path, e);
+            throw new UncheckedIOException("Cannot read the last creation time: " + path, e);
         }
     }
 
@@ -112,7 +126,7 @@ public abstract class FileSystemUtils {
                     .filter(FileSystemUtils::isNotHidden)
                     .toList();
         } catch (IOException e) {
-            throw new RuntimeException("", e);
+            throw new UncheckedIOException("", e);
         }
     }
 
@@ -123,18 +137,18 @@ public abstract class FileSystemUtils {
                     .filter(FileSystemUtils::isNotHidden)
                     .toList();
         } catch (IOException e) {
-            throw new RuntimeException("Cannot resolve directories in a directory: " + dir, e);
+            throw new UncheckedIOException("Cannot resolve directories in a directory: " + dir, e);
         }
     }
 
     /**
-     * @throws RuntimeException when the file cannot be read, wrapping the {@link IOException}
+     * @throws UncheckedIOException when the file cannot be read, wrapping the {@link IOException}
      */
     public static long size(Path path) {
         try {
             return Files.size(path);
         } catch (IOException e) {
-            throw new RuntimeException("Cannot get size of file: " + path, e);
+            throw new UncheckedIOException("Cannot get size of file: " + path, e);
         }
     }
 
@@ -176,7 +190,7 @@ public abstract class FileSystemUtils {
             files.sorted(Comparator.reverseOrder())
                     .forEach(FileSystemUtils::delete);
         } catch (IOException e) {
-            throw new RuntimeException("Cannot complete removing of a directory: " + directory, e);
+            throw new UncheckedIOException("Cannot complete removing of a directory: " + directory, e);
         }
     }
 
@@ -192,7 +206,7 @@ public abstract class FileSystemUtils {
         try {
             Files.delete(path);
         } catch (IOException e) {
-            throw new RuntimeException("Cannot delete file: " + path, e);
+            throw new UncheckedIOException("Cannot delete file: " + path, e);
         }
     }
 
@@ -236,7 +250,7 @@ public abstract class FileSystemUtils {
         try {
             return Files.readString(contentPath);
         } catch (IOException e) {
-            throw new RuntimeException("Error reading file: " + path, e);
+            throw new UncheckedIOException("Error reading file: " + path, e);
         }
     }
 

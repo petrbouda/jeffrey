@@ -38,16 +38,14 @@ public class HubApplication implements WebMvcConfigurer {
     private static final String API_PATH = "api";
     private static final String ASSETS_PATH = "assets";
 
+    private static final String VERSION_FLAG = "--version";
+
     static void main(String[] args) {
-        if (args.length == 0) {
-            runApplication(args);
-        } else {
-            if (args[0].equals("--version")) {
-                JeffreyVersion.print();
-            } else {
-                runApplication(args);
-            }
+        if (args.length > 0 && VERSION_FLAG.equals(args[0])) {
+            JeffreyVersion.print();
+            return;
         }
+        runApplication(args);
     }
 
     private static void runApplication(String[] args) {

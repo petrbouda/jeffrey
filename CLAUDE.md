@@ -1,715 +1,100 @@
-# Jeffrey - Performance Analyst
+# Jeffrey — Performance Analyst
 
-## Project Overview
-Jeffrey is a self-hosted performance analyst for the JVM. It ingests JVM diagnostic artifacts — JFR (Java Flight Recorder) recordings and heap dumps today, with more recording types coming — and turns them into fast, readable visual analysis (flamegraphs, timeseries, heap analysis, JVM dashboards) plus an MCP server so a coding agent can read the same profiles. The project helps developers profile Java applications and identify performance bottlenecks and memory issues to optimize code for better speed and resource consumption.
+Self-hosted performance analyst for the JVM: ingests JFR recordings and heap dumps (pprof/OTLP too) and turns them into flamegraphs, timeseries, heap analysis and JVM dashboards, plus an MCP server so a coding agent can read the same profiles.
 
-## Architecture
-This is a full-stack application with two deployment modes:
-- **Backend**: Java 25 + Spring Boot 4.0.4 + Spring MVC + gRPC 1.72.0
-- **Frontend**: Vue 3 SPA with TypeScript (separate frontends for microscope and server deployments)
-- **Build System**: Maven (Java) + Vite (Frontend)
-- **Database**: DuckDB 1.5.0.0 (three-tier: microscope core DB + server DB + per-profile DBs)
-- **AI Integration**: the external MCP server (`POST /api/mcp`); Spring AI survives only for the `@Tool`/`@ToolParam` annotations the MCP layer reflects over
-- **Remote Communication**: gRPC (proto files in `shared/hub-api/`)
-- **CLI**: GraalVM Native Image
+Two deployments, one release: **jeffrey-microscope** (single-user analysis app) and **jeffrey-hub** (multi-workspace server that collects recordings; talks to Microscope over gRPC). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
 
-### Deployment Architecture
+Detailed conventions live in `.claude/rules/` and load only when you touch matching files: `backend-java`, `frontend-vue`, `grpc-proto`, `test-patterns`, `hub-repository`, `mcp-server`, `recording-parsing`, `intellij-plugin`, `docs-sync`. This file holds only what applies to every session.
 
-The project supports two deployment modes: **jeffrey-microscope** (standalone) and **jeffrey-hub** (multi-workspace server). They share common modules via **shared/**.
+## Repository map
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     JEFFREY-MICROSCOPE (standalone)                    │
-│  MicroscopeApplication — full-featured single-user deployment         │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
-│  │  core-microscope   │  │  pages-microscope      │  │  profiles/       │  │
-│  │  REST + gRPC  │  │  Full Vue 3 SPA   │  │  Profile analysis │  │
-│  │  clients      │  │                   │  │  modules          │  │
-│  └──────────────┘  └──────────────────┘  └──────────────────┘  │
-│                                                                  │
-│  Persistence: microscope-core-sql-persistence (microscope core DB)         │
-│  + profiles/profile-sql-persistence (per-profile DBs)            │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ gRPC communication
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     JEFFREY-SERVER (remote)                       │
-│  HubApplication — multi-workspace server with scheduling      │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────────┐                        │
-│  │  core-hub  │  │  pages-hub     │                        │
-│  │  gRPC services│  │  Minimal Vue 3    │                        │
-│  │  scheduler    │  │  UI               │                        │
-│  └──────────────┘  └──────────────────┘                        │
-│                                                                  │
-│  Persistence: hub-sql-persistence (server DB)                 │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                        SHARED                                    │
-│  Common utilities, persistence abstractions, test infrastructure │
-│  gRPC proto definitions, SQL builder                              │
-│  Modules: common, persistence, sql-builder, test, hub-api,   │
-│           pending-index, ui/common, ui/version                   │
-└─────────────────────────────────────────────────────────────────┘
+jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope)
+  core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
+  microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
+  microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles, hubs)
+  grpc-client/ + hub-client/           gRPC clients, aggregated by the HubClients record
+  recordings-core/ recording-storage-api/ filesystem-recording-storage/ notifications/
+  ui-hubs/ ui-instances/               shared Vue modules (@hubs, @instances)
+  profiles/                            analysis modules: profile-management (features + REST), recording-parser/
+                                       (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser),
+                                       profile-{persistence-api,sql-persistence}, flamegraph, timeseries, subsecond,
+                                       profile-threads, profile-gc, profile-memory, profile-custom-events, frame-ir,
+                                       heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
+                                       mcp-server (the MCP protocol layer)
+jeffrey-hub/                           HubApplication (core-hub: gRPC services, scheduler/jobs, web/), hub-model,
+                                       hub-{persistence-api,sql-persistence}, pages-hub (minimal Vue UI)
+shared/                                common (utilities + hub↔provisioner contract types only), persistence,
+                                       sql-builder, test (@DuckDBTest), hub-api (protos only), pending-index,
+                                       ui/common (@shared: generic components, services, design tokens), ui/version
+jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM (no Java agent;
+                                       liveness comes from utilities/jeffrey-heartbeat, declared by heartbeat.enabled)
+jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
+jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
+jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
+utilities/                             jeffrey-heartbeat (+ starter), jeffrey-tracing, jeffrey-events, jeffrey-jib
+build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native), build-agent-tests
+stubs/                                 jeffrey-hub-stub, outside the reactor (run-hub-stub.sh)
 ```
 
-**jeffrey-microscope** (`jeffrey-microscope/`):
-- `core-microscope` — Main Spring Boot app (MicroscopeApplication), REST resources, managers, gRPC clients for remote workspace communication
-- `microscope-core-persistence-api` — Persistence interfaces for microscope core domain
-- `microscope-core-sql-persistence` — DuckDB persistence for microscope core (recordings, profiles, hub connections). Workspaces and projects are not stored locally
-- `microscope-model` — Microscope's domain: `Type`, `ProfileInfo`, `RelativeTimeRange`, the hub-reported records (`RecordingSession`, `RepositoryFile`, `ProjectInfo`, `WorkspaceInfo`, and others), `serde`, `settings`, `jfr`
-- `hub-client` — `HubClients` record aggregating the gRPC clients (moved from `shared/`)
-- `recordings-core` — Recording download/import orchestration (`RecordingsCoreManager`, `RemoteRecordingsDownloadManager`, progress tracking) (moved from `shared/`)
-- `recording-storage-api` — Storage interfaces (`ManagedFile`, `FileCategory`, `RecordingFile`, `Recording`) (moved from `shared/`)
-- `filesystem-recording-storage` — Filesystem storage implementation (moved from `shared/`)
-- `notifications` — Notification categories and types (moved from `shared/`)
-- `ui-hubs` — the hub browser UI (hubs → workspaces → projects) + recording components and API clients (moved from `shared/ui/`)
-- `ui-instances` — instance views (moved from `shared/ui/`)
-- `pages-microscope` — Full-featured Vue 3 SPA frontend
-- `profiles/` — All profile analysis modules (see below)
-- REST resources: `/api/internal/hubs/**` (a hub, its workspaces, their projects), `/api/internal/recordings/**`, `/api/internal/profiles/{profileId}/**`
-- `core-microscope/.../mcp/` — the MCP endpoint. `ExternalMcpController` serves `POST /api/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, on by default and switched off only by the `jeffrey.microscope.mcp.enabled` application property, read at startup). It sits outside `/api/internal/**` because that prefix means the frontend's own API and this is the one endpoint whose caller is another program; `POST /api/internal/mcp` (`ExternalMcpController.LEGACY_PATH`) answers identically, because the address is written down in each client's own configuration, outside this repository. It also serves MCP **prompts** (the plugin's skills, copied onto the classpath at build time), **resources** (the profile catalogue, plus summary, evidence and flamegraph URI templates), **instructions** at `initialize` (`McpInstructions` — the entry sequence, the `profileId` rule, the family map and the writer/`operations_` loop, for a client with no plugin behind it), and **`completion/complete`** for `profileId` (`McpCompletions`, over the live catalogue; no other argument is completed). It is POST-only and stateless on purpose: `GET`/`DELETE` answer 405, there is no `Mcp-Session-Id` and no SSE, so there are no server-initiated notifications and long-running work is polled through `operations_` instead of `notifications/progress`. Most tools are read-only; nine are not, though none of them changes an analysed profile: `recordings_analyzeFile` and `recordings_analyzeRecording` import a recording file from the machine Jeffrey runs on, `recordings_delete` — the one tool that declares `destructiveHint` — removes a recording together with the profile built from it, `heap_prepare` builds a dominator tree or a cached report, `hubs_download` pulls a recording off a remote hub — the whole session, or with `startTime`/`endTime` only the recording files covering a window (`ChunkWindow` in `shared/common`: a file's `createdAt` is the timestamp in its own name, so file *n* covers up to the start of *n+1*, and every file touching the window is brought), or with `fileIds` the files named from `hubs_files`; a part of a session is tagged `origin.window` and named after the span it covers, so `DownloadedSessionIndex` never reports it as the session's local copy — `hubs_fetchFile` pulls one of a session's artifacts (a log, a crash file, a perf-counters file, a heap dump) the same way, `operations_cancel` requests cancellation of background work, and `ide_link` and `ide_open` link an IDE window to a profile and open a file in it. The hint is per **tool**, not per family — `recordings_list`, `recordings_status`, `heap_status` and `hubs_files` sit in those families and only read, and `McpToolsetAssemblerTest` pins the write set so neither kind of drift is silent, and pins the **total tool count (111)** too, because that figure is repeated in prose that no compiler reads (`DocsIndexPage.vue` states the read-only count). The `hubs_` and `ide_` families have switches (`jeffrey.microscope.mcp.hubs.enabled`, `jeffrey.microscope.mcp.ide.enabled`), because they are the two that reach outside this server: one off the machine altogether, one into the editor running beside it. `jeffrey.microscope.mcp.families` narrows what is advertised at all, and `jeffrey.microscope.mcp.preset` (`all`, `jfr`, `heap`, `hub`) picks a named selection when that list is empty; `operations` must stay selected wherever a writer is, because `operations_status` / `operations_cancel` are how the work a writer starts is polled and cancelled. The endpoint does not authenticate — `McpRequestGuard` rejects any request whose `Host` is outside `jeffrey.microscope.mcp.allowed-hosts` (loopback by default), before it looks at `Origin`, and then the `Origin` mismatch the MCP spec asks a local server to refuse; what limits access beyond that is the bind address and whatever proxy sits in front. It is the only MCP endpoint: the loopback `/api/internal/mcp/claude-code` that once served a headless CLI Jeffrey spawned for itself went with the in-app AI. The `jfr_` and `heap_` tool classes (`DuckDbMcpTools`, `HeapDumpMcpTools`, `HeapDumpToolsDelegate`) live in `mcp/tools/` beside every other family. **Artifacts are handed over, not parsed.** A hub session holds more than its JFR — the provisioner leaves `gc.jvm-log`, `perf-counters.hsperfdata`, the application's `.log` and, on a crash, `hs-jvm-err.log` (the JVM's own default `hs_err_pid*.log` is classified the same, by `HsJvmErrorLogFileMatcher`). `hubs_files` lists them and `hubs_fetchFile` pulls one onto this disk and answers with its **absolute path** plus the profile whose timeline the file lines up with; the agent then reads the file with its own tools, because the endpoint accepts loopback hosts only and so the agent and Jeffrey share a disk, and a coding agent's `grep` is better at a log than anything a capped tool result could carry. There is **no catalogue** of fetched files: the path is deterministic — `profiles/<profileId>/artifacts/<name>` when the session's recording is analysed, `artifacts/<hub>/<project>/<session>/<name>` for a session with no recording at all — so whether a file was fetched is whether it is there. Because analysing a session moves that answer from the second path to the first, a file fetched *before* the analysis is **moved** beside the profile on the next fetch rather than pulled down twice, and the retained operation result is pinned to the path the current call resolved, so a stale one is never reported. A `fetch` column in `hubs_files` says which rows `hubs_fetchFile` will take: the hub serves only `ARTIFACT`-category files one at a time, so a recording chunk and a type Jeffrey does not classify are named as such in the listing rather than refused after the reader acts on it. There is deliberately no "still being written" case: only one file of a session is ever open — the newest recording chunk, which already reads `hubs_download` — so every artifact is fetchable, including one of a session still recording, which is the whole point of a log a reader greps before paying for the transfer. Both names on the path come off the wire — a hub session id and a file name — so each is reduced to a single path element and the result checked to be inside its base directory before anything is written. `hubs_fetchFile` answers **from this disk before it reaches for the hub**: a file it already fetched, still at the path this session resolves to, is reported without a round trip, so an artifact stays readable while the hub that held it is down or its session has been retired. That reaches only as far back as `BoundedJobs.COMPLETED_RETENTION`, because the retained operation is the only thing mapping a `fileId` to a file name — past it the name comes from `hubs_files` again, which is the whole reason there is no catalogue to go stale. Every deadline the `hubs_` tools arm shares one timer, `McpDeadlines`: the scan, the download and the fetch had each grown a private single-thread scheduler for a task that does nothing but cancel a `Context`. Both a server-side log/crash parser and an `artifacts` table were built and removed for that reason; do not bring either back. What is **not** reaped is the unlinked tree: a profile's own `artifacts/` goes when the profile is deleted, but `~/.jeffrey-microscope/artifacts/<hub>/<project>/<session>/` has no retention and no tool that lists or removes it — a known gap, and the reason a fetched heap dump belongs in a profile rather than left there
+## Build, run, verify
 
-**jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
-- `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, GC, Threads, HeapDump)
-- `recording-parser/` — recording parsing (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser)
-- **A recording is however many files it arrived as, and they are never joined.** `RecordingSources` carries them; `RecordingEventParser`, `RecordingInformationParser`, `ProfileInitializer` and `ProfileDataInitializer.startAutoAnalysis` all take it. Each file is a self-contained JFR, read independently into one `EventWriter`, so nothing depends on their order or on their being read together — the only thing spanning the set is the recording's window, `min(start)`/`max(end)` over their chunk headers, which `JfrParser.buildRecordingInfo` already computed across chunks and now gets handed the chunks of every file. Splitting a file into its chunks is therefore a way of **manufacturing** parse units, not a step the format needs: `SourceParseMode` splits while there are fewer than `availableProcessors() * 2` files and otherwise parses them as they lie, because past that point every worker has a file of its own and the split is a full read and a full write bought for nothing. Twice the CPU count rather than exactly it, because a session's files are uneven and having only as many as workers leaves the parse waiting on its longest. A `.jfr.lz4` source is always split whatever the count — `EventStream` cannot open one, and splitting decompresses and writes the pieces in the same single pass. Each source gets its **own** scratch directory, since chunk files are named by position within one recording and a shared directory would have the second source overwrite the first's `chunk_0`, losing everything it held with nothing anywhere saying so. Sources expand on virtual threads while their units parse on the bulk pool: the two must not share a pool, or an expander would sit on a bulk thread waiting for parses queued behind it
-- **A recording's files are stored flat, under `<recordingId>-<the file's own name>`.** The prefix is what keeps one directory unique across recordings; it is not part of the name the file is known by, and `recording_files.filename` holds the name **without** it. `RecordingsCoreManagerImpl.storagePath` is the one place that joins the two, and `StoredFile` carries the name beside the path so neither can be derived from the other — read the name back off the storage path and it resolves to a path carrying the prefix twice, which finds nothing: analysis reports the file missing, deletion leaves it behind, and `IdeRecordingLookup`, which matches a file by name and size, reads every imported recording as never imported
-- `profile-sql-persistence` — Per-profile DuckDB persistence (isolated database per profile)
-- `profile-persistence-api` — Persistence interfaces for profile domain
-- `common-profile` — Shared profile utilities
-- `flamegraph`, `timeseries`, `subsecond`, `profile-threads`, `profile-gc`, `profile-memory`, `profile-custom-events`, `frame-ir` — Analysis modules
-- `heap-dump` — Heap dump analysis
-- `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`, with protocol-version negotiation), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server, the tool-contract types (`McpToolAnnotations`, `McpToolHints`, `ToolParamValues`, `McpToolOutput`, and `McpToolResult` / `McpOutputSchema` for a tool that answers with `structuredContent` beside its text and declares the JSON shape of it), and the non-tool capabilities — `McpPrompt` / `McpPromptProvider`, `McpResource` / `McpResourceProvider`, `McpCompletionProvider` (`completion/complete`, declared only when the endpoint has one) and `McpResourceLinker` (a `resource_link` block beside a tool's text, for the tools that have an exact resource counterpart), bundled per endpoint by `McpServerFeatures` together with the `instructions` string `initialize` returns. **Only place that knows the protocol** — do not re-implement it in a controller.
-  Two rules the envelope keeps that are easy to break: `initialize` must answer even when assembling the toolset would fail, so nothing on that path may resolve the toolset — which is why `McpCompletions.isAvailable()` reads configuration rather than asking whether `profiles_list` is advertised; and JSON-RPC batching is accepted only on `2024-11-05` and `2025-03-26`, since MCP removed it in `2025-06-18`. A tool's `title` is derived from its name in `McpToolSpec`, not annotated on a hundred methods
+```bash
+export JAVA_HOME=/home/pbouda/.sdkman/candidates/java/25.0.1-amzn   # default `java` on PATH is 26
+MVN=/home/pbouda/.sdkman/candidates/maven/current/bin/mvn
+$MVN -q compile                                    # whole reactor (runs the frontend build too)
+$MVN -q -pl jeffrey-hub/core-hub -am test          # one module — -am is required, siblings are not in ~/.m2
 
-**jeffrey-hub** (`jeffrey-hub/`):
-- `hub-model` — The hub's domain module (`cafe.jeffrey.hub.model{,.job,.repository,.workspace}`)
-- **The hub and Microscope share no domain type.** Each has a model module of its own — `jeffrey-hub/hub-model` (`cafe.jeffrey.hub.model`) and `jeffrey-microscope/microscope-model` (`cafe.jeffrey.microscope.model`) — and each maps the proto in `shared/hub-api` onto its own records: `ProtoMappers` on the hub, `ClientProtoMappers`/`RepositoryClient` in `hub-client`. Fourteen records exist once per side on purpose (`RecordingSession`, `RepositoryFile`, `RecordingStatus`, `RecordingSessionFilter`, `RepositoryStatistics`, `StreamedFile`, `ProjectInfo`, `ProjectInstanceInfo`, `ProjectInstanceSessionInfo`, `ProfilerInfo`, `EffectiveProfilerSettings`, `WorkspaceInfo`, `WorkspaceStatus`, `WorkspaceReferenceId`); a change to one side's copy is a change to that side's reading of the wire, not a shared fact. The one rule both copies must answer alike — `RecordingSession.openRecording()`, which chunk the profiler still holds open — is pinned by the same three test cases in each side's `RecordingSessionTest`. `ModuleBoundaryTest` in `core-hub` and `core-microscope` fails on any import across the line. `shared/common` holds utilities and the hub↔provisioner contract types (`RemoteProject*`, `ProfilerSettings*`, `RepositoryType`, `EventTypeName`, `JeffreyLayout`, `CliConstants`, `HeartbeatConstants`), which Microscope does not read; do not put a domain record there again.
-- **MCP belongs exclusively to Microscope. Never add an MCP endpoint or MCP protocol dependency to Hub.** The hub does not read a recording for a client either: the JFR replay stream (`EventStreamingService`) and the event-activity scan (`EventActivityService`) it once served were removed, because their only consumer was the MCP and the same questions are answered by pulling the chunks covering a window into Microscope and reading them there with the ordinary tools. Do not bring a server-side reader back. The **session environment** was the last one and is gone too: `InstanceEnvironmentParser` opened a chunk with `jdk.jfr.consumer.EventStream` to fill the instance session-detail cards, decompressing an `.jfr.lz4` into a temp directory first, and the hub now holds no JFR parser at all — `GetInstanceSessionDetail` answers with the session and nothing read out of its recording, and `SessionEnvironmentReader` in `jeffrey-microscope/hub-client` pulls the session's newest closed chunk and parses it in Microscope. That costs a transfer the old call did not make; the parse itself is no new work, because the hub did the same read, decompress and parse on every one of those calls. Nothing caches the result yet — a cache keyed on the chunk's id is the obvious next step and was deliberately left out of the move
-- **A download is an unbroken run of chunks.** A session's recording files are downloaded one at a time, in parallel, and kept as the several files one local recording is made of — nothing joins them, on the hub or after. What makes contiguity a rule anyway is that the recording carries **one** start and one end, taken across its files, so a skipped chunk leaves no trace in the result: the recording would claim a span it only partly holds, and every rate read off it would be wrong by the size of the hole. `RemoteRecordingsDownloadManager` refuses a gapped selection before the transfer, `hubs_download` refuses in a sentence naming the missing chunk, and the UI mirrors the predicate in `chunkSelection.ts` to disable its Download button. The hub itself no longer judges a selection: it serves one file per call and so never sees one — which is why the download manager also refuses **an id the session does not hold**, the other thing the hub used to catch: filtered rather than refused, a mistyped or retired id yields a recording made of the rest with nothing saying a file was asked for and not brought. Contiguity is judged over the chunks the session lists **now** — deleting a middle chunk leaves its neighbours genuinely adjacent — and only recording chunks are constrained, never the artifacts beside them. The predicate is `ChunkWindow.Selection.contiguous()` in `shared/common`. A window selection cannot be gapped by construction, so only a pick by `fileIds` — or by checkbox — needs checking. Do not add a fourth copy of the rule
-- **A download is one file, and the hub does not care what kind it is.** There were two of everything — `DownloadRecording` beside `DownloadArtifact`, `recordings()` beside `artifacts()`, `streamRecordingFile` beside `streamArtifactFile`, `streamRecording` beside `streamArtifact` — and by the end each pair differed only in the noun in its refusal: the same lookup, the same category check, the same bytes. One RPC `DownloadFile(sessionId, fileId)` (`file_download_service.proto`, `FileDownloadGrpcService`, `FileStreamClient.streamFile`) serves both, over one `RepositoryStorage.file(sessionId, fileId)`. **What a file's category decides is what the caller does with it afterwards**, and the caller read that off the listing that gave it the id — `hubs_download` takes recording chunks, `hubs_fetchFile` takes artifacts, and both judge from the listing — `RepositoryFile.isRecordingFile()` is the hub's word, `RepositoryFiles.isArtifact` (in `jeffrey-microscope/hub-client`) Microscope's own classification of the name — rather than from which endpoint answered. Do not reintroduce a per-category download path. What the hub still refuses is what only it can know: a file the session does not hold, the chunk the profiler is **still writing** (`RecordingSession.isOpen`), one no longer on disk, and one that is empty — each **named with its reason** rather than filtered away, because a caller that asked for one file and got silence cannot tell which of the four happened. The profiler's `.jfr.N~` scratch file is **not** among them: the hub has no name for it and serves it like any other file, and it is Microscope, which recognises the name, that declines to ask. "No longer on disk" is its own kind (`FileVanishedException`), because it is the one a caller can act on: the compression job publishes the archive and removes the recording between the listing and the open, and the id survives that rewrite, so `FileDownloadGrpcService` resolves the id **once** more and streams the archive under the archive's name. Once only — a second miss is a file that is genuinely not there
-- **An archive appears whole or not at all.** `Compression.compress` writes to a hidden scratch file beside the target (`.<name>.<uuid>.tmp`, so nothing lists it and two overlapping runs cannot share one) and renames it onto the target, so the target's name never names a file being written into. Everything downstream is built on that: the job deletes a recording on the strength of its archive existing, `file()` hands over the archive when a rewrite in flight leaves one id naming two files, and a listing that shows an archive shows a complete one. Written straight to the target, as it was, a hub killed mid-compression left a partial archive beside a whole recording and the next run deleted the recording — and two runs did the same to each other, because `compressionLock` is held by one `FilesystemRepositoryStorage` and an instance is built per call. Whether a type **is** an archive is a fact of the `HubManagedFile` constant (`isArchive()`, true of `JFR_LZ4`), not read off the extension, where the answer was whatever a name happened to end in
-- **Compression belongs to the compression job, and to nothing else.** The lookup behind a download used to compress on the way out, so a download would carry less, and `RepositoryStorage.recordings` was documented as returning "compressed files". It rewrote the repository in the middle of a read — compressing the file and deleting the original — and the reader was never told: the download RPC carried the bytes and their length and **no name** (`DataChunk` was `data` + `total_size`), so a client that had listed `profile-x.jfr` a moment earlier wrote LZ4 bytes under that name. `Lz4Compressor.isLz4Compressed` is `endsWith(".lz4")` and nothing anywhere sniffs the frame, so that file parses as a raw JFR and fails on the chunk magic. `file()` is a lookup now, and hands back the file the listing named. Do not compress on a read path. The job can still fire between a client's listing and its download, so the **name travels with the bytes**: `DataChunk.filename`, set on the first chunk (a file with no bytes is one chunk carrying just the header), and the receiver writes what arrived rather than what it asked for — `FileStreamClient.TransferredFile` in `jeffrey-microscope/hub-client`, which validates in its compact constructor and reduces the name to a single path element there rather than at each place that resolves it into a directory, because it comes off the wire and one guard that cannot be forgotten beats three that can
-- **Two enums, one per side, and the hub's has two constants.** `HubManagedFile` (`core-hub/.../project/repository/`) is `JFR` and `JFR_LZ4` and nothing else, because those are the only files the hub *does* anything to: `JFR` carries `TimestampResolver.RECORDING_NAME` (`profile-<yyyyMMdd-HHmmss>.jfr`, `.lz4` stripped first) and `Compression.LZ4`; `JFR_LZ4` carries only the resolver, and is the archive. A name is the only thing that survives a rewrite, so **a type may be compressed exactly when it reads its timestamp from its own name** — which is why nothing else may be: `app.pprof.lz4` would match nothing, stop being a recording, change id and take the compression's timestamp, with the original deleted. `HubManagedFile.of(name)` answers with an `Optional`, and a file it is empty for — a log, a heap dump, a pprof profile, the profiler's `.jfr.N~` scratch file — is one the hub lists and serves as it lies: whole name as id, filesystem timestamp, `is_recording=false`. The **id** follows from the same rule (`idOf`): a recording drops its extension so one id names it and the archive it becomes; everything else keeps its whole name, because nothing renames it and stripping would collide a `service.log` with a `service.hprof`. `Compression` and `TimestampResolver` live beside the enum in the hub — nothing outside `FilesystemRepositoryStorage` ever used them. Microscope's `ManagedFile` (`jeffrey-microscope/recording-storage-api`, package `cafe.jeffrey.storage.recording.api.file`, with `FileCategory`, `RecordingFile` and `Recording`) is the one that knows a heap dump from a log from a pprof profile, because Microscope reads each differently; it carries description, extension, matcher and category, and **the hub cannot see it** — `core-hub` does not depend on that module, and must not. `RepositoryFile` (one copy per side, in each model module, since `hub-client` rebuilds it from the wire) carries a `boolean recording` and no type: the wire has `is_recording` and `name`, and Microscope classifies the name itself in `RepositoryClient.toFileResponse` and `RepositoryFiles`. A hub session is JFR-only by design: a pprof or OTLP file placed in one is not a recording to the hub and not an artifact to Microscope, so both `hubs_download` and `hubs_fetchFile` refuse it and say why. `file_type` was field 5 of the proto message and is gone rather than reserved; the comment on the message says not to reuse the number. The one thing left that is about a repository's **layout** rather than a file's type is the order a session directory is listed in, and it is now `FilesystemRepositoryStorage.NEWEST_BY_NAME` — a constant, not a strategy. It was a `FileInfoProcessor` with two implementations, one ordering by name and one by modification time for a layout whose names say nothing about order; no such layout was ever wired, so the interface, both classes and the constructor parameter went. Presentation only: which chunk the profiler still holds open is derived by `RecordingSession` from the session and the timestamps, never read off this order, and reading it off this order is what once let the two disagree. The storage itself was `AsprofFileRepositoryStorage` and is `FilesystemRepositoryStorage`, because nothing in it is specific to a profiler; what keeps async-profiler's name is what earns it, `ASPROF_TEMP` and `AsprofCacheFileMatcher` for the `.jfr.N~` rotation cache only that profiler writes
-- **The hub reports whether a file is a recording and never interprets it further.** `FilesystemRepositoryStorage` is the one class whose behaviour a type decides, and it decides nothing itself: it classifies with `HubManagedFile.of` and then asks that type for the id, the timestamp resolver and whether the file may be compressed. Everywhere else the answer is forwarded (`is_recording`) or used as a grouping key (`StorageManagerImpl`, for the hub's own storage dashboard, whose buckets are `JFR`, `JFR_LZ4` and `OTHER`). **Repository statistics is one number**, the bytes a project occupies. It carried a status, a session count, a file count, a last-activity timestamp, a biggest-session size, and a count and a size for each of six invented buckets — JFR, heap dump, log, app log, error log, other — filled by a switch over `ManagedFile`. That switch was the last place the hub decided what a type *means*, and the deciding itself was the bug, not any one answer it gave: a pprof or OTLP file landing in "other" beside files nothing could classify is exactly how the hub treats them today, by design — the switch should never have existed to answer the question at all. Of the rest, the status had no reader in any frontend and the others sat beside figures the page already had. Do not add a per-kind breakdown back, and do not add a **capacity** to divide the total by: the hub reads a ReadWriteMany volume, and on none of the three the deployment docs name does the filesystem report the claim's size — NFS reports the whole export, EFS an enormous constant, hostPath the node's disk — while the declared size lives only in the PVC, which would cost a Kubernetes client and RBAC for one figure on one card. The session detector likewise no longer lists a session directory for an `hs_err` log to raise a CRITICAL notification and pin the session; retention is the manual choice the UI and `setSessionRetained` already offered
-- **A shipped proto field keeps its number, and a removed one is reserved.** Removing an RPC breaks loudly — an older peer gets `UNIMPLEMENTED` — but a proto3 field that moves does not fail, it defaults: an older Microscope reading `is_recording` from field 7 after it was renumbered to 6 would find nothing and read every file as an artifact, so `hubs_download` would refuse every chunk with no error anywhere saying why, and `total_size` moved from 4 to 1 would show every project occupying zero bytes. That is why `RepositoryFile.status` (6), the seventeen removed statistics fields and `GetInstanceSessionDetailResponse.environment_json_fields` (2) are `reserved` with their names and the survivors sit at the numbers they shipped with. Contiguous numbering is for a message that has never shipped; a gap in an old one is the record of a removal, not untidiness
-- `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs
-- `hub-persistence-api` — Persistence interfaces for server domain
-- `hub-sql-persistence` — DuckDB persistence for server (workspaces, projects, scheduling)
-- `pages-hub` — Minimal Vue 3 frontend
+cd jeffrey-microscope/pages-microscope
+npm run dev | build | test | typecheck | format    # build = vue-tsc + vite; `npm run lint` is currently broken
+npm run proto:generate                             # after editing profiles/flamegraph/src/main/proto/flamegraph.proto
 
-**shared** (`shared/`):
-- `common` — utilities and the hub↔provisioner contract types only — no Microscope domain
-- `persistence` — Common persistence abstractions
-- `sql-builder` — SQL query building utilities
-- `test` — Test infrastructure (`@DuckDBTest` annotation, test utilities)
-- `hub-api` — gRPC proto files at `src/main/proto/jeffrey/hub/api/v1/` (protos only)
-- `pending-index` — filesystem index the provisioner writes and the hub reads to discover new work
-- `ui/common` — generic UI components, services and design tokens shared by every frontend
-- `ui/version` — shared version display
-
-## Technology Stack
-
-### Backend (Java)
-- **Java**: Version 25
-- **Spring Boot**: 4.0.4 with Spring MVC for REST APIs
-- **Maven**: Build tool and dependency management
-- **DuckDB**: 1.5.0.0 — Three-tier database architecture (microscope core DB + server DB + per-profile DBs)
-- **Flyway**: 10.24.0 for database migrations
-- **Jackson**: 2.21.1 for JSON serialization
-- **gRPC**: 1.72.0 for remote workspace communication (replaces old REST public API)
-- **Protobuf**: 4.30.2 for gRPC message serialization
-- **Spring AI**: only its `@Tool`/`@ToolParam` annotations and tool-definition reflection, which the MCP layer borrows; no provider SDK is on the classpath
-- **Logging**: SLF4J with Logback
-
-### Frontend (Vue 3)
-- **Vue 3**: 3.5.13 — Composition API
-- **TypeScript**: 5.5.2
-- **Vite**: 6.0.5 — Build tool and dev server
-- **Vitest**: 4.1.0 — Unit testing
-- **Vue Router**: 4.3.3 — Client-side routing
-- **ApexCharts**: 5.10.0 — Data visualization
-- **Bootstrap 5**: 5.3.3 — CSS framework with custom styling
-- **Axios**: 1.8.3 — HTTP client
-- **Konva**: 9.3.20 — Canvas rendering
-- **Protobuf**: 7.4.0 — Binary data (flamegraph)
-- **mitt**: 3.0.1 — Event bus
-
-## Project Structure
-
-```
-jeffrey/
-├── jeffrey-microscope/                     # Standalone deployment
-│   ├── core-microscope/                    # Main Spring Boot app (MicroscopeApplication)
-│   │   └── src/.../microscope/core/
-│   │       ├── manager/               # Managers (project/, workspace/, downloads, recordings, etc.)
-│   │       └── resources/             # REST resources (project/, workspace/, ProfilesResource, etc.)
-│   ├── grpc-client/                   # gRPC clients for hub communication (Discovery, Repository, Projects, ...)
-│   ├── microscope-core-persistence-api/    # Microscope core persistence interfaces
-│   ├── microscope-core-sql-persistence/    # Microscope core DuckDB persistence
-│   ├── microscope-model/              # Microscope's domain module (cafe.jeffrey.microscope.model{,.hub,.repository,.repository.matcher,.time,.workspace,.serde,.settings,.jfr})
-│   ├── hub-client/                    # HubClients record aggregating the gRPC clients (moved from shared/)
-│   ├── recordings-core/               # Recording download/import orchestration (moved from shared/)
-│   ├── recording-storage-api/         # Storage interfaces (ManagedFile, FileCategory, RecordingFile, Recording) (moved from shared/)
-│   ├── filesystem-recording-storage/  # Filesystem storage implementation (moved from shared/)
-│   ├── notifications/                 # Notification categories and types (moved from shared/)
-│   ├── ui-hubs/                       # Hub browser UI (moved from shared/ui/)
-│   ├── ui-instances/                  # Instance views (moved from shared/ui/)
-│   ├── pages-microscope/                   # Full-featured Vue 3 SPA frontend
-│   │   └── src/
-│   │       ├── assets/                # Design tokens, SCSS, static assets
-│   │       ├── components/            # Reusable Vue components
-│   │       ├── composables/           # Vue 3 composables (useModal, useNavigation, etc.)
-│   │       ├── services/              # API clients and utilities
-│   │       │   └── api/               # BasePlatformClient, BaseProfileClient, feature clients
-│   │       ├── stores/                # Simple ref-based stores
-│   │       ├── styles/                # Shared CSS files
-│   │       ├── views/                 # Page components
-│   │       └── router/                # Vue Router configuration
-│   └── profiles/                      # Profile analysis modules
-│       ├── profile-management/        # Profile analysis features + REST resources
-│       │   └── src/.../profile/
-│       │       ├── manager/           # Profile managers
-│       │       └── resources/         # Profile REST resources (Flamegraph, Timeseries, etc.)
-│       ├── recording-parser/          # Recording parsing
-│       │   ├── jfr-parser-api/        # Parser interfaces
-│       │   ├── jdk-jfr-parser/        # JDK-based JFR parser
-│       │   ├── raw-jfr-parser/        # Raw JFR chunk/metadata parser
-│       │   ├── otlp-parser/           # OTLP profiles parser
-│       │   └── pprof-parser/          # pprof parser
-│       ├── profile-persistence-api/   # Profile persistence interfaces
-│       ├── profile-sql-persistence/   # Per-profile DuckDB persistence
-│       ├── common-profile/            # Shared profile utilities
-│       ├── flamegraph/                # Flame graph generation
-│       ├── timeseries/                # Time series analysis
-│       ├── subsecond/                 # Sub-second analysis
-│       ├── profile-threads/           # Thread analysis
-│       ├── frame-ir/                  # Frame intermediate representation
-│       ├── heap-dump/                 # Heap dump analysis
-│       └── mcp-server/                # Shared MCP protocol layer (JSON-RPC envelope, toolsets, prompts, resources)
-├── jeffrey-hub/                    # Multi-workspace server deployment
-│   ├── hub-model/                  # The hub's domain module (cafe.jeffrey.hub.model{,.job,.repository,.workspace})
-│   ├── core-hub/                   # Main Spring Boot app (HubApplication)
-│   │   └── src/.../server/core/
-│   │       ├── grpc/                  # gRPC service implementations
-│   │       ├── scheduler/             # Job scheduler, job definitions
-│   │       │   └── job/               # Job implementations + descriptor/
-│   │       ├── resources/             # REST resources (WorkspacesResource, GrpcDocsResource)
-│   │       └── session/lifecycle/     # File heartbeats and session finish handling
-│   ├── hub-persistence-api/        # Server persistence interfaces
-│   ├── hub-sql-persistence/        # Server DuckDB persistence
-│   └── pages-hub/                  # Minimal Vue 3 frontend
-├── shared/                            # Shared modules (used by both deployments)
-│   ├── common/                        # Utilities and the hub↔provisioner contract types only — no Microscope domain
-│   ├── persistence/                   # Common persistence abstractions
-│   ├── sql-builder/                   # SQL query building
-│   ├── test/                          # Test infrastructure (@DuckDBTest)
-│   ├── hub-api/                    # gRPC proto definitions (protos only)
-│   │   └── src/main/proto/jeffrey/hub/api/v1/  # Proto files
-│   ├── pending-index/                 # CLI→hub discovery index
-│   └── ui/
-│       ├── common/                    # Generic UI components, services and design tokens shared by every frontend
-│       └── version/                   # Shared version display
-├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image). There is no Java
-│                                   #   agent: liveness is reported by utilities/jeffrey-heartbeat,
-│                                   #   a dependency of the profiled application. Whether it is on
-│                                   #   the class path is a build-time fact the provisioner cannot
-│                                   #   detect, so `heartbeat.enabled` DECLARES it. It travels three
-│                                   #   ways: into the argfile as -Djeffrey.heartbeat.dir/.enabled,
-│                                   #   which is the ONLY channel that reaches a JVM the container
-│                                   #   entrypoint execs (the .env is opt-in and nothing sources it
-│                                   #   there), into that .env for a deployment that does, and into
-│                                   #   the session marker the hub reconciles. It defaults to FALSE:
-│                                   #   declaring it wrongly is the one way to get a wrong answer,
-│                                   #   because a session that claims it will report and never does
-│                                   #   is finished at its own originCreatedAt shortly after it
-│                                   #   starts, while the profiler is still writing into it
-├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, four manifests
-│   ├── .claude-plugin/plugin.json     # Claude Code manifest, with the configurable MCP endpoint inline
-│   ├── plugin.json + mcp.json         # Agent Plugins 1.0.0 — Codex, Cursor, Copilot, VS Code, Kiro
-│   ├── .codex-plugin/plugin.json      # Codex-native manifest, pointing at the same skills and mcp.json
-│   ├── gemini-extension.json          # Gemini CLI extension — httpUrl with a configurable endpoint
-│   ├── hooks/                         # SessionStart check — is Jeffrey actually serving. Claude Code and Gemini
-│   │                                  #   read the same file; the command resolves either client's plugin root
-│   ├── skills/                        # analyze-jfr, analyze-heap, analyze-hub, compare-jfr, profile-run,
-│   │                                  #   regression-check, advise-jfr, jfr-sql, heap-sql, report — also served as MCP prompts
-│   ├── agents/                        # profile-analyst and heap-triage read an export and return only the findings;
-│   │                                  #   profile-lead triages, dispatches those two and merges what they return
-│   ├── codex/agents/                  # The same three agents as Codex TOMLs, installed by hand
-│   └── gemini/agents/                 # …and two of them as Gemini subagents, likewise by hand
-├── .claude-plugin/marketplace.json    # Makes the repo a Claude Code plugin marketplace
-├── .agents/plugins/marketplace.json   # …and a Codex one; Codex reads either
-├── jeffrey-intellij-plugin/           # The IntelliJ companion — standalone Gradle build, never
-│                                      #   renders profile data; links to Microscope instead
-├── jeffrey-pages/                     # Documentation site
-├── build/                             # Build configurations
-│   ├── build-microscope/                   # Local application assembly
-│   ├── build-hub/                  # Server application assembly
-│   ├── build-provisioner/             # Provisioner build
-│   ├── build-provisioner-native/     # Native image build
-│   ├── build-agent/                   # Agent build
-│   └── scripts/                       # Build scripts
-├── docker/                            # Docker configurations
-└── pom.xml                            # Root Maven configuration
+./run-microscope.sh [--clean]                      # Microscope under async-profiler, data in ~/.jeffrey-microscope
+./run-hub-stub.sh                                  # local hub stub (needs hub-api installed in ~/.m2)
 ```
 
-## Code Style and Conventions
+Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design-token-compliance`, `api-contract-reviewer`, `security-reviewer` (MCP, uploads, SQL, gRPC boundaries), `docs-sync-checker`.
 
-### Design over micro-optimization (default mode)
-Default to clean object-oriented design — sealed type hierarchies, focused single-responsibility collaborators, composition over inheritance, polymorphism over conditionals — even when the result is more files or a small amount of extra indirection. Examples that count as "design over optimization": splitting a god class into a sealed analysis hierarchy plus collaborator services; preferring a `Map<K, V>` lookup over a manually hand-rolled switch ladder; introducing a small record over passing five parallel parameters.
+### Inspecting DuckDB files
+- Per-profile DB `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (`events`, `threads`, `event_types`, …); core DB `~/.jeffrey-microscope/jeffrey-data.db`.
+- A running app holds an exclusive lock: **copy the file first** (plus `.wal` if present) and open the copy read-only. No `duckdb` CLI is installed — `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
+- Schema is `CREATE TABLE` in each `V001__init.sql` (`microscope-core-sql-persistence`, `hub-sql-persistence`, `profile-sql-persistence` under `src/main/resources/db/migration/`); edit it in place — the DB is recreated on every startup. JFR event fields reference: https://sap.github.io/jfrevents/
 
-Do **not** sacrifice design for low-level optimizations — hot-path tuning, manual inlining, allocation elimination, primitive-array packing, lock-free tricks, parallel execution, pre-computed lookup caches, or similar — unless the user **explicitly** asks for the optimization (e.g., "make this faster", "reduce allocations here", "optimize the hot path"). The price of those optimizations is usually paid in code clarity, test isolation, and refactor cost; that price is only worth paying when the user has named it as their goal.
+## Rules that apply everywhere
 
-**Evident trade-offs are surfaced, not decided silently.** If, while doing design work, you spot a meaningful optimization that would cost design clarity — e.g., a hot-path tightening that requires inlining a sealed type away, an allocation reduction that needs a primitive-array shape, a parallel pipeline that needs shared mutable state, a lookup table that replaces a polymorphic dispatch — **don't pick on the user's behalf**. Present both options with one sentence each on the design cost and the optimization win, and let the user choose. The skill is "make the trade-off legible," not "default-pick design and hide the alternative."
+- **Braces on every control-flow body**, Java and TypeScript, even one statement. Non-negotiable.
+- **Design over micro-optimization.** Sealed hierarchies, small records, polymorphism over switch ladders, composition over inheritance — even at the cost of more files. Never trade clarity for a hot-path trick unless the user asks; when you see such a trade-off, state both options in a sentence each and let the user choose. Unsure whether "cleaner" or "faster" is wanted → ask.
+- **Spring:** constructor injection only; no `@Component`/`@Service`/`@Repository`/`@Controller`/`@Autowired`. Only `@RestController` (MVC controllers) and `@ControllerAdvice` (`JeffreyExceptionHandler`) are allowed; everything else is an explicit `@Bean`.
+- **Time:** inject `java.time.Clock`, never `Instant.now()`; elapsed time via `Measuring`. Frontend timestamps are UTC epoch millis, formatted only by `FormattingService`.
+- **Literals:** anything matched, compared, put in SQL or used as config is a named `private static final`; set membership is `Set.of(...).contains`, not an `equals` ladder.
+- **Annotations** on classes/fields/methods go on their own line; always `import`, never an inline FQCN; AGPL header (2026) on every Java file; SLF4J `"what happened: k1={} k2={}"` without commas.
+- **Frontend shared-first:** check `@shared`, then `@hubs`/`@instances`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `shared/ui/common`.
+- **Records** for DTOs and for any 3+ parameters or callbacks that travel together; validate in compact constructors with standard exceptions; domain code never depends on Spring/gRPC types — map at the boundary.
 
-When unsure whether a request is "make it cleaner" or "make it faster", ask. Default mode is design.
+## Architecture invariants (never)
 
-### General (applies to Java, TypeScript, Vue, JS)
-- **Always use braces for control flow**: Every `if`, `else`, `else if`, `for`, `while`, and `do-while` body must be wrapped in `{ ... }` braces — even when the body is a single statement. Never write the inline single-line form. This applies to early-return guards, null checks, instanceof guards, loops, and every other branching construct, in **both Java and TypeScript/Vue**.
-
-  ```java
-  // good
-  if (segments.isEmpty()) {
-      return false;
-  }
-
-  // bad
-  if (segments.isEmpty()) return false;
-  ```
-
-  ```ts
-  // good
-  if (!run.result) {
-    return [];
-  }
-
-  // bad
-  if (!run.result) return [];
-  ```
-
-  Same rule for `else`, `else if`, `for`, `while`. If the body is empty, use `{ }` not `;`. This is non-negotiable — the goal is consistent diff-friendly bodies and to eliminate the "dangling-statement" foot-gun.
-
-### Java Backend
-- **Package Structure**: `cafe.jeffrey.microscope.*` for microscope deployment, `cafe.jeffrey.hub.*` for server deployment, `cafe.jeffrey.profile.*` for profiles, `cafe.jeffrey.*` for shared modules
-- **Naming**: PascalCase for classes, camelCase for methods/fields
-- **Imports**: Always use import statements; never use fully qualified class names inline in code
-- **Annotation Placement**: Annotations on **classes**, **fields**, and **methods** always go on their own line directly above the declaration — never inline on the same line. Applies to `@Bean`, `@Configuration`, `@RequestMapping`, `@ResponseBody`, `@GetMapping` / `@PostMapping` / etc., `@Mock`, `@Test`, `@ExtendWith`, custom annotations, and so on. Annotations on **method/constructor parameters** (e.g. `@PathVariable`, `@RequestParam`, `@RequestBody`) stay inline next to the parameter — that's the standard form and keeps signatures readable.
-
-  ```java
-  // good
-  @Mock
-  WorkspacesManager workspacesManager;
-
-  @Bean
-  public WorkspacesController workspacesController(WorkspacesManager workspacesManager) {
-      return new WorkspacesController(workspacesManager);
-  }
-
-  @GetMapping("/{workspaceId}")
-  public WorkspaceResponse info(@PathVariable("workspaceId") String workspaceId) { ... }
-
-  // bad
-  @Mock WorkspacesManager workspacesManager;
-  @Bean public WorkspacesController workspacesController(...) { ... }
-  ```
-- **Architecture**: Manager pattern with service layer separation
-- **REST**: Spring MVC controllers annotated with `@RestController` + `@RequestMapping` at class level (this is the **only** stereotype the project allows — see Spring Bean Registration). Constructor injection only — never `@Autowired`. Controllers are picked up by Spring Boot's component scan rooted at the application's package; do not declare them as `@Bean` methods.
-- **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`) or `@Autowired`. **Exception:** `@RestController` is allowed (and required) on Spring MVC controllers — this is the only stereotype on the allow-list, because the controller layer is the single place where component scanning is more pragmatic than explicit wiring. Everything else (managers, services, factories, resolvers, web infrastructure) must be registered explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit while letting the dispatcher discover handlers normally.
-- **gRPC**: Proto files in `shared/hub-api/` (package `cafe.jeffrey.hub.api.v1`), implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/grpc-client/` aggregated by `jeffrey-microscope/hub-client/`
-- **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
-- **Records**: Used for DTOs and immutable data
-- **Three-Tier Persistence**: Local Core DB (workspaces, projects, recordings) + Server DB (server workspaces, projects, scheduling) + Profile DB (isolated per profile)
-- **Resource Hierarchy**: Internal (`/api/internal/`) for frontend, gRPC for remote workspace communication
-- **Copyright Headers**: All Java files must include the AGPL license header with the current year (2026):
-  ```java
-  /*
-   * Jeffrey
-   * Copyright (C) 2026 Petr Bouda
-   *
-   * This program is free software: you can redistribute it and/or modify
-   * it under the terms of the GNU Affero General Public License as published by
-   * the Free Software Foundation, either version 3 of the License, or
-   * (at your option) any later version.
-   *
-   * This program is distributed in the hope that it will be useful,
-   * but WITHOUT ANY WARRANTY; without even the implied warranty of
-   * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   * GNU Affero General Public License for more details.
-   *
-   * You should have received a copy of the GNU Affero General Public License
-   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-   */
-  ```
-- **Error Handling**: Custom exceptions with proper HTTP status mapping
-- **Logging**: Use SLF4J with structured key-value format:
-  - Pattern: `"Description of what happened: key1={} key2={} key3={}"`
-  - No commas between key-value pairs
-  - Example: `LOG.warn("Chunk extends beyond file, truncating: chunk_index={} position={} claimed_size={}", index, pos, size)`
-- **Time Handling**: Always use `java.time.Clock` instead of `Instant.now()` or `System.currentTimeMillis()`:
-  - Inject `Clock` as a constructor parameter for testability
-  - Use `clock.instant()` to get the current time
-  - Example: `private final Clock clock; ... Instant now = clock.instant();`
-  - This allows tests to use fixed time via `Clock.fixed()` for deterministic behavior
-- **Elapsed Time Measuring**: Use `cafe.jeffrey.shared.common.measure.Measuring` utility instead of manual `System.nanoTime()` bookkeeping:
-  - `Measuring.r(runnable)` — runs a `Runnable`, returns `Duration`
-  - `Measuring.s(supplier)` — runs a `Supplier<T>`, returns `Elapsed<T>` (duration + result)
-  - Example: `Duration elapsed = Measuring.r(() -> doWork()); LOG.debug("Work completed: duration_in_sec={}", elapsed.toSeconds());`
-
-### Java Best Practices
-- **Prefer records for parameter grouping**: When a method has 3+ related parameters (e.g., sessionId + eventTypes + timeRange), group them into a record. This makes call sites readable and refactoring safe. `ChunkWindow.Selection` carries the chosen chunks with the span they cover instead of three parallel values.
-- **Prefer records for callback grouping**: When multiple callbacks travel together (e.g., onBatch + onComplete + onError), group them into a record. No type in the tree does this today, so there is no example to copy — do not read `ProgressCallback` as one, it is a nine-method interface. The counter-case is written down: `PanelActions` in the IntelliJ plugin explains why eleven named operations stayed an interface rather than becoming a record of eleven lambdas.
-- **Keep domain logic free of framework types**: Records, subscription objects, and domain classes should not depend on gRPC or Spring types. Map framework-specific types (e.g., `StatusRuntimeException`) at the boundary (controller/gRPC service), not in domain code. Example: `ChunkWindow` in `shared/common` knows nothing about gRPC — it answers whether a selection of chunks is contiguous, and `FileDownloadGrpcService` turns a refusal into `INVALID_ARGUMENT` itself. The *streaming* RPCs cannot lean on `GrpcExceptions.toStatus`, which is `GrpcUnary`'s; each one maps for itself. `FileDownloadGrpcService.downloadFile` passes a `StatusRuntimeException` through, reports an `IllegalArgumentException` — every refusal `RepositoryStorage.file` states — as `INVALID_ARGUMENT` with its own sentence as the description, and only then falls back to `INTERNAL`. Do not throw a gRPC status out of the storage to get that: reported as `INTERNAL` those refusals reached the caller as `REMOTE_OPERATION_FAILED`, the same thing an unreachable hub gives, with a stack trace logged for every mistyped id.
-- **Use utility classes for repetitive framework boilerplate**: Extract common framework patterns into static utility classes. Example: `GrpcExceptions.notFound(description)` instead of `Status.NOT_FOUND.withDescription(description).asRuntimeException()`.
-- **Validate in constructors**: Records with invariants should validate in compact constructors and throw standard Java exceptions (e.g., `IllegalArgumentException`), not framework-specific ones.
-- **Compose, don't inherit**: Prefer composition with records and delegation over deep class hierarchies. Example: `CompositeToolset` merges the MCP tool families by delegating to one `ReflectiveToolset` per family rather than by a toolset base class.
-- **Temp directory lifecycle**: When a process creates temp files, create a dedicated subdirectory (with UUID for uniqueness) and delete the entire directory on close, rather than tracking individual files.
-- **No inline string/number literals in logic**: Any string or magic number that gets matched, compared, concatenated into SQL, or used as a configuration value must live in a `private static final` constant with a descriptive name. Inline literals are only acceptable for one-off values that are obvious from their immediate context (e.g., `Math.max(0, x)`, `LIMIT 1`). This includes SQL keywords, column-name aliases, row caps, timeouts, and error-message tokens.
-- **No chained `equals` ladders for set-membership tests**: When checking whether a value is one of several alternatives, never write `s.equals("a") || s.equals("b") || s.equals("c")`. Declare the alternatives in a `private static final Set<String>` constant and use `SET.contains(s)`. Same for `Set<Integer>`, enum sets, etc. Keeps the alternatives visible at the top of the file, makes adding a new alias a one-line change, and reads better at the call site.
-
-  ```java
-  // good
-  private static final Set<String> RETAINED_SIZE_COLUMN_ALIASES = Set.of("retained_size", "retained", "bytes");
-  if (RETAINED_SIZE_COLUMN_ALIASES.contains(label)) { ... }
-
-  // bad
-  if (label.equals("retained_size") || label.equals("retained") || label.equals("bytes")) { ... }
-  ```
-
-### Frontend (Vue/TypeScript)
-- **Components**: PascalCase for component names
-- **Composition API**: Preferred over Options API
-- **TypeScript**: Strict typing with interfaces for API models
-- **Design Tokens**: CSS custom properties in `shared/ui/common/src/assets/design-tokens.css` (import as `@shared/assets/design-tokens.css`) — always use these for colors, spacing, typography
-- **Composables**: Reusable reactive logic in `jeffrey-microscope/pages-microscope/src/composables/` (useNavigation, useTableView, useFlamegraphPanels, useAiExport, etc.)
-- **API Clients**: Two base classes in `jeffrey-microscope/pages-microscope/src/services/api/`:
-  - `BasePlatformClient` — for workspace/project APIs (used by WorkspaceClient, ProjectClient)
-  - `BaseProfileClient` — for profile feature APIs (used by ProfileMethodTracingClient, HeapDumpClient, etc.)
-- **State Management**: Simple ref-based stores in `jeffrey-microscope/pages-microscope/src/stores/` (not Pinia)
-- **Protobuf**: Used for flamegraph binary data; regenerate with `npm run proto:generate`
-- **Styling**: Use shared CSS files first, then scoped CSS for component-specific styles
-  - **Shared CSS files** (live in `shared/ui/common/src/styles/`, import via `@shared/...` or `@import` in SCSS):
-    - `@shared/styles/shared-components.css` - Common UI patterns (search-container, cards, buttons, loading/empty states, drawer sections, form fields, info rows)
-    - `@/assets/_sidebar-menu.scss` - Sidebar navigation styles (nav-item, nav-submenu, disabled-feature) — still app-local
-  - Always check shared CSS files before adding new scoped styles
-  - Add commonly reused styles to `@shared/styles/shared-components.css` to avoid duplication
-- **File Organization**: Feature-based grouping with shared components
-- **Timestamps**: All timestamps are UTC epoch millis (numbers). Never use `new Date()` for parsing or formatting — always use `FormattingService` methods. Never propagate date strings from the backend; always use numeric UTC timestamps. Frontend form inputs like `datetime-local` must be converted to/from epoch millis at the boundary.
-- Formatting values use FormattingService, which provides consistent formatting across the application, propose a new function if you miss something
-- **Shared UI modules** (consumed via Vite aliases, defined identically in every `pages-*` app):
-  - `@shared` → `shared/ui/common/src` — generic components, services (FormattingService, BasePlatformClient, HttpUtils, ToastService), styles, and design tokens
-  - `@hubs` → `jeffrey-microscope/ui-hubs/ui` — the hub browser (hubs → workspaces → projects) + recording components and API clients
-  - `@instances` → `jeffrey-microscope/ui-instances/src` — instance views
-- **Shared-first (MUST, non-negotiable)**: Before writing any new markup or component, you MUST first check the shared modules — `@shared` first, then `@hubs`/`@instances` — for an existing component to use, compose, or extend, and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup or a new component when no shared one fits. Never duplicate a shared component locally.
-- **Where a new component lives**: If it is **generic** (no page- or JFR-domain semantics — a chart, table, form input, badge, breadcrumb, layout container, modal, drawer, etc.), create it under `shared/ui/common/src/components/` (`@shared`), NOT app-local. An app's `src/components/` is reserved for components tied to a specific page/feature (profile analysis, flamegraph, heap, gc, jdbc, grpc, span, etc.). When unsure whether a component is generic, prefer `@shared`.
-
-#### UI Consistency Rules
-- **No Hardcoded Colors in CSS**: Never use hex color literals (`#f8f9fa`, `#28a745`, etc.) in `<style>` blocks. Always use CSS custom properties from `design-tokens.css` (e.g., `var(--color-light)`, `var(--color-success)`, `var(--color-danger)`, `var(--table-header-bg)`)
-- **Use Design Token Shadows and Radii**: No literal `box-shadow:` or `border-radius:` values. Use `var(--shadow-*)` and `var(--radius-*)` or `var(--card-border-radius)`
-- **Use Badge Component**: Never use raw `<span class="badge bg-*">`. Always use the `Badge.vue` component with appropriate `variant` and `size` props
-- **Standard Table Pattern**: All data tables must use the `components/table/DataTable.vue` family — `DataTable` (card wrapper that renders `table table-sm table-hover mb-0` inside `.table-responsive`) with its `#toolbar` slot (`TableToolbar` — `v-model` search + `#filters`), default slot (`<thead>`/`<tbody>`), and `#footer` slot (`TableShowMore` for pagination). Use `SortableTableHeader` for sortable columns and render `EmptyState` as a sibling when there is no data. Do not hand-roll `<div class="table-responsive"><table>`. Scaffold with the `/data-table` skill; reference `views/profiles/detail/ProfileThreadDumps.vue`
-- **Three-State View Pattern**: Every async view must follow: `<LoadingState v-if="loading" />` → `<ErrorState v-else-if="error" />` → content. Tables within content show `<EmptyState>` when data is empty
-- **Page Headers**: Use `layout/PageHeader.vue` for page-level headers. Use `MainCardHeader.vue` for card headers inside `MainCard` (props `icon`, `title`, `:badge?`, `#actions` slot). Scaffold new pages with the `/global-page` skill
-- **Modals**: Use `GenericModal` with `v-model:show` for all modal dialogs — never a custom overlay. Pick `size` by content: `md` simple forms · `lg` lists/single column · `xl` rich/two-column. For large editors use the **wide near-fullscreen** pattern: `modal-dialog-class="<name> events-modal-dialog modal-dialog-centered"` plus a scoped `:deep(.modal-dialog.<name>) { max-width: none; width: calc(100vw - 3.5rem); }` (equal gutters, body scrolls as one unit, footer pinned). Scaffold with the `/new-modal` skill; reference `views/global/RecordingsView.vue`
-- **Single Token Source**: Only `design-tokens.css` may define `:root` CSS custom properties. No other file may declare `:root { ... }`
-
-### Build Commands
-- **Java Version**: `sdk use java 25.0.1-amzn`
-- **Backend Compile**:
-  ```bash
-  JAVA_HOME=/Users/petrbouda/.sdkman/candidates/java/25.0.1-amzn /Users/petrbouda/.sdkman/candidates/maven/current/bin/mvn clean compile
-  ```
-- **Frontend Dev**: `cd jeffrey-microscope/pages-microscope && npm run dev`
-- **Frontend Build**: `cd jeffrey-microscope/pages-microscope && npm run build`
-- **Frontend Lint**: `cd jeffrey-microscope/pages-microscope && npm run lint`
-- **Frontend Format**: `cd jeffrey-microscope/pages-microscope && npm run format`
-- **Frontend Test**: `cd jeffrey-microscope/pages-microscope && npm run test`
-- **Frontend Protobuf**: `cd jeffrey-microscope/pages-microscope && npm run proto:generate`
-
-## API Structure
-- **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
-- **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — controllers in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`
-- **jeffrey-hub REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-hub/core-hub/.../resources/`
-- **IDE recording panel**: `GET /api/internal/recordings/by-path?path=&sizeInBytes=` — what Microscope holds for a file on the developer's disk (never imports as a side effect), with the panel's figures inline when a profile is ready. Matching is by file name plus byte size, because an import copies the file and records no origin path. Assembled by `IdeRecordingLookup`, served from `RecordingAnalysisController`
-- **MCP**: JSON-RPC 2.0 over Streamable HTTP — `POST /api/mcp`, with `POST /api/internal/mcp` still answering for clients configured before the move; controller in `jeffrey-microscope/core-microscope/.../mcp/`, protocol layer in `jeffrey-microscope/profiles/mcp-server/`
-- **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/grpc-client/.../grpc/client/`, aggregated by the `HubClients` record in `jeffrey-microscope/hub-client/`
-- gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `file_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`
-- gRPC clients: `HubClients` record (in `jeffrey-microscope/hub-client/`) containing `DiscoveryClient`, `RepositoryClient`, `FileStreamClient`, `ProfilerClient`, `InstancesClient`, `ProjectsClient`
-- Implemented using Spring MVC `@RestController` for REST. Profile-scoped controllers live in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`; `profiles/profile-management/.../resources/` holds request DTOs only.
-- JSON data exchange format for REST, Protobuf for gRPC
-- Multi-part file uploads for JFR files
-
-## Git Commits
-- Never add `Co-Authored-By: Claude` or any AI co-author trailer to commit messages
-- The same applies to the commit a **merge** produces, which is where this rule actually gets broken. A GitHub squash merge appends `Co-authored-by:` on its own whenever the squashed commits carry a different author than whoever performs the merge — so a branch whose commits are authored by `Claude <noreply@anthropic.com>` lands on `master` with the trailer even though no commit message ever contained one. When squash-merging such a branch, pass an explicit commit message and check the merged commit afterwards; the rule is about what ends up in the history, not about what was typed
-- Never automatically commit, create tags, or push. These actions happen **only** when the user explicitly asks for them ("commit", "tag", "push", "ship it", etc.). Finishing a feature, passing tests, or a clean build is **not** a trigger to commit — stop at the working-tree change and wait.
-- **Authorization is per-change-set, not standing.** A "commit and push" approval applies only to the diff in front of you at that moment. The next request — even immediately after, even for a closely-related follow-up — needs a fresh confirmation. Do not treat one OK as a session-wide pass.
-
-## Development Workflow
-1. Backend development in Java with Spring Boot (two deployment targets: microscope and server)
-2. Frontend development with Vue 3 and TypeScript (primary UI in `jeffrey-microscope/pages-microscope/`)
-3. Integration through REST APIs (microscope) and gRPC (server communication)
-4. Docker containerization for deployment
-5. Maven for Java build management, npm for frontend dependencies
+- **Hub and Microscope share no domain type.** Each maps `shared/hub-api` protos onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
+- **MCP belongs to Microscope only** (`POST /api/mcp`; `/api/internal/mcp` is the legacy alias). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks and reads them itself.
+- **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
+- **A recording's files are never joined**; a download is an unbroken run of chunks; the hub serves one file per call and reports only `is_recording`; compression happens in the compression job, never on a read path.
+- **Protos carry no `reserved`**: hub and Microscope ship together, so removed numbers are reused and survivors renumbered.
+- **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
+- **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
+- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 111 tools and the nine writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
-- **Backend**: JUnit 5 tests, with nested JUnit classes to group logical parts
-- **Backend**: Mockito for mocking dependencies
-- **Backend**: `@DuckDBTest` custom annotation for database integration tests (from `shared/test`)
-- **Backend**: Use `java.time.Clock` instead of real timestamps to fix time
-- **Backend gRPC**: Every gRPC service must have an in-process integration test using `InProcessServerBuilder`/`InProcessChannelBuilder` (`grpc-inprocess` dependency). Tests should cover validation errors (status codes), and end-to-end streaming with real data where applicable. See `FileDownloadGrpcServiceTest` for the reference pattern — note that a server-streaming RPC reports an error through the observer's `onError`, so its tests await an `errorLatch` rather than using the blocking-stub `assertThrows` form that the unary services (`RepositoryGrpcServiceTest`) use.
-- **Backend Async Assertions**: Use Awaitility (`org.awaitility:awaitility`) for async/polling assertions instead of hand-rolled `Thread.sleep` loops. Example: `await().atMost(5, SECONDS).untilAsserted(() -> assertEquals("expected", getResult()));`
-- **Frontend**: Vitest (`cd jeffrey-microscope/pages-microscope && npm run test`)
 
-## AI Integration
-- **One direction only.** Jeffrey never calls a model provider: there is no in-app assistant, no chat page, no OQL helper, no provider or API-key setting, and no secret storage (the encryption machinery went with the only secret). Earlier releases had all of that, and the Profile Advisor before it; every one of those jobs is now a plugin skill over the MCP server, and a feature that would put a model *inside* Jeffrey again should be a skill or a tool instead
-- The one integration is the external MCP server at `POST /api/mcp`: an outside coding agent — an interactive Claude Code, Codex or Gemini CLI session in the developer's own repository — calls *in* and reads every analysed profile. Its analysis tools are read-only; the nine that are not (`recordings_analyzeFile`, `recordings_analyzeRecording`, `recordings_delete`, `heap_prepare`, `hubs_download`, `hubs_fetchFile`, `operations_cancel`, `ide_link`, `ide_open`) create profiles or caches, delete a recording and its profile, pull a session's files or one of them off another machine, start or stop background work, or act on the developer's editor, rather than changing an analysed profile — each declaring it through its own `readOnlyHint` rather than inheriting its family's, and `McpToolsetAssemblerTest` pins the set so a second copy of it cannot quietly go stale the way this sentence did. Two have properties of their own — `jeffrey.microscope.mcp.hubs.enabled` and `jeffrey.microscope.mcp.ide.enabled` — because they are the two that reach outside this server: `hubs_` off the machine Jeffrey runs on, `ide_` into the IntelliJ running beside it. `ide_` is what closes the loop the exports leave open, answering where a frame lives from the IDE's own indexes rather than from a grep; `ide_resolve` deliberately does not move the editor, which `ide_open` does. Its protocol layer is `profiles/mcp-server`, and it also serves the skills as MCP prompts and the profile catalogue as MCP resources, so a client that cannot install a plugin is not left with a hundred tools and no account of how to use them. It is packaged as the `microscope` plugin, which carries a Claude Code manifest (`/plugin install microscope@jeffrey`), an [Agent Plugins](https://agent-plugins.org/) one (`codex plugin marketplace add petrbouda/jeffrey`) and a Gemini CLI extension manifest (`gemini extensions install --path`) over one set of skills. Two things do not survive the portable format — a user-configurable endpoint URL and the subagents — so a Codex user gets a fixed `localhost:8585` and hand-copied `codex/agents/profile-analyst.toml`, `codex/agents/heap-triage.toml` and `codex/agents/profile-lead.toml`. Gemini takes the skills and the session-start hook from the extension and, unlike Codex, keeps a configurable endpoint: the manifest declares a `settings` entry and reads `${JEFFREY_MCP_ENDPOINT:-…}`, which Gemini resolves from the value it asks for at install, from the environment, or from the default. Its **agents are hand-copied** (`gemini/agents/`, two of them) even though it reads an installed extension's `agents/`, because it validates that frontmatter against a strict schema and rejects Claude Code's `disallowedTools`, `skills` and `color`; a Gemini tool pattern is also `mcp_<server>_<tool>` with a wildcard only for a whole server, so `mcp_jeffrey_heap_*` is not a name it accepts. There is no Gemini `profile-lead` at all — a Gemini subagent may not dispatch another subagent, and dispatch is all that agent does. Its subagents take an allow-list with no deny-list, so the analyst's read-only promise rests there on the rule in its own instructions, as it does in Codex; `excludeTools` on the server entry is the wall. The two tools that judge rather than report — `jvm_autoAnalysis` and the throttling verdict in `jvm_container` — emit one shared finding record (`McpFinding` in `profiles/mcp-server`, id `category:subject` so the same condition from two tools merges, with `source`, `evidence` and `nextTool`); `profiles_summary` leads with the rules that flagged something and carries `capabilityGaps`, the questions a recording cannot answer in words, assembled by `ProfileCapabilityGaps` from the disabled features, the unrecorded flamegraph groups, the `jvm_` sections with no events, the sampler's dropped samples and an auto-analysis that never ran. The `report` skill is the evidence discipline every other skill and all three agents write to
+JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `shared/test`, `Clock.fixed`, Awaitility for anything async, an in-process test per gRPC service (`FileDownloadGrpcServiceTest` is the pattern). Frontend: Vitest.
 
-## IntelliJ Plugin
+## Git
 
-`jeffrey-intellij-plugin/` is a **standalone Gradle project**, deliberately outside the Maven reactor
-(it pulls the IntelliJ Platform SDK, and runs on Java 21 because that is the JetBrains Runtime — not
-Jeffrey's 25). It talks to Microscope in both directions: it answers `/api/jeffrey/*` over IntelliJ's
-built-in server (`ping`, `instance`, `navigate`, `resolve`, `has`, `source`) so `IdeBridge` and the
-`ide_` MCP family can locate a frame's source, and it sends a recording or heap dump the other way
-with the *Analyze in Microscope* action, which opens `/quick-open?path=…` in a browser. Quick Open
-lands by the recording's kind: the `from-path` import answers with the recording's `eventSource`
-alongside its id, and `profileLandingRoute` turns `HEAP_DUMP` into the overview rather than the
-JFR dashboard the bare profile URL defaults to.
+- Never commit, tag or push unless the user explicitly asks in that message; a clean build or green tests is not a trigger. Authorization is per change-set — the next request needs a fresh one.
+- No `Co-Authored-By: Claude` or any AI trailer, including in the commit a squash-merge produces (GitHub adds one when the squashed commits have another author — pass an explicit message and check the merged commit).
 
-**It never renders profile data**, with one bounded exception written down below. No flame graphs,
-no dashboards, no charts, no hot-method list, no gutter or inlay markers carrying figures. Anything
-that would *show* a reader their profile is a link to Microscope, pointing at a profile-scoped view
-URL (`/profiles/{id}/{view}` — the same ones `profiles_viewLink` hands to MCP clients). A second
-renderer inside the IDE would be a second thing to build every view in and a second place for the two
-to disagree about what a recording says.
+## Documentation
 
-**The exception: the recording panel.** Opening a `.jfr`, heap dump or pprof/OTLP file gives it an editor tab
-(`RecordingFileEditorProvider`, placed *before* the default editor rather than hiding it). Reaching it
-requires `RecordingFileType`: a `FileEditorProvider` is consulted only for a file the platform routes
-through the **editor** system, and an unregistered extension is not routed there — on Ultimate a
-double-click reaches `ImportProfilerResultAction`, which loads the recording into the bundled
-profiler's tool window and opens no editor at all. `.hprof` is claimed too, competing with
-IntelliJ's own heap-dump viewer rather than replacing it — the platform shows both as tabs and the
-developer picks.
-
-**A heap dump is not a recording, and the panel says so.** `IdeRecordingStateResponse.Kind` decides
-everything below the header: a recording shows window / samples / event types / sample loss and the
-flamegraph-and-GC tiles, a dump shows retained / instances / classes / GC roots and the
-leak-suspects-and-dominator-tree tiles, and the agent prompt names "heap dump" so `analyze-heap` fires
-instead of `analyze-jfr`. The kind comes from **what was double-clicked**, not from what the profile
-carries — a recording with a dump attached still reads as a recording. It also decides where *Open in
-Microscope* lands (`ProfileSummary.landingPath()`: `dashboard` for a recording, `heap-dump/overview`
-for a dump), because the bare `/profiles/{id}` URL redirects to the JFR dashboard without looking;
-`ProfileDetail` bounces a heap-dump-only profile off any non-HeapDump path for the same reason. A dump whose index has not been
-built reports `cacheReady: false`, and the panel says so rather than printing four zeroes — in a
-callout with a *Build index* button, the second thing after *Analyze* the panel can make Microscope
-do. The **profile view paths those tiles link to** are routes in Microscope's Vue router, a build this one
-cannot see, so the frontend commits `src/router/profile-routes.json` — generated from
-`profileChildRoutes.ts` by a Vitest snapshot, so it cannot go stale — and the plugin's Gradle build
-copies it in as a test resource. `ProfileRouteManifestTest` then fails when a tile names a path the
-router does not serve, which is how one spent a release landing readers on the recordings list
-instead: the router's catch-all makes a wrong path look like a working link to the wrong page.
-
-`RecordingPanel.buildIndex` posts `heap/initialize-all` and then polls
-`heap/init-progress` every two seconds (the API is mounted at `/heap`; `heap-dump` is the UI route prefix), redrawing the callout as the one line
-`HeapIndexBuild` reduces the 13-stage pipeline to (stage N of M, its title, time so far); `query()`
-makes the same progress check for an un-indexed dump so a tab opened mid-build follows it instead of
-offering a second one. Idle and completed both parse to `null` — the panel's answer to either is to
-ask for the profile again. While the index is missing every view tile is drawn **off** (dashed, dim,
-a `div` rather than a button, keeping its own blurb) by `ProfileSummary.indexMissing()`, because
-every one of them would open an empty page; the callout above is what says why. The tab says whether Microscope has analysed the
-file, offers the button that does, and links out to the views as a 3×3 grid of tiles — and once a
-profile is ready it shows **four figures and the auto-analysis lines, and nothing else**: recording
-window, sample count, event type count, sample-loss share, then one line per finding. That list is the
-whole allowance. No fifth figure, no chart, no per-method table, no severity histogram; the next
-question is always one more number away, and the answer is the link. All of it comes from a single
-call — `GET /api/internal/recordings/by-path` — so the contract the plugin pins is one endpoint rather
-than four, and a figure it shows can only be wrong in one place.
-
-The body is **a real web page**, rendered in the IDE's bundled Chromium. `RecordingPanel` draws
-nothing: it owns the conversation with Microscope, the state machine over it, and the `PanelActions`
-the page can trigger; a `PanelRenderer` turns that into pixels. `web/CefPanelRenderer` hosts a
-`JBCefBrowser` fed one document by `web/WebPanelHtml` with a stylesheet from `web/WebPanelStyles`,
-which emits the theme exactly once as `:root` custom properties. That is what buys grid, rounded
-corners, `:hover` and a `--u` scale factor for HiDPI — **`--u` carries `px`, and must**, because
-`calc(16*1.0)` is a number rather than a length and CSS drops invalid declarations silently, giving
-an unstyled panel rather than a slightly wrong one.
-
-`SwingPanelRenderer` is the older pane wearing the platform's HTML kit, kept **only** as the fallback
-for where `JBCefApp.isSupported()` says no — a JBR without JCEF, and the JetBrains Client — and for
-an IDE where the JCEF classes are not loadable at all: since 2026.2 JCEF is a plugin of its own,
-declared in `plugin.xml` as the **optional** dependency `com.intellij.modules.jcef` (a core alias on
-older builds), so `RecordingPanel.createRenderer` catches the `LinkageError` from the first mention
-of `CefPanelRenderer` rather than letting the editor tab fail to open. It costs
-nothing to keep because it is the code that already existed, and it is **not held to visual parity**:
-Swing's engine drops `border-radius`, flexbox and `:hover`, which is the whole reason the other one
-exists. `PanelRenderer` is deliberately **not sealed** — a sealed type may only permit subtypes in its
-own package outside a named module, and the JCEF renderer belongs in `recording.web` beside the
-document it is meaningless without.
-
-Buttons are now **CSS inside the page**, not Swing between two panes, so the row can sit in the
-composition rather than in a frozen horizontal band. Nothing in the document is an `<a href>`: every
-control carries a `data-action`, one delegated listener sends the string over a single `JBCefJSQuery`,
-and a click therefore *cannot* navigate the panel away from itself. Each browser is a Chromium render
-process, so it is a `Disposable` registered with the tab. `RecordingPanel` also subscribes to
-`LafManagerListener` and re-renders — there was no such listener before, and the panel only re-themed
-by accident when the tab was reselected.
-
-Icons are hand-authored inline SVG in `web/PanelSvg`, and that is forced rather than chosen: the
-`<icon src>` extension the Swing kit provides is a Swing view factory and means nothing to Chromium,
-while reaching into `AllIcons` by resource path would pin the plugin to internal paths that move.
-
-The auto-analysis findings are **titled by the rule that fired** — `GC Pauses`, `Thrown Errors` —
-which arrives on `Finding.rule` already. JMC's `IRule.getTopic()` (`garbage_collection`,
-`exceptions`, `lock_instances`) now rides along on `AutoAnalysisResult.topic`, where it is the
-category an `McpFinding` merges on and what picks its `nextTool`, and the Auto Analysis page filters
-by. The **IDE response deliberately does not carry it**: the panel's allowance is one line per
-finding, and a grouping header is the structure that allowance exists to refuse.
-
-They **arrive with the profile**, and the panel therefore draws them once and never polls. Microscope
-starts the rule set **before the parse** rather than after it
-(`ProfileDataInitializer.startAutoAnalysis`, joined and cached by the warming stage), because the JMC
-toolkit reads the recording file and nothing the parse writes: the import costs the longer of the two
-passes instead of both, and a profile that answers at all answers with its findings. The wait that
-used to sit here — `awaitingAnalysis()`, a three-second `by-path` poll for three minutes, and an
-indeterminate `waitingCallout` — is **gone**, and removing it was the point rather than a tidy-up: a
-ready profile with no findings no longer means a run in flight, so the spinner would have been a lie
-that never resolved.
-What is left is two flags and three sentences. `analysisComputed` is `AutoAnalysisManager.isComputed()`
-— whether the cache key is **present** — rather than whether the findings list is non-empty, because a
-run that flagged nothing caches an empty list and read the other way is indistinguishable from a run
-that never happened; that recording reads `Nothing flagged.` `analysisPossible` (from `canGenerate()`)
-then separates a rule set that **failed**, which the panel offers to run again, from a recording
-Microscope no longer has, where it says so and offers nothing — the one case where *Run it in
-Microscope* would be a button that cannot work.
-
-The header well draws the **flame for a recording and an object graph for a heap dump** (`PanelSvg`
-key `heap`, `JeffreyIcons.HEAP_DUMP` on the Swing side), decided by `RecordingState.isHeapDumpFile()`
-— the summary's kind once Microscope answered, the file name before — so an `.hprof` wears it from
-the first paint. The accent bar is flame **only when Microscope answered**. Unreachable and failed mute it and the file
-icon, so the panel reads as wrong before a word of it does.
-
-**A pair, when there is one.** The panel holds an optional *baseline*: a second recording this one is
-measured against. `PanelState` is the pair — `RecordingState` stays the answer about one file, so
-"the baseline's baseline" is not a shape the types allow — and it decides everything that differs:
-the strip under the header, each figure's second value, which tiles are drawn, and whether the agent
-is asked to analyse or to compare. **The tab's own file is always the primary**; read the other way
-round every regression reports as an improvement, which is why *Swap* reopens the other file's tab
-with this one attached rather than flipping a flag someone downstream might not honour. Three ways
-in, all landing on the same panel: the panel's own *Compare with…* menu (this project's recordings
-from `FileTypeIndex`, each looked up through the same `by-path` call, so a comparable one can be
-picked before Microscope has to caution), one file selected beside an open panel, and two selected
-files where the newer opens as primary. A recording Microscope has never seen is imported first.
-There is deliberately **no direction dialog**: its only job was to confirm the direction before
-anything happened, and the strip states it afterwards in a place that can flip it.
-
-`Comparability` is the panel's whole opinion about the pair, and the reason it is drawn at all: any
-two recordings subtract cleanly and the result always looks like a finding, so `compare-jfr` makes
-`compare_list` its first call. This is the cheap half of that check over figures the panel already
-has — a window ratio past `WINDOW_TOLERANCE` (a quarter) or a different event type count reads as a
-callout above the tiles rather than a line, and the figure at fault is coloured. It reports **no
-movement, no delta and no share**: those need Microscope's scaling and pruning, and a signed number
-here would be a claim the panel has not earned. The tiles become `ProfileView.DIFFERENTIAL`, two
-views because two is all Microscope subtracts. Heap dumps are excluded everywhere — a dump compares
-with a dump, on its own diff page.
-
-The link out needed **one Microscope change**: the differential routes read `?baseline=<profileId>`
-(`BaselineQuery.ts`, adopted in `ProfileDetail`) and seed the same `SecondaryProfileService`
-selection its in-app picker writes. Without it a comparison set up here could not travel, since that
-selection lived only in session storage. The plugin spells the same parameter in `MicroscopeClient`.
-
-The ready state also hands the profile to a coding agent, sending `<cli> "Analyse Jeffrey profile
-<id>"` to a terminal tab. The **profileId, never the file path** — neither agent can parse a JFR and
-Microscope already has — and **no question of its own**: the method lives in the `analyze-jfr` skill,
-whose description fires on that exact phrase, and the panel does not know what the developer wants to
-ask. The wording is `AgentTask`, a sealed triple — `AnalyseRecording`, `AnalyseHeapDump`, `Compare` —
-rather than one sentence with flags, because each phrase is the trigger for a different skill and a
-boolean that silently picks between them is how a dump ends up asked about with flamegraph tools; the
-comparison names the primary first and the baseline as the baseline, which is the whole of the
-direction. The agents are a list (`AgentCli.ALL`), not two branches — Claude, Codex and Gemini today.
-
-Each one also declares **how it takes that sentence** (`AgentCli.PromptStyle`), because a positional
-prompt does not mean the same thing everywhere: Claude Code and Codex read it and stay interactive,
-Gemini reads it as a batch run — it answers once and exits — and keeps the session only behind `-i`.
-A style rather than a flag string, since what is being encoded is what happens to the session; spelt
-like the other two, the hand-over button would open a paragraph in a dead terminal instead of a
-conversation.
-
-They render as **one split button**, not a button each. The primary half runs `AgentRow.primary()`;
-the chevron holds the rest, grouped into *Ready* and *Not on PATH*. An uninstalled agent stays in that
-menu rather than disappearing — Jeffrey supporting Codex or Gemini is a fact about Jeffrey, and nobody should
-have to read `AgentCli.ALL` to discover it — but it no longer spends a button on something that cannot
-be pressed, so the row is the same width whether Jeffrey knows two agents or eight. Which agent is
-primary is **the one launched last** (`JeffreySettings.preferredAgent`), falling back to the first
-installed; a split button makes that choice visible, and leaving it to `AgentCli.ALL` declaration order
-would let an unrelated edit to that list silently change what a developer's button does. The Terminal plugin is an **optional** dependency — bundled everywhere but
-switchable off — and `AgentLaunchers` degrades to copying the command instead of losing the feature.
-This is the plugin's one reach outside itself, so it has a switch of its own
-(*Settings → Tools → Jeffrey Plugin*), the way `hubs_` and `ide_` do on the Microscope side.
-
-Two buttons that are deliberately **not** there: *Analyze again* on a ready profile (a recording file
-does not change, so it would only import a second copy and build an identical profile — and a file
-that genuinely changed no longer matches by name and size, so it already comes back as never
-analysed), and *Settings…* anywhere except the unreachable and failed states, which are the only two
-where a wrong address is the likely answer.
-
-Its UI is therefore a settings panel, two context-menu items — *Analyze in Microscope* and the
-comparison beside it — the file icon, and that panel, and stays that way.
-
-Two rules that look like omissions and are not: resolution is Java-PSI and platform APIs only, with
-no dependency on the Kotlin plugin or Git4Idea, so nothing can fail to load in an IDE missing either;
-and `resolve` exists separately from `navigate` because an agent grounding a finding must not move
-the developer's cursor.
-
-## DuckDB MCP Servers
-- You can use MCP Server to connect to DuckDB database to get information about the current data
-
-### Structure of the Database
-- Three-tier architecture: microscope core database, server database, and per-profile databases (isolated)
-- Local Core DB: hubs, recordings, profiles, IDE links (`ide_targets`, one row per profile). Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
-- Server DB: server-side workspaces, projects, scheduling
-- Profile DB: events, flamegraph data, analysis results for a single profile
-- `profile_id` gathers all data related to a specific profile
-
-### On-disk Database Locations (for direct inspection)
-- Per-profile DB file: `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (contains the `events`, `threads`, `event_types`, etc. tables for that profile)
-- Microscope core DB file: `~/.jeffrey-microscope/jeffrey-data.db`
-- A running app holds an exclusive lock on these files, so a read-only open fails with `Could not set lock on file`. To inspect while the app runs, copy the file first (e.g. `cp .../profile-data.db /tmp/probe.db`, plus `.wal` if present) and open the copy read-only.
-- No `duckdb` CLI or python module is installed by default; quickest path is a throwaway venv: `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
-
-### Database Schema
-- Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/` — `V001__init.sql` (table schema)
-- Server migrations: `jeffrey-hub/hub-sql-persistence/src/main/resources/db/migration/hub/V001__init.sql`
-- Profile migrations: `jeffrey-microscope/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
-- **Migration policy**: Keep table schema (`CREATE TABLE`) in `V001__init.sql` and edit it in place for schema changes. Seed data may live in a separate, purpose-named migration to keep schema and data concerns separated. The database is recreated from scratch on each startup, so editing these in development is safe.
-- JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
-- JSONB `fields` column in the `events` table contains event-specific data — see `/jfr-event-fields` skill for full field reference per event type
-
-## Documentation Sync (Jeffrey Pages)
-
-When modifying code, keep the corresponding documentation pages in `jeffrey-pages/` up to date. The docs are organized by domain:
-
-| Code module | Documentation pages |
-|---|---|
-| `jeffrey-microscope/core-microscope` | `docs/microscope/` — overview, quick start, workspaces, recordings, storage, profiler settings; `docs/microscope/projects/` — projects, instances; `docs/microscope/configuration/` — application/advanced properties, secrets |
-| `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, ...) |
-| `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
-| `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |
-| `utilities/jeffrey-heartbeat/` + its Spring Boot starter | `docs/agent/` — heartbeat library |
-| tracing instrumentation (`utilities/`) | `docs/tracing/` — concepts, getting started, configuration, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
-| `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
-| Jib build/deployment | `docs/jib/` — overview, setup, configuration |
-| External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, every client (what the plugin brings to any agent), Claude Code plugin, Codex plugin, Gemini extension, tool reference, skills, analysis agents, recipes, other clients |
-| IntelliJ plugin | `docs/intellij-plugin/` — overview, setup, configuration, JFR profiler |
-| Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
-| Install/onboarding changes | `docs/getting-started/` — introduction, installation, quick start |
-
-All paths above are relative to `jeffrey-pages/src/views/docs/`. New pages must be registered in **two** places: a route in `jeffrey-pages/src/router/index.ts`, and a sidebar entry in the product's `DocSection[]` array in `jeffrey-pages/src/composables/useDocsNavigation.ts` — a page with only a route is reachable by URL but invisible in the sidebar, breadcrumbs and prev/next, all of which are derived from that array.
-
-A whole new product panel (as `microscope-mcp` was) needs more: an entry in the `Product` union and in `PRODUCTS`, a `<NAME>_SEGMENTS` set with a branch in `getProductForPath`, its `DocSection[]` array plus a branch in `navigationForProduct` and inclusion in the `docsNavigation` union, and a `DocsProductCard` on `jeffrey-pages/src/views/docs/DocsIndexPage.vue`. `getAdjacentPages` derives prev/next per product, so no chain needs editing by hand.
+`jeffrey-pages/` documents every user-visible feature; the `docs-sync` rule maps modules to pages and lists the two registrations a new page needs. Update docs with the code change.
 
 ## License
-GNU Affero General Public License v3.0 (AGPL-3.0)
+
+AGPL-3.0 — header text in `LICENSE_HEADER`.

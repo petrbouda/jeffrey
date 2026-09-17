@@ -15,32 +15,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cafe.jeffrey.hub.core.web.controllers;
 
-import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.io.InputStream;
-
+/**
+ * Serves the gRPC API reference the build generated from the protos, for the API Documentation page.
+ */
 @RestController
 @RequestMapping("/api/internal/grpc-docs")
 public class GrpcDocsController {
 
+    private static final String GRPC_DOCS_RESOURCE = "grpc-api-docs.json";
+
     @GetMapping
-    public void getGrpcDocs(HttpServletResponse response) throws IOException {
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("grpc-api-docs.json")) {
-            if (stream == null) {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            stream.transferTo(response.getOutputStream());
+    public ResponseEntity<Resource> getGrpcDocs() {
+        Resource docs = new ClassPathResource(GRPC_DOCS_RESOURCE);
+        if (!docs.exists()) {
+            return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(docs);
     }
 }

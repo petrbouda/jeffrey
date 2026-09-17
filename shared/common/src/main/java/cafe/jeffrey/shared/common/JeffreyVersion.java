@@ -20,12 +20,25 @@ package cafe.jeffrey.shared.common;
 
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
+import java.util.Optional;
+
 public abstract class JeffreyVersion {
     private static final String JEFFREY_VERSION = "jeffrey-tag.txt";
     private static final String NO_VERSION = "Unknown";
 
     public static void print() {
         System.out.println(resolveJeffreyVersion());
+    }
+
+    /**
+     * The version this build carries, or empty when the build stamped none — a development
+     * run from the classes directory rather than a packaged release. Callers that print or
+     * report the version want the {@code Unknown} of {@link #resolveJeffreyVersion()}; a caller
+     * that would name a directory or a release after it wants to know there is none.
+     */
+    public static Optional<String> version() {
+        String version = resolveJeffreyVersion();
+        return NO_VERSION.equals(version) ? Optional.empty() : Optional.of(version);
     }
 
     public static String resolveJeffreyVersion() {

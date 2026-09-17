@@ -18,24 +18,16 @@
 
 package cafe.jeffrey.hub.persistence.api;
 
-import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 
 /**
- * A session paired with its parent repository and project, returned by lookups that need to
- * resolve a session by id alone (without going through the project context).
+ * A session paired with its repository and the id of the project both belong to, for lookups
+ * that start from a session id alone. The project itself is one more lookup away; this record
+ * does not pretend to hold it.
  */
 public record SessionWithRepository(
         String projectId,
         RepositoryInfo repositoryInfo,
         ProjectInstanceSessionInfo sessionInfo) {
-
-    /**
-     * Creates a minimal {@link ProjectInfo} containing only the project ID.
-     * Useful for factory lookups that only need the ID to resolve project-scoped resources.
-     */
-    public ProjectInfo projectInfo() {
-        return new ProjectInfo(projectId, null, null, null, null, null, null, null, null, null);
-    }
 }

@@ -20,17 +20,19 @@ package cafe.jeffrey.hub.core.web.controllers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.resources.response.ProjectResponse;
-import cafe.jeffrey.hub.core.resources.response.WorkspaceResponse;
-import cafe.jeffrey.hub.core.resources.workspace.Mappers;
+import cafe.jeffrey.hub.core.web.response.ProjectResponse;
+import cafe.jeffrey.hub.core.web.response.WorkspaceResponse;
+import cafe.jeffrey.hub.core.web.response.Mappers;
 
 import java.util.List;
 
@@ -48,33 +50,22 @@ public class WorkspacesController {
 
     @GetMapping
     public List<WorkspaceResponse> list() {
-        var result = workspacesManager.findAll().stream()
-                .map(wm -> {
-                    var info = wm.resolveInfo();
-                    return new WorkspaceResponse(
-                            info.id(),
-                            info.name(),
-                            info.referenceId(),
-                            info.createdAt().toEpochMilli(),
-                            info.projectCount(),
-                            info.status());
-                })
+        return workspacesManager.findAll().stream()
+                .map(workspace -> Mappers.toResponse(workspace.resolveInfo()))
                 .toList();
-        LOG.debug("Listed workspaces: count={}", result.size());
-        return result;
     }
 
     @GetMapping("/{workspaceId}/projects")
     public List<ProjectResponse> projects(@PathVariable("workspaceId") String workspaceId) {
         WorkspaceManager workspace = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found: " + workspaceId));
 
         ProjectsManager projectsManager = workspace.projectsManager();
         var result = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
                 .toList();
-        LOG.debug("Listed projects for workspace: workspaceId={} count={}", workspaceId, result.size());
+        LOG.debug("Listed projects for workspace: workspace_id={} count={}", workspaceId, result.size());
         return result;
     }
 }

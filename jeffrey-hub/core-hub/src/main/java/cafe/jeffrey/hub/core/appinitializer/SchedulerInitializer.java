@@ -20,15 +20,12 @@ package cafe.jeffrey.hub.core.appinitializer;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
-import cafe.jeffrey.hub.core.scheduler.Scheduler;
+import cafe.jeffrey.hub.core.scheduler.PeriodicalScheduler;
 
-import java.util.List;
 
-public record SchedulerInitializer(List<Scheduler> schedulers) implements ApplicationListener<ApplicationReadyEvent> {
+public record SchedulerInitializer(PeriodicalScheduler scheduler) implements ApplicationListener<ApplicationReadyEvent> {
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        for (Scheduler scheduler : schedulers) {
-            scheduler.start();
-        }
+        scheduler.start();
     }
 }

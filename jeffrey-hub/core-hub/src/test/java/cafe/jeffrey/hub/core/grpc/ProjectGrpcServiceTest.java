@@ -236,86 +236,64 @@ class ProjectGrpcServiceTest {
         return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
-    /**
-     * Creates a service where GetProject resolves an active project through the
-     * single-row workspace lookup.
-     */
     private ProjectGrpcService serviceWithWorkspaceProject() {
-        var projectManager = mock(ProjectManager.class);
-        when(projectManager.info()).thenReturn(TEST_PROJECT_INFO);
-        when(projectManager.detailedInfo()).thenReturn(testDetailedInfo());
-
-        var projectsManager = mock(ProjectsManager.class);
-        when(projectsManager.project(PROJECT_ID)).thenReturn(Optional.of(projectManager));
-
-        return serviceWithProjectsManager(projectsManager);
+        return serviceWithProjectInLookup(TEST_PROJECT_INFO, testDetailedInfo());
     }
 
     /**
-     * Creates a service where GetProject resolves a soft-deleted project through the
-     * deleted-inclusive listing fallback.
+     * GetProject has to see a soft-deleted project — restore names one — so it resolves through
+     * the deleted-inclusive lookup.
      */
     private ProjectGrpcService serviceWithDeletedWorkspaceProject() {
         var deletedInfo = new cafe.jeffrey.hub.model.ProjectInfo(
                 PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
                 WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
 
-        var projectManager = mock(ProjectManager.class);
-        when(projectManager.info()).thenReturn(deletedInfo);
-        when(projectManager.detailedInfo()).thenReturn(new DetailedProjectInfo(
+        return serviceWithProjectInLookup(deletedInfo, new DetailedProjectInfo(
                 deletedInfo,
                 cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
-                0, false));
-
-        var projectsManager = mock(ProjectsManager.class);
-        when(projectsManager.project(PROJECT_ID)).thenReturn(Optional.empty());
-        when(projectsManager.findAllIncludingDeleted()).thenReturn(List.of(projectManager));
-
-        return serviceWithProjectsManager(projectsManager);
+                0));
     }
 
     /**
-     * Creates a service where the project exists but belongs to another workspace,
-     * so the workspace-scoped GetProject must not resolve it.
+     * The project exists but belongs to another workspace, so the workspace-scoped GetProject
+     * must not resolve it.
      */
     private ProjectGrpcService serviceWithProjectInAnotherWorkspace() {
         var foreignInfo = new cafe.jeffrey.hub.model.ProjectInfo(
                 PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
                 "other-workspace", FIXED_TIME, null, null, null);
 
-        var projectManager = mock(ProjectManager.class);
-        when(projectManager.info()).thenReturn(foreignInfo);
-
-        var projectsManager = mock(ProjectsManager.class);
-        when(projectsManager.project(PROJECT_ID)).thenReturn(Optional.of(projectManager));
-        when(projectsManager.findAllIncludingDeleted()).thenReturn(List.of());
-
-        return serviceWithProjectsManager(projectsManager);
+        return serviceWithProjectInLookup(foreignInfo, null);
     }
 
     /**
-     * Creates a service where the workspace exists but contains no projects.
+     * The workspace exists but no project does.
      */
     private ProjectGrpcService serviceWithWorkspaceWithoutProjects() {
-        var projectsManager = mock(ProjectsManager.class);
-        when(projectsManager.project(any())).thenReturn(Optional.empty());
-        when(projectsManager.findAllIncludingDeleted()).thenReturn(List.of());
-
-        return serviceWithProjectsManager(projectsManager);
+        return serviceWithProjectInLookup(null, null);
     }
 
     /**
-     * Creates a service whose WORKSPACE_ID workspace delegates to the given ProjectsManager.
+     * A service whose WORKSPACE_ID workspace exists and whose deleted-inclusive project lookup
+     * answers with {@code info} for PROJECT_ID (nothing for any id when {@code info} is null).
      */
-    private ProjectGrpcService serviceWithProjectsManager(ProjectsManager projectsManager) {
-        var workspaceManager = mock(WorkspaceManager.class);
-        when(workspaceManager.projectsManager()).thenReturn(projectsManager);
+    private ProjectGrpcService serviceWithProjectInLookup(
+            cafe.jeffrey.hub.model.ProjectInfo info, DetailedProjectInfo detail) {
 
         var workspacesManager = mock(WorkspacesManager.class);
-        when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+        when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(mock(WorkspaceManager.class)));
 
+        var projectRepo = mock(ProjectRepository.class);
+        when(projectRepo.findIncludingDeleted()).thenReturn(Optional.ofNullable(info));
         var platformRepositories = mock(HubPlatformRepositories.class);
+        when(platformRepositories.newProjectRepository(any())).thenReturn(projectRepo);
+
+        var projectManager = mock(ProjectManager.class);
+        when(projectManager.info()).thenReturn(info);
+        when(projectManager.detailedInfo()).thenReturn(detail);
         var projectManagerFactory = mock(ProjectManager.Factory.class);
+        when(projectManagerFactory.apply(any())).thenReturn(projectManager);
 
         return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
@@ -395,6 +373,6 @@ class ProjectGrpcServiceTest {
         return new DetailedProjectInfo(
                 TEST_PROJECT_INFO,
                 cafe.jeffrey.hub.model.repository.RecordingStatus.ACTIVE,
-                5, false);
+                5);
     }
 }

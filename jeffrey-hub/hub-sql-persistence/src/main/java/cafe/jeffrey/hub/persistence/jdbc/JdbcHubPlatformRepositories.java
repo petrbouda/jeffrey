@@ -20,7 +20,15 @@ package cafe.jeffrey.hub.persistence.jdbc;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
-import cafe.jeffrey.hub.persistence.api.*;
+import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
+import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
+import cafe.jeffrey.hub.persistence.api.ProjectRepository;
+import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
+import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
+import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
+import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
+import cafe.jeffrey.hub.persistence.api.WorkspacesRepository;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
@@ -37,17 +45,9 @@ import java.util.Optional;
 public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
 
     //language=SQL
-    private static final String SELECT_INSTANCE_BY_ID = """
-            SELECT i.*,
-                   COUNT(rs.session_id) as session_count,
-                   (SELECT rs2.session_id FROM project_instance_sessions rs2
-                    WHERE rs2.instance_id = i.instance_id AND rs2.finished_at IS NULL
-                    ORDER BY rs2.created_at DESC LIMIT 1) as active_session_id
-            FROM project_instances i
-            LEFT JOIN project_instance_sessions rs ON rs.instance_id = i.instance_id
+    private static final String SELECT_INSTANCE_BY_ID = HubMappers.INSTANCE_WITH_COUNTS + """
             WHERE i.instance_id = :instance_id
-            GROUP BY i.instance_id, i.project_id, i.instance_name, i.status,
-                     i.started_at, i.finished_at, i.expiring_at, i.expired_at""";
+            """ + HubMappers.GROUP_BY_INSTANCE;
 
     //language=SQL
     private static final String SELECT_SESSIONS_BY_INSTANCE_ID = """
@@ -101,7 +101,7 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
 
     @Override
     public ProjectRepository newProjectRepository(String projectId) {
-        return new JdbcProjectRepository(projectId, databaseClientProvider);
+        return new JdbcProjectRepository(clock, projectId, databaseClientProvider);
     }
 
     @Override

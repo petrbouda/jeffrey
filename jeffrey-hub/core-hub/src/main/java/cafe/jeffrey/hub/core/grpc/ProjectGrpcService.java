@@ -29,7 +29,6 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 
 import java.util.List;
-import java.util.Optional;
 
 public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBase {
 
@@ -56,10 +55,10 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
 
             List<ProjectInfo> projects = managers.stream()
                     .map(ProjectManager::detailedInfo)
-                    .map(ProjectGrpcService::toProto)
+                    .map(ProtoMappers::project)
                     .toList();
 
-            LOG.debug("Listed projects via gRPC: workspaceId={} count={}", request.getWorkspaceId(), projects.size());
+            LOG.debug("Listed projects via gRPC: workspace_id={} count={}", request.getWorkspaceId(), projects.size());
 
             return ListProjectsResponse.newBuilder()
                     .addAllProjects(projects)
@@ -70,17 +69,16 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
+            workspacesManager.findById(request.getWorkspaceId())
                     .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
 
-            ProjectManager project = findProjectInWorkspace(
-                    workspace, request.getWorkspaceId(), request.getProjectId());
+            ProjectManager project = findProjectInWorkspace(request.getWorkspaceId(), request.getProjectId());
 
-            LOG.debug("Fetched project via gRPC: workspaceId={} projectId={}",
+            LOG.debug("Fetched project via gRPC: workspace_id={} project_id={}",
                     request.getWorkspaceId(), request.getProjectId());
 
             return GetProjectResponse.newBuilder()
-                    .setProject(toProto(project.detailedInfo()))
+                    .setProject(ProtoMappers.project(project.detailedInfo()))
                     .build();
         });
     }
@@ -91,7 +89,7 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
             ProjectManager project = lookups.projectManager(request.getProjectId());
             project.delete();
 
-            LOG.debug("Deleted project via gRPC: projectId={}", request.getProjectId());
+            LOG.debug("Deleted project via gRPC: project_id={}", request.getProjectId());
 
             return DeleteProjectResponse.getDefaultInstance();
         });
@@ -103,53 +101,22 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
             ProjectManager project = lookups.projectManagerIncludingDeleted(request.getProjectId());
             project.restore();
 
-            LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
+            LOG.info("Restored project via gRPC: project_id={}", request.getProjectId());
 
             return RestoreProjectResponse.getDefaultInstance();
         });
     }
 
     /**
-     * Finds a single project within a workspace. Active projects are resolved with a
-     * direct single-row lookup; soft-deleted projects fall back to the deleted-inclusive
-     * listing so restore/management lookups keep working (mirrors the listing path
-     * with include_deleted=true).
+     * Finds a single project within a workspace, soft-deleted or not — restore has to see a
+     * deleted one — and refuses a project of another workspace as not found.
      */
-    private static ProjectManager findProjectInWorkspace(
-            WorkspaceManager workspace, String workspaceId, String projectId) {
-
-        ProjectsManager projectsManager = workspace.projectsManager();
-
-        Optional<ProjectManager> activeProject = projectsManager.project(projectId)
-                .filter(manager -> workspaceId.equals(manager.info().workspaceId()));
-        if (activeProject.isPresent()) {
-            return activeProject.get();
+    private ProjectManager findProjectInWorkspace(String workspaceId, String projectId) {
+        ProjectManager project = lookups.projectManagerIncludingDeleted(projectId);
+        if (!workspaceId.equals(project.info().workspaceId())) {
+            throw GrpcExceptions.notFound("Project not found: " + projectId);
         }
-
-        return projectsManager.findAllIncludingDeleted().stream()
-                .filter(manager -> manager.info().id().equals(projectId))
-                .findFirst()
-                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
+        return project;
     }
 
-    static ProjectInfo toProto(DetailedProjectInfo detail) {
-        cafe.jeffrey.hub.model.ProjectInfo info = detail.projectInfo();
-
-        var builder = ProjectInfo.newBuilder()
-                .setId(info.id())
-                .setOriginId(ProtoMappers.orEmpty(info.originId()))
-                .setName(info.name())
-                .setLabel(ProtoMappers.orEmpty(info.label()))
-                .setNamespace(ProtoMappers.orEmpty(info.namespace()))
-                .setCreatedAt(info.createdAt() != null ? info.createdAt().toEpochMilli() : 0)
-                .setWorkspaceId(info.workspaceId())
-                .setStatus(ProtoMappers.recordingStatus(detail.status()))
-                .setSessionCount(detail.sessionCount());
-
-        if (info.deletedAt() != null) {
-            builder.setDeletedAt(info.deletedAt().toEpochMilli());
-        }
-
-        return builder.build();
-    }
 }

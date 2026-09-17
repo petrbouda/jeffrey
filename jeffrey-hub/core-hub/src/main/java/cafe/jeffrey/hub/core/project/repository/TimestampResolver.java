@@ -18,8 +18,12 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
+import java.util.function.Supplier;
 
 /**
  * When a file was opened by whatever wrote it, which is the timestamp a session is ordered by:
@@ -37,17 +41,31 @@ import java.time.Instant;
  * type that cannot state its own timestamp therefore must not be rewritten — see
  * {@link Compression}.
  */
-public sealed interface TimestampResolver permits FilesystemTimestamp, RecordingNameTimestamp {
+@FunctionalInterface
+public interface TimestampResolver {
 
     /**
      * When the file was opened. Never {@code null}: a resolver that cannot read the answer out of
      * the name asks the filesystem rather than failing, because a caller that cannot describe a
      * file leaves it out of the listing altogether.
      */
-    Instant resolve(Path file);
+    Instant resolve(Path file, Supplier<BasicFileAttributes> attributes);
 
-    /** The file's creation time as the filesystem reports it. */
-    TimestampResolver FILESYSTEM = new FilesystemTimestamp();
+    /**
+     * For a caller that has not read the file's attributes — the listing has, and passes them,
+     * so that a file is stat'ed once rather than once per question asked of it. Supplied lazily:
+     * a name that states its own timestamp never asks the filesystem at all.
+     */
+    default Instant resolve(Path file) {
+        return resolve(file, () -> FileSystemUtils.readAttributes(file));
+    }
+
+    /**
+     * The file's creation time as the filesystem reports it — right for a file nothing has
+     * rewritten, and only for such a file: an archive's creation time is when the archive was
+     * written, not when the recording inside it was opened.
+     */
+    TimestampResolver FILESYSTEM = (file, attributes) -> attributes.get().creationTime().toInstant();
 
     /** The instant async-profiler wrote into the file's own name, falling back to the filesystem. */
     TimestampResolver RECORDING_NAME = new RecordingNameTimestamp();

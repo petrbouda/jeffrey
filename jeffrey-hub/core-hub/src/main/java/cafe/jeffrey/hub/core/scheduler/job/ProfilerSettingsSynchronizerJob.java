@@ -18,59 +18,58 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.model.ProfilerInfo;
 import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.core.repository.RemoteWorkspaceRepository;
+import cafe.jeffrey.hub.core.workspace.settings.WorkspaceSettingsPublisher;
 import cafe.jeffrey.shared.common.model.repository.ProfilerSettings;
 import cafe.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchronizerJobDescriptor;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ProfilerSettingsSynchronizerJob extends
-        WorkspaceJob<ProfilerSettingsSynchronizerJobDescriptor> {
+public class ProfilerSettingsSynchronizerJob extends WorkspaceJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilerSettingsSynchronizerJob.class);
 
+    /** How many older published settings files a workspace keeps beside the current one. */
+    private static final String PARAM_MAX_VERSIONS = "max-versions";
+
     private final Duration period;
+    private final int maxVersions;
     private final ProfilerRepository profilerRepository;
     private final HubPlatformRepositories platformRepositories;
 
     public ProfilerSettingsSynchronizerJob(
-            Duration period,
-            ProfilerRepository profilerRepository,
             WorkspacesManager workspacesManager,
-            ProfilerSettingsSynchronizerJobDescriptor jobDescriptor,
+            JobConfig config,
+            ProfilerRepository profilerRepository,
             HubPlatformRepositories platformRepositories) {
-
-        super(workspacesManager, jobDescriptor);
-        this.period = period;
+        super(workspacesManager);
+        this.period = config.period();
+        this.maxVersions = config.intParam(PARAM_MAX_VERSIONS);
         this.profilerRepository = profilerRepository;
         this.platformRepositories = platformRepositories;
     }
 
     @Override
-    protected void executeOnWorkspace(
-            WorkspaceManager workspaceManager, ProfilerSettingsSynchronizerJobDescriptor jobDescriptor, JobContext context) {
-
-        RemoteWorkspaceRepository workspaceRepository = workspaceManager.remoteWorkspaceRepository();
+    protected void executeOnWorkspace(WorkspaceManager workspaceManager) {
+        WorkspaceSettingsPublisher settingsPublisher = workspaceManager.settingsPublisher();
 
         List<ProfilerInfo> profilerInfos = profilerRepository.findWorkspaceSettings(
                 workspaceManager.resolveInfo().id());
 
         ProfilerSettings profilerSettings = resolveProfilerSettings(profilerInfos);
-        workspaceRepository.uploadSettings(new RemoteWorkspaceSettings(profilerSettings));
-        workspaceRepository.removeLegacySettings(jobDescriptor.maxVersions());
+        settingsPublisher.uploadSettings(new RemoteWorkspaceSettings(profilerSettings));
+        settingsPublisher.removeLegacySettings(maxVersions);
     }
 
     private ProfilerSettings resolveProfilerSettings(List<ProfilerInfo> profilerInfos) {
@@ -107,7 +106,9 @@ public class ProfilerSettingsSynchronizerJob extends
         }
 
         String defaultSettings = workspaceSettings != null ? workspaceSettings : globalSettings;
-        String defaultSettingsLevel = workspaceSettings != null ? "WORKSPACE" : (globalSettings != null ? "GLOBAL" : null);
+        String defaultSettingsLevel = workspaceSettings != null
+                ? ProfilerSettings.WORKSPACE_LEVEL
+                : (globalSettings != null ? ProfilerSettings.GLOBAL_LEVEL : null);
         return new ProfilerSettings(defaultSettings, defaultSettingsLevel, projectSettings, projectSettingsById);
     }
 

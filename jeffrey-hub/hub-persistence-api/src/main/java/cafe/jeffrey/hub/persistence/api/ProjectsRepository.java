@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -32,7 +32,7 @@ public interface ProjectsRepository {
      * @param project project information.
      * @return newly create ProjectInfo
      */
-    ProjectInfo create(CreateProject project);
+    ProjectInfo create(ProjectInfo project);
 
     /**
      * Find all projects.
@@ -65,13 +65,6 @@ public interface ProjectsRepository {
      */
     Optional<ProjectInfo> findByOriginProjectId(String originProjectId);
 
-    /**
-     * Find all distinct namespaces across all projects.
-     * Used by UI to provide namespace filtering options.
-     *
-     * @return list of distinct namespace names (excluding null values)
-     */
-    List<String> findAllNamespaces();
 
     /**
      * Hard-delete soft-deleted projects whose {@code deleted_at} is older than the given

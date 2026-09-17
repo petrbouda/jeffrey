@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.resources.response.StorageOverviewResponse;
+import cafe.jeffrey.hub.core.web.response.StorageOverviewResponse;
 
 /**
  * Read-only view of the hub's on-disk storage usage, served from

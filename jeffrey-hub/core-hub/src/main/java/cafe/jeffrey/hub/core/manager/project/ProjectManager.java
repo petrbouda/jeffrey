@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.manager.project;
 
-import cafe.jeffrey.hub.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
@@ -33,11 +32,14 @@ import java.util.function.Function;
  */
 public interface ProjectManager {
 
+    /**
+     * @param status ACTIVE while any session of the project is still recording, FINISHED once
+     *               every session has finished, {@code null} for a project with no session yet
+     */
     record DetailedProjectInfo(
             ProjectInfo projectInfo,
             RecordingStatus status,
-            int sessionCount,
-            boolean isDeleted) {
+            int sessionCount) {
     }
 
     @FunctionalInterface
@@ -48,7 +50,6 @@ public interface ProjectManager {
 
     RepositoryManager repositoryManager();
 
-    ProfilerSettingsManager profilerSettingsManager();
 
     ProjectInstanceRepository projectInstanceRepository();
 

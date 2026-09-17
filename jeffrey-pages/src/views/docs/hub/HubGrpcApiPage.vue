@@ -308,13 +308,6 @@ onMounted(() => {
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>ListAllSettings</code>
-                </div>
-                <p>List settings at all levels</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
                   <code>UpsertSettingsAtLevel</code>
                 </div>
                 <p>Create/update at any level</p>

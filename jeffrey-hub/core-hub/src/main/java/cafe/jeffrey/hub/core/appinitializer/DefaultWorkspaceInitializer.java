@@ -58,10 +58,7 @@ public class DefaultWorkspaceInitializer implements ApplicationListener<Applicat
         }
 
         WorkspaceInfo created = workspacesManager.create(
-                WorkspacesManager.CreateWorkspaceRequest.builder()
-                        .referenceId(referenceId)
-                        .name(name)
-                        .build());
+                new WorkspacesManager.CreateWorkspaceRequest(referenceId, name));
 
         LOG.info("Created default workspace: workspace_id={} reference_id={} name={}",
                 created.id(), created.referenceId(), created.name());

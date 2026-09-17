@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,11 +45,11 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
             RecordingSessionFilter filter = ProtoMappers.sessionFilter(request.getFilter());
 
-            List<RecordingSession> sessions = repoManager.listRecordingSessions(true, filter).stream()
-                    .map(RepositoryGrpcService::toProto)
+            List<RecordingSession> sessions = repoManager.listRecordingSessions(SessionDetail.WITH_FILES, filter).stream()
+                    .map(ProtoMappers::session)
                     .toList();
 
-            LOG.debug("Listed sessions via gRPC: projectId={} filter={} count={}",
+            LOG.debug("Listed sessions via gRPC: project_id={} filter={} count={}",
                     request.getProjectId(), filter, sessions.size());
 
             return ListSessionsResponse.newBuilder()
@@ -62,14 +63,14 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
 
-            cafe.jeffrey.hub.model.repository.RecordingSession session =
-                    repoManager.findRecordingSessions(request.getSessionId())
-                            .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + request.getSessionId()));
+            // Resolved twice on purpose: the lookup found the row, this loads the session with its files
+            var session = repoManager.findRecordingSessions(request.getSessionId())
+                    .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + request.getSessionId()));
 
-            LOG.debug("Fetched session via gRPC: sessionId={}", request.getSessionId());
+            LOG.debug("Fetched session via gRPC: session_id={}", request.getSessionId());
 
             return GetSessionResponse.newBuilder()
-                    .setSession(toProto(session))
+                    .setSession(ProtoMappers.session(session))
                     .build();
         });
     }
@@ -80,7 +81,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
             RepositoryStatistics stats = repoManager.calculateRepositoryStatistics();
 
-            LOG.debug("Fetched repository statistics via gRPC: projectId={}", request.getProjectId());
+            LOG.debug("Fetched repository statistics via gRPC: project_id={}", request.getProjectId());
 
             return GetRepositoryStatisticsResponse.newBuilder()
                     .setTotalSize(stats.totalSizeBytes())
@@ -94,7 +95,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
             repoManager.deleteRecordingSession(request.getSessionId());
 
-            LOG.debug("Deleted session via gRPC: sessionId={}", request.getSessionId());
+            LOG.debug("Deleted session via gRPC: session_id={}", request.getSessionId());
 
             return DeleteSessionResponse.getDefaultInstance();
         });
@@ -106,7 +107,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
             repoManager.deleteFilesInSession(request.getSessionId(), request.getFileIdsList());
 
-            LOG.debug("Deleted files in session via gRPC: sessionId={} fileCount={}",
+            LOG.debug("Deleted files in session via gRPC: session_id={} file_count={}",
                     request.getSessionId(), request.getFileIdsCount());
 
             return DeleteFilesInSessionResponse.getDefaultInstance();
@@ -119,44 +120,11 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
             repoManager.setSessionRetained(request.getSessionId(), request.getRetained());
 
-            LOG.debug("Updated session retention via gRPC: sessionId={} retained={}",
+            LOG.debug("Updated session retention via gRPC: session_id={} retained={}",
                     request.getSessionId(), request.getRetained());
 
             return SetSessionRetainedResponse.getDefaultInstance();
         });
     }
 
-    static RecordingSession toProto(
-            cafe.jeffrey.hub.model.repository.RecordingSession session) {
-
-        RecordingSession.Builder builder = RecordingSession.newBuilder()
-                .setId(session.id())
-                .setName(ProtoMappers.orEmpty(session.name()))
-                .setCreatedAt(session.createdAt().toEpochMilli())
-                .setStatus(ProtoMappers.recordingStatus(session.status()))
-                .setRetained(session.retained());
-
-        if (session.instanceId() != null) {
-            builder.setInstanceId(session.instanceId());
-        }
-        if (session.finishedAt() != null) {
-            builder.setFinishedAt(session.finishedAt().toEpochMilli());
-        }
-
-        if (session.files() != null) {
-            session.files().forEach(file -> builder.addFiles(toFileProto(file)));
-        }
-
-        return builder.build();
-    }
-
-    private static RepositoryFile toFileProto(cafe.jeffrey.hub.model.repository.RepositoryFile file) {
-        return RepositoryFile.newBuilder()
-                .setId(file.id())
-                .setName(file.name())
-                .setCreatedAt(file.createdAt() != null ? file.createdAt().toEpochMilli() : 0)
-                .setSize(file.size() != null ? file.size() : 0)
-                .setIsRecording(file.isRecordingFile())
-                .build();
-    }
 }

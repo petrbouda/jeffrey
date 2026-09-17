@@ -22,7 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
+import java.util.function.Supplier;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -56,7 +58,7 @@ final class RecordingNameTimestamp implements TimestampResolver {
     private static final String COMPRESSED_SUFFIX = ".lz4";
 
     @Override
-    public Instant resolve(Path file) {
+    public Instant resolve(Path file, Supplier<BasicFileAttributes> attributes) {
         String name = uncompressed(file.getFileName().toString());
 
         if (name.startsWith(PREFIX) && name.endsWith(RECORDING_SUFFIX)) {
@@ -71,7 +73,7 @@ final class RecordingNameTimestamp implements TimestampResolver {
                     + "filename={} expected_prefix={}", name, PREFIX);
         }
 
-        return FILESYSTEM.resolve(file);
+        return FILESYSTEM.resolve(file, attributes);
     }
 
     private static String uncompressed(String filename) {

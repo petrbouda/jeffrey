@@ -28,33 +28,29 @@ import java.time.Clock;
 
 public class DuckDBHubPersistenceProvider implements HubPersistenceProvider {
 
-    private final DuckDBHubDatabaseManager databaseProvider;
+    private final HubPlatformRepositories platformRepositories;
+    private final DatabaseClientProvider databaseClientProvider;
 
-    private DataSource dataSource;
-    private Clock clock;
-
-    public DuckDBHubPersistenceProvider() {
-        this.databaseProvider = new DuckDBHubDatabaseManager();
-    }
-
-    @Override
-    public void initialize(String databaseUrl, Clock clock) {
-        this.clock = clock;
-
+    /**
+     * Opens the database and runs its migrations; a provider exists only once both are done.
+     */
+    public DuckDBHubPersistenceProvider(String databaseUrl, Clock clock) {
         // Start JFR recording for Connection Pool statistics
         JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
-
-        this.dataSource = databaseProvider.open(databaseUrl);
-        this.databaseProvider.runMigrations(dataSource);
+        DuckDBHubDatabaseManager databaseManager = new DuckDBHubDatabaseManager();
+        DataSource dataSource = databaseManager.open(databaseUrl);
+        databaseManager.runMigrations(dataSource);
+        this.databaseClientProvider = new DatabaseClientProvider(dataSource);
+        this.platformRepositories = new JdbcHubPlatformRepositories(databaseClientProvider, clock);
     }
 
     @Override
     public HubPlatformRepositories hubPlatformRepositories() {
-        return new JdbcHubPlatformRepositories(new DatabaseClientProvider(dataSource), clock);
+        return platformRepositories;
     }
 
     @Override
     public DatabaseClientProvider databaseClientProvider() {
-        return new DatabaseClientProvider(dataSource);
+        return databaseClientProvider;
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -24,7 +24,6 @@ import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.persistence.api.CreateProject;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -41,27 +40,27 @@ public class JdbcProjectsRepository implements ProjectsRepository {
 
     //language=SQL
     private static final String SELECT_PROJECT_BY_ORIGIN_ID = """
-            SELECT * FROM projects p
-            JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.origin_project_id = :origin_project_id AND p.deleted_at IS NULL""";
+            SELECT p.* FROM projects p
+            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
+              AND p.origin_project_id = :origin_project_id AND p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String SELECT_ALL_PROJECTS = """
-            SELECT * FROM projects p
-            JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.deleted_at IS NULL""";
+            SELECT p.* FROM projects p
+            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
+              AND p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE = """
-            SELECT * FROM projects p
-            JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.workspace_id = :workspace_id AND p.deleted_at IS NULL""";
+            SELECT p.* FROM projects p
+            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
+              AND p.workspace_id = :workspace_id AND p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE_INCLUDING_DELETED = """
-            SELECT * FROM projects p
-            JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.workspace_id = :workspace_id""";
+            SELECT p.* FROM projects p
+            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
+              AND p.workspace_id = :workspace_id""";
 
     //language=SQL
     private static final String INSERT_PROJECT = """
@@ -74,17 +73,10 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  workspace_id,
                  created_at,
                  origin_created_at,
-                 attributes,
-                 graph_visualization)
-                SELECT :project_id, :origin_project_id, :project_name, :project_label, :namespace, :workspace_id, :created_at, :origin_created_at, :attributes, :graph_visualization
+                 attributes)
+                SELECT :project_id, :origin_project_id, :project_name, :project_label, :namespace, :workspace_id, :created_at, :origin_created_at, :attributes
                 WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL AND deleted_at IS NULL)
                 ON CONFLICT DO NOTHING""";
-
-    //language=SQL
-    private static final String SELECT_ALL_NAMESPACES = """
-            SELECT DISTINCT namespace FROM projects
-            WHERE namespace IS NOT NULL AND deleted_at IS NULL
-            ORDER BY namespace""";
 
     /**
      * Children are normally removed when the project is soft-deleted; the child deletes here
@@ -131,9 +123,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     }
 
     @Override
-    public ProjectInfo create(CreateProject project) {
-        ProjectInfo newProject = project.projectInfo();
-
+    public ProjectInfo create(ProjectInfo newProject) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", newProject.id())
                 .addValue("origin_project_id", newProject.originId())
@@ -143,20 +133,27 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().atOffset(ZoneOffset.UTC))
                 .addValue("origin_created_at", newProject.originCreatedAt() != null ? newProject.originCreatedAt().atOffset(ZoneOffset.UTC) : null)
-                .addValue("attributes", Json.toString(newProject.attributes()))
-                .addValue("graph_visualization", Json.toString(project.graphVisualization()));
+                .addValue("attributes", Json.toString(newProject.attributes()));
 
         int inserted = databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);
+        if (inserted == 1) {
+            return newProject;
+        }
 
+        // The insert was skipped on the origin id's unique index: the project already exists
+        // under another row, and that row is the answer — said out loud, because the caller
+        // asked to create one and is being handed one it did not create
         if (newProject.originId() != null) {
-            return findByOriginProjectId(newProject.originId())
-                    .orElse(newProject);
+            Optional<ProjectInfo> existing = findByOriginProjectId(newProject.originId());
+            if (existing.isPresent()) {
+                LOG.warn("Project already exists for origin, returning the existing one: origin_project_id={} project_id={}",
+                        newProject.originId(), existing.get().id());
+                return existing.get();
+            }
         }
-        if (inserted == 0) {
-            // Should not happen for locally generated IDs — make it visible instead of
-            // silently returning a project object that was never persisted
-            LOG.warn("Project insert was skipped (conflicting project_id): project_id={}", newProject.id());
-        }
+        // Should not happen for locally generated IDs — make it visible instead of
+        // silently returning a project object that was never persisted
+        LOG.warn("Project insert was skipped (conflicting project_id): project_id={}", newProject.id());
         return newProject;
     }
 
@@ -170,13 +167,6 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 HubMappers.projectInfoMapper());
     }
 
-    @Override
-    public List<String> findAllNamespaces() {
-        return databaseClient.query(
-                StatementLabel.FIND_ALL_PROJECT_NAMESPACES,
-                SELECT_ALL_NAMESPACES,
-                (rs, _) -> rs.getString("namespace"));
-    }
 
     @Override
     public int purgeDeletedProjects(Instant deletedBefore) {

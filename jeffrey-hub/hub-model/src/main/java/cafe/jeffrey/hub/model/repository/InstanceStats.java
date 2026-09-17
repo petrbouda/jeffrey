@@ -18,11 +18,18 @@
 
 package cafe.jeffrey.hub.model.repository;
 
+import java.util.List;
+
 /**
  * Aggregated storage statistics for a single project instance.
  * Computed by walking the instance's session directories on disk.
  */
 public record InstanceStats(int fileCount, long totalSizeBytes) {
 
-    public static final InstanceStats EMPTY = new InstanceStats(0, 0L);
+    /** Over sessions loaded with their files; headers alone would count every session as empty. */
+    public static InstanceStats of(List<RecordingSession> sessions) {
+        int fileCount = sessions.stream().mapToInt(session -> session.files().size()).sum();
+        long totalSize = sessions.stream().mapToLong(RecordingSession::totalSizeBytes).sum();
+        return new InstanceStats(fileCount, totalSize);
+    }
 }

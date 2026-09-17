@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import io.grpc.Status;
-import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,14 +45,6 @@ public abstract class GrpcExceptions {
         return Status.FAILED_PRECONDITION.withDescription(description).asRuntimeException();
     }
 
-    public static StatusRuntimeException unavailable(String description) {
-        return Status.UNAVAILABLE.withDescription(description).asRuntimeException();
-    }
-
-    public static StatusRuntimeException internal(String description) {
-        return Status.INTERNAL.withDescription(description).asRuntimeException();
-    }
-
     public static StatusRuntimeException internal(Throwable cause) {
         return Status.INTERNAL.withDescription(cause.getMessage()).asRuntimeException();
     }
@@ -61,16 +52,20 @@ public abstract class GrpcExceptions {
     /**
      * Maps an exception thrown by a gRPC service method to a {@link StatusRuntimeException}.
      * Exceptions that already carry a gRPC status pass through; domain validation exceptions map to
-     * their standard status; anything else is logged and reported as {@code INTERNAL}.
+     * their standard status; anything else is logged and reported as {@code INTERNAL}. The checked
+     * {@code StatusException} has no arm because a {@code Supplier} cannot throw it.
      */
     public static StatusRuntimeException toStatus(Throwable exception) {
         return switch (exception) {
             case StatusRuntimeException e -> e;
-            case StatusException e -> e.getStatus().asRuntimeException();
             case WorkspaceAlreadyExistsException e ->
                     Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException();
             case IllegalArgumentException e ->
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException();
+            // What the storage says when a project has no repository row yet — a state the
+            // reconciler expects, so it is the caller's timing, not this server's failure
+            case IllegalStateException e ->
+                    Status.FAILED_PRECONDITION.withDescription(e.getMessage()).asRuntimeException();
             default -> {
                 LOG.error("Unhandled gRPC service exception", exception);
                 yield Status.INTERNAL.withDescription(exception.getMessage()).asRuntimeException();

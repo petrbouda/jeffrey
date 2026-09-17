@@ -291,6 +291,11 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         </thead>
         <tbody>
           <tr>
+            <td><code>jeffrey.hub.scheduler.enabled</code></td>
+            <td><code>true</code></td>
+            <td>Whether the scheduler starts at all. Off, no job runs — for a hub brought up only to serve what is already on the volume.</td>
+          </tr>
+          <tr>
             <td><code>jeffrey.hub.scheduler.fan-out-pool-size</code></td>
             <td><code>2</code></td>
             <td>Threads for project/workspace fan-out jobs. Global jobs always get their own dedicated thread.</td>
@@ -300,9 +305,9 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
 
       <h3>Jobs</h3>
       <p>
-        Durations accept <code>s</code>, <code>m</code>, <code>h</code>, and <code>d</code> shorthand.
-        Retention windows expressed as <code>duration</code> + <code>time-unit</code> take a number and a
-        <code>ChronoUnit</code> name (for example <code>7</code> / <code>Days</code>). Sizes accept binary
+        Durations — the job's <code>period</code> and every duration-valued param such as
+        <code>retention</code> — accept <code>ms</code>, <code>s</code>, <code>m</code>, <code>h</code> and
+        <code>d</code> shorthand (for example <code>7d</code>) as well as ISO-8601. Sizes accept binary
         suffixes <code>K</code>, <code>M</code>, <code>G</code>, <code>T</code>, or plain bytes.
       </p>
 
@@ -358,20 +363,15 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>project-instance-session-cleaner</code></td>
             <td><code>1h</code></td>
-            <td><code>duration=7</code> / <code>time-unit=Days</code> / <code>max-sessions=10</code></td>
+            <td><code>retention=7d</code> / <code>max-sessions=10</code></td>
             <td>
-              Deletes finished sessions past the retention window, and caps each instance at
+              Deletes finished sessions past the retention window, trims the closed chunks older
+              than the same window out of sessions still recording, and caps each instance at
               <code>max-sessions</code> logical sessions — a consecutive run of failed (0-byte)
               sessions counts as one, the live session occupies a slot, retained sessions are
               exempt. Oldest logical sessions beyond the cap are deleted even before the
               retention window expires.
             </td>
-          </tr>
-          <tr>
-            <td><code>project-instance-recording-cleaner</code></td>
-            <td><code>1h</code></td>
-            <td><code>duration=3</code> / <code>time-unit=Days</code></td>
-            <td>Trims finished chunks inside the live session so it stays bounded</td>
           </tr>
           <tr>
             <td><code>project-storage-quota-cleaner</code></td>
@@ -382,7 +382,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>expired-instance-cleaner</code></td>
             <td><code>1h</code></td>
-            <td><code>duration=14</code> / <code>time-unit=Days</code></td>
+            <td><code>retention=14d</code></td>
             <td>Deletes EXPIRED instances and abandoned PENDING instances, including their directories on disk</td>
           </tr>
           <tr>
@@ -394,8 +394,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>session-finished-detector</code></td>
             <td><code>30s</code></td>
-            <td>—</td>
-            <td>Marks sessions finished from heartbeat staleness</td>
+            <td><code>heartbeat-threshold=10s</code></td>
+            <td>Marks a session finished once its heartbeat is older than the threshold</td>
           </tr>
         </tbody>
       </table>
@@ -426,6 +426,16 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td><code>jeffrey.hub.default-workspace.reference-id</code></td>
+            <td><code>$default</code></td>
+            <td>Reference id of the workspace every Hub starts with; created at startup if missing.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.hub.default-workspace.name</code></td>
+            <td><code>$default</code></td>
+            <td>Display name of that default workspace.</td>
+          </tr>
           <tr>
             <td><code>jeffrey.hub.workspaces.auto-create</code></td>
             <td><code>false</code></td>
