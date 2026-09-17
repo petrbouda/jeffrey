@@ -30,9 +30,9 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import java.time.Instant;
 
 /**
- * Shared domain-to-proto conversions for the hub gRPC services. Centralizes the null-to-empty-string
- * coercion ({@link #orEmpty(String)}) and the enum mappings that were previously copy-pasted across
- * individual service classes (notably {@code recordingStatus}, which was duplicated verbatim).
+ * Shared domain-to-proto conversions for the hub gRPC services. Holds the null-to-empty-string
+ * coercion ({@link #orEmpty(String)}) and the enum mappings, so no individual service class
+ * carries a copy of either.
  */
 public abstract class ProtoMappers {
 

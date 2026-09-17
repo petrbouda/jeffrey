@@ -32,19 +32,16 @@ import java.util.Optional;
 /**
  * The one-shot environment events of a hub session, read on this side of the wire.
  *
- * <p>The hub serves the chunk and says nothing about its contents: it pulls the session's newest
- * closed chunk down and parses it here. That is a transfer this call did not use to make — the
- * hub used to parse the file in place and send back the handful of fields — and it is the price
- * of the hub holding no JFR reader. The parse itself is no new work: the hub did exactly this
- * read, decompress and parse on every one of these calls.
+ * <p>The hub serves the chunk and says nothing about its contents: this pulls the session's
+ * newest closed chunk down and parses it here, because the hub holds no JFR reader. The transfer
+ * is what that costs.
  *
  * <p>The chunk is handed to the download already resolved, so the session is listed once rather
  * than twice: a listing walks the session directory and, while it is still recording, opens each
  * recording file to ask the share its size.
  *
- * <p>Nothing is cached. Each call re-fetches, which is what the hub-side version did too, so this
- * is no worse per call than before; a cache keyed on the chunk's id would be a straightforward
- * improvement and is deliberately not bundled with the move.
+ * <p>Nothing is cached — each call re-fetches. A cache keyed on the chunk's id would be a
+ * straightforward improvement and is deliberately not bundled here.
  */
 public class SessionEnvironmentReader {
 

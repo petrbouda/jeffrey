@@ -43,10 +43,8 @@ import java.util.stream.Stream;
  * key is optional — it appears only if the corresponding event was present in the chunk.
  *
  * <p>This runs in Microscope, on a chunk pulled off the hub, rather than on the hub itself. The
- * hub serves the file and knows nothing about what is in it: it holds no parser, and the only
- * consumer of this data was ever Microscope's hub browser, so parsing it there put a JFR reader
- * on the hub purely to answer someone else's question. The same reasoning retired the hub's
- * replay stream and event-activity scan.
+ * hub serves the file and knows nothing about what is in it: it holds no JFR parser, and the only
+ * consumer of this data is Microscope's hub browser.
  */
 public class SessionEnvironmentParser {
 

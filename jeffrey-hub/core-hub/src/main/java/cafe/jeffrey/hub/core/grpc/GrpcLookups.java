@@ -27,10 +27,10 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 
 /**
  * Resolves domain managers/entities from request identifiers for the gRPC services, throwing a
- * consistent {@code NOT_FOUND} status when a target does not exist. Centralizes lookups that were
- * previously duplicated across services ({@code repositoryManagerForSession} in the repository and
- * download services, the active-project lookup in the project and profiler-settings services) and
- * the instance lookups that were repeated inline.
+ * consistent {@code NOT_FOUND} status when a target does not exist. Holds the lookups more than
+ * one service needs — {@code repositoryManagerForSession} for the repository and download
+ * services, the active-project lookup for the project and profiler-settings services, and the
+ * instance lookups — so each is written once.
  */
 public class GrpcLookups {
 

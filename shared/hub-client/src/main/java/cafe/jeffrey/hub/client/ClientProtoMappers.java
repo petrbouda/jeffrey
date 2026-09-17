@@ -23,9 +23,9 @@ import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 /**
- * Shared proto-to-domain conversions for the hub gRPC clients. Centralizes the empty-string-to-null
- * coercion ({@link #nullIfEmpty(String)}) and the enum mappings that were previously copy-pasted
- * across individual client classes (notably {@code recordingStatus}, which was duplicated verbatim).
+ * Shared proto-to-domain conversions for the hub gRPC clients. Holds the empty-string-to-null
+ * coercion ({@link #nullIfEmpty(String)}) and the enum mappings, so no individual client class
+ * carries a copy of either.
  */
 public abstract class ClientProtoMappers {
 

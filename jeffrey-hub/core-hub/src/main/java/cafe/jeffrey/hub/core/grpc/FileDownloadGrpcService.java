@@ -78,8 +78,8 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
             } catch (IllegalArgumentException e) {
                 // Everything the lookup refuses: an id the session does not hold, a transient
                 // file, the chunk the profiler is still writing, an empty recording. Each is a
-                // statement about what was asked for, and reported as this server's fault it
-                // reached the caller as a hub failure with a stack trace in the hub's log.
+                // statement about what was asked for, so it travels as INVALID_ARGUMENT carrying
+                // its own sentence rather than as a hub failure.
                 LOG.debug("Refusing to stream a file: sessionId={} fileId={} reason={}",
                         request.getSessionId(), request.getFileId(), e.getMessage());
                 observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));

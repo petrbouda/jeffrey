@@ -85,10 +85,8 @@ message GetInstanceSessionDetailResponse {
   // Metadata for the requested session, and nothing read out of its recording.
   InstanceSessionInfo session = 1;
 
-  // Field 2 carried the session's one-shot JFR environment events, parsed from the
-  // recording on the hub. The hub no longer reads a recording for a client: Microscope
-  // downloads the session's newest closed chunk and parses it there, the same way the
-  // JFR replay stream and the event-activity scan were retired. Do not reuse the number.
+  // Held by the session's JFR environment events, which the hub does not read: Microscope
+  // downloads the session's newest closed chunk and parses it there. Do not reuse the number.
   reserved 2;
   reserved "environment_json_fields";
 }

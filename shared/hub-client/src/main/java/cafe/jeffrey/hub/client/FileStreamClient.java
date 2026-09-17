@@ -86,10 +86,9 @@ public class FileStreamClient {
     /**
      * Pulls one file of a session onto this machine, whatever kind it is.
      *
-     * <p>One call for every kind. There were two, and they differed only in the RPC they named:
-     * the hub looked the file up, checked its category and streamed the bytes either way. What
-     * the category decides is what the caller does with the file afterwards, and the caller read
-     * it off the listing that gave it this id.
+     * <p>One call for every kind: the hub looks the file up, checks its category and streams the
+     * bytes either way. What the category decides is what the caller does with the file
+     * afterwards, and the caller read it off the listing that gave it this id.
      */
     public void streamFile(String sessionId, String fileId, InputStreamConsumer consumer) {
         DownloadFileRequest request = DownloadFileRequest.newBuilder()

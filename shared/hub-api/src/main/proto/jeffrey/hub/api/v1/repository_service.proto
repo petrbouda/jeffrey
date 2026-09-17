@@ -71,27 +71,18 @@ message GetRepositoryStatisticsRequest {
 
 // What a project's repository occupies on the hub, in bytes.
 //
-// One number, because one number is all anything asked for. This carried a status, a session
-// count, a file count, a last-activity timestamp, a biggest-session size, and a count and a size
-// for each of six file-type buckets. The buckets made the hub decide what every file type means,
-// and it decided wrong for pprof and OTLP, which arrived as "other"; of the rest, the status had
-// no reader at all and the others were either shown beside the same figure computed elsewhere or
-// answered a question nobody was asking.
+// One number, and deliberately no per-file-type breakdown: a bucket per kind would make the hub
+// decide what every file type means, which is the reader's job and not the hub's.
 //
-// There is deliberately no capacity to divide this by. The shared volume the hub reads is
+// There is deliberately no capacity to divide this by either. The shared volume the hub reads is
 // ReadWriteMany — hostPath, NFS or EFS in these docs — and on none of those does the filesystem
 // report the claim's size: NFS reports the whole export, EFS reports an enormous constant, and
 // hostPath reports the node's own disk. A percentage built on any of those would be fiction.
 message GetRepositoryStatisticsResponse {
   // Total size in bytes of every file in every session of the project.
-  //
-  // Field 4, as it was when seventeen others sat around it: a shipped field keeps its number.
-  // Renumbered to 1, an older Microscope would have read field 4, found nothing, and shown a
-  // project occupying zero bytes — a proto3 field that moves does not fail, it defaults.
   int64 total_size = 4;
 
-  // The status, session count, last-activity time, file count, biggest-session size and the
-  // six per-kind buckets this message carried. Do not reuse the numbers.
+  // Numbers held by fields this message no longer carries. Do not reuse them.
   reserved 1 to 3, 5 to 18;
   reserved "total_sessions", "session_status", "last_activity_time", "total_files",
       "biggest_session_size", "jfr_files", "jfr_size", "heap_dump_files", "heap_dump_size",
@@ -166,10 +157,7 @@ message RepositoryFile {
   // The file's category, not its format: a pprof and an OTLP profile are recordings too.
   bool is_recording = 7;
 
-  // Was `RecordingStatus status`, which the hub resolved by reaching back into its own listing.
-  // The number stays reserved rather than being taken by is_recording: an older Microscope reads
-  // field 7, and were the bool moved to 6 it would find nothing there and read every file as an
-  // artifact — every chunk refused by hubs_download, with no error anywhere saying why.
+  // Held by a per-file status this message no longer carries. Do not reuse it.
   reserved 6;
   reserved "status";
 }
