@@ -55,7 +55,7 @@ import java.util.stream.Stream;
  * compressed, whether it may be handed over — is a property that type declares about itself.
  *
  * <p>It is the one class whose <em>behaviour</em> a file's type decides, and the type is the
- * hub's own four-way one: a JFR, its archive, the profiler's scratch file, and everything else.
+ * hub's own two-way one: a JFR and its archive; everything else has no name here.
  * The hub does not read a log or a heap dump and so does not need to tell them apart; Microscope
  * classifies the name again on its side, with the enum that knows what it can read.
  *

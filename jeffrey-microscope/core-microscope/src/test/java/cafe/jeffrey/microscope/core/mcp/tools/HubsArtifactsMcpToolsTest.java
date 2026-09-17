@@ -489,12 +489,23 @@ class HubsArtifactsMcpToolsTest {
         }
 
         @Test
-        void anUnclassifiedFileIsRefusedWithTheReasonAHubWillNotServeIt() {
+        void anUnclassifiedFileIsRefusedAsNotAnArtifact() {
             hubHolds(session(finished("f-odd", "notes.txt", ManagedFile.UNKNOWN)));
 
             IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                     () -> tools.fetchFile(REF.encode(), "f-odd"));
 
+            assertTrue(refused.getMessage().contains("hubs_download"), refused.getMessage());
+        }
+
+        @Test
+        void theProfilersCacheFileIsRefusedAsNotAnArtifact() {
+            hubHolds(session(finished("f-cache", "profile-20260220-120000.jfr.1~", ManagedFile.ASPROF_TEMP)));
+
+            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                    () -> tools.fetchFile(REF.encode(), "f-cache"));
+
+            assertTrue(refused.getMessage().contains("profile-20260220-120000.jfr.1~"), refused.getMessage());
             assertTrue(refused.getMessage().contains("hubs_download"), refused.getMessage());
         }
 

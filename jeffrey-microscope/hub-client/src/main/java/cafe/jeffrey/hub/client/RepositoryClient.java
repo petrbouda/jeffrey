@@ -28,7 +28,6 @@ import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
 import java.util.List;
 
@@ -161,7 +160,7 @@ public class RepositoryClient {
                 proto.getName(),
                 proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
-                ManagedFile.of(proto.getName()),
+                RepositoryFiles.typeOf(proto.getName()),
                 RecordingStatus.FINISHED,
                 proto.getIsRecording());
     }

@@ -36,9 +36,9 @@ import java.util.function.Predicate;
  * for either. Classified by name only.
  *
  * <p>Microscope's vocabulary, not the hub's. The hub decides what it does to a file — which it
- * compresses, which it refuses to serve — with its own, much shorter enum, and forwards the rest
- * by name; a file listed off a hub is classified here again, from that name, so the two sides
- * never have to agree on a type they both spell.
+ * compresses — with its own, much shorter enum, and forwards the rest by name; a file listed off
+ * a hub is classified here again, from that name, so the two sides never have to agree on a type
+ * they both spell.
  */
 public enum ManagedFile {
     // JFR_LZ4 must be before JFR to ensure .jfr.lz4 files are matched first

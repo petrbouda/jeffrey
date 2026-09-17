@@ -35,7 +35,11 @@ public final class RepositoryFiles {
     }
 
     public static ManagedFile typeOf(RepositoryFile file) {
-        return ManagedFile.of(file.name());
+        return typeOf(file.name());
+    }
+
+    public static ManagedFile typeOf(String name) {
+        return ManagedFile.of(name);
     }
 
     /**

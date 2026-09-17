@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.microscope.model;
+package cafe.jeffrey.shared.common.model.repository;
 
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.shared.common.Json;
