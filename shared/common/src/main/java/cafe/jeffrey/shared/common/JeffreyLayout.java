@@ -35,7 +35,7 @@ package cafe.jeffrey.shared.common;
  *         .instance-info.json
  *         &lt;session-id&gt;/
  *           .session-info.json
- *           .heartbeat/                   agent liveness files
+ *           .heartbeat/                   heartbeat liveness files
  * </pre>
  *
  * <p>Both sides must resolve these names from this single class; any rename

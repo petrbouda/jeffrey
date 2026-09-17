@@ -109,7 +109,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var repoRepo = createRepoRepository(clock, dataSource);
             var finisher = createFinisher(clock, dataSource);
 
-            // Step 1: Write a heartbeat file (simulates agent writing heartbeats)
+            // Step 1: Write a heartbeat file (simulates the heartbeat library writing heartbeats)
             Path sessionDir = tempDir.resolve("session-2025-06-15");
             Instant heartbeatTime = Instant.parse("2025-06-15T11:50:00Z");
             writeHeartbeatFile(sessionDir, heartbeatTime);
@@ -149,7 +149,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             Instant heartbeatTime = NOW.minusSeconds(1);
             writeHeartbeatFile(sessionDir, heartbeatTime);
 
-            // The agent's shutdown hook wrote the clean-exit marker
+            // The heartbeat library's shutdown hook wrote the clean-exit marker
             Instant cleanExitTime = NOW;
             writeFinishedMarkerFile(sessionDir, cleanExitTime);
 
@@ -289,7 +289,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var repoRepo = createRepoRepository(clock, dataSource);
             var finisher = createFinisher(clock, dataSource);
 
-            // Write a stale heartbeat file (simulates agent that stopped long ago)
+            // Write a stale heartbeat file (simulates an application that stopped long ago)
             Path sessionDir = tempDir.resolve("session-2025-06-15");
             Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
             writeHeartbeatFile(sessionDir, staleHeartbeat);
@@ -347,7 +347,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var repoRepo = createRepoRepository(clock, dataSource);
             var finisher = createFinisher(clock, dataSource);
 
-            // Step 1: Write heartbeat file (simulates agent writing heartbeat)
+            // Step 1: Write heartbeat file (simulates the heartbeat library writing a heartbeat)
             Path sessionDir = tempDir.resolve("session-2025-06-15");
             Instant heartbeatTime = Instant.parse("2025-06-15T11:55:00Z");
             writeHeartbeatFile(sessionDir, heartbeatTime);

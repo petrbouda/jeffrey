@@ -118,9 +118,9 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
 
       <h2 id="why-shared">Why a Shared Volume?</h2>
       <p>
-        The application image deliberately contains <strong>no</strong> provisioner binary, agent
-        JAR, or profiler library — those are owned by Jeffrey Hub and delivered at
-        runtime. Upgrading Jeffrey Hub upgrades the agent / profiler for every
+        The application image deliberately contains <strong>no</strong> provisioner binary or
+        profiler library — those are owned by Jeffrey Hub and delivered at
+        runtime. Upgrading Jeffrey Hub upgrades the provisioner / profiler for every
         monitored pod in the namespace; no rebuild of your application image is required.
       </p>
 

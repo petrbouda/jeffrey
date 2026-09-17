@@ -24,8 +24,6 @@ jobs:
     - name: Build with Maven
       env:
         JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
-      # verify, not package: the agent's integration tests run under a real -javaagent at the
-      # integration-test phase, and package stops short of them.
       run: mvn clean verify
 
     - name: Upload microscope.jar

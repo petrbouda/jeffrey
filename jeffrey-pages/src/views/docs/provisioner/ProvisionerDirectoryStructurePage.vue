@@ -78,7 +78,7 @@ onMounted(() => {
 ├── profile-1704067200.jfr       # JFR chunk (timestamp-based naming)
 ├── profile-1704067800.jfr       # Next chunk after loop interval
 ├── profile-1704068400.jfr       # ... more chunks
-├── .heartbeat/                  # Agent liveness files
+├── .heartbeat/                  # Heartbeat liveness files
 │   ├── heartbeat                # Epoch millis, rewritten every 5 seconds
 │   └── finished                 # Clean-exit marker (written on JVM shutdown)
 ├── heap-dump.hprof.gz           # Heap dump (if captured)

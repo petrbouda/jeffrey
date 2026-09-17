@@ -31,7 +31,7 @@ const headings = [
   { id: 'parent-pom', text: 'Parent pom.xml', level: 2 },
   { id: 'module-pom', text: 'Per-Module Override', level: 2 },
   { id: 'build-commands', text: 'Build Commands', level: 2 },
-  { id: 'no-baked-binaries', text: 'No Agent or Profiler in the Image', level: 2 }
+  { id: 'no-baked-binaries', text: 'No Profiler in the Image', level: 2 }
 ];
 
 onMounted(() => {
@@ -113,9 +113,9 @@ const moduleClient = `<plugin>
         and modifies the image's entrypoint at build time. The result: a Spring Boot image
         that, when launched in a pod with <code>JEFFREY_ENABLED=true</code> and a populated
         <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
-        the JVM starts and boots with the right <code>-javaagent</code> + async-profiler
-        flags. There is no Dockerfile, no shell script, and no agent or profiler binary
-        baked into the image.
+        the JVM starts and boots with the right async-profiler flags and
+        <code>-Djeffrey.heartbeat.*</code> properties. There is no Dockerfile, no shell script,
+        and no profiler binary baked into the image.
       </p>
 
       <h2 id="what-it-does">What the Extension Does</h2>
@@ -248,10 +248,10 @@ const moduleClient = `<plugin>
         <code>JIB_REGISTRY_USER</code> / <code>JIB_REGISTRY_PASS</code> env vars.
       </p>
 
-      <h2 id="no-baked-binaries">No Agent or Profiler in the Image</h2>
+      <h2 id="no-baked-binaries">No Profiler in the Image</h2>
       <p>
         A deliberate property of the testapp setup: <strong>the application image contains
-        only the entrypoint wrapper</strong>. The provisioner binary, agent JAR, and async-profiler
+        only the entrypoint wrapper</strong>. The provisioner binary and async-profiler
         library are not baked into the image — they are delivered to every monitored pod at
         runtime via the shared <code>jeffrey-pvc</code>, populated by Jeffrey Hub's
         <code>copy-libs</code> feature.

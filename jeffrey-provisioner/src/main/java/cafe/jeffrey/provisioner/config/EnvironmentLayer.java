@@ -43,9 +43,9 @@ public abstract class EnvironmentLayer {
     static final String ORIGIN_DESCRIPTION = "JEFFREY_* environment variables";
 
     /**
-     * Spelled exactly as the agent's own parameter ({@code -javaagent:...=tracing.enabled=true}):
-     * this is the switch for that parameter and nothing else, so the two names match rather than
-     * needing a translation table. The UI feature and its REST path stay "method-tracing".
+     * Spelled exactly as the HOCON key it switches ({@code tracing.enabled},
+     * {@link ConfigPaths#TRACING_ENABLED}), so the two names match rather than needing a
+     * translation table. The UI feature and its REST path stay "method-tracing".
      */
     private static final String ENV_TRACING_ENABLED = "JEFFREY_TRACING_ENABLED";
 

@@ -221,7 +221,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           <tr>
             <td>The session never ends</td>
             <td>No heartbeat file — the application does not carry the heartbeat library, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere</td>
-            <td>The Provisioner sets <code>heartbeat.dir</code>; a hand-rolled agent argument has to match the session path</td>
+            <td>The Provisioner sets <code>heartbeat.dir</code>; a hand-set <code>jeffrey.heartbeat.dir</code> has to match the session path</td>
           </tr>
         </tbody>
       </table>

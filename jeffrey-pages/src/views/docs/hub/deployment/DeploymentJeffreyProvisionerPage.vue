@@ -140,8 +140,8 @@ volumes:
         <li>The wrapped entrypoint checks <code>JEFFREY_ENABLED</code>. If it's not <code>true</code>, it skips profiling entirely and <code>exec</code>s the original <code>java</code> command.</li>
         <li>It reads <code>JEFFREY_BASE_CONFIG</code> (the path to the HOCON config inside the container).</li>
         <li>It locates the per-arch provisioner binary at <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> (where <code>&lt;arch&gt;</code> is resolved from <code>uname -m</code>).</li>
-        <li>It calls <code>provisioner init</code>, which reads the HOCON config, derives the agent / profiler paths from <code>JEFFREY_HOME</code>, and emits a JVM-arg response file.</li>
-        <li>It launches the JVM with <code>java @&lt;response-file&gt; @/app/jib-classpath-file &lt;MainClass&gt;</code>. The response file injects the <code>-javaagent</code>, the <code>-agentpath</code> for async-profiler, the <code>additional-jvm-options</code>, and the per-feature flags (heap-dump, perf-counters).</li>
+        <li>It calls <code>provisioner init</code>, which reads the HOCON config, derives the profiler path from <code>JEFFREY_HOME</code>, and emits a JVM-arg response file.</li>
+        <li>It launches the JVM with <code>java @&lt;response-file&gt; @/app/jib-classpath-file &lt;MainClass&gt;</code>. The response file injects the <code>-agentpath</code> for async-profiler, the <code>-Djeffrey.heartbeat.*</code> properties, the <code>additional-jvm-options</code>, and the per-feature flags (heap-dump, perf-counters).</li>
       </ol>
 
       <h2 id="env-vars">Required Environment Variables</h2>
@@ -164,7 +164,7 @@ volumes:
           <tr>
             <td><code>JEFFREY_HOME</code></td>
             <td><code>/mnt/jeffrey</code> (= <code>sharedVolume.mountPath</code>)</td>
-            <td>Root of the shared volume. The provisioner binary, agent JAR, and async-profiler library are resolved relative to <code>${JEFFREY_HOME}/libs/current/</code>.</td>
+            <td>Root of the shared volume. The provisioner binary and async-profiler library are resolved relative to <code>${JEFFREY_HOME}/libs/current/</code>.</td>
           </tr>
           <tr>
             <td><code>JEFFREY_BASE_CONFIG</code></td>

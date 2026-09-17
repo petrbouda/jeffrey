@@ -22,8 +22,8 @@ package cafe.jeffrey.provisioner;
  * A session that exists on disk and knows its place: the ids identifying it to the hub, its
  * ordinal within the instance, and the layout it was created in.
  *
- * <p>The order is computed before the JVM options are built because the agent emits it in
- * {@code jeffrey.AppInformation}.
+ * <p>The order is computed before the JVM options are built because the session is registered
+ * with the hub, order included, before the JVM starts.
  */
 public record ProvisionedSession(
         String projectId,

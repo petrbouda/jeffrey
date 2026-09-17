@@ -83,8 +83,8 @@ class JeffreyHeartbeatAutoConfigurationTest {
 
         @Test
         void contributesNothingWhenDisabled(@TempDir Path tempDir) {
-            // What the Provisioner exports when it attached the agent: the agent beats for this
-            // session already, so the library must not write the same file alongside it
+            // What the Provisioner exports for a deployment that opted out of liveness reporting:
+            // the library must not write a heartbeat the hub was told not to expect
             runner.withPropertyValues(
                             "jeffrey.heartbeat.enabled=false",
                             "jeffrey.heartbeat.dir=" + tempDir)

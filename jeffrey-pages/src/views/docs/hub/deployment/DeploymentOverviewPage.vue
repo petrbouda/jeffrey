@@ -82,7 +82,7 @@ onMounted(() => {
           <div class="release-icon"><i class="bi bi-cloud"></i></div>
           <div class="release-body">
             <h3>jeffrey-hub</h3>
-            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code>; <code>copy-libs</code> publishes the provisioner bundle, agent JAR, and async-profiler library into the shared volume for the testapp pods to consume. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
+            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code>; <code>copy-libs</code> publishes the provisioner bundle and async-profiler library into the shared volume for the testapp pods to consume. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
           </div>
         </div>
         <div class="release-tile tile-direct">
@@ -184,14 +184,14 @@ onMounted(() => {
           <div class="step-number">1</div>
           <div class="step-content">
             <h4><i class="bi bi-box-seam"></i> Build the image</h4>
-            <p>The application's <code>pom.xml</code> wires the <strong>Jeffrey JIB extension</strong> into the <code>jib-maven-plugin</code>. <code>mvn jib:dockerBuild</code> produces an image whose entrypoint is wrapped to invoke <code>provisioner init</code> at container start. No agent or profiler binaries get baked in. <router-link to="/docs/hub/deployment/jeffrey-jib">→ Jeffrey JIB Extension</router-link></p>
+            <p>The application's <code>pom.xml</code> wires the <strong>Jeffrey JIB extension</strong> into the <code>jib-maven-plugin</code>. <code>mvn jib:dockerBuild</code> produces an image whose entrypoint is wrapped to invoke <code>provisioner init</code> at container start. No profiler binaries get baked in. <router-link to="/docs/hub/deployment/jeffrey-jib">→ Jeffrey JIB Extension</router-link></p>
           </div>
         </div>
         <div class="lifecycle-step">
           <div class="step-number">2</div>
           <div class="step-content">
             <h4><i class="bi bi-hdd-stack"></i> Provision the shared volume</h4>
-            <p><code>jeffrey-hub</code>'s Helm chart creates a <code>ReadWriteMany</code> PVC; <code>copy-libs</code> populates <code>libs/current/</code> with the per-arch provisioner binary, agent JAR, and async-profiler library. <router-link to="/docs/hub/deployment/shared-volume">→ Shared Volume</router-link></p>
+            <p><code>jeffrey-hub</code>'s Helm chart creates a <code>ReadWriteMany</code> PVC; <code>copy-libs</code> populates <code>libs/current/</code> with the per-arch provisioner binary and async-profiler library. <router-link to="/docs/hub/deployment/shared-volume">→ Shared Volume</router-link></p>
           </div>
         </div>
         <div class="lifecycle-step">

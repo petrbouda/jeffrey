@@ -2,7 +2,7 @@
 #
 # Scope: this file ONLY drives the GitHub release step (changelog + assets +
 # checksums + signatures) of the tag-triggered pipeline. Docker images (Jib),
-# the GraalVM native CLI, the Spring Boot jars and the agent jar are all still
+# the GraalVM native CLI and the Spring Boot jars are all still
 # produced by Maven/Jib in the earlier jobs of .github/workflows/release.yml and
 # are simply handed to JReleaser as pre-built files.
 #

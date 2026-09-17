@@ -105,7 +105,7 @@ An **instance** represents a single pod lifecycle — from startup to terminatio
 ![Instances overview and lifecycle](images/release-notes/server-recording/02-instances-overview.png)
 *Instance list showing lifecycle state, session count, and timestamps.*
 
-Jeffrey detects session liveness through **file-based heartbeats**. The Jeffrey Agent (bundled with your application) writes `.heartbeat/heartbeat` to shared storage every five seconds and a `.heartbeat/finished` timestamp on clean shutdown. Jeffrey Hub checks the finished marker first, then falls back to heartbeat staleness after a hard crash. If a HotSpot error log appears, the Hub records it as a crash event.
+Jeffrey detects session liveness through **file-based heartbeats**. The `jeffrey-heartbeat` library (an ordinary dependency of your application, declared to the Hub with `heartbeat.enabled`) writes `.heartbeat/heartbeat` to shared storage every five seconds and a `.heartbeat/finished` timestamp on clean shutdown. Jeffrey Hub checks the finished marker first, then falls back to heartbeat staleness after a hard crash. If a HotSpot error log appears, the Hub records it as a crash event.
 
 ![Instance timeline](images/release-notes/server-recording/03-instance-timeline.png)
 *Timeline view showing instance activity, sessions, and events over time.*

@@ -245,7 +245,7 @@ public class InitConfig {
     /**
      * Reads the merged configuration. Precedence was already settled by the layer merge, so every
      * setting is a plain read; what is left here is the resolution a value needs before anyone can
-     * use it — placeholders, the profiler and agent lookups, and the instance name.
+     * use it — placeholders, the profiler lookup, and the instance name.
      *
      * <p>Resolution happens once, at construction. It used to sit behind the getters, where
      * {@code getInstanceName()} handed out a fresh UUID on every call and the path getters hit the
@@ -313,11 +313,6 @@ public class InitConfig {
                 .resolve(BUNDLED_PROFILER_PREFIX + DETECTED_ARCH + BUNDLED_PROFILER_SUFFIX);
         return Files.exists(candidate) ? candidate.toString() : null;
     }
-
-    /**
-     * The explicit path, or the agent JAR bundled under {@code jeffrey-home}. Null when neither is
-     * available — agent-dependent features are skipped downstream.
-     */
 
     /**
      * Reference ID of the workspace on the target Jeffrey server. The workspace must already
@@ -447,7 +442,7 @@ public class InitConfig {
 
     /**
      * Whether this session records spans, which is what decides if the JFR thresholds a span is
-     * read at are lowered. It says nothing about the agent: spans come from the application's own
+     * read at are lowered. It says nothing about instrumentation: spans come from the application's own
      * {@code Tracer} calls and from the {@code jeffrey-tracing-*} instrumentation libraries.
      */
     public boolean isSpanTracingEnabled() {
