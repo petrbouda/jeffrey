@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager.additional;
 
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.additional.PerfCounter;
 
 import java.nio.file.Path;

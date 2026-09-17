@@ -35,7 +35,7 @@ import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.resources.request.GenerateFlamegraphRequest;
-import cafe.jeffrey.shared.common.GraphType;
+import cafe.jeffrey.microscope.model.GraphType;
 
 import java.util.List;
 

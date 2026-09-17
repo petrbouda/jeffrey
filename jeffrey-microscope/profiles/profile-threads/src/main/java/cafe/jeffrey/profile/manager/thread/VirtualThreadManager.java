@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.manager.thread;
 
 import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.util.function.Function;
 

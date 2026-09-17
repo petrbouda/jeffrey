@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.microscope.grpc.client.*;
 
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
 
 import java.util.function.Function;
 

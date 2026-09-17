@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.shared.ui.hub.dto;
 
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 
 public record WorkspaceResponse(
         String id,

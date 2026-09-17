@@ -22,7 +22,7 @@ import cafe.jeffrey.provider.profile.api.*;
 
 import cafe.jeffrey.provider.profile.jdbc.*;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
-import cafe.jeffrey.shared.common.FrameResolutionMode;
+import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.persistence.CachingDatabaseManager;
 import cafe.jeffrey.shared.persistence.DatabaseManager;

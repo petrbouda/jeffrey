@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.storage.recording.api.file;
 
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.time.Duration;
 import java.time.Instant;

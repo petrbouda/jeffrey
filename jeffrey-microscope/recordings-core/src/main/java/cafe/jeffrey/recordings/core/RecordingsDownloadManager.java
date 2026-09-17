@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.recordings.core;
 
-import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 
 import java.util.List;
 

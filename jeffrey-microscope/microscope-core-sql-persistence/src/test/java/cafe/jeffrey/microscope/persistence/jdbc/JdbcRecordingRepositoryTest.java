@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;

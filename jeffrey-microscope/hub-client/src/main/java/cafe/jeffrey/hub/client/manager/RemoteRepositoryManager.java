@@ -23,11 +23,11 @@ import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.StreamedFile;
+import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
+import cafe.jeffrey.microscope.model.repository.StreamedFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

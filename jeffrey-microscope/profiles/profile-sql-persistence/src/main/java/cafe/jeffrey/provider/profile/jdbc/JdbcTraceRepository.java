@@ -43,7 +43,7 @@ import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceThrottleWindowRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
 import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanInterval;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;

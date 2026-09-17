@@ -20,8 +20,8 @@ package cafe.jeffrey.profile.manager;
 
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.profile.common.treetable.Tree;
 import cafe.jeffrey.profile.common.treetable.TreeData;

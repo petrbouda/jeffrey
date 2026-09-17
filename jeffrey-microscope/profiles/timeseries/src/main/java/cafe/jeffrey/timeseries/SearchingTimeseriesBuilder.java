@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.timeseries;
 
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;

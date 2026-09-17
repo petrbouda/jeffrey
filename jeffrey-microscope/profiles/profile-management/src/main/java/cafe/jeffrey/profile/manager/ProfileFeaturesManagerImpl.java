@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureCheckResult;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.feature.checker.ContainerDashboardFeatureChecker;

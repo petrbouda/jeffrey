@@ -50,6 +50,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-model</artifactId>
+        </dependency>
         <!-- Spring Web: ResponseEntity, Resource, MultipartFile, SseEmitter, StreamingResponseBody -->
         <dependency>
             <groupId>org.springframework</groupId>

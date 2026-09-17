@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.shared.common.model.StacktraceTag;
-import cafe.jeffrey.shared.common.settings.ActiveSetting;
+import cafe.jeffrey.microscope.model.StacktraceTag;
+import cafe.jeffrey.microscope.model.settings.ActiveSetting;
 import cafe.jeffrey.provider.profile.api.EventWriters;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.provider.profile.api.*;

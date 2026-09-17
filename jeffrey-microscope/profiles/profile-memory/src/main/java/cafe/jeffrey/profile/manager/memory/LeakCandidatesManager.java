@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager.memory;
 
 import cafe.jeffrey.profile.manager.model.leak.LeakCandidate;
 import cafe.jeffrey.profile.manager.model.leak.LeakOverview;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.util.List;
 import java.util.function.Function;

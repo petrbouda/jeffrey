@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.manager.gc;
 
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.model.gc.G1PlabStatistics;
 import cafe.jeffrey.profile.manager.model.gc.GCPhaseParallelAggregate;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;

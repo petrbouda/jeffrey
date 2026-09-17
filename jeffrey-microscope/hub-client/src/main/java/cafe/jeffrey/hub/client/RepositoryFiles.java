@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 

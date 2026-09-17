@@ -33,7 +33,7 @@ import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser.RecordingMet
 import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 
 import java.nio.file.Files;

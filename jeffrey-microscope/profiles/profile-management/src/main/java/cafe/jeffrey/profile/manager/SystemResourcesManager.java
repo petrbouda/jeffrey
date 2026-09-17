@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.manager.model.system.ModuleEdge;
 import cafe.jeffrey.profile.manager.model.system.ModuleExport;
 import cafe.jeffrey.profile.manager.model.system.SystemOverview;
 import cafe.jeffrey.profile.manager.model.system.SystemProcessInfo;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;

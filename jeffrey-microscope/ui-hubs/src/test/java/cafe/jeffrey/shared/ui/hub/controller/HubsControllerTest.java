@@ -20,9 +20,9 @@ package cafe.jeffrey.shared.ui.hub.controller;
 
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.hub.HubSource;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubSource;
 import cafe.jeffrey.shared.ui.hub.bridge.HubRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

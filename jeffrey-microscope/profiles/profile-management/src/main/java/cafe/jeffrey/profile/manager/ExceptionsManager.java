@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionTypeStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionsOverview;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;

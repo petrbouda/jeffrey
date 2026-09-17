@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.storage.recording.api;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
 
 import java.nio.file.Path;
 import java.util.List;

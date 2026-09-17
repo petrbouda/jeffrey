@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.client.dto;
 
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 
 import java.time.Instant;
 

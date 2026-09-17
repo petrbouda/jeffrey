@@ -28,7 +28,7 @@ import cafe.jeffrey.profile.manager.custom.model.method.CumulatedStats;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

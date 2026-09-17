@@ -20,6 +20,7 @@ module cafe.jeffrey.shared.ui.hub {
     requires transitive cafe.jeffrey.recordings.core;
     requires transitive cafe.jeffrey.microscope.persistence.api;
     requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
     requires spring.web;
     requires spring.webmvc;
     requires spring.context;

@@ -29,7 +29,7 @@ import cafe.jeffrey.profile.mcp.McpToolResult;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import tools.jackson.databind.node.ObjectNode;

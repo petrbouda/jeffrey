@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.StacktraceType;
+import cafe.jeffrey.microscope.model.StacktraceType;
 
 public record EventStacktraceWithHash(
         long hash,

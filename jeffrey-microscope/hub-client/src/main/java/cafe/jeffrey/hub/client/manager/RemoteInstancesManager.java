@@ -25,10 +25,10 @@ import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionResponse;
 import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
 import cafe.jeffrey.shared.common.InstantUtils;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
-import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
+import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.microscope.model.ProjectInstanceSessionInfo;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;

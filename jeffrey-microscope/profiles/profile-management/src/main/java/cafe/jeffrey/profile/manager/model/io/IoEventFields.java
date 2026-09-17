@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager.model.io;
 
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 /**
  * Shared field-name constants and per-event helpers for the socket/file I/O events

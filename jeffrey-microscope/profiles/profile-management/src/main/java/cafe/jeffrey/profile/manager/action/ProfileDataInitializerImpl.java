@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.shared.persistence.DatabaseManager;

@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.ProfilingStartEnd;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.SimpleTimeseriesBuilder;

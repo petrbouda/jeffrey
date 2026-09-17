@@ -58,7 +58,7 @@ import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
 import cafe.jeffrey.provider.profile.api.EventFrame;
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanInterval;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

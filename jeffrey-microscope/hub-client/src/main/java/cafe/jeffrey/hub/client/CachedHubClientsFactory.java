@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.grpc.client.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
 
 import java.io.Closeable;
 import java.util.Map;

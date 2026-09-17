@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 

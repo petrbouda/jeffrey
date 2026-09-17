@@ -35,7 +35,7 @@ import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
 import cafe.jeffrey.provider.profile.api.EventThread;
 import cafe.jeffrey.provider.profile.api.EventType;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;

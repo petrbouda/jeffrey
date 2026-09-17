@@ -37,9 +37,9 @@ import cafe.jeffrey.storage.recording.api.file.FileCategory;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 
 import java.io.IOException;

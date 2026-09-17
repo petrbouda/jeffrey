@@ -30,8 +30,8 @@ import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.dto.response.ProfileInfoResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.ProjectWithProfilesResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
 
 import java.util.ArrayList;
 import java.util.List;

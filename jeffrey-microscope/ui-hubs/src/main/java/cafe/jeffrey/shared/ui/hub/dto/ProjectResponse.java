@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.shared.ui.hub.dto;
 
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 
 public record ProjectResponse(
         String id,

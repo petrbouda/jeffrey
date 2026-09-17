@@ -32,6 +32,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>microscope-model</module>
         <module>notifications</module>
         <module>recording-storage-api</module>
         <module>filesystem-recording-storage</module>

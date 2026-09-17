@@ -24,15 +24,8 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.shared.common.serde.RelativeTimeRangeDeserializer;
-import cafe.jeffrey.shared.common.serde.RelativeTimeRangeSerializer;
-import cafe.jeffrey.shared.common.serde.TypeDeserializer;
-import cafe.jeffrey.shared.common.serde.TypeSerializer;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -53,14 +46,7 @@ public abstract class Json {
             new TypeReference<>() {
             };
 
-    private static final SimpleModule CUSTOM_TYPES_SERDE = new SimpleModule()
-            .addSerializer(new TypeSerializer())
-            .addSerializer(new RelativeTimeRangeSerializer())
-            .addDeserializer(Type.class, new TypeDeserializer())
-            .addDeserializer(RelativeTimeRange.class, new RelativeTimeRangeDeserializer());
-
     private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .addModule(CUSTOM_TYPES_SERDE)
             // Treat missing/null JSON values as the primitive's zero value (false / 0) instead of
             // throwing MismatchedInputException. Matches the project's manual JsonNode helpers
             // (readBoolean / readInt) and Jackson 2.x's historical default - lets request-body

@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.thread;
 
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.EnumSet;
 import java.util.Map;

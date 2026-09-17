@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
 
 import java.util.List;

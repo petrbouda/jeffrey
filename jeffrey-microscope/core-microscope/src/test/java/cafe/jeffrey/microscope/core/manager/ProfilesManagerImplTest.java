@@ -29,7 +29,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
-import cafe.jeffrey.shared.common.model.*;
+import cafe.jeffrey.microscope.model.*;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 

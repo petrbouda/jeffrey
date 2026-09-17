@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.recordings.core.manager;
 
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.nio.file.Path;
 import java.time.Instant;

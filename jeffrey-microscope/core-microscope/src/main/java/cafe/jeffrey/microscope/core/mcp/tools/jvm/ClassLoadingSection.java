@@ -22,7 +22,7 @@ import cafe.jeffrey.profile.manager.model.classloading.ClassLoadActivity;
 import cafe.jeffrey.profile.manager.model.classloading.ClassLoaderStat;
 import cafe.jeffrey.profile.manager.model.classloading.ClassLoadingOverview;
 import cafe.jeffrey.profile.manager.model.classloading.RedefinitionData;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 import java.util.Set;

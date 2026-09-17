@@ -26,7 +26,7 @@ import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.api.v1.SessionFilter;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
@@ -112,7 +112,7 @@ class RepositoryClientTest {
         void filterBoundsStatusAndLimitTravelToTheHub() {
             Instant from = NOW.minus(Duration.ofHours(1));
             var filter = new RecordingSessionFilter(
-                    from, NOW, cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED, 3);
+                    from, NOW, cafe.jeffrey.microscope.model.repository.RecordingStatus.FINISHED, 3);
 
             client.recordingSessions(PROJECT_ID, filter);
 

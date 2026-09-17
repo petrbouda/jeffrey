@@ -26,7 +26,7 @@ import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
 import cafe.jeffrey.provider.profile.api.EventThread;
 import cafe.jeffrey.provider.profile.api.EventType;
-import cafe.jeffrey.shared.common.model.StacktraceType;
+import cafe.jeffrey.microscope.model.StacktraceType;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

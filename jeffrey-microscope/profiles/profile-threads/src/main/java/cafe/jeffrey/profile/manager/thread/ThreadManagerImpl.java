@@ -19,11 +19,11 @@
 package cafe.jeffrey.profile.manager.thread;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.thread.builder.CPULoadBuilder;
 import cafe.jeffrey.profile.manager.thread.builder.ThreadTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;

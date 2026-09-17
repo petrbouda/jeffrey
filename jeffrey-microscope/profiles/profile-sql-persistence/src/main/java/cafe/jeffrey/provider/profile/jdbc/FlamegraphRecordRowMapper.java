@@ -21,7 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.*;
 
 import org.springframework.jdbc.core.RowMapper;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.jfrparser.api.type.JfrMethodImpl;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
 import cafe.jeffrey.jfrparser.api.type.JfrThreadImpl;

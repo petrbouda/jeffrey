@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
 
 /**
  * Response DTO for effective profiler settings.

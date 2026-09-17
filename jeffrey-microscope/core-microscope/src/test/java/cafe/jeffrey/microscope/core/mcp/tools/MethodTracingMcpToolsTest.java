@@ -31,8 +31,8 @@ import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewDat
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestHeader;
 import cafe.jeffrey.profile.manager.custom.model.method.SlowestMethodTrace;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.timeseries.SingleSerie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

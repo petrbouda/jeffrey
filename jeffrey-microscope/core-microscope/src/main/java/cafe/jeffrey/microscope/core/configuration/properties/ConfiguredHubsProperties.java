@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.configuration.properties;
 
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;

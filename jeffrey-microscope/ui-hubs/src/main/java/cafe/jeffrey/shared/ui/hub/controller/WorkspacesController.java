@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
 import cafe.jeffrey.shared.ui.hub.dto.WorkspaceResponse;
 import cafe.jeffrey.shared.ui.hub.request.CreateWorkspaceRequest;

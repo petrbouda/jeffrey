@@ -26,8 +26,8 @@ import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData.PausePhase;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData.RegionSnapshot;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
 import java.time.Duration;
 import java.time.Instant;

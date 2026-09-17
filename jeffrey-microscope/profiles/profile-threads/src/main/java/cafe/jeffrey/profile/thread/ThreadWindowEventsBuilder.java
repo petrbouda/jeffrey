@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.thread;
 
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;

@@ -19,8 +19,8 @@
 package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 @FunctionalInterface
 public interface WorkspaceManagerFactory {

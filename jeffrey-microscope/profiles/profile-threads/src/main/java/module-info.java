@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.profile.threads {
     requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires transitive cafe.jeffrey.microscope.profile.timeseries;
     requires cafe.jeffrey.microscope.profile.parser.api;

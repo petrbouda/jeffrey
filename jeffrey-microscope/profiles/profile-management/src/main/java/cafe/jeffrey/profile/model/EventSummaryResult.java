@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.model;
 
 
-import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.microscope.model.EventSummary;
 
 import java.util.Map;
 

@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.provider.profile.api.EventTypeWithFields;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 

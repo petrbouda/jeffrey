@@ -23,9 +23,9 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.WeightUnit;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.WeightUnit;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.math.BigInteger;

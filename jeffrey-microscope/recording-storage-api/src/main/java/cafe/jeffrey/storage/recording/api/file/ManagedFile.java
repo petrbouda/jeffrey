@@ -18,11 +18,11 @@
 
 package cafe.jeffrey.storage.recording.api.file;
 
-import cafe.jeffrey.shared.common.model.repository.FileExtensions;
-import cafe.jeffrey.shared.common.model.repository.matcher.AppLogFileMatcher;
-import cafe.jeffrey.shared.common.model.repository.matcher.AsprofCacheFileMatcher;
-import cafe.jeffrey.shared.common.model.repository.matcher.HsJvmErrorLogFileMatcher;
-import cafe.jeffrey.shared.common.model.repository.matcher.JvmLogFileMatcher;
+import cafe.jeffrey.microscope.model.repository.FileExtensions;
+import cafe.jeffrey.microscope.model.repository.matcher.AppLogFileMatcher;
+import cafe.jeffrey.microscope.model.repository.matcher.AsprofCacheFileMatcher;
+import cafe.jeffrey.microscope.model.repository.matcher.HsJvmErrorLogFileMatcher;
+import cafe.jeffrey.microscope.model.repository.matcher.JvmLogFileMatcher;
 
 import java.nio.file.Path;
 import java.util.Arrays;

@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.shared.storage.recording.api {
     requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
 
     exports cafe.jeffrey.storage.recording.api;
     exports cafe.jeffrey.storage.recording.api.file;

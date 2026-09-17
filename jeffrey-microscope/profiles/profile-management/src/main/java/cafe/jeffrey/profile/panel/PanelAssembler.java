@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.model.ToggleOption;
 import cafe.jeffrey.profile.model.WeightKind;
 import cafe.jeffrey.profile.model.WeightOption;
-import cafe.jeffrey.shared.common.model.WeightUnit;
+import cafe.jeffrey.microscope.model.WeightUnit;
 
 /**
  * Builds {@link FlamegraphPanel}s: from a curated {@link PanelSection} template for JFR, or as a plain

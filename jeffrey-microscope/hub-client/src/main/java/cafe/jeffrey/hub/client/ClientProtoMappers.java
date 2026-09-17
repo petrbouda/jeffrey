@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 
 /**
  * Shared proto-to-domain conversions for the hub gRPC clients. Holds the empty-string-to-null

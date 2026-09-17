@@ -30,6 +30,10 @@
     <artifactId>profile-sql-persistence</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-model</artifactId>
+        </dependency>
         <!-- Test-only: pins the status/kind literals in the derivation SQL to the enums the
              instrumentation emits, so a rename on one side cannot silently diverge from the other -->
         <dependency>

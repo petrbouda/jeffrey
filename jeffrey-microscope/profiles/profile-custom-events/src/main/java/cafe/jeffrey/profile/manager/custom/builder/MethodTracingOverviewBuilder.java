@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager.custom.builder;
 
 import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodStats;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingHeader;

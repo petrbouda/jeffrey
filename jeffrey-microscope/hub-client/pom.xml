@@ -47,6 +47,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>recording-storage-api</artifactId>
         </dependency>
         <!-- ManagedChannel + Netty -->

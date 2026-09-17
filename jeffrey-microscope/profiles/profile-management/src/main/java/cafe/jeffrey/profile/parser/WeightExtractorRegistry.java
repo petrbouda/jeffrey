@@ -22,13 +22,13 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedStackTrace;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import static cafe.jeffrey.shared.common.model.Type.*;
+import static cafe.jeffrey.microscope.model.Type.*;
 import java.util.Map;
 
 public class WeightExtractorRegistry {

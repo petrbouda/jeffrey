@@ -32,9 +32,9 @@ import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.shared.common.model.repository.ChunkWindow;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 
 import java.io.IOException;
 import java.io.InputStream;

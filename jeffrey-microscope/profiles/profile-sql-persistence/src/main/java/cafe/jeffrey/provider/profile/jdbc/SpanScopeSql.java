@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.shared.common.model.SpanInterval;
-import cafe.jeffrey.shared.common.model.SpanScope;
+import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanScope;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.List;

@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.manager.memory;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryActivityData;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryInfo;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeMemoryOverview;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;

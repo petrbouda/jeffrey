@@ -19,7 +19,7 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.*;
-import cafe.jeffrey.shared.common.FrameResolutionMode;
+import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;

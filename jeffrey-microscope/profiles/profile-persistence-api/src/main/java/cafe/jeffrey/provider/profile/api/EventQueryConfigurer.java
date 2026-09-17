@@ -18,12 +18,12 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.SpanScope;
-import cafe.jeffrey.shared.common.model.StacktraceTag;
-import cafe.jeffrey.shared.common.model.StacktraceType;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.StacktraceTag;
+import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
 import java.util.List;
 

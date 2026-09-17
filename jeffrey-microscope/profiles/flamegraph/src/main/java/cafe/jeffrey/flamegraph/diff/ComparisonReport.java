@@ -19,7 +19,7 @@
 package cafe.jeffrey.flamegraph.diff;
 
 import cafe.jeffrey.flamegraph.export.WeightContext;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 

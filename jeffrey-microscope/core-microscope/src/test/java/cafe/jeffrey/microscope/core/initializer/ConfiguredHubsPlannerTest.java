@@ -19,9 +19,9 @@
 package cafe.jeffrey.microscope.core.initializer;
 
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.DesiredHub;
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.hub.HubSource;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.hub.client.dto;
 
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 
 /**
  * What a project's repository occupies on the hub, in bytes. See {@link RepositoryStatistics}

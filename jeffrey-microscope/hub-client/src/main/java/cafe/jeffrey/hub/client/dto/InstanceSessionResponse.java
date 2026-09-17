@@ -19,7 +19,7 @@
 package cafe.jeffrey.hub.client.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
-import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.microscope.model.ProjectInstanceSessionInfo;
 
 import java.time.Clock;
 import java.time.Instant;

@@ -19,6 +19,7 @@ module cafe.jeffrey.hub.client {
     requires transitive cafe.jeffrey.microscope.grpc.client;
     requires transitive cafe.jeffrey.shared.hub.api;
     requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.shared.storage.recording.api;
     requires jdk.jfr;
     requires io.grpc;

@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core.web.dto.response;
 
 import cafe.jeffrey.shared.common.InstantUtils;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
 
 public record ProjectSettingsResponse(
         String id,

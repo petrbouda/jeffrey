@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.panel;
 
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.ArrayList;
 import java.util.EnumMap;

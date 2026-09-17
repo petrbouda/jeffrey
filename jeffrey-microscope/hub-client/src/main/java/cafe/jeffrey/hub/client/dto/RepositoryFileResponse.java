@@ -19,9 +19,9 @@
 package cafe.jeffrey.hub.client.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
-import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 

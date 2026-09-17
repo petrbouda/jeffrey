@@ -19,7 +19,7 @@
 package cafe.jeffrey.flamegraph.export;
 
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.Set;
 

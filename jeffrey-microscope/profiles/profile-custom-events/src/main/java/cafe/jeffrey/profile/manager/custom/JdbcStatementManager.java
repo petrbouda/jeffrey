@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager.custom;
 
-import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
 import cafe.jeffrey.timeseries.SingleSerie;

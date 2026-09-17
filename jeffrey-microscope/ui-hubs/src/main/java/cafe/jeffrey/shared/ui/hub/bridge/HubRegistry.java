@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.shared.ui.hub.bridge;
 
-import cafe.jeffrey.shared.common.model.hub.HubAddress;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 
 import java.util.List;
 import java.util.Optional;

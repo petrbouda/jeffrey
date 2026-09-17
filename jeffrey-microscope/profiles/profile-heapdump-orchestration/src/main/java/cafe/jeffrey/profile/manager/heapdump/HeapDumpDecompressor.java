@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
-import cafe.jeffrey.shared.common.model.repository.FileExtensions;
+import cafe.jeffrey.microscope.model.repository.FileExtensions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -21,7 +21,6 @@ package cafe.jeffrey.shared.common.compression;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,7 +34,7 @@ import java.nio.file.Path;
  */
 public class Lz4Compressor {
 
-    private static final String LZ4_EXTENSION = "." + FileExtensions.LZ4;
+    private static final String LZ4_EXTENSION = ".lz4";
 
     private final TempDirFactory tempDirFactory;
 

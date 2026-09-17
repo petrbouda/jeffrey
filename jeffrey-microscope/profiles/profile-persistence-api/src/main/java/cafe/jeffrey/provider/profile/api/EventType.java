@@ -19,8 +19,8 @@
 package cafe.jeffrey.provider.profile.api;
 
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 import java.util.Map;

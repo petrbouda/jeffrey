@@ -20,7 +20,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.*;
 
-import cafe.jeffrey.shared.common.settings.ActiveSetting;
+import cafe.jeffrey.microscope.model.settings.ActiveSetting;
 import cafe.jeffrey.provider.profile.api.EventTypeBuilder;
 import cafe.jeffrey.provider.profile.api.EventThreadWithHash;
 

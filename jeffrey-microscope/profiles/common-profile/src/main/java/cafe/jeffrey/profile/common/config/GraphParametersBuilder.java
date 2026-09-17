@@ -18,12 +18,12 @@
 
 package cafe.jeffrey.profile.common.config;
 
-import cafe.jeffrey.shared.common.GraphType;
-import cafe.jeffrey.shared.common.model.SpanScope;
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.WeightUnit;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.GraphType;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.WeightUnit;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
 import java.util.List;
 

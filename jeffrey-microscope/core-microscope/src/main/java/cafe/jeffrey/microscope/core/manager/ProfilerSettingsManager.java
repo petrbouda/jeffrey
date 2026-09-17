@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings;
 
 /**
  * Manager for profiler settings at project level.

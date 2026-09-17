@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.initializer;
 
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 
 import java.util.List;
 

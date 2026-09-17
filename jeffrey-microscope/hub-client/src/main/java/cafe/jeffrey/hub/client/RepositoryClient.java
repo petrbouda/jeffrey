@@ -26,8 +26,8 @@ import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
 import java.util.List;

@@ -30,7 +30,7 @@ import cafe.jeffrey.profile.manager.model.leak.LeakCandidate;
 import cafe.jeffrey.profile.manager.model.leak.LeakOverview;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 

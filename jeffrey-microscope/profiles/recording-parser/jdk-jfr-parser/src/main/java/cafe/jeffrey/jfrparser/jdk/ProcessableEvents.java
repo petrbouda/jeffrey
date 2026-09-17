@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.jfrparser.jdk;
 
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.Collection;
 import java.util.List;

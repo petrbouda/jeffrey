@@ -27,7 +27,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrThread;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.math.BigDecimal;
 import java.time.Duration;

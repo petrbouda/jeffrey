@@ -24,10 +24,10 @@ import cafe.jeffrey.frameir.DiffTreeGenerator;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.profile.common.model.FrameType;
 import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

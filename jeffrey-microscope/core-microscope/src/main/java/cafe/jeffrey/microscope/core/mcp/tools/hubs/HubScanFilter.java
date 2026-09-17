@@ -18,10 +18,10 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.hub.HubInfo;
-import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import java.util.Locale;
 

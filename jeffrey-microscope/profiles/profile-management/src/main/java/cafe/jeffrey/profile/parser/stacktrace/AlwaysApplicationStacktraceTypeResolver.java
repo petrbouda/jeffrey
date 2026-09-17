@@ -19,8 +19,8 @@
 package cafe.jeffrey.profile.parser.stacktrace;
 
 
-import cafe.jeffrey.shared.common.model.StacktraceType;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.EventThread;
 

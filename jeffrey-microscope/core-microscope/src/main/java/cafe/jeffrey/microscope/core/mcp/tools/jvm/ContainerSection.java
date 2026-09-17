@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.common.event.ContainerConfiguration;
 import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 import java.util.Set;

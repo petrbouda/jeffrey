@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeMemoryOverview;
 import cafe.jeffrey.profile.manager.model.nmt.NmtCategory;
 import cafe.jeffrey.profile.manager.model.nmt.NmtOverview;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;
 import java.util.Set;

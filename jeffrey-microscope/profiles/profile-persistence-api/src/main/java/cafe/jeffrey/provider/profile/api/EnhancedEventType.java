@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.util.Map;
 

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.manager.custom.builder.JdbcPooledEventBuilder.Pool;
 import cafe.jeffrey.profile.manager.custom.builder.JdbcPooledEventBuilder.PoolEvent;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

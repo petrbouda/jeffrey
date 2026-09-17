@@ -37,6 +37,7 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.parser.pprof;
     requires cafe.jeffrey.microscope.profile.parser.otlp;
     requires cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
     requires cafe.jeffrey.shared.persistence;
     requires cafe.jeffrey.shared.storage.recording.api;
     requires cafe.jeffrey.jfr.events;

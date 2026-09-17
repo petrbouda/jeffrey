@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.manager.model.io.FileForceStats.FileForceOp;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

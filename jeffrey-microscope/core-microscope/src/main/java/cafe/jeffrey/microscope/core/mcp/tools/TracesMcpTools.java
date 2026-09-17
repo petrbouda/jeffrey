@@ -40,9 +40,9 @@ import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
-import cafe.jeffrey.shared.common.model.SpanInterval;
-import cafe.jeffrey.shared.common.model.SpanScope;
-import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.Type;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 

@@ -22,7 +22,7 @@ import cafe.jeffrey.hub.api.v1.GetWorkspaceRequest;
 import cafe.jeffrey.hub.api.v1.GetWorkspaceResponse;
 import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import io.grpc.Context;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;

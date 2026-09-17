@@ -23,9 +23,9 @@ import cafe.jeffrey.microscope.grpc.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
-import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings;
+import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
+import cafe.jeffrey.microscope.model.ProfilerInfo;
 
 import java.util.List;
 

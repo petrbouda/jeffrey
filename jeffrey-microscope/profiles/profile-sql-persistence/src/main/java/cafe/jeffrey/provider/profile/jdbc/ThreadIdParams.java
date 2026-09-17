@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.shared.common.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.ThreadInfo;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.List;
