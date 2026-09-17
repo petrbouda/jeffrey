@@ -93,17 +93,6 @@ public record RecordingSession(
     }
 
     /**
-     * Every file of the session except the chunk still being written — the ones whose bytes are
-     * final and may therefore be compressed, deleted, downloaded or read.
-     */
-    public List<RepositoryFile> finishedFiles() {
-        Optional<RepositoryFile> open = openRecording();
-        return files.stream()
-                .filter(file -> open.filter(file::equals).isEmpty())
-                .toList();
-    }
-
-    /**
      * The session's closed recording chunks, oldest first. One definition, because a reader that
      * counted chunks differently from the way it picked them would call a whole session a part of
      * itself.
@@ -116,16 +105,6 @@ public record RecordingSession(
                 .filter(file -> open.filter(file::equals).isEmpty())
                 .sorted(Comparator.comparing(RepositoryFile::createdAt))
                 .toList();
-    }
-
-    /**
-     * The newest recording chunk the profiler has closed, or empty when it has not closed one
-     * yet. This is the chunk that carries the session's one-shot configuration events, and —
-     * once the session is finished — its {@code jdk.Shutdown}.
-     */
-    public Optional<RepositoryFile> latestFinishedRecording() {
-        List<RepositoryFile> finished = finishedRecordings();
-        return finished.isEmpty() ? Optional.empty() : Optional.of(finished.getLast());
     }
 
     /**
