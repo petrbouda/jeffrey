@@ -24,9 +24,10 @@ on:
         description: 'Release version (e.g. 0.11.0 or 0.11.0-b5). Must follow [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?'
         required: true
         type: string
-      jeffreyRelease:
-        description: 'jeffrey-jib only: the Jeffrey release tag (e.g. v0.13.22) whose provisioner binaries the payload jars bundle.'
+      provisionerTag:
+        description: 'Provisioner tag: the Jeffrey release whose provisioner jeffrey-jib bundles — "latest" or a tag such as v0.13.22.'
         required: false
+        default: 'latest'
         type: string
 jobs:
   publish:
@@ -58,19 +59,37 @@ jobs:
       # The payload modules ship the provisioner and async-profiler that jeffrey-jib bakes into
       # application images. The provisioner comes from a published Jeffrey release rather than a
       # build of this repository, because jeffrey-jib releases on its own cadence: which Jeffrey
-      # release an extension carries is a choice, stated here, recorded in each payload jar's
-      # descriptor (jeffrey-payload/payload.properties) and printed by the extension at build time.
-      # Consumers pick it up by the version of the flavour they declare.
+      # release an extension carries is a choice, stated here (or defaulted to the latest
+      # release), recorded in each payload jar's descriptor (jeffrey-payload/payload.properties)
+      # and printed by the extension at build time. Consumers pick it up by the version of the
+      # flavour they declare.
+      - name: Resolve the Jeffrey release to bundle
+        id: jeffrey
+        if: inputs.module == 'jeffrey-jib'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RELEASE: ${{ inputs.provisionerTag }}
+        run: |
+          if [ -n "${INPUT_RELEASE}" ] && [ "${INPUT_RELEASE}" != "latest" ]; then
+            RELEASE="${INPUT_RELEASE}"
+          else
+            # `gh release view` with no tag is GitHub's "latest": the newest non-prerelease,
+            # non-draft release — the same one the Releases page badges as Latest.
+            RELEASE=$(gh release view -R petrbouda/jeffrey --json tagName --jq .tagName)
+          fi
+          if [[ ! "${RELEASE}" =~ ^v[0-9] ]]; then
+            echo "ERROR: could not resolve a Jeffrey release tag (got '${RELEASE}')" >&2
+            exit 1
+          fi
+          echo "Bundling the provisioner from Jeffrey ${RELEASE}"
+          echo "RELEASE=${RELEASE}" >> "$GITHUB_OUTPUT"
+
       - name: Stage provisioner payloads
         if: inputs.module == 'jeffrey-jib'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "${{ inputs.jeffreyRelease }}" ]; then
-            echo "ERROR: jeffreyRelease is required when releasing jeffrey-jib" >&2
-            exit 1
-          fi
-          gh release download "${{ inputs.jeffreyRelease }}" -R petrbouda/jeffrey \
+          gh release download "${{ steps.jeffrey.outputs.RELEASE }}" -R petrbouda/jeffrey \
             -p provisioner-amd64 -p provisioner-arm64 -p provisioner.jar -D /tmp/payload
           install -Dm644 /tmp/payload/provisioner-amd64 \
             jeffrey-jib-payload-native/src/main/payload/jeffrey-payload/provisioner-linux-amd64
@@ -94,7 +113,7 @@ jobs:
       - name: Stage artifacts into local staging repository
         run: |
           mvn -P ${{ env.MAVEN_PROFILES }} --batch-mode deploy -DskipTests \
-            -Djeffrey.release=${{ inputs.jeffreyRelease }} \
+            -Djeffrey.release=${{ steps.jeffrey.outputs.RELEASE }} \
             -DaltDeploymentRepository=local::file:$PWD/target/staging-deploy
 
       - name: Sign and deploy to Maven Central with JReleaser
