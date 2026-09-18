@@ -32,7 +32,7 @@ const headings = [
   { id: 'signature', text: 'Signatures', level: 2 },
   { id: 'behavior', text: 'Behavior', level: 2 },
   { id: 'examples', text: 'Examples', level: 2 },
-  { id: 'get', text: 'The Supplier form: get', level: 2 },
+  { id: 'call-checked', text: 'Checked Exceptions: callChecked', level: 2 },
   { id: 'output', text: 'Output', level: 2 },
   { id: 'notes', text: 'Notes & Pitfalls', level: 2 },
   { id: 'related', text: 'Related', level: 2 }
@@ -42,35 +42,35 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const signatures = `// The body may throw a checked exception, and the thrown type X is
+const signatures = `// A value-returning body that throws nothing checked
+static <R> R call(String name, Supplier<R> body)
+static <R> R call(String name, SpanKind kind, Supplier<R> body)
+
+// A body that may throw a checked exception: the thrown type X is
 // inferred from the lambda — not wrapped, not erased to Exception
 static <R, X extends Throwable>
-R call(String name, ScopedValue.CallableOp<? extends R, X> body) throws X
+R callChecked(String name, ScopedValue.CallableOp<? extends R, X> body) throws X
 
 static <R, X extends Throwable>
-R call(String name, SpanKind kind, ScopedValue.CallableOp<? extends R, X> body) throws X
+R callChecked(String name, SpanKind kind, ScopedValue.CallableOp<? extends R, X> body) throws X`;
 
-// The Supplier form: a result, no checked exception, no thrown type to infer
-static <R> R get(String name, Supplier<R> body)
-static <R> R get(String name, SpanKind kind, Supplier<R> body)`;
-
-const kotlinExample = `// call: a lambda gives the compiler nothing to infer X from, so both type
-// arguments have to be spelled out at every Kotlin call site
-val rules = Tracer.call<List<SchedulingRulesView>, Throwable>("scheduling-rules.get-view") {
+const kotlinExample = `// call: one type variable, inferred from the lambda
+val rules = Tracer.call("scheduling-rules.get-view") {
     schedulingRulesMapper.getSchedulingRulesView(filter)
 }
 
-// get: one type variable, inferred from the lambda
-val rules = Tracer.get("scheduling-rules.get-view") {
+// callChecked would need both type arguments spelled out — a Kotlin lambda
+// gives the compiler nothing to infer the thrown type X from
+val rules = Tracer.callChecked<List<SchedulingRulesView>, Throwable>("scheduling-rules.get-view") {
     schedulingRulesMapper.getSchedulingRulesView(filter)
 }`;
 
 const examples = `// Use-case 1: a value-returning load — the span times it, the result flows out
 Order order = Tracer.call("order.load", () -> repository.load(id));
 
-// Use-case 2: checked exceptions carry through TYPED — a body throwing
-// IOException makes this call throw IOException, not a wrapper
-byte[] payload = Tracer.call("payload.read", () -> Files.readAllBytes(path));  // throws IOException
+// Use-case 2: checked exceptions carry through TYPED with callChecked — a body
+// throwing IOException makes the call throw IOException, not a wrapper
+byte[] payload = Tracer.callChecked("payload.read", () -> Files.readAllBytes(path));  // throws IOException
 
 // Use-case 3: a pipeline that returns its product (Jeffrey's own profile
 // creation) — one call() around the whole operation, one run() per stage
@@ -118,17 +118,17 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
     />
 
     <div class="docs-content">
-      <p>Records a span around a value-returning block of work. Identical to <router-link to="/docs/tracing/tracer-api/run">run</router-link> in every span semantic — it only adds the result, and lets checked exceptions flow through with their real type.</p>
+      <p>Records a span around a value-returning block of work. Identical to <router-link to="/docs/tracing/tracer-api/run">run</router-link> in every span semantic — it only adds the result. Its twin <a href="#call-checked"><code>callChecked</code></a> additionally lets checked exceptions flow through with their real type.</p>
 
       <h2 id="when">Use It When</h2>
 
-      <p>The block being timed produces a value the caller needs, or throws a checked exception you want to keep typed. For pure side effects, <router-link to="/docs/tracing/tracer-api/run">run</router-link> reads better. From Kotlin, or for a Java body that throws nothing checked, use the <a href="#get">Supplier form, <code>get</code></a>.</p>
+      <p>The block being timed produces a value the caller needs. For pure side effects, <router-link to="/docs/tracing/tracer-api/run">run</router-link> reads better. When the body throws a checked exception you want to keep typed, use <a href="#call-checked"><code>callChecked</code></a>.</p>
 
       <h2 id="signature">Signatures</h2>
 
       <DocsCodeBlock :code="signatures" language="java" />
 
-      <p>The body type is <code>ScopedValue.CallableOp</code> rather than <code>Callable</code> on purpose: <code>CallableOp</code> carries the thrown type as a type variable, so a body that throws <code>IOException</code> makes the whole <code>call</code> throw <code>IOException</code> — no wrapping into <code>Exception</code>, no unchecked rethrow tricks.</p>
+      <p><code>call</code> takes a plain <code>Supplier</code>, so the body throws nothing checked and there is one type variable, inferred from the lambda. <code>callChecked</code> takes <code>ScopedValue.CallableOp</code> rather than <code>Callable</code> on purpose: <code>CallableOp</code> carries the thrown type as a type variable, so a body that throws <code>IOException</code> makes the whole call throw <code>IOException</code> — no wrapping into <code>Exception</code>, no unchecked rethrow tricks.</p>
 
       <h2 id="behavior">Behavior</h2>
 
@@ -148,13 +148,15 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
 
       <DocsCodeBlock :code="errorExample" language="java" />
 
-      <h2 id="get">The Supplier form: get</h2>
+      <h2 id="call-checked">Checked Exceptions: callChecked</h2>
 
-      <p><code>Tracer.get</code> is <code>call</code> for a body that returns a value and throws nothing checked: the same span, the same <code>ERROR</code> status on an escaping exception, the same rethrow — only the thrown type variable is gone. It exists for the callers that cannot infer that variable. Java infers <code>X</code> from the lambda body's <code>throws</code>; Kotlin has no checked exceptions, so its lambdas leave <code>X</code> unconstrained and every call site has to spell out both type arguments.</p>
+      <p><code>Tracer.callChecked</code> is <code>call</code> for a body that throws a checked exception: the same span, the same <code>ERROR</code> status on an escaping exception, the same rethrow — plus a second type variable, <code>X</code>, that Java infers from the body's <code>throws</code> so the exception keeps its type at the call site.</p>
+
+      <p>The two are separate names rather than overloads of <code>call</code>, the way <code>ScopedValue.Carrier</code> keeps <code>get(Supplier)</code> and <code>call(CallableOp)</code> apart: a result-bearing lambda matches both interfaces, and javac picks the <code>Supplier</code> overload before it looks at what the body throws, so a checked exception would fail to compile instead of selecting the other form.</p>
+
+      <p>The split is also what makes <code>call</code> usable from Kotlin. Kotlin has no checked exceptions, so its lambdas leave <code>X</code> unconstrained, and Kotlin then requires every type argument spelled out. With one type variable, <code>call</code> infers cleanly:</p>
 
       <DocsCodeBlock :code="kotlinExample" language="kotlin" />
-
-      <p>It is a distinct name rather than a <code>call</code> overload, the way <code>ScopedValue.Carrier</code> has <code>get(Supplier)</code> beside <code>call(CallableOp)</code>: a result-bearing lambda matches both interfaces, and an overload would change which one existing callers resolve to. In Java, keep using <code>call</code> when the body throws a checked exception you want to keep typed; <code>get</code> reads better when it does not.</p>
 
       <h2 id="output">Output</h2>
 
@@ -163,7 +165,7 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 
       <ul>
-        <li><strong>A body throwing two checked exception types</strong> (say <code>IOException</code> and <code>ServletException</code>) infers their common supertype — often <code>Exception</code>. Narrow it back at the call site with a multi-catch that rethrows the concrete types (the <router-link to="/docs/tracing/http-events">hand-written HTTP filter</router-link> shows the pattern).</li>
+        <li><strong>A <code>callChecked</code> body throwing two checked exception types</strong> (say <code>IOException</code> and <code>ServletException</code>) infers their common supertype — often <code>Exception</code>. Narrow it back at the call site with a multi-catch that rethrows the concrete types (the <router-link to="/docs/tracing/http-events">hand-written HTTP filter</router-link> shows the pattern).</li>
         <li><strong>Everything on the <router-link to="/docs/tracing/tracer-api/run">run</router-link> page applies here too</strong>: operations not methods, low-cardinality names, no wrapping of inbound requests, no free executor crossing.</li>
       </ul>
 

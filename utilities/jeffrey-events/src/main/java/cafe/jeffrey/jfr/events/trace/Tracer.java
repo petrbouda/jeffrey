@@ -98,7 +98,7 @@ public final class Tracer {
     /**
      * Records a span around {@code body}, with kind {@link SpanKind#INTERNAL}, and returns its result.
      */
-    public static <R, X extends Throwable> R call(String name, ScopedValue.CallableOp<? extends R, X> body) throws X {
+    public static <R> R call(String name, Supplier<R> body) {
         return call(name, SpanKind.INTERNAL, body);
     }
 
@@ -107,12 +107,47 @@ public final class Tracer {
      * <p>
      * An exception escaping {@code body} marks the span {@link SpanStatus#ERROR}, records the
      * exception's class name, and is rethrown unchanged.
+     * <p>
+     * The body is a {@link Supplier}, so it throws nothing checked; a body that does uses
+     * {@link #callChecked}, which carries the thrown type through. One type variable is what keeps
+     * this form usable from Kotlin, where a lambda gives the compiler nothing to infer a thrown type
+     * from and {@code callChecked} needs both type arguments spelled out.
      *
      * @param name a stable, low-cardinality operation name
      * @param kind what role the operation plays
      * @param body the work the span covers
      */
-    public static <R, X extends Throwable> R call(
+    public static <R> R call(String name, SpanKind kind, Supplier<R> body) {
+        Objects.requireNonNull(body, "body must not be null");
+        return callChecked(name, kind, body::get);
+    }
+
+    /**
+     * The checked-exception form of {@link #call(String, Supplier)}, with kind
+     * {@link SpanKind#INTERNAL}.
+     */
+    public static <R, X extends Throwable> R callChecked(
+            String name, ScopedValue.CallableOp<? extends R, X> body) throws X {
+        return callChecked(name, SpanKind.INTERNAL, body);
+    }
+
+    /**
+     * The checked-exception form of {@link #call(String, SpanKind, Supplier)}: same span, same
+     * error handling, and a body that throws {@code IOException} makes this call throw
+     * {@code IOException} — the thrown type is inferred from the body, not wrapped and not erased
+     * to {@code Exception}.
+     * <p>
+     * A distinct name rather than a {@code call} overload, as {@link ScopedValue.Carrier} keeps
+     * {@code get} and {@code call} apart: a result-bearing lambda matches {@link Supplier} and
+     * {@link ScopedValue.CallableOp} alike, and javac resolves the overload to the {@link Supplier}
+     * before it looks at what the body throws, so a checked exception in the body would fail to
+     * compile instead of selecting this form.
+     *
+     * <pre>{@code
+     * byte[] payload = Tracer.callChecked("payload.read", () -> Files.readAllBytes(path));  // throws IOException
+     * }</pre>
+     */
+    public static <R, X extends Throwable> R callChecked(
             String name, SpanKind kind, ScopedValue.CallableOp<? extends R, X> body) throws X {
 
         Objects.requireNonNull(name, "name must not be null");
@@ -124,39 +159,6 @@ public final class Tracer {
             return body.call();
         }
         return record(event, name, kind, newSpanContext(), body);
-    }
-
-    /**
-     * The {@link Supplier} form of {@link #call(String, ScopedValue.CallableOp)}, with kind
-     * {@link SpanKind#INTERNAL}.
-     */
-    public static <R> R get(String name, Supplier<R> body) {
-        return get(name, SpanKind.INTERNAL, body);
-    }
-
-    /**
-     * The {@link Supplier} form of {@link #call(String, SpanKind, ScopedValue.CallableOp)}, for a
-     * body with a result and no checked exception. Same span, same error handling; only the thrown
-     * type variable is gone.
-     * <p>
-     * That variable is the reason this exists: a lambda gives the compiler nothing to infer
-     * {@code X} from except the body's {@code throws}, which Kotlin does not have, so every Kotlin
-     * call site of {@link #call} has to spell out both type arguments. A distinct name rather than
-     * another {@code call} overload, as {@link ScopedValue.Carrier#get(Supplier)} sits beside
-     * {@link ScopedValue.Carrier#call(ScopedValue.CallableOp)}: a result-bearing lambda matches
-     * {@link Supplier} and {@link ScopedValue.CallableOp} alike, and an overload would change which
-     * one existing callers resolve to — a method reference whose target throws a checked exception
-     * stops compiling.
-     *
-     * <pre>{@code
-     * val rules = Tracer.get("scheduling-rules.get-view") {
-     *     schedulingRulesMapper.getSchedulingRulesView(filter)
-     * }
-     * }</pre>
-     */
-    public static <R> R get(String name, SpanKind kind, Supplier<R> body) {
-        Objects.requireNonNull(body, "body must not be null");
-        return call(name, kind, body::get);
     }
 
     /**

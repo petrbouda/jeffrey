@@ -178,7 +178,7 @@ public final class HprofIndex {
 
         // One span for the whole build, so the sub-phase spans opened by measureSql below are read
         // as its children rather than as that many unrelated root traces.
-        return Tracer.call(SPAN_INDEX_BUILD, () -> {
+        return Tracer.callChecked(SPAN_INDEX_BUILD, () -> {
             // The build runs against a scratch sibling and is renamed into place only once it
             // has finished. Readers accept any index file that exists and out-dates the dump,
             // so a database left behind by a failed build would be taken for a complete one and

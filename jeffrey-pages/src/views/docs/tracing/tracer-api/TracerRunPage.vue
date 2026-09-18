@@ -114,7 +114,7 @@ const errorExample = `Tracer.run("payment.charge", SpanKind.CLIENT, () -> {
 
       <h2 id="when">Use It When</h2>
 
-      <p>A block of in-process work is worth timing — a pipeline stage, a domain operation, a computation — and the body returns nothing. For a body that returns a value (or throws a checked exception you want to keep typed), use <router-link to="/docs/tracing/tracer-api/call">call</router-link>, which is otherwise identical.</p>
+      <p>A block of in-process work is worth timing — a pipeline stage, a domain operation, a computation — and the body returns nothing. For a body that returns a value, use <router-link to="/docs/tracing/tracer-api/call">call</router-link>, which is otherwise identical; for one that throws a checked exception you want to keep typed, its twin <router-link to="/docs/tracing/tracer-api/call#call-checked">callChecked</router-link>.</p>
 
       <h2 id="signature">Signatures</h2>
 
@@ -155,7 +155,7 @@ const errorExample = `Tracer.run("payment.charge", SpanKind.CLIENT, () -> {
       <h2 id="related">Related</h2>
 
       <ul>
-        <li><router-link to="/docs/tracing/tracer-api/call">call</router-link> — the value-returning twin, with typed checked exceptions.</li>
+        <li><router-link to="/docs/tracing/tracer-api/call">call</router-link> — the value-returning twin; <router-link to="/docs/tracing/tracer-api/call#call-checked">callChecked</router-link> when the body throws something checked.</li>
         <li><router-link to="/docs/tracing/tracer-api/in-span-of">inSpanOf</router-link> — when an event of your own already describes the interval.</li>
         <li><router-link to="/docs/tracing/instrumentation">Instrumentation Overview</router-link> — semantics table and the method-choosing guide.</li>
       </ul>
