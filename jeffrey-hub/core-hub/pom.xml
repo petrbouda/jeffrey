@@ -75,6 +75,12 @@
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-tracing-grpc</artifactId>
         </dependency>
+        <!-- The library, not its Spring Boot starter: the hub declares the bean itself in
+             HeartbeatConfiguration, guarded by the property the Provisioner passes. -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-heartbeat</artifactId>
+        </dependency>
 
         <!-- Shared version controller (GET /api/internal/version) -->
         <dependency>
