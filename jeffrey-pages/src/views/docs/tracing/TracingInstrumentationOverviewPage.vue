@@ -247,7 +247,7 @@ const composedSpans = [
         </thead>
         <tbody>
           <tr>
-            <td><router-link to="/docs/tracing/tracer-api/run">run</router-link> / <router-link to="/docs/tracing/tracer-api/call">call</router-link></td>
+            <td><router-link to="/docs/tracing/tracer-api/run">run</router-link> / <router-link to="/docs/tracing/tracer-api/call">call</router-link> / <router-link to="/docs/tracing/tracer-api/call#call-checked">callChecked</router-link></td>
             <td><code>jeffrey.TraceSpan</code></td>
             <td>Yes — child of the current span, or a fresh root</td>
             <td>Body runs directly; no binding, no event</td>
@@ -315,7 +315,7 @@ const composedSpans = [
         <tbody>
           <tr>
             <td>A block of in-process work worth timing</td>
-            <td><router-link to="/docs/tracing/tracer-api/run">run</router-link> (side-effecting) / <router-link to="/docs/tracing/tracer-api/call">call</router-link> (value-returning)</td>
+            <td><router-link to="/docs/tracing/tracer-api/run">run</router-link> (side-effecting) / <router-link to="/docs/tracing/tracer-api/call">call</router-link> (value-returning) / <router-link to="/docs/tracing/tracer-api/call#call-checked">callChecked</router-link> (value-returning, checked exceptions kept typed)</td>
           </tr>
           <tr>
             <td>An event of your own already describes the interval, and work nests inside it</td>

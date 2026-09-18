@@ -400,6 +400,20 @@ class TracerTest {
         }
 
         @Test
+        @DisplayName("callChecked still runs the body and lets its checked exception through, typed")
+        void callCheckedRunsTheBody() throws IOException {
+            Object result = new Object();
+
+            assertSame(result, Tracer.callChecked("noop", () -> result));
+            assertSame(result, Tracer.callChecked("noop", SpanKind.INTERNAL, () -> result));
+            IOException thrown = assertThrows(IOException.class,
+                    () -> Tracer.callChecked("read", () -> {
+                        throw new IOException("disk");
+                    }));
+            assertEquals("disk", thrown.getMessage());
+        }
+
+        @Test
         @DisplayName("no span context is published")
         void noContextIsBound() {
             Tracer.run("noop", SpanKind.INTERNAL, () -> assertTrue(Tracer.current().isEmpty()));
@@ -477,6 +491,59 @@ class TracerTest {
             RecordedEvent charge = spans.get("charge");
             assertEquals(SpanStatus.ERROR.name(), charge.getString("status"));
             assertEquals(IllegalStateException.class.getName(), charge.getString("errorType"));
+        }
+
+        @Test
+        @DisplayName("call records a span around a value-returning body, nested under the span in progress")
+        void callRecordsASpan() throws IOException {
+            Map<String, RecordedEvent> spans = recordSpans(() ->
+                    Tracer.run("checkout", SpanKind.SERVER, () -> {
+                        String rules = Tracer.call("rules.load", SpanKind.CLIENT, () -> "loaded");
+                        assertEquals("loaded", rules);
+                    }));
+
+            RecordedEvent checkout = spans.get("checkout");
+            RecordedEvent load = spans.get("rules.load");
+            assertEquals(SpanKind.CLIENT.name(), load.getString("kind"));
+            assertEquals(SpanStatus.UNSET.name(), load.getString("status"));
+            assertEquals(checkout.getLong("traceId"), load.getLong("traceId"));
+            assertEquals(checkout.getLong("spanId"), load.getLong("parentSpanId"));
+        }
+
+        @Test
+        @DisplayName("an exception escaping call marks the span ERROR and is rethrown unchanged")
+        void callFailureIsRecordedAndRethrown() throws IOException {
+            IllegalStateException thrown = new IllegalStateException("mapper failed");
+
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                IllegalStateException actual = assertThrows(IllegalStateException.class,
+                        () -> Tracer.call("rules.load", () -> {
+                            throw thrown;
+                        }));
+                assertSame(thrown, actual);
+            });
+
+            RecordedEvent load = spans.get("rules.load");
+            assertEquals(SpanStatus.ERROR.name(), load.getString("status"));
+            assertEquals(IllegalStateException.class.getName(), load.getString("errorType"));
+        }
+
+        @Test
+        @DisplayName("a checked exception escaping callChecked marks the span ERROR and keeps its type")
+        void callCheckedFailureIsRecordedAndRethrownTyped() throws IOException {
+            IOException thrown = new IOException("disk");
+
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                IOException actual = assertThrows(IOException.class,
+                        () -> Tracer.callChecked("payload.read", SpanKind.CLIENT, () -> {
+                            throw thrown;
+                        }));
+                assertSame(thrown, actual);
+            });
+
+            RecordedEvent read = spans.get("payload.read");
+            assertEquals(SpanStatus.ERROR.name(), read.getString("status"));
+            assertEquals(IOException.class.getName(), read.getString("errorType"));
         }
 
         @Test
