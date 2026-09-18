@@ -35,7 +35,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JeffreyHeartbeatAutoConfigurationTest {
 
+    private static final String JEFFREY_ENABLED = JeffreyHeartbeatAutoConfiguration.JEFFREY_ENABLED_PROPERTY;
+
+    /** A jeffrey-jib pod that opted in: JEFFREY_ENABLED=true, which Spring binds to jeffrey.enabled. */
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(JeffreyHeartbeatAutoConfiguration.class))
+            .withPropertyValues(JEFFREY_ENABLED + "=true");
+
+    /** The same jar in a container that never set the master switch. */
+    private final ApplicationContextRunner runnerWithoutSwitch = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(JeffreyHeartbeatAutoConfiguration.class));
 
     @Nested
@@ -87,6 +95,23 @@ class JeffreyHeartbeatAutoConfigurationTest {
             // the library must not write a heartbeat the hub was told not to expect
             runner.withPropertyValues(
                             "jeffrey.heartbeat.enabled=false",
+                            "jeffrey.heartbeat.dir=" + tempDir)
+                    .run(context -> assertFalse(context.containsBean("jeffreyHeartbeat")));
+        }
+
+        @Test
+        void contributesNothingWithoutTheMasterSwitch(@TempDir Path tempDir) {
+            // JEFFREY_ENABLED unset: no bean at all, even with a directory to write to
+            runnerWithoutSwitch.withPropertyValues("jeffrey.heartbeat.dir=" + tempDir)
+                    .run(context -> assertFalse(context.containsBean("jeffreyHeartbeat")));
+        }
+
+        @Test
+        void contributesNothingWhenTheMasterSwitchIsOff(@TempDir Path tempDir) {
+            // JEFFREY_ENABLED=false: the jeffrey-jib entrypoint bypassed the Provisioner, and the
+            // starter must not report for a session that was never created
+            runnerWithoutSwitch.withPropertyValues(
+                            JEFFREY_ENABLED + "=false",
                             "jeffrey.heartbeat.dir=" + tempDir)
                     .run(context -> assertFalse(context.containsBean("jeffreyHeartbeat")));
         }

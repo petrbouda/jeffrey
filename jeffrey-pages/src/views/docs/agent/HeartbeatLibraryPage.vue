@@ -50,6 +50,7 @@ onMounted(() => {
 &lt;/dependency&gt;</code></pre>
         <p>The auto-configuration starts the heartbeat from what the Provisioner exported and closes it when the application context shuts down — which is what writes the clean-exit marker, so the Hub finishes the session at once instead of waiting for the heartbeat to go stale.</p>
         <p>Declare your own <code>JeffreyHeartbeat</code> bean and the auto-configuration backs off.</p>
+        <p>The auto-configuration is gated on <code>JEFFREY_ENABLED=true</code>, the master switch of a <router-link to="/docs/hub/deployment/jeffrey-jib">jeffrey-jib</router-link> container, which Spring Boot binds to <code>jeffrey.enabled</code>. There is no default: a container that leaves it unset, or sets it to <code>false</code>, gets no heartbeat bean at all. A deployment that runs the Provisioner without jeffrey-jib sets the variable itself, or passes <code>-Djeffrey.enabled=true</code>.</p>
         <p>Jeffrey Hub reports its own liveness with this library. Its image is built with jeffrey-jib, so a pod that sets <code>JEFFREY_ENABLED=true</code> runs the Hub as a profiled JVM like any other application, and a session that declares <code>heartbeat.enabled = true</code> for it is reported the same way. The Hub declares the bean in its own configuration rather than through the starter, and creates it only when <code>jeffrey.heartbeat.enabled=true</code> is present — which the Provisioner writes into the argfile on exactly that path. A Hub started without profiling has no such property and no heartbeat.</p>
 
         <h2 id="plain-java">Plain Java</h2>
@@ -77,6 +78,12 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
+              <tr>
+                <td><code>JEFFREY_ENABLED</code></td>
+                <td><code>jeffrey.enabled</code></td>
+                <td>—</td>
+                <td>Spring Boot starter only. The master switch of a jeffrey-jib container; the auto-configuration contributes nothing unless it is <code>true</code>. Plain-Java use ignores it</td>
+              </tr>
               <tr>
                 <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
                 <td><code>jeffrey.heartbeat.enabled</code></td>

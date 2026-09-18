@@ -34,10 +34,13 @@ import org.springframework.context.annotation.Bean;
  * {@code startFromEnvironment()}. The latter adds a JVM shutdown hook, and inside a container that
  * already has a lifecycle that would be a second thing racing to write the same file.</p>
  *
- * <p>Nothing here is conditional on the application being provisioned. An application that is not
- * gets settings naming no directory, and the library answers with an inert instance — so the same
- * jar runs unchanged on a developer's laptop and under a Provisioner, which is the property that
- * makes it safe to leave the dependency in.</p>
+ * <p>The whole configuration is gated on {@value #JEFFREY_ENABLED_PROPERTY} being {@code true},
+ * with no default: that is the {@code JEFFREY_ENABLED} variable a jeffrey-jib pod sets, reaching
+ * Spring through its relaxed binding of environment variables. A container without it contributes
+ * no bean at all, so the same jar runs unchanged on a developer's laptop and under a Provisioner,
+ * which is the property that makes it safe to leave the dependency in. Even when it is set, an
+ * application the Provisioner did not touch gets settings naming no directory and the library
+ * answers with an inert instance.</p>
  *
  * <p>{@code jeffrey.heartbeat.enabled=false} turns it off without removing the dependency. It is
  * also what the Provisioner passes for a session that declared no liveness, so that a jar carrying
@@ -46,9 +49,17 @@ import org.springframework.context.annotation.Bean;
  */
 @AutoConfiguration
 @ConditionalOnClass(JeffreyHeartbeat.class)
+@ConditionalOnProperty(name = JeffreyHeartbeatAutoConfiguration.JEFFREY_ENABLED_PROPERTY, havingValue = "true")
 @ConditionalOnProperty(prefix = "jeffrey.heartbeat", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(JeffreyHeartbeatProperties.class)
 public class JeffreyHeartbeatAutoConfiguration {
+
+    /**
+     * The master switch of a jeffrey-jib container, {@code JEFFREY_ENABLED}, as Spring's relaxed
+     * binding spells it. Deliberately not defaulted: an application that was never told profiling
+     * is on must not report liveness for a session nobody provisioned.
+     */
+    static final String JEFFREY_ENABLED_PROPERTY = "jeffrey.enabled";
 
     /**
      * {@code destroyMethod} is left to Spring's default, which calls {@link AutoCloseable#close()}
