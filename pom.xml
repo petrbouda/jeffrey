@@ -310,6 +310,11 @@
                 <artifactId>jeffrey-tracing-grpc</artifactId>
                 <version>${jeffrey-events.version}</version>
             </dependency>
+            <dependency>
+                <groupId>cafe.jeffrey-analyst</groupId>
+                <artifactId>jeffrey-heartbeat</artifactId>
+                <version>${jeffrey-events.version}</version>
+            </dependency>
 
             <!-- gRPC -->
             <dependency>

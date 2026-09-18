@@ -57,6 +57,8 @@ const loggingEnv = `# helm/jeffrey-hub/templates/deployment.yaml
 # Jeffrey Hub itself, running under the provisioner. Everything after -XX:+AlwaysPreTouch is
 # application configuration forwarded as-is: jeffrey.hub.* are the Hub's, logging.* are Spring Boot's.
 env:
+  - name: JEFFREY_ENABLED
+    value: "true"
   - name: JEFFREY_ADDITIONAL_JVM_OPTIONS
     value: >-
       -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
@@ -267,7 +269,12 @@ volumes:
         verbatim and resolves placeholders in it, this is also how an application's own configuration
         reaches it and how that configuration can name the session directory — which is the usual way
         to put a log file beside that run's recordings. Jeffrey Hub is provisioned like any other Java
-        application, so it serves as the example:
+        application, so it serves as the example. Its image ships with
+        <code>JEFFREY_ENABLED=false</code> baked in; the pod below opts in by setting it to
+        <code>true</code>, and because the Hub carries the
+        <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, a
+        <code>heartbeat.enabled = true</code> declared for it is honoured rather than finishing the
+        Hub's own session seconds after it starts:
       </p>
 
       <DocsCodeBlock
