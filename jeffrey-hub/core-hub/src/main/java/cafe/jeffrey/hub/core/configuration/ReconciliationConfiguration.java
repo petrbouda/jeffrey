@@ -52,14 +52,8 @@ public class ReconciliationConfiguration {
     }
 
     @Bean
-    public FileHeartbeatReader fileHeartbeatReader() {
-        return new FileHeartbeatReader();
-    }
-
-    @Bean
-    public SessionFinisher sessionFinisher(
-            Clock clock, FileHeartbeatReader fileHeartbeatReader, HubPlatformRepositories platformRepositories) {
-        return new SessionFinisher(clock, fileHeartbeatReader, platformRepositories);
+    public SessionFinisher sessionFinisher(Clock clock, HubPlatformRepositories platformRepositories) {
+        return new SessionFinisher(clock, new FileHeartbeatReader(), platformRepositories);
     }
 
     @Bean

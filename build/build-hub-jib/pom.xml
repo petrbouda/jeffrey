@@ -33,10 +33,6 @@
         <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
         <finalName>jeffrey-hub</finalName>
         <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
-        <!-- The jeffrey-jib flavour this image is built with. It comes from this reactor:
-             release-hub.yml installs jeffrey-jib-maven-jar behind the `payload` profile, with its
-             payload built from THIS release's own provisioner.jar and the pinned async-profiler —
-             the hub image never waits on a jeffrey-jib release reaching Maven Central. -->
         <jeffrey-jib-maven.version>1.0-SNAPSHOT</jeffrey-jib-maven.version>
         <image.from>eclipse-temurin:25-jdk</image.from>
         <image.to>petrbouda/jeffrey-hub:${project.version}</image.to>
@@ -56,14 +52,9 @@
                 <artifactId>jib-maven-plugin</artifactId>
                 <version>${jib-maven-plugin.version}</version>
                 <dependencies>
-                    <!-- The jar flavour rather than native: this image is multi-arch and Jib layers
-                         are not per-platform, so the native binary would ship both architectures
-                         (~86 MB) in every image. The jar is one arch-neutral file of ~4 MB, and it
-                         runs on the application's own JVM — which here is the JDK 25 base image,
-                         exactly what the jar is compiled for. -->
                     <dependency>
                         <groupId>cafe.jeffrey-analyst</groupId>
-                        <artifactId>jeffrey-jib-maven-jar</artifactId>
+                        <artifactId>jeffrey-jib-maven-native</artifactId>
                         <version>${jeffrey-jib-maven.version}</version>
                     </dependency>
                 </dependencies>
@@ -93,24 +84,13 @@
                             <port>8080</port>
                             <port>9090</port>
                         </ports>
-                        <!-- Image-level default: profiling off. K8s pod env overrides to "true" to enable. -->
                         <environment>
                             <JEFFREY_ENABLED>false</JEFFREY_ENABLED>
                         </environment>
-                        <!-- Empty: let the jeffrey-jib wrapper own JVM configuration via the argfile.
-                             Per JeffreyBuildPlanExtender javadoc, JVM flags here would be moved into CMD
-                             and applied AFTER the argfile, silently overriding profiling settings. -->
                         <jvmFlags/>
                     </container>
                     <pluginExtensions>
                         <pluginExtension>
-                            <!-- No configuration: enabled=true by default, so the wrapper layer is installed
-                                 and ENTRYPOINT is rewritten, and the provisioner build comes from the flavour
-                                 declared above. jeffreyHome / configs remain unset — those are
-                                 deployment-specific (shared volume mount, ConfigMap path) and provided by the
-                                 operator via pod env. The extension bakes the provisioner and async-profiler
-                                 under /opt/jeffrey, so jeffrey-hub's self-profiling needs nothing from the
-                                 shared volume. -->
                             <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
                         </pluginExtension>
                     </pluginExtensions>

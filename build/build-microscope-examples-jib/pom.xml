@@ -72,19 +72,10 @@
                         <ports>
                             <port>8585</port>
                         </ports>
-                        <!--
-                          Same default ENTRYPOINT arg as the previous Dockerfile-microscope-examples:
-                          enables seed recordings ingestion at startup, reading from /jeffrey-examples/.
-                        -->
                         <args>
                             <arg>--jeffrey.microscope.seed.recordings.enabled=true</arg>
                         </args>
                     </container>
-                    <!--
-                      CI clones https://github.com/petrbouda/jeffrey-recordings.git into
-                      src/main/jib/jeffrey-examples/ before jib:build. Locally, only the .gitkeep
-                      marker is present, so the directory exists but is empty — image still builds.
-                    -->
                 </configuration>
             </plugin>
         </plugins>

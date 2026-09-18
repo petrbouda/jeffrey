@@ -53,7 +53,6 @@
                 <configuration>
                     <from>
                         <image>${image.from}</image>
-                        <!-- Multi-arch: same as previous Dockerfile-local build (linux/amd64,linux/arm64). -->
                         <platforms>
                             <platform>
                                 <architecture>amd64</architecture>
