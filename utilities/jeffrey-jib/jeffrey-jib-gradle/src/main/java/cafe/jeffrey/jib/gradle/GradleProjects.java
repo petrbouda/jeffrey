@@ -33,9 +33,8 @@ import java.util.Optional;
  * whose declaring class is often not public, and invoking a method found on one of those fails
  * with an access error.
  *
- * <p>Nothing here throws. A caller that can live without the answer — the default project name,
- * the build directory — treats an empty result as "use the fallback"; the payload resolver, which
- * cannot, turns it into a resolution failure of its own.
+ * <p>Nothing here throws. Every caller can live without the answer — the default project name,
+ * the build directory — and treats an empty result as "use the fallback".
  */
 abstract class GradleProjects {
 
@@ -89,14 +88,10 @@ abstract class GradleProjects {
         }
     }
 
-    /** Loads a Gradle type through the class loader that loaded the project. */
-    static Class<?> type(Object project, String name) throws ClassNotFoundException {
-        return Class.forName(name, false, project.getClass().getClassLoader());
-    }
-
     private static Object invoke(Object target, String interfaceName, String methodName)
             throws ReflectiveOperationException {
 
-        return type(target, interfaceName).getMethod(methodName).invoke(target);
+        Class<?> type = Class.forName(interfaceName, false, target.getClass().getClassLoader());
+        return type.getMethod(methodName).invoke(target);
     }
 }

@@ -33,11 +33,10 @@
         <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
         <finalName>jeffrey-hub</finalName>
         <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
-        <!-- The jeffrey-jib version this image is built with, and therefore the payloadVersion the
-             extension resolves. Both come from this reactor: release-hub.yml installs the extension
-             and, behind the `payload` profile, the jeffrey-jib-payload-jar / -profiler artifacts
-             built from THIS release's own provisioner.jar and the pinned async-profiler — the hub
-             image never waits on a jeffrey-jib release reaching Maven Central. -->
+        <!-- The jeffrey-jib flavour this image is built with. It comes from this reactor:
+             release-hub.yml installs jeffrey-jib-maven-jar behind the `payload` profile, with its
+             payload built from THIS release's own provisioner.jar and the pinned async-profiler —
+             the hub image never waits on a jeffrey-jib release reaching Maven Central. -->
         <jeffrey-jib-maven.version>1.0-SNAPSHOT</jeffrey-jib-maven.version>
         <image.from>eclipse-temurin:25-jdk</image.from>
         <image.to>petrbouda/jeffrey-hub:${project.version}</image.to>
@@ -57,9 +56,14 @@
                 <artifactId>jib-maven-plugin</artifactId>
                 <version>${jib-maven-plugin.version}</version>
                 <dependencies>
+                    <!-- The jar flavour rather than native: this image is multi-arch and Jib layers
+                         are not per-platform, so the native binary would ship both architectures
+                         (~86 MB) in every image. The jar is one arch-neutral file of ~4 MB, and it
+                         runs on the application's own JVM — which here is the JDK 25 base image,
+                         exactly what the jar is compiled for. -->
                     <dependency>
                         <groupId>cafe.jeffrey-analyst</groupId>
-                        <artifactId>jeffrey-jib-maven</artifactId>
+                        <artifactId>jeffrey-jib-maven-jar</artifactId>
                         <version>${jeffrey-jib-maven.version}</version>
                     </dependency>
                 </dependencies>
@@ -68,8 +72,7 @@
                         <image>${image.from}</image>
                         <!-- Multi-arch manifest. Jib layers are not per-platform, so whatever the
                              jeffrey-jib extension bakes ships in both images; that is why this image
-                             uses the arch-neutral provisioner jar rather than the native binary
-                             (see the extension configuration below). -->
+                             uses the jar flavour of the extension (see the plugin dependency above). -->
                         <platforms>
                             <platform>
                                 <architecture>amd64</architecture>
@@ -101,23 +104,14 @@
                     </container>
                     <pluginExtensions>
                         <pluginExtension>
+                            <!-- No configuration: enabled=true by default, so the wrapper layer is installed
+                                 and ENTRYPOINT is rewritten, and the provisioner build comes from the flavour
+                                 declared above. jeffreyHome / configs remain unset — those are
+                                 deployment-specific (shared volume mount, ConfigMap path) and provided by the
+                                 operator via pod env. The extension bakes the provisioner and async-profiler
+                                 under /opt/jeffrey, so jeffrey-hub's self-profiling needs nothing from the
+                                 shared volume. -->
                             <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
-                            <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
-                                <!-- enabled=true (default): wrapper layer is installed and ENTRYPOINT is rewritten.
-                                     jeffreyHome / configs remain unset — those are deployment-specific (shared
-                                     volume mount, ConfigMap path) and provided by the operator via pod env.
-
-                                     The extension bakes the provisioner and async-profiler under /opt/jeffrey,
-                                     so jeffrey-hub's self-profiling needs nothing from the shared volume.
-
-                                     provisionerSource=jar rather than the `native` default: this image is
-                                     multi-arch and Jib layers are not per-platform, so the native binary would
-                                     ship both architectures (~86 MB) in every image. The jar is one arch-neutral
-                                     file of ~4 MB, and it runs on the application's own JVM — which here is the
-                                     JDK 25 base image, exactly what the jar is compiled for. -->
-                                <provisionerSource>jar</provisionerSource>
-                                <payloadVersion>${jeffrey-jib-maven.version}</payloadVersion>
-                            </configuration>
                         </pluginExtension>
                     </pluginExtensions>
                 </configuration>

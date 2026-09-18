@@ -36,15 +36,23 @@ import java.util.Optional;
  * before the app starts, without forcing operators to override the container {@code command:} in
  * Kubernetes YAML, and bakes the provisioner and async-profiler into the image.
  *
- * <p>Recommended consumer setup (Gradle, Kotlin DSL) — uses the string {@code properties} DSL
- * so nothing needs to import {@link JeffreyJibConfig} on the build script's compile classpath:
+ * <p>Recommended consumer setup (Gradle, Kotlin DSL). The {@code buildscript} dependency is a
+ * <em>flavour</em> of the extension — {@code jeffrey-jib-gradle-jar} or
+ * {@code jeffrey-jib-gradle-native} — which brings this class and the payload jar carrying the
+ * matching provisioner build plus async-profiler. The string {@code properties} DSL keeps
+ * {@link JeffreyJibConfig} off the build script's compile classpath:
  * <pre>{@code
+ * buildscript {
+ *   dependencies {
+ *     classpath("cafe.jeffrey-analyst:jeffrey-jib-gradle-jar:0.14.0")
+ *   }
+ * }
+ *
  * jib {
  *   pluginExtensions {
  *     pluginExtension {
  *       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
  *       properties = mapOf(
- *         "payloadVersion" to "0.14.0",
  *         "jeffreyHome" to "/mnt/azure/runtime/shared/jeffrey",
  *         "baseConfig" to "/jeffrey/jeffrey-base.conf",
  *         "overrideConfig" to "/jeffrey/jeffrey-overrides.conf",
@@ -60,18 +68,12 @@ import java.util.Optional;
  *       {@code "false"} to skip wrapping entirely — the produced image is identical to one
  *       built without this extension. Useful for conditionally disabling profiling per
  *       environment without ripping the extension out of the build file.
- *   <li>{@code payloadVersion} — <strong>required</strong> whenever a payload is baked: the
- *       jeffrey-jib release whose payload artifacts the image carries, normally the same version
- *       as this extension.
- *   <li>{@code provisionerSource} — {@code native} (default) or {@code jar}; which build of the
- *       provisioner to bake. The provisioner itself is always baked and its path is not
- *       configurable: it writes the layout Jeffrey Hub reads.
  *   <li>{@code jeffreyHome} — root of the shared volume the application writes its recordings to.
  *   <li>{@code baseConfig} — default {@code /jeffrey/jeffrey-base.conf}.
  *   <li>{@code overrideConfig} — optional per-deploy override, default
  *       {@code /jeffrey/jeffrey-overrides.conf}.
- *   <li>{@code profilerPath} — the image already carries async-profiler; that payload is neither
- *       resolved nor baked.
+ *   <li>{@code profilerPath} — the image already carries async-profiler; that payload is not
+ *       baked.
  *   <li>{@code argFile} — location of the generated JVM argfile, default {@code /tmp/jvm.args}.
  *   <li>{@code projectName} — Jeffrey project name baked as {@code JEFFREY_PROJECT_NAME};
  *       defaults to the Gradle project name. Pod-level env still overrides it.
@@ -82,9 +84,9 @@ import java.util.Optional;
  * Gradle versions whose {@code ObjectFactory.newInstance(type, project)} call matches a
  * {@code JeffreyJibConfig} constructor — use the {@code properties} form above for portability.
  *
- * <p>Payloads are resolved through the project's repositories (not the {@code buildscript}
- * ones) with a detached configuration, at task execution time — which is why this extension,
- * like JIB's extension hook itself, is not compatible with the configuration cache.
+ * <p>The provisioner build is not a property: it is chosen by which flavour the build script puts
+ * on the {@code buildscript} classpath, and its path is not configurable because it writes the
+ * layout Jeffrey Hub reads.
  */
 public class JeffreyJibGradleExtension implements JibGradlePluginExtension<JeffreyJibConfig> {
 
@@ -114,8 +116,7 @@ public class JeffreyJibGradleExtension implements JibGradlePluginExtension<Jeffr
             project.flatMap(GradleProjects::name).ifPresent(effective::setProjectName);
         }
 
-        return new JeffreyBuildPlanExtender(
-                getClass(), new GradleDetachedPayloadResolver(gradleData), workDirectory(project, logger))
+        return new JeffreyBuildPlanExtender(getClass(), getClass().getClassLoader(), workDirectory(project, logger))
                 .extend(buildPlan, effective, logger);
     }
 

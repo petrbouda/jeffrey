@@ -19,12 +19,11 @@
 package cafe.jeffrey.jib.payload;
 
 /**
- * The provisioner's executable jar, run by the application's own JVM when an image is built with
- * {@code provisionerSource=jar}.
+ * The architecture-neutral provisioner jar, plus async-profiler for both Linux architectures.
  *
  * <p>This class carries no behaviour. It exists so the module publishes a non-empty sources and
- * javadoc jar, which Maven Central requires of every artifact; the payload itself sits beside it
- * under {@code jeffrey-payload/}.
+ * javadoc jar, which Maven Central requires of every artifact; the payload itself travels beside it
+ * under {@code jeffrey-payload/}, described by {@code jeffrey-payload/payload.properties}.
  */
 public abstract class ProvisionerJarPayload {
 }

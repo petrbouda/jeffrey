@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jib.payload;
 
+import com.google.cloud.tools.jib.api.buildplan.AbsoluteUnixPath;
 import com.google.cloud.tools.jib.api.buildplan.FileEntriesLayer;
 import com.google.cloud.tools.jib.plugins.extension.ExtensionLogger;
 import com.google.cloud.tools.jib.plugins.extension.ExtensionLogger.LogLevel;
@@ -31,12 +32,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Fetches the payloads a {@link PayloadPlan} asks for and turns them into one image layer.
+ * Takes the payloads a {@link PayloadPlan} asks for out of the payload jar on the class path and
+ * turns them into one image layer.
  *
- * <p>Every resolution failure aborts. The fail-open guarantee this extension is known for belongs
- * to container start, where an application must boot even if it cannot be profiled; at build time
- * the opposite rule applies, because an image that silently lacks a profiler looks healthy and
- * profiles nothing until somebody notices months later.
+ * <p>Every failure aborts. The fail-open guarantee this extension is known for belongs to container
+ * start, where an application must boot even if it cannot be profiled; at build time the opposite
+ * rule applies, because an image that silently lacks a profiler looks healthy and profiles nothing
+ * until somebody notices months later.
  */
 public final class PayloadInstaller {
 
@@ -44,68 +46,72 @@ public final class PayloadInstaller {
     private static final String ENV_PROVISIONER_PATH = "JEFFREY_PROVISIONER_PATH";
     private static final String ENV_PROVISIONER_KIND = "JEFFREY_PROVISIONER_KIND";
     private static final String ENV_PROFILER_PATH = "JEFFREY_PROFILER_PATH";
+    private static final String PROVENANCE_OPEN = " (";
+    private static final String PROVENANCE_CLOSE = ")";
     private static final long BYTES_PER_MEGABYTE = 1024L * 1024L;
 
-    private final PayloadResolver resolver;
-    private final String payloadVersion;
+    private final ClassLoader payloads;
     private final Path workDirectory;
     private final ExtensionLogger logger;
 
     /**
+     * @param payloads      the class loader the payload jar is visible through — the extension's own
      * @param workDirectory where payloads are unpacked; stable across builds so JIB can reuse the
-     *                      cached layer (see {@link PayloadJars})
+     *                      cached layer (see {@link PayloadResources})
      */
-    public PayloadInstaller(
-            PayloadResolver resolver, String payloadVersion, Path workDirectory, ExtensionLogger logger) {
-
-        this.resolver = resolver;
-        this.payloadVersion = payloadVersion;
+    public PayloadInstaller(ClassLoader payloads, Path workDirectory, ExtensionLogger logger) {
+        this.payloads = payloads;
         this.workDirectory = workDirectory;
         this.logger = logger;
     }
 
     public PayloadInstallation install(PayloadPlan plan) throws PayloadResolutionException {
-        List<PayloadRequest> requests = new ArrayList<>();
+        PayloadDescriptor descriptor = plan.descriptor();
+        FileEntriesLayer.Builder layer = FileEntriesLayer.builder().setName(LAYER_NAME);
+        List<String> installed = new ArrayList<>();
+        long totalBytes = 0;
         Map<String, String> environment = new LinkedHashMap<>();
 
-        PayloadSpec provisioner = plan.source().spec();
-        requests.addAll(provisioner.requestsFor(plan.architectures(), payloadVersion));
+        PayloadSpec provisioner = descriptor.kind().spec();
+        for (PayloadRequest request : provisioner.requestsFor(plan.architectures())) {
+            totalBytes += add(layer, request, descriptor.provisionerProvenance(), installed);
+        }
         environment.put(ENV_PROVISIONER_PATH, provisioner.envPath(plan.architectures()));
-        environment.put(ENV_PROVISIONER_KIND, plan.source().kind());
+        environment.put(ENV_PROVISIONER_KIND, descriptor.kind().kind());
 
         if (plan.bakeProfiler()) {
-            requests.addAll(Payloads.PROFILER.requestsFor(plan.architectures(), payloadVersion));
+            for (PayloadRequest request : Payloads.PROFILER.requestsFor(plan.architectures())) {
+                totalBytes += add(layer, request, descriptor.profilerProvenance(), installed);
+            }
             environment.put(ENV_PROFILER_PATH, Payloads.PROFILER.envPath(plan.architectures()));
         }
 
-        return new PayloadInstallation(buildLayer(requests), environment);
+        // The provenance in parentheses is the only place a build log says which Jeffrey release
+        // and async-profiler an image actually carries: the payload jar's version is a jeffrey-jib
+        // release, and the mapping to the binaries inside it lives in the payload descriptor.
+        logger.log(LogLevel.LIFECYCLE,
+                "jeffrey-jib: baking " + installed.size() + " payload file(s) into the image layer '"
+                        + LAYER_NAME + "' (" + totalBytes / BYTES_PER_MEGABYTE + " MB): " + installed);
+        return new PayloadInstallation(layer.build(), environment);
     }
 
-    private FileEntriesLayer buildLayer(List<PayloadRequest> requests) throws PayloadResolutionException {
-        FileEntriesLayer.Builder builder = FileEntriesLayer.builder().setName(LAYER_NAME);
-        List<String> installed = new ArrayList<>(requests.size());
-        long totalBytes = 0;
+    private long add(FileEntriesLayer.Builder layer, PayloadRequest request, String provenance, List<String> installed)
+            throws PayloadResolutionException {
 
-        for (PayloadRequest request : requests) {
-            Path payloadJar = resolver.resolve(request.coordinates());
-            UnpackedPayload payload = PayloadJars.unpack(payloadJar, request.coordinates(), workDirectory);
-            builder.addEntry(payload.file(), request.installPath(), request.permissions());
-            totalBytes += sizeOf(payload.file());
-            installed.add(payload.describe(request.installPath()));
-        }
+        Path file = PayloadResources.unpack(payloads, request.resource(), workDirectory);
+        layer.addEntry(file, request.installPath(), request.permissions());
+        installed.add(describe(request.installPath(), provenance));
+        return sizeOf(file);
+    }
 
-        // The provenance in parentheses is the only place a build log says which Jeffrey release
-        // and async-profiler an image actually carries: payloadVersion names a jeffrey-jib release,
-        // and the mapping to the binaries inside it lives in each payload jar's manifest.
-        logger.log(LogLevel.LIFECYCLE,
-                "jeffrey-jib: baking " + requests.size() + " payload file(s) into the image layer '"
-                        + LAYER_NAME + "' (" + totalBytes / BYTES_PER_MEGABYTE + " MB): " + installed);
-        return builder.build();
+    /** {@code /opt/jeffrey/provisioner (jeffrey v0.13.22)}, for the build log. */
+    private static String describe(AbsoluteUnixPath installPath, String provenance) {
+        return installPath + PROVENANCE_OPEN + provenance + PROVENANCE_CLOSE;
     }
 
     /**
-     * Best effort, for the size reported to the build log only. A payload that was resolved and
-     * unpacked but whose size cannot be read is not worth failing a build over.
+     * Best effort, for the size reported to the build log only. A payload that was unpacked but
+     * whose size cannot be read is not worth failing a build over.
      */
     private static long sizeOf(Path payload) {
         try {

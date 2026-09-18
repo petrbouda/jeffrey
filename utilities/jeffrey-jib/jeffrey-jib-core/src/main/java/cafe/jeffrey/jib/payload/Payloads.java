@@ -21,15 +21,14 @@ package cafe.jeffrey.jib.payload;
 /** Payloads that are not tied to a {@link ProvisionerSource}. */
 public abstract class Payloads {
 
-    private static final String PROFILER_ARTIFACT_ID = "jeffrey-jib-payload-profiler";
     private static final String PROFILER_BASE_NAME = "libasyncProfiler";
     private static final String PROFILER_EXTENSION = ".so";
 
     /**
-     * async-profiler, baked in both provisioner flavours. It is the one payload that is genuinely
+     * async-profiler, carried by both payload flavours. It is the one payload that is genuinely
      * native whatever else the image carries, and at around 1 MB per architecture it is the cheap
      * half of the bundle.
      */
     public static final PayloadSpec PROFILER = new PayloadSpec.ArchScoped(
-            PROFILER_ARTIFACT_ID, PROFILER_BASE_NAME, PROFILER_EXTENSION, PayloadPermissions.READABLE);
+            PROFILER_BASE_NAME, PROFILER_EXTENSION, PayloadPermissions.READABLE);
 }

@@ -61,9 +61,12 @@ onMounted(() => {
         <DocsCallout type="info">
           <strong>Open Source Library:</strong> Jeffrey JIB lives in the Jeffrey monorepo under
           <a href="https://github.com/petrbouda/jeffrey/tree/master/utilities/jeffrey-jib" target="_blank" rel="noopener">utilities/jeffrey-jib</a>
-          and is published to Maven Central as
-          <code>cafe.jeffrey-analyst:jeffrey-jib-gradle</code> and
-          <code>cafe.jeffrey-analyst:jeffrey-jib-maven</code>.
+          and is published to Maven Central in four <em>flavours</em>, one per build tool and
+          provisioner build: <code>cafe.jeffrey-analyst:jeffrey-jib-maven-jar</code>,
+          <code>jeffrey-jib-maven-native</code>, <code>jeffrey-jib-gradle-jar</code> and
+          <code>jeffrey-jib-gradle-native</code>. A flavour is the extension plus the payload jar
+          carrying that provisioner build and async-profiler, so the dependency you declare is the
+          whole configuration.
         </DocsCallout>
 
         <h2 id="how-it-works">How It Works</h2>
@@ -97,13 +100,13 @@ onMounted(() => {
           without profiling &mdash; see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
 
         <DocsCallout type="info">
-          <strong>The image is self-contained.</strong> The extension fetches the provisioner and
-          async-profiler through your build's own dependency resolution and installs them under
-          <code>/opt/jeffrey</code> in their own layer. The shared volume is still needed &mdash; but only
-          for the recordings your application writes to it, never to find its own tooling. Set
-          <code>payloadVersion</code> to the jeffrey-jib release whose payload artifacts the image
-          should carry &mdash; normally the extension's own version. The build log prints which
-          Jeffrey release and async-profiler version those payloads bundle.
+          <strong>The image is self-contained.</strong> The extension takes the provisioner and
+          async-profiler out of the payload jar that arrived with the flavour you declared &mdash; an
+          ordinary plugin dependency, nothing is downloaded by the extension itself &mdash; and
+          installs them under <code>/opt/jeffrey</code> in their own layer, only for the
+          architectures the image targets. The shared volume is still needed &mdash; but only for the
+          recordings your application writes to it, never to find its own tooling. The build log
+          prints which Jeffrey release and async-profiler version the payload bundles.
         </DocsCallout>
 
         <h2 id="runtime-kill-switch">Runtime Kill Switch</h2>
@@ -134,7 +137,7 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="jar-provisioner-environment">The Jar Provisioner and the JVM Environment</h2>
-        <p>With <code>provisionerSource=jar</code> the provisioner runs on the application's own
+        <p>With a <code>jar</code> flavour the provisioner runs on the application's own
           <code>java</code>, as a short-lived second JVM before the application starts. Every JVM in the
           container reads the same environment, and three variables are honoured by any
           <code>java</code> launcher or HotSpot without being asked: <code>JDK_JAVA_OPTIONS</code> (the
@@ -207,13 +210,13 @@ onMounted(() => {
           </div>
           <div class="feature-item feature-item-warning">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <div><strong>Resolves the payload artifacts at build time</strong> from Maven Central, or
-              whatever repositories your build is configured with &mdash; the <em>project's</em>
-              repositories, not the plugin or <code>buildscript</code> ones, which matters behind split
-              enterprise mirrors. An air-gapped build mirrors the
-              <code>jeffrey-jib-payload-*</code> artifacts it uses; pointing
-              <code>profilerPath</code> at a library the base image already provides removes the
-              async-profiler one, but the provisioner payload is always needed.</div>
+            <div><strong>The payload is a plugin dependency</strong>, fetched wherever your build
+              fetches plugins (<code>pluginRepositories</code> on Maven, the <code>buildscript</code>
+              repositories on Gradle) and mirrored like one in an air-gapped build. A
+              <code>native</code> flavour is ~90&nbsp;MB &mdash; it carries both architectures so the
+              same dependency serves single- and multi-platform builds &mdash; the <code>jar</code>
+              flavour ~6&nbsp;MB. Pointing <code>profilerPath</code> at a library the base image
+              already provides keeps async-profiler out of the image, not out of the download.</div>
           </div>
         </div>
       </div>

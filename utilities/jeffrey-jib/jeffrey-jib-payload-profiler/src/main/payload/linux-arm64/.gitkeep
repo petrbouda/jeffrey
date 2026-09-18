@@ -1,6 +1,0 @@
-# Placeholder: keeps the staging directory tracked in git so the payload module has a valid
-# source path. CI stages the real binary into jeffrey-payload/ here before packaging, from a
-# published Jeffrey release (provisioner) or an async-profiler release (libasyncProfiler.so).
-# It sits OUTSIDE jeffrey-payload/ on purpose: the extension requires exactly one file under that
-# prefix, so a placeholder inside it would be read as a second payload and fail every build.
-# The enforcer rule in this module pom fails the build if the real binary is still missing.

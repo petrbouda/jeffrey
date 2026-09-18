@@ -1,0 +1,4 @@
+# Placeholder: keeps the staging directory tracked in git so the payload module has a valid
+# resource root. CI stages the real binaries next to this file before packaging, from a published
+# Jeffrey release (the provisioner) and an async-profiler release (libasyncProfiler.so); the
+# enforcer rule in the module pom fails the build while any of them is still missing.

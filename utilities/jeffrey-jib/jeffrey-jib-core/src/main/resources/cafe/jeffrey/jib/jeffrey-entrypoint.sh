@@ -169,7 +169,7 @@ if [ "$INIT_OK" != "true" ] || [ ! -f "$ARG_FILE" ]; then
   if [ "$PROVISIONER_KIND" = "jar" ]; then
     # By far the likeliest cause, and the JVM's own UnsupportedClassVersionError above is easy to
     # miss in a noisy startup log.
-    echo "jeffrey-jib: if the error above is UnsupportedClassVersionError, this application's JVM is older than the provisioner jar. Rebuild the image with provisionerSource=native." >&2
+    echo "jeffrey-jib: if the error above is UnsupportedClassVersionError, this application's JVM is older than the provisioner jar. Rebuild the image with the native flavour of jeffrey-jib (jeffrey-jib-maven-native / jeffrey-jib-gradle-native)." >&2
   fi
   exec "$JAVA_BIN" "$@"
 fi

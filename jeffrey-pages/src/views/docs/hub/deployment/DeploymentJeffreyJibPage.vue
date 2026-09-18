@@ -45,7 +45,7 @@ const parentPom = `<plugin>
     <dependencies>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-jib-maven</artifactId>
+            <artifactId>jeffrey-jib-maven-jar</artifactId>
             <version>\${jeffrey-jib.version}</version>
         </dependency>
     </dependencies>
@@ -61,9 +61,6 @@ const parentPom = `<plugin>
         <pluginExtensions>
             <pluginExtension>
                 <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
-                <properties>
-                    <payloadVersion>\${jeffrey-jib.version}</payloadVersion>
-                </properties>
             </pluginExtension>
         </pluginExtensions>
     </configuration>
@@ -180,10 +177,11 @@ const moduleClient = `<plugin>
       />
 
       <DocsCallout type="info">
-        <strong>Coordinates.</strong> The extension lives at
-        <code>cafe.jeffrey-analyst:jeffrey-jib-maven</code>, pinned above as
-        <code>jeffrey-jib.version</code> and reused as <code>payloadVersion</code> so the image
-        carries the payloads of the same release. JIB itself stays at the standard
+        <strong>Coordinates.</strong> The dependency is a <em>flavour</em> of the extension:
+        <code>cafe.jeffrey-analyst:jeffrey-jib-maven-jar</code> carries the architecture-neutral
+        provisioner jar, <code>jeffrey-jib-maven-native</code> the GraalVM binary. Either brings the
+        extension and its payload in one coordinate, pinned above as
+        <code>jeffrey-jib.version</code>, so nothing else has to be configured. JIB itself stays at the standard
         <code>com.google.cloud.tools:jib-maven-plugin:3.5.1</code> — no fork, no patched
         plugin.
       </DocsCallout>
@@ -254,10 +252,9 @@ const moduleClient = `<plugin>
       <p>
         The extension bakes everything the image needs to profile itself: the entrypoint wrapper at
         <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner and async-profiler under
-        <code>/opt/jeffrey</code>. The payloads are ordinary Maven artifacts, resolved through your
-        build's own repositories and cache; <code>payloadVersion</code> names the jeffrey-jib release
-        they ship with, and the build log prints which Jeffrey release and async-profiler version
-        that release bundles.
+        <code>/opt/jeffrey</code>. The payload arrives with the flavour you declared, like any other
+        plugin dependency, and the build log prints which Jeffrey release and async-profiler version
+        that jeffrey-jib release bundles.
       </p>
 
       <DocsCallout type="tip">

@@ -93,8 +93,8 @@ jobs:
     secrets: inherit
 
   docker-hub:
-    # No longer needs provisioner-native: the hub image gets its provisioner from the
-    # jeffrey-jib payload artifacts, not from binaries staged into the image at build time.
+    # Does not need provisioner-native: the hub image is built with the jar flavour of
+    # jeffrey-jib, whose payload carries this release's provisioner.jar, not the native binaries.
     needs: [version, build]
     uses: ./.github/workflows/release-hub.yml
     with:

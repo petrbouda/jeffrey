@@ -29,15 +29,37 @@
 
     <artifactId>jeffrey-jib-payload-jar</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>The provisioner jar baked into application images by the Jeffrey JIB extension.</description>
+    <description>The provisioner jar and async-profiler, baked into application images by the jeffrey-jib-*-jar flavours of the Jeffrey JIB extension.</description>
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <!--
-      Architecture-neutral, so unlike its native sibling this module publishes one plain jar: the
-      payload under jeffrey-payload/ plus the holder class Maven Central's sources/javadoc rules
-      need. CI stages provisioner.jar into src/main/resources/jeffrey-payload/ before packaging.
+      One jar carrying every binary the jar flavour bakes, under jeffrey-payload/:
+      provisioner.jar, libasyncProfiler-linux-amd64.so, libasyncProfiler-linux-arm64.so.
+      CI stages them into src/main/payload/jeffrey-payload/ before packaging; that directory is a
+      resource root with filtering off, so nothing rewrites a binary. payload.properties, which the
+      extension reads to learn what the jar carries and where it came from, lives in the ordinary
+      resources directory and is filtered.
+      The holder class exists because Maven Central requires sources and javadoc jars for every
+      artifact; the extension never touches it.
     -->
+    <properties>
+        <payload.dir>${project.basedir}/src/main/payload</payload.dir>
+    </properties>
+
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>${payload.dir}</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/.gitkeep</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -52,16 +74,18 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <!-- A release that forgot to stage the jar must fail here rather
-                                     than publish an empty payload that breaks every consumer. -->
+                                <!-- A release that forgot to stage a binary must fail here rather
+                                     than publish a payload that breaks every consumer. -->
                                 <requireFilesExist>
                                     <files>
-                                        <file>${project.basedir}/src/main/resources/jeffrey-payload/provisioner.jar</file>
+                                        <file>${payload.dir}/jeffrey-payload/provisioner.jar</file>
+                                        <file>${payload.dir}/jeffrey-payload/libasyncProfiler-linux-amd64.so</file>
+                                        <file>${payload.dir}/jeffrey-payload/libasyncProfiler-linux-arm64.so</file>
                                     </files>
                                 </requireFilesExist>
-                                <!-- Recorded in the payload jar manifest (Jeffrey-Payload-Provenance) and
-                                     printed by the extension at build time: the only place a consumer can
-                                     see which Jeffrey release a jeffrey-jib payload actually bundles. -->
+                                <!-- Recorded in payload.properties and printed by the extension at
+                                     build time: the only place a consumer can see which Jeffrey
+                                     release a jeffrey-jib payload actually bundles. -->
                                 <requireProperty>
                                     <property>jeffrey.release</property>
                                     <regex>^v[0-9][0-9A-Za-z.+-]*$</regex>
@@ -71,33 +95,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>${maven-jar-plugin.version}</version>
-                <configuration>
-                    <excludes>
-                        <exclude>.gitkeep</exclude>
-                    </excludes>
-                    <archive>
-                        <manifestEntries>
-                            <Jeffrey-Payload-Provenance>jeffrey ${jeffrey.release}</Jeffrey-Payload-Provenance>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${maven-resources-plugin.version}</version>
-                <configuration>
-                    <!-- Belt and braces: filtering is off by default, and a filtered jar would be
-                         a corrupt jar. -->
-                    <nonFilteredFileExtensions>
-                        <nonFilteredFileExtension>jar</nonFilteredFileExtension>
-                    </nonFilteredFileExtensions>
-                </configuration>
             </plugin>
         </plugins>
     </build>

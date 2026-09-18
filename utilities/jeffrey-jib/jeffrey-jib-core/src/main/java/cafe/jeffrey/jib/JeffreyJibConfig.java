@@ -23,16 +23,15 @@ package cafe.jeffrey.jib;
  * Gradle plugin DSL via bean-style setters (JIB's reflection-based config binding requires
  * JavaBean accessors, which is why this is a plain class rather than a record).
  *
- * <p>Every string field is optional except {@code payloadVersion}, which has no sensible default
- * and is always required, since every image carries a provisioner. Null means "do not set an image-level ENV default
- * for this key" — the wrapper script's hardcoded fallback applies at container start, or the
- * operator provides the value via a pod-level env var.
+ * <p>Every string field is optional. Null means "do not set an image-level ENV default for this
+ * key" — the wrapper script's hardcoded fallback applies at container start, or the operator
+ * provides the value via a pod-level env var.
  *
  * <p>{@code profilerPath} carries a second meaning: setting it declares that the image already
- * provides async-profiler, so the extension neither resolves nor bakes that payload. The
- * provisioner has no such property. It is Jeffrey's own binary and the protocol it writes is the
- * one Jeffrey Hub reads, so the extension always bakes it and {@code provisionerSource} chooses
- * only which build.
+ * provides async-profiler, so the extension does not bake that payload. The provisioner has no
+ * such property. It is Jeffrey's own binary and the protocol it writes is the one Jeffrey Hub
+ * reads, so the extension always bakes it; which build — native or jar — is chosen by the flavour
+ * of the extension declared as the jib plugin dependency, not by configuration.
  */
 public class JeffreyJibConfig {
 
@@ -50,8 +49,6 @@ public class JeffreyJibConfig {
     public static final String ARG_FILE = "argFile";
     public static final String PROFILER_PATH = "profilerPath";
     public static final String PROJECT_NAME = "projectName";
-    public static final String PROVISIONER_SOURCE = "provisionerSource";
-    public static final String PAYLOAD_VERSION = "payloadVersion";
 
     private boolean enabled = true;
     private String jeffreyHome;
@@ -60,8 +57,6 @@ public class JeffreyJibConfig {
     private String argFile;
     private String profilerPath;
     private String projectName;
-    private String provisionerSource;
-    private String payloadVersion;
 
     public boolean isEnabled() {
         return enabled;
@@ -119,30 +114,4 @@ public class JeffreyJibConfig {
         this.projectName = projectName;
     }
 
-    public String getProvisionerSource() {
-        return provisionerSource;
-    }
-
-    /**
-     * Which provisioner build to bake: {@code native} (default) or {@code jar}. See
-     * {@code cafe.jeffrey.jib.payload.ProvisionerSource} for the trade-off.
-     */
-    public void setProvisionerSource(String provisionerSource) {
-        this.provisionerSource = provisionerSource;
-    }
-
-    public String getPayloadVersion() {
-        return payloadVersion;
-    }
-
-    /**
-     * The jeffrey-jib release whose payload artifacts to fetch — normally the same version as the
-     * extension, since the payloads are published alongside it. Which Jeffrey release and
-     * async-profiler version a payload bundles is recorded in its manifest and printed by the
-     * build. Mandatory: there is no sensible default, because guessing would pin an image to a
-     * provisioner nobody chose.
-     */
-    public void setPayloadVersion(String payloadVersion) {
-        this.payloadVersion = payloadVersion;
-    }
 }

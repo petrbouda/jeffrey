@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * How one kind of payload is named, both in the image and on the wire.
+ * How one kind of payload is named, both in the image and inside the payload jar.
  *
  * <p>Two shapes exist and they differ in exactly one respect — whether the file depends on the
  * target architecture — so the difference is a type rather than a flag consulted at four call
@@ -41,42 +41,42 @@ import java.util.Set;
  */
 public sealed interface PayloadSpec permits PayloadSpec.ArchScoped, PayloadSpec.Neutral {
 
-    /** The Maven namespace every payload is published under, matching the extension's own. */
-    String PAYLOAD_GROUP_ID = "cafe.jeffrey-analyst";
-
     /** Where payloads land in the image. Owned by Jeffrey, so nothing in the base image collides. */
     AbsoluteUnixPath INSTALL_DIR = AbsoluteUnixPath.get("/opt/jeffrey");
+
+    /** The directory inside every payload jar; deliberately not a Java package name. */
+    String RESOURCE_PREFIX = "jeffrey-payload/";
 
     /** Expanded by the entrypoint script at container start; only multi-platform images bake it. */
     String ARCH_PLACEHOLDER = "{arch}";
 
     String ARCH_SEPARATOR = "-";
 
-    /** Payload classifiers are {@code linux-<arch>}; Jeffrey profiles Linux containers only. */
-    String CLASSIFIER_OS_PREFIX = "linux-";
+    /** Arch-scoped files in the payload jar end in {@code -linux-<arch>}; Jeffrey profiles Linux containers only. */
+    String RESOURCE_OS_INFIX = "-linux-";
 
-    /** The artifacts to fetch and where each one is installed. */
-    List<PayloadRequest> requestsFor(Set<String> architectures, String version);
+    /** The files to take from the payload jar and where each one is installed. */
+    List<PayloadRequest> requestsFor(Set<String> architectures);
 
     /** The value baked into this payload's {@code JEFFREY_*} environment variable. */
     String envPath(Set<String> architectures);
 
-    /** A payload that exists once per architecture: the native provisioner, and async-profiler. */
-    record ArchScoped(String artifactId, String baseName, String extension, FilePermissions permissions)
-            implements PayloadSpec {
+    /**
+     * A payload that exists once per architecture: the native provisioner, and async-profiler.
+     * Stored in the payload jar as {@code <baseName>-linux-<arch><extension>}.
+     */
+    record ArchScoped(String baseName, String extension, FilePermissions permissions) implements PayloadSpec {
 
         @Override
-        public List<PayloadRequest> requestsFor(Set<String> architectures, String version) {
+        public List<PayloadRequest> requestsFor(Set<String> architectures) {
             boolean multiArch = architectures.size() > 1;
             List<PayloadRequest> requests = new ArrayList<>(architectures.size());
             for (String architecture : architectures) {
-                ArtifactCoordinates coordinates = new ArtifactCoordinates(
-                        PAYLOAD_GROUP_ID, artifactId, CLASSIFIER_OS_PREFIX + architecture, null, version);
+                String resource = RESOURCE_PREFIX + baseName + RESOURCE_OS_INFIX + architecture + extension;
                 String fileName = multiArch
                         ? baseName + ARCH_SEPARATOR + architecture + extension
                         : baseName + extension;
-                requests.add(new PayloadRequest(
-                        coordinates, INSTALL_DIR.resolve(fileName), permissions));
+                requests.add(new PayloadRequest(resource, INSTALL_DIR.resolve(fileName), permissions));
             }
             return List.copyOf(requests);
         }
@@ -90,16 +90,16 @@ public sealed interface PayloadSpec permits PayloadSpec.ArchScoped, PayloadSpec.
         }
     }
 
-    /** A payload that is the same file on every architecture: the provisioner jar. */
-    record Neutral(String artifactId, String baseName, String extension, FilePermissions permissions)
-            implements PayloadSpec {
+    /**
+     * A payload that is the same file on every architecture: the provisioner jar. Stored in the
+     * payload jar as {@code <baseName><extension>}.
+     */
+    record Neutral(String baseName, String extension, FilePermissions permissions) implements PayloadSpec {
 
         @Override
-        public List<PayloadRequest> requestsFor(Set<String> architectures, String version) {
-            ArtifactCoordinates coordinates =
-                    new ArtifactCoordinates(PAYLOAD_GROUP_ID, artifactId, null, null, version);
-            return List.of(new PayloadRequest(
-                    coordinates, INSTALL_DIR.resolve(baseName + extension), permissions));
+        public List<PayloadRequest> requestsFor(Set<String> architectures) {
+            String resource = RESOURCE_PREFIX + baseName + extension;
+            return List.of(new PayloadRequest(resource, INSTALL_DIR.resolve(baseName + extension), permissions));
         }
 
         @Override

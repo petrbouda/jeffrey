@@ -19,7 +19,7 @@
 package cafe.jeffrey.jib.payload;
 
 /**
- * A payload artifact could not be fetched or unpacked at build time.
+ * A payload could not be found on the class path or unpacked at build time.
  *
  * <p>Checked on purpose. The runtime fail-open guarantee covers container start — a JVM that cannot
  * be profiled must still boot. It says nothing about the build, where silently producing an image
@@ -28,15 +28,15 @@ package cafe.jeffrey.jib.payload;
  */
 public final class PayloadResolutionException extends Exception {
 
-    public PayloadResolutionException(ArtifactCoordinates coordinates, String reason) {
-        super(message(coordinates, reason));
+    public PayloadResolutionException(String resource, String reason) {
+        super(message(resource, reason));
     }
 
-    public PayloadResolutionException(ArtifactCoordinates coordinates, String reason, Throwable cause) {
-        super(message(coordinates, reason), cause);
+    public PayloadResolutionException(String resource, String reason, Throwable cause) {
+        super(message(resource, reason), cause);
     }
 
-    private static String message(ArtifactCoordinates coordinates, String reason) {
-        return "Failed to resolve the Jeffrey payload artifact " + coordinates + ": " + reason;
+    private static String message(String resource, String reason) {
+        return "Failed to load the Jeffrey payload " + resource + ": " + reason;
     }
 }

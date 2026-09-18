@@ -213,9 +213,9 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
         <p>For a container image built with JIB, you install nothing: the
           <router-link to="/docs/jib/setup">Jeffrey JIB extension</router-link> puts the provisioner and
           async-profiler into the image under <code>/opt/jeffrey</code> at build time. Pick the build
-          with <code>provisionerSource</code> (<code>native</code> or <code>jar</code>) and pin the
-          binaries with <code>payloadVersion</code>, the jeffrey-jib release whose payloads the image
-          carries.</p>
+          by the flavour you declare (<code>jeffrey-jib-maven-native</code> or
+          <code>-jar</code>, and the Gradle equivalents); its version is the jeffrey-jib release
+          whose payload the image carries.</p>
 
         <p>For everything else &mdash; a hand-written Dockerfile, a VM, bare metal:</p>
 

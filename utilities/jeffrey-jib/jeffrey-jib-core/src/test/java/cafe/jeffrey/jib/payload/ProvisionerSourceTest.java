@@ -28,10 +28,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ProvisionerSourceTest {
 
     @Test
-    void unsetMeansNative() {
-        assertSame(ProvisionerSource.NATIVE, ProvisionerSource.parse(null));
-        assertSame(ProvisionerSource.NATIVE, ProvisionerSource.parse(""));
-        assertSame(ProvisionerSource.NATIVE, ProvisionerSource.parse("   "));
+    void aMissingKindIsABrokenPayloadNotADefault() {
+        // The kind is stated by the payload jar that was published; there is nothing to fall
+        // back to, and treating a blank as native would hide a mis-built payload.
+        assertThrows(IllegalArgumentException.class, () -> ProvisionerSource.parse(null));
+        assertThrows(IllegalArgumentException.class, () -> ProvisionerSource.parse(""));
+        assertThrows(IllegalArgumentException.class, () -> ProvisionerSource.parse("   "));
     }
 
     @Test
@@ -43,8 +45,8 @@ class ProvisionerSourceTest {
 
     @Test
     void anUnknownValueIsRejectedRatherThanDefaulted() {
-        // Quietly building a native image for someone who asked for something else would surface
-        // only as a container that fails to profile, long after the build passed.
+        // Quietly treating an unknown kind as native would surface only as a container that
+        // fails to profile, long after the build passed.
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class, () -> ProvisionerSource.parse("graalvm"));
 
