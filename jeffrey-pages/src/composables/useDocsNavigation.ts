@@ -490,7 +490,7 @@ export const tracingNavigation: DocSection[] = [
         path: 'tracer-api',
         children: [
           { title: 'run', to: '/docs/tracing/tracer-api/run' },
-          { title: 'call', to: '/docs/tracing/tracer-api/call' },
+          { title: 'call / get', to: '/docs/tracing/tracer-api/call' },
           { title: 'current', to: '/docs/tracing/tracer-api/current' },
           { title: 'inSpanOf', to: '/docs/tracing/tracer-api/in-span-of' },
           { title: 'stamp', to: '/docs/tracing/tracer-api/stamp' },

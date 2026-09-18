@@ -400,6 +400,15 @@ class TracerTest {
         }
 
         @Test
+        @DisplayName("get runs the body and returns its result exactly as call does")
+        void getRunsTheBody() {
+            Object result = new Object();
+
+            assertSame(result, Tracer.get("noop", () -> result));
+            assertSame(result, Tracer.get("noop", SpanKind.INTERNAL, () -> result));
+        }
+
+        @Test
         @DisplayName("no span context is published")
         void noContextIsBound() {
             Tracer.run("noop", SpanKind.INTERNAL, () -> assertTrue(Tracer.current().isEmpty()));
@@ -477,6 +486,41 @@ class TracerTest {
             RecordedEvent charge = spans.get("charge");
             assertEquals(SpanStatus.ERROR.name(), charge.getString("status"));
             assertEquals(IllegalStateException.class.getName(), charge.getString("errorType"));
+        }
+
+        @Test
+        @DisplayName("get records the same span as call, nested under the span in progress")
+        void getRecordsASpanLikeCall() throws IOException {
+            Map<String, RecordedEvent> spans = recordSpans(() ->
+                    Tracer.run("checkout", SpanKind.SERVER, () -> {
+                        String rules = Tracer.get("rules.load", SpanKind.CLIENT, () -> "loaded");
+                        assertEquals("loaded", rules);
+                    }));
+
+            RecordedEvent checkout = spans.get("checkout");
+            RecordedEvent load = spans.get("rules.load");
+            assertEquals(SpanKind.CLIENT.name(), load.getString("kind"));
+            assertEquals(SpanStatus.UNSET.name(), load.getString("status"));
+            assertEquals(checkout.getLong("traceId"), load.getLong("traceId"));
+            assertEquals(checkout.getLong("spanId"), load.getLong("parentSpanId"));
+        }
+
+        @Test
+        @DisplayName("an exception escaping get marks the span ERROR and is rethrown unchanged")
+        void getFailureIsRecordedAndRethrown() throws IOException {
+            IllegalStateException thrown = new IllegalStateException("mapper failed");
+
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                IllegalStateException actual = assertThrows(IllegalStateException.class,
+                        () -> Tracer.get("rules.load", () -> {
+                            throw thrown;
+                        }));
+                assertSame(thrown, actual);
+            });
+
+            RecordedEvent load = spans.get("rules.load");
+            assertEquals(SpanStatus.ERROR.name(), load.getString("status"));
+            assertEquals(IllegalStateException.class.getName(), load.getString("errorType"));
         }
 
         @Test

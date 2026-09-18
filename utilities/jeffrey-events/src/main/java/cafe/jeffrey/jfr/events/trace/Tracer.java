@@ -127,6 +127,39 @@ public final class Tracer {
     }
 
     /**
+     * The {@link Supplier} form of {@link #call(String, ScopedValue.CallableOp)}, with kind
+     * {@link SpanKind#INTERNAL}.
+     */
+    public static <R> R get(String name, Supplier<R> body) {
+        return get(name, SpanKind.INTERNAL, body);
+    }
+
+    /**
+     * The {@link Supplier} form of {@link #call(String, SpanKind, ScopedValue.CallableOp)}, for a
+     * body with a result and no checked exception. Same span, same error handling; only the thrown
+     * type variable is gone.
+     * <p>
+     * That variable is the reason this exists: a lambda gives the compiler nothing to infer
+     * {@code X} from except the body's {@code throws}, which Kotlin does not have, so every Kotlin
+     * call site of {@link #call} has to spell out both type arguments. A distinct name rather than
+     * another {@code call} overload, as {@link ScopedValue.Carrier#get(Supplier)} sits beside
+     * {@link ScopedValue.Carrier#call(ScopedValue.CallableOp)}: a result-bearing lambda matches
+     * {@link Supplier} and {@link ScopedValue.CallableOp} alike, and an overload would change which
+     * one existing callers resolve to — a method reference whose target throws a checked exception
+     * stops compiling.
+     *
+     * <pre>{@code
+     * val rules = Tracer.get("scheduling-rules.get-view") {
+     *     schedulingRulesMapper.getSchedulingRulesView(filter)
+     * }
+     * }</pre>
+     */
+    public static <R> R get(String name, SpanKind kind, Supplier<R> body) {
+        Objects.requireNonNull(body, "body must not be null");
+        return call(name, kind, body::get);
+    }
+
+    /**
      * Opens a span and makes {@code event} that span, for instrumentation whose own event already
      * describes the interval — an HTTP exchange, a gRPC call. Emitting a {@link TraceSpanEvent}
      * alongside such an event would record the same interval twice, so none is emitted; the event

@@ -32,6 +32,7 @@ const headings = [
   { id: 'signature', text: 'Signatures', level: 2 },
   { id: 'behavior', text: 'Behavior', level: 2 },
   { id: 'examples', text: 'Examples', level: 2 },
+  { id: 'get', text: 'The Supplier form: get', level: 2 },
   { id: 'output', text: 'Output', level: 2 },
   { id: 'notes', text: 'Notes & Pitfalls', level: 2 },
   { id: 'related', text: 'Related', level: 2 }
@@ -47,7 +48,22 @@ static <R, X extends Throwable>
 R call(String name, ScopedValue.CallableOp<? extends R, X> body) throws X
 
 static <R, X extends Throwable>
-R call(String name, SpanKind kind, ScopedValue.CallableOp<? extends R, X> body) throws X`;
+R call(String name, SpanKind kind, ScopedValue.CallableOp<? extends R, X> body) throws X
+
+// The Supplier form: a result, no checked exception, no thrown type to infer
+static <R> R get(String name, Supplier<R> body)
+static <R> R get(String name, SpanKind kind, Supplier<R> body)`;
+
+const kotlinExample = `// call: a lambda gives the compiler nothing to infer X from, so both type
+// arguments have to be spelled out at every Kotlin call site
+val rules = Tracer.call<List<SchedulingRulesView>, Throwable>("scheduling-rules.get-view") {
+    schedulingRulesMapper.getSchedulingRulesView(filter)
+}
+
+// get: one type variable, inferred from the lambda
+val rules = Tracer.get("scheduling-rules.get-view") {
+    schedulingRulesMapper.getSchedulingRulesView(filter)
+}`;
 
 const examples = `// Use-case 1: a value-returning load — the span times it, the result flows out
 Order order = Tracer.call("order.load", () -> repository.load(id));
@@ -106,7 +122,7 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
 
       <h2 id="when">Use It When</h2>
 
-      <p>The block being timed produces a value the caller needs, or throws a checked exception you want to keep typed. For pure side effects, <router-link to="/docs/tracing/tracer-api/run">run</router-link> reads better.</p>
+      <p>The block being timed produces a value the caller needs, or throws a checked exception you want to keep typed. For pure side effects, <router-link to="/docs/tracing/tracer-api/run">run</router-link> reads better. From Kotlin, or for a Java body that throws nothing checked, use the <a href="#get">Supplier form, <code>get</code></a>.</p>
 
       <h2 id="signature">Signatures</h2>
 
@@ -131,6 +147,14 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
       <p>The failure path:</p>
 
       <DocsCodeBlock :code="errorExample" language="java" />
+
+      <h2 id="get">The Supplier form: get</h2>
+
+      <p><code>Tracer.get</code> is <code>call</code> for a body that returns a value and throws nothing checked: the same span, the same <code>ERROR</code> status on an escaping exception, the same rethrow — only the thrown type variable is gone. It exists for the callers that cannot infer that variable. Java infers <code>X</code> from the lambda body's <code>throws</code>; Kotlin has no checked exceptions, so its lambdas leave <code>X</code> unconstrained and every call site has to spell out both type arguments.</p>
+
+      <DocsCodeBlock :code="kotlinExample" language="kotlin" />
+
+      <p>It is a distinct name rather than a <code>call</code> overload, the way <code>ScopedValue.Carrier</code> has <code>get(Supplier)</code> beside <code>call(CallableOp)</code>: a result-bearing lambda matches both interfaces, and an overload would change which one existing callers resolve to. In Java, keep using <code>call</code> when the body throws a checked exception you want to keep typed; <code>get</code> reads better when it does not.</p>
 
       <h2 id="output">Output</h2>
 
