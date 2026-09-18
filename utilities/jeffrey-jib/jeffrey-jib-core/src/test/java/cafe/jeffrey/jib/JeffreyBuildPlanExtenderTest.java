@@ -18,9 +18,6 @@
 
 package cafe.jeffrey.jib;
 
-import cafe.jeffrey.jib.payload.ArtifactCoordinates;
-import cafe.jeffrey.jib.payload.PayloadResolutionException;
-import cafe.jeffrey.jib.payload.PayloadResolver;
 import com.google.cloud.tools.jib.api.buildplan.ContainerBuildPlan;
 import com.google.cloud.tools.jib.api.buildplan.FileEntriesLayer;
 import com.google.cloud.tools.jib.api.buildplan.FileEntry;
@@ -37,6 +34,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -46,9 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
-import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
-import java.util.jar.Manifest;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,50 +57,77 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JeffreyBuildPlanExtenderTest {
 
-    private static final String PAYLOAD_VERSION = "0.13.22";
     private static final String PAYLOAD_ENTRY_PREFIX = "jeffrey-payload/";
+    private static final String PAYLOAD_DESCRIPTOR = PAYLOAD_ENTRY_PREFIX + "payload.properties";
     private static final String PAYLOAD_LAYER = "jeffrey-payload";
+    private static final byte[] PAYLOAD_BYTES = {1, 2, 3, 4};
+
+    private static final List<String> NATIVE_FILES = List.of(
+            "provisioner-linux-amd64", "provisioner-linux-arm64",
+            "libasyncProfiler-linux-amd64.so", "libasyncProfiler-linux-arm64.so");
+    private static final List<String> JAR_FILES = List.of(
+            "provisioner.jar", "libasyncProfiler-linux-amd64.so", "libasyncProfiler-linux-arm64.so");
 
     @TempDir
     private Path tempDir;
 
     private JeffreyBuildPlanExtender extender;
     private CapturingLogger logger;
-    private StubPayloadResolver resolver;
     private Path workDirectory;
 
     @BeforeEach
     void setUp() throws IOException {
         logger = new CapturingLogger();
-        resolver = new StubPayloadResolver(payloadJar("payload.bin"));
         workDirectory = tempDir.resolve("work");
-        extender = new JeffreyBuildPlanExtender(StubExtension.class, resolver, workDirectory);
+        extender = extenderOver(nativePayloadJar());
+    }
+
+    private static JeffreyJibConfig config() {
+        return new JeffreyJibConfig();
     }
 
     /**
-     * Payloads are mandatory-versioned, so every test that expects a successful extend has to say
-     * which version it wants. A helper keeps that out of each test's body.
+     * The extension finds its payload on its own class path — in production the payload jar is a
+     * sibling plugin dependency. Here the class path is a loader over exactly the jars a test
+     * wants, so "no payload", "two payloads" and "a broken payload" are all real class paths.
      */
-    private static JeffreyJibConfig config() {
-        JeffreyJibConfig config = new JeffreyJibConfig();
-        config.setPayloadVersion(PAYLOAD_VERSION);
-        return config;
+    private JeffreyBuildPlanExtender extenderOver(Path... jars) throws IOException {
+        URL[] urls = new URL[jars.length];
+        for (int i = 0; i < jars.length; i++) {
+            urls[i] = jars[i].toUri().toURL();
+        }
+        // Parent null: the test class path must not leak a payload in.
+        ClassLoader payloads = new URLClassLoader(urls, null);
+        return new JeffreyBuildPlanExtender(StubExtension.class, payloads, workDirectory);
     }
 
-    /** A real jar carrying one file under the prefix the extension unpacks from. */
-    private Path payloadJar(String... entryNames) throws IOException {
-        return payloadJar(new Manifest(), entryNames);
+    private Path nativePayloadJar() throws IOException {
+        return payloadJar(descriptor("native", "jeffrey v0.13.22", "async-profiler 4.1"), NATIVE_FILES);
     }
 
-    /** As above, with a manifest — how a published payload states where its binary came from. */
-    private Path payloadJar(Manifest manifest, String... entryNames) throws IOException {
+    private Path jarPayloadJar() throws IOException {
+        return payloadJar(descriptor("jar", "jeffrey v0.13.22", "async-profiler 4.1"), JAR_FILES);
+    }
+
+    private static String descriptor(String kind, String provisionerProvenance, String profilerProvenance) {
+        return "kind=" + kind + "\n"
+                + "provisioner.provenance=" + provisionerProvenance + "\n"
+                + "profiler.provenance=" + profilerProvenance + "\n";
+    }
+
+    /** A real payload jar: the descriptor plus the given binaries under the payload prefix. */
+    private Path payloadJar(String descriptor, List<String> fileNames) throws IOException {
         Path jar = Files.createTempFile(tempDir, "payload-", ".jar");
-        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         try (OutputStream out = Files.newOutputStream(jar);
-             JarOutputStream jarOut = new JarOutputStream(out, manifest)) {
-            for (String entryName : entryNames) {
-                jarOut.putNextEntry(new JarEntry(PAYLOAD_ENTRY_PREFIX + entryName));
-                jarOut.write(new byte[] {1, 2, 3, 4});
+             JarOutputStream jarOut = new JarOutputStream(out)) {
+            if (descriptor != null) {
+                jarOut.putNextEntry(new JarEntry(PAYLOAD_DESCRIPTOR));
+                jarOut.write(descriptor.getBytes());
+                jarOut.closeEntry();
+            }
+            for (String fileName : fileNames) {
+                jarOut.putNextEntry(new JarEntry(PAYLOAD_ENTRY_PREFIX + fileName));
+                jarOut.write(PAYLOAD_BYTES);
                 jarOut.closeEntry();
             }
         }
@@ -259,7 +283,7 @@ class JeffreyBuildPlanExtenderTest {
             assertSame(input, result, "Disabled extension must return the exact same build plan");
             assertEquals(originalEntrypoint, result.getEntrypoint());
             assertTrue(result.getLayers().isEmpty(), "No jeffrey layer should be added");
-            assertTrue(resolver.requested.isEmpty(), "A disabled extension must resolve nothing");
+            assertFalse(Files.exists(workDirectory), "A disabled extension must unpack nothing");
         }
 
         @Test
@@ -303,13 +327,11 @@ class JeffreyBuildPlanExtenderTest {
             assertEquals("my-service", env.get("JEFFREY_PROJECT_NAME"));
 
             // Naming a profiler path says the image already carries async-profiler, so that payload
-            // is not fetched at all. The provisioner always is: it has no such property.
-            assertTrue(resolver.requested.stream()
-                            .noneMatch(c -> c.artifactId().contains("profiler")),
-                    "An explicit profilerPath must not resolve an async-profiler payload");
-            assertTrue(resolver.requested.stream()
-                            .anyMatch(c -> c.artifactId().contains("native")),
-                    "The provisioner is never supplied by the image, so it must still be baked");
+            // is not baked at all. The provisioner always is: it has no such property.
+            assertEquals(
+                    Set.of("/opt/jeffrey/provisioner"),
+                    entriesOf(layerNamed(extender.extend(input, config, logger), PAYLOAD_LAYER)).keySet(),
+                    "An explicit profilerPath must not bake an async-profiler payload");
         }
 
         @Test
@@ -438,12 +460,13 @@ class JeffreyBuildPlanExtenderTest {
         }
 
         @Test
-        void jarSourceBakesOneArchNeutralProvisioner() throws Exception {
-            JeffreyJibConfig config = config();
-            config.setProvisionerSource("jar");
+        void jarFlavourBakesOneArchNeutralProvisioner() throws Exception {
+            // Which provisioner build an image gets is decided by the payload jar on the class
+            // path — the flavour the build declared — not by configuration.
+            extender = extenderOver(jarPayloadJar());
 
             ContainerBuildPlan result =
-                    extender.extend(planFor("amd64", "arm64").build(), config, logger);
+                    extender.extend(planFor("amd64", "arm64").build(), config(), logger);
 
             // The provisioner jar is the same file everywhere; only async-profiler stays per-arch.
             assertEquals(
@@ -459,10 +482,9 @@ class JeffreyBuildPlanExtenderTest {
 
         @Test
         void jarProvisionerIsNotExecutable() throws Exception {
-            JeffreyJibConfig config = config();
-            config.setProvisionerSource("jar");
+            extender = extenderOver(jarPayloadJar());
 
-            ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
+            ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config(), logger);
 
             assertEquals("644",
                     entriesOf(layerNamed(result, PAYLOAD_LAYER)).get("/opt/jeffrey/provisioner.jar"),
@@ -470,24 +492,16 @@ class JeffreyBuildPlanExtenderTest {
         }
 
         @Test
-        void resolvesOnlyTheArchitecturesBeingBuilt() throws Exception {
-            extender.extend(planFor("amd64").build(), config(), logger);
+        void unpacksOnlyTheArchitecturesBeingBuilt() throws Exception {
+            // The payload jar carries both architectures; the image gets only what it targets.
+            ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config(), logger);
 
             assertEquals(
-                    List.of("linux-amd64", "linux-amd64"),
-                    resolver.requested.stream().map(ArtifactCoordinates::classifier).toList(),
-                    "An amd64-only build must not download arm64 payloads");
-        }
-
-        @Test
-        void resolvesEveryPayloadAtTheConfiguredVersion() throws Exception {
-            JeffreyJibConfig config = config();
-            config.setPayloadVersion("9.9.9");
-
-            extender.extend(planFor("amd64").build(), config, logger);
-
-            assertTrue(resolver.requested.stream().allMatch(c -> "9.9.9".equals(c.version())),
-                    "payloadVersion must reach every payload: " + resolver.requested);
+                    List.of("provisioner-linux-amd64", "libasyncProfiler-linux-amd64.so"),
+                    layerNamed(result, PAYLOAD_LAYER).getEntries().stream()
+                            .map(entry -> entry.getSourceFile().getFileName().toString())
+                            .toList(),
+                    "An amd64-only build must not unpack arm64 payloads");
         }
 
         @Test
@@ -507,9 +521,9 @@ class JeffreyBuildPlanExtenderTest {
         @Test
         void theProvisionerIsBakedEvenWhenTheProfilerIsSupplied() throws Exception {
             // provisionerPath does not exist: the provisioner writes the layout Jeffrey Hub reads,
-            // so every image gets the one the extension fetched, and only its build is a choice.
+            // so every image gets the one from the payload, and only its build is a choice.
+            extender = extenderOver(jarPayloadJar());
             JeffreyJibConfig config = config();
-            config.setProvisionerSource("jar");
             config.setProfilerPath("/usr/lib/libasyncProfiler.so");
 
             ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
@@ -531,7 +545,7 @@ class JeffreyBuildPlanExtenderTest {
             extender.extend(planFor("amd64").build(), config, logger);
 
             assertTrue(logger.messages.stream().anyMatch(m ->
-                            m.message.contains("neither fetched nor version-checked")
+                            m.message.contains("neither baked nor version-checked")
                                     && m.message.contains("/usr/lib/libasyncProfiler.so")),
                     "A supplied library has no provenance to print, so the log must name it: "
                             + logger.messages);
@@ -546,8 +560,25 @@ class JeffreyBuildPlanExtenderTest {
 
             assertTrue(logger.messages.stream().anyMatch(m -> m.level == LogLevel.WARN
                             && m.message.contains("provisionerPath")
-                            && m.message.contains("provisionerSource")),
+                            && m.message.contains("plugin dependency")),
                     "A build still setting the removed property must be told: " + logger.messages);
+        }
+
+        @Test
+        void warnsThatProvisionerSourceAndPayloadVersionMovedToTheDependency() {
+            // Both were properties of the previous design; a build migrating from it must learn
+            // where the choice went rather than have its setting silently ignored.
+            JeffreyJibConfig config = config();
+
+            JeffreyBuildPlanExtender.applyProperties(
+                    config, Map.of("provisionerSource", "jar", "payloadVersion", "0.14.0"), logger);
+
+            List<String> warnings = logger.messages.stream()
+                    .filter(m -> m.level == LogLevel.WARN)
+                    .map(m -> m.message)
+                    .toList();
+            assertEquals(2, warnings.size(), warnings.toString());
+            assertTrue(warnings.stream().allMatch(m -> m.contains("jeffrey-jib-maven-jar")), warnings.toString());
         }
 
         @Test
@@ -557,8 +588,8 @@ class JeffreyBuildPlanExtenderTest {
             ContainerBuildPlan first = extender.extend(planFor("amd64").build(), config(), logger);
             Path unpacked = layerNamed(first, PAYLOAD_LAYER).getEntries().get(0).getSourceFile();
             assertTrue(unpacked.startsWith(workDirectory), "Unpacked under the work directory: " + unpacked);
-            assertTrue(unpacked.toString().contains("jeffrey-jib-payload-native-" + PAYLOAD_VERSION + "-linux-amd64"),
-                    "Path keyed by coordinates so versions never collide: " + unpacked);
+            assertEquals("provisioner-linux-amd64", unpacked.getFileName().toString(),
+                    "Named after the file in the payload jar: " + unpacked);
 
             FileTime sentinel = FileTime.fromMillis(0);
             Files.setLastModifiedTime(unpacked, sentinel);
@@ -577,24 +608,21 @@ class JeffreyBuildPlanExtenderTest {
 
             extender.extend(planFor("amd64").build(), config(), logger);
 
-            assertArrayEquals(new byte[] {1, 2, 3, 4}, Files.readAllBytes(unpacked),
-                    "A stale file of the same size is detected by checksum and replaced");
+            assertArrayEquals(PAYLOAD_BYTES, Files.readAllBytes(unpacked),
+                    "A stale file of the same size is detected by content and replaced");
         }
 
         @Test
         void logsWhereEachPayloadCameFrom() throws Exception {
-            // payloadVersion names a jeffrey-jib release; the Jeffrey release and async-profiler
-            // version inside it are only knowable from the payload manifests, so the build log
-            // has to say them.
-            Manifest manifest = new Manifest();
-            manifest.getMainAttributes().putValue("Jeffrey-Payload-Provenance", "jeffrey v0.13.22");
-            resolver.returnJar(payloadJar(manifest, "provisioner"));
-
+            // The payload jar's version is a jeffrey-jib release; the Jeffrey release and
+            // async-profiler version inside it are only knowable from the payload descriptor, so
+            // the build log has to say them.
             extender.extend(planFor("amd64").build(), config(), logger);
 
             assertTrue(logger.messages.stream().anyMatch(m ->
-                            m.message.contains("/opt/jeffrey/provisioner (jeffrey v0.13.22)")),
-                    "Expected the provenance next to the install path; got: " + logger.messages);
+                            m.message.contains("/opt/jeffrey/provisioner (jeffrey v0.13.22)")
+                                    && m.message.contains("/opt/jeffrey/libasyncProfiler.so (async-profiler 4.1)")),
+                    "Expected the provenance next to each install path; got: " + logger.messages);
         }
     }
 
@@ -602,42 +630,44 @@ class JeffreyBuildPlanExtenderTest {
     class PayloadFailures {
 
         @Test
-        void failsWhenPayloadVersionIsMissing() {
-            ContainerBuildPlan input = planFor("amd64").build();
-
-            JibPluginExtensionException ex = assertThrows(
-                    JibPluginExtensionException.class,
-                    () -> extender.extend(input, new JeffreyJibConfig(), logger));
-
-            assertTrue(ex.getMessage().contains("payloadVersion"),
-                    "The message must name the property to set; got: " + ex.getMessage());
-        }
-
-        @Test
-        void failsWhenAPayloadCannotBeResolved() {
-            resolver.failWith("offline");
+        void failsWhenNoPayloadIsOnTheClassPath() throws Exception {
+            // The bare extension was declared instead of a flavour.
+            extender = extenderOver();
             ContainerBuildPlan input = planFor("amd64").build();
 
             JibPluginExtensionException ex = assertThrows(
                     JibPluginExtensionException.class,
                     () -> extender.extend(input, config(), logger));
 
-            assertTrue(ex.getMessage().contains("jeffrey-jib-payload-native"),
-                    "The message must name the artifact; got: " + ex.getMessage());
+            assertTrue(ex.getMessage().contains("jeffrey-jib-maven-jar")
+                            && ex.getMessage().contains("jeffrey-jib-maven-native"),
+                    "The message must name the flavours to declare; got: " + ex.getMessage());
         }
 
         @Test
-        void failsOnUnknownProvisionerSource() {
-            JeffreyJibConfig config = config();
-            config.setProvisionerSource("graalvm");
+        void failsWhenTwoPayloadsAreOnTheClassPath() throws Exception {
+            // Both flavours declared: which provisioner wins would depend on class-path order.
+            extender = extenderOver(nativePayloadJar(), jarPayloadJar());
             ContainerBuildPlan input = planFor("amd64").build();
 
             JibPluginExtensionException ex = assertThrows(
                     JibPluginExtensionException.class,
-                    () -> extender.extend(input, config, logger));
+                    () -> extender.extend(input, config(), logger));
+
+            assertTrue(ex.getMessage().contains("more than one payload jar"), ex.getMessage());
+        }
+
+        @Test
+        void failsOnAnUnknownPayloadKind() throws Exception {
+            extender = extenderOver(payloadJar(descriptor("graalvm", "jeffrey v1", "async-profiler 4.1"), NATIVE_FILES));
+            ContainerBuildPlan input = planFor("amd64").build();
+
+            JibPluginExtensionException ex = assertThrows(
+                    JibPluginExtensionException.class,
+                    () -> extender.extend(input, config(), logger));
 
             assertTrue(ex.getMessage().contains("native") && ex.getMessage().contains("jar"),
-                    "The message must list the valid values; got: " + ex.getMessage());
+                    "The message must list the valid kinds; got: " + ex.getMessage());
         }
 
         @Test
@@ -662,57 +692,18 @@ class JeffreyBuildPlanExtenderTest {
         }
 
         @Test
-        void failsWhenThePayloadJarIsEmpty() throws Exception {
+        void failsWhenThePayloadJarLacksABinary() throws Exception {
             // Catches a release that published a payload whose binary was never staged.
-            resolver.returnJar(payloadJar());
+            extender = extenderOver(payloadJar(
+                    descriptor("native", "jeffrey v1", "async-profiler 4.1"), List.of("provisioner-linux-amd64")));
             ContainerBuildPlan input = planFor("amd64").build();
 
             JibPluginExtensionException ex = assertThrows(
                     JibPluginExtensionException.class,
                     () -> extender.extend(input, config(), logger));
 
-            assertTrue(ex.getMessage().contains("carries no file"), ex.getMessage());
-        }
-
-        @Test
-        void failsWhenThePayloadJarCarriesMoreThanOneFile() throws Exception {
-            resolver.returnJar(payloadJar("provisioner", "stray.txt"));
-            ContainerBuildPlan input = planFor("amd64").build();
-
-            JibPluginExtensionException ex = assertThrows(
-                    JibPluginExtensionException.class,
-                    () -> extender.extend(input, config(), logger));
-
-            assertTrue(ex.getMessage().contains("expected exactly one"), ex.getMessage());
-        }
-    }
-
-    /** Records what the extension asked for and hands back a real, inspectable payload jar. */
-    private static final class StubPayloadResolver implements PayloadResolver {
-
-        private final List<ArtifactCoordinates> requested = new ArrayList<>();
-        private Path payloadJar;
-        private String failure;
-
-        private StubPayloadResolver(Path payloadJar) {
-            this.payloadJar = payloadJar;
-        }
-
-        private void returnJar(Path jar) {
-            this.payloadJar = jar;
-        }
-
-        private void failWith(String reason) {
-            this.failure = reason;
-        }
-
-        @Override
-        public Path resolve(ArtifactCoordinates coordinates) throws PayloadResolutionException {
-            requested.add(coordinates);
-            if (failure != null) {
-                throw new PayloadResolutionException(coordinates, failure);
-            }
-            return payloadJar;
+            assertTrue(ex.getMessage().contains("jeffrey-payload/libasyncProfiler-linux-amd64.so")
+                            && ex.getMessage().contains("carries no such file"), ex.getMessage());
         }
     }
 

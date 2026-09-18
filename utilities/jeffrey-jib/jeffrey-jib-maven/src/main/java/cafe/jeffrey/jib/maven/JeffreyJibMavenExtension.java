@@ -39,8 +39,10 @@ import java.util.Optional;
  * before the app starts, without forcing operators to override the container {@code command:} in
  * Kubernetes YAML, and bakes the provisioner and async-profiler into the image.
  *
- * <p>Consumer side (Maven). {@code payloadVersion} is the one required property; it is normally the
- * same version as the extension, since the payload artifacts ship with each jeffrey-jib release:
+ * <p>Consumer side (Maven). The plugin dependency is a <em>flavour</em> of the extension —
+ * {@code jeffrey-jib-maven-jar} or {@code jeffrey-jib-maven-native} — which brings this class and
+ * the payload jar carrying the matching provisioner build plus async-profiler. Nothing else is
+ * required:
  * <pre>{@code
  * <plugin>
  *   <groupId>com.google.cloud.tools</groupId>
@@ -48,7 +50,7 @@ import java.util.Optional;
  *   <dependencies>
  *     <dependency>
  *       <groupId>cafe.jeffrey-analyst</groupId>
- *       <artifactId>jeffrey-jib-maven</artifactId>
+ *       <artifactId>jeffrey-jib-maven-jar</artifactId>
  *       <version>jib.version</version>
  *     </dependency>
  *   </dependencies>
@@ -57,7 +59,6 @@ import java.util.Optional;
  *       <pluginExtension>
  *         <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
  *         <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
- *           <payloadVersion>jib.version</payloadVersion>
  *           <jeffreyHome>/mnt/azure/runtime/shared/jeffrey</jeffreyHome>
  *           <baseConfig>/jeffrey/jeffrey-base.conf</baseConfig>
  *         </configuration>
@@ -67,8 +68,8 @@ import java.util.Optional;
  * </plugin>
  * }</pre>
  *
- * <p>Payloads are resolved through the project's {@code <repositories>} (not
- * {@code <pluginRepositories>}), with the build's mirrors, proxies and local repository applied.
+ * <p>The payload jar reaches the extension like any other plugin dependency, through the build's
+ * {@code <pluginRepositories>}, mirrors, proxies and local repository.
  */
 @Named
 @Singleton
@@ -100,8 +101,7 @@ public class JeffreyJibMavenExtension implements JibMavenPluginExtension<Jeffrey
             project.map(MavenProject::getArtifactId).ifPresent(effective::setProjectName);
         }
 
-        return new JeffreyBuildPlanExtender(
-                getClass(), new AetherPayloadResolver(mavenData), workDirectory(project, logger))
+        return new JeffreyBuildPlanExtender(getClass(), getClass().getClassLoader(), workDirectory(project, logger))
                 .extend(buildPlan, effective, logger);
     }
 

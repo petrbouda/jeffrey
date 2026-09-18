@@ -22,23 +22,19 @@ import com.google.cloud.tools.jib.api.buildplan.AbsoluteUnixPath;
 import com.google.cloud.tools.jib.api.buildplan.FilePermissions;
 
 /**
- * One payload file to fetch and where to put it in the image.
+ * One payload file to take from the payload jar and where to put it in the image.
  *
- * <p>Deliberately carries no entry name: a payload jar holds exactly one file under a fixed
- * prefix and {@link PayloadJars} finds it, so renaming a binary upstream cannot desynchronize
- * the extension from the payload it unpacks.
- *
- * @param coordinates the artifact to fetch
+ * @param resource    the class-path resource inside the payload jar, e.g.
+ *                    {@code jeffrey-payload/provisioner-linux-amd64}
  * @param installPath where the file lands in the image
  * @param permissions the file mode; the native provisioner needs the executable bit, the rest
  *                    are only read
  */
-public record PayloadRequest(
-        ArtifactCoordinates coordinates, AbsoluteUnixPath installPath, FilePermissions permissions) {
+public record PayloadRequest(String resource, AbsoluteUnixPath installPath, FilePermissions permissions) {
 
     public PayloadRequest {
-        if (coordinates == null) {
-            throw new IllegalArgumentException("Payload coordinates must not be null");
+        if (resource == null || resource.isBlank()) {
+            throw new IllegalArgumentException("Payload resource must not be blank");
         }
         if (installPath == null) {
             throw new IllegalArgumentException("Payload install path must not be null");

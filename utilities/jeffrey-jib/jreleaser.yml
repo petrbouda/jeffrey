@@ -2,7 +2,8 @@
 #
 # JReleaser only performs the SIGN + UPLOAD of the artifacts that Maven has already
 # staged into target/staging-deploy for every module (jeffrey-jib-core,
-# jeffrey-jib-maven, jeffrey-jib-gradle, and the aggregator pom). It replaces the
+# jeffrey-jib-maven, jeffrey-jib-gradle, the payload and flavour modules behind the
+# `payload` profile, and the aggregator pom). It replaces the
 # central-publishing-maven-plugin + maven-gpg-plugin that used to live in the pom's
 # `release` profile.
 #

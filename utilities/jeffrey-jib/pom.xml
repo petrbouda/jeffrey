@@ -64,7 +64,6 @@
         <maven.compiler.release>21</maven.compiler.release>
         <jib.extension.version>0.4.0</jib.extension.version>
         <maven-core.version>3.9.9</maven-core.version>
-        <maven-resolver.version>1.9.18</maven-resolver.version>
         <junit.version>5.14.3</junit.version>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
@@ -75,7 +74,7 @@
              ships is a decision, not whatever happened to be latest on the day of the build. -->
         <async-profiler.version>4.1</async-profiler.version>
         <!-- jeffrey.release is deliberately NOT given a default here. The payload modules record it
-             in their manifest as the Jeffrey release the provisioner was taken from, and an enforcer
+             in their descriptor as the Jeffrey release the provisioner was taken from, and an enforcer
              rule makes every payload build state it explicitly: -Djeffrey.release=v0.13.22. -->
     </properties>
 
@@ -102,9 +101,24 @@
                 <version>${maven-core.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.maven.resolver</groupId>
-                <artifactId>maven-resolver-api</artifactId>
-                <version>${maven-resolver.version}</version>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-jib-maven</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-jib-gradle</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-jib-payload-jar</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-jib-payload-native</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
@@ -133,15 +147,19 @@
     <profiles>
         <!--
           The payload modules package binaries that CI stages from a published Jeffrey release and
-          from async-profiler. They are built only when those files are present, so an ordinary
-          `mvn test` of the extension itself needs no downloads.
+          from async-profiler, and the four flavour modules are what consumers declare: each is the
+          extension for one build tool plus one payload. They are built only when the binaries are
+          present, so an ordinary `mvn test` of the extension itself needs no downloads.
         -->
         <profile>
             <id>payload</id>
             <modules>
-                <module>jeffrey-jib-payload-native</module>
                 <module>jeffrey-jib-payload-jar</module>
-                <module>jeffrey-jib-payload-profiler</module>
+                <module>jeffrey-jib-payload-native</module>
+                <module>jeffrey-jib-maven-jar</module>
+                <module>jeffrey-jib-maven-native</module>
+                <module>jeffrey-jib-gradle-jar</module>
+                <module>jeffrey-jib-gradle-native</module>
             </modules>
         </profile>
         <profile>

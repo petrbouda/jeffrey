@@ -32,12 +32,10 @@ const headings = [
 ];
 
 const customProfilerMaven = `<configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
-    <payloadVersion>\${jeffrey-jib.version}</payloadVersion>
     <profilerPath>/opt/async-profiler/libasyncProfiler.so</profilerPath>
 </configuration>`;
 
 const customProfilerGradle = `properties = mapOf(
-  "payloadVersion" to "0.14.0",
   "profilerPath" to "/opt/async-profiler/libasyncProfiler.so",
 )`;
 
@@ -107,19 +105,7 @@ onMounted(() => {
                 <td><code>profilerPath</code></td>
                 <td><code>JEFFREY_PROFILER_PATH</code></td>
                 <td>baked: <code>/opt/jeffrey/libasyncProfiler.so</code>, or <code>libasyncProfiler-&#123;arch&#125;.so</code> on a multi-platform build</td>
-                <td>Explicit async-profiler path. Setting it declares that the image already provides the library, so the extension neither resolves nor bakes its own copy &mdash; see <a href="#custom-async-profiler">Using Your Own async-profiler</a>.</td>
-              </tr>
-              <tr>
-                <td><code>payloadVersion</code></td>
-                <td>&mdash;</td>
-                <td>&mdash; <span class="prop-type">(required)</span></td>
-                <td>The jeffrey-jib release whose <code>jeffrey-jib-payload-*</code> artifacts the image carries &mdash; normally the extension's own version, e.g. <code>${jeffrey-jib.version}</code>. It is <em>not</em> a Jeffrey release number: which Jeffrey release's provisioner and which async-profiler a jeffrey-jib release bundles was decided when it was cut, is recorded in each payload's manifest and is printed in the build log. Always required, because every image carries a provisioner, and there is no default: a guess would silently pin your image to a provisioner nobody chose.</td>
-              </tr>
-              <tr>
-                <td><code>provisionerSource</code></td>
-                <td><code>JEFFREY_PROVISIONER_KIND</code></td>
-                <td><code>native</code></td>
-                <td><code>native</code> bakes the GraalVM binary (~44&nbsp;MB per architecture, starts in milliseconds, assumes nothing of your JVM). <code>jar</code> bakes the ~4&nbsp;MB architecture-neutral jar and runs it on the application's own JVM &mdash; isolated from <code>JDK_JAVA_OPTIONS</code>, <code>JAVA_TOOL_OPTIONS</code> and <code>_JAVA_OPTIONS</code>, see <router-link to="/docs/jib#jar-provisioner-environment">the JVM environment</router-link>. Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so <code>native</code> ships every architecture's binary in every image of the index. This is the only choice you have over the provisioner: its path is not configurable, because the layout it writes is the protocol Jeffrey Hub reads.</td>
+                <td>Explicit async-profiler path. Setting it declares that the image already provides the library, so the extension does not bake its own copy &mdash; see <a href="#custom-async-profiler">Using Your Own async-profiler</a>.</td>
               </tr>
               <tr>
                 <td><code>projectName</code></td>
@@ -137,11 +123,30 @@ onMounted(() => {
           </table>
         </div>
 
+        <DocsCallout type="info">
+          <strong>The provisioner build is not a property.</strong> It is chosen by the flavour of the
+          extension you declare as the plugin dependency: <code>jeffrey-jib-maven-native</code> /
+          <code>jeffrey-jib-gradle-native</code> bake the GraalVM binary (~44&nbsp;MB per
+          architecture, starts in milliseconds, assumes nothing of your JVM);
+          <code>jeffrey-jib-maven-jar</code> / <code>jeffrey-jib-gradle-jar</code> bake the
+          ~4&nbsp;MB architecture-neutral jar and run it on the application's own JVM &mdash;
+          isolated from <code>JDK_JAVA_OPTIONS</code>, <code>JAVA_TOOL_OPTIONS</code> and
+          <code>_JAVA_OPTIONS</code>, see
+          <router-link to="/docs/jib#jar-provisioner-environment">the JVM environment</router-link>.
+          Prefer <code>jar</code> for multi-architecture images: JIB layers are not per-platform, so
+          <code>native</code> ships every architecture's binary in every image of the index. The
+          extension records its choice in the image as <code>JEFFREY_PROVISIONER_KIND</code>. This is
+          the only choice you have over the provisioner: its path is not configurable, because the
+          layout it writes is the protocol Jeffrey Hub reads. The flavour's version is a jeffrey-jib
+          release, not a Jeffrey one; which Jeffrey release's provisioner and which async-profiler it
+          bundles is recorded in the payload and printed in the build log.
+        </DocsCallout>
+
         <h2 id="custom-async-profiler">Using Your Own async-profiler</h2>
         <p>Jeffrey bakes the async-profiler build it was released with, but you can supply your own
           &mdash; a version you have qualified, a build with custom patches, or one your base image
           already ships. Point <code>profilerPath</code> at it. That declares <em>this image already
-          has that library</em>, so the extension neither resolves nor bakes its own copy and the
+          has that library</em>, so the extension does not bake its own copy and the
           second one costs you nothing in image size. async-profiler is the only binary you can
           substitute this way: the provisioner has no such property, because the session layout and
           workspace events it writes are the protocol Jeffrey Hub reads, and neither side
@@ -212,9 +217,8 @@ onMounted(() => {
         <h2 id="build-time-vs-runtime">Build-time vs Runtime</h2>
         <p>There are two layers of control. <code>enabled</code> is a <strong>build-time</strong> gate
           evaluated by the extension when the image is assembled &mdash; setting it to <code>false</code>
-          produces a plain JIB image with no wrapper at all. <code>payloadVersion</code> and
-          <code>provisionerSource</code> are build-time too: they decide what is baked, and
-          <code>provisionerSource</code> leaves its trace in the image only as the
+          produces a plain JIB image with no wrapper at all. The flavour you declare is build-time
+          too: it decides what is baked, and leaves its trace in the image only as the
           <code>JEFFREY_PROVISIONER_KIND</code> the extension writes. The remaining properties become
           image-level <code>ENV</code> defaults that the entrypoint wrapper reads at container start,
           and each of those can be overridden at runtime by a pod-level environment variable of the

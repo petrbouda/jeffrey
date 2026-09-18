@@ -34,13 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class PayloadSpecTest {
 
-    private static final String VERSION = "1.2.3";
-
     private static final PayloadSpec ARCH_SCOPED = new PayloadSpec.ArchScoped(
-            "jeffrey-jib-payload-native", "provisioner", "", PayloadPermissions.EXECUTABLE);
+            "provisioner", "", PayloadPermissions.EXECUTABLE);
 
     private static final PayloadSpec NEUTRAL = new PayloadSpec.Neutral(
-            "jeffrey-jib-payload-jar", "provisioner", ".jar", PayloadPermissions.READABLE);
+            "provisioner", ".jar", PayloadPermissions.READABLE);
 
     private static Set<String> architectures(String... values) {
         return new LinkedHashSet<>(List.of(values));
@@ -51,20 +49,20 @@ class PayloadSpecTest {
 
         @Test
         void archScopedUsesUnsuffixedNames() {
-            List<PayloadRequest> requests = ARCH_SCOPED.requestsFor(architectures("amd64"), VERSION);
+            List<PayloadRequest> requests = ARCH_SCOPED.requestsFor(architectures("amd64"));
 
             assertEquals(1, requests.size());
             assertEquals("/opt/jeffrey/provisioner", requests.get(0).installPath().toString());
-            assertEquals("linux-amd64", requests.get(0).coordinates().classifier());
+            assertEquals("jeffrey-payload/provisioner-linux-amd64", requests.get(0).resource());
             assertEquals("/opt/jeffrey/provisioner", ARCH_SCOPED.envPath(architectures("amd64")));
         }
 
         @Test
-        void neutralCarriesNoClassifier() {
-            List<PayloadRequest> requests = NEUTRAL.requestsFor(architectures("amd64"), VERSION);
+        void neutralHasOneArchIndependentResource() {
+            List<PayloadRequest> requests = NEUTRAL.requestsFor(architectures("amd64"));
 
             assertEquals(1, requests.size());
-            assertEquals("", requests.get(0).coordinates().classifier());
+            assertEquals("jeffrey-payload/provisioner.jar", requests.get(0).resource());
             assertEquals("/opt/jeffrey/provisioner.jar", NEUTRAL.envPath(architectures("amd64")));
         }
     }
@@ -76,7 +74,7 @@ class PayloadSpecTest {
         void archScopedSuffixesEveryFileAndBakesThePlaceholder() {
             Set<String> both = architectures("amd64", "arm64");
 
-            List<PayloadRequest> requests = ARCH_SCOPED.requestsFor(both, VERSION);
+            List<PayloadRequest> requests = ARCH_SCOPED.requestsFor(both);
 
             assertEquals(
                     List.of("/opt/jeffrey/provisioner-amd64", "/opt/jeffrey/provisioner-arm64"),
@@ -87,8 +85,7 @@ class PayloadSpecTest {
         @Test
         void archScopedKeepsTheExtensionAfterTheSuffix() {
             PayloadSpec profiler = new PayloadSpec.ArchScoped(
-                    "jeffrey-jib-payload-profiler", "libasyncProfiler", ".so",
-                    PayloadPermissions.READABLE);
+                    "libasyncProfiler", ".so", PayloadPermissions.READABLE);
 
             assertEquals(
                     "/opt/jeffrey/libasyncProfiler-{arch}.so",
@@ -99,7 +96,7 @@ class PayloadSpecTest {
         void neutralIsUnaffectedByTheArchitectureCount() {
             Set<String> both = architectures("amd64", "arm64");
 
-            assertEquals(1, NEUTRAL.requestsFor(both, VERSION).size());
+            assertEquals(1, NEUTRAL.requestsFor(both).size());
             assertEquals("/opt/jeffrey/provisioner.jar", NEUTRAL.envPath(both));
         }
     }

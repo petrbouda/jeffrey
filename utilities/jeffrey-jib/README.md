@@ -8,28 +8,40 @@ without forcing operators to override the container `command:` in Kubernetes YAM
 
 | Module | Coordinate | Purpose |
 |---|---|---|
+| **`jeffrey-jib-maven-jar`** | `cafe.jeffrey-analyst:jeffrey-jib-maven-jar` | **What a Maven build declares.** The Maven extension plus the `jar` payload. |
+| **`jeffrey-jib-maven-native`** | `cafe.jeffrey-analyst:jeffrey-jib-maven-native` | **What a Maven build declares.** The Maven extension plus the `native` payload. |
+| **`jeffrey-jib-gradle-jar`** | `cafe.jeffrey-analyst:jeffrey-jib-gradle-jar` | **What a Gradle build declares.** The Gradle extension plus the `jar` payload. |
+| **`jeffrey-jib-gradle-native`** | `cafe.jeffrey-analyst:jeffrey-jib-gradle-native` | **What a Gradle build declares.** The Gradle extension plus the `native` payload. |
+| `jeffrey-jib-maven` | `cafe.jeffrey-analyst:jeffrey-jib-maven` | `JibMavenPluginExtension` implementation (pulled transitively). Fails the build if declared alone. |
+| `jeffrey-jib-gradle` | `cafe.jeffrey-analyst:jeffrey-jib-gradle` | `JibGradlePluginExtension` implementation (pulled transitively). Fails the build if declared alone. |
 | `jeffrey-jib-core` | `cafe.jeffrey-analyst:jeffrey-jib-core` | Shared `ContainerBuildPlan` transformation (pulled transitively). |
-| `jeffrey-jib-gradle` | `cafe.jeffrey-analyst:jeffrey-jib-gradle` | `JibGradlePluginExtension` implementation. |
-| `jeffrey-jib-maven` | `cafe.jeffrey-analyst:jeffrey-jib-maven` | `JibMavenPluginExtension` implementation. |
-| `jeffrey-jib-payload-native` | `cafe.jeffrey-analyst:jeffrey-jib-payload-native` | The GraalVM provisioner, one classified jar per architecture. Resolved by the extension; its manifest records the Jeffrey release it came from. |
-| `jeffrey-jib-payload-jar` | `cafe.jeffrey-analyst:jeffrey-jib-payload-jar` | The provisioner jar, architecture-neutral. Resolved by the extension. |
-| `jeffrey-jib-payload-profiler` | `cafe.jeffrey-analyst:jeffrey-jib-payload-profiler` | async-profiler, one classified jar per architecture. Resolved by the extension. |
+| `jeffrey-jib-payload-jar` | `cafe.jeffrey-analyst:jeffrey-jib-payload-jar` | The architecture-neutral `provisioner.jar` and async-profiler for both Linux architectures, under `jeffrey-payload/` (pulled transitively). |
+| `jeffrey-jib-payload-native` | `cafe.jeffrey-analyst:jeffrey-jib-payload-native` | The GraalVM provisioner and async-profiler, each for both Linux architectures (pulled transitively). |
+
+The four bold *flavours* are the only coordinates a consumer ever writes. Each is the extension for
+one build tool plus one payload jar, so declaring it is what chooses the provisioner build; there is
+no property for it. The payload modules are built only under the `payload` Maven profile, after CI
+has staged the binaries; their `jeffrey-payload/payload.properties` records which Jeffrey release
+and async-profiler they bundle.
 
 The extension installs `/usr/local/bin/jeffrey-entrypoint` into a new image layer, makes it
 the `ENTRYPOINT`, and moves JIB's auto-derived `java -cp … <MainClass>` into `CMD`. It also
-fetches the binaries that run needs — the provisioner and async-profiler — through the build's
-own dependency resolution and installs them under `/opt/jeffrey` in a second layer. At container
-start the wrapper runs `provisioner init` and `exec`s the JIB command with the
-provisioner-produced argfile inserted right after the `java` binary.
+takes the binaries that run needs — the provisioner and async-profiler — out of the payload jar
+on its own class path and installs them under `/opt/jeffrey` in a second layer; the image gets
+only the architectures it targets. Nothing is downloaded by the extension itself: the payload
+arrives like any other plugin dependency. At container start the wrapper runs `provisioner init`
+and `exec`s the JIB command with the provisioner-produced argfile inserted right after the `java`
+binary.
 
 **The image is self-contained.** Nothing is fetched, copied or waited for at container start, and
 the shared volume is needed only for the recordings the application writes to it.
 
 ## Choosing a provisioner build
 
-`provisionerSource` picks which build of the provisioner the image carries:
+The flavour you declare — `…-native` or `…-jar` — picks which build of the provisioner the image
+carries:
 
-| | `native` (default) | `jar` |
+| | `native` | `jar` |
 |---|---|---|
 | What ships | GraalVM binary, one per architecture | One architecture-neutral jar |
 | Size | ~44 MB per architecture | ~4 MB total |
@@ -85,21 +97,27 @@ from starting: a missing provisioner binary, a broken or missing config, or a fa
 command. On success the provisioner logs a single greppable verdict:
 `Jeffrey profiling ENABLED: project=… workspace=… instance=… session=… profiler_source=…`.
 
-The guarantee is about container start only. **At build time the opposite rule applies**: a payload
-that cannot be resolved, an unknown `provisionerSource`, an unsupported target architecture or a
-missing `payloadVersion` all fail the build. An image that silently lacks a profiler looks healthy
-and profiles nothing, which is the failure this design exists to remove.
+The guarantee is about container start only. **At build time the opposite rule applies**: no
+payload on the extension's class path (the bare `jeffrey-jib-maven` / `jeffrey-jib-gradle` was
+declared instead of a flavour), two payloads (both flavours declared), a payload missing a binary,
+or an unsupported target architecture all fail the build. An image that silently lacks a profiler
+looks healthy and profiles nothing, which is the failure this design exists to remove.
 
 ## Gradle usage
 
 ```kotlin
+buildscript {
+  dependencies {
+    classpath("cafe.jeffrey-analyst:jeffrey-jib-gradle-jar:0.14.0")   // or jeffrey-jib-gradle-native
+  }
+}
+
 jib {
   pluginExtensions {
     pluginExtension {
       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
       configuration(Action<cafe.jeffrey.jib.JeffreyJibConfig> {
         enabled = project.hasProperty("jeffreyProfiling")
-        payloadVersion = "0.14.0"
         jeffreyHome = "/mnt/azure/runtime/shared/jeffrey"
         baseConfig = "/jeffrey/jeffrey-base.conf"
         overrideConfig = "/jeffrey/jeffrey-overrides.conf"
@@ -118,7 +136,7 @@ jib {
   <dependencies>
     <dependency>
       <groupId>cafe.jeffrey-analyst</groupId>
-      <artifactId>jeffrey-jib-maven</artifactId>
+      <artifactId>jeffrey-jib-maven-jar</artifactId>   <!-- or jeffrey-jib-maven-native -->
       <version>${jeffrey-jib.version}</version>
     </dependency>
   </dependencies>
@@ -127,7 +145,6 @@ jib {
       <pluginExtension>
         <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
         <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
-          <payloadVersion>0.14.0</payloadVersion>
           <jeffreyHome>/mnt/azure/runtime/shared/jeffrey</jeffreyHome>
           <baseConfig>/jeffrey/jeffrey-base.conf</baseConfig>
         </configuration>
@@ -149,8 +166,6 @@ comparisons. No rebuild required.
 | Property | Image ENV set | Default |
 |---|---|---|
 | `enabled` | — | `true` (build-time gate) |
-| `payloadVersion` | — | **required** — see below |
-| `provisionerSource` | `JEFFREY_PROVISIONER_KIND` | `native` |
 | `jeffreyHome` | `JEFFREY_HOME` | unset (the provisioner also accepts `JEFFREY_WORKSPACES_DIR`) |
 | `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` (optional file) |
 | `overrideConfig` | `JEFFREY_OVERRIDE_CONFIG` | `/jeffrey/jeffrey-overrides.conf` (optional) |
@@ -158,38 +173,32 @@ comparisons. No rebuild required.
 | `argFile` | `JEFFREY_ARG_FILE` | `/tmp/jvm.args` |
 | `projectName` | `JEFFREY_PROJECT_NAME` | Maven artifactId / Gradle project name |
 
-All string properties except `payloadVersion` are optional. Non-null values are baked as
-image-level ENV defaults; Kubernetes pod-level env vars still override them.
+Every property is optional, and so is the whole `<configuration>` block. Non-null values are
+baked as image-level ENV defaults; Kubernetes pod-level env vars still override them. The
+provisioner's own path and kind (`JEFFREY_PROVISIONER_PATH`, `JEFFREY_PROVISIONER_KIND`) are baked
+from what the flavour installed and are not configurable.
 
 On a multi-platform build the baked paths carry an `{arch}` placeholder
 (`/opt/jeffrey/libasyncProfiler-{arch}.so`) that the wrapper expands from `uname -m` at container
 start, because JIB layers are not per-platform and each architecture's file needs a distinct name.
 
-### `payloadVersion` is required
+### Which Jeffrey release an image carries
 
-Every image carries a provisioner, so this is never optional. It names the **jeffrey-jib release** whose `jeffrey-jib-payload-*` artifacts the image carries —
-normally the same version as the extension itself, since the payloads are published with every
-jeffrey-jib release. It is *not* a Jeffrey release number: jeffrey-jib releases on its own cadence,
-and which Jeffrey release's provisioner (and which async-profiler) a given jeffrey-jib release bundles
-was decided when it was cut. That choice is recorded in each payload jar's manifest
-(`Jeffrey-Payload-Provenance`) and the extension prints it during the build:
+The version of the flavour you declare is a **jeffrey-jib release**, *not* a Jeffrey release
+number: jeffrey-jib releases on its own cadence, and which Jeffrey release's provisioner (and which
+async-profiler) a given jeffrey-jib release bundles was decided when it was cut. That choice is
+recorded in the payload jar's `jeffrey-payload/payload.properties` and the extension prints it
+during the build:
 
 ```
 jeffrey-jib: baking 2 payload file(s) into the image layer 'jeffrey-payload' (45 MB):
   [/opt/jeffrey/provisioner (jeffrey v0.13.22), /opt/jeffrey/libasyncProfiler.so (async-profiler 4.1)]
 ```
 
-There is no default, because a guessed version would silently pin an image to a provisioner nobody
-chose. The build stops and tells you to set it.
-
-```xml
-<payloadVersion>${jeffrey-jib.version}</payloadVersion>
-```
-
 ### Bringing your own async-profiler
 
 Setting `profilerPath` means *this image already has async-profiler*. That payload is then not
-resolved at all, so a base image that already ships the library pays nothing for a second copy.
+baked, so a base image that already ships the library pays nothing for a second copy.
 Your library has to accept the agent command the provisioner generates, which uses
 `event=ctimer`, `jfrsync=default` and `chunksize`; if yours needs different options, replace the
 whole command with the provisioner's `profiler-config`.
@@ -198,9 +207,9 @@ whole command with the provisioner's `profiler-config`.
 substitute. It is Jeffrey's own binary, and the session layout and workspace events it writes are
 the protocol Jeffrey Hub reads. Neither side version-checks that protocol, so an image carrying
 someone else's copy would drift from it silently, with nothing recording which copy it had. The
-extension therefore always bakes the provisioner, and `provisionerSource` chooses only which build
-of it. A build still setting `provisionerPath` through the string `properties` DSL is warned and
-the value ignored.
+extension therefore always bakes the provisioner, and the flavour chooses only which build of it.
+A build still setting `provisionerPath`, `provisionerSource` or `payloadVersion` through the
+string `properties` DSL is warned and the value ignored.
 
 ### Where the files go during the build
 
@@ -210,7 +219,7 @@ content changes. JIB keys its layer cache on each source file's path and modific
 payload layer is archived and hashed once and then served from the cache; `mvn clean` /
 `gradle clean` removes the files like any other build output.
 
-## `provisionerSource=jar` and the JVM environment
+## The `jar` flavour and the JVM environment
 
 The jar provisioner runs on the application's own `java`, as a short-lived second JVM before the
 application starts. Every JVM in the container reads the same environment, and three variables are
@@ -256,8 +265,8 @@ It is a whitespace-separated list appended after the wrapper's own `-XX:TieredSt
 
 - **The class-file version floor.** `provisioner.jar` is compiled for the JDK the Jeffrey release
   targets (currently 25). An older application JVM fails with `UnsupportedClassVersionError`, the
-  wrapper prints a hint naming that error and starts the application unprofiled. Use
-  `provisionerSource=native` for such applications.
+  wrapper prints a hint naming that error and starts the application unprofiled. Use the
+  `native` flavour for such applications.
 - **The application's own JVM is still shared.** `JEFFREY_ADDITIONAL_JVM_OPTIONS` and the other
   `JEFFREY_*` variables are read by the provisioner as *configuration* and written into the
   argfile for the application; they are not options for the provisioner JVM, and the three
@@ -270,16 +279,12 @@ The native provisioner has none of these concerns: it is not a JVM and ignores a
 - Requires a POSIX shell in the base image. True distroless images (`gcr.io/distroless/java-*`)
   lack `/bin/sh` and are incompatible — use the status-quo Kubernetes `command:` pattern
   instead.
-- Resolves the payload artifacts from Maven Central (or whatever repositories the build is
-  configured with) at build time, so the build needs to reach them. They resolve through the
-  *project's* repositories (`<repositories>` on Maven, the project `repositories {}` on Gradle),
-  not the plugin or `buildscript` ones — relevant behind split enterprise mirrors. An air-gapped
-  build mirrors the `jeffrey-jib-payload-*` artifacts it uses; `profilerPath` removes the
-  async-profiler one from that list, but the provisioner payload is always needed.
-- On Gradle the resolution happens at task execution time through the `Project`, which the
-  configuration cache does not allow; JIB's own extension hook has the same limitation.
-- `provisionerSource=jar` needs the application's JVM to be able to read the provisioner jar's
-  class files. When it cannot, the wrapper fails open and the application starts unprofiled — use
+- The payload jar is a plugin dependency, so it is fetched wherever the build fetches plugins
+  (`<pluginRepositories>` on Maven, the `buildscript` repositories on Gradle) and an air-gapped
+  build mirrors it like any other plugin. A `native` flavour is ~90 MB (both architectures, so
+  that one dependency serves single- and multi-platform builds alike); the `jar` flavour ~6 MB.
+- The `jar` flavour needs the application's JVM to be able to read the provisioner jar's class
+  files. When it cannot, the wrapper fails open and the application starts unprofiled — use
   `native` for applications on older JVMs.
 
 ## License

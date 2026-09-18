@@ -51,17 +51,15 @@ public enum ProvisionerSource {
         }
     };
 
-    private static final String NATIVE_ARTIFACT_ID = "jeffrey-jib-payload-native";
-    private static final String JAR_ARTIFACT_ID = "jeffrey-jib-payload-jar";
     private static final String PROVISIONER_BASE_NAME = "provisioner";
     private static final String NO_EXTENSION = "";
     private static final String JAR_EXTENSION = ".jar";
 
     private static final PayloadSpec NATIVE_SPEC = new PayloadSpec.ArchScoped(
-            NATIVE_ARTIFACT_ID, PROVISIONER_BASE_NAME, NO_EXTENSION, PayloadPermissions.EXECUTABLE);
+            PROVISIONER_BASE_NAME, NO_EXTENSION, PayloadPermissions.EXECUTABLE);
 
     private static final PayloadSpec JAR_SPEC = new PayloadSpec.Neutral(
-            JAR_ARTIFACT_ID, PROVISIONER_BASE_NAME, JAR_EXTENSION, PayloadPermissions.READABLE);
+            PROVISIONER_BASE_NAME, JAR_EXTENSION, PayloadPermissions.READABLE);
 
     /** How this source names and installs its payload. */
     public abstract PayloadSpec spec();
@@ -76,21 +74,21 @@ public enum ProvisionerSource {
     }
 
     /**
-     * Parses the {@code provisionerSource} build configuration. An unset value means the default;
-     * an unrecognised one is rejected rather than defaulted, because quietly building a {@code
-     * native} image for someone who asked for {@code jar} would surface only as a container that
-     * fails to profile.
+     * Parses the {@code kind} entry of a payload descriptor. The value is stated by the payload jar
+     * that was published, so there is nothing to default: a missing or unrecognised one means a
+     * broken payload, and quietly treating it as {@code native} would surface only as a container
+     * that fails to profile.
      */
     public static ProvisionerSource parse(String raw) {
         if (raw == null || raw.isBlank()) {
-            return NATIVE;
+            throw new IllegalArgumentException("Missing provisioner kind; expected one of " + validValues());
         }
         String normalized = raw.trim().toLowerCase(Locale.ROOT);
         return Arrays.stream(values())
                 .filter(source -> source.kind().equals(normalized))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Unknown provisionerSource '" + raw + "'; expected one of " + validValues()));
+                        "Unknown provisioner kind '" + raw + "'; expected one of " + validValues()));
     }
 
     private static String validValues() {

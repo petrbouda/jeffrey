@@ -19,15 +19,196 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'gradle-setup', text: 'Gradle Setup', level: 2 },
-  { id: 'maven-setup', text: 'Maven Setup', level: 2 }
+  { id: 'choose-flavour', text: 'Choose a Flavour', level: 2 },
+  { id: 'maven-setup', text: 'Maven', level: 2 },
+  { id: 'maven-native', text: 'Minimal: native', level: 3 },
+  { id: 'maven-jar', text: 'Minimal: jar', level: 3 },
+  { id: 'maven-full', text: 'Complete example', level: 3 },
+  { id: 'gradle-setup', text: 'Gradle', level: 2 },
+  { id: 'gradle-native', text: 'Minimal: native', level: 3 },
+  { id: 'gradle-jar', text: 'Minimal: jar', level: 3 },
+  { id: 'gradle-full', text: 'Complete example', level: 3 },
+  { id: 'migrating', text: 'Migrating from payloadVersion', level: 2 }
 ];
+
+const mavenNative = `<plugin>
+  <groupId>com.google.cloud.tools</groupId>
+  <artifactId>jib-maven-plugin</artifactId>
+  <version>3.5.2</version>
+  <dependencies>
+    <dependency>
+      <groupId>cafe.jeffrey-analyst</groupId>
+      <artifactId>jeffrey-jib-maven-native</artifactId>
+      <version>\${jeffrey-jib.version}</version>
+    </dependency>
+  </dependencies>
+  <configuration>
+    <to>
+      <image>registry.example.com/team/my-service</image>
+    </to>
+    <pluginExtensions>
+      <pluginExtension>
+        <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+      </pluginExtension>
+    </pluginExtensions>
+  </configuration>
+</plugin>`;
+
+const mavenJar = `<dependencies>
+  <dependency>
+    <groupId>cafe.jeffrey-analyst</groupId>
+    <artifactId>jeffrey-jib-maven-jar</artifactId>
+    <version>\${jeffrey-jib.version}</version>
+  </dependency>
+</dependencies>`;
+
+const mavenFull = `<plugin>
+  <groupId>com.google.cloud.tools</groupId>
+  <artifactId>jib-maven-plugin</artifactId>
+  <version>3.5.2</version>
+  <dependencies>
+    <!-- jar flavour: this image is multi-platform, and Jib layers are shared by every
+         platform in the manifest list, so the native binary would ship twice. -->
+    <dependency>
+      <groupId>cafe.jeffrey-analyst</groupId>
+      <artifactId>jeffrey-jib-maven-jar</artifactId>
+      <version>\${jeffrey-jib.version}</version>
+    </dependency>
+  </dependencies>
+  <configuration>
+    <from>
+      <image>eclipse-temurin:25-jre</image>
+      <platforms>
+        <platform><architecture>amd64</architecture><os>linux</os></platform>
+        <platform><architecture>arm64</architecture><os>linux</os></platform>
+      </platforms>
+    </from>
+    <to>
+      <image>registry.example.com/team/my-service:\${project.version}</image>
+    </to>
+    <container>
+      <mainClass>com.example.Application</mainClass>
+      <!-- Let the provisioner own the JVM flags. Anything here is moved into CMD and applied
+           AFTER the argfile, so a -Xmx or -XX: option would silently override profiling. -->
+      <jvmFlags/>
+      <environment>
+        <!-- Off by default; a pod sets JEFFREY_ENABLED=true to opt in without a rebuild. -->
+        <JEFFREY_ENABLED>false</JEFFREY_ENABLED>
+      </environment>
+    </container>
+    <pluginExtensions>
+      <pluginExtension>
+        <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+        <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+          <!-- Build-time gate: -Djeffrey.profiling=false produces a plain Jib image. -->
+          <enabled>\${jeffrey.profiling}</enabled>
+          <!-- Baked as JEFFREY_HOME: the shared volume every pod mounts at the same path. -->
+          <jeffreyHome>/mnt/jeffrey</jeffreyHome>
+          <!-- Pinned so a later artifactId rename does not start a new project on the Hub. -->
+          <projectName>my-service</projectName>
+          <!-- Optional per-deployment override file, mounted from a ConfigMap. -->
+          <overrideConfig>/etc/jeffrey/overrides.conf</overrideConfig>
+        </configuration>
+      </pluginExtension>
+    </pluginExtensions>
+  </configuration>
+</plugin>`;
+
+const mavenProperties = `<properties>
+  <jeffrey-jib.version>0.14.0</jeffrey-jib.version>
+  <jeffrey.profiling>true</jeffrey.profiling>
+</properties>`;
+
+const gradleNative = `buildscript {
+  dependencies {
+    classpath("cafe.jeffrey-analyst:jeffrey-jib-gradle-native:0.14.0")
+  }
+}
+
+plugins {
+  id("com.google.cloud.tools.jib") version "3.5.2"
+}
+
+jib {
+  to.image = "registry.example.com/team/my-service"
+  pluginExtensions {
+    pluginExtension {
+      implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
+    }
+  }
+}`;
+
+const gradleJar = `buildscript {
+  dependencies {
+    classpath("cafe.jeffrey-analyst:jeffrey-jib-gradle-jar:0.14.0")
+  }
+}`;
+
+const gradleFull = `buildscript {
+  dependencies {
+    // jar flavour: this image is multi-platform, and Jib layers are shared by every
+    // platform in the manifest list, so the native binary would ship twice.
+    classpath("cafe.jeffrey-analyst:jeffrey-jib-gradle-jar:0.14.0")
+  }
+}
+
+plugins {
+  id("com.google.cloud.tools.jib") version "3.5.2"
+}
+
+jib {
+  from {
+    image = "eclipse-temurin:25-jre"
+    platforms {
+      platform { architecture = "amd64"; os = "linux" }
+      platform { architecture = "arm64"; os = "linux" }
+    }
+  }
+  to.image = "registry.example.com/team/my-service:\${project.version}"
+  container {
+    mainClass = "com.example.Application"
+    // Let the provisioner own the JVM flags: anything here is moved into CMD and applied
+    // AFTER the argfile, so a -Xmx or -XX: option would silently override profiling.
+    jvmFlags = emptyList()
+    // Off by default; a pod sets JEFFREY_ENABLED=true to opt in without a rebuild.
+    environment = mapOf("JEFFREY_ENABLED" to "false")
+  }
+  pluginExtensions {
+    pluginExtension {
+      implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
+      properties = mapOf(
+        // Build-time gate: -PjeffreyProfiling=false produces a plain Jib image.
+        "enabled" to (findProperty("jeffreyProfiling") ?: "true").toString(),
+        // Baked as JEFFREY_HOME: the shared volume every pod mounts at the same path.
+        "jeffreyHome" to "/mnt/jeffrey",
+        // Pinned so a later project rename does not start a new project on the Hub.
+        "projectName" to "my-service",
+        // Optional per-deployment override file, mounted from a ConfigMap.
+        "overrideConfig" to "/etc/jeffrey/overrides.conf",
+      )
+    }
+  }
+}`;
+
+const migrationBefore = `<dependency>
+  <artifactId>jeffrey-jib-maven</artifactId>            <!-- bare extension -->
+</dependency>
+…
+<configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+  <payloadVersion>0.13.22</payloadVersion>
+  <provisionerSource>jar</provisionerSource>
+</configuration>`;
+
+const migrationAfter = `<dependency>
+  <artifactId>jeffrey-jib-maven-jar</artifactId>        <!-- flavour = build + version -->
+</dependency>`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -42,134 +223,138 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Wire the extension into your JIB build. The one property that is strictly required is
-          <code>payloadVersion</code>: it names the jeffrey-jib release whose payload artifacts
-          (provisioner and async-profiler) the image will carry &mdash; normally the extension's own
-          version &mdash; it has no default, and the build fails without it. Which Jeffrey release
-          and async-profiler those payloads bundle is recorded in their manifests and printed by
-          the build.
-          <code>jeffreyHome</code> also has to be reachable, but it may arrive at runtime instead
-          &mdash; either baked as an image <code>ENV</code> default (shown below) or set as a
-          <code>JEFFREY_HOME</code> env var on the pod. See
-          <router-link to="/docs/jib/configuration">Configuration</router-link> for the full
-          property reference.</p>
+        <p>Wiring the extension into a JIB build is one plugin dependency and one
+          <code>pluginExtension</code> line. The dependency is a <em>flavour</em>: the extension for
+          your build tool plus a payload jar carrying one provisioner build and async-profiler, so
+          declaring it is the whole configuration. Everything else on
+          <router-link to="/docs/jib/configuration">Configuration</router-link> is optional.</p>
 
-        <h2 id="gradle-setup">Gradle Setup</h2>
-        <p>Add the extension as a dependency of the JIB Gradle plugin, then reference it from
-          <code>pluginExtensions</code>. If <code>jeffreyHome</code> is reachable neither here nor at
-          runtime, <code>provisioner init</code> refuses the configuration and the wrapper starts the
-          app without profiling.</p>
+        <h2 id="choose-flavour">Choose a Flavour</h2>
 
-        <div class="code-block">
-          <pre><code>jib {
-  pluginExtensions {
-    pluginExtension {
-      implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
-      properties = mapOf(
-        "payloadVersion" to "0.14.0",
-        "jeffreyHome" to "/shared/disk/jeffrey",
-      )
-    }
-  }
-}</code></pre>
-        </div>
+        <table>
+            <thead>
+              <tr>
+                <th>Flavour</th>
+                <th>Provisioner</th>
+                <th>Pick it when</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>jeffrey-jib-maven-native</code><br><code>jeffrey-jib-gradle-native</code></td>
+                <td>GraalVM binary, ~44&nbsp;MB per architecture, starts in milliseconds, needs nothing of the application's JVM</td>
+                <td>Single-architecture images; applications on a JVM older than the one Jeffrey targets (currently 25)</td>
+              </tr>
+              <tr>
+                <td><code>jeffrey-jib-maven-jar</code><br><code>jeffrey-jib-gradle-jar</code></td>
+                <td>One architecture-neutral jar, ~4&nbsp;MB, runs a short second JVM on the application's own <code>java</code></td>
+                <td>Multi-architecture images (Jib layers are not per-platform, so <code>native</code> would ship every architecture's binary in every image); any application already on a current JVM</td>
+              </tr>
+            </tbody>
+        </table>
 
-        <p>This builds an image that carries its own provisioner and async-profiler under
-          <code>/opt/jeffrey</code>, installed by the extension at build time. Besides
-          <code>payloadVersion</code>, every property has a sensible default; you only set them to
-          override.</p>
+        <p>Both flavours carry async-profiler for <code>linux/amd64</code> and
+          <code>linux/arm64</code>; the image gets only the architectures it targets. Declaring the
+          bare <code>jeffrey-jib-maven</code> / <code>jeffrey-jib-gradle</code>, or both flavours at
+          once, fails the build with a message naming the fix.</p>
+
+        <h2 id="maven-setup">Maven</h2>
+
+        <h3 id="maven-native">Minimal: native</h3>
+        <p>A single-architecture image that carries the GraalVM provisioner. Nothing is configured on
+          the extension; <code>JEFFREY_HOME</code> arrives from the pod.</p>
+
+        <DocsCodeBlock
+          language="xml"
+          :code="mavenNative"
+        />
+
+        <h3 id="maven-jar">Minimal: jar</h3>
+        <p>Identical, with the other flavour in the plugin's <code>&lt;dependencies&gt;</code>. The
+          rest of the plugin block does not change.</p>
+
+        <DocsCodeBlock
+          language="xml"
+          :code="mavenJar"
+        />
+
+        <h3 id="maven-full">Complete example</h3>
+        <p>A multi-platform image pushed to a registry, with the profiling decisions made in the
+          build and explained inline: the jar flavour because of the two platforms, an empty
+          <code>jvmFlags</code> so the provisioner's argfile is not overridden, profiling off by
+          default at the image level with a pod-level opt-in, a build-time gate on a Maven
+          property, and the three values worth baking as image <code>ENV</code> defaults.</p>
+
+        <DocsCodeBlock
+          language="xml"
+          :code="mavenFull"
+        />
+
+        <DocsCodeBlock
+          language="xml"
+          :code="mavenProperties"
+        />
 
         <DocsCallout type="warning">
           <strong><code>jeffreyHome</code> must point at a shared volume / disk.</strong>
-          It is no longer where the binaries come from &mdash; those are in the image &mdash; but it is
-          still where the application writes its recordings, under
+          It is not where the binaries come from &mdash; those are in the image &mdash; but it is
+          where the application writes its recordings, under
           <code>${JEFFREY_HOME}/workspaces/</code>, and where Jeffrey Hub reads them from. Every
           monitored pod and the Hub must see the same bytes, so a host-local directory or a per-pod
-          ephemeral volume will not work. An application that only needs the recording path can set
-          <code>JEFFREY_WORKSPACES_DIR</code> instead and never reference the Hub's home layout at all.
+          ephemeral volume will not work. Leave it out of the build and set <code>JEFFREY_HOME</code>
+          on the pod instead when the mount path differs per cluster.
         </DocsCallout>
 
-        <p>Add explicit overrides via the string <code>properties</code> DSL &mdash; for example,
-          gating via a Gradle property and pointing at a non-default shared volume. Referencing the
-          key constants on <code>JeffreyJibConfig</code> keeps the build file typo-proof and
-          auto-completable in the IDE:</p>
+        <h2 id="gradle-setup">Gradle</h2>
 
-        <div class="code-block">
-          <pre><code>import cafe.jeffrey.jib.JeffreyJibConfig
-import cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension
+        <h3 id="gradle-native">Minimal: native</h3>
+        <p>The flavour goes on the build-script classpath &mdash; <code>buildscript.dependencies</code>
+          as shown, or the <code>jib</code> plugin's <code>dependencies</code> block, depending on how
+          you apply the plugin.</p>
 
-jib {
-  pluginExtensions {
-    pluginExtension {
-      implementation = JeffreyJibGradleExtension::class.java.name
-      properties = mapOf(
-        JeffreyJibConfig.PAYLOAD_VERSION to "0.14.0",
-        JeffreyJibConfig.JEFFREY_HOME to "/shared/disk/jeffrey",
-        JeffreyJibConfig.OVERRIDE_CONFIG to "/jeffrey/jeffrey-overrides.conf",
-      )
-    }
-  }
-}</code></pre>
-        </div>
+        <DocsCodeBlock
+          language="kotlin"
+          :code="gradleNative"
+        />
 
-        <p>The string form (<code>"enabled"</code>, <code>"jeffreyHome"</code>, …) works just as
-          well and avoids the imports if you prefer a zero-dependency build script. Both are
-          equivalent at runtime.</p>
+        <h3 id="gradle-jar">Minimal: jar</h3>
 
-        <DocsCallout type="info">
-          <strong>Why the <code>properties</code> DSL?</strong> It works on every Gradle version
-          JIB supports. The typed <code>configuration(Action&lt;JeffreyJibConfig&gt;) { … }</code> form
-          is also accepted but is fragile across Gradle versions &mdash; prefer
-          <code>properties</code> for portability.
-        </DocsCallout>
+        <DocsCodeBlock
+          language="kotlin"
+          :code="gradleJar"
+        />
 
-        <p>Add the artifact to your build-script classpath (<code>buildscript.dependencies</code> or
-          the <code>jib</code> plugin's <code>dependencies</code> block, depending on how you apply the
-          plugin).</p>
+        <h3 id="gradle-full">Complete example</h3>
+        <p>The same multi-platform build as the Maven one. The string <code>properties</code> DSL is
+          used on purpose: it works on every Gradle version JIB supports and keeps
+          <code>JeffreyJibConfig</code> off the build script's compile classpath. The typed
+          <code>configuration(Action&lt;JeffreyJibConfig&gt;) { … }</code> form is also accepted
+          but is fragile across Gradle versions.</p>
 
-        <h2 id="maven-setup">Maven Setup</h2>
-        <p>Attach the extension as a plugin dependency and reference it from
-          <code>pluginExtensions</code>. As with Gradle, <code>payloadVersion</code> is required at
-          build time, and <code>jeffreyHome</code> must be reachable either here (baked as an image
-          <code>ENV</code> default) or at runtime via a <code>JEFFREY_HOME</code> env var.</p>
+        <DocsCodeBlock
+          language="kotlin"
+          :code="gradleFull"
+        />
 
-        <div class="code-block">
-          <pre><code>&lt;plugin&gt;
-  &lt;groupId&gt;com.google.cloud.tools&lt;/groupId&gt;
-  &lt;artifactId&gt;jib-maven-plugin&lt;/artifactId&gt;
-  &lt;dependencies&gt;
-    &lt;dependency&gt;
-      &lt;groupId&gt;cafe.jeffrey-analyst&lt;/groupId&gt;
-      &lt;artifactId&gt;jeffrey-jib-maven&lt;/artifactId&gt;
-      &lt;version&gt;${jeffrey-jib.version}&lt;/version&gt;
-    &lt;/dependency&gt;
-  &lt;/dependencies&gt;
-  &lt;configuration&gt;
-    &lt;pluginExtensions&gt;
-      &lt;pluginExtension&gt;
-        &lt;implementation&gt;cafe.jeffrey.jib.maven.JeffreyJibMavenExtension&lt;/implementation&gt;
-        &lt;properties&gt;
-          &lt;payloadVersion&gt;0.14.0&lt;/payloadVersion&gt;
-          &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
-        &lt;/properties&gt;
-      &lt;/pluginExtension&gt;
-    &lt;/pluginExtensions&gt;
-  &lt;/configuration&gt;
-&lt;/plugin&gt;</code></pre>
-        </div>
+        <p>Property names are the setters on <code>JeffreyJibConfig</code>; the constants on that
+          class (<code>JeffreyJibConfig.JEFFREY_HOME</code>, …) can replace the strings if you prefer
+          an IDE-checked build file at the cost of the import.</p>
 
-        <p>Add more properties the same way &mdash; each property name matches a setter on
-          <code>JeffreyJibConfig</code>:</p>
+        <h2 id="migrating">Migrating from <code>payloadVersion</code></h2>
+        <p>Releases before the flavours resolved the payload at build time and needed two
+          properties. Both are gone: the flavour's own version is the payload version, and the
+          artifactId is the provisioner build. A build that still sets them is warned and the values
+          are ignored.</p>
 
-        <div class="code-block">
-          <pre><code>&lt;properties&gt;
-  &lt;enabled&gt;true&lt;/enabled&gt;
-  &lt;payloadVersion&gt;0.14.0&lt;/payloadVersion&gt;
-  &lt;provisionerSource&gt;jar&lt;/provisionerSource&gt;
-  &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
-  &lt;overrideConfig&gt;/jeffrey/jeffrey-overrides.conf&lt;/overrideConfig&gt;
-&lt;/properties&gt;</code></pre>
-        </div>
+        <DocsCodeBlock
+          language="xml"
+          :code="migrationBefore"
+        />
+
+        <DocsCodeBlock
+          language="xml"
+          :code="migrationAfter"
+        />
       </div>
 
       <DocsNavFooter />
@@ -178,26 +363,4 @@ jib {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
-
-/* Code Block */
-.code-block {
-  margin: 1rem 0;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.code-block pre {
-  margin: 0;
-  padding: 1rem;
-  background: #1e293b;
-  overflow-x: auto;
-}
-
-.code-block code {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85rem;
-  color: #e2e8f0;
-  line-height: 1.5;
-}
 </style>

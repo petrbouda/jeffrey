@@ -29,16 +29,16 @@ import java.util.Set;
  * would drift from that protocol with nothing recording which one it had. Only async-profiler,
  * a third-party library an image may legitimately already ship, can be left out.
  *
- * @param source        which provisioner build to install
+ * @param descriptor    the payload jar found on the class path, which decides the provisioner build
  * @param architectures the Linux architectures the build plan targets, in declaration order
  * @param bakeProfiler  false when the build configuration already names a profiler path; setting
  *                      {@code profilerPath} has always meant "use my async-profiler" and still does
  */
-public record PayloadPlan(ProvisionerSource source, Set<String> architectures, boolean bakeProfiler) {
+public record PayloadPlan(PayloadDescriptor descriptor, Set<String> architectures, boolean bakeProfiler) {
 
     public PayloadPlan {
-        if (source == null) {
-            throw new IllegalArgumentException("Provisioner source must not be null");
+        if (descriptor == null) {
+            throw new IllegalArgumentException("Payload descriptor must not be null");
         }
         if (architectures == null || architectures.isEmpty()) {
             throw new IllegalArgumentException("At least one target architecture is required");

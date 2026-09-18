@@ -18,12 +18,11 @@
 
 package cafe.jeffrey.jib;
 
+import cafe.jeffrey.jib.payload.PayloadDescriptor;
 import cafe.jeffrey.jib.payload.PayloadInstallation;
 import cafe.jeffrey.jib.payload.PayloadInstaller;
 import cafe.jeffrey.jib.payload.PayloadPlan;
 import cafe.jeffrey.jib.payload.PayloadResolutionException;
-import cafe.jeffrey.jib.payload.PayloadResolver;
-import cafe.jeffrey.jib.payload.ProvisionerSource;
 import com.google.cloud.tools.jib.api.buildplan.AbsoluteUnixPath;
 import com.google.cloud.tools.jib.api.buildplan.ContainerBuildPlan;
 import com.google.cloud.tools.jib.api.buildplan.FileEntriesLayer;
@@ -55,10 +54,12 @@ import java.util.Set;
  * provisioner-produced argfile prepended.
  *
  * <p>It also bakes the binaries that run needs — the provisioner, and async-profiler unless the
- * image supplies its own — into a second layer under {@code /opt/jeffrey}, fetched through the
- * running build's own dependency resolution.
- * An image built this way is self-contained: it needs a shared volume for the recordings it writes,
- * never to find its own tooling.
+ * image supplies its own — into a second layer under {@code /opt/jeffrey}. They come from the
+ * payload jar the build put on the extension's class path by declaring a flavour of the extension
+ * ({@code jeffrey-jib-maven-jar}, {@code jeffrey-jib-maven-native}, or the Gradle equivalents) as
+ * the jib plugin dependency; nothing is downloaded by the extension itself. An image built this way
+ * is self-contained: it needs a shared volume for the recordings it writes, never to find its own
+ * tooling.
  *
  * <p>Non-null string fields on the {@link JeffreyJibConfig} are baked as image-level ENV
  * defaults on the build plan (wrapper reads them at runtime; Kubernetes pod env still wins).
@@ -82,29 +83,30 @@ public final class JeffreyBuildPlanExtender {
     private static final FilePermissions EXEC_PERMS = FilePermissions.fromOctalString("755");
     private static final String LAYER_NAME = "jeffrey-entrypoint";
 
-    /** Removed property, still named so a build that sets it is told rather than quietly ignored. */
+    /** Removed properties, still named so a build that sets them is told rather than quietly ignored. */
     private static final String REMOVED_PROVISIONER_PATH = "provisionerPath";
+    private static final String REMOVED_PROVISIONER_SOURCE = "provisionerSource";
+    private static final String REMOVED_PAYLOAD_VERSION = "payloadVersion";
     private static final String LINUX_OS = "linux";
     private static final Set<String> SUPPORTED_ARCHITECTURES = Set.of("amd64", "arm64");
 
     private final Class<? extends JibPluginExtension> extensionClass;
-    private final PayloadResolver payloadResolver;
+    private final ClassLoader payloads;
     private final Path workDirectory;
 
     /**
-     * @param payloadResolver fetches payload artifacts through the build system; only called when
-     *                        the configuration actually bakes something, so a build that supplies
-     *                        its own binaries never touches the build system's resolver
-     * @param workDirectory   where the entrypoint script and payloads are unpacked before JIB
-     *                        reads them; see {@link WorkDirectories}
+     * @param payloads      the class loader the payload jar is visible through — the extension's
+     *                      own, since the payload arrives as a sibling plugin dependency
+     * @param workDirectory where the entrypoint script and payloads are unpacked before JIB
+     *                      reads them; see {@link WorkDirectories}
      */
     public JeffreyBuildPlanExtender(
             Class<? extends JibPluginExtension> extensionClass,
-            PayloadResolver payloadResolver,
+            ClassLoader payloads,
             Path workDirectory) {
 
         this.extensionClass = extensionClass;
-        this.payloadResolver = payloadResolver;
+        this.payloads = payloads;
         this.workDirectory = workDirectory;
     }
 
@@ -117,8 +119,8 @@ public final class JeffreyBuildPlanExtender {
      * @param logger    JIB extension logger for build-time messages
      * @return the transformed build plan (or the input unchanged when {@code config.enabled == false})
      * @throws JibPluginExtensionException if the wrapper script cannot be extracted from the
-     *                                     classpath, if JIB did not produce an entrypoint, or if a
-     *                                     payload artifact cannot be resolved
+     *                                     classpath, if JIB did not produce an entrypoint, or if
+     *                                     no (or more than one) payload jar is on the class path
      */
     public ContainerBuildPlan extend(
             ContainerBuildPlan buildPlan,
@@ -139,14 +141,13 @@ public final class JeffreyBuildPlanExtender {
                             + "override container.entrypoint.");
         }
 
-        ProvisionerSource source = provisionerSource(config);
         Path wrapperScript = extractEntrypointScript();
         FileEntriesLayer wrapperLayer = FileEntriesLayer.builder()
                 .setName(LAYER_NAME)
                 .addEntry(wrapperScript, ENTRYPOINT_PATH, EXEC_PERMS)
                 .build();
 
-        PayloadInstallation payload = installPayload(buildPlan, config, source, logger);
+        PayloadInstallation payload = installPayload(buildPlan, config, logger);
         Map<String, String> extraEnv = collectEnvDefaults(config);
 
         logger.log(LogLevel.LIFECYCLE,
@@ -178,59 +179,30 @@ public final class JeffreyBuildPlanExtender {
     }
 
     /**
-     * Fetches and installs the binaries the entrypoint needs. The provisioner is always baked;
-     * only async-profiler can be left out, by a {@code profilerPath} saying the image already
-     * provides one, in which case that payload is not resolved at all and costs nothing.
+     * Installs the binaries the entrypoint needs from the payload jar on the class path. The
+     * provisioner is always baked, and which build of it is decided by the flavour the build
+     * declared; only async-profiler can be left out, by a {@code profilerPath} saying the image
+     * already provides one.
      */
     private PayloadInstallation installPayload(
             ContainerBuildPlan buildPlan,
             JeffreyJibConfig config,
-            ProvisionerSource source,
             ExtensionLogger logger) throws JibPluginExtensionException {
 
         boolean bakeProfiler = isBlank(config.getProfilerPath());
         if (!bakeProfiler) {
             logger.log(LogLevel.LIFECYCLE,
-                    "jeffrey-jib: using the async-profiler this image already provides, neither fetched "
+                    "jeffrey-jib: using the async-profiler this image already provides, neither baked "
                             + "nor version-checked: " + config.getProfilerPath());
         }
 
-        PayloadPlan plan = new PayloadPlan(source, linuxArchitectures(buildPlan), bakeProfiler);
         try {
-            return new PayloadInstaller(payloadResolver, payloadVersion(config), workDirectory, logger)
-                    .install(plan);
+            PayloadDescriptor descriptor = PayloadDescriptor.discover(payloads);
+            PayloadPlan plan = new PayloadPlan(descriptor, linuxArchitectures(buildPlan), bakeProfiler);
+            return new PayloadInstaller(payloads, workDirectory, logger).install(plan);
         } catch (PayloadResolutionException e) {
             throw new JibPluginExtensionException(extensionClass, e.getMessage(), e);
         }
-    }
-
-    private ProvisionerSource provisionerSource(JeffreyJibConfig config) throws JibPluginExtensionException {
-        try {
-            return ProvisionerSource.parse(config.getProvisionerSource());
-        } catch (IllegalArgumentException e) {
-            throw new JibPluginExtensionException(extensionClass, e.getMessage(), e);
-        }
-    }
-
-    /**
-     * There is no default, and no image is exempt: every one carries a provisioner. The payload
-     * artifacts are published with each jeffrey-jib release, and
-     * which Jeffrey release's binaries a given jeffrey-jib release bundles is a choice made when it
-     * was cut — so a guessed version would silently pin an image to a provisioner nobody chose,
-     * which is worse than a build that stops and asks.
-     */
-    private String payloadVersion(JeffreyJibConfig config) throws JibPluginExtensionException {
-        String version = config.getPayloadVersion();
-        if (!isBlank(version)) {
-            return version;
-        }
-        throw new JibPluginExtensionException(
-                extensionClass,
-                "jeffrey-jib: '" + JeffreyJibConfig.PAYLOAD_VERSION + "' is required. Set it to the "
-                        + "jeffrey-jib release whose payload artifacts this image should carry — normally "
-                        + "the same version as the extension itself (for example 0.14.0); each payload "
-                        + "records the Jeffrey release and async-profiler version it bundles, and the "
-                        + "build log prints them.");
     }
 
     /**
@@ -295,9 +267,9 @@ public final class JeffreyBuildPlanExtender {
      *
      * <p>Recognised keys map one-to-one to the {@link JeffreyJibConfig} setters:
      * {@code enabled}, {@code jeffreyHome}, {@code baseConfig}, {@code overrideConfig},
-     * {@code argFile}, {@code profilerPath}, {@code projectName}, {@code provisionerSource},
-     * {@code payloadVersion}. Null / empty values are ignored; unknown keys, and the removed
-     * {@code provisionerPath}, are logged at WARN and otherwise ignored.
+     * {@code argFile}, {@code profilerPath}, {@code projectName}. Null / empty values are ignored;
+     * unknown keys, and the removed {@code provisionerPath}, {@code provisionerSource} and
+     * {@code payloadVersion}, are logged at WARN and otherwise ignored.
      */
     public static void applyProperties(
             JeffreyJibConfig config,
@@ -322,12 +294,16 @@ public final class JeffreyBuildPlanExtender {
                         LogLevel.WARN,
                         "jeffrey-jib: 'provisionerPath' is no longer configurable and is ignored. The "
                                 + "extension always bakes the provisioner, because the layout it writes is "
-                                + "the one Jeffrey Hub reads; 'provisionerSource' chooses native or jar.");
+                                + "the one Jeffrey Hub reads; the plugin dependency chooses native or jar.");
+                case REMOVED_PROVISIONER_SOURCE, REMOVED_PAYLOAD_VERSION -> logger.log(
+                        LogLevel.WARN,
+                        "jeffrey-jib: '" + key + "' is no longer a property and is ignored. The provisioner "
+                                + "build and version now come from the jib plugin dependency: declare "
+                                + "jeffrey-jib-maven-jar or jeffrey-jib-maven-native (or the jeffrey-jib-gradle-* "
+                                + "equivalents) instead of the bare extension.");
                 case JeffreyJibConfig.ARG_FILE -> config.setArgFile(value);
                 case JeffreyJibConfig.PROFILER_PATH -> config.setProfilerPath(value);
                 case JeffreyJibConfig.PROJECT_NAME -> config.setProjectName(value);
-                case JeffreyJibConfig.PROVISIONER_SOURCE -> config.setProvisionerSource(value);
-                case JeffreyJibConfig.PAYLOAD_VERSION -> config.setPayloadVersion(value);
                 default -> logger.log(
                         LogLevel.WARN,
                         "jeffrey-jib: unknown plugin-extension property '" + key + "'; ignored");

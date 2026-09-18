@@ -25,14 +25,14 @@ on:
         required: true
         type: string
       jeffreyRelease:
-        description: 'jeffrey-jib only: the Jeffrey release tag (e.g. v0.13.22) whose provisioner binaries the payload artifacts bundle.'
+        description: 'jeffrey-jib only: the Jeffrey release tag (e.g. v0.13.22) whose provisioner binaries the payload jars bundle.'
         required: false
         type: string
 jobs:
   publish:
     runs-on: ubuntu-latest
     env:
-      # jeffrey-jib adds the `payload` profile so the payload modules are versioned and deployed
+      # jeffrey-jib adds the `payload` profile so the payload and flavour modules are versioned and deployed
       # with the extension; jeffrey-events-parent has no such profile. Maven only warns about a
       # profile it does not know, but keeping the list exact keeps the log clean.
       MAVEN_PROFILES: ${{ inputs.module == 'jeffrey-jib' && 'release,payload' || 'release' }}
@@ -59,8 +59,8 @@ jobs:
       # application images. The provisioner comes from a published Jeffrey release rather than a
       # build of this repository, because jeffrey-jib releases on its own cadence: which Jeffrey
       # release an extension carries is a choice, stated here, recorded in each payload jar's
-      # manifest (Jeffrey-Payload-Provenance) and printed by the extension at build time.
-      # Consumers name the jeffrey-jib release through payloadVersion.
+      # descriptor (jeffrey-payload/payload.properties) and printed by the extension at build time.
+      # Consumers pick it up by the version of the flavour they declare.
       - name: Stage provisioner payloads
         if: inputs.module == 'jeffrey-jib'
         env:
@@ -73,11 +73,11 @@ jobs:
           gh release download "${{ inputs.jeffreyRelease }}" -R petrbouda/jeffrey \
             -p provisioner-amd64 -p provisioner-arm64 -p provisioner.jar -D /tmp/payload
           install -Dm644 /tmp/payload/provisioner-amd64 \
-            jeffrey-jib-payload-native/src/main/payload/linux-amd64/jeffrey-payload/provisioner
+            jeffrey-jib-payload-native/src/main/payload/jeffrey-payload/provisioner-linux-amd64
           install -Dm644 /tmp/payload/provisioner-arm64 \
-            jeffrey-jib-payload-native/src/main/payload/linux-arm64/jeffrey-payload/provisioner
+            jeffrey-jib-payload-native/src/main/payload/jeffrey-payload/provisioner-linux-arm64
           install -Dm644 /tmp/payload/provisioner.jar \
-            jeffrey-jib-payload-jar/src/main/resources/jeffrey-payload/provisioner.jar
+            jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload/provisioner.jar
 
       # async-profiler is pinned by the async-profiler.version property in the jeffrey-jib pom; the
       # script fails on a missing release rather than staging an empty download.
@@ -85,8 +85,8 @@ jobs:
         if: inputs.module == 'jeffrey-jib'
         run: ../../build/scripts/stage-async-profiler-payload.sh .
 
-      # The payload modules live behind the `payload` profile, so for jeffrey-jib every Maven
-      # invocation activates it — otherwise versions:set would leave them at 1.0-SNAPSHOT and
+      # The payload and flavour modules live behind the `payload` profile, so for jeffrey-jib every
+      # Maven invocation activates it — otherwise versions:set would leave them at 1.0-SNAPSHOT and
       # deploy would skip them. One deploy builds every module exactly once.
       - name: Set version
         run: mvn versions:set -DnewVersion=${{ inputs.version }} -DprocessAllModules=true -P ${{ env.MAVEN_PROFILES }}
