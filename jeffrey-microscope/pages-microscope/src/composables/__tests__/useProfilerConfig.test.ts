@@ -29,8 +29,8 @@ function partsOf(command: string): string[] {
   return command.split(',');
 }
 
-function everyCall(pattern: string): MethodTraceTarget {
-  return { pattern, latencyValue: null, latencyUnit: 'ms' };
+function everyCall(id: number, pattern: string): MethodTraceTarget {
+  return { id, pattern, latencyValue: null, latencyUnit: 'ms' };
 }
 
 describe('useProfilerConfig', () => {
@@ -149,8 +149,8 @@ describe('useProfilerConfig', () => {
       const { config, optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.methodTracing = true;
       config.value.methodTraces = [
-        everyCall('java.nio.ByteBuffer.allocateDirect'),
-        everyCall('java.net.Socket.*')
+        everyCall(1, 'java.nio.ByteBuffer.allocateDirect'),
+        everyCall(2, 'java.net.Socket.*')
       ];
 
       const parts = partsOf(generateFromBuilder());
@@ -162,8 +162,8 @@ describe('useProfilerConfig', () => {
       const { config, optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.methodTracing = true;
       config.value.methodTraces = [
-        { pattern: 'com.acme.OrderService.place', latencyValue: 5, latencyUnit: 'ms' },
-        { pattern: 'com.acme.Cache.get', latencyValue: 200, latencyUnit: 'us' }
+        { id: 1, pattern: 'com.acme.OrderService.place', latencyValue: 5, latencyUnit: 'ms' },
+        { id: 2, pattern: 'com.acme.Cache.get', latencyValue: 200, latencyUnit: 'us' }
       ];
 
       const parts = partsOf(generateFromBuilder());
@@ -175,7 +175,7 @@ describe('useProfilerConfig', () => {
       const { config, optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.methodTracing = true;
       config.value.methodTraces = [
-        { pattern: 'com.acme.OrderService.place', latencyValue: 0, latencyUnit: 'ms' }
+        { id: 3, pattern: 'com.acme.OrderService.place', latencyValue: 0, latencyUnit: 'ms' }
       ];
 
       expect(partsOf(generateFromBuilder())).toContain('trace=com.acme.OrderService.place');
@@ -184,7 +184,7 @@ describe('useProfilerConfig', () => {
     it('skips a trace target whose pattern is blank', () => {
       const { config, optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.methodTracing = true;
-      config.value.methodTraces = [{ pattern: '   ', latencyValue: 5, latencyUnit: 'ms' }];
+      config.value.methodTraces = [{ id: 4, pattern: '   ', latencyValue: 5, latencyUnit: 'ms' }];
 
       expect(generateFromBuilder()).not.toContain('trace=');
     });
@@ -206,6 +206,19 @@ describe('useProfilerConfig', () => {
       expect(second.config.value.methodTraces).toHaveLength(0);
     });
 
+    it('gives every added method its own id, so rows keep their identity across removals', () => {
+      const { config, addMethodTrace, removeMethodTrace } = useProfilerConfig();
+      addMethodTrace('com.acme.OrderService.place');
+      addMethodTrace('com.acme.Cache.get');
+      addMethodTrace('com.acme.Cache.put');
+      const [, second, third] = config.value.methodTraces.map(target => target.id);
+
+      removeMethodTrace(0);
+
+      expect(config.value.methodTraces.map(target => target.id)).toEqual([second, third]);
+      expect(new Set([second, third]).size).toBe(2);
+    });
+
     it('refuses a trace target async-profiler would reject and says why', () => {
       const { config, addMethodTrace } = useProfilerConfig();
 
@@ -222,7 +235,7 @@ describe('useProfilerConfig', () => {
       const { config, optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.methodTracing = true;
       config.value.methodTraces = [
-        { pattern: 'com.acme.OrderService.place', latencyValue: 0.5, latencyUnit: 'ms' }
+        { id: 5, pattern: 'com.acme.OrderService.place', latencyValue: 0.5, latencyUnit: 'ms' }
       ];
 
       expect(partsOf(generateFromBuilder())).toContain('trace=com.acme.OrderService.place:500us');
@@ -370,7 +383,7 @@ describe('useProfilerConfig', () => {
       config.value.wallValue = 50;
       optionStates.value.methodTracing = true;
       config.value.methodTraces = [
-        { pattern: 'java.net.Socket.*', latencyValue: 2, latencyUnit: 'ms' }
+        { id: 6, pattern: 'java.net.Socket.*', latencyValue: 2, latencyUnit: 'ms' }
       ];
       optionStates.value.nativeMem = true;
       config.value.nativeMemValue = 4;

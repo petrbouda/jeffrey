@@ -88,16 +88,16 @@ describe('profilerOptions', () => {
 
   describe('traceOption', () => {
     it('appends the latency only when it is a threshold', () => {
-      expect(traceOption({ pattern: METHOD, latencyValue: 5, latencyUnit: 'ms' })).toBe(
+      expect(traceOption({ id: 1, pattern: METHOD, latencyValue: 5, latencyUnit: 'ms' })).toBe(
         `trace=${METHOD}:5ms`
       );
-      expect(traceOption({ pattern: METHOD, latencyValue: 0, latencyUnit: 'ms' })).toBe(
+      expect(traceOption({ id: 2, pattern: METHOD, latencyValue: 0, latencyUnit: 'ms' })).toBe(
         `trace=${METHOD}`
       );
     });
 
     it('never emits a fraction, which async-profiler rejects and fails the start on', () => {
-      expect(traceOption({ pattern: METHOD, latencyValue: 0.5, latencyUnit: 'ms' })).toBe(
+      expect(traceOption({ id: 3, pattern: METHOD, latencyValue: 0.5, latencyUnit: 'ms' })).toBe(
         `trace=${METHOD}:500us`
       );
     });

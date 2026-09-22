@@ -364,7 +364,7 @@
                       <div v-if="config.methodTraces.length > 0">
                         <div
                           v-for="(target, index) in config.methodTraces"
-                          :key="index"
+                          :key="target.id"
                           class="method-pattern-item"
                         >
                           <div class="pattern-display">
@@ -1482,11 +1482,15 @@ generateConfig();
   border-color: rgba(94, 100, 255, 0.2);
 }
 
+/*
+ * The pattern keeps a readable width: below it the row wraps and the threshold controls move to
+ * their own line, instead of the pattern shrinking to a few characters per line.
+ */
 .pattern-display {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
+  flex: 1 1 16rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }

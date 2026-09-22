@@ -28,6 +28,7 @@ describe('thresholdState', () => {
     it('states the latency a traced call must reach', () => {
       expect(
         traceThreshold({
+          id: 1,
           pattern: 'com.acme.OrderService.place',
           latencyValue: 5,
           latencyUnit: 'ms'
@@ -38,6 +39,7 @@ describe('thresholdState', () => {
     it('flags a missing latency as recording every call', () => {
       expect(
         traceThreshold({
+          id: 2,
           pattern: 'com.acme.OrderService.place',
           latencyValue: null,
           latencyUnit: 'ms'
@@ -48,6 +50,7 @@ describe('thresholdState', () => {
     it('keeps a fractional latency as a threshold, since the command carries it exactly', () => {
       expect(
         traceThreshold({
+          id: 3,
           pattern: 'com.acme.OrderService.place',
           latencyValue: 0.5,
           latencyUnit: 'ms'
@@ -58,6 +61,7 @@ describe('thresholdState', () => {
     it('treats a zero latency like a missing one', () => {
       expect(
         traceThreshold({
+          id: 4,
           pattern: 'com.acme.OrderService.place',
           latencyValue: 0,
           latencyUnit: 'us'

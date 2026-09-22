@@ -31,6 +31,8 @@ export interface ProfilerConfig {
  * only the calls that took at least that long (`trace=Class.method:5ms`).
  */
 export interface MethodTraceTarget {
+  /** Identifies the row across edits and removals; the command never carries it. */
+  id: number;
   pattern: string;
   latencyValue: number | null;
   latencyUnit: string;

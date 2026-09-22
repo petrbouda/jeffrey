@@ -24,6 +24,17 @@ import {
 /** The outcome of adding a traced method: added, or refused with the reason to show the user. */
 export type AddMethodTraceResult = { added: true } | { added: false; error: string };
 
+/**
+ * Ids for traced-method rows, unique for the page's lifetime. The list is keyed by them, so removing
+ * a row cannot hand its neighbour's half-typed threshold to the next row the way an index key does.
+ */
+let lastMethodTraceId = 0;
+
+function nextMethodTraceId(): number {
+  lastMethodTraceId += 1;
+  return lastMethodTraceId;
+}
+
 function hasPattern(target: MethodTraceTarget): boolean {
   return target.pattern.trim().length > 0;
 }
@@ -256,14 +267,12 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.methodTracing) {
-      config.value.methodTraces.forEach((target, index) => {
-        if (hasPattern(target)) {
-          tokens.push({
-            key: `methodTracing${index}`,
-            label: 'Method Tracing',
-            value: traceOption(target)
-          });
-        }
+      config.value.methodTraces.filter(hasPattern).forEach(target => {
+        tokens.push({
+          key: `methodTracing${target.id}`,
+          label: 'Method Tracing',
+          value: traceOption(target)
+        });
       });
     }
 
@@ -442,6 +451,7 @@ export function useProfilerConfig() {
       return { added: false, error };
     }
     config.value.methodTraces.push({
+      id: nextMethodTraceId(),
       pattern: pattern.trim(),
       latencyValue: DEFAULT_TRACE_LATENCY.value,
       latencyUnit: DEFAULT_TRACE_LATENCY.unit
