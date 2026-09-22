@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export type ExecutionLevel = 'GLOBAL' | 'WORKSPACE' | 'PROJECT';
+export type ExecutionLevel = 'GLOBAL' | 'PROJECT';
 
 /**
  * All job types served by the scheduler, mirroring the backend {@code JobType} enum
@@ -29,7 +29,6 @@ export type JobTypeName =
     | 'TEMP_DIRECTORY_CLEANER'
     | 'DELETED_PROJECTS_CLEANER'
     | 'STORAGE_OVERVIEW_REFRESHER'
-    | 'PROFILER_SETTINGS_SYNCHRONIZER'
     | 'PROJECT_INSTANCE_SESSION_CLEANER'
     | 'PROJECT_STORAGE_QUOTA_CLEANER'
     | 'EXPIRED_INSTANCE_CLEANER'

@@ -20,47 +20,20 @@ package cafe.jeffrey.shared.common.model.repository;
 
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.ProfilerSettings;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Forward/backward compatibility of the shared-filesystem JSON contract:
- * files written by an older provisioner/hub (missing the newer fields) must
- * deserialize, and files with the newer fields must round-trip.
+ * Forward/backward compatibility of the shared-filesystem JSON contract: files written by an
+ * older provisioner (with fields since dropped, or without newer ones) must deserialize, and
+ * files the current provisioner writes must round-trip.
  */
 class RemoteProjectInstanceSessionSerdeTest {
 
     @Test
-    void oldFormatSessionInfo_withoutProfilerFields_deserializes() {
-        String oldFormat = """
-                {
-                    "sessionId": "session-001",
-                    "projectId": "proj-001",
-                    "workspaceId": "ws-001",
-                    "instanceId": "inst-001",
-                    "createdAt": 1700000000000,
-                    "order": 1,
-                    "relativeSessionPath": "inst-001/session-001"
-                }
-                """;
-
-        RemoteProjectInstanceSession session = Json.read(oldFormat, RemoteProjectInstanceSession.class);
-
-        assertEquals("session-001", session.sessionId());
-        assertEquals(1, session.order());
-        assertNull(session.profilerSettingsSource());
-        assertNull(session.profilerCommand());
-        // Not merely absent: null is what tells the hub this session never declared whether
-        // anything would report liveness, so it must not be finished for failing to report it
-        assertNull(session.heartbeatExpected());
-    }
-
-    @Test
-    void sessionInfo_withoutHeartbeatDeclaration_isUnknownRatherThanFalse() {
-        String withoutHeartbeatField = """
+    void olderSessionInfo_withFieldsSinceDropped_deserializes() {
+        String olderFormat = """
                 {
                     "sessionId": "session-001",
                     "projectId": "proj-001",
@@ -69,23 +42,42 @@ class RemoteProjectInstanceSessionSerdeTest {
                     "createdAt": 1700000000000,
                     "order": 1,
                     "relativeSessionPath": "inst-001/session-001",
-                    "profilerSettingsSource": "HUB_PROJECT",
-                    "profilerCommand": "-agentpath:/lib.so=start"
+                    "profilerSettingsSource": "CLI_CONFIG",
+                    "profilerCommand": "-agentpath:/lib.so=start",
+                    "heartbeatExpected": true
+                }
+                """;
+
+        RemoteProjectInstanceSession session = Json.read(olderFormat, RemoteProjectInstanceSession.class);
+
+        assertEquals(new RemoteProjectInstanceSession(
+                "session-001", "inst-001", 1700000000000L, 1, "inst-001/session-001", true), session);
+    }
+
+    @Test
+    void sessionInfo_withoutHeartbeatDeclaration_isUnknownRatherThanFalse() {
+        String withoutHeartbeatField = """
+                {
+                    "sessionId": "session-001",
+                    "instanceId": "inst-001",
+                    "createdAt": 1700000000000,
+                    "order": 1,
+                    "relativeSessionPath": "inst-001/session-001"
                 }
                 """;
 
         RemoteProjectInstanceSession session =
                 Json.read(withoutHeartbeatField, RemoteProjectInstanceSession.class);
 
+        // Not merely absent: null is what tells the hub this session never declared whether
+        // anything would report liveness, so it must not be finished for failing to report it
         assertNull(session.heartbeatExpected());
     }
 
     @Test
     void sessionInfo_declaringNoHeartbeat_roundTripsAsFalse() {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
-                "session-001", "proj-001", "ws-001", "inst-001",
-                1700000000000L, 1, "inst-001/session-001",
-                "HUB_PROJECT", "-agentpath:/lib.so=start", false);
+                "session-001", "inst-001", 1700000000000L, 1, "inst-001/session-001", false);
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 
@@ -94,34 +86,12 @@ class RemoteProjectInstanceSessionSerdeTest {
     }
 
     @Test
-    void newFormatSessionInfo_roundTrips() {
+    void currentSessionInfo_roundTrips() {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
-                "session-001", "proj-001", "ws-001", "inst-001",
-                1700000000000L, 2, "inst-001/session-001",
-                "HUB_PROJECT", "-agentpath:/lib.so=start", true);
+                "session-001", "inst-001", 1700000000000L, 2, "inst-001/session-001", true);
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 
         assertEquals(session, read);
-    }
-
-    @Test
-    void oldFormatWorkspaceSettings_withoutIdKeyedMap_deserializes() {
-        String oldFormat = """
-                {
-                    "profiler": {
-                        "defaultSettings": "cmd",
-                        "defaultSettingsLevel": "WORKSPACE",
-                        "projectSettings": {"proj-name": "proj-cmd"}
-                    }
-                }
-                """;
-
-        RemoteWorkspaceSettings settings = Json.read(oldFormat, RemoteWorkspaceSettings.class);
-        ProfilerSettings profiler = settings.profiler();
-
-        assertEquals("cmd", profiler.defaultSettings());
-        assertEquals("proj-cmd", profiler.projectSettings().get("proj-name"));
-        assertNull(profiler.projectSettingsById());
     }
 }

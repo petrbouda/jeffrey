@@ -103,10 +103,10 @@ onMounted(() => {
           <p><strong>Purpose:</strong> Manages your local catalog of recordings and profiles, plus pointers to remote workspaces on Jeffrey Hub.</p>
           <h5>Contains:</h5>
           <ul>
-            <li>Workspaces and projects</li>
-            <li>Recordings and profile metadata</li>
-            <li>Remote workspace connections (gRPC)</li>
-            <li>Local settings and preferences</li>
+            <li>Hubs it connects to</li>
+            <li>Recordings, their files, groups and tags</li>
+            <li>Profile metadata</li>
+            <li>IDE targets for the IntelliJ plugin</li>
           </ul>
         </div>
       </div>

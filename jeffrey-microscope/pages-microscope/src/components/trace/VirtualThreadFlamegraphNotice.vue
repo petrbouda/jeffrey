@@ -81,7 +81,7 @@
       </li>
       <li>
         Or drop <code>event=ctimer</code> from the
-        <router-link to="/docs/microscope/profiler-settings">profiler settings</router-link> and
+        <router-link to="/profiler-builder">profiler command</router-link> and
         record <code>jdk.CPUTimeSample</code> instead (JDK 25+, Linux). The JDK's own CPU-time
         sampler names the virtual thread and walks its continuation stack: in a JDK 26 recording of
         this app it put 5,235 samples on <code>tomcat-handler-*</code> virtual threads, where

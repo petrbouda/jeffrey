@@ -30,7 +30,11 @@ import type { TraceRow } from '@/services/api/model/trace/TraceModels';
  * search for `SPAN_SHAPE status = ERROR` from matching a notification that merely said so.
  */
 export type TraceAttributeSource =
-  'ATTRIBUTE' | 'EVENT_FIELD' | 'SPAN_SHAPE' | 'NOTIFICATION_ATTRIBUTE' | 'NOTIFICATION_SHAPE';
+  | 'ATTRIBUTE'
+  | 'EVENT_FIELD'
+  | 'SPAN_SHAPE'
+  | 'NOTIFICATION_ATTRIBUTE'
+  | 'NOTIFICATION_SHAPE';
 
 /**
  * What kind of thing carried an attribute — the two halves a trace is made of. A span is an interval
@@ -54,7 +58,15 @@ export function carrierOf(source: TraceAttributeSource): TraceAttributeCarrier {
 export type TraceAttributeValueKind = 'STRING' | 'NUMBER' | 'BOOLEAN';
 
 export type TraceAttributeOperator =
-  'EQ' | 'NOT_EQ' | 'NONE_EQ' | 'CONTAINS' | 'GT' | 'GTE' | 'LT' | 'LTE' | 'EXISTS';
+  | 'EQ'
+  | 'NOT_EQ'
+  | 'NONE_EQ'
+  | 'CONTAINS'
+  | 'GT'
+  | 'GTE'
+  | 'LT'
+  | 'LTE'
+  | 'EXISTS';
 
 /**
  * Whether the conditions have to hold together on one span, or anywhere in the trace.
@@ -65,7 +77,13 @@ export type TraceAttributeOperator =
 export type TraceAttributeScope = 'TRACE' | 'SPAN';
 
 export type TraceAttributeValueSortField =
-  'TOTAL_TIME' | 'TRACES' | 'P50' | 'P95' | 'MAX' | 'ERRORS' | 'VALUE';
+  | 'TOTAL_TIME'
+  | 'TRACES'
+  | 'P50'
+  | 'P95'
+  | 'MAX'
+  | 'ERRORS'
+  | 'VALUE';
 
 /** What identifies one key. The owner is part of the identity, not decoration. */
 export interface TraceAttributeKeyId {

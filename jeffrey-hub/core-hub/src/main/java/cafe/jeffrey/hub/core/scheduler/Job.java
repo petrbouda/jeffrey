@@ -28,7 +28,7 @@ public interface Job {
      * Executor group a job is scheduled on. {@link #GLOBAL} jobs (queue polling,
      * cleaners) run on a dedicated single thread so a slow fan-out over many
      * projects can never delay them; {@link #PROJECT_FAN_OUT} jobs (iterating
-     * all workspaces/projects) share a small pool.
+     * every project of every workspace) share a small pool.
      */
     enum ExecutorGroup {
         GLOBAL,

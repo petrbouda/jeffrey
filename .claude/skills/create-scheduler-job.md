@@ -19,7 +19,7 @@ Ask the user for the following information using AskUserQuestion:
 1. **Job Name**: The name for the new job (e.g., "DataCleanup", "MetricsExporter")
 2. **Job Scope**: One of:
     - `PROJECT` - Job operates on individual projects (extends RepositoryProjectJob)
-    - `GLOBAL` - Job operates globally across workspaces (extends WorkspaceJob)
+    - `GLOBAL` - Job runs once per tick across the whole server (implements `Job` directly, like `DeletedProjectsCleanerJob`)
     - `INTERNAL` - Internal system job (implements Job directly)
 3. **Description**: Brief description of what the job does
 4. **Parameters**: Does the job need configuration parameters? (yes/no)
@@ -202,12 +202,12 @@ public class {JobName}Job extends RepositoryProjectJob<{JobName}JobDescriptor> {
 }
 ```
 
-For GLOBAL scope (extends WorkspaceJob):
+For GLOBAL scope (implements Job directly):
 
 ```java
-public class {JobName}Job extends WorkspaceJob<{JobName}JobDescriptor> {
-    // Similar structure but extends WorkspaceJob
-    // Override executeOnWorkspace() instead
+public class {JobName}Job implements Job {
+    // Same period() and jobType() as above; put the work in execute().
+    // Iterate workspacesManager yourself if the job needs every workspace.
 }
 ```
 
@@ -384,5 +384,4 @@ After generating all files, provide a summary:
 | ExpiredInstanceCleanerJob                 | EXPIRED_INSTANCE_CLEANER                   | PROJECT | Removes expired instances from projects          |
 | SessionFinishedDetectorProjectJob         | SESSION_FINISHED_DETECTOR                  | PROJECT | Detects finished recording sessions              |
 | WorkspaceReconcilerJob                    | WORKSPACE_RECONCILER                       | GLOBAL  | Materializes projects/instances/sessions from workspace directories |
-| WorkspaceProfilerSettingsSynchronizerJob  | WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER   | GLOBAL  | Syncs profiler settings                          |
 | DataRetentionJob                          | DATA_RETENTION                             | GLOBAL  | Cleans up old messages, alerts, and queue events |

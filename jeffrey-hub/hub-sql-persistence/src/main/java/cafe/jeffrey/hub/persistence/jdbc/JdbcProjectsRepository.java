@@ -92,7 +92,6 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 WHERE p.deleted_at < :deleted_before)""",
             "DELETE FROM project_instances WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
             "DELETE FROM repositories WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
-            "DELETE FROM profiler_settings WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
             "DELETE FROM projects WHERE deleted_at < :deleted_before");
 
     private final DatabaseClient databaseClient;

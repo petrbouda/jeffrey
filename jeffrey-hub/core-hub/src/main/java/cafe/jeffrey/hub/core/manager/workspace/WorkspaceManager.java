@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.manager.workspace;
 
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.core.workspace.settings.WorkspaceSettingsPublisher;
 
 import java.util.function.Function;
 
@@ -58,11 +57,4 @@ public interface WorkspaceManager {
      * The workspace can be recreated by the synchronizer from filesystem events.
      */
     void delete();
-
-    /**
-     * Creates and returns a remote workspace repository instance for this workspace.
-     *
-     * @return the remote workspace repository
-     */
-    WorkspaceSettingsPublisher settingsPublisher();
 }

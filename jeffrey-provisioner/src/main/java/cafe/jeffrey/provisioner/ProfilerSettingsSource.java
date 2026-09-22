@@ -16,28 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.persistence.api;
+package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.hub.model.ProfilerInfo;
-
-import java.util.List;
-
-public interface ProfilerRepository {
-
-    void upsertSettings(ProfilerInfo profiler);
+/**
+ * Which source the provisioner's profiler command was resolved from. Reported in the
+ * provisioner's verdict log line; it is not written into any marker, since nothing reads it.
+ */
+public enum ProfilerSettingsSource {
 
     /**
-     * Fetches all profiler settings relevant to a project:
-     * global, workspace, and project level settings.
-     *
-     * @param workspaceId the workspace ID
-     * @param projectId   the project ID
-     * @return list of settings ordered by specificity (project first, then workspace, then global)
+     * Explicit {@code profiler-command}, from the provisioner's HOCON config or the
+     * {@code JEFFREY_PROFILER_COMMAND} environment variable.
      */
-    List<ProfilerInfo> fetchProfilerSettings(String workspaceId, String projectId);
+    CONFIGURED,
 
-    List<ProfilerInfo> findWorkspaceSettings(String workspaceId);
-
-
-    void deleteSettings(String workspaceId, String projectId);
+    /** Built-in provisioner default ({@code CliConstants.DEFAULT_PROFILER_CONFIG}) */
+    BUILT_IN
 }

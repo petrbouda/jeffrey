@@ -58,9 +58,9 @@ onMounted(() => {
       <p>
         Server runs as a long-lived process next to your Java fleet. Async-Profiler agents
         running inside your applications stream JFR chunks to it on every recording loop. The
-        agent gets its configuration (event toggles, sampling intervals, output paths) from
-        Server's profiler-settings hub, so a single change at the workspace or project scope
-        propagates to every agent in that scope.
+        agent gets its configuration (event toggles, sampling intervals, output paths) from the
+        provisioner that started the JVM — its <code>profiler-command</code> setting or the
+        <code>JEFFREY_PROFILER_COMMAND</code> environment variable.
       </p>
 
       <DocsCallout type="info">
@@ -88,7 +88,7 @@ onMounted(() => {
 
       <h2 id="grpc-surface">gRPC Service Surface</h2>
       <p>
-        Microscope clients and other server-side tools talk to Server over gRPC. Eight services
+        Microscope clients and other server-side tools talk to Server over gRPC. Five services
         cover the surface:
       </p>
 
@@ -98,7 +98,6 @@ onMounted(() => {
         <div class="service-chip"><i class="bi bi-hdd-network"></i> Instances</div>
         <div class="service-chip"><i class="bi bi-cloud-download"></i> Recording Download</div>
         <div class="service-chip"><i class="bi bi-archive"></i> Repository</div>
-        <div class="service-chip"><i class="bi bi-sliders"></i> Profiler Settings</div>
       </div>
 
       <p>

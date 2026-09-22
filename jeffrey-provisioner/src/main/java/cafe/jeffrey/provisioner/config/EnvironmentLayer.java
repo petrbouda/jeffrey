@@ -31,12 +31,13 @@ import java.util.function.Function;
  *
  * <p>This is the whole environment contract in one table: which variable feeds which setting, and
  * how its text is read. Precedence is expressed by where the layer sits in the merge rather than by
- * a check at each read site — configuration files win over it, built-in defaults lose to it.
+ * a check at each read site: this layer sits on top, so it wins over a configuration file, which in
+ * turn wins over the built-in defaults ({@link cafe.jeffrey.provisioner.InitConfig}).
  *
  * <p>Every setting is reachable from the environment, so a container never needs to mount a file.
- * The single deliberate omission is {@code JEFFREY_PROFILER_CONFIG}: the generated {@code .env}
- * file <em>exports</em> a variable of that name, and accepting it as an input would feed a previous
- * run's fully-resolved command back in.
+ * Each variable is named after the HOCON key it feeds, so {@code JEFFREY_PROFILER_COMMAND} carries
+ * {@code profiler-command}. The resolved flags the run produces are an output and are never read
+ * back in: they reach the JVM through the argfile, or through {@code JDK_JAVA_OPTIONS}.
  */
 public abstract class EnvironmentLayer {
 
@@ -53,6 +54,7 @@ public abstract class EnvironmentLayer {
             new EnvBinding.Value("JEFFREY_HOME", ConfigPaths.JEFFREY_HOME),
             new EnvBinding.Value("JEFFREY_WORKSPACES_DIR", ConfigPaths.WORKSPACES_DIR),
             new EnvBinding.Value("JEFFREY_PROFILER_PATH", ConfigPaths.PROFILER_PATH),
+            new EnvBinding.Value("JEFFREY_PROFILER_COMMAND", ConfigPaths.PROFILER_COMMAND),
             new EnvBinding.Flag("JEFFREY_HEARTBEAT_ENABLED", ConfigPaths.HEARTBEAT_ENABLED),
             new EnvBinding.Value("JEFFREY_REPOSITORY_TYPE", ConfigPaths.REPOSITORY_TYPE),
             new EnvBinding.Value("JEFFREY_ARG_FILE", ConfigPaths.ARG_FILE),

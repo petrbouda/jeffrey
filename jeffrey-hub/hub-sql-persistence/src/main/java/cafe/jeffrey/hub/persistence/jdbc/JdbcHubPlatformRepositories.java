@@ -21,7 +21,6 @@ package cafe.jeffrey.hub.persistence.jdbc;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
@@ -92,11 +91,6 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
         this.databaseClientProvider = databaseClientProvider;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROJECT_REPOSITORIES);
         this.clock = clock;
-    }
-
-    @Override
-    public ProfilerRepository newProfilerRepository() {
-        return new JdbcProfilerRepository(databaseClientProvider);
     }
 
     @Override

@@ -23,7 +23,6 @@ public enum JobType {
     TEMP_DIRECTORY_CLEANER(ExecutionLevel.GLOBAL),
     DELETED_PROJECTS_CLEANER(ExecutionLevel.GLOBAL),
     STORAGE_OVERVIEW_REFRESHER(ExecutionLevel.GLOBAL),
-    PROFILER_SETTINGS_SYNCHRONIZER(ExecutionLevel.WORKSPACE),
     PROJECT_INSTANCE_SESSION_CLEANER(ExecutionLevel.PROJECT),
     PROJECT_STORAGE_QUOTA_CLEANER(ExecutionLevel.PROJECT),
     EXPIRED_INSTANCE_CLEANER(ExecutionLevel.PROJECT),
@@ -31,15 +30,14 @@ public enum JobType {
     SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT);
 
     /**
-     * Where a job runs in the server's three-level execution model:
+     * Where a job runs in the server's execution model:
      * <ul>
      *   <li>{@link #GLOBAL} — singleton tick, no fan-out</li>
-     *   <li>{@link #WORKSPACE} — fan-out across all workspaces</li>
      *   <li>{@link #PROJECT} — fan-out across all projects in all workspaces</li>
      * </ul>
      */
     public enum ExecutionLevel {
-        GLOBAL, WORKSPACE, PROJECT
+        GLOBAL, PROJECT
     }
 
     private final ExecutionLevel executionLevel;

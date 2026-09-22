@@ -158,37 +158,23 @@ class EnvFileBuilderTest {
     @Nested
     class ProfilerConfigExport {
 
+        /**
+         * The resolved command reaches the JVM through the argfile, or through
+         * {@code JDK_JAVA_OPTIONS} when that export is asked for. The {@code .env} file carries the
+         * session layout only, so it never holds a second copy of the command.
+         */
         @Test
-        void includesProfilerConfigWhenSettingsNotNull() {
+        void doesNotCarryTheCommandWhenJdkJavaOptionsIsOff() {
             EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false, false);
 
             String result = builder.build(context);
 
-            assertTrue(result.contains("export JEFFREY_PROFILER_CONFIG="));
-            assertTrue(result.contains(PROFILER_SETTINGS));
-        }
-
-        @Test
-        void excludesProfilerConfigWhenSettingsNull() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
-
-            String result = builder.build(context);
-
-            assertFalse(result.contains("JEFFREY_PROFILER_CONFIG"));
-        }
-
-        @Test
-        void excludesProfilerConfigWhenSettingsEmpty() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), "", false, false);
-
-            String result = builder.build(context);
-
-            assertFalse(result.contains("JEFFREY_PROFILER_CONFIG"));
+            assertFalse(result.contains(PROFILER_SETTINGS));
         }
 
         @Test
         void wrapsProfilerSettingsInSingleQuotes() {
-            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false, false);
+            EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, true, false);
 
             String result = builder.build(context);
 
@@ -270,7 +256,6 @@ class EnvFileBuilderTest {
             int projectIdx = result.indexOf("JEFFREY_CURRENT_PROJECT");
             int sessionIdx = result.indexOf("JEFFREY_CURRENT_SESSION");
             int patternIdx = result.indexOf("JEFFREY_FILE_PATTERN");
-            int profilerIdx = result.indexOf("JEFFREY_PROFILER_CONFIG");
             int jdkIdx = result.indexOf("JDK_JAVA_OPTIONS");
 
             assertTrue(homeIdx < workspacesIdx);
@@ -278,8 +263,7 @@ class EnvFileBuilderTest {
             assertTrue(workspaceIdx < projectIdx);
             assertTrue(projectIdx < sessionIdx);
             assertTrue(sessionIdx < patternIdx);
-            assertTrue(patternIdx < profilerIdx);
-            assertTrue(profilerIdx < jdkIdx);
+            assertTrue(patternIdx < jdkIdx);
         }
     }
 }

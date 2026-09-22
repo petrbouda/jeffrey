@@ -67,7 +67,7 @@ class InitConfigTest {
 
             assertEquals("/tmp/jeffrey", config.getJeffreyHome());
             assertEquals("/tmp/asprof/libasyncProfiler.so", config.getProfilerPath());
-            assertNull(config.getProfilerConfig());
+            assertNull(config.getProfilerCommand());
             assertEquals("uat", config.getWorkspaceRefId());
             assertEquals("test-project", config.getProjectName());
             assertEquals("Test Project", config.getProjectLabel());
@@ -133,7 +133,7 @@ class InitConfigTest {
             assertNull(config.getWorkspacesDir());
             assertNull(config.getProjectLabel());
             assertNull(config.getProfilerPath());
-            assertNull(config.getProfilerConfig());
+            assertNull(config.getProfilerCommand());
             assertNull(config.getRepositoryType());
             // Attributes are empty rather than null, so callers need no null check
             assertEquals(Map.of(), config.getAttributes());
@@ -558,6 +558,9 @@ class InitConfigTest {
     @Nested
     class EnvironmentOnlyConfig {
 
+        @TempDir
+        Path tempDir;
+
         private static Function<String, String> env(Map<String, String> values) {
             return values::get;
         }
@@ -576,6 +579,35 @@ class InitConfigTest {
             assertFalse(config.isPerfCountersEnabled());
             assertTrue(config.isSpanTracingEnabled());
             assertNull(config.resolveHeapDumpType());
+        }
+
+        @Test
+        void profilerCommandFromEnv_feedsTheProfilerCommandSetting() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_PROFILER_COMMAND", "-agentpath:/opt/libasyncProfiler.so=start,alloc")));
+
+            assertEquals("-agentpath:/opt/libasyncProfiler.so=start,alloc", config.getProfilerCommand());
+        }
+
+        /**
+         * The environment layer sits on top of the file layer, so a pod can override a baked
+         * configuration file without rebuilding the image.
+         */
+        @Test
+        void profilerCommandFromEnv_winsOverTheConfigFile() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "profiler-command = \"-agentpath:/from/the/file.so=start\"",
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    env(Map.of("JEFFREY_PROFILER_COMMAND", "-agentpath:/from/the/env.so=start")));
+
+            assertEquals("-agentpath:/from/the/env.so=start", config.getProfilerCommand());
         }
 
         @Test

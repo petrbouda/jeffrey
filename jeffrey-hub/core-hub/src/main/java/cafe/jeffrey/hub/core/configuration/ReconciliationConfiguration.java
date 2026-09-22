@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.appinitializer.ApplicationInitializer;
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
@@ -35,15 +34,10 @@ import java.time.Clock;
 /**
  * How the hub keeps its rows in step with the volume: the reconciler that materialises what
  * the provisioner announced, the finisher that closes a session whose heartbeat stopped, and
- * the two initializers that seed a fresh hub at startup.
+ * the initializer that seeds a fresh hub with its default workspace at startup.
  */
 @Configuration
 public class ReconciliationConfiguration {
-
-    @Bean
-    public ApplicationInitializer applicationInitializer(HubPlatformRepositories platformRepositories) {
-        return new ApplicationInitializer(platformRepositories.newProfilerRepository());
-    }
 
     @Bean
     public DefaultWorkspaceInitializer defaultWorkspaceInitializer(

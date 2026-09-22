@@ -1,4 +1,4 @@
-/*
+<!--
  * Jeffrey
  * Copyright (C) 2026 Petr Bouda
  *
@@ -14,28 +14,26 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ -->
 
-package cafe.jeffrey.hub.model;
+<!--
+  Top-level Profiler Builder. It assembles an async-profiler agent command and nothing
+  else: the command is copied out and pasted into someone else's JVM arguments, so the
+  page stores nothing and has no notion of a hub, workspace or project.
+-->
 
-/**
- * Represents the effective profiler settings for a project, resolved from the hierarchy.
- *
- * @param agentSettings The effective agent settings value
- * @param level         The level where settings come from (PROJECT, WORKSPACE, GLOBAL, or NONE)
- */
-public record EffectiveProfilerSettings(
-        String agentSettings,
-        SettingsLevel level) {
+<template>
+  <MainCard>
+    <template #header>
+      <MainCardHeader icon="bi bi-cpu" title="Profiler Builder" />
+    </template>
 
-    public enum SettingsLevel {
-        PROJECT,
-        WORKSPACE,
-        GLOBAL,
-        NONE
-    }
+    <CommandBuilder />
+  </MainCard>
+</template>
 
-    public static EffectiveProfilerSettings none() {
-        return new EffectiveProfilerSettings(null, SettingsLevel.NONE);
-    }
-}
+<script setup lang="ts">
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
+import CommandBuilder from '@/components/settings/CommandBuilder.vue';
+</script>

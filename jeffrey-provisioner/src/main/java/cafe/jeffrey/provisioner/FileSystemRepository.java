@@ -134,35 +134,28 @@ public class FileSystemRepository {
 
     public void addSession(
             String sessionId,
-            String projectId,
-            String workspaceRefId,
             String instanceId,
             int order,
             Path sessionPath,
-            ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings,
             boolean heartbeatExpected) {
-        LOG.debug("Adding session to filesystem repository: sessionId={} projectId={} instanceId={} sessionPath={}", sessionId, projectId, instanceId, sessionPath);
+        LOG.debug("Adding session to filesystem repository: sessionId={} instanceId={} sessionPath={}", sessionId, instanceId, sessionPath);
         try {
             // Build relative session path: instanceId/sessionId (instance is always required)
             String relativeSessionPath = instanceId + "/" + sessionId;
 
             RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                     sessionId,
-                    projectId,
-                    workspaceRefId,
                     instanceId,
                     clock.instant().toEpochMilli(),
                     order,
                     relativeSessionPath,
-                    resolvedSettings.source().name(),
-                    resolvedSettings.command(),
                     heartbeatExpected);
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             writeAtomically(sessionInfoFile, Json.toString(session));
             announce(sessionId, sessionPath);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to write session info for session: " + sessionId + " in project: " + projectId, e);
+            throw new RuntimeException("Failed to write session info for session: " + sessionId + " at: " + sessionPath, e);
         }
     }
 

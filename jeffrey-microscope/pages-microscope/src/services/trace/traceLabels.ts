@@ -321,7 +321,13 @@ export function contextColor(category: string): string {
  *   that differ only in saturation are the same colour.
  */
 export type SpanFamilyName =
-  'HTTP_SERVER' | 'HTTP_CLIENT' | 'GRPC_SERVER' | 'GRPC_CLIENT' | 'DATABASE' | 'METHOD' | 'CUSTOM';
+  | 'HTTP_SERVER'
+  | 'HTTP_CLIENT'
+  | 'GRPC_SERVER'
+  | 'GRPC_CLIENT'
+  | 'DATABASE'
+  | 'METHOD'
+  | 'CUSTOM';
 
 export const SPAN_FAMILIES: Record<SpanFamilyName, { label: string; color: string }> = {
   HTTP_SERVER: { label: 'Inbound HTTP', color: 'var(--flamegraph-color-blue)' },

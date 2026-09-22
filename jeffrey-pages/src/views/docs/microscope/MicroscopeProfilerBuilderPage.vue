@@ -27,10 +27,8 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'scopes', text: 'Three Scopes', level: 2 },
-  { id: 'hierarchy', text: 'Resolution Order', level: 2 },
-  { id: 'where-to-edit', text: 'Where to Edit Settings', level: 2 },
-  { id: 'settings-builder', text: 'Settings Builder', level: 2 }
+  { id: 'builder', text: 'Building a Command', level: 2 },
+  { id: 'command', text: 'The Generated Command', level: 3 }
 ];
 
 onMounted(() => {
@@ -41,115 +39,42 @@ onMounted(() => {
 <template>
   <article class="docs-article">
     <DocsPageHeader
-      title="Profiler Settings"
+      title="Profiler Builder"
       icon="bi bi-cpu"
     />
 
     <div class="docs-content">
       <h2 id="overview">Overview</h2>
       <p>
-        Profiler Settings tell <a href="https://github.com/async-profiler/async-profiler" target="_blank" rel="noopener">Async-Profiler</a>
-        what to record on a Java application: which events to capture, sampling rates, output
-        layout, and JFR-specific options. Microscope manages these settings centrally so that
-        servers and CI agents pick up the right configuration without anyone editing JVM
-        arguments by hand.
+        <strong>Profiler Builder</strong> assembles an
+        <a href="https://github.com/async-profiler/async-profiler" target="_blank" rel="noopener">Async-Profiler</a>
+        agent command: which events to capture, sampling rates, output layout and the JFR-specific options. It is a
+        top-level page in Microscope, next to Recordings and Hubs, and it does one thing — you build a command and
+        copy it. Nothing is saved.
+      </p>
+      <p>
+        Paste the result into the JVM you want to profile, then bring the recording it produces back into Microscope
+        through <router-link to="/docs/microscope/recordings">Recordings</router-link>. In a deployment provisioned by
+        <router-link to="/docs/provisioner/configuration">Jeffrey Provisioner</router-link>, give it to the provisioner
+        as <code>profiler-command</code> in its configuration file, or as the
+        <code>JEFFREY_PROFILER_COMMAND</code> environment variable, which wins over the file.
+      </p>
+
+      <h2 id="builder">Building a Command</h2>
+      <p>
+        The builder is a form over
+        <a href="https://github.com/async-profiler/async-profiler" target="_blank" rel="noopener">Async-Profiler</a>'s
+        agent options, so a recording can be configured without memorizing command-line arguments. Toggle what you
+        want to record on the left; the assembled command appears in the panel on the right and updates as you go.
       </p>
 
       <DocsCallout type="info">
-        <strong>Two editable scopes.</strong> Profiler Settings are edited at the
-        <em>Workspace</em> or <em>Project</em> level; the <em>Global</em> baseline is shipped by
-        Jeffrey Hub itself and is read-only in Microscope. This page covers both <em>where</em>
-        settings live and how they resolve, and the full <a href="#settings-builder">Settings Builder</a> field reference.
+        <strong>The page stores nothing.</strong> Profiler Builder only assembles a command for you to copy — it does
+        not apply it to anything, and needs no hub, workspace or project. The agent path and output file are literal
+        values that go straight into the JVM you are about to profile.
       </DocsCallout>
 
-      <h2 id="scopes">Three Scopes</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Scope</th>
-            <th>Affects</th>
-            <th>Editable?</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Global</strong></td>
-            <td>Server-wide baseline applied to every workspace and project.</td>
-            <td>Read-only. Configured by Jeffrey Hub (server property).</td>
-          </tr>
-          <tr>
-            <td><strong>Workspace</strong></td>
-            <td>All projects inside one workspace; overrides Global.</td>
-            <td>Editable from the workspace's <em>Profiler Settings</em> tab.</td>
-          </tr>
-          <tr>
-            <td><strong>Project</strong></td>
-            <td>One project; overrides Workspace and Global.</td>
-            <td>Editable from the project's <em>Profiler Settings</em> tab.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2 id="hierarchy">Resolution Order</h2>
-      <p>
-        When an Async-Profiler agent asks the server for its configuration, settings are
-        resolved most-specific-first:
-      </p>
-
-      <div class="hierarchy-diagram">
-        <div class="hierarchy-level project">
-          <span class="level-label">Project</span>
-          <span class="level-desc">Highest priority — overrides everything else</span>
-        </div>
-        <div class="hierarchy-arrow"><i class="bi bi-arrow-down"></i></div>
-        <div class="hierarchy-level workspace">
-          <span class="level-label">Workspace</span>
-          <span class="level-desc">Used when no project-level override exists</span>
-        </div>
-        <div class="hierarchy-arrow"><i class="bi bi-arrow-down"></i></div>
-        <div class="hierarchy-level global">
-          <span class="level-label">Global</span>
-          <span class="level-desc">Baseline for everything that hasn't been overridden</span>
-        </div>
-      </div>
-
-      <DocsCallout type="tip">
-        <strong>Apply after restart.</strong> Profiler settings affect the next time an agent
-        starts a recording cycle — they don't reach into already-running processes.
-      </DocsCallout>
-
-      <h2 id="where-to-edit">Where to Edit Settings</h2>
-      <ul>
-        <li>
-          <strong>Global</strong> — read-only. The baseline is shipped by Jeffrey Hub through
-          a server-side configuration property; you can see it in the workspace Profiler Settings
-          view but it isn't editable from Microscope.
-        </li>
-        <li>
-          <strong>Workspace</strong> — open the workspace and switch to its Profiler Settings
-          tab.
-        </li>
-        <li>
-          <strong>Project</strong> — open the project and switch to its Profiler Settings tab.
-        </li>
-      </ul>
-
-      <h2 id="settings-builder">Settings Builder</h2>
-      <p>
-        Jeffrey uses <a href="https://github.com/async-profiler/async-profiler" target="_blank" rel="noopener">Async-Profiler</a>
-        as its profiling agent and includes a visual <strong>Profiler Settings Builder</strong> to configure it without
-        memorizing command-line arguments. The builder generates the correct profiler parameters based on your selections.
-      </p>
-
-      <DocsCallout type="info">
-        <strong>Only Supported Profiler:</strong> Currently, Async-Profiler is the only supported profiling agent in
-        Jeffrey. It provides excellent integration with JFR format and low overhead profiling capabilities.
-      </DocsCallout>
-
-      <div class="screenshot-container">
-        <img src="/images/docs/profiler-settings-builder.png" alt="Profiler Settings Builder overview" class="doc-screenshot" />
-        <p class="screenshot-caption">Profiler Settings Builder with mandatory options, event toggles, and generated parameters</p>
-      </div>
+      
 
       <h3>Mandatory Options</h3>
       <p>Every profiler configuration requires these essential settings:</p>
@@ -229,10 +154,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="screenshot-container">
-        <img src="/images/docs/profiler-settings-builder-2.png" alt="Profiler Settings Builder with expanded options" class="doc-screenshot" />
-        <p class="screenshot-caption">Expanded CPU and Allocation profiling options with sampling interval and threshold settings</p>
-      </div>
+      
 
       <h3>Advanced Options</h3>
       <p>Fine-tune JFR output format and enable additional features:</p>
@@ -261,10 +183,15 @@ onMounted(() => {
         </div>
       </div>
 
-      <h3>Active Parameters</h3>
+      <h3 id="command">The Generated Command</h3>
       <p>
-        The Settings Builder displays the generated Async-Profiler command arguments in real-time. This helps you
-        understand exactly what configuration will be applied and allows you to copy or modify the parameters if needed.
+        The panel on the right shows the assembled command and, above it, each active option as its own labelled
+        parameter, so you can check what a toggle contributed before copying. <strong>Copy command</strong> puts the
+        whole <code>-agentpath:</code> argument on the clipboard, ready to paste into your JVM arguments.
+      </p>
+      <p>
+        Leaving <strong>Agent Path</strong> empty falls back to <code>/path/to/libasyncProfiler.so</code> and leaving
+        the output empty falls back to <code>/tmp/profile-%t.jfr</code>; both are placeholders meant to be replaced.
       </p>
     </div>
 
@@ -274,71 +201,6 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
-
-.hierarchy-diagram {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 1.5rem 0;
-  padding: 1.5rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.hierarchy-level {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.75rem 2rem;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  min-width: 280px;
-}
-
-.hierarchy-level .level-label {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #343a40;
-}
-
-.hierarchy-level .level-desc {
-  font-size: 0.75rem;
-  color: #6c757d;
-  margin-top: 0.25rem;
-  text-align: center;
-}
-
-.hierarchy-level.global {
-  border-color: rgba(107, 114, 128, 0.3);
-}
-
-.hierarchy-level.global .level-label {
-  color: #6b7280;
-}
-
-.hierarchy-level.workspace {
-  border-color: rgba(94, 100, 255, 0.3);
-}
-
-.hierarchy-level.workspace .level-label {
-  color: #5e64ff;
-}
-
-.hierarchy-level.project {
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.hierarchy-level.project .level-label {
-  color: #10b981;
-}
-
-.hierarchy-arrow {
-  color: #94a3b8;
-  font-size: 1.25rem;
-}
 
 /* Profiler Features Grid */
 .profiler-features {
@@ -430,28 +292,6 @@ onMounted(() => {
 }
 
 /* Screenshot Styling */
-.screenshot-container {
-  margin: 1.5rem 0;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.doc-screenshot {
-  width: 100%;
-  display: block;
-}
-
-.screenshot-caption {
-  margin: 0;
-  padding: 0.75rem 1rem;
-  font-size: 0.8rem;
-  color: #5e6e82;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  text-align: center;
-}
 
 @media (max-width: 992px) {
   .profiler-features {

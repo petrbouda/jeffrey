@@ -33,7 +33,6 @@ import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
 import cafe.jeffrey.hub.core.scheduler.PeriodicalScheduler;
 import cafe.jeffrey.hub.core.scheduler.job.DeletedProjectsCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ExpiredInstanceCleanerJob;
-import cafe.jeffrey.hub.core.scheduler.job.ProfilerSettingsSynchronizerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectInstanceSessionCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectStorageQuotaCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.RepositoryCompressionProjectJob;
@@ -149,17 +148,6 @@ public class SchedulerConfiguration {
     @Bean
     public StorageOverviewRefresherJob storageOverviewRefresherJob(StorageOverviewCache storageOverviewCache) {
         return new StorageOverviewRefresherJob(storageOverviewCache, config(JobType.STORAGE_OVERVIEW_REFRESHER));
-    }
-
-    // ========== WORKSPACE fan-out ==========
-
-    @Bean
-    public ProfilerSettingsSynchronizerJob profilerSettingsSynchronizerJob(HubPlatformRepositories platformRepositories) {
-        return new ProfilerSettingsSynchronizerJob(
-                workspacesManager,
-                config(JobType.PROFILER_SETTINGS_SYNCHRONIZER),
-                platformRepositories.newProfilerRepository(),
-                platformRepositories);
     }
 
     // ========== PROJECT fan-out ==========

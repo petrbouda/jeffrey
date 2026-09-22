@@ -43,6 +43,11 @@ const router = createRouter({
           path: 'hubs',
           name: 'hubs',
           component: () => import('@/views/hubs/HubsView.vue')
+        },
+        {
+          path: 'profiler-builder',
+          name: 'profiler-builder',
+          component: () => import('@/views/global/ProfilerBuilderView.vue')
         }
       ]
     },
@@ -93,13 +98,6 @@ const router = createRouter({
                   path: 'settings',
                   name: 'project-settings',
                   component: () => import('@/views/projects/ProjectSettingsView.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'profiler-settings',
-                  name: 'project-profiler-settings',
-                  component: () =>
-                    import('@/views/projects/ProjectProfilerSettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {

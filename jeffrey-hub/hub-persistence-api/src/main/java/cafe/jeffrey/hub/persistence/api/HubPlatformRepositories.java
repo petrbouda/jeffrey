@@ -27,11 +27,9 @@ import java.util.Optional;
 /**
  * Factory interface for hub-level platform repositories.
  * Provides access to hub-specific repositories (workspaces, projects, instances,
- * sessions, scheduler, profiler settings).
+ * sessions, scheduler).
  */
 public interface HubPlatformRepositories {
-
-    ProfilerRepository newProfilerRepository();
 
     ProjectRepository newProjectRepository(String projectId);
 

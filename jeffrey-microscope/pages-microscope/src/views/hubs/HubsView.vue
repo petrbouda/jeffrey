@@ -19,7 +19,6 @@
 <template>
   <HubsBrowser
     :app-description="HERO"
-    :extra-tabs="EXTRA_TABS"
     :initial-hub-id="initialHubId"
     :initial-workspace-id="initialWorkspaceId"
   >
@@ -30,14 +29,6 @@
         :workspace-id="workspaceId"
         @restore="restore"
         @open="t => navigateToProject(t.hubId, t.projectId, t.workspaceId)"
-      />
-    </template>
-
-    <template #tab-settings="{ hubId, workspaceId, workspaceName }">
-      <WorkspaceProfilerSettings
-        :hub-id="hubId"
-        :workspace-id="workspaceId"
-        :workspace-name="workspaceName"
       />
     </template>
   </HubsBrowser>
@@ -51,14 +42,9 @@ import ProjectCard from '@shared/components/projects/ProjectCard.vue';
 import { useNavigation } from '@/composables/useNavigation';
 
 const { navigateToProject } = useNavigation();
-import WorkspaceProfilerSettings from '@/components/workspace/WorkspaceProfilerSettings.vue';
 
 const HERO =
   'Microscope analyzes profiles served by Jeffrey Hubs. Add a hub to browse its workspaces and projects.';
-
-const EXTRA_TABS = [
-  { id: 'settings', label: 'Profiler Settings', icon: 'bi-gear', refreshable: false }
-];
 
 // Optional deep-link from a breadcrumb (`/hubs?hubId=…&workspaceId=…`) so the
 // browser opens with that server + workspace preselected instead of the first one.

@@ -397,7 +397,15 @@ export interface TraceContext {
 
 /** What an operation list can be ordered by; must match the backend's `TraceOperationSortField`. */
 export type TraceOperationSortField =
-  'TOTAL_TIME' | 'P50' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS' | 'NOTIFICATIONS' | 'NAME';
+  | 'TOTAL_TIME'
+  | 'P50'
+  | 'P95'
+  | 'P99'
+  | 'MAX'
+  | 'COUNT'
+  | 'ERRORS'
+  | 'NOTIFICATIONS'
+  | 'NAME';
 
 /** How the operations list should be narrowed, ordered and paged; every field is optional. */
 export interface TraceOperationListQuery {

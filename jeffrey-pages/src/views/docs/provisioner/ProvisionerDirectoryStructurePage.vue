@@ -53,8 +53,6 @@ onMounted(() => {
           <pre><code>&lt;jeffrey-home&gt;/
 └── workspaces/
     └── &lt;workspace-id&gt;/
-        ├── .settings/                       # Cached profiler settings from Jeffrey
-        │   └── settings-2025-01-15T....json
         └── &lt;project-name&gt;/
             ├── .project-info.json           # Project metadata
             └── &lt;instance-name&gt;/

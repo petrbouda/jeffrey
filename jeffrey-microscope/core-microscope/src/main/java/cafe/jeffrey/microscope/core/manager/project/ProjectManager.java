@@ -23,7 +23,6 @@ import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
-import cafe.jeffrey.microscope.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
@@ -48,8 +47,6 @@ public interface ProjectManager {
     RecordingsDownloadManager recordingsDownloadManager();
 
     RepositoryManager repositoryManager();
-
-    ProfilerSettingsManager profilerSettingsManager();
 
     RemoteInstancesManager instancesManager();
 

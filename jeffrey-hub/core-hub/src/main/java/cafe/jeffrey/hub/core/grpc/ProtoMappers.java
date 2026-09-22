@@ -27,11 +27,9 @@ import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryFile;
 import cafe.jeffrey.hub.api.v1.SessionFilter;
-import cafe.jeffrey.hub.api.v1.SettingsLevel;
 import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceStatus;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
-import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
@@ -110,14 +108,6 @@ public final class ProtoMappers {
         };
     }
 
-    public static SettingsLevel settingsLevel(EffectiveProfilerSettings.SettingsLevel level) {
-        return switch (level) {
-            case PROJECT -> SettingsLevel.SETTINGS_LEVEL_PROJECT;
-            case WORKSPACE -> SettingsLevel.SETTINGS_LEVEL_WORKSPACE;
-            case GLOBAL -> SettingsLevel.SETTINGS_LEVEL_GLOBAL;
-            case NONE -> SettingsLevel.SETTINGS_LEVEL_UNSPECIFIED;
-        };
-    }
 
     // ========== Workspaces and projects ==========
 

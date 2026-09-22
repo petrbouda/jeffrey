@@ -297,10 +297,10 @@ volumes:
       <DocsCallout type="tip">
         <code>additional-jvm-options</code> composes with the profiler agent flags
         <code>provisioner</code> injects automatically, so keep it to the application's own
-        concerns — heap sizing, GC choice, logging. Do not tweak the profiler here; that belongs on the
-        <router-link to="/docs/microscope/profiler-settings">Profiler Settings</router-link>
-        page in Microscope, which propagates to every monitored pod via Jeffrey Hub's
-        gRPC API.
+        concerns — heap sizing, GC choice, logging. Do not tweak the profiler here; the agent
+        command is its own setting, <code>profiler-command</code> (or the
+        <code>JEFFREY_PROFILER_COMMAND</code> environment variable). Assemble one with
+        <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>.
       </DocsCallout>
 
       <h2 id="omitted-paths">Why Paths Are Omitted</h2>

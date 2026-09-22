@@ -30,7 +30,7 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo;
  * Resolves domain managers/entities from request identifiers for the gRPC services, throwing a
  * consistent {@code NOT_FOUND} status when a target does not exist. Holds the lookups more than
  * one service needs — {@code repositoryManagerForSession} for the repository and download
- * services, the active-project lookup for the project and profiler-settings services, and the
+ * services, the active-project lookup for the project service, and the
  * instance lookups — so each is written once.
  */
 public class GrpcLookups {
@@ -80,25 +80,6 @@ public class GrpcLookups {
                 .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + sessionId));
         // A session's project is always active: a soft delete takes the project's sessions with it
         return repositoryManagerFactory.apply(projectInfo(session.projectId()));
-    }
-
-    /**
-     * Checks that a settings scope names things that exist — the workspace, and the project as
-     * one of that workspace's — so that a mistyped id does not write a row no reader will find.
-     */
-    public void requireExists(SettingsScope scope) {
-        if (scope.isGlobal()) {
-            return;
-        }
-        WorkspaceInfo workspace = platformRepositories.newWorkspacesRepository().find(scope.workspaceId())
-                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + scope.workspaceId()));
-        if (scope.isProject()) {
-            ProjectInfo project = projectInfo(scope.projectId());
-            if (!workspace.id().equals(project.workspaceId())) {
-                throw GrpcExceptions.notFound(
-                        "Project not found in workspace: project_id=" + project.id() + " workspace_id=" + workspace.id());
-            }
-        }
     }
 
     public ProjectInstanceInfo instanceById(String instanceId) {

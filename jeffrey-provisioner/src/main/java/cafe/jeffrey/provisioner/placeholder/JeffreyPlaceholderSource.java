@@ -32,9 +32,9 @@ import java.util.Optional;
  * {@code .env} file, so {@code <<JEFFREY:CURRENT_SESSION>>} and {@code $JEFFREY_CURRENT_SESSION}
  * always mean the same thing.
  *
- * <p>Deliberately absent: {@code PROFILER_CONFIG}. It is an <em>output</em> of the run, and feeding
- * a previous run's fully-resolved command back in is the trap {@code InitConfig} already guards
- * against for the environment variable of that name.
+ * <p>Deliberately absent: the resolved profiler command. It is an <em>output</em> of the run that
+ * reaches the JVM through the argfile (or {@code JDK_JAVA_OPTIONS}), never a value a configuration
+ * can refer back to.
  *
  * <p>Unlike {@code ENV} and {@code FILE}, these values only exist once the session directory has
  * been created, so this source joins the resolver in a later phase — see {@link Placeholders}.

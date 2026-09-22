@@ -218,14 +218,6 @@ public enum StatementLabel {
     UPDATE_SESSION_RETAINED,
 
     /**
-     * {@link GroupLabel#PROFILER}
-     */
-    UPSERT_PROFILER_SETTINGS,
-    FIND_PROFILER_SETTINGS,
-    FIND_WORKSPACE_PROFILER_SETTINGS,
-    DELETE_PROFILER_SETTINGS,
-
-    /**
      * {@link GroupLabel#PROJECT_INSTANCES}
      */
     FIND_ALL_PROJECT_INSTANCES,

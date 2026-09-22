@@ -98,7 +98,6 @@ onMounted(() => {
           <ul>
             <li>Workspaces and projects</li>
             <li>Instances (Java applications) and recording sessions</li>
-            <li>Profiler-settings configurations</li>
             <li>The durable workspace-event queue and its consumer offsets</li>
             <li>Notifications and lifecycle state</li>
           </ul>
@@ -153,7 +152,7 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="tip">
-        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention jobs delete sessions and instance directories, the profiler-settings synchronizer publishes settings into each workspace, and the delete RPCs remove files on request. A read-only mount leaves every one of those failing quietly.
+        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention jobs delete sessions and instance directories, and the delete RPCs remove files on request. A read-only mount leaves every one of those failing quietly.
       </DocsCallout>
 
       <h2 id="directory-layout">Directory Layout</h2>
@@ -165,7 +164,6 @@ onMounted(() => {
 ├── temp/                             # Scratch files
 └── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
     └── {workspace-ref-id}/
-        ├── .settings/                # profiler settings the Hub publishes for the provisioner
         └── {project}/
             └── {instance}/
                 └── {session}/

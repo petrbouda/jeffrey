@@ -62,23 +62,16 @@ public class SessionRegistrar {
         SessionLayout sessionLayout =
                 layoutProvisioner.provisionSession(layout, instancePath.resolve(sessionId));
 
-        return new ProvisionedSession(projectId, instanceId, sessionId, nextOrder(instancePath), sessionLayout);
+        return new ProvisionedSession(instanceId, sessionId, nextOrder(instancePath), sessionLayout);
     }
 
     /** Writes the session marker, which is what makes the session visible to the hub. */
-    public void recordSession(
-            InitConfig config,
-            ProvisionedSession session,
-            ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings) {
-
+    public void recordSession(InitConfig config, ProvisionedSession session) {
         repository.addSession(
                 session.sessionId(),
-                session.projectId(),
-                config.getWorkspaceRefId(),
                 session.instanceId(),
                 session.order(),
                 session.layout().session(),
-                resolvedSettings,
                 config.isHeartbeatEnabled());
     }
 

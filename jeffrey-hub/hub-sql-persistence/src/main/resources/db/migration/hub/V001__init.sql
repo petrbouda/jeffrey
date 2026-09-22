@@ -130,20 +130,3 @@ CREATE TABLE IF NOT EXISTS project_instances
 
 CREATE INDEX IF NOT EXISTS idx_project_instances_project_id ON project_instances(project_id);
 
---
--- PROFILER SETTINGS TABLE
---
-
--- One row per scope: global (both ids NULL), a workspace (project_id NULL), or a project.
--- The ids stay NULL where the scope has none so that every reader can say IS NULL; the
--- upsert cannot key on them, though, because a UNIQUE over nullable columns treats each
--- NULL as distinct. scope_key is that key, computed by the INSERT from the same two values
--- (COALESCE(workspace_id, '') || ':' || COALESCE(project_id, '')) — a stored column rather
--- than a generated one because DuckDB does not yet allow a constraint on a generated column.
-CREATE TABLE IF NOT EXISTS profiler_settings
-(
-    workspace_id    VARCHAR,
-    project_id      VARCHAR,
-    scope_key       VARCHAR NOT NULL UNIQUE,
-    agent_settings  VARCHAR NOT NULL
-);

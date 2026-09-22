@@ -28,7 +28,7 @@ public abstract class ConfigPaths {
     public static final String JEFFREY_HOME = "jeffrey-home";
     public static final String WORKSPACES_DIR = "workspaces-dir";
     public static final String PROFILER_PATH = "profiler-path";
-    public static final String PROFILER_CONFIG = "profiler-config";
+    public static final String PROFILER_COMMAND = "profiler-command";
     public static final String HEARTBEAT_ENABLED = "heartbeat.enabled";
     public static final String REPOSITORY_TYPE = "repository-type";
     public static final String ARG_FILE = "arg-file";

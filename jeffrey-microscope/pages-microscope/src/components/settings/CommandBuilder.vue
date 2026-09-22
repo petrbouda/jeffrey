@@ -1,6 +1,6 @@
 <template>
   <div class="command-builder pt-3">
-    <div v-if="!hideHelpHeader" class="step-header">
+    <div class="step-header">
       <div class="step-header-status header-primary clickable-header" @click="toggleHelp">
         <div class="step-type-info">
           <i class="bi bi-ui-checks-grid"></i>
@@ -81,7 +81,7 @@
     </div>
 
     <!-- Builder and Live Command Layout -->
-    <div class="builder-and-command-layout" :class="{ 'cards-only': hideLivePreview }">
+    <div class="builder-and-command-layout">
       <!-- Configuration Builder Panel -->
       <div class="configuration-section builder-panel">
         <!-- Builder Mode Content -->
@@ -108,49 +108,15 @@
                   "
                 >
                   <div class="interval-block">
-                    <div class="agent-mode-selector">
-                      <div class="form-check">
-                        <input
-                          id="agentJeffrey"
-                          v-model="agentMode"
-                          class="form-check-input"
-                          type="radio"
-                          name="agentMode"
-                          value="jeffrey"
-                        />
-                        <label class="form-check-label" for="agentJeffrey">
-                          Use Agent provided by Jeffrey
-                        </label>
-                      </div>
-                      <div class="form-check">
-                        <input
-                          id="agentCustom"
-                          v-model="agentMode"
-                          class="form-check-input"
-                          type="radio"
-                          name="agentMode"
-                          value="custom"
-                        />
-                        <label class="form-check-label" for="agentCustom">
-                          Specify Custom Agent Path
-                        </label>
-                      </div>
-                    </div>
-
-                    <div v-if="agentMode === 'jeffrey'">
-                      <div class="form-help">Using AsyncProfiler agent embedded in Jeffrey.</div>
-                    </div>
-
-                    <div v-if="agentMode === 'custom'">
-                      <input
-                        v-model="config.agentPathCustom"
-                        type="text"
-                        class="form-control"
-                        placeholder="/path/to/libasyncProfiler.so"
-                      />
-                      <div class="form-help">
-                        Path to your custom AsyncProfiler shared library (.so file).
-                      </div>
+                    <input
+                      v-model="config.agentPathCustom"
+                      type="text"
+                      class="form-control"
+                      :placeholder="DEFAULT_AGENT_PATH"
+                    />
+                    <div class="form-help">
+                      Path to the AsyncProfiler shared library (.so file) on the machine you will
+                      profile.
                     </div>
                   </div>
                 </ConfigCard>
@@ -643,7 +609,7 @@
       </div>
 
       <!-- Live Command Panel -->
-      <div v-if="!hideLivePreview" class="configuration-section live-command-panel">
+      <div class="configuration-section live-command-panel">
         <div class="step-header">
           <div class="step-header-status header-secondary">
             <div class="step-type-info">
@@ -669,13 +635,14 @@
 
             <!-- Builder Actions -->
             <div class="builder-actions">
-              <button type="button" class="btn-cancel-builder" @click="$emit('cancel')">
-                <i class="bi bi-x-circle"></i>
-                Cancel
-              </button>
-              <button type="button" class="btn-accept-command" @click="acceptCommand">
-                <i class="bi bi-check-circle"></i>
-                Accept Command
+              <button
+                type="button"
+                class="btn btn-primary-gradient btn-copy-command"
+                :disabled="!generatedConfig"
+                @click="copyToClipboard"
+              >
+                <i class="bi bi-clipboard"></i>
+                Copy command
               </button>
             </div>
           </div>
@@ -741,27 +708,8 @@
 import { ref, computed, watch } from 'vue';
 import ConfigCard from '@/components/settings/ConfigCard.vue';
 import { useProfilerConfig } from '@/composables/useProfilerConfig';
+import { DEFAULT_AGENT_PATH } from '@/types/profiler';
 import ToastService from '@shared/services/ToastService';
-
-interface Props {
-  agentMode?: 'jeffrey' | 'custom';
-  hideLivePreview?: boolean;
-  hideHelpHeader?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  agentMode: 'jeffrey',
-  hideLivePreview: false,
-  hideHelpHeader: false
-});
-
-const emit = defineEmits<{
-  cancel: [];
-  'accept-command': [command: string];
-}>();
-
-// Local agent mode state
-const agentMode = ref(props.agentMode);
 
 // Help section state
 const isHelpExpanded = ref(false);
@@ -822,12 +770,6 @@ const copyToClipboard = async () => {
       ToastService.error('Copy Failed', 'Failed to copy command to clipboard.');
     }
   }
-};
-
-// Accept command
-const acceptCommand = () => {
-  const command = generateFromBuilder();
-  emit('accept-command', command);
 };
 
 // Toggle help section
@@ -895,21 +837,11 @@ const enableJfrSyncConfiguration = (options: { scroll?: boolean } = {}) => {
 
 // Initialize configuration generation
 generateConfig();
-
-defineExpose({
-  generatedConfig,
-  builderTokens,
-  shouldShowChunkSizeWarning,
-  shouldShowJfrSyncWarning,
-  enableChunkSizeConfiguration,
-  enableJfrSyncConfiguration,
-  acceptCommand,
-  copyToClipboard
-});
 </script>
 
 <style scoped>
 @import '@shared/styles/form-utilities.css';
+@import '@shared/styles/shared-components.css';
 
 .command-builder {
   width: 100%;
@@ -1295,21 +1227,14 @@ defineExpose({
   margin-top: 24px;
 }
 
-.builder-and-command-layout.cards-only {
-  display: block;
-}
-
-.builder-and-command-layout.cards-only .builder-panel {
-  flex: none;
-  width: 100%;
-}
-
 .configuration-section {
   flex: 1;
 }
 
 .builder-panel {
   flex: 2;
+  /* Without this a long generated command stretches the flex child instead of wrapping. */
+  min-width: 0;
 }
 
 .live-command-panel {
@@ -1317,6 +1242,7 @@ defineExpose({
   position: sticky;
   top: 20px;
   align-self: flex-start;
+  min-width: 0;
 }
 
 /* Configuration Section Styling */
@@ -1659,54 +1585,19 @@ defineExpose({
 /* Builder Actions */
 .builder-actions {
   display: flex;
-  gap: 10px;
-  justify-content: flex-end;
   padding-top: 12px;
 }
 
-.btn-cancel-builder,
-.btn-accept-command {
+.btn-copy-command {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  width: 100%;
   padding: 10px 16px;
-  border-radius: 8px;
   font-size: 0.85rem;
-  font-weight: 600;
+  color: var(--color-white);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
-}
-
-.btn-cancel-builder {
-  background: linear-gradient(135deg, var(--color-danger-bg-lighter), var(--color-danger-100));
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--color-danger-hover);
-  font-size: 0.8rem;
-  padding: 8px 14px;
-  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
-}
-
-.btn-cancel-builder:hover {
-  background: linear-gradient(135deg, var(--color-danger-hover), var(--color-danger-dark));
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
-}
-
-.btn-accept-command {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
-  color: white;
-  font-size: 0.8rem;
-  padding: 8px 14px;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
-  border: none;
-}
-
-.btn-accept-command:hover {
-  background: linear-gradient(135deg, var(--color-success-hover), var(--color-success-dark));
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
 }
 
 /* Responsive Design */

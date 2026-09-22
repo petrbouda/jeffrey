@@ -204,7 +204,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>.session-info.json</code>
-              <p>Session ID, timestamps, project/workspace identifiers, profiler settings, and custom attributes (cluster, namespace).</p>
+              <p>What the Hub needs to register the session: its ID, instance, order, creation time, path, and whether it reports liveness.</p>
             </div>
           </div>
         </div>

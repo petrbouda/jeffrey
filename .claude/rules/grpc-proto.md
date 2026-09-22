@@ -11,7 +11,7 @@ paths:
 
 ### Proto files
 - `proto3`, package `jeffrey.hub.api.v1`, `option java_package = "cafe.jeffrey.hub.api.v1"`, `option java_multiple_files = true`.
-- Location: `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/` — `workspace_service`, `project_service`, `instance_service`, `file_download_service`, `repository_service`, `profiler_settings_service`. Protos only; no Java in that module.
+- Location: `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/` — `workspace_service`, `project_service`, `instance_service`, `file_download_service`, `repository_service`. Protos only; no Java in that module.
 - Request/Response pair per RPC; `repeated` for collections; `workspace_id`/`project_id` on resource-scoped requests.
 
 ### No `reserved` fields — hub and Microscope ship as one release
@@ -24,7 +24,7 @@ paths:
 - `GrpcExceptions.toStatus` belongs to `GrpcUnary`; a **streaming** RPC maps for itself (`FileDownloadGrpcService.downloadFile`: pass `StatusRuntimeException` through, `IllegalArgumentException` → `INVALID_ARGUMENT` with its own message, then `INTERNAL`).
 
 ### Clients
-- Clients live in `jeffrey-microscope/grpc-client/`, aggregated by the `HubClients` record in `jeffrey-microscope/hub-client/` (`DiscoveryClient`, `RepositoryClient`, `FileStreamClient`, `ProfilerClient`, `InstancesClient`, `ProjectsClient`). Add a new client to the record and its factory.
+- Clients live in `jeffrey-microscope/grpc-client/`, aggregated by the `HubClients` record in `jeffrey-microscope/hub-client/` (`DiscoveryClient`, `RepositoryClient`, `FileStreamClient`, `InstancesClient`, `ProjectsClient`). Add a new client to the record and its factory.
 - Blocking stubs for request/response, async stubs for streaming. Wire values (session ids, file names) are validated and reduced to one path element in the receiving record's compact constructor (`FileStreamClient.TransferredFile`).
 
 ### Tests

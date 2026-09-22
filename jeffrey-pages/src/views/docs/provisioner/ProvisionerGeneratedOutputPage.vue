@@ -130,8 +130,7 @@ export JEFFREY_CURRENT_SESSION=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/01
 export JEFFREY_FILE_PATTERN=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/profile-%t.jfr
 export JEFFREY_HEARTBEAT_DIR=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/.heartbeat
 export JEFFREY_HEARTBEAT_ENABLED=true
-export JEFFREY_PROFILER_CONFIG='-agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/profile-%t.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/hs-jvm-err.log -Djeffrey.heartbeat.dir="/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/.heartbeat" -Djeffrey.heartbeat.enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Xlog:gc*=debug:file=/tmp/jeffrey/workspaces/uat/jeffrey/instance-1/019f885e-8e69-7d65-8ac7-32a70b92cb94/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m'
-export JDK_JAVA_OPTIONS='...same value as JEFFREY_PROFILER_CONFIG, exported only when jdk-java-options.enabled = true...'`;
+export JDK_JAVA_OPTIONS='-agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=<session>/profile-%t.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints ... (only when jdk-java-options.enabled = true; the argfile carries the same flags otherwise)'`;
 </script>
 
 <template>
@@ -220,12 +219,8 @@ export JDK_JAVA_OPTIONS='...same value as JEFFREY_PROFILER_CONFIG, exported only
               <td>What <code>heartbeat.enabled</code> declared: whether this session expects the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library to report liveness</td>
             </tr>
             <tr>
-              <td><code>JEFFREY_PROFILER_CONFIG</code></td>
-              <td>Complete JVM flags for profiling - use with <code>java $JEFFREY_PROFILER_CONFIG -jar app.jar</code></td>
-            </tr>
-            <tr>
               <td><code>JDK_JAVA_OPTIONS</code></td>
-              <td>Same flags as <code>JEFFREY_PROFILER_CONFIG</code> but auto-picked by JVM (when <code>jdk-java-options</code> enabled)</td>
+              <td>The complete JVM flags, auto-picked by the JVM without an argfile (only when <code>jdk-java-options</code> is enabled)</td>
             </tr>
           </tbody>
         </table>
@@ -236,16 +231,15 @@ export JDK_JAVA_OPTIONS='...same value as JEFFREY_PROFILER_CONFIG, exported only
           <code>&lt;&lt;JEFFREY:NAME&gt;&gt;</code> inside the configuration that produced it — so
           <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> in
           <code>additional-jvm-options</code> resolves to the same path
-          <code>$JEFFREY_CURRENT_SESSION</code> exports. The two exceptions:
-          <code>JEFFREY_PROFILER_CONFIG</code> has no placeholder (it is an <em>output</em> of the
-          run, and feeding it back in would re-inject a previous run's fully resolved command), and
+          <code>$JEFFREY_CURRENT_SESSION</code> exports. The one exception:
           <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code> is a placeholder without an exported
           variable. See the
           <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>.
         </DocsCallout>
 
-        <h3>JVM Flags in JEFFREY_PROFILER_CONFIG</h3>
-        <p>The <code>JEFFREY_PROFILER_CONFIG</code> variable contains all JVM flags based on enabled features:</p>
+        <h3>The JVM Flags</h3>
+        <p>The argfile — and <code>JDK_JAVA_OPTIONS</code> when it is enabled — carries these flags,
+          depending on which features are switched on:</p>
 
         <table>
           <thead>

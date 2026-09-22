@@ -26,7 +26,6 @@ package cafe.jeffrey.provisioner;
  * with the hub, order included, before the JVM starts.
  */
 public record ProvisionedSession(
-        String projectId,
         String instanceId,
         String sessionId,
         int order,
