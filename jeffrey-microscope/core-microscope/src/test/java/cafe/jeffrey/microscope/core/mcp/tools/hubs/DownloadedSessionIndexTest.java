@@ -53,7 +53,7 @@ class DownloadedSessionIndexTest {
 
     private static Recording recording(String id, String profileId, Instant createdAt) {
         return new Recording(
-                id, id, null, null, RecordingEventSource.JDK, createdAt, CREATED_AT, CREATED_AT,
+                id, id, null, RecordingEventSource.JDK, createdAt, CREATED_AT, CREATED_AT,
                 profileId != null, profileId, profileId, List.of());
     }
 

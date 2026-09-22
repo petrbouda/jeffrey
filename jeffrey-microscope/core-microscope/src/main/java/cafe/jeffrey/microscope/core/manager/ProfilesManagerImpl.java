@@ -18,58 +18,34 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
-import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
-import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProjectInfo;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
-import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import cafe.jeffrey.shared.notification.NotificationCategory;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
 
+/**
+ * Reads the profiles that belong to one project.
+ *
+ * <p>Read-only, because nothing writes a profile into a project any more: every profile the
+ * product creates goes through the recordings path, which stores it with no project at all. What
+ * this answers for is the rows an older build left behind.
+ */
 public class ProfilesManagerImpl implements ProfilesManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProfilesManagerImpl.class);
-
-    private final Clock clock;
     private final ProjectInfo projectInfo;
     private final MicroscopeCoreRepositories localCoreRepositories;
-    private final ProfileInitializer profileInitializer;
-    private final RecordingRepository projectRecordingRepository;
-    private final ProjectRecordingStorage projectRecordingStorage;
     private final ProfileManager.Factory profileManagerFactory;
 
     public ProfilesManagerImpl(
-            Clock clock,
             ProjectInfo projectInfo,
             MicroscopeCoreRepositories localCoreRepositories,
-            ProjectRecordingStorage projectRecordingStorage,
-            ProfileManager.Factory profileManagerFactory,
-            ProfileInitializer profileInitializer) {
-        this.clock = clock;
+            ProfileManager.Factory profileManagerFactory) {
+
         this.projectInfo = projectInfo;
         this.localCoreRepositories = localCoreRepositories;
-        this.projectRecordingRepository = localCoreRepositories.newRecordingRepository(projectInfo.id());
-        this.projectRecordingStorage = projectRecordingStorage;
         this.profileManagerFactory = profileManagerFactory;
-        this.profileInitializer = profileInitializer;
     }
 
     @Override
@@ -77,72 +53,6 @@ public class ProfilesManagerImpl implements ProfilesManager {
         return localCoreRepositories.findAllProfilesByProject(projectInfo.id()).stream()
                 .map(profileManagerFactory)
                 .toList();
-    }
-
-    @Override
-    public CompletableFuture<ProfileManager> createProfile(String recordingId) {
-        Recording recording = projectRecordingRepository.findById(recordingId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Recording not found in database: recording_id=" + recordingId));
-
-        Path recordingPath = projectRecordingStorage.findRecording(recordingId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Recording file not found in storage: recording_id=" + recordingId
-                        + " project_id=" + projectInfo.id()));
-
-        LOG.info("Profile creation task submitted: recordingId={} projectId={} recordingPath={}",
-                recordingId, projectInfo.id(), recordingPath);
-
-        return CompletableFuture.supplyAsync(
-                () -> createProfileInternal(recording, recordingPath), Schedulers.sharedVirtual())
-                .exceptionally(ex -> {
-                    LOG.error("Could not create profile for recording: recording_id={} message={}",
-                            recordingId, ex.getMessage(), ex);
-
-                    // This runs on a virtual thread long after the response went out, so nothing on
-                    // the other side of the wire is still listening: the profile simply never turns
-                    // up. Recording it is the only way the attempt leaves a trace at all.
-                    Notifications.of(NotificationType.PROFILE_CREATION_FAILED)
-                            .attribute("recordingId", recordingId)
-                            .attribute("projectId", projectInfo.id())
-                            .errorType(ex)
-                            .emit();
-
-                    throw new RuntimeException("Could not create profile for recording: " + recordingId, ex);
-                });
-    }
-
-    private ProfileManager createProfileInternal(Recording recording, Path recordingPath) {
-        LOG.debug("Asynchronous profile creation started: recordingId={} projectId={} thread={}",
-                recording.id(), projectInfo.id(), Thread.currentThread());
-
-        String profileId = IDGenerator.generate();
-        Instant profileCreatedAt = clock.instant();
-
-        // Create an empty profile to be able to see profile initialization progress
-        ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
-
-        var insertProfile = ProfileRepository.InsertProfile.projectProfile(
-                projectInfo.id(),
-                projectInfo.workspaceId(),
-                recording.recordingName(),
-                recording.eventSource(),
-                profileCreatedAt,
-                recording.id(),
-                recording.recordingStartedAt(),
-                recording.recordingFinishedAt());
-
-        profileRepository.insert(insertProfile);
-
-        ProfileInfo profileInfo = localCoreRepositories.newProfileRepository(profileId).find()
-                .orElseThrow(() -> new RuntimeException("Could not find newly created profile: " + profileId));
-
-        ProfileManager profileManager = profileInitializer.initialize(
-                profileInfo,
-                RecordingSources.of(recordingPath),
-                projectRecordingStorage.findArtifacts(recording.id()));
-        profileRepository.enableProfile(clock.instant());
-        return profileManager;
     }
 
     @Override

@@ -70,12 +70,10 @@ class JdbcProfileRepositoryTest {
         @Test
         void insertsProfile(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("new-profile-001", provider);
 
-            ProfileRepository.InsertProfile insertProfile = ProfileRepository.InsertProfile.projectProfile(
-                    "proj-001",
-                    "ws-001",
+            ProfileRepository.InsertProfile insertProfile = new ProfileRepository.InsertProfile(
                     "New Profile",
                     RecordingEventSource.JDK,
                     Instant.parse("2025-01-15T12:00:00Z"),

@@ -40,15 +40,11 @@ import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.storage.recording.api.RecordingStorage;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.profile.recording.RecordingFileLookup;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
 public class ProfileAnalysisConfiguration {
 
@@ -77,39 +73,25 @@ public class ProfileAnalysisConfiguration {
     }
 
     @Bean
-    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
-            RecordingStorage recordingStorage,
+    public RecordingFileLookup recordingFileLookup(
+            MicroscopeCorePersistenceProvider corePersistenceProvider,
             @Qualifier(ProfilesConfiguration.RECORDINGS_PATH) Path recordingsPath) {
 
+        return new RecordingFileLookup(
+                corePersistenceProvider.localCoreRepositories().newRecordingRepository(), recordingsPath);
+    }
+
+    @Bean
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(RecordingFileLookup recordingLookup) {
         return profileInfo -> {
             var profileDb = databaseManagerResolver.open(profileInfo);
             ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
 
-            Supplier<Optional<Path>> recordingPathResolver;
-            if (profileInfo.projectId() != null) {
-                recordingPathResolver = () -> recordingStorage
-                        .projectRecordingStorage(profileInfo.projectId())
-                        .findRecording(profileInfo.recordingId());
-            } else {
-                recordingPathResolver = () -> findRecording(recordingsPath, profileInfo.recordingId());
-            }
-
             return new AutoAnalysisManagerImpl(
-                    cacheRepository, recordingPathResolver, recording -> AutoAnalysisDataProvider.generate(List.of(recording)));
+                    cacheRepository,
+                    () -> recordingLookup.findJfrFiles(profileInfo.recordingId()),
+                    AutoAnalysisDataProvider::generate);
         };
-    }
-
-    private static Optional<Path> findRecording(Path recordingsPath, String recordingId) {
-        if (recordingId == null || !Files.exists(recordingsPath)) {
-            return Optional.empty();
-        }
-        try (var stream = Files.list(recordingsPath)) {
-            return stream
-                    .filter(p -> p.getFileName().toString().startsWith(recordingId + "-"))
-                    .findFirst();
-        } catch (IOException e) {
-            return Optional.empty();
-        }
     }
 
     @Bean

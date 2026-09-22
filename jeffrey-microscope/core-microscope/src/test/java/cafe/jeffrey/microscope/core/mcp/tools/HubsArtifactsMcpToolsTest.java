@@ -145,7 +145,7 @@ class HubsArtifactsMcpToolsTest {
     }
 
     private void sessionAlreadyDownloadedAs(String recordingId, String profileId, RecordingFile... files) {
-        Recording recording = new Recording(recordingId, recordingId, null, null, RecordingEventSource.JDK, NOW, NOW, NOW,
+        Recording recording = new Recording(recordingId, recordingId, null, RecordingEventSource.JDK, NOW, NOW, NOW,
                 profileId != null, profileId, profileId, List.of(files));
         when(recordingsManager.listRecordings()).thenReturn(List.of(recording));
         when(recordingsManager.findRecording(recordingId)).thenReturn(Optional.of(recording));

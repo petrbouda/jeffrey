@@ -126,8 +126,7 @@ class RecordingsCoreManagerImplTest {
             Recording persisted = recordingCaptor.getValue();
             assertEquals(recordingId, persisted.id());
             assertEquals("recording.jfr", persisted.recordingName());
-            // Ungrouped quick-analysis recording: no project, no group.
-            assertEquals(null, persisted.projectId());
+            // Ungrouped recording: no group.
             assertEquals(null, persisted.groupId());
         }
     }
@@ -192,20 +191,18 @@ class RecordingsCoreManagerImplTest {
     @Nested
     class FindRecording {
 
-        // Regression: by-id reads must be project-agnostic. A recording downloaded into a project has a
-        // non-null project_id, so resolving it via the (project-scoped) listRecordings() would miss it and
-        // fail the global AI-export / download endpoints with "Recording not found". findRecording must
-        // delegate to the repository's project-agnostic by-id lookup instead.
+        // By-id reads go straight to the repository's by-id lookup rather than filtering
+        // listRecordings(), so the AI-export and download endpoints resolve a recording in one query.
         @Test
-        void delegatesToProjectAgnosticByIdLookup() {
-            Recording projectScoped = new Recording(
-                    "rec-1", "recording.jfr", "project-42", null, RecordingEventSource.JDK,
+        void delegatesToByIdLookup() {
+            Recording stored = new Recording(
+                    "rec-1", "recording.jfr", null, RecordingEventSource.JDK,
                     NOW, NOW, NOW.plusSeconds(60), false, null, null, List.of());
-            when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(projectScoped));
+            when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(stored));
 
             Optional<Recording> found = manager.findRecording("rec-1");
 
-            assertEquals(Optional.of(projectScoped), found);
+            assertEquals(Optional.of(stored), found);
             verify(recordingRepository).findRecording("rec-1");
         }
 

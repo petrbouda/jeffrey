@@ -59,8 +59,8 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     }
 
     @Override
-    public RecordingRepository newRecordingRepository(String projectId) {
-        return new JdbcRecordingRepository(projectId, databaseClientProvider, clock);
+    public RecordingRepository newRecordingRepository() {
+        return new JdbcRecordingRepository(databaseClientProvider, clock);
     }
 
     @Override

@@ -366,7 +366,7 @@ class IdeRecordingLookupTest {
 
     private static Recording recordingNamed(String filename) {
         return new Recording(
-                "rec-1", filename, null, null, RecordingEventSource.JDK,
+                "rec-1", filename, null, RecordingEventSource.JDK,
                 Instant.parse("2026-09-04T18:02:00Z"),
                 Instant.parse("2026-09-04T18:01:00Z"),
                 Instant.parse("2026-09-04T18:01:42Z"),
@@ -419,7 +419,6 @@ class IdeRecordingLookupTest {
         return new Recording(
                 id,
                 FILENAME,
-                null,
                 null,
                 RecordingEventSource.JDK,
                 createdAt,

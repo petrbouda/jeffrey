@@ -58,7 +58,6 @@ public abstract class Mappers {
             return new Recording(
                     rs.getString("id"),
                     rs.getString("recording_name"),
-                    rs.getString("project_id"),
                     rs.getString("group_id"),
                     RecordingEventSource.valueOf(rs.getString("event_source")),
                     Mappers.instant(rs, "created_at"),

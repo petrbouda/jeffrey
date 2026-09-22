@@ -119,7 +119,7 @@ class ProfileRecordingsManagerAnalyzeTest {
     void setUp() throws IOException {
         Files.createFile(recordingsDir.resolve(RECORDING_ID + "-" + FILENAME));
 
-        when(localCoreRepositories.newRecordingRepository(null)).thenReturn(recordingRepository);
+        when(localCoreRepositories.newRecordingRepository()).thenReturn(recordingRepository);
         when(localCoreRepositories.newProfileRepository(any())).thenReturn(profileRepository);
         when(recordingRepository.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording()));
         runRegistry = new PipelineRunRegistry<>(
@@ -143,7 +143,7 @@ class ProfileRecordingsManagerAnalyzeTest {
                 "file-1", RECORDING_ID, FILENAME, ManagedFile.JFR, NOW, 1024L);
 
         return new Recording(
-                RECORDING_ID, FILENAME, null, null,
+                RECORDING_ID, FILENAME, null,
                 RecordingEventSource.JDK,
                 NOW,
                 NOW.minusSeconds(60), NOW,
@@ -219,7 +219,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
     private static Recording sessionRecording() {
         return new Recording(
-                RECORDING_ID, "checkout_2026-03-01T12-00-00Z", null, null,
+                RECORDING_ID, "checkout_2026-03-01T12-00-00Z", null,
                 RecordingEventSource.JDK,
                 NOW,
                 NOW.minusSeconds(60), NOW,
@@ -232,7 +232,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
     private static Recording heapDumpRecording() {
         return new Recording(
-                RECORDING_ID, "heap.hprof", null, null,
+                RECORDING_ID, "heap.hprof", null,
                 RecordingEventSource.HEAP_DUMP,
                 NOW, NOW, NOW,
                 false, null, null,
@@ -393,7 +393,7 @@ class ProfileRecordingsManagerAnalyzeTest {
     private static Recording recordingWithProfile(String profileId) {
         Recording base = recording();
         return new Recording(
-                base.id(), base.recordingName(), base.projectId(), base.groupId(), base.eventSource(),
+                base.id(), base.recordingName(), base.groupId(), base.eventSource(),
                 base.createdAt(), base.recordingStartedAt(), base.recordingFinishedAt(),
                 true, profileId, base.recordingName(), base.files());
     }

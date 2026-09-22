@@ -30,7 +30,11 @@ public interface MicroscopeCoreRepositories {
 
     ProfileRepository newProfileRepository(String profileId);
 
-    RecordingRepository newRecordingRepository(String projectId);
+    /**
+     * The recordings this microscope stores. They belong to no project: every recording arrives
+     * through the recordings path, which writes it with a null project id.
+     */
+    RecordingRepository newRecordingRepository();
 
     RecordingTagsRepository recordingTagsRepository();
 

@@ -30,7 +30,6 @@ import cafe.jeffrey.microscope.core.manager.ProfilesManagerImpl;
 import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
@@ -47,9 +46,6 @@ import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.PortRange;
 import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
-import cafe.jeffrey.storage.recording.api.RecordingStorage;
-import cafe.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -57,7 +53,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.List;
 
 
 @Configuration
@@ -193,21 +188,12 @@ public class AppConfiguration {
 
     @Bean
     public ProfilesManager.Factory profilesManager(
-            Clock applicationClock,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
-            ProfileManager.Factory profileFactory,
-            RecordingStorage recordingStorage,
-            ProfileInitializer profileInitializer) {
+            ProfileManager.Factory profileFactory) {
 
         MicroscopeCoreRepositories localCoreRepositories = localCorePersistenceProvider.localCoreRepositories();
         return projectInfo ->
-                new ProfilesManagerImpl(
-                        applicationClock,
-                        projectInfo,
-                        localCoreRepositories,
-                        recordingStorage.projectRecordingStorage(projectInfo.id()),
-                        profileFactory,
-                        profileInitializer);
+                new ProfilesManagerImpl(projectInfo, localCoreRepositories, profileFactory);
     }
 
     @Bean(ProfilesConfiguration.PROFILES_PATH)
@@ -218,13 +204,5 @@ public class AppConfiguration {
     @Bean(ProfilesConfiguration.RECORDINGS_PATH)
     public Path recordingsPath(MicroscopeJeffreyDirs jeffreyDirs) {
         return jeffreyDirs.recordings();
-    }
-
-    @Bean
-    public RecordingStorage projectRecordingStorage(MicroscopeJeffreyDirs jeffreyDirs) {
-        return new FilesystemRecordingStorage(
-                jeffreyDirs.recordings(),
-                List.of(ManagedFile.JFR_LZ4, ManagedFile.JFR,
-                        ManagedFile.PPROF, ManagedFile.OTLP_PROFILE));
     }
 }

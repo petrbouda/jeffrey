@@ -27,7 +27,6 @@ import java.util.List;
 public record Recording(
         String id,
         String recordingName,
-        String projectId,
         String groupId,
         RecordingEventSource eventSource,
         Instant createdAt,
@@ -47,7 +46,7 @@ public record Recording(
 
     public Recording withFiles(List<RecordingFile> files) {
         return new Recording(
-                id, recordingName, projectId, groupId, eventSource, createdAt,
+                id, recordingName, groupId, eventSource, createdAt,
                 recordingStartedAt, recordingFinishedAt, hasProfile, profileId, profileName,
                 List.copyOf(files));
     }
