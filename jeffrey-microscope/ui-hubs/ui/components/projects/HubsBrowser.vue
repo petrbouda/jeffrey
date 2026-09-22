@@ -141,7 +141,6 @@
                 {{ selectedWorkspace.name }}
               </h2>
               <Badge
-                v-if="activeTabId === 'projects'"
                 key-label="Projects"
                 :value="projects.length"
                 variant="secondary"
@@ -151,48 +150,14 @@
               />
             </div>
             <div class="main-head-actions">
-              <div v-if="activeTabId === 'projects'" class="search">
+              <div class="search">
                 <i class="bi bi-search"></i>
-                <input
-                  v-model="projectSearchQuery"
-                  type="text"
-                  placeholder="Search projects…"
-                />
-              </div>
-              <slot
-                v-if="activeTabId !== 'projects'"
-                name="header-controls"
-                :active-tab-id="activeTabId"
-                :is-projects-tab="false"
-              />
-              <div
-                v-if="extraTabs.length > 0"
-                class="view-switcher"
-                role="tablist"
-                aria-label="View"
-              >
-                <button
-                  v-for="tab in allTabs"
-                  :key="tab.id"
-                  type="button"
-                  role="tab"
-                  :aria-selected="activeTabId === tab.id"
-                  :class="{ active: activeTabId === tab.id }"
-                  @click="selectTab(tab.id)"
-                >
-                  <i class="bi" :class="tab.icon"></i>
-                  {{ tab.label }}
-                </button>
+                <input v-model="projectSearchQuery" type="text" placeholder="Search projects…" />
               </div>
               <button class="icon-btn" title="Workspace info" @click="showWorkspaceInfo = true">
                 <i class="bi bi-info-circle"></i>
               </button>
-              <button
-                v-if="isActiveTabRefreshable"
-                class="icon-btn"
-                title="Refresh"
-                @click="refreshActiveView"
-              >
+              <button class="icon-btn" title="Refresh" @click="refreshProjects">
                 <i class="bi bi-arrow-clockwise"></i>
               </button>
               <button
@@ -205,41 +170,25 @@
             </div>
           </header>
 
-          <template v-if="activeTabId === 'projects'">
-            <LoadingState v-if="loadingProjects" message="Loading projects…" />
-            <ErrorState
-              v-else-if="projectsError"
-              :message="projectsError"
-              @retry="refreshProjects"
-            />
-            <EmptyState
-              v-else-if="filteredProjects.length === 0"
-              icon="bi-folder-plus"
-              title="No projects in this workspace"
-              description="Projects appear here when provisioner reports them via workspace events."
-            />
-            <div v-else class="project-grid">
-              <slot
-                v-for="project in filteredProjects"
-                :key="project.id"
-                name="project"
-                :project="project"
-                :hub-id="selectedHubId!"
-                :workspace-id="selectedWorkspace.id"
-                :restore="handleRestoreProject"
-              />
-            </div>
-          </template>
-
-          <template v-for="tab in extraTabs" :key="tab.id">
+          <LoadingState v-if="loadingProjects" message="Loading projects…" />
+          <ErrorState v-else-if="projectsError" :message="projectsError" @retry="refreshProjects" />
+          <EmptyState
+            v-else-if="filteredProjects.length === 0"
+            icon="bi-folder-plus"
+            title="No projects in this workspace"
+            description="Projects appear here when provisioner reports them via workspace events."
+          />
+          <div v-else class="project-grid">
             <slot
-              v-if="activeTabId === tab.id"
-              :name="`tab-${tab.id}`"
+              v-for="project in filteredProjects"
+              :key="project.id"
+              name="project"
+              :project="project"
               :hub-id="selectedHubId!"
               :workspace-id="selectedWorkspace.id"
-              :workspace-name="selectedWorkspace.name"
+              :restore="handleRestoreProject"
             />
-          </template>
+          </div>
         </template>
 
         <!-- Hub has no workspaces yet -->
@@ -400,38 +349,25 @@ import Hub from '@hubs/services/api/model/Hub';
 import Workspace from '@hubs/services/api/model/Workspace';
 import Project from '@hubs/services/api/model/Project';
 
-interface ExtraTab {
-  id: string;
-  label: string;
-  icon: string;
-  refreshable?: boolean;
-}
-
 const props = withDefaults(
   defineProps<{
     appDescription: string;
-    extraTabs?: ExtraTab[];
     // Optional deep-link: preselect a hub + workspace on first load (e.g. from a
     // breadcrumb). Only seeds the INITIAL default; manual selection still wins afterwards.
     initialHubId?: string | null;
     initialWorkspaceId?: string | null;
   }>(),
   {
-    extraTabs: () => [],
     initialHubId: null,
     initialWorkspaceId: null
   }
 );
 
 const emit = defineEmits<{
-  (e: 'refresh-tab', tabId: string): void;
-  (e: 'tab-change', tabId: string): void;
   (e: 'workspace-change', payload: { hubId: string | null; workspaceId: string | null }): void;
 }>();
 
 type HubStatus = 'online' | 'offline' | 'unknown';
-
-const PROJECTS_TAB_ID = 'projects';
 
 const hubClient = new HubClient();
 
@@ -466,8 +402,6 @@ const loadingProjects = ref(false);
 const projectsError = ref<string | null>(null);
 const projectSearchQuery = ref('');
 
-const activeTabId = ref(PROJECTS_TAB_ID);
-
 const showAddHubModal = ref(false);
 const showDeleteHubModal = ref(false);
 const showWorkspaceInfo = ref(false);
@@ -480,18 +414,6 @@ const createForm = ref({ name: '', referenceId: '' });
 const WORKSPACE_REF_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$/;
 const WORKSPACE_REF_ID_HINT =
   '3-64 characters, alphanumeric and dashes only, no leading or trailing dash.';
-
-const allTabs = computed(() => [
-  { id: PROJECTS_TAB_ID, label: 'Projects', icon: 'bi-folder2' },
-  ...props.extraTabs
-]);
-
-const isActiveTabRefreshable = computed(() => {
-  if (activeTabId.value === PROJECTS_TAB_ID) {
-    return true;
-  }
-  return props.extraTabs.find(t => t.id === activeTabId.value)?.refreshable === true;
-});
 
 const selectedHub = computed(() => hubs.value.find(s => s.id === selectedHubId.value));
 
@@ -670,32 +592,17 @@ const selectHub = (hubId: string) => {
   refreshWorkspaces();
 };
 
-const selectTab = (tabId: string) => {
-  activeTabId.value = tabId;
-  emit('tab-change', tabId);
-};
-
 const selectWorkspace = (workspaceId: string) => {
   if (selectedWorkspaceId.value === workspaceId) {
     return;
   }
   selectedWorkspaceId.value = workspaceId;
   projectSearchQuery.value = '';
-  activeTabId.value = PROJECTS_TAB_ID;
-  emit('tab-change', PROJECTS_TAB_ID);
   emit('workspace-change', {
     hubId: selectedHubId.value,
     workspaceId
   });
   refreshProjects();
-};
-
-const refreshActiveView = () => {
-  if (activeTabId.value === PROJECTS_TAB_ID) {
-    refreshProjects();
-  } else {
-    emit('refresh-tab', activeTabId.value);
-  }
 };
 
 const handleHubAdded = async () => {
@@ -1193,42 +1100,6 @@ onMounted(refreshServers);
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-}
-
-.view-switcher {
-  display: inline-flex;
-  background: var(--color-light);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  padding: 3px;
-  height: 32px;
-}
-
-.view-switcher button {
-  border: none;
-  background: transparent;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text);
-  padding: 0 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition:
-    color var(--transition-base),
-    background var(--transition-base);
-}
-
-.view-switcher button.active {
-  background: var(--color-card, var(--color-white));
-  color: var(--color-primary-hover);
-  box-shadow: var(--shadow-sm);
-}
-
-.view-switcher button:not(.active):hover {
-  color: var(--color-text-dark);
 }
 
 .icon-btn {

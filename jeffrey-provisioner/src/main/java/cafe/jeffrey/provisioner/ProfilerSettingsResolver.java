@@ -49,7 +49,7 @@ public class ProfilerSettingsResolver {
 
     private static ResolvedProfilerSettings configured(String profilerCommand) {
         if (profilerCommand != null && !profilerCommand.isBlank()) {
-            return new ResolvedProfilerSettings(profilerCommand, ProfilerSettingsSource.CLI_CONFIG);
+            return new ResolvedProfilerSettings(profilerCommand, ProfilerSettingsSource.CONFIGURED);
         }
         return new ResolvedProfilerSettings(CliConstants.DEFAULT_PROFILER_CONFIG, ProfilerSettingsSource.BUILT_IN);
     }

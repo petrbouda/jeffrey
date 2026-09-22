@@ -67,7 +67,7 @@ class RemoteProjectInstanceSessionSerdeTest {
                     "createdAt": 1700000000000,
                     "order": 1,
                     "relativeSessionPath": "inst-001/session-001",
-                    "profilerSettingsSource": "CLI_CONFIG",
+                    "profilerSettingsSource": "CONFIGURED",
                     "profilerCommand": "-agentpath:/lib.so=start"
                 }
                 """;
@@ -83,7 +83,7 @@ class RemoteProjectInstanceSessionSerdeTest {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                 "session-001", "proj-001", "ws-001", "inst-001",
                 1700000000000L, 1, "inst-001/session-001",
-                "CLI_CONFIG", "-agentpath:/lib.so=start", false);
+                "CONFIGURED", "-agentpath:/lib.so=start", false);
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 
@@ -96,7 +96,7 @@ class RemoteProjectInstanceSessionSerdeTest {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                 "session-001", "proj-001", "ws-001", "inst-001",
                 1700000000000L, 2, "inst-001/session-001",
-                "CLI_CONFIG", "-agentpath:/lib.so=start", true);
+                "CONFIGURED", "-agentpath:/lib.so=start", true);
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 

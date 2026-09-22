@@ -29,7 +29,7 @@ public enum ProfilerSettingsSource {
      * Explicit {@code profiler-command}, from the provisioner's HOCON config or the
      * {@code JEFFREY_PROFILER_COMMAND} environment variable.
      */
-    CLI_CONFIG,
+    CONFIGURED,
 
     /** Built-in provisioner default ({@code CliConstants.DEFAULT_PROFILER_CONFIG}) */
     BUILT_IN

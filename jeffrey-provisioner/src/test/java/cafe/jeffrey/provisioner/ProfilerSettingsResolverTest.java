@@ -68,7 +68,7 @@ class ProfilerSettingsResolverTest {
                     "/path/to/profiler", profilerCommand, workspacePath, "my-project", sessionPath, "");
 
             assertEquals(profilerCommand, resolved.command().trim());
-            assertEquals(ProfilerSettingsSource.CLI_CONFIG, resolved.source());
+            assertEquals(ProfilerSettingsSource.CONFIGURED, resolved.source());
         }
 
         @Test
