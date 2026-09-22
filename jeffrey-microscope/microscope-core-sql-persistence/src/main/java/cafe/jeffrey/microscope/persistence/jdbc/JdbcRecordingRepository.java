@@ -45,25 +45,20 @@ public class JdbcRecordingRepository implements RecordingRepository {
             FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id
             WHERE r.""";
 
-    private final String projectId;
+    /**
+     * Every recording this repository writes belongs to no project, and it reads back only those.
+     * Rows with a project id are what an older build left behind when recordings were
+     * project-scoped; nothing can open them any more, so they stay out of every listing.
+     */
+    //language=sql
+    private static final String NO_PROJECT = "project_id IS NULL";
+
     private final DatabaseClient databaseClient;
     private final Clock clock;
 
-    // Dynamic WHERE clause: "project_id = :project_id" or "project_id IS NULL"
-    private final String projectIdCondition;
-
-    public JdbcRecordingRepository(String projectId, DatabaseClientProvider databaseClientProvider, Clock clock) {
-        this.projectId = projectId;
+    public JdbcRecordingRepository(DatabaseClientProvider databaseClientProvider, Clock clock) {
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROJECT_RECORDINGS);
         this.clock = clock;
-        this.projectIdCondition = projectId != null
-                ? "project_id = :project_id"
-                : "project_id IS NULL";
-    }
-
-    private MapSqlParameterSource projectParams() {
-        return new MapSqlParameterSource()
-                .addValue("project_id", projectId);
     }
 
     /**
@@ -118,12 +113,12 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
     @Override
     public Optional<Recording> findRecording(String recordingId) {
-        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition + " AND r.id = :recording_id";
+        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + NO_PROJECT + " AND r.id = :recording_id";
         //language=sql
-        String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition
+        String filesSql = "SELECT * FROM recording_files WHERE " + NO_PROJECT
                 + " AND recording_id = :recording_id" + FILES_ORDER;
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("recording_id", recordingId);
 
         return findRecordingsWithFiles(
@@ -153,21 +148,21 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
     @Override
     public List<Recording> findAllRecordings() {
-        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition;
+        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + NO_PROJECT;
         //language=sql
-        String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition + FILES_ORDER;
+        String filesSql = "SELECT * FROM recording_files WHERE " + NO_PROJECT + FILES_ORDER;
 
         return findRecordingsWithFiles(
                 new LabeledQuery(StatementLabel.FIND_ALL_RECORDINGS, recordingsSql),
                 new LabeledQuery(StatementLabel.FIND_ALL_RECORDING_FILES, filesSql),
-                projectParams());
+                new MapSqlParameterSource());
     }
 
     @Override
     public Optional<Recording> findById(String recordingId) {
-        String sql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition + " AND r.id = :recording_id";
+        String sql = SELECT_RECORDINGS_WITH_PROFILE + NO_PROJECT + " AND r.id = :recording_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("recording_id", recordingId);
 
         return databaseClient.querySingle(
@@ -178,11 +173,10 @@ public class JdbcRecordingRepository implements RecordingRepository {
     public void insertRecording(Recording recording, RecordingFile recordingFile) {
         //language=SQL
         String sql = """
-                INSERT INTO recordings (id, project_id, recording_name, group_id, event_source, created_at, recording_started_at, recording_finished_at)
-                    VALUES (:id, :project_id, :recording_name, :group_id, :event_source, :created_at, :recording_started_at, :recording_finished_at)""";
+                INSERT INTO recordings (id, recording_name, group_id, event_source, created_at, recording_started_at, recording_finished_at)
+                    VALUES (:id, :recording_name, :group_id, :event_source, :created_at, :recording_started_at, :recording_finished_at)""";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
                 .addValue("id", recording.id())
                 .addValue("recording_name", recording.recordingName())
                 .addValue("group_id", recording.groupId())
@@ -203,12 +197,11 @@ public class JdbcRecordingRepository implements RecordingRepository {
     public void insertRecordingFile(RecordingFile recordingFile) {
         //language=SQL
         String sql = """
-                INSERT INTO recording_files (id, project_id, recording_id, filename, supported_type, uploaded_at, size_in_bytes)
-                    VALUES (:id, :project_id, :recording_id, :filename, :supported_type, :uploaded_at, :size_in_bytes)""";
+                INSERT INTO recording_files (id, recording_id, filename, supported_type, uploaded_at, size_in_bytes)
+                    VALUES (:id, :recording_id, :filename, :supported_type, :uploaded_at, :size_in_bytes)""";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", recordingFile.id())
-                .addValue("project_id", projectId)
                 .addValue("recording_id", recordingFile.recordingId())
                 .addValue("filename", recordingFile.filename())
                 .addValue("supported_type", recordingFile.recordingFileType().name())
@@ -221,9 +214,9 @@ public class JdbcRecordingRepository implements RecordingRepository {
     @Override
     public void updateRecordingGroup(String recordingId, String groupId) {
         //language=sql
-        String sql = "UPDATE recordings SET group_id = :group_id WHERE " + projectIdCondition + " AND id = :recording_id";
+        String sql = "UPDATE recordings SET group_id = :group_id WHERE " + NO_PROJECT + " AND id = :recording_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("recording_id", recordingId)
                 .addValue("group_id", groupId);
 
@@ -235,10 +228,10 @@ public class JdbcRecordingRepository implements RecordingRepository {
     @Override
     public String insertGroup(String groupName) {
         //language=sql
-        String sql = "INSERT INTO recording_groups (id, project_id, name, created_at) VALUES (:id, :project_id, :name, :created_at)";
+        String sql = "INSERT INTO recording_groups (id, name, created_at) VALUES (:id, :name, :created_at)";
 
         String groupId = IDGenerator.generate();
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", groupId)
                 .addValue("name", groupName)
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
@@ -250,9 +243,9 @@ public class JdbcRecordingRepository implements RecordingRepository {
     @Override
     public boolean groupExists(String groupId) {
         //language=SQL
-        String sql = "SELECT count(*) FROM recording_groups WHERE " + projectIdCondition + " AND id = :group_id";
+        String sql = "SELECT count(*) FROM recording_groups WHERE " + NO_PROJECT + " AND id = :group_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("group_id", groupId);
 
         return databaseClient.queryExists(StatementLabel.GROUP_EXISTS, sql, params);
@@ -261,9 +254,9 @@ public class JdbcRecordingRepository implements RecordingRepository {
     @Override
     public Optional<RecordingGroup> findGroupById(String groupId) {
         //language=sql
-        String sql = "SELECT * FROM recording_groups WHERE " + projectIdCondition + " AND id = :group_id";
+        String sql = "SELECT * FROM recording_groups WHERE " + NO_PROJECT + " AND id = :group_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("group_id", groupId);
 
         return databaseClient.querySingle(
@@ -273,18 +266,18 @@ public class JdbcRecordingRepository implements RecordingRepository {
     @Override
     public List<RecordingGroup> findAllRecordingGroups() {
         //language=sql
-        String sql = "SELECT * FROM recording_groups WHERE " + projectIdCondition;
+        String sql = "SELECT * FROM recording_groups WHERE " + NO_PROJECT;
 
         return databaseClient.query(
-                StatementLabel.FIND_ALL_GROUPS, sql, projectParams(), Mappers.projectRecordingGroupMapper());
+                StatementLabel.FIND_ALL_GROUPS, sql, new MapSqlParameterSource(), Mappers.projectRecordingGroupMapper());
     }
 
     @Override
     public void deleteGroup(String groupId) {
         //language=sql
-        String findRecordingsSql = "SELECT id FROM recordings WHERE " + projectIdCondition + " AND group_id = :group_id";
+        String findRecordingsSql = "SELECT id FROM recordings WHERE " + NO_PROJECT + " AND group_id = :group_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("group_id", groupId);
 
         List<String> recordingIds = databaseClient.query(
@@ -302,12 +295,12 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
     @Override
     public List<Recording> findRecordingsByGroupId(String groupId) {
-        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition + " AND r.group_id = :group_id";
+        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + NO_PROJECT + " AND r.group_id = :group_id";
         //language=sql
         String filesSql = "SELECT rf.* FROM recording_files rf JOIN recordings r ON rf.recording_id = r.id WHERE r."
-                + projectIdCondition + " AND r.group_id = :group_id";
+                + NO_PROJECT + " AND r.group_id = :group_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("group_id", groupId);
 
         return findRecordingsWithFiles(

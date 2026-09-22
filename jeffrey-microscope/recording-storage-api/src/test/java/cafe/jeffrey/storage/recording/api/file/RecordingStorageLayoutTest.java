@@ -15,10 +15,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.shared.storage.recording.filesystem {
-    requires cafe.jeffrey.shared.common;
-    requires transitive cafe.jeffrey.shared.storage.recording.api;
-    requires org.slf4j;
 
-    exports cafe.jeffrey.storage.recording.filesystem;
+package cafe.jeffrey.storage.recording.api.file;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class RecordingStorageLayoutTest {
+
+    private static final Path RECORDINGS_DIR = Path.of("/data/recordings");
+    private static final String RECORDING_ID = "rec-1";
+
+    @Nested
+    class StoragePath {
+
+        @Test
+        void prefixesTheNameWithTheRecordingId() {
+            assertEquals(
+                    RECORDINGS_DIR.resolve("rec-1-app.jfr"),
+                    RecordingStorageLayout.storagePath(RECORDINGS_DIR, RECORDING_ID, "app.jfr"));
+        }
+    }
 }

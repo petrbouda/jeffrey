@@ -123,7 +123,7 @@ class RecordingsMcpToolsTest {
 
     private static Recording recording(boolean hasProfile) {
         return new Recording(
-                RECORDING_ID, "app.jfr", null, null, RecordingEventSource.JDK,
+                RECORDING_ID, "app.jfr", null, RecordingEventSource.JDK,
                 START, START, START.plusSeconds(60),
                 hasProfile, hasProfile ? PROFILE_ID : null, hasProfile ? "app.jfr" : null, List.of());
     }
@@ -509,7 +509,7 @@ class RecordingsMcpToolsTest {
         @Test
         void keepsAPipeInANameOffTheColumnBoundaries() {
             Recording piped = new Recording(
-                    RECORDING_ID, "before|after", null, null, RecordingEventSource.JDK,
+                    RECORDING_ID, "before|after", null, RecordingEventSource.JDK,
                     START, START, START, false, null, null, List.of());
             when(recordingsManager.listRecordings()).thenReturn(List.of(piped));
 

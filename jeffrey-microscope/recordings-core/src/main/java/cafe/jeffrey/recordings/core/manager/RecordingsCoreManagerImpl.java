@@ -30,6 +30,7 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.shared.notification.NotificationCategory;
 import cafe.jeffrey.shared.notification.NotificationType;
@@ -57,11 +58,6 @@ import java.util.Optional;
 public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsCoreManagerImpl.class);
-
-    /**
-     * Between a recording's id and its file's own name, in the flat recordings directory.
-     */
-    private static final String STORAGE_NAME_SEPARATOR = "-";
 
     private final Clock clock;
     private final Path recordingsDir;
@@ -251,7 +247,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         }
 
         Recording recording = new Recording(
-                recordingId, recordingName, null, groupId, eventSource, uploadedAt,
+                recordingId, recordingName, groupId, eventSource, uploadedAt,
                 profilingStartedAt, profilingFinishedAt,
                 false, null, null, List.of());
 
@@ -371,16 +367,11 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     }
 
     /**
-     * Where a recording's file sits. The directory is flat and shared by every recording, so each
-     * file is prefixed with the id of the recording it belongs to; the prefix is storage's business
-     * and never part of the name the file is known by.
-     *
-     * <p>One method rather than the same concatenation at each of the four places that write or
-     * read a file, because they have to agree exactly: a writer that disagreed with this reader by
-     * one prefix would store files nothing could find again.
+     * Where a recording's file sits. One method rather than the layout call at each of the four
+     * places that write or read a file; {@link RecordingStorageLayout} owns the convention itself.
      */
     private Path storagePath(String recordingId, String filename) {
-        return recordingsDir.resolve(recordingId + STORAGE_NAME_SEPARATOR + filename);
+        return RecordingStorageLayout.storagePath(recordingsDir, recordingId, filename);
     }
 
     /**

@@ -71,33 +71,16 @@ public interface ProfileRepository {
     void delete();
 
     /**
-     * Data required to insert a new profile record.
+     * Data required to insert a new profile record. Every profile the product creates comes from a
+     * recording and belongs to no project; project and workspace ids exist only on rows an older
+     * build left behind.
      */
     record InsertProfile(
-            String projectId,
-            String workspaceId,
             String profileName,
             RecordingEventSource eventSource,
             Instant createdAt,
             String recordingId,
             Instant recordingStartedAt,
             Instant recordingFinishedAt) {
-
-        public static InsertProfile projectProfile(
-                String projectId, String workspaceId, String profileName,
-                RecordingEventSource eventSource, Instant createdAt,
-                String recordingId, Instant recordingStartedAt, Instant recordingFinishedAt) {
-            return new InsertProfile(
-                    projectId, workspaceId, profileName, eventSource, createdAt,
-                    recordingId, recordingStartedAt, recordingFinishedAt);
-        }
-
-        public static InsertProfile quickProfile(
-                String profileName, RecordingEventSource eventSource, Instant createdAt,
-                String recordingId, Instant recordingStartedAt, Instant recordingFinishedAt) {
-            return new InsertProfile(
-                    null, null, profileName, eventSource, createdAt,
-                    recordingId, recordingStartedAt, recordingFinishedAt);
-        }
     }
 }

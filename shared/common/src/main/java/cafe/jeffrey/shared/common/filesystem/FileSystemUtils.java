@@ -130,17 +130,6 @@ public abstract class FileSystemUtils {
         }
     }
 
-    public static List<Path> allDirectoriesInDirectory(Path dir) {
-        try (var stream = Files.list(dir)) {
-            return stream
-                    .filter(FileSystemUtils::isDirectory)
-                    .filter(FileSystemUtils::isNotHidden)
-                    .toList();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot resolve directories in a directory: " + dir, e);
-        }
-    }
-
     /**
      * @throws UncheckedIOException when the file cannot be read, wrapping the {@link IOException}
      */

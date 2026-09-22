@@ -61,7 +61,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>filesystem-recording-storage</artifactId>
+            <artifactId>recording-storage-api</artifactId>
         </dependency>
 
         <!-- Profile management (for ProfilesManager, CommonProjectManager, etc.) -->
