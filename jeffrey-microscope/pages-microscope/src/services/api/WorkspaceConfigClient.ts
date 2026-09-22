@@ -18,7 +18,7 @@
 
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import ScopedConfig, { ConfigScope, ConfigType } from '@/services/api/model/ScopedConfig';
+import ConfigEntry, { ConfigScope, ConfigType } from '@/services/api/model/ConfigEntry';
 
 /**
  * Configuration the Hub holds for a workspace and for every scope around it.
@@ -32,13 +32,13 @@ export default class WorkspaceConfigClient extends BasePlatformClient {
   }
 
   /** The global scope, this workspace's own and every project's, in merge order. */
-  list(): Promise<ScopedConfig[]> {
-    return super.get<ScopedConfig[]>();
+  list(): Promise<ConfigEntry[]> {
+    return super.get<ConfigEntry[]>();
   }
 
   /** Scope must be GLOBAL or WORKSPACE; a project's value is edited through the project. */
-  upsert(scope: ConfigScope, type: ConfigType, value: string): Promise<ScopedConfig> {
-    return super.put<ScopedConfig>(`/${scope}/${type}`, { value });
+  upsert(scope: ConfigScope, type: ConfigType, value: string): Promise<ConfigEntry[]> {
+    return super.put<ConfigEntry[]>(`/${scope}/${type}`, { value });
   }
 
   delete(scope: ConfigScope, type: ConfigType): Promise<void> {

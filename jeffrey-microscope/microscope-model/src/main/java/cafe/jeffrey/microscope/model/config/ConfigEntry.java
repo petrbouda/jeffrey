@@ -19,10 +19,24 @@
 
 package cafe.jeffrey.microscope.model.config;
 
+import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
 
 import java.time.Instant;
 
-/** One configuration value the hub holds, as Microscope knows it. */
-public record ConfigEntry(ConfigType type, String value, Instant updatedAt) {
+/**
+ * One configuration value the hub holds, as Microscope knows it.
+ *
+ * <p>The scope it belongs to travels with it: a scope holds at most one value per type, so a flat
+ * list of entries is the whole of what the hub returns, and a caller that wants them grouped
+ * groups by scope. {@code workspaceId} is empty for the global scope and {@code projectId} for
+ * everything but a project.</p>
+ */
+public record ConfigEntry(
+        ConfigScope scope,
+        String workspaceId,
+        String projectId,
+        ConfigType type,
+        String value,
+        Instant updatedAt) {
 }

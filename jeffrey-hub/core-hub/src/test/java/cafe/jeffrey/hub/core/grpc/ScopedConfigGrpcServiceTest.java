@@ -32,7 +32,6 @@ import cafe.jeffrey.hub.api.v1.UpsertConfigRequest;
 import cafe.jeffrey.hub.api.v1.UpsertConfigResponse;
 import cafe.jeffrey.hub.core.config.ScopedConfigManager;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.config.ScopedConfig;
 import cafe.jeffrey.hub.model.config.ScopedConfigEntry;
 import cafe.jeffrey.hub.model.config.ScopedConfigKey;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
@@ -48,6 +47,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.Map;
 import java.util.Optional;
 
@@ -92,42 +92,44 @@ class ScopedConfigGrpcServiceTest {
         @Test
         void getReturnsWhatTheScopeHolds() {
             ScopedConfigManager manager = manager();
-            when(manager.find(any())).thenReturn(config(ScopedConfigKey.workspace(WORKSPACE_ID), COMMAND));
+            when(manager.find(any())).thenReturn(entries(ScopedConfigKey.workspace(WORKSPACE_ID), COMMAND));
 
             GetConfigResponse response = startServer(service(manager))
                     .getConfig(GetConfigRequest.newBuilder().setKey(workspaceKey()).build());
 
-            assertEquals(1, response.getConfig().getEntriesCount());
-            assertEquals(COMMAND, response.getConfig().getEntries(0).getValue());
-            assertEquals(ConfigType.CONFIG_TYPE_ASPROF_SETTINGS, response.getConfig().getEntries(0).getType());
+            assertEquals(1, response.getEntriesCount());
+            assertEquals(COMMAND, response.getEntries(0).getValue());
+            assertEquals(ConfigType.CONFIG_TYPE_ASPROF_SETTINGS, response.getEntries(0).getType());
+            assertEquals(ConfigScope.CONFIG_SCOPE_WORKSPACE, response.getEntries(0).getKey().getScope());
         }
 
         /** An empty scope is a normal answer, not a missing resource. */
         @Test
         void getOnAnEmptyScopeSucceedsWithNoEntries() {
             ScopedConfigManager manager = manager();
-            when(manager.find(any())).thenReturn(ScopedConfig.empty(ScopedConfigKey.workspace(WORKSPACE_ID)));
+            when(manager.find(any())).thenReturn(List.of());
 
             GetConfigResponse response = startServer(service(manager))
                     .getConfig(GetConfigRequest.newBuilder().setKey(workspaceKey()).build());
 
-            assertEquals(0, response.getConfig().getEntriesCount());
-            assertEquals("", response.getConfig().getDigest());
+            assertEquals(0, response.getEntriesCount());
         }
 
         @Test
         void listReturnsEveryScopeThatAppliesToAWorkspace() {
             ScopedConfigManager manager = manager();
-            when(manager.findForWorkspace(WORKSPACE_ID)).thenReturn(List.of(
-                    config(ScopedConfigKey.global(), "global"),
-                    config(ScopedConfigKey.workspace(WORKSPACE_ID), "workspace")));
+            when(manager.findForWorkspace(WORKSPACE_ID)).thenReturn(Stream.of(
+                            entries(ScopedConfigKey.global(), "global"),
+                            entries(ScopedConfigKey.workspace(WORKSPACE_ID), "workspace"))
+                    .flatMap(List::stream)
+                    .toList());
 
             ListWorkspaceConfigsResponse response = startServer(service(manager)).listWorkspaceConfigs(
                     ListWorkspaceConfigsRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
 
-            assertEquals(2, response.getConfigsCount());
-            assertEquals(ConfigScope.CONFIG_SCOPE_GLOBAL, response.getConfigs(0).getKey().getScope());
-            assertEquals(ConfigScope.CONFIG_SCOPE_WORKSPACE, response.getConfigs(1).getKey().getScope());
+            assertEquals(2, response.getEntriesCount());
+            assertEquals(ConfigScope.CONFIG_SCOPE_GLOBAL, response.getEntries(0).getKey().getScope());
+            assertEquals(ConfigScope.CONFIG_SCOPE_WORKSPACE, response.getEntries(1).getKey().getScope());
         }
 
         @Test
@@ -144,10 +146,10 @@ class ScopedConfigGrpcServiceTest {
     class Writing {
 
         @Test
-        void upsertStoresTheValueAndReturnsTheNewDigest() {
+        void upsertStoresTheValueAndReturnsTheScopeAsItNowStands() {
             ScopedConfigManager manager = manager();
             when(manager.upsert(any(), any(), anyString()))
-                    .thenReturn(config(ScopedConfigKey.workspace(WORKSPACE_ID), COMMAND));
+                    .thenReturn(entries(ScopedConfigKey.workspace(WORKSPACE_ID), COMMAND));
 
             UpsertConfigResponse response = startServer(service(manager)).upsertConfig(
                     UpsertConfigRequest.newBuilder()
@@ -156,7 +158,7 @@ class ScopedConfigGrpcServiceTest {
                             .setValue(COMMAND)
                             .build());
 
-            assertEquals("digest", response.getConfig().getDigest());
+            assertEquals(COMMAND, response.getEntries(0).getValue());
             verify(manager).upsert(
                     ScopedConfigKey.workspace(WORKSPACE_ID),
                     cafe.jeffrey.shared.common.config.ConfigType.ASPROF_SETTINGS,
@@ -166,8 +168,7 @@ class ScopedConfigGrpcServiceTest {
         @Test
         void deleteRemovesTheValue() {
             ScopedConfigManager manager = manager();
-            when(manager.delete(any(), any()))
-                    .thenReturn(ScopedConfig.empty(ScopedConfigKey.workspace(WORKSPACE_ID)));
+            when(manager.delete(any(), any())).thenReturn(List.of());
 
             startServer(service(manager)).deleteConfig(DeleteConfigRequest.newBuilder()
                     .setKey(workspaceKey())
@@ -261,12 +262,9 @@ class ScopedConfigGrpcServiceTest {
                 .build();
     }
 
-    private static ScopedConfig config(ScopedConfigKey key, String value) {
-        return new ScopedConfig(
-                key,
-                List.of(new ScopedConfigEntry(
-                        key, cafe.jeffrey.shared.common.config.ConfigType.ASPROF_SETTINGS, value, NOW)),
-                "digest");
+    private static List<ScopedConfigEntry> entries(ScopedConfigKey key, String value) {
+        return List.of(new ScopedConfigEntry(
+                key, cafe.jeffrey.shared.common.config.ConfigType.ASPROF_SETTINGS, value, NOW));
     }
 
     private static ScopedConfigManager manager() {

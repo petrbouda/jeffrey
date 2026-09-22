@@ -20,16 +20,39 @@
 package cafe.jeffrey.microscope.core.web.dto.response;
 
 import cafe.jeffrey.microscope.model.config.ConfigEntry;
+import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
 
+import java.util.List;
+
 /**
- * One configuration value.
+ * One configuration value, carrying the scope it belongs to.
+ *
+ * <p>A scope holds at most one value per type, so these calls answer with a flat list and the UI
+ * groups by scope. {@code workspaceId} is null for the global scope and {@code projectId} for
+ * everything but a project.</p>
  *
  * @param updatedAt epoch millis, as every timestamp this API sends
  */
-public record ConfigEntryResponse(ConfigType type, String value, long updatedAt) {
+public record ConfigEntryResponse(
+        ConfigScope scope,
+        String workspaceId,
+        String projectId,
+        ConfigType type,
+        String value,
+        long updatedAt) {
 
     public static ConfigEntryResponse from(ConfigEntry entry) {
-        return new ConfigEntryResponse(entry.type(), entry.value(), entry.updatedAt().toEpochMilli());
+        return new ConfigEntryResponse(
+                entry.scope(),
+                entry.workspaceId(),
+                entry.projectId(),
+                entry.type(),
+                entry.value(),
+                entry.updatedAt().toEpochMilli());
+    }
+
+    public static List<ConfigEntryResponse> from(List<ConfigEntry> entries) {
+        return entries.stream().map(ConfigEntryResponse::from).toList();
     }
 }

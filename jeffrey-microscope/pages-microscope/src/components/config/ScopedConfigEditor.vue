@@ -14,8 +14,7 @@
     </CommandDisplay>
 
     <p v-if="currentEntry" class="config-provenance">
-      Updated {{ formattedUpdatedAt }} · file
-      <code>{{ shortDigest }}</code>
+      Updated {{ formattedUpdatedAt }}
     </p>
 
     <ProfilerSettingsPanel
@@ -40,11 +39,8 @@ import SettingsBreadcrumbs, {
 import ProfilerSettingsPanel from '@/components/profiler-settings/ProfilerSettingsPanel.vue';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import FormattingService from '@shared/services/FormattingService';
-import ScopedConfig, {
-  entryOf,
-  type ConfigScope,
-  type ConfigType
-} from '@/services/api/model/ScopedConfig';
+import type ConfigEntry from '@/services/api/model/ConfigEntry';
+import { entryOf, type ConfigScope, type ConfigType } from '@/services/api/model/ConfigEntry';
 
 /**
  * Edits the configuration of one scope.
@@ -56,8 +52,8 @@ import ScopedConfig, {
  */
 interface Props {
   scope: ConfigScope;
-  /** What the scope holds, or null while it holds nothing. */
-  config: ScopedConfig | null;
+  /** Every entry the caller has; this card picks out the ones for its own scope. */
+  entries: ConfigEntry[];
   /** The global scope is the Hub's own baseline and is shown without editing controls. */
   readonly?: boolean;
   isDeleting?: boolean;
@@ -81,13 +77,10 @@ const TABS: TabBarItem[] = [
   { id: 'builder', label: 'Visual Builder' }
 ];
 
-/** Enough of the digest to compare two versions by eye, which is all it is used for here. */
-const DIGEST_PREFIX_LENGTH = 12;
-
 const activeTab = ref<string>('manual');
 const draftCommand = ref('');
 
-const currentEntry = computed(() => entryOf(props.config, TYPE));
+const currentEntry = computed(() => entryOf(props.entries, props.scope, TYPE));
 const currentValue = computed(() => currentEntry.value?.value ?? null);
 
 const valueLabel = computed(() =>
@@ -103,8 +96,6 @@ const emptyMessage = computed(() =>
 const formattedUpdatedAt = computed(() =>
   currentEntry.value ? FormattingService.formatRelativeTime(currentEntry.value.updatedAt) : ''
 );
-
-const shortDigest = computed(() => props.config?.digest.slice(0, DIGEST_PREFIX_LENGTH) ?? '');
 
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
   { icon: 'bi-globe2', label: 'Global', active: props.scope === 'GLOBAL' },

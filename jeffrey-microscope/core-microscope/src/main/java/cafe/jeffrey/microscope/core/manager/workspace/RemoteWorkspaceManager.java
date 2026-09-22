@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.DiscoveryClient;
-import cafe.jeffrey.microscope.model.config.ScopedConfig;
+import cafe.jeffrey.microscope.model.config.ConfigEntry;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
@@ -105,26 +105,26 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public List<ScopedConfig> listConfigs() {
+    public List<ConfigEntry> listConfigs() {
         return hubClients.scopedConfig().listForWorkspace(workspaceInfo.id());
     }
 
     @Override
-    public ScopedConfig upsertConfig(ConfigScope scope, ConfigType type, String value) {
-        ScopedConfig config = hubClients.scopedConfig()
+    public List<ConfigEntry> upsertConfig(ConfigScope scope, ConfigType type, String value) {
+        List<ConfigEntry> stored = hubClients.scopedConfig()
                 .upsert(scope, workspaceIdFor(scope), null, type, value);
         LOG.debug("Upserted configuration: workspace_id={} scope={} type={}",
                 workspaceInfo.id(), scope, type);
-        return config;
+        return stored;
     }
 
     @Override
-    public ScopedConfig deleteConfig(ConfigScope scope, ConfigType type) {
-        ScopedConfig config = hubClients.scopedConfig()
+    public List<ConfigEntry> deleteConfig(ConfigScope scope, ConfigType type) {
+        List<ConfigEntry> remaining = hubClients.scopedConfig()
                 .delete(scope, workspaceIdFor(scope), null, type);
         LOG.debug("Deleted configuration: workspace_id={} scope={} type={}",
                 workspaceInfo.id(), scope, type);
-        return config;
+        return remaining;
     }
 
     /**

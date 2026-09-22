@@ -19,9 +19,6 @@
 package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.config.FilesystemScopedConfigPublisher;
-import cafe.jeffrey.hub.core.config.ScopeDirectories;
-import cafe.jeffrey.hub.core.config.ScopedConfigAdopter;
 import cafe.jeffrey.hub.core.config.ScopedConfigManager;
 import cafe.jeffrey.hub.core.config.ScopedConfigPublisher;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
@@ -134,35 +131,21 @@ public class HubAppConfiguration {
     // ========== Scoped configuration ==========
 
     @Bean
-    public ScopeDirectories scopeDirectories(HubJeffreyDirs jeffreyDirs, WorkspacesManager workspacesManager) {
-        return new ScopeDirectories(jeffreyDirs, workspacesManager);
-    }
-
-    @Bean
     public ScopedConfigPublisher scopedConfigPublisher() {
-        return new FilesystemScopedConfigPublisher();
+        return new ScopedConfigPublisher();
     }
 
     @Bean
     public ScopedConfigManager scopedConfigManager(
             Clock clock,
             HubPlatformRepositories platformRepositories,
-            ScopeDirectories scopeDirectories,
+            HubJeffreyDirs jeffreyDirs,
+            WorkspacesManager workspacesManager,
             ScopedConfigPublisher publisher) {
 
         return new ScopedConfigManager(
-                clock, platformRepositories.newScopedConfigRepository(), scopeDirectories, publisher);
-    }
-
-    @Bean
-    public ScopedConfigAdopter scopedConfigAdopter(
-            Clock clock,
-            HubPlatformRepositories platformRepositories,
-            ScopeDirectories scopeDirectories,
-            ScopedConfigPublisher publisher) {
-
-        return new ScopedConfigAdopter(
-                clock, platformRepositories.newScopedConfigRepository(), scopeDirectories, publisher);
+                clock, platformRepositories.newScopedConfigRepository(),
+                jeffreyDirs, workspacesManager, publisher);
     }
 
     @Bean

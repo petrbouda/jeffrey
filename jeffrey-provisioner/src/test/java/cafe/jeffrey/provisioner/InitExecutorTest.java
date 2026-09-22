@@ -23,16 +23,13 @@ import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigSource;
-import cafe.jeffrey.shared.common.config.ContentDigest;
 import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
-import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -127,20 +124,16 @@ class InitExecutorTest {
         }
 
         @Test
-        void theMarkerRecordsEveryLayerWithTheDigestOfTheFileAsRead() throws Exception {
+        void theNearestLayerSuppliesTheCommandWhenSeveralAreFound() throws Exception {
             InitConfig config = config();
-            String workspaceFile = "asprof-settings = \"-agentpath:/opt/lib.so=start,cpu\"\n";
             publish(workspacesDir, "asprof-settings = \"-agentpath:/opt/lib.so=start,alloc\"\n");
-            publish(workspacesDir.resolve(WORKSPACE_REF_ID), workspaceFile);
+            publish(workspacesDir.resolve(WORKSPACE_REF_ID),
+                    "asprof-settings = \"-agentpath:/opt/lib.so=start,cpu\"\n");
 
             new InitExecutor(Clock.systemUTC()).execute(config);
 
-            List<AppliedConfigLayer> layers = sessionMarker().configLayers();
-            assertEquals(List.of(ConfigScope.GLOBAL, ConfigScope.WORKSPACE),
-                    layers.stream().map(AppliedConfigLayer::scope).toList());
-            assertEquals(
-                    ContentDigest.sha256Hex(workspaceFile.getBytes(StandardCharsets.UTF_8)),
-                    layers.get(1).digest());
+            assertTrue(Files.readString(argFile).contains("start,cpu"));
+            assertEquals(ConfigSource.HUB_WORKSPACE.name(), sessionMarker().profilerCommandSource());
         }
 
         /**
@@ -155,7 +148,6 @@ class InitExecutorTest {
 
             assertTrue(Files.exists(argFile), "a broken published file must not stop provisioning");
             assertEquals(ConfigSource.BUILT_IN.name(), sessionMarker().profilerCommandSource());
-            assertTrue(sessionMarker().configLayers().isEmpty());
         }
 
         /**

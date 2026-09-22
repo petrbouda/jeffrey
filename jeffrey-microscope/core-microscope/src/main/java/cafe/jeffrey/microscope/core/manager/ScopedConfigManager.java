@@ -19,8 +19,10 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import cafe.jeffrey.microscope.model.config.ScopedConfig;
+import cafe.jeffrey.microscope.model.config.ConfigEntry;
 import cafe.jeffrey.shared.common.config.ConfigType;
+
+import java.util.List;
 
 /**
  * The configuration the hub holds for one project.
@@ -31,11 +33,11 @@ import cafe.jeffrey.shared.common.config.ConfigType;
 public interface ScopedConfigManager {
 
     /** What this project's own scope holds, empty when it holds nothing. */
-    ScopedConfig find();
+    List<ConfigEntry> find();
 
     /** Stores one value at this project's scope and republishes its file. */
-    ScopedConfig upsert(ConfigType type, String value);
+    List<ConfigEntry> upsert(ConfigType type, String value);
 
     /** Removes one value from this project's scope. */
-    ScopedConfig delete(ConfigType type);
+    List<ConfigEntry> delete(ConfigType type);
 }

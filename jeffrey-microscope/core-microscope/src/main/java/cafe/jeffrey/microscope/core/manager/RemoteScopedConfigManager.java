@@ -20,9 +20,11 @@
 package cafe.jeffrey.microscope.core.manager;
 
 import cafe.jeffrey.hub.client.ScopedConfigClient;
-import cafe.jeffrey.microscope.model.config.ScopedConfig;
+import cafe.jeffrey.microscope.model.config.ConfigEntry;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
+
+import java.util.List;
 
 /** Talks to the hub that owns the project. */
 public class RemoteScopedConfigManager implements ScopedConfigManager {
@@ -38,17 +40,17 @@ public class RemoteScopedConfigManager implements ScopedConfigManager {
     }
 
     @Override
-    public ScopedConfig find() {
+    public List<ConfigEntry> find() {
         return client.get(ConfigScope.PROJECT, workspaceId, projectId);
     }
 
     @Override
-    public ScopedConfig upsert(ConfigType type, String value) {
+    public List<ConfigEntry> upsert(ConfigType type, String value) {
         return client.upsert(ConfigScope.PROJECT, workspaceId, projectId, type, value);
     }
 
     @Override
-    public ScopedConfig delete(ConfigType type) {
+    public List<ConfigEntry> delete(ConfigType type) {
         return client.delete(ConfigScope.PROJECT, workspaceId, projectId, type);
     }
 }

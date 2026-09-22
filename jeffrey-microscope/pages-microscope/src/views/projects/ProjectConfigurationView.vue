@@ -16,7 +16,7 @@
 
         <ScopedConfigEditor
           scope="PROJECT"
-          :config="projectConfig"
+          :entries="projectEntries"
           :is-deleting="isDeleting"
           @save="saveValue"
           @delete="deleteValue"
@@ -24,15 +24,15 @@
 
         <section class="inherited">
           <h3 class="inherited-title">Inherited</h3>
-          <p v-if="inheritedConfigs.length === 0" class="scope-hint">
+          <p v-if="inheritedScopes.length === 0" class="scope-hint">
             Nothing is set above this project, so a JVM falls back to the Provisioner's built-in
             command.
           </p>
           <ScopedConfigEditor
-            v-for="config in inheritedConfigs"
-            :key="config.scope"
-            :scope="config.scope"
-            :config="config"
+            v-for="scope in inheritedScopes"
+            :key="scope"
+            :scope="scope"
+            :entries="workspaceEntries"
             readonly
           />
         </section>
@@ -52,8 +52,8 @@ import ToastService from '@shared/services/ToastService';
 import ScopedConfigEditor from '@/components/config/ScopedConfigEditor.vue';
 import ProjectConfigClient from '@/services/api/ProjectConfigClient';
 import WorkspaceConfigClient from '@/services/api/WorkspaceConfigClient';
-import type ScopedConfig from '@/services/api/model/ScopedConfig';
-import type { ConfigType } from '@/services/api/model/ScopedConfig';
+import type ConfigEntry from '@/services/api/model/ConfigEntry';
+import type { ConfigScope, ConfigType } from '@/services/api/model/ConfigEntry';
 
 const { hubId, workspaceId, projectId } = useNavigation();
 const projectClient = new ProjectConfigClient(hubId.value, workspaceId.value, projectId.value);
@@ -62,12 +62,14 @@ const workspaceClient = new WorkspaceConfigClient(hubId.value, workspaceId.value
 const isLoading = ref(true);
 const isDeleting = ref(false);
 const loadError = ref<string | null>(null);
-const projectConfig = ref<ScopedConfig | null>(null);
-const workspaceConfigs = ref<ScopedConfig[]>([]);
+const projectEntries = ref<ConfigEntry[]>([]);
+const workspaceEntries = ref<ConfigEntry[]>([]);
 
-/** What this project sits on: the scopes above it that actually hold something. */
-const inheritedConfigs = computed(() =>
-  workspaceConfigs.value.filter((config) => config.scope !== 'PROJECT' && config.entries.length > 0)
+/** What this project sits on: the scopes above it that actually hold something, in merge order. */
+const inheritedScopes = computed<ConfigScope[]>(() =>
+  (['GLOBAL', 'WORKSPACE'] as ConfigScope[]).filter((scope) =>
+    workspaceEntries.value.some((entry) => entry.scope === scope)
+  )
 );
 
 async function loadConfigs() {
@@ -78,8 +80,8 @@ async function loadConfigs() {
       projectClient.fetch(),
       workspaceClient.list()
     ]);
-    projectConfig.value = project;
-    workspaceConfigs.value = workspace;
+    projectEntries.value = project;
+    workspaceEntries.value = workspace;
   } catch (error) {
     console.error('Failed to load configuration:', error);
     loadError.value = 'Failed to load configuration';
@@ -90,7 +92,7 @@ async function loadConfigs() {
 
 async function saveValue(type: ConfigType, value: string) {
   try {
-    projectConfig.value = await projectClient.upsert(type, value);
+    projectEntries.value = await projectClient.upsert(type, value);
     ToastService.success('Configuration saved', 'It applies the next time a JVM of this project starts.');
   } catch (error) {
     console.error('Failed to save configuration:', error);
@@ -102,7 +104,7 @@ async function deleteValue(type: ConfigType) {
   isDeleting.value = true;
   try {
     await projectClient.delete(type);
-    projectConfig.value = await projectClient.fetch();
+    projectEntries.value = await projectClient.fetch();
     ToastService.success('Configuration removed', 'This project now inherits from its workspace.');
   } catch (error) {
     console.error('Failed to remove configuration:', error);

@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.request.ConfigValueRequest;
-import cafe.jeffrey.microscope.core.web.dto.response.ScopedConfigResponse;
+import cafe.jeffrey.microscope.core.web.dto.response.ConfigEntryResponse;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
 import org.springframework.http.ResponseEntity;
@@ -59,17 +59,15 @@ public class WorkspaceConfigController {
 
     /** Everything that applies to this workspace, in merge order, so the UI can show inheritance. */
     @GetMapping
-    public List<ScopedConfigResponse> listConfigs(
+    public List<ConfigEntryResponse> listConfigs(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
 
-        return resolver.resolveWorkspace(hubId, workspaceId).listConfigs().stream()
-                .map(ScopedConfigResponse::from)
-                .toList();
+        return ConfigEntryResponse.from(resolver.resolveWorkspace(hubId, workspaceId).listConfigs());
     }
 
     @PutMapping("/{scope}/{type}")
-    public ScopedConfigResponse upsertConfig(
+    public List<ConfigEntryResponse> upsertConfig(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("scope") String scope,
@@ -81,7 +79,7 @@ public class WorkspaceConfigController {
         }
 
         WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
-        return ScopedConfigResponse.from(
+        return ConfigEntryResponse.from(
                 workspace.upsertConfig(editableScope(scope), configType(type), request.value()));
     }
 

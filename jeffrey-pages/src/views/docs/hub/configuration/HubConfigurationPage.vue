@@ -359,8 +359,9 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td>
               Keeps every scope's published configuration file in step with what the Hub holds.
               Changes publish as they are made, so a tick usually rewrites nothing; this covers
-              what that cannot, such as a Hub that was down when someone edited. It never deletes
-              a file: one whose values the database does not know is read back into it.
+              what that cannot, such as a Hub that was down when someone edited. The database is
+              the source of truth: a scope is written out as it stands, and one holding nothing
+              has its file removed.
             </td>
           </tr>
           <tr>

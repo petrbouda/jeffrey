@@ -16,30 +16,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 package cafe.jeffrey.hub.core.config;
 
-import cafe.jeffrey.hub.model.config.ScopedConfig;
+import cafe.jeffrey.hub.core.HubJeffreyDirs;
+import cafe.jeffrey.hub.core.manager.RepositoryManager;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.session.SessionPaths;
+import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.config.ScopedConfigEntry;
 import cafe.jeffrey.hub.model.config.ScopedConfigKey;
 import cafe.jeffrey.hub.persistence.api.ScopedConfigRepository;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
-import cafe.jeffrey.shared.common.config.ContentDigest;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
  * Stores configuration values and keeps each scope's published file in step with them.
+ *
+ * <p><b>The database is the source of truth and the file is a projection of it.</b> Nothing ever
+ * reads a file back: a value is stored first and published second, and publishing writes whatever
+ * the database holds — including writing nothing, which removes the file.</p>
  *
  * <p>A change publishes immediately, in the same call, so a value saved in the UI reaches the
  * volume before the next JVM starts rather than up to a scheduler period later. The synchronizer
@@ -56,23 +61,26 @@ public class ScopedConfigManager {
 
     private final Clock clock;
     private final ScopedConfigRepository repository;
-    private final ScopeDirectories scopeDirectories;
+    private final HubJeffreyDirs jeffreyDirs;
+    private final WorkspacesManager workspacesManager;
     private final ScopedConfigPublisher publisher;
 
     public ScopedConfigManager(
             Clock clock,
             ScopedConfigRepository repository,
-            ScopeDirectories scopeDirectories,
+            HubJeffreyDirs jeffreyDirs,
+            WorkspacesManager workspacesManager,
             ScopedConfigPublisher publisher) {
 
         this.clock = clock;
         this.repository = repository;
-        this.scopeDirectories = scopeDirectories;
+        this.jeffreyDirs = jeffreyDirs;
+        this.workspacesManager = workspacesManager;
         this.publisher = publisher;
     }
 
     /** Stores one value and republishes its scope. */
-    public ScopedConfig upsert(ScopedConfigKey key, ConfigType type, String value) {
+    public List<ScopedConfigEntry> upsert(ScopedConfigKey key, ConfigType type, String value) {
         ConfigValueValidators.validate(type, value);
         repository.upsert(new ScopedConfigEntry(key, type, value, clock.instant()));
         LOG.info("Configuration value stored: scope={} workspace_id={} project_id={} type={}",
@@ -81,7 +89,7 @@ public class ScopedConfigManager {
     }
 
     /** Removes one value and republishes its scope, deleting the file when nothing is left. */
-    public ScopedConfig delete(ScopedConfigKey key, ConfigType type) {
+    public List<ScopedConfigEntry> delete(ScopedConfigKey key, ConfigType type) {
         repository.delete(key, type);
         LOG.info("Configuration value removed: scope={} workspace_id={} project_id={} type={}",
                 key.scope(), key.workspaceId(), key.projectId(), type);
@@ -94,63 +102,86 @@ public class ScopedConfigManager {
         publish(key);
     }
 
-    /** What one scope holds, with the digest of the file it renders to. */
-    public ScopedConfig find(ScopedConfigKey key) {
-        return describe(key, repository.find(key));
+    /** What one scope holds, empty when it holds nothing. */
+    public List<ScopedConfigEntry> find(ScopedConfigKey key) {
+        return repository.find(key);
     }
 
     /**
      * Everything that applies to a workspace — the global scope, the workspace's own and each of
-     * its projects — in merge order, with scopes holding nothing left out.
+     * its projects. Each entry carries the scope it belongs to, so a caller groups by it.
      */
-    public List<ScopedConfig> findForWorkspace(String workspaceId) {
-        Map<ScopedConfigKey, List<ScopedConfigEntry>> byScope = new LinkedHashMap<>();
-        for (ScopedConfigEntry entry : repository.findForWorkspace(workspaceId)) {
-            byScope.computeIfAbsent(entry.key(), _ -> new ArrayList<>()).add(entry);
-        }
-
-        List<ScopedConfig> configs = new ArrayList<>();
-        byScope.entrySet().stream()
-                .sorted(Comparator.comparing(entry -> entry.getKey().scope()))
-                .forEach(entry -> configs.add(describe(entry.getKey(), entry.getValue())));
-        return List.copyOf(configs);
+    public List<ScopedConfigEntry> findForWorkspace(String workspaceId) {
+        return repository.findForWorkspace(workspaceId);
     }
 
-    /**
-     * Renders a scope and writes it out. The digest comes from what was published rather than from
-     * what was stored, so a scope whose folder is not there reports no file rather than a digest
-     * for bytes that never reached the volume.
-     */
-    public ScopedConfig publish(ScopedConfigKey key) {
+    /** Writes a scope's stored values out, whatever they are. */
+    public List<ScopedConfigEntry> publish(ScopedConfigKey key) {
         List<ScopedConfigEntry> entries = repository.find(key);
-        String content = ScopedConfigRenderer.render(entries);
 
-        Optional<Path> scopeDir = scopeDirectories.resolve(key);
+        Optional<Path> scopeDir = scopeDirectory(key);
         if (scopeDir.isEmpty()) {
             LOG.debug("Nowhere to publish this scope yet: scope={} workspace_id={} project_id={}",
                     key.scope(), key.workspaceId(), key.projectId());
-            return new ScopedConfig(key, entries, "");
+            return entries;
         }
 
         try {
-            return new ScopedConfig(key, entries, publisher.publish(scopeDir.get(), content));
+            publisher.publish(scopeDir.get(), entries);
         } catch (RuntimeException e) {
             // The values are stored; the synchronizer republishes. Failing here would report a
             // successful edit as lost.
             LOG.error("Failed to publish configuration, the synchronizer will retry: "
                             + "scope={} workspace_id={} project_id={}",
                     key.scope(), key.workspaceId(), key.projectId(), e);
-            return new ScopedConfig(key, entries, "");
         }
+        return entries;
     }
 
-    private ScopedConfig describe(ScopedConfigKey key, List<ScopedConfigEntry> entries) {
-        if (entries.isEmpty()) {
-            return ScopedConfig.empty(key);
+    /**
+     * Where a scope's file belongs, empty when it has no folder to write into — never an error.
+     *
+     * <p>A workspace's folder is created when it is missing, deliberately. Its path is derived, not
+     * discovered, and it is the same path the provisioner would create; creating it here is what
+     * lets a workspace's very first JVM already find a file, instead of running on defaults because
+     * nothing had happened in that workspace yet.</p>
+     *
+     * <p>A project's folder is never created. A project exists in the hub only because the
+     * provisioner declared it by writing into its directory, so a missing directory means the
+     * project is gone rather than new, and creating it would resurrect a shell of something that
+     * was deleted.</p>
+     */
+    private Optional<Path> scopeDirectory(ScopedConfigKey key) {
+        return switch (key.scope()) {
+            case GLOBAL -> Optional.of(jeffreyDirs.workspaces());
+            case WORKSPACE -> workspaceDirectory(key.workspaceId());
+            case PROJECT -> projectDirectory(key.workspaceId(), key.projectId());
+        };
+    }
+
+    private Optional<Path> workspaceDirectory(String workspaceId) {
+        return workspacesManager.findById(workspaceId)
+                .map(WorkspaceManager::resolveInfo)
+                .map(info -> FileSystemUtils.createDirectories(info.location().toPath()));
+    }
+
+    private Optional<Path> projectDirectory(String workspaceId, String projectId) {
+        Optional<Path> directory = workspacesManager.findById(workspaceId)
+                .flatMap(workspace -> workspace.projectsManager().project(projectId))
+                .map(ProjectManager::repositoryManager)
+                .flatMap(RepositoryManager::info)
+                .map(this::projectPath)
+                .filter(FileSystemUtils::isDirectory);
+
+        if (directory.isEmpty()) {
+            LOG.debug("No project directory to publish into: workspace_id={} project_id={}",
+                    workspaceId, projectId);
         }
-        String content = ScopedConfigRenderer.render(entries);
-        return new ScopedConfig(key, entries,
-                ContentDigest.sha256Hex(content));
+        return directory;
+    }
+
+    private Path projectPath(RepositoryInfo repositoryInfo) {
+        return SessionPaths.project(jeffreyDirs.workspaces(), repositoryInfo);
     }
 
     /** The scope a workspace's own values live at, spelled once. */

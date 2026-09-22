@@ -128,20 +128,4 @@ message InstanceSessionInfo {
   // Whether this session failed: finished without producing any data (zero bytes),
   // typically a prematurely killed process (OOM kill, container healthcheck restart loop).
   bool failed = 6;
-  // Which configuration layer supplied the session's profiler command: a layer inside the
-  // container, one of the hub-published scopes, or the provisioner's built-in default. Absent for
-  // a session declared by a provisioner too old to record it.
-  optional string profiler_command_source = 7;
-  // The resolved profiler command the session was started with.
-  optional string profiler_command = 8;
-  // The hub-published files the session merged, in scope order. Empty when it merged none.
-  repeated AppliedConfigLayer config_layers = 9;
-}
-
-// One hub-published configuration file a session merged when it was provisioned.
-message AppliedConfigLayer {
-  ConfigScope scope = 1;
-  // SHA-256 of the file as the provisioner read it, lower-case hex. Compare it with the digest the
-  // scoped config service reports to tell whether this JVM is still on the current configuration.
-  string digest = 2;
 }

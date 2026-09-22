@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.manager.workspace;
 
-import cafe.jeffrey.microscope.model.config.ScopedConfig;
+import cafe.jeffrey.microscope.model.config.ConfigEntry;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
@@ -53,16 +53,16 @@ public interface WorkspaceManager {
      * of its projects, in merge order. One call because an editor always needs a scope together
      * with what it inherits.
      */
-    List<ScopedConfig> listConfigs();
+    List<ConfigEntry> listConfigs();
 
     /**
      * Stores one configuration value at the global or workspace scope. The hub validates it and
      * republishes the scope's file; the value reaches a JVM on its next start.
      */
-    ScopedConfig upsertConfig(ConfigScope scope, ConfigType type, String value);
+    List<ConfigEntry> upsertConfig(ConfigScope scope, ConfigType type, String value);
 
     /** Removes one configuration value from the global or workspace scope. */
-    ScopedConfig deleteConfig(ConfigScope scope, ConfigType type);
+    List<ConfigEntry> deleteConfig(ConfigScope scope, ConfigType type);
 
     /**
      * Deletes the workspace from the repository.

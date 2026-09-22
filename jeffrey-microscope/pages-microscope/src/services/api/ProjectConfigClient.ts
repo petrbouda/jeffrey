@@ -18,7 +18,7 @@
 
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import ScopedConfig, { ConfigType } from '@/services/api/model/ScopedConfig';
+import ConfigEntry, { ConfigType } from '@/services/api/model/ConfigEntry';
 
 /** Configuration the Hub holds for one project's own scope. */
 export default class ProjectConfigClient extends BasePlatformClient {
@@ -26,12 +26,12 @@ export default class ProjectConfigClient extends BasePlatformClient {
     super(`/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/config`);
   }
 
-  fetch(): Promise<ScopedConfig> {
-    return super.get<ScopedConfig>();
+  fetch(): Promise<ConfigEntry[]> {
+    return super.get<ConfigEntry[]>();
   }
 
-  upsert(type: ConfigType, value: string): Promise<ScopedConfig> {
-    return super.put<ScopedConfig>(`/${type}`, { value });
+  upsert(type: ConfigType, value: string): Promise<ConfigEntry[]> {
+    return super.put<ConfigEntry[]>(`/${type}`, { value });
   }
 
   delete(type: ConfigType): Promise<void> {

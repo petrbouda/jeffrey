@@ -289,7 +289,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>GetConfig</code>
                 </div>
-                <p>What one scope holds, with the digest of the file it renders to</p>
+                <p>The values one scope holds, empty when it holds nothing</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">

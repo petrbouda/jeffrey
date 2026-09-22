@@ -93,7 +93,7 @@ public class InitExecutor {
         LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} "
                         + "profiler_source={} config_layers={} arg_file={}",
                 config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
-                resolvedCommand.source(), config.getAppliedConfigLayers().size(), config.getArgFilePath());
+                resolvedCommand.source(), config.getMergedConfigScopes().size(), config.getArgFilePath());
     }
 
 }

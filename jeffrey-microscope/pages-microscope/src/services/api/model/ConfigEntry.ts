@@ -26,29 +26,23 @@ export type ConfigScope = 'GLOBAL' | 'WORKSPACE' | 'PROJECT';
  */
 export type ConfigType = 'ASPROF_SETTINGS';
 
-/** One stored configuration value. */
-export interface ConfigEntry {
+/**
+ * One stored configuration value, carrying the scope it belongs to.
+ *
+ * A scope holds at most one value per type, so the API answers with a flat list and the caller
+ * groups by scope. `workspaceId` is null for the global scope and `projectId` for everything but
+ * a project.
+ */
+export default interface ConfigEntry {
+  scope: ConfigScope;
+  workspaceId: string | null;
+  projectId: string | null;
   type: ConfigType;
   value: string;
   updatedAt: number;
 }
 
-/**
- * Everything the hub holds for one scope.
- *
- * `digest` identifies the file this scope renders to on the shared volume and is empty when the
- * scope holds nothing. A session records the digest of every layer it merged, so comparing the two
- * says whether a running JVM is still on the current configuration.
- */
-export default interface ScopedConfig {
-  scope: ConfigScope;
-  workspaceId: string | null;
-  projectId: string | null;
-  entries: ConfigEntry[];
-  digest: string;
-}
-
-/** The value of one type within a scope, or null when the scope does not set it. */
-export function entryOf(config: ScopedConfig | null, type: ConfigType): ConfigEntry | null {
-  return config?.entries.find((entry) => entry.type === type) ?? null;
+/** The value of one type within a scope, or null when that scope does not set it. */
+export function entryOf(entries: ConfigEntry[], scope: ConfigScope, type: ConfigType): ConfigEntry | null {
+  return entries.find((entry) => entry.scope === scope && entry.type === type) ?? null;
 }

@@ -27,33 +27,36 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class AsprofSettingsValidatorTest {
+class ConfigValueValidatorsTest {
 
-    private final AsprofSettingsValidator validator = new AsprofSettingsValidator();
+    /** Every rule below is ASPROF_SETTINGS', so the type is spelled once. */
+    private static void validate(String value) {
+        ConfigValueValidators.validate(ConfigType.ASPROF_SETTINGS, value);
+    }
 
     @Nested
     class Accepts {
 
         @Test
         void aPlainCommand() {
-            assertDoesNotThrow(() -> validator.validate("-agentpath:/opt/lib.so=start,cpu"));
+            assertDoesNotThrow(() -> validate("-agentpath:/opt/lib.so=start,cpu"));
         }
 
         @Test
         void everyPlaceholderTheProvisionerCanAnswer() {
-            assertDoesNotThrow(() -> validator.validate(
+            assertDoesNotThrow(() -> validate(
                     "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,file=<<JEFFREY:CURRENT_SESSION>>/p-%t.jfr"));
         }
 
         /** Environment placeholders are the deployment's business, not something the hub can check. */
         @Test
         void anEnvironmentPlaceholder() {
-            assertDoesNotThrow(() -> validator.validate("-agentpath:/opt/lib.so=start,tag=<<ENV:CLUSTER>>"));
+            assertDoesNotThrow(() -> validate("-agentpath:/opt/lib.so=start,tag=<<ENV:CLUSTER>>"));
         }
 
         @Test
         void aPlaceholderWithADefault() {
-            assertDoesNotThrow(() -> validator.validate("<<JEFFREY:PROFILER_PATH:-/opt/lib.so>>"));
+            assertDoesNotThrow(() -> validate("<<JEFFREY:PROFILER_PATH:-/opt/lib.so>>"));
         }
     }
 
@@ -62,9 +65,9 @@ class AsprofSettingsValidatorTest {
 
         @Test
         void anEmptyCommand() {
-            assertThrows(IllegalArgumentException.class, () -> validator.validate(""));
-            assertThrows(IllegalArgumentException.class, () -> validator.validate("   "));
-            assertThrows(IllegalArgumentException.class, () -> validator.validate(null));
+            assertThrows(IllegalArgumentException.class, () -> validate(""));
+            assertThrows(IllegalArgumentException.class, () -> validate("   "));
+            assertThrows(IllegalArgumentException.class, () -> validate(null));
         }
 
         /**
@@ -75,7 +78,7 @@ class AsprofSettingsValidatorTest {
         @Test
         void aPlaceholderNothingCanResolve() {
             IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                    () -> validator.validate("-agentpath:<<JEFFREY:NOPE>>=start"));
+                    () -> validate("-agentpath:<<JEFFREY:NOPE>>=start"));
 
             assertTrue(thrown.getMessage().contains("NOPE"), "the message must name the bad placeholder");
         }
@@ -83,12 +86,12 @@ class AsprofSettingsValidatorTest {
         /** An argfile is line-based, so a value spanning lines would not survive the round trip. */
         @Test
         void aCommandSpanningLines() {
-            assertThrows(IllegalArgumentException.class, () -> validator.validate("start\n-XX:+UseG1GC"));
+            assertThrows(IllegalArgumentException.class, () -> validate("start\n-XX:+UseG1GC"));
         }
 
         @Test
         void aCommandLongerThanTheCap() {
-            assertThrows(IllegalArgumentException.class, () -> validator.validate("x".repeat(8193)));
+            assertThrows(IllegalArgumentException.class, () -> validate("x".repeat(8193)));
         }
     }
 

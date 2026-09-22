@@ -142,13 +142,7 @@ public class InstancesClient {
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 proto.getIsActive(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
-                proto.getFailed(),
-                proto.hasProfilerCommandSource() ? proto.getProfilerCommandSource() : null,
-                proto.hasProfilerCommand() ? proto.getProfilerCommand() : null,
-                proto.getConfigLayersList().stream()
-                        .map(layer -> new InstanceSessionResponse.AppliedConfigLayerResponse(
-                                ClientProtoMappers.configScope(layer.getScope()), layer.getDigest()))
-                        .toList());
+                proto.getFailed());
     }
 
 }

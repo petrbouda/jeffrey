@@ -27,7 +27,7 @@ import cafe.jeffrey.hub.api.v1.ListWorkspaceConfigsResponse;
 import cafe.jeffrey.hub.api.v1.ScopedConfigServiceGrpc;
 import cafe.jeffrey.hub.api.v1.UpsertConfigRequest;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.microscope.model.config.ScopedConfig;
+import cafe.jeffrey.microscope.model.config.ConfigEntry;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
 import org.slf4j.Logger;
@@ -52,40 +52,44 @@ public class ScopedConfigClient {
         this.stub = ScopedConfigServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public ScopedConfig get(ConfigScope scope, String workspaceId, String projectId) {
-        return ClientProtoMappers.scopedConfig(stub.getConfig(GetConfigRequest.newBuilder()
+    public List<ConfigEntry> get(ConfigScope scope, String workspaceId, String projectId) {
+        return entries(stub.getConfig(GetConfigRequest.newBuilder()
                 .setKey(key(scope, workspaceId, projectId))
-                .build()).getConfig());
+                .build()).getEntriesList());
     }
 
     /** The global scope, the workspace's own and every project's, in merge order. */
-    public List<ScopedConfig> listForWorkspace(String workspaceId) {
+    public List<ConfigEntry> listForWorkspace(String workspaceId) {
         ListWorkspaceConfigsResponse response = stub.listWorkspaceConfigs(
                 ListWorkspaceConfigsRequest.newBuilder().setWorkspaceId(workspaceId).build());
 
-        LOG.debug("Listed workspace configuration via gRPC: workspace_id={} scopes={}",
-                workspaceId, response.getConfigsCount());
+        LOG.debug("Listed workspace configuration via gRPC: workspace_id={} entries={}",
+                workspaceId, response.getEntriesCount());
 
-        return response.getConfigsList().stream()
-                .map(ClientProtoMappers::scopedConfig)
-                .toList();
+        return entries(response.getEntriesList());
     }
 
-    public ScopedConfig upsert(
+    public List<ConfigEntry> upsert(
             ConfigScope scope, String workspaceId, String projectId, ConfigType type, String value) {
 
-        return ClientProtoMappers.scopedConfig(stub.upsertConfig(UpsertConfigRequest.newBuilder()
+        return entries(stub.upsertConfig(UpsertConfigRequest.newBuilder()
                 .setKey(key(scope, workspaceId, projectId))
                 .setType(ClientProtoMappers.configType(type))
                 .setValue(value)
-                .build()).getConfig());
+                .build()).getEntriesList());
     }
 
-    public ScopedConfig delete(ConfigScope scope, String workspaceId, String projectId, ConfigType type) {
-        return ClientProtoMappers.scopedConfig(stub.deleteConfig(DeleteConfigRequest.newBuilder()
+    public List<ConfigEntry> delete(
+            ConfigScope scope, String workspaceId, String projectId, ConfigType type) {
+
+        return entries(stub.deleteConfig(DeleteConfigRequest.newBuilder()
                 .setKey(key(scope, workspaceId, projectId))
                 .setType(ClientProtoMappers.configType(type))
-                .build()).getConfig());
+                .build()).getEntriesList());
+    }
+
+    private static List<ConfigEntry> entries(List<cafe.jeffrey.hub.api.v1.ConfigEntry> wire) {
+        return wire.stream().map(ClientProtoMappers::configEntry).toList();
     }
 
     private static ConfigScopeKey key(ConfigScope scope, String workspaceId, String projectId) {

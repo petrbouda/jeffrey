@@ -21,14 +21,12 @@ package cafe.jeffrey.provisioner.config;
 
 import cafe.jeffrey.provisioner.ProjectLayout;
 import cafe.jeffrey.shared.common.config.ConfigScope;
-import cafe.jeffrey.shared.common.config.ContentDigest;
 import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -83,18 +81,6 @@ class VolumeConfigLayersTest {
             assertEquals(ConfigScope.WORKSPACE, layers.getFirst().scope());
         }
 
-        @Test
-        void digestsTheBytesItRead() throws IOException {
-            ProjectLayout layout = layout();
-            String content = "asprof-settings = \"start,cpu\"\n";
-            publish(layout.workspace(), content);
-
-            VolumeConfigLayer layer = VolumeConfigLayers.discover(layout).getFirst();
-
-            assertEquals(
-                    ContentDigest.sha256Hex(content.getBytes(StandardCharsets.UTF_8)),
-                    layer.digest());
-        }
     }
 
     @Nested

@@ -21,7 +21,6 @@ package cafe.jeffrey.provisioner.config;
 
 import cafe.jeffrey.provisioner.ProjectLayout;
 import cafe.jeffrey.shared.common.config.ConfigScope;
-import cafe.jeffrey.shared.common.config.ContentDigest;
 import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -88,11 +87,9 @@ public abstract class VolumeConfigLayers {
             return Optional.empty();
         }
 
-        byte[] content;
+        String content;
         try {
-            // Read once: the digest and the parsed content must describe the same bytes, which a
-            // second read cannot promise while the hub may be republishing.
-            content = Files.readAllBytes(file);
+            content = Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
             LOG.warn("Skipping an unreadable configuration layer: scope={} file={} error={}",
                     scope, file, e.getMessage());
@@ -101,8 +98,7 @@ public abstract class VolumeConfigLayers {
 
         Config parsed;
         try {
-            parsed = ConfigFactory.parseString(new String(content, StandardCharsets.UTF_8),
-                    PARSE_OPTIONS);
+            parsed = ConfigFactory.parseString(content, PARSE_OPTIONS);
         } catch (ConfigException e) {
             LOG.warn("Skipping an unparseable configuration layer: scope={} file={} error={}",
                     scope, file, e.getMessage());
@@ -112,8 +108,7 @@ public abstract class VolumeConfigLayers {
         Config publishable = onlyPublishablePaths(scope, parsed);
         LOG.debug("Configuration layer loaded: scope={} file={} keys={}",
                 scope, file, publishable.root().keySet());
-        return Optional.of(
-                new VolumeConfigLayer(scope, file, ContentDigest.sha256Hex(content), publishable));
+        return Optional.of(new VolumeConfigLayer(scope, file, publishable));
     }
 
     /**

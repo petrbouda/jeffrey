@@ -34,7 +34,6 @@ import cafe.jeffrey.shared.common.config.ConfigType;
 import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -986,7 +985,7 @@ class InitConfigTest {
 
         private VolumeConfigLayer layer(ConfigScope scope, String hocon) {
             return new VolumeConfigLayer(
-                    scope, Path.of("/volume/.config/jeffrey.conf"), "digest-" + scope,
+                    scope, Path.of("/volume/.config/jeffrey.conf"),
                     ConfigFactory.parseString(hocon));
         }
 
@@ -1050,19 +1049,18 @@ class InitConfigTest {
 
             assertNull(config.getAsprofSettings());
             assertEquals(ConfigSource.BUILT_IN, config.getProfilerCommandSource());
-            assertTrue(config.getAppliedConfigLayers().isEmpty());
+            assertTrue(config.getMergedConfigScopes().isEmpty());
         }
 
         @Test
-        void everyLayerFoundIsReportedForTheSessionMarker() {
+        void everyLayerFoundIsReported() {
             InitConfig config = withLayers(base(minimalEnv()),
                     layer(ConfigScope.GLOBAL, ASPROF_SETTINGS + " = \"global\""),
                     layer(ConfigScope.PROJECT, ASPROF_SETTINGS + " = \"project\""));
 
             assertEquals(
                     List.of(ConfigScope.GLOBAL, ConfigScope.PROJECT),
-                    config.getAppliedConfigLayers().stream().map(AppliedConfigLayer::scope).toList());
-            assertEquals("digest-GLOBAL", config.getAppliedConfigLayers().getFirst().digest());
+                    config.getMergedConfigScopes());
         }
 
         /**

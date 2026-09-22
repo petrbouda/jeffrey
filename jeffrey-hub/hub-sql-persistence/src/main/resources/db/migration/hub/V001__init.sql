@@ -102,15 +102,6 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     -- a provisioner too old to say, and only a TRUE session is held to the heartbeat deadline
     -- (see SessionFinisher).
     heartbeat_expected    BOOLEAN,
-    -- What this session was actually started with, copied from its marker file. The command is the
-    -- fully resolved one, the source names the configuration layer its base came from, and
-    -- config_layers is a JSON array of {scope, digest} naming the hub-published files that were
-    -- merged. Comparing those digests with what the hub holds now is what says whether a running
-    -- JVM is still on the current configuration. All three are NULL for a session declared by a
-    -- provisioner too old to record them.
-    profiler_command_source VARCHAR,
-    profiler_command        VARCHAR,
-    config_layers           VARCHAR,
     PRIMARY KEY (repository_id, session_id)
 );
 

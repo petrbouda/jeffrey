@@ -20,15 +20,11 @@
 package cafe.jeffrey.shared.common.model.repository;
 
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.config.ConfigScope;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The marker files on the shared volume are a contract between two processes that upgrade
@@ -60,7 +56,6 @@ class RemoteProjectInstanceSessionSerdeTest {
             assertEquals(1, session.order());
             assertNull(session.profilerCommandSource());
             assertNull(session.profilerCommand());
-            assertTrue(session.configLayers().isEmpty());
         }
 
         @Test
@@ -110,7 +105,7 @@ class RemoteProjectInstanceSessionSerdeTest {
 
         @Test
         void aSessionDeclaringNoHeartbeatRoundTripsAsFalse() {
-            RemoteProjectInstanceSession session = session(false, List.of());
+            RemoteProjectInstanceSession session = session(false);
 
             RemoteProjectInstanceSession read =
                     Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
@@ -119,32 +114,18 @@ class RemoteProjectInstanceSessionSerdeTest {
         }
 
         @Test
-        void appliedConfigLayersRoundTrip() {
-            RemoteProjectInstanceSession session = session(true, List.of(
-                    new AppliedConfigLayer(ConfigScope.WORKSPACE, "aaa"),
-                    new AppliedConfigLayer(ConfigScope.PROJECT, "bbb")));
+        void theProfilerFieldsRoundTrip() {
+            RemoteProjectInstanceSession session = session(true);
 
             RemoteProjectInstanceSession read =
                     Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 
             assertEquals(session, read);
-            assertEquals(ConfigScope.PROJECT, read.configLayers().get(1).scope());
-            assertEquals("bbb", read.configLayers().get(1).digest());
-        }
-
-        @Test
-        void missingConfigLayersBecomeAnEmptyListRatherThanNull() {
-            RemoteProjectInstanceSession session = session(true, null);
-
-            assertTrue(session.configLayers().isEmpty());
-            assertTrue(Json.read(Json.toString(session), RemoteProjectInstanceSession.class)
-                    .configLayers().isEmpty());
+            assertEquals("HUB_WORKSPACE", read.profilerCommandSource());
         }
     }
 
-    private static RemoteProjectInstanceSession session(
-            boolean heartbeatExpected, List<AppliedConfigLayer> layers) {
-
+    private static RemoteProjectInstanceSession session(boolean heartbeatExpected) {
         return new RemoteProjectInstanceSession(
                 "session-001",
                 "proj-001",
@@ -155,7 +136,6 @@ class RemoteProjectInstanceSessionSerdeTest {
                 "inst-001/session-001",
                 "HUB_WORKSPACE",
                 "-agentpath:/opt/libasyncProfiler.so=start,cpu",
-                heartbeatExpected,
-                layers);
+                heartbeatExpected);
     }
 }

@@ -21,22 +21,9 @@ package cafe.jeffrey.hub.client.dto;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProjectInstanceSessionInfo;
 
-import cafe.jeffrey.shared.common.config.ConfigScope;
-import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
-
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 
-/**
- * One recording session as the UI sees it.
- *
- * <p>The profiler fields describe what the run was started with, as its provisioner recorded it:
- * the resolved command, the configuration layer its base came from, and the hub-published files
- * that were merged with the digest each had when it was read. Comparing those digests with what
- * the hub holds now is what tells a reader whether a running JVM is still current. All three are
- * absent for a session declared by a provisioner too old to record them.</p>
- */
 public record InstanceSessionResponse(
         String id,
         String repositoryId,
@@ -44,14 +31,7 @@ public record InstanceSessionResponse(
         Long finishedAt,
         boolean isActive,
         Long duration,
-        boolean failed,
-        String profilerCommandSource,
-        String profilerCommand,
-        List<AppliedConfigLayerResponse> configLayers) {
-
-    /** One hub-published file a session merged, and which version of it. */
-    public record AppliedConfigLayerResponse(ConfigScope scope, String digest) {
-    }
+        boolean failed) {
 
     public static InstanceSessionResponse from(ProjectInstanceSessionInfo info, Clock clock) {
         Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
@@ -64,11 +44,6 @@ public record InstanceSessionResponse(
                 InstantUtils.toEpochMilli(info.finishedAt()),
                 info.finishedAt() == null,
                 duration,
-                info.failed(),
-                info.profilerCommandSource(),
-                info.profilerCommand(),
-                info.configLayers().stream()
-                        .map(layer -> new AppliedConfigLayerResponse(layer.scope(), layer.digest()))
-                        .toList());
+                info.failed());
     }
 }

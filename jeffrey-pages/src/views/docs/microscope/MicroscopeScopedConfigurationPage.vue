@@ -189,7 +189,7 @@ onMounted(() => {
         Each scope's editor has two tabs. <strong>Manual</strong> takes the command as text, and
         <strong>Visual Builder</strong> composes one from the fields below and hands it to the
         manual tab so you can read it before saving. Above them, the current value is shown with
-        when it was last saved and a short digest of the file it renders to.
+        when it was last saved.
       </p>
 
       <p>

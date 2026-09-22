@@ -14,7 +14,7 @@
 
       <ScopedConfigEditor
         :scope="activeScope"
-        :config="configFor(activeScope)"
+        :entries="entries"
         :is-deleting="isDeleting"
         @save="saveValue"
         @delete="deleteValue"
@@ -31,8 +31,8 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import ToastService from '@shared/services/ToastService';
 import ScopedConfigEditor from '@/components/config/ScopedConfigEditor.vue';
 import WorkspaceConfigClient from '@/services/api/WorkspaceConfigClient';
-import type ScopedConfig from '@/services/api/model/ScopedConfig';
-import type { ConfigScope, ConfigType } from '@/services/api/model/ScopedConfig';
+import type ConfigEntry from '@/services/api/model/ConfigEntry';
+import type { ConfigScope, ConfigType } from '@/services/api/model/ConfigEntry';
 
 interface Props {
   hubId: string;
@@ -54,17 +54,13 @@ const isLoading = ref(true);
 const isDeleting = ref(false);
 const loadError = ref<string | null>(null);
 const activeScope = ref<ConfigScope>('WORKSPACE');
-const configs = ref<ScopedConfig[]>([]);
-
-function configFor(scope: ConfigScope): ScopedConfig | null {
-  return configs.value.find((config) => config.scope === scope) ?? null;
-}
+const entries = ref<ConfigEntry[]>([]);
 
 async function loadConfigs() {
   isLoading.value = true;
   loadError.value = null;
   try {
-    configs.value = await client.list();
+    entries.value = await client.list();
   } catch (error) {
     console.error('Failed to load configuration:', error);
     loadError.value = 'Failed to load configuration';

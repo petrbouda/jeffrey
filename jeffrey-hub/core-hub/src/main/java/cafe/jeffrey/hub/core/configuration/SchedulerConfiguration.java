@@ -33,7 +33,6 @@ import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
 import cafe.jeffrey.hub.core.scheduler.PeriodicalScheduler;
 import cafe.jeffrey.hub.core.scheduler.job.DeletedProjectsCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ExpiredInstanceCleanerJob;
-import cafe.jeffrey.hub.core.config.ScopedConfigAdopter;
 import cafe.jeffrey.hub.core.config.ScopedConfigManager;
 import cafe.jeffrey.hub.core.scheduler.job.ScopedConfigSynchronizerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectInstanceSessionCleanerJob;
@@ -156,14 +155,11 @@ public class SchedulerConfiguration {
     // ========== WORKSPACE fan-out ==========
 
     @Bean
-    public ScopedConfigSynchronizerJob scopedConfigSynchronizerJob(
-            ScopedConfigManager configManager, ScopedConfigAdopter configAdopter) {
-
+    public ScopedConfigSynchronizerJob scopedConfigSynchronizerJob(ScopedConfigManager configManager) {
         return new ScopedConfigSynchronizerJob(
                 workspacesManager,
                 config(JobType.SCOPED_CONFIG_SYNCHRONIZER),
-                configManager,
-                configAdopter);
+                configManager);
     }
 
     // ========== PROJECT fan-out ==========

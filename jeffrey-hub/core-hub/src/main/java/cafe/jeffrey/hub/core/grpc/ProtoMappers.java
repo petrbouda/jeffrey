@@ -31,14 +31,13 @@ import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryFile;
 import cafe.jeffrey.hub.api.v1.SessionFilter;
-import cafe.jeffrey.hub.api.v1.ScopedConfig;
 import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceStatus;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.config.ScopedConfigEntry;
-import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.hub.model.config.ScopedConfigEntry;
+import cafe.jeffrey.hub.model.config.ScopedConfigKey;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
 import java.time.Instant;
@@ -131,21 +130,16 @@ public final class ProtoMappers {
         };
     }
 
-    public static ScopedConfig scopedConfig(cafe.jeffrey.hub.model.config.ScopedConfig config) {
-        ScopedConfig.Builder builder = ScopedConfig.newBuilder()
-                .setKey(configScopeKey(config.key()))
-                .setDigest(config.digest());
-        for (ScopedConfigEntry entry : config.entries()) {
-            builder.addEntries(ConfigEntry.newBuilder()
-                    .setType(configType(entry.type()))
-                    .setValue(entry.value())
-                    .setUpdatedAt(entry.updatedAt().toEpochMilli())
-                    .build());
-        }
-        return builder.build();
+    public static ConfigEntry configEntry(ScopedConfigEntry entry) {
+        return ConfigEntry.newBuilder()
+                .setKey(configScopeKey(entry.key()))
+                .setType(configType(entry.type()))
+                .setValue(entry.value())
+                .setUpdatedAt(entry.updatedAt().toEpochMilli())
+                .build();
     }
 
-    public static ConfigScopeKey configScopeKey(cafe.jeffrey.hub.model.config.ScopedConfigKey key) {
+    public static ConfigScopeKey configScopeKey(ScopedConfigKey key) {
         return ConfigScopeKey.newBuilder()
                 .setScope(configScope(key.scope()))
                 .setWorkspaceId(orEmpty(key.workspaceId()))
@@ -262,18 +256,6 @@ public final class ProtoMappers {
                 .setFailed(failedSessionIds.contains(info.sessionId()));
         if (info.finishedAt() != null) {
             builder.setFinishedAt(info.finishedAt().toEpochMilli());
-        }
-        if (info.profilerCommandSource() != null) {
-            builder.setProfilerCommandSource(info.profilerCommandSource().name());
-        }
-        if (info.profilerCommand() != null) {
-            builder.setProfilerCommand(info.profilerCommand());
-        }
-        for (AppliedConfigLayer layer : info.configLayers()) {
-            builder.addConfigLayers(cafe.jeffrey.hub.api.v1.AppliedConfigLayer.newBuilder()
-                    .setScope(configScope(layer.scope()))
-                    .setDigest(layer.digest())
-                    .build());
         }
         return builder.build();
     }

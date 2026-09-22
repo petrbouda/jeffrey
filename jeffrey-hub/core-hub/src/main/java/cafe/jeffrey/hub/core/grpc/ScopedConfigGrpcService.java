@@ -19,6 +19,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.api.v1.ConfigEntry;
 import cafe.jeffrey.hub.api.v1.ConfigScopeKey;
 import cafe.jeffrey.hub.api.v1.DeleteConfigRequest;
 import cafe.jeffrey.hub.api.v1.DeleteConfigResponse;
@@ -30,7 +31,7 @@ import cafe.jeffrey.hub.api.v1.ScopedConfigServiceGrpc;
 import cafe.jeffrey.hub.api.v1.UpsertConfigRequest;
 import cafe.jeffrey.hub.api.v1.UpsertConfigResponse;
 import cafe.jeffrey.hub.core.config.ScopedConfigManager;
-import cafe.jeffrey.hub.model.config.ScopedConfig;
+import cafe.jeffrey.hub.model.config.ScopedConfigEntry;
 import cafe.jeffrey.hub.model.config.ScopedConfigKey;
 import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigType;
@@ -67,7 +68,7 @@ public class ScopedConfigGrpcService extends ScopedConfigServiceGrpc.ScopedConfi
             lookups.requireExists(key);
 
             return GetConfigResponse.newBuilder()
-                    .setConfig(ProtoMappers.scopedConfig(configManager.find(key)))
+                    .addAllEntries(entries(configManager.find(key)))
                     .build();
         });
     }
@@ -83,10 +84,9 @@ public class ScopedConfigGrpcService extends ScopedConfigServiceGrpc.ScopedConfi
             }
             lookups.requireExists(ScopedConfigKey.workspace(workspaceId));
 
-            List<ScopedConfig> configs = configManager.findForWorkspace(workspaceId);
-            ListWorkspaceConfigsResponse.Builder builder = ListWorkspaceConfigsResponse.newBuilder();
-            configs.forEach(config -> builder.addConfigs(ProtoMappers.scopedConfig(config)));
-            return builder.build();
+            return ListWorkspaceConfigsResponse.newBuilder()
+                    .addAllEntries(entries(configManager.findForWorkspace(workspaceId)))
+                    .build();
         });
     }
 
@@ -97,13 +97,13 @@ public class ScopedConfigGrpcService extends ScopedConfigServiceGrpc.ScopedConfi
             lookups.requireExists(key);
             ConfigType type = configType(request.getType());
 
-            ScopedConfig config = configManager.upsert(key, type, request.getValue());
+            List<ScopedConfigEntry> stored = configManager.upsert(key, type, request.getValue());
 
             LOG.debug("Upserted configuration via gRPC: scope={} workspace_id={} project_id={} type={}",
                     key.scope(), key.workspaceId(), key.projectId(), type);
 
             return UpsertConfigResponse.newBuilder()
-                    .setConfig(ProtoMappers.scopedConfig(config))
+                    .addAllEntries(entries(stored))
                     .build();
         });
     }
@@ -115,15 +115,19 @@ public class ScopedConfigGrpcService extends ScopedConfigServiceGrpc.ScopedConfi
             lookups.requireExists(key);
             ConfigType type = configType(request.getType());
 
-            ScopedConfig config = configManager.delete(key, type);
+            List<ScopedConfigEntry> remaining = configManager.delete(key, type);
 
             LOG.debug("Deleted configuration via gRPC: scope={} workspace_id={} project_id={} type={}",
                     key.scope(), key.workspaceId(), key.projectId(), type);
 
             return DeleteConfigResponse.newBuilder()
-                    .setConfig(ProtoMappers.scopedConfig(config))
+                    .addAllEntries(entries(remaining))
                     .build();
         });
+    }
+
+    private static List<ConfigEntry> entries(List<ScopedConfigEntry> stored) {
+        return stored.stream().map(ProtoMappers::configEntry).toList();
     }
 
     /**

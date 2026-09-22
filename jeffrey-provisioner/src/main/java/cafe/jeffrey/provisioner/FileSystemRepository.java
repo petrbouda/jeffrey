@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
@@ -141,8 +140,7 @@ public class FileSystemRepository {
             int order,
             Path sessionPath,
             ProfilerCommandResolver.ResolvedProfilerCommand resolvedCommand,
-            boolean heartbeatExpected,
-            List<AppliedConfigLayer> configLayers) {
+            boolean heartbeatExpected) {
         LOG.debug("Adding session to filesystem repository: sessionId={} projectId={} instanceId={} sessionPath={}", sessionId, projectId, instanceId, sessionPath);
         try {
             // Build relative session path: instanceId/sessionId (instance is always required)
@@ -158,8 +156,7 @@ public class FileSystemRepository {
                     relativeSessionPath,
                     resolvedCommand.source().name(),
                     resolvedCommand.command(),
-                    heartbeatExpected,
-                    configLayers);
+                    heartbeatExpected);
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             writeAtomically(sessionInfoFile, Json.toString(session));

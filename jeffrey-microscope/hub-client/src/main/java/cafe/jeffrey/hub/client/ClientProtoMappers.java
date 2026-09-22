@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.client;
 
 import cafe.jeffrey.microscope.model.config.ConfigEntry;
-import cafe.jeffrey.microscope.model.config.ScopedConfig;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.common.config.ConfigScope;
@@ -75,17 +74,11 @@ public abstract class ClientProtoMappers {
 
     // ========== Scoped configuration ==========
 
-    public static ScopedConfig scopedConfig(cafe.jeffrey.hub.api.v1.ScopedConfig config) {
-        return new ScopedConfig(
-                configScope(config.getKey().getScope()),
-                nullIfEmpty(config.getKey().getWorkspaceId()),
-                nullIfEmpty(config.getKey().getProjectId()),
-                config.getEntriesList().stream().map(ClientProtoMappers::configEntry).toList(),
-                config.getDigest());
-    }
-
-    private static ConfigEntry configEntry(cafe.jeffrey.hub.api.v1.ConfigEntry entry) {
+    public static ConfigEntry configEntry(cafe.jeffrey.hub.api.v1.ConfigEntry entry) {
         return new ConfigEntry(
+                configScope(entry.getKey().getScope()),
+                nullIfEmpty(entry.getKey().getWorkspaceId()),
+                nullIfEmpty(entry.getKey().getProjectId()),
                 configType(entry.getType()),
                 entry.getValue(),
                 Instant.ofEpochMilli(entry.getUpdatedAt()));

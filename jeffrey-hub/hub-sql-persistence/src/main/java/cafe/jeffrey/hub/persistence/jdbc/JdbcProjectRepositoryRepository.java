@@ -58,10 +58,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     //language=SQL
     private static final String INSERT_REPOSITORY_SESSION = """
             INSERT INTO project_instance_sessions
-            (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, heartbeat_expected,
-             profiler_command_source, profiler_command, config_layers)
-            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :origin_created_at, :created_at, :heartbeat_expected,
-                    :profiler_command_source, :profiler_command, :config_layers)
+            (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at, heartbeat_expected)
+            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :origin_created_at, :created_at, :heartbeat_expected)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -181,13 +179,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("relative_session_path", session.relativeSessionPath().toString())
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC))
-                .addValue("heartbeat_expected", session.heartbeatExpected())
-                .addValue("profiler_command_source",
-                        session.profilerCommandSource() == null ? null : session.profilerCommandSource().name())
-                .addValue("profiler_command", session.profilerCommand())
-                // A short list that is only ever read back whole, so one JSON column rather than a
-                // table nothing would ever join against
-                .addValue("config_layers", HubMappers.configLayersToJson(session.configLayers()));
+                .addValue("heartbeat_expected", session.heartbeatExpected());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_SESSION, INSERT_REPOSITORY_SESSION, paramSource);
     }

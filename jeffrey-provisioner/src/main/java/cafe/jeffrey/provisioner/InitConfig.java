@@ -31,11 +31,11 @@ import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.shared.common.config.ConfigSource;
 import cafe.jeffrey.shared.common.config.ConfigType;
 import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -220,7 +220,7 @@ public class InitConfig {
     private final Function<String, String> envLookup;
 
     private final ConfigSource profilerCommandSource;
-    private final List<AppliedConfigLayer> appliedConfigLayers;
+    private final List<ConfigScope> mergedConfigScopes;
 
     private final String jeffreyHome;
     private final String workspacesDir;
@@ -265,8 +265,8 @@ public class InitConfig {
         this.containerLayers = containerLayers;
         this.envLookup = envLookup;
         this.profilerCommandSource = resolveCommandSource(containerLayers, volumeLayers);
-        this.appliedConfigLayers = volumeLayers.stream()
-                .map(VolumeConfigLayer::applied)
+        this.mergedConfigScopes = volumeLayers.stream()
+                .map(VolumeConfigLayer::scope)
                 .toList();
 
         Config resolved = containerLayers.resolve(volumeLayers);
@@ -401,9 +401,9 @@ public class InitConfig {
         return profilerCommandSource;
     }
 
-    /** The hub-published files that were merged, weakest first; empty when none were found. */
-    public List<AppliedConfigLayer> getAppliedConfigLayers() {
-        return appliedConfigLayers;
+    /** The scopes whose published files were merged, weakest first; empty when none were found. */
+    public List<ConfigScope> getMergedConfigScopes() {
+        return mergedConfigScopes;
     }
 
     public String getRepositoryType() {

@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.manager.ScopedConfigManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.request.ConfigValueRequest;
-import cafe.jeffrey.microscope.core.web.dto.response.ScopedConfigResponse;
+import cafe.jeffrey.microscope.core.web.dto.response.ConfigEntryResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +32,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /** The configuration of one project's own scope. */
 @RestController
@@ -45,16 +47,16 @@ public class ProjectConfigController {
     }
 
     @GetMapping
-    public ScopedConfigResponse fetchConfig(
+    public List<ConfigEntryResponse> fetchConfig(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
 
-        return ScopedConfigResponse.from(managerFor(hubId, workspaceId, projectId).find());
+        return ConfigEntryResponse.from(managerFor(hubId, workspaceId, projectId).find());
     }
 
     @PutMapping("/{type}")
-    public ScopedConfigResponse upsertConfig(
+    public List<ConfigEntryResponse> upsertConfig(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
@@ -65,7 +67,7 @@ public class ProjectConfigController {
             throw Exceptions.invalidRequest("value is required");
         }
 
-        return ScopedConfigResponse.from(managerFor(hubId, workspaceId, projectId)
+        return ConfigEntryResponse.from(managerFor(hubId, workspaceId, projectId)
                 .upsert(WorkspaceConfigController.configType(type), request.value()));
     }
 

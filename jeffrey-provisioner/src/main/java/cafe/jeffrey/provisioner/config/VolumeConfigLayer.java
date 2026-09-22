@@ -16,11 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 package cafe.jeffrey.provisioner.config;
 
 import cafe.jeffrey.shared.common.config.ConfigScope;
-import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 import com.typesafe.config.Config;
 
 import java.nio.file.Path;
@@ -30,22 +28,13 @@ import java.nio.file.Path;
  *
  * @param scope  which folder it came from, which is also its rank in the merge
  * @param file   where it was read from, for logging
- * @param digest SHA-256 of the bytes as they were read, recorded in the session marker so the file
- *               a session ran with can be matched against what the hub holds now
  * @param config the parsed content, already stripped of any key a published file may not set
  */
-public record VolumeConfigLayer(ConfigScope scope, Path file, String digest, Config config) {
+public record VolumeConfigLayer(ConfigScope scope, Path file, Config config) {
 
     public VolumeConfigLayer {
         if (scope == null || file == null || config == null) {
             throw new IllegalArgumentException("scope, file and config must not be null");
         }
-        if (digest == null || digest.isBlank()) {
-            throw new IllegalArgumentException("digest must not be blank");
-        }
-    }
-
-    public AppliedConfigLayer applied() {
-        return new AppliedConfigLayer(scope, digest);
     }
 }
