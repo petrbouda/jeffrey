@@ -70,7 +70,7 @@ onMounted(() => {
         <div class="value-tile tile-broadcast">
           <div class="value-icon"><i class="bi bi-broadcast-pin"></i></div>
           <h3>Continuous Recording</h3>
-          <p>Async-Profiler agents stream JFR chunks into Server on every loop — no manual capture, no missed windows.</p>
+          <p>Async-Profiler writes JFR chunks to the shared volume on every loop and the hub picks them up — no manual capture, no missed windows.</p>
         </div>
         <div class="value-tile tile-collection">
           <div class="value-icon"><i class="bi bi-collection"></i></div>

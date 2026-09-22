@@ -28,6 +28,10 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'builder', text: 'Building a Command', level: 2 },
+  { id: 'mandatory', text: 'Mandatory Options', level: 3 },
+  { id: 'events', text: 'Event Options', level: 3 },
+  { id: 'thresholds', text: 'Thresholds', level: 3 },
+  { id: 'advanced', text: 'Advanced Options', level: 3 },
   { id: 'command', text: 'The Generated Command', level: 3 }
 ];
 
@@ -74,9 +78,7 @@ onMounted(() => {
         values that go straight into the JVM you are about to profile.
       </DocsCallout>
 
-      
-
-      <h3>Mandatory Options</h3>
+      <h3 id="mandatory">Mandatory Options</h3>
       <p>Every profiler configuration requires these essential settings:</p>
 
       <div class="options-list">
@@ -103,7 +105,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <h3>Event Options</h3>
+      <h3 id="events">Event Options</h3>
       <p>
         Select which profiling events to capture. Each event type can be expanded to configure additional options
         like sampling intervals, thresholds, and profiling modes.
@@ -114,21 +116,21 @@ onMounted(() => {
           <div class="feature-icon"><i class="bi bi-cpu"></i></div>
           <div class="feature-content">
             <h4>CPU Profiling</h4>
-            <p>Sample thread stack traces at regular intervals to find CPU-intensive methods and performance bottlenecks. <code>ctimer</code> and <code>itimer</code> attribute every sample to the carrier thread, so spans that ran on a virtual thread get no flamegraph — drop <code>event=</code> to let the JVM's own sampler attribute to virtual threads instead</p>
+            <p>Sample thread stack traces at regular intervals to find CPU-intensive methods and performance bottlenecks. The builder offers <code>ctimer</code> (no kernel stacks, works where perf_events are unavailable, e.g. in containers) and <code>cpu</code> (perf_events with kernel stacks). <code>ctimer</code> attributes every sample to the carrier thread, so spans that ran on a virtual thread get no flamegraph — drop <code>event=</code> to let the JVM's own sampler attribute to virtual threads instead</p>
           </div>
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="bi bi-memory"></i></div>
           <div class="feature-content">
             <h4>Allocation Profiling</h4>
-            <p>Track object allocations above threshold to identify memory pressure sources and allocation hotspots</p>
+            <p>Sample object allocations to identify memory pressure sources and allocation hotspots. An interval takes one sample per N bytes allocated (<code>alloc=512k</code>); without one the option stays a bare <code>alloc</code> and async-profiler uses its own default</p>
           </div>
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="bi bi-lock"></i></div>
           <div class="feature-content">
             <h4>Lock Profiling</h4>
-            <p>Monitor contended locks and synchronization events to debug threading and concurrency issues. The builder starts at <code>lock=10us</code>, async-profiler's own default, so only contentions that waited at least 10 µs are recorded; 0 records every contention, which can flood the recording on a busy service</p>
+            <p>Monitor contended locks and synchronization events to debug threading and concurrency issues. The builder starts at <code>lock=10us</code>, async-profiler's own default, so only contentions that waited at least 10 µs are recorded; clearing the field is written as <code>lock=0</code> and records every contention, which can flood the recording on a busy service</p>
           </div>
         </div>
         <div class="feature-card">
@@ -142,21 +144,41 @@ onMounted(() => {
           <div class="feature-icon"><i class="bi bi-signpost-split"></i></div>
           <div class="feature-content">
             <h4>Method Tracing</h4>
-            <p>Record calls to specific Java methods (<code>trace=Class.method</code>). A latency threshold keeps only the slow calls (<code>trace=Class.method:5ms</code>); without one, every call is recorded</p>
+            <p>Record calls to specific Java methods. Add each method as its own row; every row gets its own latency threshold and unit and becomes one <code>trace=</code> option (<code>trace=com.example.OrderService.place:5ms</code>). A new row records every call until you set a threshold on it</p>
           </div>
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="bi bi-hdd-stack"></i></div>
           <div class="feature-content">
             <h4>Native Memory Profiling</h4>
-            <p>Track native (off-heap) memory allocations to debug memory usage outside the Java heap. The builder samples every 512 KiB (<code>nativemem=512k</code>); clearing the interval records every malloc, the most expensive setting</p>
+            <p>Track native (off-heap) memory allocations to debug memory usage outside the Java heap. The builder samples every 512 KiB (<code>nativemem=512k</code>); clearing the interval records every malloc, the most expensive setting. <strong>Omit free() events</strong> records only allocations and skips <code>free()</code> calls, which is cheaper</p>
           </div>
         </div>
       </div>
 
-      
+      <DocsCallout type="info">
+        <strong>Only the <code>Class.method</code> form can be traced.</strong> Wildcards and JVM signatures work
+        (<code>java.lang.Thread.*</code>, <code>*.&lt;init&gt;</code>,
+        <code>java.lang.String.indexOf(Ljava/lang/String;)I</code>), but the builder rejects a pattern with a colon
+        (the threshold belongs on the row), spaces, JVM symbols such as <code>G1CollectedHeap::allocate</code> and
+        native methods such as <code>Java_java_lang_Thread_start</code>. async-profiler refuses to start on a single
+        bad target, so the builder catches it before the command is copied.
+      </DocsCallout>
 
-      <h3>Advanced Options</h3>
+      <h3 id="thresholds">Thresholds</h3>
+      <p>
+        Every threshold field carries a badge that says what the command will actually do. A threshold reads as
+        <strong>≥ 5 ms</strong>, <strong>waits ≥ 10 µs</strong> or <strong>one sample per 512 KiB</strong>; an empty
+        field reads as <strong>every call</strong>, <strong>every contention</strong> or <strong>every malloc</strong>,
+        so the most expensive setting is visible rather than implied.
+      </p>
+      <p>
+        async-profiler rejects fractions, so amounts are always written as whole numbers in the largest unit that
+        holds them exactly: <code>0.5ms</code> becomes <code>500us</code>, <code>1024k</code> becomes <code>1m</code>.
+        A value of zero, or one smaller than the base unit, counts as no threshold.
+      </p>
+
+      <h3 id="advanced">Advanced Options</h3>
       <p>Fine-tune JFR output format and enable additional features:</p>
 
       <div class="profiler-features">

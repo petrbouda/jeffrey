@@ -78,7 +78,7 @@ onMounted(() => {
         <a href="#project-settings" class="tab-card">
           <div class="tab-icon"><i class="bi bi-sliders"></i></div>
           <h4>Settings</h4>
-          <p>Rename or delete the project.</p>
+          <p>Delete the project.</p>
         </a>
       </div>
 
@@ -91,21 +91,20 @@ onMounted(() => {
       </DocsCallout>
 
       <h2 id="project-settings">Project Settings</h2>
-      <p>The <strong>Settings</strong> tab is intentionally minimal. It exposes two things:</p>
-      <ul>
-        <li><strong>Rename</strong> — change the project's display name.</li>
-        <li><strong>Delete</strong> — remove the project (a confirmation step protects against accidents).</li>
-      </ul>
+      <p>
+        The <strong>Settings</strong> tab is intentionally minimal: it lets you <strong>delete</strong> the
+        project (a confirmation step protects against accidents). A deleted project stays on its card in
+        the <strong>Hubs</strong> view with a <strong>Restore</strong> action until the hub removes it for good.
+      </p>
 
       <h2 id="creating-projects">Creating Projects</h2>
-      <p>To create a new project:</p>
-      <ol>
-        <li>Open <strong>Workspaces</strong> in the top navigation and pick a workspace.</li>
-        <li>Click <strong>Add Project</strong>.</li>
-        <li>Enter a project name.</li>
-        <li>Click <strong>Create</strong>.</li>
-      </ol>
-      <p>The new project shows up in the workspace immediately. From there you can wire up profiler agents and review past sessions.</p>
+      <p>
+        Projects are not created in Microscope. A project appears when a JVM started by the
+        <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> announces it:
+        the hub's workspace reconciler picks it up from the shared filesystem, and the next time
+        Microscope syncs with that hub the project shows up under its workspace, together with
+        its instances and recording sessions.
+      </p>
     </div>
 
     <DocsNavFooter />

@@ -189,12 +189,12 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><a href="#recordings"><code>recordings_</code></a></td>
-            <td class="map-count">4</td>
+            <td class="map-count">5</td>
             <td>A recording Jeffrey has never seen, as a file on this machine. Creates a profile rather than reading one; an installation withholds it by leaving <code>recordings</code> out of <code>families</code>.</td>
           </tr>
           <tr>
             <td><a href="#hubs"><code>hubs_</code></a></td>
-            <td class="map-count">9</td>
+            <td class="map-count">5</td>
             <td>The recordings that never reached this machine &mdash; what a deployed application sent to a connected Jeffrey Hub. Finds a session and pulls it in; <code>recordings_</code> then turns it into a profile. Also lists the files a session holds beside its recording and fetches one of them on its own.</td>
           </tr>
           <tr>

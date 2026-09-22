@@ -27,7 +27,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'role', text: 'Role of the Server', level: 2 },
+  { id: 'role', text: 'Role of the Hub', level: 2 },
   { id: 'components', text: 'Components', level: 2 },
   { id: 'grpc-surface', text: 'gRPC Service Surface', level: 2 },
   { id: 'microscope-connection', text: 'How Microscope Connects', level: 2 },
@@ -51,44 +51,45 @@ onMounted(() => {
         Jeffrey Hub is a headless, multi-workspace recording-collection backend. It catalogs
         what's running (workspaces, projects, instances, recording sessions) in an embedded
         DuckDB and stores the JFR recordings on a shared filesystem. Analysis happens in
-        Microscope; Server's job is to collect, organize, and serve.
+        Microscope; the hub's job is to collect, organize, and serve.
       </p>
 
-      <h2 id="role">Role of the Server</h2>
+      <h2 id="role">Role of the Hub</h2>
       <p>
-        Server runs as a long-lived process next to your Java fleet. Async-Profiler agents
-        running inside your applications stream JFR chunks to it on every recording loop. The
-        agent gets its configuration (event toggles, sampling intervals, output paths) from the
+        Hub runs as a long-lived process next to your Java fleet. Async-Profiler running
+        inside your applications writes JFR chunks to the shared volume on every recording loop;
+        the hub discovers them there, catalogues them in place and serves them over gRPC. The
+        profiler gets its configuration (event toggles, sampling intervals, output paths) from the
         provisioner that started the JVM — its <code>profiler-command</code> setting or the
         <code>JEFFREY_PROFILER_COMMAND</code> environment variable.
       </p>
 
       <DocsCallout type="info">
         <strong>Full profile analysis stays in Microscope.</strong> Flame graphs and heap dump
-        forensics and the MCP endpoint run in Microscope. Hub exposes event-activity summaries through gRPC:
-        it counts events by time and type locally, and <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
-        return the summaries to agents before recordings are downloaded.
+        forensics and the MCP endpoint run in Microscope. Hub never reads a recording itself — it
+        serves the files, and <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
+        pull them in for analysis.
       </DocsCallout>
 
       <h2 id="components">Components</h2>
       <p>
-        Server's domain breaks into four layers: domain entities, collection features, gRPC
+        The hub's domain breaks into four layers: domain entities, collection features, gRPC
         services, and storage.
       </p>
 
       <DocsArchDiagram variant="hub" />
 
       <p>
-        Around the Server, the <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>
+        Around the hub, the <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>
         prepares the Async-Profiler agent's JVM arguments before the application starts, and the
-        profiled application writes JFR recordings to the shared filesystem the Server reads from. The
+        profiled application writes JFR recordings to the shared filesystem the hub reads from. The
         <router-link to="/docs/jib">Jeffrey JIB</router-link> module packages the provisioner
         and async-profiler into your application image.
       </p>
 
       <h2 id="grpc-surface">gRPC Service Surface</h2>
       <p>
-        Microscope clients and other server-side tools talk to Server over gRPC. Five services
+        Microscope clients and other server-side tools talk to the hub over gRPC. Five services
         cover the surface:
       </p>
 
@@ -109,17 +110,17 @@ onMounted(() => {
 
       <h2 id="microscope-connection">How Microscope Connects</h2>
       <p>
-        Microscope adds a Server with a single gRPC endpoint and an optional auth token, and
-        Microscope handles the rest. From the user's point of view, the connected Server looks
+        Microscope adds a hub with a single gRPC endpoint and an optional auth token, and
+        Microscope handles the rest. From the user's point of view, the connected hub looks
         identical to a local one — same workspaces, projects, instances, sessions — except
-        recordings are pulled on demand from the Server when the user opens them. See the
+        recordings are pulled on demand from the hub when the user opens them. See the
         <router-link to="/docs/microscope/workspaces">Microscope Workspaces</router-link> page
         for the client-side flow.
       </p>
 
       <h2 id="storage">Storage</h2>
       <p>
-        Server stores its catalog (workspaces, projects, instances, sessions)
+        Hub stores its catalog (workspaces, projects, instances, sessions)
         in a single embedded DuckDB file, and stores the JFR recordings themselves on a shared
         filesystem laid out by workspace and project. There is no managed database, no object
         store, and no per-profile databases. See the

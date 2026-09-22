@@ -68,7 +68,7 @@ const parentPom = `<plugin>
 
 const properties = `<properties>
     <springboot.version>4.0.6</springboot.version>
-    <jib.version>3.5.1</jib.version>
+    <jib.version>3.5.2</jib.version>
     <jeffrey-jib.version>0.14.0</jeffrey-jib.version>
 </properties>`;
 
@@ -182,7 +182,7 @@ const moduleClient = `<plugin>
         provisioner jar, <code>jeffrey-jib-maven-native</code> the GraalVM binary. Either brings the
         extension and its payload in one coordinate, pinned above as
         <code>jeffrey-jib.version</code>, so nothing else has to be configured. JIB itself stays at the standard
-        <code>com.google.cloud.tools:jib-maven-plugin:3.5.1</code> — no fork, no patched
+        <code>com.google.cloud.tools:jib-maven-plugin:3.5.2</code> — no fork, no patched
         plugin.
       </DocsCallout>
 
