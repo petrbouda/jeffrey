@@ -20,109 +20,96 @@ package cafe.jeffrey.profile.recording;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.storage.recording.api.file.FileCategory;
+import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.Set;
 
 /**
- * Finds the recording file a profile was built from, by recording id.
+ * Finds the JFR files a profile was built from, by recording id, so that auto-analysis can run the
+ * JMC rules over them again on demand.
  *
- * <p>Recordings are stored flat, each file named {@code <recordingId>-<name>}: the prefix keeps the
- * one shared directory unique across recordings and is not part of the name the file is known by.
- * {@code RecordingsCoreManagerImpl.storagePath} in {@code recordings-core} is what writes that
- * convention; this class is what reads it back. The two cannot see each other — neither module
- * depends on the other — so they have to agree by hand, and a disagreement of one prefix would
- * leave every recording unfindable.
- *
- * <p>Kept out of the {@code @Bean} factory that uses it because the two rules below are the part
- * worth testing, and a rule that lives in a configuration lambda is a rule that gets tested through
- * a Spring context or not at all.
+ * <p>The recording's row already lists every file it was stored as, with the type it was
+ * classified as on the way in, so this reads the row rather than the recordings directory: one
+ * lookup by id instead of a listing of every file of every recording, and the classification the
+ * import made instead of a second guess from the name. {@link RecordingStorageLayout} turns each
+ * file into the path it sits at.
  *
  * <p>The rules:
  *
  * <ul>
- *   <li><b>The prefix ends at the separator.</b> Matching on {@code recordingId} alone would let
- *       {@code rec-1} claim {@code rec-10}'s files, so the match is on {@code recordingId + "-"}.
- *   <li><b>A recording beats an artifact.</b> One recording can have several files — a heap dump, a
- *       GC log, perf counters — and auto-analysis wants the JFR, not the log that sits beside it.
- *       Where no file is a recording the first artifact is still returned: a heap-dump profile has
- *       nothing else to offer, and answering with nothing would take the feature away from it
- *       rather than give it a better answer.
+ *   <li><b>Every JFR file, not the first.</b> A downloaded session is as many files as it rolled
+ *       chunks. The import runs the rules over all of them, and a run on demand that took only one
+ *       would replace findings about the whole run with findings about a few minutes of it.
+ *   <li><b>JFR only.</b> The rule set reads JFR and nothing else. A heap dump, a pprof or OTLP
+ *       import and a GC log beside the recording are not answers: returning one would report
+ *       auto-analysis as available for a profile it can only fail on.
+ *   <li><b>All of them or none.</b> The rules reason about the run as a whole, so a missing file
+ *       does not cost a fraction of the findings -- it makes the rest describe a recording that was
+ *       never taken. The import applies the same rule before it starts its own run.
  * </ul>
  *
- * <p>This is a lookup and only a lookup. It creates no directory and no file, so asking about a
- * recording that does not exist leaves the disk exactly as it was.
+ * <p>This is a lookup and only a lookup: it creates no directory and no file.
  */
 public final class RecordingFileLookup {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingFileLookup.class);
 
     /**
-     * Separates the storage prefix from the filename. Must agree with the writer in
-     * {@code recordings-core}; see the class javadoc.
+     * The file types the JMC rule set can read.
      */
-    private static final String RECORDING_ID_SEPARATOR = "-";
+    private static final Set<ManagedFile> JFR_TYPES = Set.of(ManagedFile.JFR, ManagedFile.JFR_LZ4);
 
+    private final RecordingRepository recordingRepository;
     private final Path recordingsDir;
 
-    public RecordingFileLookup(Path recordingsDir) {
+    public RecordingFileLookup(RecordingRepository recordingRepository, Path recordingsDir) {
+        if (recordingRepository == null) {
+            throw new IllegalArgumentException("Recording repository is required");
+        }
         if (recordingsDir == null) {
             throw new IllegalArgumentException("Recordings directory is required");
         }
+        this.recordingRepository = recordingRepository;
         this.recordingsDir = recordingsDir;
     }
 
     /**
-     * The file the given recording was stored as, or empty when the recording has no file on disk.
+     * The JFR files of the given recording, in the order the repository lists them; empty when the
+     * recording is unknown, has no JFR file, or is missing one of them on disk.
      *
      * @param recordingId the recording to look for; null or blank answers empty
      */
-    public Optional<Path> find(String recordingId) {
+    public List<Path> findJfrFiles(String recordingId) {
         if (recordingId == null || recordingId.isBlank()) {
-            return Optional.empty();
-        }
-        if (!Files.isDirectory(recordingsDir)) {
-            return Optional.empty();
-        }
-
-        List<Path> candidates = candidatesFor(recordingId);
-        if (candidates.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return candidates.stream()
-                .filter(RecordingFileLookup::isRecording)
-                .findFirst()
-                .or(() -> Optional.of(candidates.getFirst()));
-    }
-
-    /**
-     * Every file belonging to the recording, sorted by name so that the pick does not depend on the
-     * order the filesystem happens to hand the directory back in.
-     */
-    private List<Path> candidatesFor(String recordingId) {
-        String prefix = recordingId + RECORDING_ID_SEPARATOR;
-        try (Stream<Path> stream = Files.list(recordingsDir)) {
-            return stream
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().startsWith(prefix))
-                    .sorted(Comparator.comparing(path -> path.getFileName().toString()))
-                    .toList();
-        } catch (IOException e) {
-            LOG.warn("Could not list the recordings directory: directory={} recording_id={} error={}",
-                    recordingsDir, recordingId, e.getMessage());
             return List.of();
         }
+
+        List<Path> jfrFiles = recordingRepository.findRecording(recordingId)
+                .map(Recording::files)
+                .orElse(List.of())
+                .stream()
+                .filter(file -> JFR_TYPES.contains(file.recordingFileType()))
+                .map(this::storagePath)
+                .toList();
+
+        List<Path> missing = jfrFiles.stream()
+                .filter(path -> !Files.isRegularFile(path))
+                .toList();
+        if (!missing.isEmpty()) {
+            LOG.debug("Recording files are missing on disk: recording_id={} missing={}", recordingId, missing);
+            return List.of();
+        }
+        return jfrFiles;
     }
 
-    private static boolean isRecording(Path path) {
-        return ManagedFile.of(path).fileCategory() == FileCategory.RECORDING;
+    private Path storagePath(RecordingFile file) {
+        return RecordingStorageLayout.storagePath(recordingsDir, file.recordingId(), file.filename());
     }
 }

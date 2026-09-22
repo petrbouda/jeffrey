@@ -133,7 +133,7 @@ public class MicroscopeAppConfiguration {
         RecordingsCoreManager core = new RecordingsCoreManagerImpl(
                 clock,
                 recordingsPath,
-                repos.newRecordingRepository(null),
+                repos.newRecordingRepository(),
                 repos.recordingTagsRepository(),
                 new JfrRecordingMetadataParserAdapter(recordingInformationParser),
                 profileCleanup);

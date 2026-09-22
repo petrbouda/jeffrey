@@ -32,7 +32,10 @@ import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -47,13 +50,22 @@ class JdbcRecordingRepositoryTest {
     private static final Instant FIXED_TIME = Instant.parse("2026-01-15T12:00:00Z");
     private static final Clock CLOCK = Clock.fixed(FIXED_TIME, ZoneOffset.UTC);
 
+    private static long countRows(DataSource dataSource, String sql) throws SQLException {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+            resultSet.next();
+            return resultSet.getLong(1);
+        }
+    }
+
     @Nested
     class FindAllRecordingsMethod {
 
         @Test
         void returnsEmptyList_whenNoRecordings(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             List<Recording> result = repository.findAllRecordings();
 
@@ -63,8 +75,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void returnsRecordings_whenRecordingsExist(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             List<Recording> result = repository.findAllRecordings();
 
@@ -74,8 +86,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void includesRecordingFiles(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             List<Recording> result = repository.findAllRecordings();
 
@@ -88,14 +100,56 @@ class JdbcRecordingRepositoryTest {
         }
     }
 
+    /**
+     * Rows an older build wrote into a project. Nothing can open them any more, so they must not
+     * surface in any listing or lookup beside the recordings this repository writes.
+     */
+    @Nested
+    class LegacyProjectRows {
+
+        @Test
+        void areLeftOutOfListings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            TestUtils.executeSql(dataSource, "sql/recording/insert-legacy-project-recording.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            assertEquals(
+                    List.of("rec-001", "rec-002"),
+                    repository.findAllRecordings().stream().map(Recording::id).sorted().toList());
+            assertTrue(repository.findRecording("legacy-rec").isEmpty());
+            assertTrue(repository.findById("legacy-rec").isEmpty());
+            assertFalse(repository.groupExists("legacy-group"));
+            assertEquals(1, repository.findAllRecordingGroups().size());
+        }
+
+        @Test
+        void newRecordingsAreStoredWithoutAProject(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            repository.insertRecording(
+                    new Recording("new-rec", "New", null, RecordingEventSource.JDK, FIXED_TIME,
+                            FIXED_TIME, FIXED_TIME, false, null, null, List.of()),
+                    new RecordingFile("new-file", "new-rec", "new.jfr", ManagedFile.JFR, FIXED_TIME, 1));
+            String groupId = repository.insertGroup("Group");
+
+            assertEquals(0L, countRows(dataSource,
+                    "SELECT count(*) FROM recordings WHERE project_id IS NOT NULL"));
+            assertEquals(0L, countRows(dataSource,
+                    "SELECT count(*) FROM recording_files WHERE project_id IS NOT NULL"));
+            assertTrue(repository.groupExists(groupId));
+        }
+    }
+
     @Nested
     class FindRecordingMethod {
 
         @Test
         void returnsRecording_whenExists(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             Optional<Recording> result = repository.findRecording("rec-001");
 
@@ -106,7 +160,7 @@ class JdbcRecordingRepositoryTest {
         @Test
         void returnsEmpty_whenNotExists(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             Optional<Recording> result = repository.findRecording("non-existent");
 
@@ -116,8 +170,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void includesRecordingFiles(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             Optional<Recording> result = repository.findRecording("rec-001");
 
@@ -134,10 +188,10 @@ class JdbcRecordingRepositoryTest {
         @Test
         void insertsRecordingAndFile(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             Recording recording = new Recording(
-                    "new-rec-001", "New Recording", "proj-001", null,
+                    "new-rec-001", "New Recording", null,
                     RecordingEventSource.JDK, Instant.parse("2025-01-15T12:00:00Z"),
                     Instant.parse("2025-01-15T11:00:00Z"), Instant.parse("2025-01-15T11:30:00Z"),
                     false, null, null, List.of());
@@ -159,8 +213,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void insertsAdditionalFile_toExistingRecording(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             RecordingFile additionalFile = new RecordingFile(
                     "file-003", "rec-001", "recording1-extra.jfr",
@@ -180,8 +234,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void returnsRecording_whenExists(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             Optional<Recording> result = repository.findById("rec-001");
 
@@ -192,7 +246,7 @@ class JdbcRecordingRepositoryTest {
         @Test
         void returnsEmpty_whenNotExists(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             Optional<Recording> result = repository.findById("non-existent");
 
@@ -206,8 +260,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void deletesRecordingAndFiles(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             repository.deleteRecordingWithFiles("rec-001");
 
@@ -222,7 +276,7 @@ class JdbcRecordingRepositoryTest {
         @Test
         void insertsGroupAndReturnsId(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             String groupId = repository.insertGroup("New Group");
 
@@ -233,7 +287,7 @@ class JdbcRecordingRepositoryTest {
         @Test
         void insertsGroup_withCreatedAtFromClock(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             String groupId = repository.insertGroup("Clocked Group");
 
@@ -245,8 +299,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void findsAllGroups(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             List<RecordingGroup> result = repository.findAllRecordingGroups();
 
@@ -257,8 +311,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void groupExists_returnsTrue_whenGroupExists(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             boolean result = repository.groupExists("group-001");
 
@@ -268,7 +322,7 @@ class JdbcRecordingRepositoryTest {
         @Test
         void groupExists_returnsFalse_whenGroupNotExists(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             boolean result = repository.groupExists("non-existent");
 
@@ -278,8 +332,8 @@ class JdbcRecordingRepositoryTest {
         @Test
         void deletesGroup_andRecordingsInGroup(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository("proj-001", provider, CLOCK);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             repository.deleteGroup("group-001");
 

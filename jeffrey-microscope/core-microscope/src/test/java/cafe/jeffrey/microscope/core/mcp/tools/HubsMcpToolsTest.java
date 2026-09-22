@@ -171,7 +171,7 @@ class HubsMcpToolsTest {
 
     private void localRecording(String recordingId, String profileId, HubSessionRef ref) {
         when(recordingsManager.listRecordings()).thenReturn(List.of(new Recording(
-                recordingId, recordingId, null, null, RecordingEventSource.JDK, NOW, NOW, NOW,
+                recordingId, recordingId, null, RecordingEventSource.JDK, NOW, NOW, NOW,
                 profileId != null, profileId, profileId, List.of())));
         when(recordingsManager.tagsForRecordings(any())).thenReturn(Map.of(recordingId, List.of(
                 new RecordingTag("origin.hubId", ref.hubId()),

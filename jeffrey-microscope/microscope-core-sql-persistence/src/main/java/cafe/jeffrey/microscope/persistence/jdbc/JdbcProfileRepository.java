@@ -37,8 +37,6 @@ public class JdbcProfileRepository implements ProfileRepository {
     private static final String INSERT_PROFILE = """
             INSERT INTO profiles (
                  profile_id,
-                 project_id,
-                 workspace_id,
                  profile_name,
                  event_source,
                  created_at,
@@ -47,8 +45,6 @@ public class JdbcProfileRepository implements ProfileRepository {
                  recording_finished_at)
 
                 VALUES (:profile_id,
-                        :project_id,
-                        :workspace_id,
                         :profile_name,
                         :event_source,
                         :created_at,
@@ -97,8 +93,6 @@ public class JdbcProfileRepository implements ProfileRepository {
     public void insert(InsertProfile profile) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("project_id", profile.projectId())
-                .addValue("workspace_id", profile.workspaceId())
                 .addValue("profile_name", profile.profileName())
                 .addValue("event_source", profile.eventSource().name())
                 .addValue("created_at", profile.createdAt().atOffset(ZoneOffset.UTC))

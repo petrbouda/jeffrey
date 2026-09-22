@@ -41,6 +41,7 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -107,7 +108,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
         this.profileManagerFactory = profileManagerFactory;
         this.localCoreRepositories = localCoreRepositories;
         this.profileCleanup = profileCleanup;
-        this.recordingRepository = localCoreRepositories.newRecordingRepository(null);
+        this.recordingRepository = localCoreRepositories.newRecordingRepository();
         this.runRegistry = runRegistry;
     }
 
@@ -305,12 +306,12 @@ public class ProfileRecordingsManager implements RecordingsManager {
                 recordingInfo.recordingFinishedAt(),
                 createdAt, false, false, recording.id());
 
-        // Insert the profile row before initializing, the way the project path does. The recordings
-        // list reaches a run's progress through the recording's profile, so a row that appears only
-        // once the pipeline has finished leaves the whole run invisible -- the card can say nothing
-        // but "Initializing..." for as long as it takes.
+        // Insert the profile row before initializing. The recordings list reaches a run's progress
+        // through the recording's profile, so a row that appears only once the pipeline has finished
+        // leaves the whole run invisible -- the card can say nothing but "Initializing..." for as
+        // long as it takes.
         ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
-        profileRepository.insert(ProfileRepository.InsertProfile.quickProfile(
+        profileRepository.insert(new ProfileRepository.InsertProfile(
                 profileName,
                 recordingInfo.eventSource(), createdAt,
                 recording.id(),
@@ -380,7 +381,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
                 createdAt, createdAt, createdAt, true, false, recording.id());
 
         ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
-        profileRepository.insert(ProfileRepository.InsertProfile.quickProfile(
+        profileRepository.insert(new ProfileRepository.InsertProfile(
                 file.filename(),
                 RecordingEventSource.HEAP_DUMP, createdAt,
                 recording.id(),
@@ -419,6 +420,6 @@ public class ProfileRecordingsManager implements RecordingsManager {
     }
 
     private Path resolveRecordingFilePath(RecordingFile file) {
-        return recordingsDir.resolve(file.recordingId() + "-" + file.filename());
+        return RecordingStorageLayout.storagePath(recordingsDir, file.recordingId(), file.filename());
     }
 }

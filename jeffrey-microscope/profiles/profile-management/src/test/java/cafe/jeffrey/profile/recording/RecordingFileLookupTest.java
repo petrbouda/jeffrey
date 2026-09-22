@@ -22,20 +22,35 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @DisplayName("RecordingFileLookup")
 class RecordingFileLookupTest {
 
     private static final String RECORDING_ID = "rec-1";
+    private static final Instant UPLOADED_AT = Instant.parse("2026-09-01T10:00:00Z");
+
+    private final RecordingRepository recordingRepository = mock(RecordingRepository.class);
 
     @TempDir
     Path recordingsDir;
@@ -45,19 +60,27 @@ class RecordingFileLookupTest {
     class Missing {
 
         @Test
-        @DisplayName("answers empty for a recording that was never stored")
+        @DisplayName("answers empty for a recording the repository does not know")
         void unknownRecordingIsEmpty() {
-            assertTrue(lookup().find("no-such-recording").isEmpty());
+            when(recordingRepository.findRecording("no-such-recording")).thenReturn(Optional.empty());
+
+            assertTrue(lookup().findJfrFiles("no-such-recording").isEmpty());
         }
 
-        /**
-         * The lookup this replaced created the directory it was about to search, so asking about a
-         * recording that did not exist left an empty directory behind. Reads do not write.
-         */
         @Test
-        @DisplayName("creates nothing when the recording is unknown")
-        void unknownRecordingCreatesNothing() throws IOException {
-            lookup().find("no-such-recording");
+        @DisplayName("answers empty for a null or blank recording id without asking the repository")
+        void noRecordingIdIsEmpty() {
+            assertTrue(lookup().findJfrFiles(null).isEmpty());
+            assertTrue(lookup().findJfrFiles("   ").isEmpty());
+            verifyNoInteractions(recordingRepository);
+        }
+
+        @Test
+        @DisplayName("creates nothing on disk")
+        void createsNothing() throws IOException {
+            recording(file("app.jfr", ManagedFile.JFR));
+
+            lookup().findJfrFiles(RECORDING_ID);
 
             try (var entries = Files.list(recordingsDir)) {
                 assertTrue(entries.findAny().isEmpty(), "the lookup left something behind");
@@ -65,136 +88,129 @@ class RecordingFileLookupTest {
         }
 
         @Test
-        @DisplayName("answers empty when the recordings directory does not exist")
-        void missingDirectoryIsEmpty() {
-            Path absent = recordingsDir.resolve("absent");
-
-            assertTrue(new RecordingFileLookup(absent).find(RECORDING_ID).isEmpty());
-            assertFalse(Files.exists(absent), "the lookup created the directory it was given");
-        }
-
-        @Test
-        @DisplayName("answers empty for a null or blank recording id")
-        void noRecordingIdIsEmpty() {
-            assertTrue(lookup().find(null).isEmpty());
-            assertTrue(lookup().find("   ").isEmpty());
+        @DisplayName("requires a repository and a directory")
+        void requiresCollaborators() {
+            assertThrows(IllegalArgumentException.class, () -> new RecordingFileLookup(null, recordingsDir));
+            assertThrows(IllegalArgumentException.class,
+                    () -> new RecordingFileLookup(recordingRepository, null));
         }
     }
 
     @Nested
-    @DisplayName("when matching the storage prefix")
-    class Matching {
+    @DisplayName("when the recording has JFR files")
+    class Found {
 
         @Test
-        @DisplayName("finds a JFR recording stored under its id")
-        void findsJfr() {
-            Path recording = store(RECORDING_ID + "-app.jfr");
+        @DisplayName("resolves each file to where storage put it")
+        void resolvesTheStoragePath() {
+            RecordingFile jfr = file("app.jfr", ManagedFile.JFR);
+            recording(jfr);
+            Path stored = store(jfr);
 
-            assertEquals(Optional.of(recording), lookup().find(RECORDING_ID));
-        }
-
-        @Test
-        @DisplayName("finds a compressed JFR recording")
-        void findsCompressedJfr() {
-            Path recording = store(RECORDING_ID + "-app.jfr.lz4");
-
-            assertEquals(Optional.of(recording), lookup().find(RECORDING_ID));
-        }
-
-        @Test
-        @DisplayName("finds a pprof recording")
-        void findsPprof() {
-            Path recording = store(RECORDING_ID + "-cpu.pprof");
-
-            assertEquals(Optional.of(recording), lookup().find(RECORDING_ID));
+            assertEquals(List.of(stored), lookup().findJfrFiles(RECORDING_ID));
         }
 
         /**
-         * The prefix ends at the separator. Without it {@code rec-1} would claim {@code rec-10}'s
-         * files and hand auto-analysis a different recording entirely.
+         * A downloaded session is one file per rolled chunk. Taking only one of them would analyse
+         * a few minutes of a run that lasted hours and overwrite the import's findings with that.
          */
         @Test
-        @DisplayName("does not claim a longer id that starts with the same characters")
-        void doesNotMatchALongerId() {
-            store("rec-10-app.jfr");
+        @DisplayName("returns every chunk, in the order the repository lists them")
+        void returnsEveryChunk() {
+            RecordingFile first = file("chunk-1.jfr.lz4", ManagedFile.JFR_LZ4);
+            RecordingFile second = file("chunk-2.jfr.lz4", ManagedFile.JFR_LZ4);
+            RecordingFile third = file("chunk-3.jfr", ManagedFile.JFR);
+            recording(first, second, third);
 
-            assertTrue(lookup().find(RECORDING_ID).isEmpty());
+            assertEquals(
+                    List.of(store(first), store(second), store(third)),
+                    lookup().findJfrFiles(RECORDING_ID));
         }
 
         @Test
-        @DisplayName("does not match a file that merely contains the id")
-        void doesNotMatchAnInfix() {
-            store("other-" + RECORDING_ID + "-app.jfr");
+        @DisplayName("leaves out the artifacts stored beside the recording")
+        void leavesOutArtifacts() {
+            RecordingFile heapDump = file("heap.hprof", ManagedFile.HEAP_DUMP);
+            RecordingFile gcLog = file("gc.jvm-log", ManagedFile.JVM_LOG);
+            RecordingFile jfr = file("app.jfr", ManagedFile.JFR);
+            recording(heapDump, gcLog, jfr);
+            store(heapDump);
+            store(gcLog);
 
-            assertTrue(lookup().find(RECORDING_ID).isEmpty());
+            assertEquals(List.of(store(jfr)), lookup().findJfrFiles(RECORDING_ID));
         }
 
+        /**
+         * The rules reason about the run as a whole. Running them over the chunks that are left
+         * would describe a recording that was never taken.
+         */
         @Test
-        @DisplayName("ignores a directory named like a stored file")
-        void ignoresDirectories() throws IOException {
-            Files.createDirectory(recordingsDir.resolve(RECORDING_ID + "-app.jfr"));
+        @DisplayName("answers empty when one of the chunks is gone from disk")
+        void missingChunkIsEmpty() {
+            RecordingFile first = file("chunk-1.jfr.lz4", ManagedFile.JFR_LZ4);
+            RecordingFile second = file("chunk-2.jfr.lz4", ManagedFile.JFR_LZ4);
+            recording(first, second);
+            store(first);
 
-            assertTrue(lookup().find(RECORDING_ID).isEmpty());
+            assertTrue(lookup().findJfrFiles(RECORDING_ID).isEmpty());
         }
     }
 
+    /**
+     * The rule set reads JFR and nothing else. Handing it any of these would report auto-analysis
+     * as available for a profile it can only fail on.
+     */
     @Nested
-    @DisplayName("when a recording has several files")
-    class RecordingWins {
+    @DisplayName("when the recording has no JFR file")
+    class NoJfr {
 
         @Test
-        @DisplayName("prefers the recording over an artifact beside it")
-        void prefersTheRecording() {
-            store(RECORDING_ID + "-heap.hprof");
-            Path recording = store(RECORDING_ID + "-app.jfr");
+        @DisplayName("answers empty for a heap dump")
+        void heapDumpIsEmpty() {
+            RecordingFile heapDump = file("heap.hprof", ManagedFile.HEAP_DUMP);
+            recording(heapDump);
+            store(heapDump);
 
-            assertEquals(Optional.of(recording), lookup().find(RECORDING_ID));
-        }
-
-        /**
-         * The artifact here sorts first, so a lookup that merely took the first match by name would
-         * hand auto-analysis a heap dump to run JMC rules over.
-         */
-        @Test
-        @DisplayName("prefers the recording even when an artifact sorts ahead of it")
-        void prefersTheRecordingOverAnEarlierName() {
-            store(RECORDING_ID + "-aaa.hprof");
-            Path recording = store(RECORDING_ID + "-zzz.jfr");
-
-            assertEquals(Optional.of(recording), lookup().find(RECORDING_ID));
-        }
-
-        /**
-         * A heap dump has no recording beside it. Answering with nothing would take auto-analysis
-         * away from heap-dump profiles rather than give them a better answer.
-         */
-        @Test
-        @DisplayName("falls back to the only file when none of them is a recording")
-        void fallsBackToTheArtifact() {
-            Path heapDump = store(RECORDING_ID + "-heap.hprof");
-
-            assertEquals(Optional.of(heapDump), lookup().find(RECORDING_ID));
+            assertTrue(lookup().findJfrFiles(RECORDING_ID).isEmpty());
         }
 
         @Test
-        @DisplayName("picks the same recording every time when two of them qualify")
-        void picksDeterministically() {
-            store(RECORDING_ID + "-second.jfr");
-            Path first = store(RECORDING_ID + "-first.jfr");
+        @DisplayName("answers empty for a pprof or OTLP import")
+        void flamegraphOnlyImportIsEmpty() {
+            RecordingFile pprof = file("cpu.pprof", ManagedFile.PPROF);
+            RecordingFile otlp = file("profiles.otlp", ManagedFile.OTLP_PROFILE);
+            recording(pprof, otlp);
+            store(pprof);
+            store(otlp);
 
-            assertEquals(Optional.of(first), lookup().find(RECORDING_ID));
+            assertTrue(lookup().findJfrFiles(RECORDING_ID).isEmpty());
         }
     }
 
     private RecordingFileLookup lookup() {
-        return new RecordingFileLookup(recordingsDir);
+        return new RecordingFileLookup(recordingRepository, recordingsDir);
     }
 
-    private Path store(String filename) {
+    private static RecordingFile file(String filename, ManagedFile type) {
+        return new RecordingFile("file-" + filename, RECORDING_ID, filename, type, UPLOADED_AT, 1);
+    }
+
+    private void recording(RecordingFile... files) {
+        Recording recording = new Recording(
+                RECORDING_ID, "app", null, RecordingEventSource.JDK, UPLOADED_AT, UPLOADED_AT, UPLOADED_AT,
+                false, null, null, Arrays.asList(files));
+        when(recordingRepository.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording));
+    }
+
+    private Path store(RecordingFile file) {
+        Path path = RecordingStorageLayout.storagePath(recordingsDir, file.recordingId(), file.filename());
         try {
-            return Files.createFile(recordingsDir.resolve(filename));
+            if (!Files.exists(path)) {
+                Files.createFile(path);
+            }
+            return path;
         } catch (IOException e) {
-            throw new IllegalStateException("Could not stage a recording file: " + filename, e);
+            throw new IllegalStateException("Could not stage a recording file: " + path, e);
         }
     }
 }

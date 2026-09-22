@@ -97,7 +97,7 @@ class RecordingsControllerTest {
     void importFromPathTellsTheRecordingsEventSource() {
         when(recordingsManager.importRecordingFromPath(any())).thenReturn("rec-1");
         when(recordingsManager.findRecording("rec-1")).thenReturn(Optional.of(new Recording(
-                "rec-1", "dump.hprof", null, null, RecordingEventSource.HEAP_DUMP,
+                "rec-1", "dump.hprof", null, RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, null, null, false, null, null, List.of())));
 
         MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));

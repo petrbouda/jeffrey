@@ -40,11 +40,11 @@ import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.profile.recording.RecordingFileLookup;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
-import java.util.List;
 
 public class ProfileAnalysisConfiguration {
 
@@ -73,19 +73,24 @@ public class ProfileAnalysisConfiguration {
     }
 
     @Bean
-    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
+    public RecordingFileLookup recordingFileLookup(
+            MicroscopeCorePersistenceProvider corePersistenceProvider,
             @Qualifier(ProfilesConfiguration.RECORDINGS_PATH) Path recordingsPath) {
 
-        RecordingFileLookup recordingLookup = new RecordingFileLookup(recordingsPath);
+        return new RecordingFileLookup(
+                corePersistenceProvider.localCoreRepositories().newRecordingRepository(), recordingsPath);
+    }
 
+    @Bean
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(RecordingFileLookup recordingLookup) {
         return profileInfo -> {
             var profileDb = databaseManagerResolver.open(profileInfo);
             ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
 
             return new AutoAnalysisManagerImpl(
                     cacheRepository,
-                    () -> recordingLookup.find(profileInfo.recordingId()),
-                    recording -> AutoAnalysisDataProvider.generate(List.of(recording)));
+                    () -> recordingLookup.findJfrFiles(profileInfo.recordingId()),
+                    AutoAnalysisDataProvider::generate);
         };
     }
 
