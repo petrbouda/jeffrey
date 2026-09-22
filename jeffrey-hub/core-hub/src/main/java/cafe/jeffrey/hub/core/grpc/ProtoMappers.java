@@ -18,6 +18,10 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.api.v1.ConfigEntry;
+import cafe.jeffrey.hub.api.v1.ConfigScope;
+import cafe.jeffrey.hub.api.v1.ConfigScopeKey;
+import cafe.jeffrey.hub.api.v1.ConfigType;
 import cafe.jeffrey.hub.api.v1.InstanceInfo;
 import cafe.jeffrey.hub.api.v1.InstanceSessionInfo;
 import cafe.jeffrey.hub.api.v1.InstanceStats;
@@ -27,12 +31,13 @@ import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryFile;
 import cafe.jeffrey.hub.api.v1.SessionFilter;
-import cafe.jeffrey.hub.api.v1.SettingsLevel;
+import cafe.jeffrey.hub.api.v1.ScopedConfig;
 import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceStatus;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
-import cafe.jeffrey.hub.model.EffectiveProfilerSettings;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.config.ScopedConfigEntry;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
@@ -110,13 +115,42 @@ public final class ProtoMappers {
         };
     }
 
-    public static SettingsLevel settingsLevel(EffectiveProfilerSettings.SettingsLevel level) {
-        return switch (level) {
-            case PROJECT -> SettingsLevel.SETTINGS_LEVEL_PROJECT;
-            case WORKSPACE -> SettingsLevel.SETTINGS_LEVEL_WORKSPACE;
-            case GLOBAL -> SettingsLevel.SETTINGS_LEVEL_GLOBAL;
-            case NONE -> SettingsLevel.SETTINGS_LEVEL_UNSPECIFIED;
+    // ========== Scoped configuration ==========
+
+    public static ConfigScope configScope(cafe.jeffrey.shared.common.config.ConfigScope scope) {
+        return switch (scope) {
+            case GLOBAL -> ConfigScope.CONFIG_SCOPE_GLOBAL;
+            case WORKSPACE -> ConfigScope.CONFIG_SCOPE_WORKSPACE;
+            case PROJECT -> ConfigScope.CONFIG_SCOPE_PROJECT;
         };
+    }
+
+    public static ConfigType configType(cafe.jeffrey.shared.common.config.ConfigType type) {
+        return switch (type) {
+            case ASPROF_SETTINGS -> ConfigType.CONFIG_TYPE_ASPROF_SETTINGS;
+        };
+    }
+
+    public static ScopedConfig scopedConfig(cafe.jeffrey.hub.model.config.ScopedConfig config) {
+        ScopedConfig.Builder builder = ScopedConfig.newBuilder()
+                .setKey(configScopeKey(config.key()))
+                .setDigest(config.digest());
+        for (ScopedConfigEntry entry : config.entries()) {
+            builder.addEntries(ConfigEntry.newBuilder()
+                    .setType(configType(entry.type()))
+                    .setValue(entry.value())
+                    .setUpdatedAt(entry.updatedAt().toEpochMilli())
+                    .build());
+        }
+        return builder.build();
+    }
+
+    public static ConfigScopeKey configScopeKey(cafe.jeffrey.hub.model.config.ScopedConfigKey key) {
+        return ConfigScopeKey.newBuilder()
+                .setScope(configScope(key.scope()))
+                .setWorkspaceId(orEmpty(key.workspaceId()))
+                .setProjectId(orEmpty(key.projectId()))
+                .build();
     }
 
     // ========== Workspaces and projects ==========
@@ -228,6 +262,18 @@ public final class ProtoMappers {
                 .setFailed(failedSessionIds.contains(info.sessionId()));
         if (info.finishedAt() != null) {
             builder.setFinishedAt(info.finishedAt().toEpochMilli());
+        }
+        if (info.profilerCommandSource() != null) {
+            builder.setProfilerCommandSource(info.profilerCommandSource().name());
+        }
+        if (info.profilerCommand() != null) {
+            builder.setProfilerCommand(info.profilerCommand());
+        }
+        for (AppliedConfigLayer layer : info.configLayers()) {
+            builder.addConfigLayers(cafe.jeffrey.hub.api.v1.AppliedConfigLayer.newBuilder()
+                    .setScope(configScope(layer.scope()))
+                    .setDigest(layer.digest())
+                    .build());
         }
         return builder.build();
     }

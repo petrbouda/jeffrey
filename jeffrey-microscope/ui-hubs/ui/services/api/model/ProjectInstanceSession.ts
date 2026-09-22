@@ -16,6 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** One hub-published configuration file a session merged, and which version of it. */
+export interface AppliedConfigLayer {
+  scope: 'GLOBAL' | 'WORKSPACE' | 'PROJECT';
+  digest: string;
+}
+
 export default class ProjectInstanceSession {
   constructor(
     public id: string,
@@ -25,6 +31,19 @@ export default class ProjectInstanceSession {
     public finishedAt?: number,
     public isActive?: boolean,
     /** Finished without producing any data (zero bytes) — e.g. a crash-looped container. */
-    public failed?: boolean
+    public failed?: boolean,
+    /**
+     * Which configuration layer supplied the profiler command: a layer inside the container, one of
+     * the Hub-published scopes, or the Provisioner's built-in default. Absent for a session
+     * declared by a Provisioner too old to record it.
+     */
+    public profilerCommandSource?: string,
+    /** The resolved profiler command this session was started with. */
+    public profilerCommand?: string,
+    /**
+     * The Hub-published files this session merged, with the digest each had when it was read.
+     * Comparing them with what the Hub holds now says whether this JVM is still current.
+     */
+    public configLayers?: AppliedConfigLayer[]
   ) {}
 }

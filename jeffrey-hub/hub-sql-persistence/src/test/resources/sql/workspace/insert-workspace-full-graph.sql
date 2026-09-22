@@ -29,10 +29,10 @@ VALUES
     ('sess-001', 'repo-001', 'inst-001', 1, 'sessions/sess-001', '2025-01-01T12:00:00Z', '2025-01-01T12:00:00Z'),
     ('sess-101', 'repo-101', 'inst-101', 1, 'sessions/sess-101', '2025-01-01T12:00:00Z', '2025-01-01T12:00:00Z');
 
-INSERT INTO profiler_settings (workspace_id, project_id, scope_key, agent_settings)
+INSERT INTO scoped_configs (scope, workspace_id, project_id, config_type, entry_key, config_value, updated_at)
 VALUES
-    (NULL, NULL, ':', 'global-settings'),
-    ('ws-001', NULL, 'ws-001:', 'workspace-settings'),
-    ('ws-001', 'proj-001', 'ws-001:proj-001', 'project-settings'),
-    ('ws-002', NULL, 'ws-002:', 'other-workspace-settings');
+    ('GLOBAL', NULL, NULL, 'ASPROF_SETTINGS', '::ASPROF_SETTINGS', 'global-settings', '2025-01-01T12:00:00Z'),
+    ('WORKSPACE', 'ws-001', NULL, 'ASPROF_SETTINGS', 'ws-001::ASPROF_SETTINGS', 'workspace-settings', '2025-01-01T12:00:00Z'),
+    ('PROJECT', 'ws-001', 'proj-001', 'ASPROF_SETTINGS', 'ws-001:proj-001:ASPROF_SETTINGS', 'project-settings', '2025-01-01T12:00:00Z'),
+    ('WORKSPACE', 'ws-002', NULL, 'ASPROF_SETTINGS', 'ws-002::ASPROF_SETTINGS', 'other-workspace-settings', '2025-01-01T12:00:00Z');
 

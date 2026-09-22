@@ -52,6 +52,13 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
 
+        <!-- Renders the configuration files published to the shared volume, in the same dialect
+             the provisioner reads them in. Used to write and to read back, never to parse input. -->
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+        </dependency>
+
         <!-- Platform modules (formerly transitive via platform-core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>

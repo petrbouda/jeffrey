@@ -143,7 +143,7 @@ class JdbcProjectRepositoryTest {
             try (Connection conn = dataSource.getConnection();
                  Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(
-                         "SELECT COUNT(*) FROM profiler_settings WHERE project_id = 'proj-001'")) {
+                         "SELECT COUNT(*) FROM scoped_configs WHERE project_id = 'proj-001'")) {
                 rs.next();
                 assertEquals(0, rs.getInt(1), "Profiler settings should be hard-deleted");
             }

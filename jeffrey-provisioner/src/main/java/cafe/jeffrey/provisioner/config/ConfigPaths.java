@@ -28,7 +28,8 @@ public abstract class ConfigPaths {
     public static final String JEFFREY_HOME = "jeffrey-home";
     public static final String WORKSPACES_DIR = "workspaces-dir";
     public static final String PROFILER_PATH = "profiler-path";
-    public static final String PROFILER_CONFIG = "profiler-config";
+    /** Matches ConfigType.ASPROF_SETTINGS via ScopedConfigLayout.hoconPath; the two must stay spelled alike. */
+    public static final String ASPROF_SETTINGS = "asprof-settings";
     public static final String HEARTBEAT_ENABLED = "heartbeat.enabled";
     public static final String REPOSITORY_TYPE = "repository-type";
     public static final String ARG_FILE = "arg-file";

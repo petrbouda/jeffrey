@@ -96,10 +96,9 @@ const router = createRouter({
                   meta: { layout: 'project' }
                 },
                 {
-                  path: 'profiler-settings',
-                  name: 'project-profiler-settings',
-                  component: () =>
-                    import('@/views/projects/ProjectProfilerSettingsView.vue'),
+                  path: 'configuration',
+                  name: 'project-configuration',
+                  component: () => import('@/views/projects/ProjectConfigurationView.vue'),
                   meta: { layout: 'project' }
                 },
                 {

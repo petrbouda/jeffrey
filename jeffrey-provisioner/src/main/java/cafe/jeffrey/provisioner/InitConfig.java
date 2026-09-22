@@ -22,18 +22,25 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import cafe.jeffrey.provisioner.config.ConfigLayers;
 import cafe.jeffrey.provisioner.config.ConfigPaths;
+import cafe.jeffrey.provisioner.config.ContainerLayers;
 import cafe.jeffrey.provisioner.config.EnvironmentLayer;
+import cafe.jeffrey.provisioner.config.VolumeConfigLayer;
 import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.shared.common.config.ConfigSource;
+import cafe.jeffrey.shared.common.config.ConfigType;
+import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
 import cafe.jeffrey.shared.common.model.RepositoryType;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -65,12 +72,16 @@ public class InitConfig {
     private static final Pattern PROJECT_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]+$");
 
 
-    // Default configuration with all optional fields
-    private static final String DEFAULTS = """
+    /**
+     * Every setting this tool reads, with the value that applies when no layer sets one. Also the
+     * list {@code warnAboutUnknownKeys} checks a file against, and package-private so a test can
+     * assert that every publishable configuration type names a key that appears here.
+     */
+    static final String DEFAULTS = """
             jeffrey-home = ""
             workspaces-dir = ""
             profiler-path = ""
-            profiler-config = ""
+            asprof-settings = ""
             repository-type = ""
             project {
                 workspace-ref-id = ""
@@ -125,7 +136,7 @@ public class InitConfig {
     }
 
     static InitConfig fromEnvironment(Function<String, String> envLookup) {
-        return merge(ConfigFactory.empty(), envLookup);
+        return merge(ConfigFactory.empty(), ConfigFactory.empty(), envLookup);
     }
 
     static InitConfig fromHoconFile(
@@ -134,57 +145,87 @@ public class InitConfig {
             throw new IllegalArgumentException("Base config file does not exist: " + baseConfigFile);
         }
 
-        Config files = ConfigFactory.parseFile(baseConfigFile.toFile());
+        Config baseFile = ConfigFactory.parseFile(baseConfigFile.toFile());
+        Config overrideFile = ConfigFactory.empty();
         if (overrideConfigFile != null) {
             if (!Files.exists(overrideConfigFile)) {
                 throw new IllegalArgumentException("Override config file does not exist: " + overrideConfigFile);
             }
-            files = ConfigFactory.parseFile(overrideConfigFile.toFile()).withFallback(files);
+            overrideFile = ConfigFactory.parseFile(overrideConfigFile.toFile());
         }
 
-        return merge(files, envLookup);
+        return merge(overrideFile, baseFile, envLookup);
     }
 
     /**
-     * Stacks the three sources into one configuration. Precedence is expressed by the order of the
-     * layers and nowhere else, so every setting obeys the same rule: what the environment declares
-     * wins, a configuration file fills the rest, built-in defaults answer what is left.
+     * Gathers the container's own layers and resolves them with no published file yet, which is all
+     * that is needed to learn where this run belongs. {@link #withVolumeLayers} does the second pass.
      */
-    private static InitConfig merge(Config files, Function<String, String> envLookup) {
+    private static InitConfig merge(Config overrideFile, Config baseFile, Function<String, String> envLookup) {
         Config defaults = ConfigFactory.parseString(DEFAULTS);
-        Config declared = ConfigLayers.withoutBlanks(files);
-        ConfigLayers.warnAboutUnknownKeys(declared, defaults);
+        Config declaredOverride = ConfigLayers.withoutBlanks(overrideFile);
+        Config declaredBase = ConfigLayers.withoutBlanks(baseFile);
+        ConfigLayers.warnAboutUnknownKeys(declaredOverride.withFallback(declaredBase), defaults);
 
-        Config environment = EnvironmentLayer.of(envLookup);
-        Config resolved = environment
-                .withFallback(filesFor(environment, declared))
-                .withFallback(defaults)
-                .resolve();
+        ContainerLayers layers = new ContainerLayers(
+                EnvironmentLayer.of(envLookup), declaredOverride, declaredBase, defaults);
 
-        InitConfig config = new InitConfig(resolved, envLookup);
+        return create(layers, List.of(), envLookup);
+    }
+
+    /**
+     * The same configuration read again with the hub-published files merged in. They can only be
+     * found once the workspace and project directories are known, and those come from this
+     * configuration, so the second pass is not an optimisation but the only possible order.
+     *
+     * <p>A new instance rather than a mutation: every value is resolved at construction, and half
+     * of them would otherwise have to be recomputed by hand.</p>
+     */
+    public InitConfig withVolumeLayers(List<VolumeConfigLayer> volumeLayers) {
+        return create(containerLayers, volumeLayers, envLookup);
+    }
+
+    private static InitConfig create(
+            ContainerLayers layers, List<VolumeConfigLayer> volumeLayers, Function<String, String> envLookup) {
+
+        InitConfig config = new InitConfig(layers, volumeLayers, envLookup);
         config.validate();
         return config;
     }
 
     /**
-     * The file layer, minus the location settings when the environment names one of its own.
-     * {@code jeffrey-home} and {@code workspaces-dir} are mutually exclusive, so the winning layer
-     * has to take the pair as a unit — otherwise a file that picks one and an environment that
-     * picks the other produce a config that fails validation instead of one overriding the other.
+     * Which layer supplied the async-profiler command, decided by asking the layers rather than by
+     * inspecting the merged value's origin: a layer either declares the key or it does not, and
+     * that answer does not depend on how the config library describes where a value came from.
      */
-    private static Config filesFor(Config environment, Config declared) {
-        if (environment.hasPath(ConfigPaths.JEFFREY_HOME) || environment.hasPath(ConfigPaths.WORKSPACES_DIR)) {
-            return declared
-                    .withoutPath(ConfigPaths.JEFFREY_HOME)
-                    .withoutPath(ConfigPaths.WORKSPACES_DIR);
+    private static ConfigSource resolveCommandSource(
+            ContainerLayers layers, List<VolumeConfigLayer> volumeLayers) {
+
+        String path = ScopedConfigLayout.hoconPath(ConfigType.ASPROF_SETTINGS);
+        if (layers.declares(path)) {
+            return ConfigSource.CONTAINER;
         }
-        return declared;
+        ConfigSource source = ConfigSource.BUILT_IN;
+        // Weakest first, so the most specific layer that declares the key is the one left standing
+        for (VolumeConfigLayer layer : volumeLayers) {
+            if (layer.config().hasPath(path)) {
+                source = ConfigSource.ofScope(layer.scope());
+            }
+        }
+        return source;
     }
+
+    /** Kept so a second pass can restack the same container layers with the published files. */
+    private final ContainerLayers containerLayers;
+    private final Function<String, String> envLookup;
+
+    private final ConfigSource profilerCommandSource;
+    private final List<AppliedConfigLayer> appliedConfigLayers;
 
     private final String jeffreyHome;
     private final String workspacesDir;
     private final String profilerPath;
-    private final String profilerConfig;
+    private final String asprofSettings;
     private final String repositoryType;
     private final boolean heartbeatEnabled;
     private final String additionalJvmOptions;
@@ -216,7 +257,20 @@ public class InitConfig {
      * {@code getInstanceName()} handed out a fresh UUID on every call and the path getters hit the
      * filesystem on every call; both were correct only because the executor happened to ask once.
      */
-    private InitConfig(Config resolved, Function<String, String> envLookup) {
+    private InitConfig(
+            ContainerLayers containerLayers,
+            List<VolumeConfigLayer> volumeLayers,
+            Function<String, String> envLookup) {
+
+        this.containerLayers = containerLayers;
+        this.envLookup = envLookup;
+        this.profilerCommandSource = resolveCommandSource(containerLayers, volumeLayers);
+        this.appliedConfigLayers = volumeLayers.stream()
+                .map(VolumeConfigLayer::applied)
+                .toList();
+
+        Config resolved = containerLayers.resolve(volumeLayers);
+
         // Phase one of placeholder resolution: everything that can be answered without knowing
         // where this run will put its session. Kubernetes cannot expand $(SF_CLUSTER) for values
         // it did not declare itself, so <<ENV:SF_CLUSTER>> is resolved here instead. Values
@@ -226,7 +280,7 @@ public class InitConfig {
         this.jeffreyHome = nullIfBlank(resolved.getString(ConfigPaths.JEFFREY_HOME));
         this.workspacesDir = nullIfBlank(resolved.getString(ConfigPaths.WORKSPACES_DIR));
         this.repositoryType = nullIfBlank(resolved.getString(ConfigPaths.REPOSITORY_TYPE));
-        this.profilerConfig = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_CONFIG)));
+        this.asprofSettings = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.ASPROF_SETTINGS)));
         this.additionalJvmOptions =
                 nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.ADDITIONAL_JVM_OPTIONS)));
 
@@ -333,8 +387,23 @@ public class InitConfig {
         return profilerPath;
     }
 
-    public String getProfilerConfig() {
-        return profilerConfig;
+    /**
+     * The async-profiler command as configured, before placeholders that need the session layout
+     * and before the feature flags are appended. Null when nothing set it, which is what sends the
+     * resolver to the built-in default.
+     */
+    public String getAsprofSettings() {
+        return asprofSettings;
+    }
+
+    /** Which layer {@link #getAsprofSettings()} came from, for the session marker. */
+    public ConfigSource getProfilerCommandSource() {
+        return profilerCommandSource;
+    }
+
+    /** The hub-published files that were merged, weakest first; empty when none were found. */
+    public List<AppliedConfigLayer> getAppliedConfigLayers() {
+        return appliedConfigLayers;
     }
 
     public String getRepositoryType() {

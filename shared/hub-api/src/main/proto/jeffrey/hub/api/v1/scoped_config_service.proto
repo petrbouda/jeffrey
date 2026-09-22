@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+import "jeffrey/hub/api/v1/common.proto";
+
+// Stores the configuration the hub publishes onto the shared volume: typed values, held per scope,
+// rendered by the hub into one file per scope that the provisioner merges as a configuration layer
+// on the next JVM start.
+//
+// Precedence is the directory tree, not this service: a project's file overrides its workspace's,
+// which overrides the global one, and a container's own configuration overrides all three.
+//
+// ConfigType is a closed set on purpose. A published value becomes a JVM option inside someone
+// else's application, so callers cannot invent a key and a document is never accepted as free text.
+service ScopedConfigService {
+  // Returns what one scope holds, with no entries when it holds nothing.
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Returns everything that applies to a workspace: the global entries, the workspace's own, and
+  // each project's. What an editor needs to show a scope together with what it inherits.
+  rpc ListWorkspaceConfigs(ListWorkspaceConfigsRequest) returns (ListWorkspaceConfigsResponse);
+
+  // Stores one typed value at one scope and republishes that scope's file in the same call.
+  // A value its type rejects is INVALID_ARGUMENT and nothing is stored.
+  rpc UpsertConfig(UpsertConfigRequest) returns (UpsertConfigResponse);
+
+  // Removes one typed value and republishes the scope, deleting the file when nothing is left.
+  // Idempotent: removing what is not there succeeds.
+  rpc DeleteConfig(DeleteConfigRequest) returns (DeleteConfigResponse);
+}
+
+// Identifies one scope. Which ids are required follows from the scope: GLOBAL takes neither,
+// WORKSPACE takes workspace_id, PROJECT takes both. An id sent for a scope that does not take one,
+// or missing for a scope that does, is INVALID_ARGUMENT.
+message ConfigScopeKey {
+  ConfigScope scope = 1;
+  // Empty unless the scope is WORKSPACE or PROJECT.
+  string workspace_id = 2;
+  // Empty unless the scope is PROJECT.
+  string project_id = 3;
+}
+
+// One stored setting.
+message ConfigEntry {
+  ConfigType type = 1;
+  // Verbatim as it was stored, placeholders and all; the provisioner is what expands them.
+  string value = 2;
+  // When this value was last stored (epoch millis).
+  int64 updated_at = 3;
+}
+
+// Everything one scope holds, plus the identity of the file it renders to.
+message ScopedConfig {
+  ConfigScopeKey key = 1;
+  // At most one entry per type. Empty when the scope holds nothing and has no file.
+  repeated ConfigEntry entries = 2;
+  // SHA-256 of the published file's bytes, lower-case hex; empty when there is no file. A session
+  // records the digest of every layer it merged, so the two can be compared to tell whether a
+  // running JVM is still on the current configuration.
+  string digest = 3;
+}
+
+message GetConfigRequest {
+  ConfigScopeKey key = 1;
+}
+
+message GetConfigResponse {
+  ScopedConfig config = 1;
+}
+
+message ListWorkspaceConfigsRequest {
+  string workspace_id = 1;
+}
+
+message ListWorkspaceConfigsResponse {
+  // The global scope, the workspace's own and every project's, in that order. A scope holding
+  // nothing is left out.
+  repeated ScopedConfig configs = 1;
+}
+
+message UpsertConfigRequest {
+  ConfigScopeKey key = 1;
+  ConfigType type = 2;
+  string value = 3;
+}
+
+message UpsertConfigResponse {
+  // The scope as it now stands, carrying the new digest, so a caller that just saved need not read
+  // back to learn it.
+  ScopedConfig config = 1;
+}
+
+message DeleteConfigRequest {
+  ConfigScopeKey key = 1;
+  ConfigType type = 2;
+}
+
+message DeleteConfigResponse {
+  ScopedConfig config = 1;
+}

@@ -39,6 +39,7 @@ import cafe.jeffrey.hub.core.project.session.SessionFinisher;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.config.ConfigSource;
 import cafe.jeffrey.hub.model.CreateProject;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
@@ -61,6 +62,7 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -184,7 +186,8 @@ class WorkspaceReconcilerIntegrationTest {
         Path sessionDir = createDir(instanceDir.resolve(sessionId));
         RemoteProjectInstanceSession marker = new RemoteProjectInstanceSession(
                 sessionId, ORIGIN_PROJECT_ID, WORKSPACE_ID, INSTANCE_ID,
-                createdAt.toEpochMilli(), order, INSTANCE_ID + "/" + sessionId, "GLOBAL", "cmd", true);
+                createdAt.toEpochMilli(), order, INSTANCE_ID + "/" + sessionId,
+                ConfigSource.HUB_GLOBAL.name(), "cmd", true, List.of());
         write(sessionDir.resolve(".session-info.json"), Json.toString(marker));
     }
 

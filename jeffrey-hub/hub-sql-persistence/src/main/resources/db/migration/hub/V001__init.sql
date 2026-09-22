@@ -102,6 +102,15 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     -- a provisioner too old to say, and only a TRUE session is held to the heartbeat deadline
     -- (see SessionFinisher).
     heartbeat_expected    BOOLEAN,
+    -- What this session was actually started with, copied from its marker file. The command is the
+    -- fully resolved one, the source names the configuration layer its base came from, and
+    -- config_layers is a JSON array of {scope, digest} naming the hub-published files that were
+    -- merged. Comparing those digests with what the hub holds now is what says whether a running
+    -- JVM is still on the current configuration. All three are NULL for a session declared by a
+    -- provisioner too old to record them.
+    profiler_command_source VARCHAR,
+    profiler_command        VARCHAR,
+    config_layers           VARCHAR,
     PRIMARY KEY (repository_id, session_id)
 );
 
@@ -131,19 +140,26 @@ CREATE TABLE IF NOT EXISTS project_instances
 CREATE INDEX IF NOT EXISTS idx_project_instances_project_id ON project_instances(project_id);
 
 --
--- PROFILER SETTINGS TABLE
+-- SCOPED CONFIGURATION TABLE
 --
 
--- One row per scope: global (both ids NULL), a workspace (project_id NULL), or a project.
--- The ids stay NULL where the scope has none so that every reader can say IS NULL; the
--- upsert cannot key on them, though, because a UNIQUE over nullable columns treats each
--- NULL as distinct. scope_key is that key, computed by the INSERT from the same two values
--- (COALESCE(workspace_id, '') || ':' || COALESCE(project_id, '')) — a stored column rather
--- than a generated one because DuckDB does not yet allow a constraint on a generated column.
-CREATE TABLE IF NOT EXISTS profiler_settings
+-- One row per scope and configuration type: global (both ids NULL), a workspace (project_id NULL),
+-- or a project. The ids stay NULL where the scope has none so that every reader can say IS NULL;
+-- the upsert cannot key on them, though, because a UNIQUE over nullable columns treats each NULL
+-- as distinct. entry_key is that key, computed by the INSERT from the same values
+-- (COALESCE(workspace_id, '') || ':' || COALESCE(project_id, '') || ':' || config_type) - a stored
+-- column rather than a generated one because DuckDB does not yet allow a constraint on a generated
+-- column.
+--
+-- No digest column: what identifies a published file is computed from the bytes that were written,
+-- so a column here could only ever describe a file that may never have been written.
+CREATE TABLE IF NOT EXISTS scoped_configs
 (
-    workspace_id    VARCHAR,
-    project_id      VARCHAR,
-    scope_key       VARCHAR NOT NULL UNIQUE,
-    agent_settings  VARCHAR NOT NULL
+    scope         VARCHAR   NOT NULL,
+    workspace_id  VARCHAR,
+    project_id    VARCHAR,
+    config_type   VARCHAR   NOT NULL,
+    entry_key     VARCHAR   NOT NULL UNIQUE,
+    config_value  VARCHAR   NOT NULL,
+    updated_at    TIMESTAMP NOT NULL
 );

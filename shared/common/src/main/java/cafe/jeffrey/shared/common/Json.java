@@ -52,6 +52,11 @@ public abstract class Json {
             // (readBoolean / readInt) and Jackson 2.x's historical default - lets request-body
             // records add new primitive fields without breaking older callers that omit them.
             .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+            // Ignore a property the target type does not declare, stated here rather than left to a
+            // library default. The marker files on the shared volume are a contract between two
+            // processes that upgrade independently - a provisioner writing a field an older hub has
+            // not learned yet must not make the file unreadable to it.
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .build();
 
     public static ObjectMapper mapper() {

@@ -76,6 +76,10 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **Hub and Microscope share no domain type.** Each maps `shared/hub-api` protos onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
 - **MCP belongs to Microscope only** (`POST /api/mcp`; `/api/internal/mcp` is the legacy alias). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
+- **The hub never authors placement for a JVM.** Hub-published configuration is typed values from
+  the closed `ConfigType` catalogue, rendered into one file per scope under `.config/`; the hub never
+  accepts a document, never sets a placement key, and a container's own configuration always wins.
+  Widening the catalogue is a security decision, not a feature toggle.
 - **A recording's files are never joined**; a download is an unbroken run of chunks; the hub serves one file per call and reports only `is_recording`; compression happens in the compression job, never on a read path.
 - **Protos carry no `reserved`**: hub and Microscope ship together, so removed numbers are reused and survivors renumbered.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.

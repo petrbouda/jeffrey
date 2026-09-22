@@ -109,7 +109,7 @@ onMounted(() => {
           color="green"
           icon="bi bi-hdd-network"
           title="gRPC API"
-          description="Workspace, project, instance, repository, file-download and profiler-settings services — defined by proto."
+          description="Workspace, project, instance, repository, file-download and scoped-configuration services — defined by proto."
         />
         <DocsFeatureCard
           color="neutral"
@@ -121,7 +121,7 @@ onMounted(() => {
           color="blue"
           icon="bi bi-folder2-open"
           title="Multi-Tenant Workspaces"
-          description="Many teams, many projects, one server. Each workspace owns its profiler settings and storage scope."
+          description="Many teams, many projects, one server. Each workspace owns its configuration and storage scope."
         />
       </div>
 
@@ -130,7 +130,7 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> Always-on production / staging recording collection across many JVMs.</li>
         <li><i class="bi bi-check2-circle"></i> Centralised, retention-governed storage of JFR recordings, heap dumps, JVM &amp; application logs, and crash dumps on a shared filesystem.</li>
         <li><i class="bi bi-check2-circle"></i> Letting many developers analyze the same recordings with Microscope without each pulling files manually.</li>
-        <li><i class="bi bi-check2-circle"></i> Driving Async-Profiler agents from a single source of truth for profiler settings (per workspace or project).</li>
+        <li><i class="bi bi-check2-circle"></i> Driving Async-Profiler from a single source of truth for profiler configuration (global, workspace or project scope).</li>
         <li><i class="bi bi-check2-circle"></i> CI / automated profiling pipelines that need a server-side queue and durable session lifecycle.</li>
       </ul>
 

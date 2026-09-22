@@ -107,6 +107,8 @@ onMounted(() => {
         <h2 id="timeline-tab">Timeline Tab</h2>
         <p>A swimlane view of instance and session activity over the selected time range (1h–30d). Each instance gets one row; session bars inside the lane are green when finished, amber when active.</p>
 
+        <p>Hovering a session bar shows what that run was started with: where its profiler command came from, and one line per <router-link to="/docs/microscope/scoped-configuration">configuration</router-link> file it merged, with a short digest of the version it read. Comparing that digest with what the Configuration tab shows now is how you tell whether a running JVM is still current or needs a restart to pick a change up.</p>
+
         <figure class="docs-figure">
           <img src="/images/docs/instances/instance-timeline.png" alt="Instance Timeline with session bars per swimlane" />
         </figure>

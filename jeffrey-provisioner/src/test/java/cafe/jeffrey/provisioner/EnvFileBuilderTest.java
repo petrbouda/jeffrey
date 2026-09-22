@@ -159,31 +159,31 @@ class EnvFileBuilderTest {
     class ProfilerConfigExport {
 
         @Test
-        void includesProfilerConfigWhenSettingsNotNull() {
+        void includesTheResolvedCommandWhenThereIsOne() {
             EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), PROFILER_SETTINGS, false, false);
 
             String result = builder.build(context);
 
-            assertTrue(result.contains("export JEFFREY_PROFILER_CONFIG="));
+            assertTrue(result.contains("export JEFFREY_PROFILER_SETTINGS="));
             assertTrue(result.contains(PROFILER_SETTINGS));
         }
 
         @Test
-        void excludesProfilerConfigWhenSettingsNull() {
+        void exportsNoCommandWhenThereIsNone() {
             EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), null, false, false);
 
             String result = builder.build(context);
 
-            assertFalse(result.contains("JEFFREY_PROFILER_CONFIG"));
+            assertFalse(result.contains("JEFFREY_PROFILER_SETTINGS"));
         }
 
         @Test
-        void excludesProfilerConfigWhenSettingsEmpty() {
+        void exportsNoCommandWhenTheCommandIsEmpty() {
             EnvFileBuilder.Context context = new EnvFileBuilder.Context(layout(null), "", false, false);
 
             String result = builder.build(context);
 
-            assertFalse(result.contains("JEFFREY_PROFILER_CONFIG"));
+            assertFalse(result.contains("JEFFREY_PROFILER_SETTINGS"));
         }
 
         @Test
@@ -270,7 +270,7 @@ class EnvFileBuilderTest {
             int projectIdx = result.indexOf("JEFFREY_CURRENT_PROJECT");
             int sessionIdx = result.indexOf("JEFFREY_CURRENT_SESSION");
             int patternIdx = result.indexOf("JEFFREY_FILE_PATTERN");
-            int profilerIdx = result.indexOf("JEFFREY_PROFILER_CONFIG");
+            int profilerIdx = result.indexOf("JEFFREY_PROFILER_SETTINGS");
             int jdkIdx = result.indexOf("JDK_JAVA_OPTIONS");
 
             assertTrue(homeIdx < workspacesIdx);

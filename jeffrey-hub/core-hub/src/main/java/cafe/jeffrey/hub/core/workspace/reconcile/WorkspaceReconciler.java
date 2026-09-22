@@ -42,6 +42,7 @@ import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
+import cafe.jeffrey.shared.common.config.ConfigSource;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 
 import java.io.IOException;
@@ -349,7 +350,11 @@ public class WorkspaceReconciler {
                 originCreatedAt,
                 clock.instant(),
                 null)
-                .withHeartbeatExpected(marker.heartbeatExpected());
+                .withHeartbeatExpected(marker.heartbeatExpected())
+                .withProfilerCommand(
+                        configSource(marker.profilerCommandSource()),
+                        marker.profilerCommand(),
+                        marker.configLayers());
 
         project.repositoryManager().createSession(sessionInfo);
 
@@ -442,6 +447,23 @@ public class WorkspaceReconciler {
         } catch (IOException e) {
             LOG.warn("Cannot list directory: path={}", parent, e);
             return List.of();
+        }
+    }
+
+    /**
+     * A source name this build does not know reads as absent rather than failing the session: the
+     * marker is written by a provisioner that upgrades on its own schedule, and a session is still
+     * worth materializing when the only thing we cannot name is where its command came from.
+     */
+    private static ConfigSource configSource(String name) {
+        if (name == null) {
+            return null;
+        }
+        try {
+            return ConfigSource.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Session marker names a configuration source this build does not know: source={}", name);
+            return null;
         }
     }
 }

@@ -5,5 +5,5 @@ VALUES ('ws-001', 'ws-001', NULL, 'Test Workspace', NULL, NULL, '2025-01-01T10:0
 INSERT INTO projects (project_id, origin_project_id, project_name, project_label, workspace_id, created_at, origin_created_at, attributes)
 VALUES ('proj-001', NULL, 'Test Project', 'Label 1', 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}');
 
-INSERT INTO profiler_settings (workspace_id, project_id, scope_key, agent_settings)
-VALUES ('ws-001', 'proj-001', 'ws-001:proj-001', 'start,event=cpu');
+INSERT INTO scoped_configs (scope, workspace_id, project_id, config_type, entry_key, config_value, updated_at)
+VALUES ('PROJECT', 'ws-001', 'proj-001', 'ASPROF_SETTINGS', 'ws-001:proj-001:ASPROF_SETTINGS', 'start,event=cpu', '2025-01-01T12:00:00Z');

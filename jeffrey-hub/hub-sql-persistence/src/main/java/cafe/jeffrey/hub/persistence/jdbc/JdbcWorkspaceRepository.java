@@ -44,8 +44,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 WHERE p.workspace_id = :workspace_id)""",
             "DELETE FROM project_instances WHERE project_id IN (SELECT project_id FROM projects WHERE workspace_id = :workspace_id)",
             "DELETE FROM repositories WHERE project_id IN (SELECT project_id FROM projects WHERE workspace_id = :workspace_id)",
-            "DELETE FROM profiler_settings WHERE project_id IN (SELECT project_id FROM projects WHERE workspace_id = :workspace_id)",
-            "DELETE FROM profiler_settings WHERE workspace_id = :workspace_id AND project_id IS NULL",
+            "DELETE FROM scoped_configs WHERE project_id IN (SELECT project_id FROM projects WHERE workspace_id = :workspace_id)",
+            "DELETE FROM scoped_configs WHERE workspace_id = :workspace_id AND project_id IS NULL",
             "DELETE FROM projects WHERE workspace_id = :workspace_id",
             "DELETE FROM workspaces WHERE workspace_id = :workspace_id");
 

@@ -69,7 +69,7 @@ public class SessionRegistrar {
     public void recordSession(
             InitConfig config,
             ProvisionedSession session,
-            ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings) {
+            ProfilerCommandResolver.ResolvedProfilerCommand resolvedCommand) {
 
         repository.addSession(
                 session.sessionId(),
@@ -78,8 +78,9 @@ public class SessionRegistrar {
                 session.instanceId(),
                 session.order(),
                 session.layout().session(),
-                resolvedSettings,
-                config.isHeartbeatEnabled());
+                resolvedCommand,
+                config.isHeartbeatEnabled(),
+                config.getAppliedConfigLayers());
     }
 
     private String findOrCreateProject(InitConfig config, ProjectLayout layout) {

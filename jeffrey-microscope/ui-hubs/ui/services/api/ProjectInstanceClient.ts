@@ -101,7 +101,10 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       data.duration ?? 0,
       data.finishedAt ?? undefined,
       data.isActive,
-      data.failed ?? false
+      data.failed ?? false,
+      data.profilerCommandSource ?? undefined,
+      data.profilerCommand ?? undefined,
+      data.configLayers ?? []
     );
   }
 }

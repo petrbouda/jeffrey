@@ -187,7 +187,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
 
         <h2 id="configuration-options">Configuration Options</h2>
 
-        <p>Every setting accepts an environment-variable override — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>environment variable &rarr; HOCON value &rarr; built-in default</strong>, and the same rule applies to on/off flags as to paths and names. The environment sits on top because of when each source is written: a config file is baked into the image at build time, while environment variables are set at deploy time on the pod — so an operator can change one setting without rebuilding the image. A key a HOCON file spells out but leaves blank counts as unset, so a config file can pre-declare every key without shadowing the defaults.</p>
+        <p>Every setting accepts an environment-variable override — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>environment variable &rarr; override HOCON file &rarr; Hub-published configuration &rarr; base HOCON file &rarr; built-in default</strong>, and the same rule applies to on/off flags as to paths and names. The Hub-published layers sit between the image's base config and anything the deployment sets itself, so a mistake on the Hub can never take over a pod that set the value on its own; see <router-link to="/docs/microscope/scoped-configuration">Configuration</router-link>. The environment sits on top because of when each source is written: a config file is baked into the image at build time, while environment variables are set at deploy time on the pod — so an operator can change one setting without rebuilding the image. A key a HOCON file spells out but leaves blank counts as unset, so a config file can pre-declare every key without shadowing the defaults.</p>
 
         <p>Flags read <code>true</code> and <code>false</code> only, case-insensitive. Any other value is reported in the log and ignored, leaving the configured value in place — reading an unrecognized value as <code>false</code> would let a typo silently disable a feature. The one exception is <code>JEFFREY_HEAP_DUMP</code>, which takes <code>exit</code>, <code>crash</code> or <code>off</code> rather than a boolean.</p>
 
@@ -277,10 +277,10 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>Print the <code>.env</code> file content to stdout (default: <code>false</code>)</td>
             </tr>
             <tr>
-              <td><code>profiler-config</code></td>
+              <td><code>asprof-settings</code></td>
               <td>No</td>
-              <td>—</td>
-              <td>Explicit async-profiler command string. Overrides both hub-pushed workspace settings and the built-in default. Supports <a href="#placeholders">placeholders</a>.</td>
+              <td><code>JEFFREY_ASPROF_SETTINGS</code></td>
+              <td>Async-profiler command string. Overrides the Hub-published configuration and the built-in default. Supports <a href="#placeholders">placeholders</a>. Renamed from <code>profiler-config</code>; the old key is no longer read and is reported as unknown in the log.</td>
             </tr>
             <tr>
               <td><code>repository-type</code></td>
@@ -406,7 +406,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           thresholds for the profiler's recording as well, and the extra events reach the dumped
           <code>.jfr</code> files used for analysis without the profiler's own
           configuration being touched. That is why it works the same whether the
-          profiler settings came from the CLI, from the hub, or from the built-in default.
+          profiler command came from the container, from one of the Hub's scopes, or from the
+          built-in default.
         </p>
 
         <table>
@@ -475,7 +476,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         <h2 id="placeholders">Placeholders</h2>
         <p>
           Most configuration values — whatever supplied them: a HOCON file, a <code>JEFFREY_*</code>
-          environment variable, or hub-pushed profiler settings — may contain
+          environment variable, or Hub-published configuration values — may contain
           <code>&lt;&lt;TYPE:NAME&gt;&gt;</code> placeholders. The type decides where the value is
           looked up:
         </p>

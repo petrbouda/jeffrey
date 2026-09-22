@@ -98,7 +98,7 @@ onMounted(() => {
           <ul>
             <li>Workspaces and projects</li>
             <li>Instances (Java applications) and recording sessions</li>
-            <li>Profiler-settings configurations</li>
+            <li>Scoped configuration values (global, workspace, project)</li>
             <li>The durable workspace-event queue and its consumer offsets</li>
             <li>Notifications and lifecycle state</li>
           </ul>
@@ -153,7 +153,7 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="tip">
-        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention jobs delete sessions and instance directories, the profiler-settings synchronizer publishes settings into each workspace, and the delete RPCs remove files on request. A read-only mount leaves every one of those failing quietly.
+        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention jobs delete sessions and instance directories, the scoped-config synchronizer publishes each scope's configuration file, and the delete RPCs remove files on request. A read-only mount leaves every one of those failing quietly.
       </DocsCallout>
 
       <h2 id="directory-layout">Directory Layout</h2>
@@ -164,9 +164,11 @@ onMounted(() => {
 ├── jeffrey-data.db                   # Hub database
 ├── temp/                             # Scratch files
 └── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
+    ├── .config/jeffrey.conf          # global scope, published by the Hub
     └── {workspace-ref-id}/
-        ├── .settings/                # profiler settings the Hub publishes for the provisioner
+        ├── .config/jeffrey.conf      # workspace scope
         └── {project}/
+            ├── .config/jeffrey.conf  # project scope
             └── {instance}/
                 └── {session}/
                     ├── profile-20260220-120500.jfr      # a chunk (or .jfr.lz4 once compressed)

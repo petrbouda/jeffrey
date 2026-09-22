@@ -245,7 +245,7 @@ const displayNames: Record<JobTypeName, string> = {
     TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
     DELETED_PROJECTS_CLEANER: 'Deleted Projects Cleaner',
     STORAGE_OVERVIEW_REFRESHER: 'Storage Overview Refresher',
-    PROFILER_SETTINGS_SYNCHRONIZER: 'Profiler Settings Synchronizer',
+    SCOPED_CONFIG_SYNCHRONIZER: 'Scoped Config Synchronizer',
     PROJECT_INSTANCE_SESSION_CLEANER: 'Instance Session Cleaner',
     PROJECT_STORAGE_QUOTA_CLEANER: 'Storage Quota Cleaner',
     EXPIRED_INSTANCE_CLEANER: 'Expired Instance Cleaner',
@@ -263,8 +263,8 @@ const descriptions: Record<JobTypeName, string> = {
         'Permanently purges soft-deleted project rows once their retention window has passed. Until then the project can still be restored, so this retention doubles as the restore window.',
     STORAGE_OVERVIEW_REFRESHER:
         'Recomputes the storage overview shown on the Workspaces dashboard into an in-memory cache. The scan walks every project repository on disk, so the dashboard serves the cached snapshot; figures may be up to one period stale. The first tick runs at startup.',
-    PROFILER_SETTINGS_SYNCHRONIZER:
-        'Resolves the effective profiler settings (global → workspace → project) for every workspace and uploads them to the remote workspace, pruning legacy versions to the configured max-versions cap.',
+    SCOPED_CONFIG_SYNCHRONIZER:
+        'Keeps every scope\'s published configuration file on the shared volume in step with what the Hub holds. Changes publish as they are made, so a tick usually rewrites nothing; this covers what that cannot — a Hub that was down when someone edited, a volume that was not mounted, a file deleted by hand. It never deletes a file: one whose values the database does not know is read back into it.',
     PROJECT_INSTANCE_SESSION_CLEANER:
         'Ages recordings out under one retention window: a finished session is removed whole once older than it (with every recording and additional file — heap dumps, perf counters, ...), and a session still recording loses its closed chunks older than it one by one. Beside the window, each instance is capped at max-sessions logical sessions — a consecutive run of failed (0-byte) sessions counts as one, the live session occupies a slot, retained sessions are exempt — and the oldest beyond the cap go even before the window expires.',
     PROJECT_STORAGE_QUOTA_CLEANER:
@@ -283,7 +283,7 @@ const icons: Record<JobTypeName, [string, string]> = {
     TEMP_DIRECTORY_CLEANER: ['bi-eraser', 'job-icon-broom'],
     DELETED_PROJECTS_CLEANER: ['bi-trash', 'job-icon-trash'],
     STORAGE_OVERVIEW_REFRESHER: ['bi-hdd-stack', 'job-icon-sync'],
-    PROFILER_SETTINGS_SYNCHRONIZER: ['bi-cpu', 'job-icon-cpu'],
+    SCOPED_CONFIG_SYNCHRONIZER: ['bi-sliders', 'job-icon-cpu'],
     PROJECT_INSTANCE_SESSION_CLEANER: ['bi-trash', 'job-icon-trash'],
     PROJECT_STORAGE_QUOTA_CLEANER: ['bi-hdd', 'job-icon-trash'],
     EXPIRED_INSTANCE_CLEANER: ['bi-trash', 'job-icon-trash'],

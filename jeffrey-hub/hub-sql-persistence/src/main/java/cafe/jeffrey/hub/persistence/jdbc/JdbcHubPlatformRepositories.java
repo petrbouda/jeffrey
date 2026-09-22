@@ -21,7 +21,7 @@ package cafe.jeffrey.hub.persistence.jdbc;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.ProfilerRepository;
+import cafe.jeffrey.hub.persistence.api.ScopedConfigRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
@@ -75,6 +75,9 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
                    rs.finished_at AS finished_at,
                    rs.retained AS retained,
                    rs.heartbeat_expected AS heartbeat_expected,
+       rs.profiler_command_source AS profiler_command_source,
+       rs.profiler_command AS profiler_command,
+       rs.config_layers AS config_layers,
                    r.repository_type AS repository_type,
                    r.workspaces_path AS workspaces_path,
                    r.relative_workspace_path AS relative_workspace_path,
@@ -95,8 +98,8 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
     }
 
     @Override
-    public ProfilerRepository newProfilerRepository() {
-        return new JdbcProfilerRepository(databaseClientProvider);
+    public ScopedConfigRepository newScopedConfigRepository() {
+        return new JdbcScopedConfigRepository(databaseClientProvider);
     }
 
     @Override

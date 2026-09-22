@@ -18,12 +18,15 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.provisioner.config.VolumeConfigLayer;
+import cafe.jeffrey.provisioner.config.VolumeConfigLayers;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
+import java.util.List;
 
 /**
  * Provisions a Jeffrey session for one JVM: lays down its directories, declares it to the hub,
@@ -35,25 +38,33 @@ public class InitExecutor {
 
     private final Clock clock;
     private final LayoutProvisioner layoutProvisioner;
-    private final ProfilerSettingsResolver profilerSettingsResolver;
+    private final ProfilerCommandResolver profilerCommandResolver;
     private final OutputWriter outputWriter;
 
     public InitExecutor(Clock clock) {
         this.clock = clock;
         this.layoutProvisioner = new LayoutProvisioner();
-        this.profilerSettingsResolver = new ProfilerSettingsResolver();
+        this.profilerCommandResolver = new ProfilerCommandResolver();
         this.outputWriter = new OutputWriter();
     }
 
     /**
-     * @param config validated initialization configuration
+     * @param initialConfig validated configuration, as read from the container's own layers; the
+     *                      hub-published layers are merged in once the layout names their folders
      * @throws Exception if initialization fails
      */
-    public void execute(InitConfig config) throws Exception {
+    public void execute(InitConfig initialConfig) throws Exception {
+        InitConfig config = initialConfig;
         LOG.debug("Executing provisioner init: workspaceRefId={} projectName={}",
                 config.getWorkspaceRefId(), config.getProjectName());
 
         ProjectLayout projectLayout = layoutProvisioner.provisionProject(config);
+
+        // Second configuration pass. The published files live in folders named after the workspace
+        // and the project, so they cannot be found until the layout above has been resolved from
+        // the container's own layers.
+        List<VolumeConfigLayer> volumeLayers = VolumeConfigLayers.discover(projectLayout);
+        config = config.withVolumeLayers(volumeLayers);
 
         SessionRegistrar registrar = new SessionRegistrar(
                 new FileSystemRepository(clock, projectLayout.workspace()), layoutProvisioner);
@@ -69,21 +80,20 @@ public class InitExecutor {
         String features = JvmFeatures.of(config)
                 .render(session.layout().session(), placeholders);
 
-        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = profilerSettingsResolver.resolve(
-                config.getProfilerConfig(),
-                session.layout().workspace(),
-                session.projectId(),
-                config.getProjectName(),
+        ProfilerCommandResolver.ResolvedProfilerCommand resolvedCommand = profilerCommandResolver.resolve(
+                config.getAsprofSettings(),
+                config.getProfilerCommandSource(),
                 placeholders,
                 features);
 
-        registrar.recordSession(config, session, resolvedSettings);
-        outputWriter.write(config, session.layout(), resolvedSettings.command());
+        registrar.recordSession(config, session, resolvedCommand);
+        outputWriter.write(config, session.layout(), resolvedCommand.command());
 
         // Single greppable verdict line — the one place that tells a user their setup works
-        LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} arg_file={}",
+        LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} "
+                        + "profiler_source={} config_layers={} arg_file={}",
                 config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
-                resolvedSettings.source(), config.getArgFilePath());
+                resolvedCommand.source(), config.getAppliedConfigLayers().size(), config.getArgFilePath());
     }
 
 }

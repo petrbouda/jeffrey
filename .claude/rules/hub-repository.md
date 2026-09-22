@@ -16,7 +16,7 @@ once broken; the "why" says what went wrong. Do not re-derive these from the cod
 
 ### One domain model per side
 - Hub (`jeffrey-hub/hub-model`, `cafe.jeffrey.hub.model`) and Microscope (`jeffrey-microscope/microscope-model`) each map the proto in `shared/hub-api` onto their **own** records (`ProtoMappers` on the hub, `ClientProtoMappers`/`RepositoryClient` in `hub-client`). Fourteen records exist once per side on purpose (`RecordingSession`, `RepositoryFile`, `RecordingStatus`, `WorkspaceInfo`, `ProjectInfo`, …). `ModuleBoundaryTest` in `core-hub` and `core-microscope` fails on any import across the line.
-- `shared/common` holds utilities and hub↔provisioner contract types only (`RemoteProject*`, `ProfilerSettings*`, `RepositoryType`, `JeffreyLayout`, `ChunkWindow`). Never put a domain record there.
+- `shared/common` holds utilities and hub↔provisioner contract types only (`RemoteProject*`, `AppliedConfigLayer`, `ConfigScope`/`ConfigType`/`ConfigSource`, `ScopedConfigLayout`, `RepositoryType`, `JeffreyLayout`, `ChunkWindow`). Never put a domain record there.
 - `RecordingSession.openRecording()` (which chunk the profiler still holds open) must answer alike on both sides; the same three cases are pinned in each side's `RecordingSessionTest`.
 
 ### Session status is a fact of the row

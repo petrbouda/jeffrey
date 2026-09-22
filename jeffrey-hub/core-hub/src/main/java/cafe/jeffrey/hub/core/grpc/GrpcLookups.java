@@ -23,6 +23,8 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.config.ScopedConfigKey;
+import cafe.jeffrey.shared.common.config.ConfigScope;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 
@@ -83,17 +85,17 @@ public class GrpcLookups {
     }
 
     /**
-     * Checks that a settings scope names things that exist — the workspace, and the project as
-     * one of that workspace's — so that a mistyped id does not write a row no reader will find.
+     * Checks that a configuration scope names things that exist — the workspace, and the project as
+     * one of that workspace's — so that a mistyped id does not store a value no reader will find.
      */
-    public void requireExists(SettingsScope scope) {
-        if (scope.isGlobal()) {
+    public void requireExists(ScopedConfigKey key) {
+        if (key.scope() == ConfigScope.GLOBAL) {
             return;
         }
-        WorkspaceInfo workspace = platformRepositories.newWorkspacesRepository().find(scope.workspaceId())
-                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + scope.workspaceId()));
-        if (scope.isProject()) {
-            ProjectInfo project = projectInfo(scope.projectId());
+        WorkspaceInfo workspace = platformRepositories.newWorkspacesRepository().find(key.workspaceId())
+                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + key.workspaceId()));
+        if (key.scope() == ConfigScope.PROJECT) {
+            ProjectInfo project = projectInfo(key.projectId());
             if (!workspace.id().equals(project.workspaceId())) {
                 throw GrpcExceptions.notFound(
                         "Project not found in workspace: project_id=" + project.id() + " workspace_id=" + workspace.id());

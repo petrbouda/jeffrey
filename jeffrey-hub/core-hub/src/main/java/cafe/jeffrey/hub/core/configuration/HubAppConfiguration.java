@@ -19,6 +19,12 @@
 package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
+import cafe.jeffrey.hub.core.config.FilesystemScopedConfigPublisher;
+import cafe.jeffrey.hub.core.config.ScopeDirectories;
+import cafe.jeffrey.hub.core.config.ScopedConfigAdopter;
+import cafe.jeffrey.hub.core.config.ScopedConfigManager;
+import cafe.jeffrey.hub.core.config.ScopedConfigPublisher;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
@@ -123,6 +129,40 @@ public class HubAppConfiguration {
         jeffreyDirs.initialize();
         LOG.info("Using Jeffrey directory: HOME={} TEMP={}", jeffreyDirs.homeDir(), jeffreyDirs.temp());
         return jeffreyDirs;
+    }
+
+    // ========== Scoped configuration ==========
+
+    @Bean
+    public ScopeDirectories scopeDirectories(HubJeffreyDirs jeffreyDirs, WorkspacesManager workspacesManager) {
+        return new ScopeDirectories(jeffreyDirs, workspacesManager);
+    }
+
+    @Bean
+    public ScopedConfigPublisher scopedConfigPublisher() {
+        return new FilesystemScopedConfigPublisher();
+    }
+
+    @Bean
+    public ScopedConfigManager scopedConfigManager(
+            Clock clock,
+            HubPlatformRepositories platformRepositories,
+            ScopeDirectories scopeDirectories,
+            ScopedConfigPublisher publisher) {
+
+        return new ScopedConfigManager(
+                clock, platformRepositories.newScopedConfigRepository(), scopeDirectories, publisher);
+    }
+
+    @Bean
+    public ScopedConfigAdopter scopedConfigAdopter(
+            Clock clock,
+            HubPlatformRepositories platformRepositories,
+            ScopeDirectories scopeDirectories,
+            ScopedConfigPublisher publisher) {
+
+        return new ScopedConfigAdopter(
+                clock, platformRepositories.newScopedConfigRepository(), scopeDirectories, publisher);
     }
 
     @Bean

@@ -18,8 +18,12 @@
 
 package cafe.jeffrey.hub.model;
 
+import cafe.jeffrey.shared.common.config.ConfigSource;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
+
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * One recording session as the hub knows it.
@@ -29,6 +33,12 @@ import java.time.Instant;
  * {@code FALSE} when it was not, and {@code null} when the session was declared by a provisioner
  * too old to say. Only a {@code TRUE} session is held to the heartbeat deadline — see
  * {@code SessionFinisher}.
+ *
+ * <p>The profiler fields are what the run was actually started with: the resolved command, the
+ * configuration layer its base came from, and the hub-published files that were merged with the
+ * digest each had when it was read. They are copied from the session's marker and never computed
+ * here, so they describe the run rather than what the hub holds now — which is exactly what makes
+ * comparing them with the current configuration meaningful.</p>
  */
 public record ProjectInstanceSessionInfo(
         String sessionId,
@@ -40,10 +50,14 @@ public record ProjectInstanceSessionInfo(
         Instant createdAt,
         Instant finishedAt,
         boolean retained,
-        Boolean heartbeatExpected) {
+        Boolean heartbeatExpected,
+        ConfigSource profilerCommandSource,
+        String profilerCommand,
+        List<AppliedConfigLayer> configLayers) {
 
     public ProjectInstanceSessionInfo {
         RelativePath.require(relativeSessionPath, "relativeSessionPath");
+        configLayers = configLayers == null ? List.of() : List.copyOf(configLayers);
     }
 
     /**
@@ -69,7 +83,8 @@ public record ProjectInstanceSessionInfo(
 
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, null);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, null,
+                null, null, List.of());
     }
 
     /**
@@ -78,6 +93,17 @@ public record ProjectInstanceSessionInfo(
     public ProjectInstanceSessionInfo withHeartbeatExpected(Boolean heartbeatExpected) {
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, heartbeatExpected);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, heartbeatExpected,
+                profilerCommandSource, profilerCommand, configLayers);
+    }
+
+    /** Copy of this session info carrying what the run was started with. */
+    public ProjectInstanceSessionInfo withProfilerCommand(
+            ConfigSource source, String command, List<AppliedConfigLayer> layers) {
+
+        return new ProjectInstanceSessionInfo(
+                sessionId, repositoryId, instanceId, order,
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, heartbeatExpected,
+                source, command, layers);
     }
 }

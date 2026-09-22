@@ -28,9 +28,10 @@ package cafe.jeffrey.shared.common;
  * &lt;workspaces&gt;/
  *   &lt;workspace-ref-id&gt;/
  *     .pending/&lt;timestamp&gt;_&lt;uuid&gt;         provisioner-declared work for the hub to look at
- *     .settings/settings-&lt;timestamp&gt;.json hub-pushed profiler settings
+ *     .config/jeffrey.conf                hub-published configuration for this workspace
  *     &lt;project-name&gt;/
  *       .project-info.json
+ *       .config/jeffrey.conf              hub-published configuration for this project
  *       &lt;instance-id&gt;/
  *         .instance-info.json
  *         &lt;session-id&gt;/
@@ -39,7 +40,10 @@ package cafe.jeffrey.shared.common;
  * </pre>
  *
  * <p>Both sides must resolve these names from this single class; any rename
- * silently desynchronizes producer and consumer otherwise. The heartbeat
+ * silently desynchronizes producer and consumer otherwise. The {@code .config}
+ * subtrees are the hub's to write and are spelled in
+ * {@link cafe.jeffrey.shared.common.config.ScopedConfigLayout}, which owns their
+ * format as well as their names. The heartbeat
  * directory and file names live in {@link HeartbeatConstants} because the
  * zero-dependency agent duplicates that subset.</p>
  */
@@ -54,15 +58,6 @@ public abstract class JeffreyLayout {
      * hints, never a description of an entity — the marker files remain the only description.
      */
     public static final String PENDING_DIR = ".pending";
-
-    /** Directory under a workspace dir holding hub-pushed profiler settings files */
-    public static final String SETTINGS_DIR = ".settings";
-
-    /** Filename prefix of profiler settings files inside {@link #SETTINGS_DIR} */
-    public static final String SETTINGS_FILE_PREFIX = "settings-";
-
-    /** Timestamp pattern embedded in profiler settings filenames (UTC) */
-    public static final String SETTINGS_TIMESTAMP_PATTERN = "yyyy-MM-dd'T'HHmmssSSSSSS";
 
     /** Project metadata marker file inside a project directory */
     public static final String PROJECT_INFO_FILE = ".project-info.json";

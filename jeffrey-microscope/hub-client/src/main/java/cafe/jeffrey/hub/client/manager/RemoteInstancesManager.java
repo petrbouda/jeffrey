@@ -29,6 +29,7 @@ import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.microscope.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;
@@ -120,6 +121,12 @@ public class RemoteInstancesManager {
                         null,
                         InstantUtils.fromEpochMilli(response.createdAt()),
                         InstantUtils.fromEpochMilli(response.finishedAt()))
-                .withFailed(response.failed());
+                .withFailed(response.failed())
+                .withProfilerCommand(
+                        response.profilerCommandSource(),
+                        response.profilerCommand(),
+                        response.configLayers().stream()
+                                .map(layer -> new AppliedConfigLayer(layer.scope(), layer.digest()))
+                                .toList());
     }
 }

@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Jeffrey Hub exposes gRPC services for Jeffrey Microscope instances to connect and fetch data. All communication between Jeffrey Microscope and Jeffrey Hub uses gRPC on port <code>9090</code> (configurable).</p>
 
         <DocsCallout type="info">
-          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. Full profile analysis happens locally; <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s MCP tools</router-link> pull a session down by session, time window or file.
+          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage the configuration the Hub publishes to its JVMs. Full profile analysis happens locally; <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s MCP tools</router-link> pull a session down by session, time window or file.
         </DocsCallout>
 
         <h2 id="purpose">Purpose</h2>
@@ -70,8 +70,8 @@ onMounted(() => {
           <div class="purpose-card">
             <div class="card-icon"><i class="bi bi-sliders"></i></div>
             <div class="card-content">
-              <h4>Settings Sync</h4>
-              <p>Manage profiler settings hierarchy across workspace, project, and global levels</p>
+              <h4>Configuration</h4>
+              <p>Set the profiler command at the global, workspace or project scope; the Hub publishes it to the shared volume</p>
             </div>
           </div>
         </div>
@@ -277,54 +277,40 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- ProfilerSettingsService -->
+          <!-- ScopedConfigService -->
           <div class="endpoint-group">
             <div class="group-header">
               <i class="bi bi-sliders"></i>
-              <h4>ProfilerSettingsService</h4>
+              <h4>ScopedConfigService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>GetSettings</code>
+                  <code>GetConfig</code>
                 </div>
-                <p>Get effective profiler settings</p>
+                <p>What one scope holds, with the digest of the file it renders to</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>UpsertSettings</code>
+                  <code>ListWorkspaceConfigs</code>
                 </div>
-                <p>Create/update project settings</p>
+                <p>The global scope, a workspace's own and every project's, in merge order</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>DeleteSettings</code>
+                  <code>UpsertConfig</code>
                 </div>
-                <p>Delete project settings</p>
+                <p>Store one typed value and republish that scope's file</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>UpsertSettingsAtLevel</code>
+                  <code>DeleteConfig</code>
                 </div>
-                <p>Create/update at any level</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DeleteSettingsAtLevel</code>
-                </div>
-                <p>Delete at any level</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetWorkspaceEffectiveSettings</code>
-                </div>
-                <p>Get the workspace-level and global-level settings for a workspace</p>
+                <p>Remove one typed value, deleting the file when nothing is left</p>
               </div>
             </div>
           </div>

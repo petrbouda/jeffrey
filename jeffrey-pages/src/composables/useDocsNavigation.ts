@@ -195,10 +195,10 @@ export const microscopeNavigation: DocSection[] = [
         children: [
           { title: 'Overview', to: '/docs/microscope/projects' },
           { title: 'Instances', to: '/docs/microscope/projects/instances' },
-          { title: 'Profiler Settings', to: '/docs/microscope/projects/profiler-settings' }
+          { title: 'Configuration', to: '/docs/microscope/projects/configuration' }
         ]
       },
-      { title: 'Profiler Settings', to: '/docs/microscope/profiler-settings' }
+      { title: 'Configuration', to: '/docs/microscope/scoped-configuration' }
     ]
   },
   {

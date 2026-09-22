@@ -58,9 +58,10 @@ onMounted(() => {
       <p>
         Server runs as a long-lived process next to your Java fleet. Async-Profiler agents
         running inside your applications stream JFR chunks to it on every recording loop. The
-        agent gets its configuration (event toggles, sampling intervals, output paths) from
-        Server's profiler-settings hub, so a single change at the workspace or project scope
-        propagates to every agent in that scope.
+        profiler's configuration (event toggles, sampling intervals, output paths) comes from
+        Server's scoped configuration, which it publishes onto the shared volume for the
+        Provisioner to merge. A change at the global, workspace or project scope reaches each
+        application the next time it starts; nothing reaches into a running JVM.
       </p>
 
       <DocsCallout type="info">
@@ -98,7 +99,7 @@ onMounted(() => {
         <div class="service-chip"><i class="bi bi-hdd-network"></i> Instances</div>
         <div class="service-chip"><i class="bi bi-cloud-download"></i> Recording Download</div>
         <div class="service-chip"><i class="bi bi-archive"></i> Repository</div>
-        <div class="service-chip"><i class="bi bi-sliders"></i> Profiler Settings</div>
+        <div class="service-chip"><i class="bi bi-sliders"></i> Scoped Config</div>
       </div>
 
       <p>

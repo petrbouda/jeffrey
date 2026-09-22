@@ -48,7 +48,7 @@ const customProfilerRuntime = `env:
 const defaultAgentCommand = `-agentpath:<profiler-path>=start,alloc,lock,event=ctimer,jfrsync=default,\
 loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
 
-const customProfilerConfig = `profiler-config = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=itimer,\
+const customProfilerConfig = `asprof-settings = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=itimer,\
 file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"`;
 
 onMounted(() => {
@@ -195,7 +195,7 @@ onMounted(() => {
           ones to check against an older build. Jeffrey currently pins async-profiler 4.1, and the
           build log names the exact version it baked, so a custom library of a comparable generation
           is the safe choice. If yours needs different options, replace the whole command with
-          <code>profiler-config</code> rather than fighting the default &mdash; the
+          <code>asprof-settings</code> rather than fighting the default &mdash; the
           <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code> and
           <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholders keep it portable:</p>
 

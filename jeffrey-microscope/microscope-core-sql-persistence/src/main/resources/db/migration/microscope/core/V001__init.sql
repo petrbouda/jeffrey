@@ -122,18 +122,6 @@ CREATE TABLE IF NOT EXISTS profiles
 );
 
 --
--- PROFILER SETTINGS TABLE
---
-
-CREATE TABLE IF NOT EXISTS profiler_settings
-(
-    workspace_id    VARCHAR,
-    project_id      VARCHAR,
-    agent_settings  VARCHAR NOT NULL,
-    UNIQUE (workspace_id, project_id)
-);
-
---
 -- IDE TARGETS TABLE
 -- The IntelliJ window a profile is linked to, so a jump to source survives a restart.
 -- Only the durable half of the link is stored: the port and pid a window had are meaningless

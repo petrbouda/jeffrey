@@ -23,17 +23,27 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
+import cafe.jeffrey.provisioner.config.ConfigPaths;
+import cafe.jeffrey.provisioner.config.VolumeConfigLayer;
 import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.shared.common.config.ConfigScope;
+import cafe.jeffrey.shared.common.config.ConfigSource;
+import cafe.jeffrey.shared.common.config.ConfigType;
+import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.RepositoryType;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -67,7 +77,7 @@ class InitConfigTest {
 
             assertEquals("/tmp/jeffrey", config.getJeffreyHome());
             assertEquals("/tmp/asprof/libasyncProfiler.so", config.getProfilerPath());
-            assertNull(config.getProfilerConfig());
+            assertNull(config.getAsprofSettings());
             assertEquals("uat", config.getWorkspaceRefId());
             assertEquals("test-project", config.getProjectName());
             assertEquals("Test Project", config.getProjectLabel());
@@ -133,7 +143,7 @@ class InitConfigTest {
             assertNull(config.getWorkspacesDir());
             assertNull(config.getProjectLabel());
             assertNull(config.getProfilerPath());
-            assertNull(config.getProfilerConfig());
+            assertNull(config.getAsprofSettings());
             assertNull(config.getRepositoryType());
             // Attributes are empty rather than null, so callers need no null check
             assertEquals(Map.of(), config.getAttributes());
@@ -788,6 +798,23 @@ class InitConfigTest {
             assertEquals("ASYNC_PROFILER", config.getRepositoryType());
         }
 
+        /**
+         * The async-profiler settings were the last setting the environment could not reach: the
+         * generated .env exported the resolved command under the name an input would have used, so
+         * accepting one would have fed a run's output into the next. The output has its own name
+         * now, and this closes the gap that workaround left.
+         */
+        @Test
+        void asprofSettingsFromEnv() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_ASPROF_SETTINGS", "start,cpu")));
+
+            assertEquals("start,cpu", config.getAsprofSettings());
+            assertEquals(ConfigSource.CONTAINER, config.getProfilerCommandSource());
+        }
+
         @Test
         void workspacesDirFromEnv() {
             InitConfig config = InitConfig.fromEnvironment(env(Map.of(
@@ -919,6 +946,139 @@ class InitConfigTest {
                     name -> name.equals("JEFFREY_PROJECT_NAME") ? "from-env" : null);
 
             assertEquals("from-env", config.getProjectName());
+        }
+    }
+
+    @Nested
+    class CatalogueMatchesTheProvisionersKeys {
+
+        /**
+         * The linchpin of publishing values without a lookup table: a type's key is derived from its
+         * name, and the provisioner must read a key spelled exactly that way. Nothing else connects
+         * the two vocabularies, so if they ever drift this is where it shows.
+         */
+        @Test
+        void everyPublishablePathIsASettingTheProvisionerReads() {
+            Config defaults = ConfigFactory.parseString(InitConfig.DEFAULTS);
+
+            for (String path : ScopedConfigLayout.publishablePaths()) {
+                assertTrue(defaults.hasPath(path),
+                        "a published type names a key the provisioner does not read: " + path);
+            }
+        }
+
+        @Test
+        void theAsprofSettingsTypeMapsOntoTheProvisionersOwnKey() {
+            assertEquals(
+                    ConfigPaths.ASPROF_SETTINGS,
+                    ScopedConfigLayout.hoconPath(ConfigType.ASPROF_SETTINGS));
+        }
+    }
+
+    @Nested
+    class VolumeLayerPrecedence {
+
+        private static final String ASPROF_SETTINGS = "asprof-settings";
+
+        private InitConfig withLayers(InitConfig config, VolumeConfigLayer... layers) {
+            return config.withVolumeLayers(List.of(layers));
+        }
+
+        private VolumeConfigLayer layer(ConfigScope scope, String hocon) {
+            return new VolumeConfigLayer(
+                    scope, Path.of("/volume/.config/jeffrey.conf"), "digest-" + scope,
+                    ConfigFactory.parseString(hocon));
+        }
+
+        private InitConfig base(Map<String, String> env) {
+            return InitConfig.fromEnvironment(env::get);
+        }
+
+        private Map<String, String> minimalEnv() {
+            return Map.of("JEFFREY_HOME", "/mnt/jeffrey", "JEFFREY_PROJECT_NAME", "my-service");
+        }
+
+        @Test
+        void aProjectLayerBeatsAWorkspaceLayerWhichBeatsAGlobalOne() {
+            InitConfig config = withLayers(base(minimalEnv()),
+                    layer(ConfigScope.GLOBAL, ASPROF_SETTINGS + " = \"global\""),
+                    layer(ConfigScope.WORKSPACE, ASPROF_SETTINGS + " = \"workspace\""),
+                    layer(ConfigScope.PROJECT, ASPROF_SETTINGS + " = \"project\""));
+
+            assertEquals("project", config.getAsprofSettings());
+            assertEquals(ConfigSource.HUB_PROJECT, config.getProfilerCommandSource());
+        }
+
+        @Test
+        void aWorkspaceLayerWinsWhenNoProjectLayerSetsIt() {
+            InitConfig config = withLayers(base(minimalEnv()),
+                    layer(ConfigScope.GLOBAL, ASPROF_SETTINGS + " = \"global\""),
+                    layer(ConfigScope.WORKSPACE, ASPROF_SETTINGS + " = \"workspace\""));
+
+            assertEquals("workspace", config.getAsprofSettings());
+            assertEquals(ConfigSource.HUB_WORKSPACE, config.getProfilerCommandSource());
+        }
+
+        @Test
+        void aGlobalLayerAppliesWhenNothingMoreSpecificDoes() {
+            InitConfig config = withLayers(base(minimalEnv()),
+                    layer(ConfigScope.GLOBAL, ASPROF_SETTINGS + " = \"global\""));
+
+            assertEquals("global", config.getAsprofSettings());
+            assertEquals(ConfigSource.HUB_GLOBAL, config.getProfilerCommandSource());
+        }
+
+        /**
+         * The property the whole layering exists to preserve: whoever deploys the container keeps
+         * the last word, so a published file can never take over a pod that set the value itself.
+         */
+        @Test
+        void theEnvironmentBeatsEveryPublishedLayer() {
+            Map<String, String> env = new HashMap<>(minimalEnv());
+            env.put("JEFFREY_ASPROF_SETTINGS", "from-the-container");
+
+            InitConfig config = withLayers(base(env),
+                    layer(ConfigScope.PROJECT, ASPROF_SETTINGS + " = \"project\""));
+
+            assertEquals("from-the-container", config.getAsprofSettings());
+            assertEquals(ConfigSource.CONTAINER, config.getProfilerCommandSource());
+        }
+
+        @Test
+        void noLayerLeavesTheSettingUnsetAndTheSourceBuiltIn() {
+            InitConfig config = base(minimalEnv());
+
+            assertNull(config.getAsprofSettings());
+            assertEquals(ConfigSource.BUILT_IN, config.getProfilerCommandSource());
+            assertTrue(config.getAppliedConfigLayers().isEmpty());
+        }
+
+        @Test
+        void everyLayerFoundIsReportedForTheSessionMarker() {
+            InitConfig config = withLayers(base(minimalEnv()),
+                    layer(ConfigScope.GLOBAL, ASPROF_SETTINGS + " = \"global\""),
+                    layer(ConfigScope.PROJECT, ASPROF_SETTINGS + " = \"project\""));
+
+            assertEquals(
+                    List.of(ConfigScope.GLOBAL, ConfigScope.PROJECT),
+                    config.getAppliedConfigLayers().stream().map(AppliedConfigLayer::scope).toList());
+            assertEquals("digest-GLOBAL", config.getAppliedConfigLayers().getFirst().digest());
+        }
+
+        /**
+         * A layer is merged key by key, so a published file that only sets the profiler command
+         * must not blank out everything else the container configured.
+         */
+        @Test
+        void aLayerOverridesOnlyTheKeysItSets() {
+            Map<String, String> env = new HashMap<>(minimalEnv());
+            env.put("JEFFREY_PROJECT_LABEL", "My Service");
+
+            InitConfig config = withLayers(base(env),
+                    layer(ConfigScope.WORKSPACE, ASPROF_SETTINGS + " = \"workspace\""));
+
+            assertEquals("My Service", config.getProjectLabel());
+            assertEquals("my-service", config.getProjectName());
         }
     }
 }

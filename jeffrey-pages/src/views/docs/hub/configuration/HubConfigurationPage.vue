@@ -36,7 +36,7 @@ const headings = [
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
   { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
   { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
-  { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
+  { id: 'profiler', text: 'Published Configuration', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
 ];
 
@@ -353,10 +353,15 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             </td>
           </tr>
           <tr>
-            <td><code>profiler-settings-synchronizer</code></td>
+            <td><code>scoped-config-synchronizer</code></td>
             <td><code>5m</code></td>
-            <td><code>max-versions=5</code></td>
-            <td>Uploads effective profiler settings and prunes old versions</td>
+            <td>—</td>
+            <td>
+              Keeps every scope's published configuration file in step with what the Hub holds.
+              Changes publish as they are made, so a tick usually rewrites nothing; this covers
+              what that cannot, such as a Hub that was down when someone edited. It never deletes
+              a file: one whose values the database does not know is read back into it.
+            </td>
           </tr>
           <tr>
             <td><code>project-instance-session-cleaner</code></td>
@@ -459,34 +464,19 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         browser it was set in.
       </p>
 
-      <h2 id="profiler">Profiler Agent Settings</h2>
-      <p>Global settings for the Jeffrey profiler agent.</p>
+      <h2 id="profiler">Published Configuration</h2>
+      <p>
+        The Hub holds the profiler command its JVMs start with and publishes it onto the shared
+        volume, where the Provisioner merges it. It is edited in Microscope rather than set as a
+        server property, so there is nothing to configure here; see
+        <router-link to="/docs/microscope/scoped-configuration">Configuration</router-link> for the
+        scopes and the merge order.
+      </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.hub.profiler.global-settings.create-if-not-exists</code></td>
-            <td><code>true</code></td>
-            <td>Automatically create global profiler settings</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.profiler.global-settings.command</code></td>
-            <td><em>(see below)</em></td>
-            <td>Default profiler agent command with placeholders</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <DocsCallout type="tip">
-        <strong>Default Profiler Command:</strong>
-        <code>-agentpath:&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>
+      <DocsCallout type="info">
+        <strong>No server-wide default.</strong> The Hub ships no baseline command, deliberately: a
+        value it seeded would sit above every image's own configuration and silently override it.
+        With nothing set at any scope, a JVM starts on the Provisioner's built-in command.
       </DocsCallout>
 
       <h2 id="database">Database Persistence</h2>

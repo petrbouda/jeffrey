@@ -18,9 +18,14 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
+import cafe.jeffrey.microscope.model.config.ConfigEntry;
+import cafe.jeffrey.microscope.model.config.ScopedConfig;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.shared.common.config.ConfigScope;
+import cafe.jeffrey.shared.common.config.ConfigType;
+
+import java.time.Instant;
 
 /**
  * Shared proto-to-domain conversions for the hub gRPC clients. Holds the empty-string-to-null
@@ -68,12 +73,58 @@ public abstract class ClientProtoMappers {
         };
     }
 
-    public static SettingsLevel settingsLevel(cafe.jeffrey.hub.api.v1.SettingsLevel level) {
-        return switch (level) {
-            case SETTINGS_LEVEL_PROJECT -> SettingsLevel.PROJECT;
-            case SETTINGS_LEVEL_WORKSPACE -> SettingsLevel.WORKSPACE;
-            case SETTINGS_LEVEL_GLOBAL -> SettingsLevel.GLOBAL;
-            default -> SettingsLevel.NONE;
+    // ========== Scoped configuration ==========
+
+    public static ScopedConfig scopedConfig(cafe.jeffrey.hub.api.v1.ScopedConfig config) {
+        return new ScopedConfig(
+                configScope(config.getKey().getScope()),
+                nullIfEmpty(config.getKey().getWorkspaceId()),
+                nullIfEmpty(config.getKey().getProjectId()),
+                config.getEntriesList().stream().map(ClientProtoMappers::configEntry).toList(),
+                config.getDigest());
+    }
+
+    private static ConfigEntry configEntry(cafe.jeffrey.hub.api.v1.ConfigEntry entry) {
+        return new ConfigEntry(
+                configType(entry.getType()),
+                entry.getValue(),
+                Instant.ofEpochMilli(entry.getUpdatedAt()));
+    }
+
+    public static cafe.jeffrey.hub.api.v1.ConfigScope configScope(ConfigScope scope) {
+        return switch (scope) {
+            case GLOBAL -> cafe.jeffrey.hub.api.v1.ConfigScope.CONFIG_SCOPE_GLOBAL;
+            case WORKSPACE -> cafe.jeffrey.hub.api.v1.ConfigScope.CONFIG_SCOPE_WORKSPACE;
+            case PROJECT -> cafe.jeffrey.hub.api.v1.ConfigScope.CONFIG_SCOPE_PROJECT;
+        };
+    }
+
+    public static ConfigScope configScope(cafe.jeffrey.hub.api.v1.ConfigScope scope) {
+        return switch (scope) {
+            case CONFIG_SCOPE_GLOBAL -> ConfigScope.GLOBAL;
+            case CONFIG_SCOPE_WORKSPACE -> ConfigScope.WORKSPACE;
+            case CONFIG_SCOPE_PROJECT -> ConfigScope.PROJECT;
+            case CONFIG_SCOPE_UNSPECIFIED, UNRECOGNIZED ->
+                    throw new IllegalArgumentException("The hub returned a configuration scope this build does not know");
+        };
+    }
+
+    public static cafe.jeffrey.hub.api.v1.ConfigType configType(ConfigType type) {
+        return switch (type) {
+            case ASPROF_SETTINGS -> cafe.jeffrey.hub.api.v1.ConfigType.CONFIG_TYPE_ASPROF_SETTINGS;
+        };
+    }
+
+    /**
+     * A type this build does not know is an error rather than a default: the catalogue is a
+     * security boundary, and silently reading an unknown value as the first member would show an
+     * operator one setting while the hub holds another.
+     */
+    public static ConfigType configType(cafe.jeffrey.hub.api.v1.ConfigType type) {
+        return switch (type) {
+            case CONFIG_TYPE_ASPROF_SETTINGS -> ConfigType.ASPROF_SETTINGS;
+            case CONFIG_TYPE_UNSPECIFIED, UNRECOGNIZED ->
+                    throw new IllegalArgumentException("The hub returned a configuration type this build does not know");
         };
     }
 

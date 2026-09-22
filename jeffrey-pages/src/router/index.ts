@@ -314,9 +314,9 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/WorkspacesPage.vue')
       },
       {
-        path: 'microscope/profiler-settings',
-        name: 'DocsMicroscopeProfilerSettings',
-        component: () => import('@/views/docs/microscope/MicroscopeProfilerSettingsPage.vue')
+        path: 'microscope/scoped-configuration',
+        name: 'DocsMicroscopeScopedConfiguration',
+        component: () => import('@/views/docs/microscope/MicroscopeScopedConfigurationPage.vue')
       },
       // Projects
       {
@@ -330,11 +330,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/projects/ProjectsInstancesPage.vue')
       },
       {
-        path: 'microscope/projects/profiler-settings',
-        name: 'DocsProjectsProfilerSettings',
-        component: () => import('@/views/docs/microscope/projects/ProjectsProfilerSettingsPage.vue')
+        path: 'microscope/projects/configuration',
+        name: 'DocsProjectsConfiguration',
+        component: () => import('@/views/docs/microscope/projects/ProjectsConfigurationPage.vue')
       },
       // Legacy paths — features moved to global pages or were removed in the UI.
+      { path: 'microscope/profiler-settings', redirect: '/docs/microscope/scoped-configuration' },
+      {
+        path: 'microscope/projects/profiler-settings',
+        redirect: '/docs/microscope/projects/configuration'
+      },
       { path: 'microscope/projects/profiles', redirect: '/docs/microscope/profiles' },
       { path: 'microscope/projects/recordings', redirect: '/docs/microscope/recordings' },
       { path: 'microscope/projects/repository', redirect: '/docs/microscope/projects/instances' },
@@ -706,7 +711,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'platform/projects/recordings', redirect: '/docs/microscope/recordings' },
       { path: 'platform/projects/repository', redirect: '/docs/microscope/projects/instances' },
       { path: 'platform/projects/instances', redirect: '/docs/microscope/projects/instances' },
-      { path: 'platform/projects/profiler-settings', redirect: '/docs/microscope/projects/profiler-settings' },
+      { path: 'platform/projects/profiler-settings', redirect: '/docs/microscope/projects/configuration' },
       { path: 'platform/projects/scheduler', redirect: '/docs/microscope/projects' },
       { path: 'platform/projects/alerts-messages', redirect: '/docs/microscope/projects' },
       { path: 'microscope/projects/event-streaming', redirect: '/docs/microscope/projects' },

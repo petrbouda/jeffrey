@@ -137,7 +137,7 @@ class FilesystemRepositoryStorageTest {
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
                     SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, finishedAt, false, null)));
+                    T0, T0, finishedAt, false, null, null, null, List.of())));
 
             return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class), workspacesDir, repository);
@@ -314,7 +314,7 @@ class FilesystemRepositoryStorageTest {
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
                     SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, finishedAt, false, null)));
+                    T0, T0, finishedAt, false, null, null, null, List.of())));
 
             return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class), workspacesDir, repository);
@@ -391,10 +391,10 @@ class FilesystemRepositoryStorageTest {
             when(repository.findAllSessions()).thenReturn(List.of(
                     new ProjectInstanceSessionInfo(
                             "session-2", "repo-1", "instance-2", 0, Path.of("instance-2", "session-2"),
-                            T0.plusSeconds(1800), T0.plusSeconds(1800), null, false, null),
+                            T0.plusSeconds(1800), T0.plusSeconds(1800), null, false, null, null, null, List.of()),
                     new ProjectInstanceSessionInfo(
                             SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
-                            T0, T0, null, false, null)));
+                            T0, T0, null, false, null, null, null, List.of())));
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.WITH_FILES);
 
@@ -521,7 +521,7 @@ class FilesystemRepositoryStorageTest {
                     "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
                     SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, null, false, null)));
+                    T0, T0, null, false, null, null, null, List.of())));
 
             return new FilesystemRepositoryStorage(
                     mock(ProjectInfo.class), workspacesDir, repository);

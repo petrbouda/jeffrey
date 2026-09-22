@@ -291,9 +291,9 @@ volumes:
         <code>additional-jvm-options</code> composes with the profiler agent flags
         <code>provisioner</code> injects automatically, so keep it to the application's own
         concerns — heap sizing, GC choice, logging. Do not tweak the profiler here; that belongs on the
-        <router-link to="/docs/microscope/profiler-settings">Profiler Settings</router-link>
-        page in Microscope, which propagates to every monitored pod via Jeffrey Hub's
-        gRPC API.
+        <router-link to="/docs/microscope/scoped-configuration">Configuration</router-link>
+        page in Microscope. The Hub publishes what you set there onto the shared volume, and each
+        pod's provisioner merges it the next time that application starts.
       </DocsCallout>
 
       <h2 id="omitted-paths">Why Paths Are Omitted</h2>

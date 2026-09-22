@@ -33,10 +33,12 @@ import java.util.function.Function;
  * how its text is read. Precedence is expressed by where the layer sits in the merge rather than by
  * a check at each read site — configuration files win over it, built-in defaults lose to it.
  *
- * <p>Every setting is reachable from the environment, so a container never needs to mount a file.
- * The single deliberate omission is {@code JEFFREY_PROFILER_CONFIG}: the generated {@code .env}
- * file <em>exports</em> a variable of that name, and accepting it as an input would feed a previous
- * run's fully-resolved command back in.
+ * <p>Every setting is reachable from the environment, so a container never needs to mount a file,
+ * with no exception. There used to be one: the async-profiler settings were unreachable because the
+ * generated {@code .env} file exported the fully-resolved command under the same name a setting
+ * would have used, and accepting it as input would have fed one run's output into the next. The
+ * input and the output now have names of their own — {@code JEFFREY_ASPROF_SETTINGS} in and
+ * {@code JEFFREY_PROFILER_SETTINGS} out — so the collision is gone rather than worked around.
  */
 public abstract class EnvironmentLayer {
 
@@ -53,6 +55,7 @@ public abstract class EnvironmentLayer {
             new EnvBinding.Value("JEFFREY_HOME", ConfigPaths.JEFFREY_HOME),
             new EnvBinding.Value("JEFFREY_WORKSPACES_DIR", ConfigPaths.WORKSPACES_DIR),
             new EnvBinding.Value("JEFFREY_PROFILER_PATH", ConfigPaths.PROFILER_PATH),
+            new EnvBinding.Value("JEFFREY_ASPROF_SETTINGS", ConfigPaths.ASPROF_SETTINGS),
             new EnvBinding.Flag("JEFFREY_HEARTBEAT_ENABLED", ConfigPaths.HEARTBEAT_ENABLED),
             new EnvBinding.Value("JEFFREY_REPOSITORY_TYPE", ConfigPaths.REPOSITORY_TYPE),
             new EnvBinding.Value("JEFFREY_ARG_FILE", ConfigPaths.ARG_FILE),

@@ -18,10 +18,13 @@
 
 package cafe.jeffrey.microscope.core.manager.workspace;
 
-import cafe.jeffrey.hub.client.ProfilerClient;
+import cafe.jeffrey.microscope.model.config.ScopedConfig;
+import cafe.jeffrey.shared.common.config.ConfigScope;
+import cafe.jeffrey.shared.common.config.ConfigType;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface WorkspaceManager {
@@ -46,33 +49,20 @@ public interface WorkspaceManager {
     ProjectsManager projectsManager();
 
     /**
-     * Returns the remote profiler client for this workspace's hub, if available.
-     * Only remote workspaces have a profiler client.
+     * Everything the hub holds for this workspace: the global scope, the workspace's own, and each
+     * of its projects, in merge order. One call because an editor always needs a scope together
+     * with what it inherits.
      */
-    default Optional<ProfilerClient> profilerClient() {
-        return Optional.empty();
-    }
+    List<ScopedConfig> listConfigs();
 
     /**
-     * Upserts workspace-level profiler settings. Applies the given agent
-     * settings string to every project in this workspace that doesn't
-     * override at the project level.
+     * Stores one configuration value at the global or workspace scope. The hub validates it and
+     * republishes the scope's file; the value reaches a JVM on its next start.
      */
-    void upsertProfilerSettings(String agentSettings);
+    ScopedConfig upsertConfig(ConfigScope scope, ConfigType type, String value);
 
-    /**
-     * Returns the workspace-level and global-level profiler settings for this
-     * workspace. Either field may be {@code null} if no row exists at that
-     * level. The caller decides which is "effectively in force" — workspace
-     * overrides global.
-     */
-    ProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings();
-
-    /**
-     * Removes the workspace-level profiler settings, causing the workspace
-     * to fall back to the global default.
-     */
-    void deleteProfilerSettings();
+    /** Removes one configuration value from the global or workspace scope. */
+    ScopedConfig deleteConfig(ConfigScope scope, ConfigType type);
 
     /**
      * Deletes the workspace from the repository.

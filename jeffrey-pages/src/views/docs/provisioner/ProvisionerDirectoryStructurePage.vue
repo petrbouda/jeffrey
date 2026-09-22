@@ -52,11 +52,12 @@ onMounted(() => {
         <div class="directory-structure">
           <pre><code>&lt;jeffrey-home&gt;/
 └── workspaces/
+    ├── .config/jeffrey.conf                 # Hub-published configuration, global scope
     └── &lt;workspace-id&gt;/
-        ├── .settings/                       # Cached profiler settings from Jeffrey
-        │   └── settings-2025-01-15T....json
+        ├── .config/jeffrey.conf             # workspace scope
         └── &lt;project-name&gt;/
             ├── .project-info.json           # Project metadata
+            ├── .config/jeffrey.conf         # project scope
             └── &lt;instance-name&gt;/
                 ├── .instance-info.json      # Instance metadata
                 └── &lt;session-id&gt;/

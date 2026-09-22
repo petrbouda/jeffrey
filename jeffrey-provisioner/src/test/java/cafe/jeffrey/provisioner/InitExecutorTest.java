@@ -20,11 +20,19 @@ package cafe.jeffrey.provisioner;
 
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.config.ConfigScope;
+import cafe.jeffrey.shared.common.config.ConfigSource;
+import cafe.jeffrey.shared.common.config.ContentDigest;
+import cafe.jeffrey.shared.common.config.ScopedConfigLayout;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
+import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -83,6 +91,106 @@ class InitExecutorTest {
     /** Replaces the run's generated session directory name so content can be compared verbatim. */
     private String normalized(String content) throws IOException {
         return content.replace(sessionPath().getFileName().toString(), "<session>");
+    }
+
+    /** Writes a hub-published file into a scope's folder, creating the folder if needed. */
+    private void publish(Path scopeDir, String content) throws IOException {
+        Path file = ScopedConfigLayout.configFile(scopeDir);
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, content);
+    }
+
+    private RemoteProjectInstanceSession sessionMarker() throws IOException {
+        return Json.read(
+                Files.readString(sessionPath().resolve(JeffreyLayout.SESSION_INFO_FILE)),
+                RemoteProjectInstanceSession.class);
+    }
+
+    /**
+     * End to end over the real filesystem: a file the hub would have written, read by a full run.
+     * These pin the behaviour a user sees — what the JVM is started with and what the hub is told —
+     * rather than the shape of the code that produces it.
+     */
+    @Nested
+    class HubPublishedConfiguration {
+
+        @Test
+        void aWorkspaceFileSuppliesTheProfilerCommand() throws Exception {
+            InitConfig config = config();
+            publish(workspacesDir.resolve(WORKSPACE_REF_ID),
+                    "asprof-settings = \"-agentpath:/opt/libasyncProfiler.so=start,cpu\"\n");
+
+            new InitExecutor(Clock.systemUTC()).execute(config);
+
+            assertTrue(Files.readString(argFile).contains("start,cpu"));
+            assertEquals(ConfigSource.HUB_WORKSPACE.name(), sessionMarker().profilerCommandSource());
+        }
+
+        @Test
+        void theMarkerRecordsEveryLayerWithTheDigestOfTheFileAsRead() throws Exception {
+            InitConfig config = config();
+            String workspaceFile = "asprof-settings = \"-agentpath:/opt/lib.so=start,cpu\"\n";
+            publish(workspacesDir, "asprof-settings = \"-agentpath:/opt/lib.so=start,alloc\"\n");
+            publish(workspacesDir.resolve(WORKSPACE_REF_ID), workspaceFile);
+
+            new InitExecutor(Clock.systemUTC()).execute(config);
+
+            List<AppliedConfigLayer> layers = sessionMarker().configLayers();
+            assertEquals(List.of(ConfigScope.GLOBAL, ConfigScope.WORKSPACE),
+                    layers.stream().map(AppliedConfigLayer::scope).toList());
+            assertEquals(
+                    ContentDigest.sha256Hex(workspaceFile.getBytes(StandardCharsets.UTF_8)),
+                    layers.get(1).digest());
+        }
+
+        /**
+         * The fail-open rule: configuration that cannot be read costs the defaults, never the run.
+         */
+        @Test
+        void anUnreadableFileLeavesTheBuiltInCommandAndStillProvisions() throws Exception {
+            InitConfig config = config();
+            publish(workspacesDir.resolve(WORKSPACE_REF_ID), "{ not hocon at all");
+
+            new InitExecutor(Clock.systemUTC()).execute(config);
+
+            assertTrue(Files.exists(argFile), "a broken published file must not stop provisioning");
+            assertEquals(ConfigSource.BUILT_IN.name(), sessionMarker().profilerCommandSource());
+            assertTrue(sessionMarker().configLayers().isEmpty());
+        }
+
+        /**
+         * A file on the volume is the one place an outsider could try to put arbitrary flags into
+         * someone else's JVM. Whatever it says, only the catalogue's keys may reach the argfile.
+         */
+        @Test
+        void aFileCannotSmuggleJvmOptionsIntoTheArgfile() throws Exception {
+            InitConfig config = config();
+            publish(workspacesDir.resolve(WORKSPACE_REF_ID), """
+                    asprof-settings = "-agentpath:/opt/lib.so=start,cpu"
+                    additional-jvm-options = "-XX:OnOutOfMemoryError=touch /tmp/pwned"
+                    """);
+
+            new InitExecutor(Clock.systemUTC()).execute(config);
+
+            String argFileContent = Files.readString(argFile);
+            assertTrue(argFileContent.contains("start,cpu"));
+            assertFalse(argFileContent.contains("OnOutOfMemoryError"),
+                    "a published file must not be able to add a JVM flag");
+        }
+
+        @Test
+        void aProjectFileOverridesTheWorkspaceOne() throws Exception {
+            InitConfig config = config();
+            publish(workspacesDir.resolve(WORKSPACE_REF_ID),
+                    "asprof-settings = \"-agentpath:/opt/lib.so=start,alloc\"\n");
+            publish(workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME),
+                    "asprof-settings = \"-agentpath:/opt/lib.so=start,cpu\"\n");
+
+            new InitExecutor(Clock.systemUTC()).execute(config);
+
+            assertTrue(Files.readString(argFile).contains("start,cpu"));
+            assertEquals(ConfigSource.HUB_PROJECT.name(), sessionMarker().profilerCommandSource());
+        }
     }
 
     @Nested
@@ -164,7 +272,7 @@ class InitExecutorTest {
 
             String session = normalized(sessionPath().toString());
             List<String> layoutExports = normalized(Files.readString(envFile)).lines()
-                    .filter(line -> !line.contains("PROFILER_CONFIG"))
+                    .filter(line -> !line.contains("JEFFREY_PROFILER_SETTINGS"))
                     .toList();
 
             assertEquals(List.of(

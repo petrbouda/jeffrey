@@ -201,7 +201,7 @@ Setting `profilerPath` means *this image already has async-profiler*. That paylo
 baked, so a base image that already ships the library pays nothing for a second copy.
 Your library has to accept the agent command the provisioner generates, which uses
 `event=ctimer`, `jfrsync=default` and `chunksize`; if yours needs different options, replace the
-whole command with the provisioner's `profiler-config`.
+whole command with the provisioner's `asprof-settings`.
 
 **There is no `provisionerPath`.** The provisioner is not a third-party component you can
 substitute. It is Jeffrey's own binary, and the session layout and workspace events it writes are

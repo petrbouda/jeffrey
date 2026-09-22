@@ -23,7 +23,9 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.DiscoveryClient;
-import cafe.jeffrey.hub.client.ProfilerClient;
+import cafe.jeffrey.microscope.model.config.ScopedConfig;
+import cafe.jeffrey.shared.common.config.ConfigScope;
+import cafe.jeffrey.shared.common.config.ConfigType;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
@@ -103,25 +105,39 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public Optional<ProfilerClient> profilerClient() {
-        return Optional.of(hubClients.profiler());
+    public List<ScopedConfig> listConfigs() {
+        return hubClients.scopedConfig().listForWorkspace(workspaceInfo.id());
     }
 
     @Override
-    public void upsertProfilerSettings(String agentSettings) {
-        hubClients.profiler().upsertSettingsAtLevel(workspaceInfo.id(), "", agentSettings);
-        LOG.debug("Upserted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
+    public ScopedConfig upsertConfig(ConfigScope scope, ConfigType type, String value) {
+        ScopedConfig config = hubClients.scopedConfig()
+                .upsert(scope, workspaceIdFor(scope), null, type, value);
+        LOG.debug("Upserted configuration: workspace_id={} scope={} type={}",
+                workspaceInfo.id(), scope, type);
+        return config;
     }
 
     @Override
-    public ProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings() {
-        return hubClients.profiler().getWorkspaceEffectiveSettings(workspaceInfo.id());
+    public ScopedConfig deleteConfig(ConfigScope scope, ConfigType type) {
+        ScopedConfig config = hubClients.scopedConfig()
+                .delete(scope, workspaceIdFor(scope), null, type);
+        LOG.debug("Deleted configuration: workspace_id={} scope={} type={}",
+                workspaceInfo.id(), scope, type);
+        return config;
     }
 
-    @Override
-    public void deleteProfilerSettings() {
-        hubClients.profiler().deleteSettingsAtLevel(workspaceInfo.id(), "");
-        LOG.debug("Deleted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
+    /**
+     * The global scope belongs to no workspace, so it must be addressed without one; anything
+     * narrower than a workspace is a project's and does not belong on this manager.
+     */
+    private String workspaceIdFor(ConfigScope scope) {
+        return switch (scope) {
+            case GLOBAL -> null;
+            case WORKSPACE -> workspaceInfo.id();
+            case PROJECT -> throw new IllegalArgumentException(
+                    "A project's configuration is edited through its own project, not the workspace");
+        };
     }
 
     @Override
@@ -141,7 +157,8 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                     .emit();
         }
 
-        // Local cleanup: profiles/recordings/profiler_settings tied to this workspace.
+        // Local cleanup: profiles and recordings tied to this workspace. Configuration is the
+        // hub's and goes with the workspace there.
         List<String> profileIds = workspaceRepository.delete();
         for (String profileId : profileIds) {
             try {

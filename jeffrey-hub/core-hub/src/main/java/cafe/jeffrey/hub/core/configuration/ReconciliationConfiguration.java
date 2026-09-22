@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.appinitializer.ApplicationInitializer;
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
@@ -39,11 +38,6 @@ import java.time.Clock;
  */
 @Configuration
 public class ReconciliationConfiguration {
-
-    @Bean
-    public ApplicationInitializer applicationInitializer(HubPlatformRepositories platformRepositories) {
-        return new ApplicationInitializer(platformRepositories.newProfilerRepository());
-    }
 
     @Bean
     public DefaultWorkspaceInitializer defaultWorkspaceInitializer(

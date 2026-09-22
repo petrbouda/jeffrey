@@ -43,3 +43,22 @@ enum Severity {
   // Low severity — informational.
   SEVERITY_LOW = 4;
 }
+
+// The scope a published configuration belongs to. The order is the merge order on the shared
+// volume: a file in a project's folder overrides the workspace's, which overrides the one in the
+// workspaces root. Mirrors cafe.jeffrey.shared.common.config.ConfigScope.
+enum ConfigScope {
+  CONFIG_SCOPE_UNSPECIFIED = 0;
+  CONFIG_SCOPE_GLOBAL = 1;
+  CONFIG_SCOPE_WORKSPACE = 2;
+  CONFIG_SCOPE_PROJECT = 3;
+}
+
+// What a published value configures. Closed on purpose: a value here becomes a JVM option inside
+// an application's own argfile, so the set of things that can be said is a security boundary
+// rather than a convenience. Mirrors cafe.jeffrey.shared.common.config.ConfigType.
+enum ConfigType {
+  CONFIG_TYPE_UNSPECIFIED = 0;
+  // The async-profiler command a session starts with.
+  CONFIG_TYPE_ASPROF_SETTINGS = 1;
+}

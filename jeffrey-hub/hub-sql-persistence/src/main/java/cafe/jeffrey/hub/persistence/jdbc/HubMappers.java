@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.hub.persistence.jdbc;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -25,15 +27,25 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.shared.common.config.ConfigSource;
 import cafe.jeffrey.shared.common.model.RepositoryType;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
+import tools.jackson.core.type.TypeReference;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public abstract class HubMappers {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HubMappers.class);
+
+    private static final TypeReference<List<AppliedConfigLayer>> APPLIED_CONFIG_LAYERS =
+            new TypeReference<>() {
+            };
 
     public static Instant instant(ResultSet rs, String columnName) throws SQLException {
         OffsetDateTime dateTime = rs.getObject(columnName, OffsetDateTime.class);
@@ -103,7 +115,10 @@ public abstract class HubMappers {
                     HubMappers.instant(rs, "created_at"),
                     HubMappers.instant(rs, "finished_at"),
                     rs.getBoolean("retained"),
-                    rs.getObject("heartbeat_expected", Boolean.class)
+                    rs.getObject("heartbeat_expected", Boolean.class),
+                    configSource(rs.getString("profiler_command_source")),
+                    rs.getString("profiler_command"),
+                    configLayersFromJson(rs.getString("config_layers"))
             );
         };
     }
@@ -122,5 +137,38 @@ public abstract class HubMappers {
                     Json.toMap(rs.getString("attributes")),
                     HubMappers.instant(rs, "deleted_at"));
         };
+    }
+
+    /**
+     * A source this build does not know reads as absent rather than failing the row: the column
+     * holds what a provisioner wrote, and a session is still worth showing when the only thing we
+     * cannot name is where its command came from.
+     */
+    private static ConfigSource configSource(String name) {
+        if (name == null) {
+            return null;
+        }
+        try {
+            return ConfigSource.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Session records a configuration source this build does not know: source={}", name);
+            return null;
+        }
+    }
+
+    static String configLayersToJson(List<AppliedConfigLayer> layers) {
+        return layers == null || layers.isEmpty() ? null : Json.toString(layers);
+    }
+
+    private static List<AppliedConfigLayer> configLayersFromJson(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return Json.read(json, APPLIED_CONFIG_LAYERS);
+        } catch (RuntimeException e) {
+            LOG.warn("Session records configuration layers this build cannot read: error={}", e.getMessage());
+            return List.of();
+        }
     }
 }

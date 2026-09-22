@@ -28,7 +28,7 @@ public record HubClients(
         DiscoveryClient discovery,
         RepositoryClient repository,
         FileStreamClient files,
-        ProfilerClient profiler,
+        ScopedConfigClient scopedConfig,
         InstancesClient instances,
         ProjectsClient projects
 ) {

@@ -52,8 +52,8 @@ onMounted(() => {
           <div class="config-step">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>Profiler Settings</h4>
-              <p>Define what events to capture (CPU, allocations, locks) and profiling parameters using <router-link to="/docs/microscope/profiler-settings">Profiler Settings</router-link> in your project.</p>
+              <h4>Configuration</h4>
+              <p>Define what events to capture (CPU, allocations, locks) and profiling parameters using <router-link to="/docs/microscope/scoped-configuration">Configuration</router-link> in your project.</p>
             </div>
           </div>
           <div class="config-step">

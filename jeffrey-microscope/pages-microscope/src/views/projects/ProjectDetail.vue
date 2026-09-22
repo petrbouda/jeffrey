@@ -37,12 +37,12 @@
             <span>Instances</span>
           </router-link>
           <router-link
-            :to="generateProjectUrl('profiler-settings')"
+            :to="generateProjectUrl('configuration')"
             class="nav-pill"
             active-class="active"
           >
-            <i class="bi bi-cpu"></i>
-            <span>Profiler Settings</span>
+            <i class="bi bi-sliders"></i>
+            <span>Configuration</span>
           </router-link>
           <router-link :to="generateProjectUrl('settings')" class="nav-pill" active-class="active">
             <i class="bi bi-sliders"></i>

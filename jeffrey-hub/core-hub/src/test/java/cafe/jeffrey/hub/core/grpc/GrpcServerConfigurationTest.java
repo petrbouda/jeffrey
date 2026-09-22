@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.server.GlobalServerInterceptor;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
+import cafe.jeffrey.hub.core.config.ScopedConfigManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
@@ -48,7 +49,7 @@ import static org.mockito.Mockito.mock;
  * Guards the Spring gRPC migration wiring. Spring gRPC's auto-configuration registers every
  * {@link BindableService} bean with the server and applies every {@link GlobalServerInterceptor}
  * bean to all services. This test verifies the contract this project is responsible for: that
- * {@link GrpcServerConfiguration} declares exactly the eight Jeffrey services as
+ * {@link GrpcServerConfiguration} declares exactly the six Jeffrey services as
  * {@code BindableService} beans, and that the JFR interceptor is declared as a global interceptor.
  * If a service {@code @Bean} is dropped or the interceptor stops being global, this fails.
  */
@@ -58,7 +59,7 @@ class GrpcServerConfigurationTest {
             WorkspaceGrpcService.class,
             ProjectGrpcService.class,
             InstanceGrpcService.class,
-            ProfilerSettingsGrpcService.class,
+            ScopedConfigGrpcService.class,
             RepositoryGrpcService.class,
             FileDownloadGrpcService.class);
 
@@ -128,6 +129,11 @@ class GrpcServerConfigurationTest {
         @Bean
         public RepositoryManager.Factory repositoryManagerFactory() {
             return mock(RepositoryManager.Factory.class);
+        }
+
+        @Bean
+        public ScopedConfigManager scopedConfigManager() {
+            return mock(ScopedConfigManager.class);
         }
     }
 }

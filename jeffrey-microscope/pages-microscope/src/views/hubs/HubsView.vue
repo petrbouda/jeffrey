@@ -34,7 +34,7 @@
     </template>
 
     <template #tab-settings="{ hubId, workspaceId, workspaceName }">
-      <WorkspaceProfilerSettings
+      <WorkspaceConfiguration
         :hub-id="hubId"
         :workspace-id="workspaceId"
         :workspace-name="workspaceName"
@@ -51,13 +51,13 @@ import ProjectCard from '@shared/components/projects/ProjectCard.vue';
 import { useNavigation } from '@/composables/useNavigation';
 
 const { navigateToProject } = useNavigation();
-import WorkspaceProfilerSettings from '@/components/workspace/WorkspaceProfilerSettings.vue';
+import WorkspaceConfiguration from '@/components/workspace/WorkspaceConfiguration.vue';
 
 const HERO =
   'Microscope analyzes profiles served by Jeffrey Hubs. Add a hub to browse its workspaces and projects.';
 
 const EXTRA_TABS = [
-  { id: 'settings', label: 'Profiler Settings', icon: 'bi-gear', refreshable: false }
+  { id: 'settings', label: 'Configuration', icon: 'bi-sliders', refreshable: false }
 ];
 
 // Optional deep-link from a breadcrumb (`/hubs?hubId=…&workspaceId=…`) so the

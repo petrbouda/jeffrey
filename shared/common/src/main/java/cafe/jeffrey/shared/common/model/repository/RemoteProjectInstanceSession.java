@@ -18,12 +18,15 @@
 
 package cafe.jeffrey.shared.common.model.repository;
 
+import java.util.List;
+
 /**
  * Session metadata persisted as {@code .session-info.json} in the session
- * directory. The two profiler fields document which source the session's
- * async-profiler command was resolved from ({@code ProfilerSettingsSource}
- * name) and the resolved command itself; both are null in files written by
- * older provisioners.
+ * directory. The profiler fields document which configuration layer supplied the
+ * session's command ({@code ConfigSource} name) and the resolved command itself,
+ * and {@code configLayers} names the hub-published files that were merged, each
+ * with the digest of the bytes as they were read. Together they let a reader say
+ * not only what a session runs with but whether that is still current.
  *
  * <p>{@code heartbeatExpected} declares whether anything in this run will report
  * liveness — the {@code jeffrey-heartbeat} library, which is an ordinary
@@ -45,7 +48,13 @@ public record RemoteProjectInstanceSession(
         long createdAt,
         int order,
         String relativeSessionPath,
-        String profilerSettingsSource,
+        String profilerCommandSource,
         String profilerCommand,
-        Boolean heartbeatExpected) {
+        Boolean heartbeatExpected,
+        List<AppliedConfigLayer> configLayers) {
+
+    /** Never null, so a caller can iterate without a guard; empty when no layer was merged. */
+    public RemoteProjectInstanceSession {
+        configLayers = configLayers == null ? List.of() : List.copyOf(configLayers);
+    }
 }

@@ -40,7 +40,12 @@ public class EnvFileBuilder {
     private static final String JEFFREY_SESSION_PROP = "JEFFREY_CURRENT_SESSION";
     private static final String JEFFREY_PROJECT_PROP = "JEFFREY_CURRENT_PROJECT";
     private static final String JEFFREY_FILE_PATTERN_PROP = "JEFFREY_FILE_PATTERN";
-    private static final String JEFFREY_PROFILER_CONFIG_PROP = "JEFFREY_PROFILER_CONFIG";
+    /**
+     * The resolved command, which is an output rather than the setting that produced it — hence a
+     * name of its own, and a vendor-neutral one: what a JVM was armed with need not name the
+     * profiler that happened to arm it.
+     */
+    private static final String JEFFREY_PROFILER_SETTINGS_PROP = "JEFFREY_PROFILER_SETTINGS";
     private static final String JEFFREY_HEARTBEAT_DIR_PROP = "JEFFREY_HEARTBEAT_DIR";
     private static final String JEFFREY_HEARTBEAT_ENABLED_PROP = "JEFFREY_HEARTBEAT_ENABLED";
     private static final String JDK_JAVA_OPTIONS_PROP = "JDK_JAVA_OPTIONS";
@@ -92,7 +97,7 @@ public class EnvFileBuilder {
 
         if (context.profilerSettings() != null && !context.profilerSettings().isEmpty()) {
             String quoted = wrapQuotes(context.profilerSettings());
-            exports.add(export(JEFFREY_PROFILER_CONFIG_PROP, quoted));
+            exports.add(export(JEFFREY_PROFILER_SETTINGS_PROP, quoted));
             if (context.exportJdkJavaOptions()) {
                 exports.add(export(JDK_JAVA_OPTIONS_PROP, quoted));
             }

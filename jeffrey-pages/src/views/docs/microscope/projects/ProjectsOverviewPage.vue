@@ -75,10 +75,10 @@ onMounted(() => {
           <h4>Instances</h4>
           <p>JVM processes connected to the project, with status, storage, and file-type breakdown.</p>
         </router-link>
-        <router-link to="/docs/microscope/projects/profiler-settings" class="tab-card">
-          <div class="tab-icon"><i class="bi bi-cpu"></i></div>
-          <h4>Profiler Settings</h4>
-          <p>Async-Profiler configuration for the agents that feed this project.</p>
+        <router-link to="/docs/microscope/projects/configuration" class="tab-card">
+          <div class="tab-icon"><i class="bi bi-sliders"></i></div>
+          <h4>Configuration</h4>
+          <p>The profiler command this project's JVMs start with, and what it inherits.</p>
         </router-link>
         <a href="#project-settings" class="tab-card">
           <div class="tab-icon"><i class="bi bi-sliders"></i></div>

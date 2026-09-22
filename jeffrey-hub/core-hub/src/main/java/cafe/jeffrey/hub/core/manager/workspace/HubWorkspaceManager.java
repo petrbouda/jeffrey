@@ -22,8 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.core.workspace.settings.FilesystemWorkspaceSettingsPublisher;
-import cafe.jeffrey.hub.core.workspace.settings.WorkspaceSettingsPublisher;
 import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
@@ -101,14 +99,5 @@ public class HubWorkspaceManager implements WorkspaceManager {
         }
         workspaceRepository.delete();
         LOG.info("Deleted workspace: workspace_id={}", workspaceInfo.id());
-    }
-
-    @Override
-    public WorkspaceSettingsPublisher settingsPublisher() {
-        Path workspacePath = resolveInfo().location().toPath();
-        if (!FileSystemUtils.isDirectory(workspacePath)) {
-            throw new IllegalStateException("Workspace path does not exist or is not a directory: " + workspacePath);
-        }
-        return new FilesystemWorkspaceSettingsPublisher(clock, workspacePath);
     }
 }

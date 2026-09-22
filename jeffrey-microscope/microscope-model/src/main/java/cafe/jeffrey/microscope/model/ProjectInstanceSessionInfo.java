@@ -18,8 +18,11 @@
 
 package cafe.jeffrey.microscope.model;
 
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
+
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * One recording session as the hub knows it.
@@ -41,7 +44,14 @@ public record ProjectInstanceSessionInfo(
         Instant finishedAt,
         boolean retained,
         boolean failed,
-        Boolean heartbeatExpected) {
+        Boolean heartbeatExpected,
+        String profilerCommandSource,
+        String profilerCommand,
+        List<AppliedConfigLayer> configLayers) {
+
+    public ProjectInstanceSessionInfo {
+        configLayers = configLayers == null ? List.of() : List.copyOf(configLayers);
+    }
 
     /**
      * Whether this session promised to report liveness, and may therefore be finished for
@@ -69,7 +79,8 @@ public record ProjectInstanceSessionInfo(
 
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, false, null);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, false, null,
+                null, null, List.of());
     }
 
     /**
@@ -78,7 +89,18 @@ public record ProjectInstanceSessionInfo(
     public ProjectInstanceSessionInfo withFailed(boolean failed) {
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed, heartbeatExpected);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed, heartbeatExpected,
+                profilerCommandSource, profilerCommand, configLayers);
+    }
+
+    /** Copy of this session info carrying what the run was started with. */
+    public ProjectInstanceSessionInfo withProfilerCommand(
+            String source, String command, List<AppliedConfigLayer> layers) {
+
+        return new ProjectInstanceSessionInfo(
+                sessionId, repositoryId, instanceId, order,
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed, heartbeatExpected,
+                source, command, layers);
     }
 
     /**
@@ -87,6 +109,7 @@ public record ProjectInstanceSessionInfo(
     public ProjectInstanceSessionInfo withHeartbeatExpected(Boolean heartbeatExpected) {
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed, heartbeatExpected);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed, heartbeatExpected,
+                profilerCommandSource, profilerCommand, configLayers);
     }
 }

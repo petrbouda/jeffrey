@@ -21,6 +21,7 @@ module cafe.jeffrey.microscope.model {
     requires transitive tools.jackson.databind;
     requires jdk.jfr;
     exports cafe.jeffrey.microscope.model;
+    exports cafe.jeffrey.microscope.model.config;
     exports cafe.jeffrey.microscope.model.hub;
     exports cafe.jeffrey.microscope.model.repository;
     exports cafe.jeffrey.microscope.model.repository.matcher;

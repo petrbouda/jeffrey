@@ -23,7 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.model.repository.ProfilerSettingsSource;
+import cafe.jeffrey.shared.common.config.ConfigSource;
+import cafe.jeffrey.shared.common.model.repository.AppliedConfigLayer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,9 +53,8 @@ class FileSystemRepositoryTest {
     private static final String INSTANCE_ID = "inst-001";
     private static final String SESSION_ID = "session-001";
 
-    private static final ProfilerSettingsResolver.ResolvedProfilerSettings PROFILER_SETTINGS =
-            new ProfilerSettingsResolver.ResolvedProfilerSettings(
-                    "start,alloc", ProfilerSettingsSource.CLI_CONFIG, "provisioner.conf");
+    private static final ProfilerCommandResolver.ResolvedProfilerCommand PROFILER_COMMAND =
+            new ProfilerCommandResolver.ResolvedProfilerCommand("start,alloc", ConfigSource.CONTAINER);
 
     @TempDir
     Path tempDir;
@@ -118,7 +118,7 @@ class FileSystemRepositoryTest {
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
             repository.addSession(SESSION_ID, PROJECT_ID, WORKSPACE_REF_ID, INSTANCE_ID, 1,
-                    sessionPath, PROFILER_SETTINGS, true);
+                    sessionPath, PROFILER_COMMAND, true, List.of());
 
             List<Path> entries = pendingEntries(workspacePath);
             assertEquals(1, entries.size());
@@ -138,7 +138,7 @@ class FileSystemRepositoryTest {
                     "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
             repository.addInstance(INSTANCE_ID, PROJECT_ID, WORKSPACE_REF_ID, instancePath);
             repository.addSession(SESSION_ID, PROJECT_ID, WORKSPACE_REF_ID, INSTANCE_ID, 1,
-                    sessionPath, PROFILER_SETTINGS, true);
+                    sessionPath, PROFILER_COMMAND, true, List.of());
 
             assertEquals(3, pendingEntries(workspacePath).size());
         }

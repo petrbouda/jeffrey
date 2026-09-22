@@ -91,10 +91,12 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
 ├── jeffrey-data.db                          # Jeffrey Hub's own database
 ├── temp/
 └── workspaces/
+    ├── .config/jeffrey.conf                 # Hub-published configuration, global scope
     └── <workspace-ref-id>/
         ├── .pending/                        # provisioner-declared work for the Hub
-        ├── .settings/                       # Hub-pushed profiler settings
+        ├── .config/jeffrey.conf             # workspace scope
         └── <project-name>/
+            ├── .config/jeffrey.conf         # project scope
             └── <instance-id>/
                 └── <session-id>/            # the JFR recordings land here`;
 </script>

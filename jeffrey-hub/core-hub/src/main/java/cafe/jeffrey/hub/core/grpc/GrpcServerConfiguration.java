@@ -21,6 +21,7 @@ package cafe.jeffrey.hub.core.grpc;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.config.ScopedConfigManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.jfr.events.grpc.interceptor.JfrGrpcServerInterceptor;
@@ -84,10 +85,8 @@ public class GrpcServerConfiguration {
     }
 
     @Bean
-    public BindableService profilerSettingsGrpcService(
-            HubPlatformRepositories platformRepositories,
-            GrpcLookups grpcLookups) {
-        return new ProfilerSettingsGrpcService(platformRepositories.newProfilerRepository(), grpcLookups);
+    public BindableService scopedConfigGrpcService(ScopedConfigManager configManager, GrpcLookups grpcLookups) {
+        return new ScopedConfigGrpcService(configManager, grpcLookups);
     }
 
     @Bean

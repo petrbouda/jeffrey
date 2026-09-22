@@ -33,10 +33,9 @@
           <ul class="mb-0">
             <li>
               Go to
-              <router-link to="/profiler-settings" class="text-decoration-none fw-semibold">
-                <i class="bi bi-gear me-1"></i>Profiler Settings
-              </router-link>
-              to configure method tracing for your AsyncProfiler agent
+              the project's
+              <span class="fw-semibold"><i class="bi bi-sliders me-1"></i>Configuration</span>
+              to set the profiler command that records method tracing
             </li>
             <li>
               Enable <code>jdk.MethodTrace</code> event with your desired filter patterns (e.g.,

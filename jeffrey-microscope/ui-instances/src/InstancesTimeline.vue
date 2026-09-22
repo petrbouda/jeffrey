@@ -496,6 +496,22 @@
                 }}
               </span>
             </div>
+            <div v-if="hoveredSession.session.profilerCommandSource" class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Profiler</span>
+              <span class="timeline-tooltip-value">
+                {{ profilerSourceLabel(hoveredSession.session.profilerCommandSource) }}
+              </span>
+            </div>
+            <div
+              v-for="layer in hoveredSession.session.configLayers ?? []"
+              :key="layer.scope"
+              class="timeline-tooltip-row"
+            >
+              <span class="timeline-tooltip-label">{{ scopeLabel(layer.scope) }} config</span>
+              <span class="timeline-tooltip-value">
+                <span class="timeline-tooltip-utc">{{ shortDigest(layer.digest) }}</span>
+              </span>
+            </div>
           </div>
         </div>
       </Teleport>
@@ -564,6 +580,39 @@ import { ToastService } from '@shared/services/ToastService';
 import ProjectInstance, { type ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
 import ProjectInstanceDetail from '@hubs/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
+
+/**
+ * What the Provisioner recorded about where a session's profiler command came from. Spelled out
+ * here because the enum names are the Hub's vocabulary, not a reader's.
+ */
+const PROFILER_SOURCE_LABELS: Record<string, string> = {
+  CONTAINER: 'Set in the container',
+  HUB_GLOBAL: 'Global configuration',
+  HUB_WORKSPACE: 'Workspace configuration',
+  HUB_PROJECT: 'Project configuration',
+  BUILT_IN: 'Provisioner default'
+};
+
+const SCOPE_LABELS: Record<string, string> = {
+  GLOBAL: 'Global',
+  WORKSPACE: 'Workspace',
+  PROJECT: 'Project'
+};
+
+/** Enough of a digest to compare two versions by eye, which is all it is shown for. */
+const DIGEST_PREFIX_LENGTH = 12;
+
+function profilerSourceLabel(source: string): string {
+  return PROFILER_SOURCE_LABELS[source] ?? source;
+}
+
+function scopeLabel(scope: string): string {
+  return SCOPE_LABELS[scope] ?? scope;
+}
+
+function shortDigest(digest: string): string {
+  return digest.slice(0, DIGEST_PREFIX_LENGTH);
+}
 import ProjectInstanceSessionDetail from '@hubs/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';

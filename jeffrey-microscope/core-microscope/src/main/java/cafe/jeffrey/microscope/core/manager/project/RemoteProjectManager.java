@@ -94,9 +94,10 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
-    public ProfilerSettingsManager profilerSettingsManager() {
-        return new RemoteProfilerSettingsManager(
-                remoteClients.profiler(),
+    public ScopedConfigManager scopedConfigManager() {
+        return new RemoteScopedConfigManager(
+                remoteClients.scopedConfig(),
+                detailedProjectInfo.projectInfo().workspaceId(),
                 detailedProjectInfo.projectInfo().id());
     }
 

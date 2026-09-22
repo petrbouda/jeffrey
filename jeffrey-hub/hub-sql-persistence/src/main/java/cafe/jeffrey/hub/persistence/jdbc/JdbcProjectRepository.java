@@ -54,7 +54,7 @@ public class JdbcProjectRepository implements ProjectRepository {
             "DELETE FROM project_instance_sessions WHERE repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)",
             "DELETE FROM project_instances WHERE project_id = :project_id",
             "DELETE FROM repositories WHERE project_id = :project_id",
-            "DELETE FROM profiler_settings WHERE project_id = :project_id",
+            "DELETE FROM scoped_configs WHERE project_id = :project_id",
             "UPDATE projects SET deleted_at = :deleted_at WHERE project_id = :project_id");
 
     private final Clock clock;

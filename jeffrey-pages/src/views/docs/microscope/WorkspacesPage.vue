@@ -197,9 +197,9 @@ onMounted(() => {
           recordings, and the repository.
         </li>
         <li>
-          <strong><router-link to="/docs/microscope/profiler-settings">Profiler Settings</router-link></strong> —
-          the Async-Profiler configuration scoped to this workspace (overrides the global
-          defaults; can be overridden per project).
+          <strong><router-link to="/docs/microscope/scoped-configuration">Configuration</router-link></strong> —
+          the profiler command the Hub publishes for this workspace and for the global scope. A
+          workspace value overrides the global one, and a project can override both.
         </li>
       </ul>
 

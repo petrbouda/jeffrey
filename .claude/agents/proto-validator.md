@@ -40,7 +40,7 @@ These are the expected mappings (for reference, not hardcoded — always verify 
 | `InstanceService` | `InstanceGrpcService` | `RemoteInstancesClient` |
 | `RepositoryService` | `RepositoryGrpcService` | `RemoteRepositoryClient` |
 | `RecordingDownloadService` | `RecordingDownloadGrpcService` | `RemoteRecordingStreamClient` |
-| `ProfilerSettingsService` | `ProfilerSettingsGrpcService` | `RemoteProfilerClient` |
+| `ScopedConfigService` | `ScopedConfigGrpcService` | `ScopedConfigClient` |
 | `MessagesService` | `MessagesGrpcService` | `RemoteMessagesClient` |
 
 ### Report Format

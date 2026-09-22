@@ -84,7 +84,7 @@ class StubServicesInProcessTest {
                 .addService(new StubInstanceService(dataset))
                 .addService(new StubRepositoryService(dataset))
                 .addService(new StubFileDownloadService(dataset))
-                .addService(new StubProfilerSettingsService())
+                .addService(new StubScopedConfigService())
                 .build()
                 .start();
         channel = InProcessChannelBuilder.forName(serverName).directExecutor().build();
