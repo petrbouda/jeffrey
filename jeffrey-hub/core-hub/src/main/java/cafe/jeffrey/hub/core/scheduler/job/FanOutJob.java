@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 
 /**
- * A job that visits every workspace, or every project of every workspace, once per tick.
+ * A job that visits every project of every workspace once per tick.
  * One broken unit — a vanished session directory, a storage hiccup — must not abort the
  * tick for the rest, so each visit runs isolated: measured, logged, and its failure logged
  * rather than thrown.

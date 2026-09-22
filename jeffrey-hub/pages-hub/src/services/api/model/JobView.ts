@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export type ExecutionLevel = 'GLOBAL' | 'WORKSPACE' | 'PROJECT';
+export type ExecutionLevel = 'GLOBAL' | 'PROJECT';
 
 /**
  * All job types served by the scheduler, mirroring the backend {@code JobType} enum

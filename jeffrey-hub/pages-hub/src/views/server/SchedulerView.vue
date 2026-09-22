@@ -172,14 +172,12 @@ const activeFilter = ref<'ALL' | ExecutionLevel>('ALL');
 const filters: Array<{ value: 'ALL' | ExecutionLevel; label: string }> = [
     { value: 'ALL', label: 'All' },
     { value: 'GLOBAL', label: 'Global' },
-    { value: 'WORKSPACE', label: 'Per workspace' },
     { value: 'PROJECT', label: 'Per project' }
 ];
 
 const counts = computed(() => ({
     ALL: jobs.value.length,
     GLOBAL: jobs.value.filter(j => j.executionLevel === 'GLOBAL').length,
-    WORKSPACE: jobs.value.filter(j => j.executionLevel === 'WORKSPACE').length,
     PROJECT: jobs.value.filter(j => j.executionLevel === 'PROJECT').length
 }));
 
@@ -291,14 +289,12 @@ const iconClass = (jobType: string) => icons[jobType as JobTypeName]?.[1] || 'jo
 
 const levelLabels: Record<ExecutionLevel, string> = {
     GLOBAL: 'Global',
-    WORKSPACE: 'Per workspace',
     PROJECT: 'Per project'
 };
 const levelLabel = (lvl: ExecutionLevel) => levelLabels[lvl];
 
 const levelVariants: Record<ExecutionLevel, Variant> = {
     GLOBAL: 'violet',
-    WORKSPACE: 'blue',
     PROJECT: 'primary'
 };
 const levelVariant = (lvl: ExecutionLevel): Variant => levelVariants[lvl];

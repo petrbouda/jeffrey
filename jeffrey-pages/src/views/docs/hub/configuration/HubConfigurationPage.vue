@@ -295,7 +295,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>jeffrey.hub.scheduler.fan-out-pool-size</code></td>
             <td><code>2</code></td>
-            <td>Threads for project/workspace fan-out jobs. Global jobs always get their own dedicated thread.</td>
+            <td>Threads for project fan-out jobs. Global jobs always get their own dedicated thread.</td>
           </tr>
         </tbody>
       </table>
