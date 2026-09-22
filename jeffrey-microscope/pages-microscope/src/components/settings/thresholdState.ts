@@ -17,6 +17,7 @@
  */
 
 import type { MethodTraceTarget } from '@/types/profiler';
+import { byteAmount, durationAmount } from '@/composables/profilerOptions';
 
 /**
  * What a threshold field makes async-profiler do, in words. `recordsEverything` marks the
@@ -40,13 +41,21 @@ function unitLabel(unit: string): string {
   return UNIT_LABELS[unit.toLowerCase()] ?? unit;
 }
 
-function isSet(value: number | null): value is number {
-  return value !== null && value > 0;
+/**
+ * Whether a duration field is a threshold in the command. The check is the one the emitter makes,
+ * so the badge never claims a threshold that the command does not carry.
+ */
+function hasDuration(value: number | null, unit: string): boolean {
+  return durationAmount(value, unit) !== null;
+}
+
+function hasSize(value: number | null, unit: string): boolean {
+  return byteAmount(value, unit) !== null;
 }
 
 /** `trace=M:T` keeps calls of at least T; without T every call is recorded. */
 export function traceThreshold(target: MethodTraceTarget): ThresholdState {
-  if (isSet(target.latencyValue)) {
+  if (hasDuration(target.latencyValue, target.latencyUnit)) {
     return {
       label: `≥ ${target.latencyValue} ${unitLabel(target.latencyUnit)}`,
       recordsEverything: false
@@ -57,7 +66,7 @@ export function traceThreshold(target: MethodTraceTarget): ThresholdState {
 
 /** `lock=T` keeps contentions that waited at least T; `lock=0` keeps every one. */
 export function lockThreshold(value: number | null, unit: string): ThresholdState {
-  if (isSet(value)) {
+  if (hasDuration(value, unit)) {
     return { label: `waits ≥ ${value} ${unitLabel(unit)}`, recordsEverything: false };
   }
   return { label: 'every contention', recordsEverything: true };
@@ -65,7 +74,7 @@ export function lockThreshold(value: number | null, unit: string): ThresholdStat
 
 /** `nativemem=N` takes one sample per N bytes allocated; a bare `nativemem` records every malloc. */
 export function nativeMemThreshold(value: number | null, unit: string): ThresholdState {
-  if (isSet(value)) {
+  if (hasSize(value, unit)) {
     return { label: `one sample per ${value} ${unitLabel(unit)}`, recordsEverything: false };
   }
   return { label: 'every malloc', recordsEverything: true };

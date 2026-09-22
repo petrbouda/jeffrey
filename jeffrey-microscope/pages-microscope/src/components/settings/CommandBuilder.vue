@@ -424,6 +424,7 @@
                           type="text"
                           class="form-control"
                           placeholder="com.example.OrderService.place"
+                          :aria-invalid="newMethodError !== null"
                           @keyup.enter="addPattern"
                         />
                         <button
@@ -435,6 +436,10 @@
                           <i class="bi bi-plus-circle"></i>
                           Add
                         </button>
+                      </div>
+                      <div v-if="newMethodError !== null" class="field-error" role="alert">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span>{{ newMethodError }}</span>
                       </div>
                       <div class="form-help">
                         New methods record every call; set a threshold on the row to keep only slow
@@ -756,7 +761,8 @@ import {
   nativeMemThreshold,
   traceThreshold
 } from '@/components/settings/thresholdState';
-import { useProfilerConfig, traceOption } from '@/composables/useProfilerConfig';
+import { useProfilerConfig } from '@/composables/useProfilerConfig';
+import { traceOption } from '@/composables/profilerOptions';
 import { DEFAULT_AGENT_PATH } from '@/types/profiler';
 import ToastService from '@shared/services/ToastService';
 
@@ -783,6 +789,13 @@ const {
 // New method trace input; its latency threshold is tuned on the row once added
 const newMethodPattern = ref('');
 
+// Why the last pattern was refused; cleared as soon as the pattern is edited
+const newMethodError = ref<string | null>(null);
+
+watch(newMethodPattern, () => {
+  newMethodError.value = null;
+});
+
 // Generated configuration
 const generatedConfig = ref('');
 
@@ -800,11 +813,17 @@ const generateConfig = () => {
   generatedConfig.value = generateFromBuilder();
 };
 
-// Add new method pattern
+// Add new method pattern, or show why async-profiler would reject it
 const addPattern = () => {
-  if (newMethodPattern.value.trim()) {
-    addMethodTrace(newMethodPattern.value.trim());
+  const pattern = newMethodPattern.value.trim();
+  if (!pattern) {
+    return;
+  }
+  const result = addMethodTrace(pattern);
+  if (result.added) {
     newMethodPattern.value = '';
+  } else {
+    newMethodError.value = result.error;
   }
 };
 
@@ -1536,6 +1555,11 @@ generateConfig();
 .trace-threshold-sign {
   color: var(--color-text-muted);
   font-size: 0.85rem;
+}
+
+/* Why the typed method pattern was refused, spaced like the help lines under it */
+.field-error {
+  margin-top: 6px;
 }
 
 .btn-add-pattern {

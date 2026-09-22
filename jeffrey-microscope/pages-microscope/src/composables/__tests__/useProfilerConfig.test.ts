@@ -17,6 +17,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
 import { useProfilerConfig } from '@/composables/useProfilerConfig';
 import { DEFAULT_AGENT_PATH, DEFAULT_OUTPUT_FILE } from '@/types/profiler';
 import type { MethodTraceTarget } from '@/types/profiler';
@@ -203,6 +204,61 @@ describe('useProfilerConfig', () => {
 
       const second = useProfilerConfig();
       expect(second.config.value.methodTraces).toHaveLength(0);
+    });
+
+    it('refuses a trace target async-profiler would reject and says why', () => {
+      const { config, addMethodTrace } = useProfilerConfig();
+
+      const result = addMethodTrace('G1CollectedHeap::humongous_obj_allocate');
+
+      expect(result.added).toBe(false);
+      if (!result.added) {
+        expect(result.error).toContain('Class.method');
+      }
+      expect(config.value.methodTraces).toHaveLength(0);
+    });
+
+    it('writes a fractional trace latency as an exact integer in a smaller unit', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.methodTracing = true;
+      config.value.methodTraces = [
+        { pattern: 'com.acme.OrderService.place', latencyValue: 0.5, latencyUnit: 'ms' }
+      ];
+
+      expect(partsOf(generateFromBuilder())).toContain('trace=com.acme.OrderService.place:500us');
+    });
+
+    it('writes a fractional lock threshold as an exact integer in a smaller unit', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.lock = true;
+      config.value.lockThresholdValue = 1.5;
+      config.value.lockThresholdUnit = 'ms';
+
+      expect(partsOf(generateFromBuilder())).toContain('lock=1500us');
+    });
+
+    it('stores a cleared threshold field as null, not the empty string the input hands over', async () => {
+      const { config, addMethodTrace } = useProfilerConfig();
+      addMethodTrace('com.acme.OrderService.place');
+
+      // A cleared <input type="number"> hands v-model.number the empty string.
+      config.value.lockThresholdValue = '' as unknown as number;
+      config.value.nativeMemValue = '' as unknown as number;
+      config.value.methodTraces[0].latencyValue = '' as unknown as number;
+      await nextTick();
+
+      expect(config.value.lockThresholdValue).toBeNull();
+      expect(config.value.nativeMemValue).toBeNull();
+      expect(config.value.methodTraces[0].latencyValue).toBeNull();
+    });
+
+    it('stores a negative threshold as null, matching the badge that says it records everything', async () => {
+      const { config } = useProfilerConfig();
+
+      config.value.lockThresholdValue = -5;
+      await nextTick();
+
+      expect(config.value.lockThresholdValue).toBeNull();
     });
 
     it('samples native memory every 512 KiB by default', () => {

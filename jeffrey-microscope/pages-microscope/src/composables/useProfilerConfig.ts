@@ -7,43 +7,29 @@ import type {
 } from '@/types/profiler';
 import {
   DEFAULT_AGENT_PATH,
+  DEFAULT_LOCK_THRESHOLD,
   DEFAULT_OUTPUT_FILE,
   DEFAULT_TRACE_LATENCY,
-  PROFILER_CONSTANTS
+  PROFILER_CONSTANTS,
+  defaultProfilerConfig
 } from '@/types/profiler';
+import {
+  lockOption,
+  nativeMemOption,
+  normalizeThreshold,
+  traceOption,
+  tracePatternError
+} from '@/composables/profilerOptions';
 
-/**
- * The `trace=` option for one target. The latency is appended only when it is positive:
- * async-profiler treats a missing latency as 0, i.e. every call is recorded.
- */
-export function traceOption(target: MethodTraceTarget): string {
-  const pattern = target.pattern.trim();
-  if (target.latencyValue && target.latencyValue > 0) {
-    return `trace=${pattern}:${target.latencyValue}${target.latencyUnit}`;
-  }
-  return `trace=${pattern}`;
-}
-
-/**
- * The `lock=` option. It is always written with a value: a bare `lock` means async-profiler's
- * 10 µs default, so an empty field is written as `lock=0` -- every contention -- which is what
- * the builder shows for it.
- */
-export function lockOption(value: number | null, unit: string): string {
-  if (value && value > 0) {
-    return `lock=${value}${unit}`;
-  }
-  return 'lock=0';
-}
+/** The outcome of adding a traced method: added, or refused with the reason to show the user. */
+export type AddMethodTraceResult = { added: true } | { added: false; error: string };
 
 function hasPattern(target: MethodTraceTarget): boolean {
   return target.pattern.trim().length > 0;
 }
 
 export function useProfilerConfig() {
-  // The spread is shallow: the traced-method list gets its own array, or every builder would
-  // push into the one held by the shared defaults.
-  const config = ref<ProfilerConfig>({ ...PROFILER_CONSTANTS.defaultConfig, methodTraces: [] });
+  const config = ref<ProfilerConfig>(defaultProfilerConfig());
 
   const optionStates = ref<OptionStates>({
     event: false,
@@ -96,7 +82,7 @@ export function useProfilerConfig() {
     enabled => {
       if (enabled) {
         if (!PROFILER_CONSTANTS.lockUnits.includes(config.value.lockThresholdUnit as any)) {
-          config.value.lockThresholdUnit = 'ms';
+          config.value.lockThresholdUnit = DEFAULT_LOCK_THRESHOLD.unit;
         }
       }
     }
@@ -141,6 +127,41 @@ export function useProfilerConfig() {
         config.value.intervalUnit = 'ms';
       }
     }
+  );
+
+  // Threshold fields are number inputs, and a cleared one stores '' rather than null. Keep the
+  // stored value a number or null, so the type on ProfilerConfig is what the fields really hold.
+  watch(
+    () => config.value.lockThresholdValue,
+    value => {
+      const normalized = normalizeThreshold(value);
+      if (normalized !== value) {
+        config.value.lockThresholdValue = normalized;
+      }
+    }
+  );
+
+  watch(
+    () => config.value.nativeMemValue,
+    value => {
+      const normalized = normalizeThreshold(value);
+      if (normalized !== value) {
+        config.value.nativeMemValue = normalized;
+      }
+    }
+  );
+
+  watch(
+    () => config.value.methodTraces,
+    traces => {
+      traces.forEach(target => {
+        const normalized = normalizeThreshold(target.latencyValue);
+        if (normalized !== target.latencyValue) {
+          target.latencyValue = normalized;
+        }
+      });
+    },
+    { deep: true }
   );
 
   /**
@@ -247,19 +268,11 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.nativeMem) {
-      if (config.value.nativeMemValue && config.value.nativeMemValue > 0) {
-        tokens.push({
-          key: 'nativeMem',
-          label: 'Native Memory',
-          value: `nativemem=${config.value.nativeMemValue}${config.value.nativeMemUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        });
-      } else {
-        tokens.push({
-          key: 'nativeMem',
-          label: 'Native Memory',
-          value: 'nativemem'
-        });
-      }
+      tokens.push({
+        key: 'nativeMem',
+        label: 'Native Memory',
+        value: nativeMemOption(config.value.nativeMemValue, config.value.nativeMemUnit)
+      });
 
       if (config.value.nativeMemOmitFree) {
         tokens.push({
@@ -371,13 +384,7 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.nativeMem) {
-      if (config.value.nativeMemValue && config.value.nativeMemValue > 0) {
-        parts.push(
-          `nativemem=${config.value.nativeMemValue}${config.value.nativeMemUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        );
-      } else {
-        parts.push('nativemem');
-      }
+      parts.push(nativeMemOption(config.value.nativeMemValue, config.value.nativeMemUnit));
 
       if (config.value.nativeMemOmitFree) {
         parts.push('nofree');
@@ -425,15 +432,21 @@ export function useProfilerConfig() {
     return parts.join(',');
   };
 
-  /** Adds a method at the default latency (every call); its row is where a threshold is set. */
-  const addMethodTrace = (pattern: string) => {
-    if (pattern && pattern.trim()) {
-      config.value.methodTraces.push({
-        pattern: pattern.trim(),
-        latencyValue: DEFAULT_TRACE_LATENCY.value,
-        latencyUnit: DEFAULT_TRACE_LATENCY.unit
-      });
+  /**
+   * Adds a method at the default latency (every call); its row is where a threshold is set.
+   * A pattern async-profiler would reject is refused, since one bad target fails the whole start.
+   */
+  const addMethodTrace = (pattern: string): AddMethodTraceResult => {
+    const error = tracePatternError(pattern);
+    if (error !== null) {
+      return { added: false, error };
     }
+    config.value.methodTraces.push({
+      pattern: pattern.trim(),
+      latencyValue: DEFAULT_TRACE_LATENCY.value,
+      latencyUnit: DEFAULT_TRACE_LATENCY.unit
+    });
+    return { added: true };
   };
 
   const removeMethodTrace = (index: number) => {
@@ -448,7 +461,6 @@ export function useProfilerConfig() {
     builderTokens,
     generateFromBuilder,
     addMethodTrace,
-    removeMethodTrace,
-    constants: PROFILER_CONSTANTS
+    removeMethodTrace
   };
 }

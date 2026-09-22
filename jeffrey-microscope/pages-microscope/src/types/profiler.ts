@@ -10,7 +10,6 @@ export interface ProfilerConfig {
   allocThresholdEnabled: boolean;
   allocValue: number | null;
   allocUnit: string;
-  lockThresholdEnabled: boolean;
   lockThresholdValue: number | null;
   lockThresholdUnit: string;
   methodTraces: MethodTraceTarget[];
@@ -87,10 +86,15 @@ export const PROFILER_CONSTANTS = {
   allocUnits: ['kb', 'mb'] as const,
   // Lock thresholds are parsed with async-profiler's NANOS table, where 'm' means milli.
   lockUnits: ['us', 'ms', 's'] as const,
-  intervalUnits: ['us', 'ms'] as const,
-  // Parsed with async-profiler's NANOS table: n, u, m (milli), s. A bare number means nanoseconds.
-  traceLatencyUnits: ['us', 'ms', 's'] as const,
-  defaultConfig: {
+  intervalUnits: ['us', 'ms'] as const
+} as const;
+
+/**
+ * A fresh configuration for one builder. It is a function, not a shared object: the traced-method
+ * list is mutable, and a spread of a shared default would hand every builder the same array.
+ */
+export function defaultProfilerConfig(): ProfilerConfig {
+  return {
     agentPathCustom: '',
     event: 'ctimer',
     wallValue: null,
@@ -102,7 +106,6 @@ export const PROFILER_CONSTANTS = {
     allocThresholdEnabled: false,
     allocValue: null,
     allocUnit: 'MB',
-    lockThresholdEnabled: false,
     lockThresholdValue: DEFAULT_LOCK_THRESHOLD.value,
     lockThresholdUnit: DEFAULT_LOCK_THRESHOLD.unit,
     methodTraces: [],
@@ -117,5 +120,5 @@ export const PROFILER_CONSTANTS = {
     jfrsyncFile: '',
     jfcMode: 'default',
     file: DEFAULT_OUTPUT_FILE
-  } as ProfilerConfig
-} as const;
+  };
+}

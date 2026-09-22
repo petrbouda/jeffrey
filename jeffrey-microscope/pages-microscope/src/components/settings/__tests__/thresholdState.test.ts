@@ -45,6 +45,16 @@ describe('thresholdState', () => {
       ).toEqual({ label: 'every call', recordsEverything: true });
     });
 
+    it('keeps a fractional latency as a threshold, since the command carries it exactly', () => {
+      expect(
+        traceThreshold({
+          pattern: 'com.acme.OrderService.place',
+          latencyValue: 0.5,
+          latencyUnit: 'ms'
+        })
+      ).toEqual({ label: '≥ 0.5 ms', recordsEverything: false });
+    });
+
     it('treats a zero latency like a missing one', () => {
       expect(
         traceThreshold({
@@ -66,6 +76,10 @@ describe('thresholdState', () => {
         label: 'every contention',
         recordsEverything: true
       });
+    });
+
+    it('flags the empty string a cleared number input stores as recording every contention', () => {
+      expect(lockThreshold('' as unknown as number, 'us').recordsEverything).toBe(true);
     });
   });
 
