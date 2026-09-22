@@ -112,6 +112,12 @@ export function useProfilerConfig() {
     return custom ? custom : DEFAULT_AGENT_PATH;
   };
 
+  /** The output file the command carries; a cleared or whitespace-only field means the default. */
+  const resolveOutputFile = (): string => {
+    const custom = config.value.file.trim();
+    return custom ? custom : DEFAULT_OUTPUT_FILE;
+  };
+
   const builderTokens = computed((): ConfigToken[] => {
     const agentPath = resolveAgentPath();
     const tokens: ConfigToken[] = [
@@ -284,12 +290,10 @@ export function useProfilerConfig() {
       });
     }
 
-    const filePattern =
-      config.value.file && config.value.file.trim() ? config.value.file : DEFAULT_OUTPUT_FILE;
     tokens.push({
       key: 'file',
       label: 'Output',
-      value: `file=${filePattern}`
+      value: `file=${resolveOutputFile()}`
     });
 
     return tokens;
@@ -390,9 +394,7 @@ export function useProfilerConfig() {
     }
 
     // Always add file (mandatory)
-    const filePattern =
-      config.value.file && config.value.file.trim() ? config.value.file : DEFAULT_OUTPUT_FILE;
-    parts.push(`file=${filePattern}`);
+    parts.push(`file=${resolveOutputFile()}`);
 
     return parts.join(',');
   };

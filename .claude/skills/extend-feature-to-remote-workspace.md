@@ -289,7 +289,6 @@ public record HubClients(
         DiscoveryClient discovery,
         RepositoryClient repository,
         FileStreamClient files,
-        ProfilerClient profiler,
         RemoteMessagesClient messages,
         InstancesClient instances,
         ProjectsClient projects,

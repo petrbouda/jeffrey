@@ -43,7 +43,7 @@ public class ProfilerSettingsResolver {
 
         LOG.info("Profiler command resolved: source={}", resolved.source());
 
-        String command = replacePlaceholders(resolved.command(), placeholders) + " " + features;
+        String command = placeholders.resolve(resolved.command()) + " " + features;
         return new ResolvedProfilerSettings(command, resolved.source());
     }
 
@@ -52,12 +52,5 @@ public class ProfilerSettingsResolver {
             return new ResolvedProfilerSettings(profilerCommand, ProfilerSettingsSource.CLI_CONFIG);
         }
         return new ResolvedProfilerSettings(CliConstants.DEFAULT_PROFILER_CONFIG, ProfilerSettingsSource.BUILT_IN);
-    }
-
-    private static String replacePlaceholders(String config, Placeholders placeholders) {
-        if (config == null || config.isBlank()) {
-            return "";
-        }
-        return placeholders.resolve(config);
     }
 }

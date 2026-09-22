@@ -30,7 +30,7 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo;
  * Resolves domain managers/entities from request identifiers for the gRPC services, throwing a
  * consistent {@code NOT_FOUND} status when a target does not exist. Holds the lookups more than
  * one service needs — {@code repositoryManagerForSession} for the repository and download
- * services, the active-project lookup for the project and profiler-settings services, and the
+ * services, the active-project lookup for the project service, and the
  * instance lookups — so each is written once.
  */
 public class GrpcLookups {

@@ -163,9 +163,7 @@ class InitExecutorTest {
             new InitExecutor(Clock.systemUTC()).execute(config());
 
             String session = normalized(sessionPath().toString());
-            List<String> layoutExports = normalized(Files.readString(envFile)).lines()
-                    .filter(line -> !line.contains("PROFILER_CONFIG"))
-                    .toList();
+            List<String> layoutExports = normalized(Files.readString(envFile)).lines().toList();
 
             assertEquals(List.of(
                     "export JEFFREY_WORKSPACES=" + workspacesDir,

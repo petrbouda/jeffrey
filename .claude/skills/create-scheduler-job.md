@@ -384,5 +384,4 @@ After generating all files, provide a summary:
 | ExpiredInstanceCleanerJob                 | EXPIRED_INSTANCE_CLEANER                   | PROJECT | Removes expired instances from projects          |
 | SessionFinishedDetectorProjectJob         | SESSION_FINISHED_DETECTOR                  | PROJECT | Detects finished recording sessions              |
 | WorkspaceReconcilerJob                    | WORKSPACE_RECONCILER                       | GLOBAL  | Materializes projects/instances/sessions from workspace directories |
-| WorkspaceProfilerSettingsSynchronizerJob  | WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER   | GLOBAL  | Syncs profiler settings                          |
 | DataRetentionJob                          | DATA_RETENTION                             | GLOBAL  | Cleans up old messages, alerts, and queue events |

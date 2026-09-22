@@ -58,6 +58,14 @@ describe('useProfilerConfig', () => {
       expect(generateFromBuilder()).toContain(`file=${DEFAULT_OUTPUT_FILE}`);
     });
 
+    it('trims the output file, so a pasted path with surrounding whitespace stays a valid path', () => {
+      const { config, generateFromBuilder } = useProfilerConfig();
+      config.value.file = '  /var/jfr/app-%t.jfr ';
+
+      expect(generateFromBuilder()).toContain('file=/var/jfr/app-%t.jfr');
+      expect(generateFromBuilder()).not.toContain('file=  ');
+    });
+
     it('carries no Jeffrey placeholder, since the command is pasted into another JVM', () => {
       const { generateFromBuilder } = useProfilerConfig();
 
