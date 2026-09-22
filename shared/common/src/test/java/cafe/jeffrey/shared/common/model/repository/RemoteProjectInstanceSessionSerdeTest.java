@@ -20,9 +20,7 @@ package cafe.jeffrey.shared.common.model.repository;
 
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.ProfilerSettings;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -69,7 +67,7 @@ class RemoteProjectInstanceSessionSerdeTest {
                     "createdAt": 1700000000000,
                     "order": 1,
                     "relativeSessionPath": "inst-001/session-001",
-                    "profilerSettingsSource": "HUB_PROJECT",
+                    "profilerSettingsSource": "CLI_CONFIG",
                     "profilerCommand": "-agentpath:/lib.so=start"
                 }
                 """;
@@ -85,7 +83,7 @@ class RemoteProjectInstanceSessionSerdeTest {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                 "session-001", "proj-001", "ws-001", "inst-001",
                 1700000000000L, 1, "inst-001/session-001",
-                "HUB_PROJECT", "-agentpath:/lib.so=start", false);
+                "CLI_CONFIG", "-agentpath:/lib.so=start", false);
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 
@@ -98,30 +96,11 @@ class RemoteProjectInstanceSessionSerdeTest {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                 "session-001", "proj-001", "ws-001", "inst-001",
                 1700000000000L, 2, "inst-001/session-001",
-                "HUB_PROJECT", "-agentpath:/lib.so=start", true);
+                "CLI_CONFIG", "-agentpath:/lib.so=start", true);
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 
         assertEquals(session, read);
     }
 
-    @Test
-    void oldFormatWorkspaceSettings_withoutIdKeyedMap_deserializes() {
-        String oldFormat = """
-                {
-                    "profiler": {
-                        "defaultSettings": "cmd",
-                        "defaultSettingsLevel": "WORKSPACE",
-                        "projectSettings": {"proj-name": "proj-cmd"}
-                    }
-                }
-                """;
-
-        RemoteWorkspaceSettings settings = Json.read(oldFormat, RemoteWorkspaceSettings.class);
-        ProfilerSettings profiler = settings.profiler();
-
-        assertEquals("cmd", profiler.defaultSettings());
-        assertEquals("proj-cmd", profiler.projectSettings().get("proj-name"));
-        assertNull(profiler.projectSettingsById());
-    }
 }

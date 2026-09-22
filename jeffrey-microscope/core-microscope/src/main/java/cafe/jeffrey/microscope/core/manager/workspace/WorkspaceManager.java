@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.manager.workspace;
 
-import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
@@ -44,35 +43,6 @@ public interface WorkspaceManager {
      * @return the projects manager
      */
     ProjectsManager projectsManager();
-
-    /**
-     * Returns the remote profiler client for this workspace's hub, if available.
-     * Only remote workspaces have a profiler client.
-     */
-    default Optional<ProfilerClient> profilerClient() {
-        return Optional.empty();
-    }
-
-    /**
-     * Upserts workspace-level profiler settings. Applies the given agent
-     * settings string to every project in this workspace that doesn't
-     * override at the project level.
-     */
-    void upsertProfilerSettings(String agentSettings);
-
-    /**
-     * Returns the workspace-level and global-level profiler settings for this
-     * workspace. Either field may be {@code null} if no row exists at that
-     * level. The caller decides which is "effectively in force" — workspace
-     * overrides global.
-     */
-    ProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings();
-
-    /**
-     * Removes the workspace-level profiler settings, causing the workspace
-     * to fall back to the global default.
-     */
-    void deleteProfilerSettings();
 
     /**
      * Deletes the workspace from the repository.

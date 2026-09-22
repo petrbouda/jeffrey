@@ -1,6 +1,6 @@
 import { ref, watch, computed } from 'vue';
 import type { ProfilerConfig, OptionStates, ConfigToken } from '@/types/profiler';
-import { PROFILER_CONSTANTS } from '@/types/profiler';
+import { DEFAULT_AGENT_PATH, DEFAULT_OUTPUT_FILE, PROFILER_CONSTANTS } from '@/types/profiler';
 
 export function useProfilerConfig() {
   const config = ref<ProfilerConfig>({ ...PROFILER_CONSTANTS.defaultConfig });
@@ -103,11 +103,17 @@ export function useProfilerConfig() {
     }
   );
 
+  /**
+   * The literal path the copied command carries. The field is free text: there is no
+   * Jeffrey-managed agent mode, because the command is pasted into someone else's JVM.
+   */
+  const resolveAgentPath = (): string => {
+    const custom = config.value.agentPathCustom.trim();
+    return custom ? custom : DEFAULT_AGENT_PATH;
+  };
+
   const builderTokens = computed((): ConfigToken[] => {
-    const agentPath =
-      config.value.agentPathCustom && config.value.agentPathCustom.trim()
-        ? config.value.agentPathCustom
-        : config.value.agentPath;
+    const agentPath = resolveAgentPath();
     const tokens: ConfigToken[] = [
       {
         key: 'agent',
@@ -279,9 +285,7 @@ export function useProfilerConfig() {
     }
 
     const filePattern =
-      config.value.file && config.value.file.trim()
-        ? config.value.file
-        : '<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr';
+      config.value.file && config.value.file.trim() ? config.value.file : DEFAULT_OUTPUT_FILE;
     tokens.push({
       key: 'file',
       label: 'Output',
@@ -292,10 +296,7 @@ export function useProfilerConfig() {
   });
 
   const generateFromBuilder = (): string => {
-    const agentPath =
-      config.value.agentPathCustom && config.value.agentPathCustom.trim()
-        ? config.value.agentPathCustom
-        : config.value.agentPath;
+    const agentPath = resolveAgentPath();
     const parts = [`-agentpath:${agentPath}=start`];
 
     if (optionStates.value.alloc) {
@@ -390,9 +391,7 @@ export function useProfilerConfig() {
 
     // Always add file (mandatory)
     const filePattern =
-      config.value.file && config.value.file.trim()
-        ? config.value.file
-        : '<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr';
+      config.value.file && config.value.file.trim() ? config.value.file : DEFAULT_OUTPUT_FILE;
     parts.push(`file=${filePattern}`);
 
     return parts.join(',');

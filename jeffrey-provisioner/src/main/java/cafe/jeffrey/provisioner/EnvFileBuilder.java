@@ -40,7 +40,6 @@ public class EnvFileBuilder {
     private static final String JEFFREY_SESSION_PROP = "JEFFREY_CURRENT_SESSION";
     private static final String JEFFREY_PROJECT_PROP = "JEFFREY_CURRENT_PROJECT";
     private static final String JEFFREY_FILE_PATTERN_PROP = "JEFFREY_FILE_PATTERN";
-    private static final String JEFFREY_PROFILER_CONFIG_PROP = "JEFFREY_PROFILER_CONFIG";
     private static final String JEFFREY_HEARTBEAT_DIR_PROP = "JEFFREY_HEARTBEAT_DIR";
     private static final String JEFFREY_HEARTBEAT_ENABLED_PROP = "JEFFREY_HEARTBEAT_ENABLED";
     private static final String JDK_JAVA_OPTIONS_PROP = "JDK_JAVA_OPTIONS";
@@ -90,12 +89,11 @@ public class EnvFileBuilder {
                 layout.session().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
         exports.add(export(JEFFREY_HEARTBEAT_ENABLED_PROP, Boolean.toString(context.heartbeatEnabled())));
 
-        if (context.profilerSettings() != null && !context.profilerSettings().isEmpty()) {
-            String quoted = wrapQuotes(context.profilerSettings());
-            exports.add(export(JEFFREY_PROFILER_CONFIG_PROP, quoted));
-            if (context.exportJdkJavaOptions()) {
-                exports.add(export(JDK_JAVA_OPTIONS_PROP, quoted));
-            }
+        // The flags reach the JVM through the argfile, or through JDK_JAVA_OPTIONS when that is
+        // asked for. The .env file carries the layout, not a second copy of the command.
+        if (context.exportJdkJavaOptions()
+                && context.profilerSettings() != null && !context.profilerSettings().isEmpty()) {
+            exports.add(export(JDK_JAVA_OPTIONS_PROP, wrapQuotes(context.profilerSettings())));
         }
 
         // Always newline-terminated. The old builder omitted it in the one case where

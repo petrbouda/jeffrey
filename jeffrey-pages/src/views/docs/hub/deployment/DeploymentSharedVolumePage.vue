@@ -93,7 +93,6 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
 └── workspaces/
     └── <workspace-ref-id>/
         ├── .pending/                        # provisioner-declared work for the Hub
-        ├── .settings/                       # Hub-pushed profiler settings
         └── <project-name>/
             └── <instance-id>/
                 └── <session-id>/            # the JFR recordings land here`;

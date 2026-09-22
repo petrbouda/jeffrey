@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Jeffrey Hub exposes gRPC services for Jeffrey Microscope instances to connect and fetch data. All communication between Jeffrey Microscope and Jeffrey Hub uses gRPC on port <code>9090</code> (configurable).</p>
 
         <DocsCallout type="info">
-          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. Full profile analysis happens locally; <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s MCP tools</router-link> pull a session down by session, time window or file.
+          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Hub via gRPC to browse workspaces, projects, instances and download recordings. Full profile analysis happens locally; <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s MCP tools</router-link> pull a session down by session, time window or file.
         </DocsCallout>
 
         <h2 id="purpose">Purpose</h2>
@@ -67,17 +67,10 @@ onMounted(() => {
               <p>Stream JFR recordings and artifacts in 64KB chunks for efficient transfer</p>
             </div>
           </div>
-          <div class="purpose-card">
-            <div class="card-icon"><i class="bi bi-sliders"></i></div>
-            <div class="card-content">
-              <h4>Settings Sync</h4>
-              <p>Manage profiler settings hierarchy across workspace, project, and global levels</p>
-            </div>
-          </div>
         </div>
 
         <h2 id="grpc-services">gRPC Services</h2>
-        <p>Jeffrey Hub exposes 6 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
+        <p>Jeffrey Hub exposes 5 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
 
         <div class="endpoint-groups">
           <!-- WorkspaceService -->
@@ -277,57 +270,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- ProfilerSettingsService -->
-          <div class="endpoint-group">
-            <div class="group-header">
-              <i class="bi bi-sliders"></i>
-              <h4>ProfilerSettingsService</h4>
-            </div>
-            <div class="group-body">
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetSettings</code>
-                </div>
-                <p>Get effective profiler settings</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>UpsertSettings</code>
-                </div>
-                <p>Create/update project settings</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DeleteSettings</code>
-                </div>
-                <p>Delete project settings</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>UpsertSettingsAtLevel</code>
-                </div>
-                <p>Create/update at any level</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DeleteSettingsAtLevel</code>
-                </div>
-                <p>Delete at any level</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetWorkspaceEffectiveSettings</code>
-                </div>
-                <p>Get the workspace-level and global-level settings for a workspace</p>
-              </div>
-            </div>
-          </div>
 
         </div>
 

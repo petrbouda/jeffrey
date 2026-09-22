@@ -11,7 +11,7 @@ paths:
 
 ### Proto files
 - `proto3`, package `jeffrey.hub.api.v1`, `option java_package = "cafe.jeffrey.hub.api.v1"`, `option java_multiple_files = true`.
-- Location: `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/` — `workspace_service`, `project_service`, `instance_service`, `file_download_service`, `repository_service`, `profiler_settings_service`. Protos only; no Java in that module.
+- Location: `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/` — `workspace_service`, `project_service`, `instance_service`, `file_download_service`, `repository_service`. Protos only; no Java in that module.
 - Request/Response pair per RPC; `repeated` for collections; `workspace_id`/`project_id` on resource-scoped requests.
 
 ### No `reserved` fields — hub and Microscope ship as one release

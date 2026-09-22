@@ -82,25 +82,6 @@ public class GrpcLookups {
         return repositoryManagerFactory.apply(projectInfo(session.projectId()));
     }
 
-    /**
-     * Checks that a settings scope names things that exist — the workspace, and the project as
-     * one of that workspace's — so that a mistyped id does not write a row no reader will find.
-     */
-    public void requireExists(SettingsScope scope) {
-        if (scope.isGlobal()) {
-            return;
-        }
-        WorkspaceInfo workspace = platformRepositories.newWorkspacesRepository().find(scope.workspaceId())
-                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + scope.workspaceId()));
-        if (scope.isProject()) {
-            ProjectInfo project = projectInfo(scope.projectId());
-            if (!workspace.id().equals(project.workspaceId())) {
-                throw GrpcExceptions.notFound(
-                        "Project not found in workspace: project_id=" + project.id() + " workspace_id=" + workspace.id());
-            }
-        }
-    }
-
     public ProjectInstanceInfo instanceById(String instanceId) {
         return platformRepositories.findInstanceById(instanceId)
                 .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + instanceId));

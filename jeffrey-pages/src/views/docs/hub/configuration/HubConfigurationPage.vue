@@ -36,7 +36,6 @@ const headings = [
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
   { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
   { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
-  { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
 ];
 
@@ -72,8 +71,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         Jeffrey Hub (<code>jeffrey-hub.jar</code>) is configured through a single
         <code>application.properties</code> file. All properties have sensible code defaults,
         so you only need to override what you want to change. Frequently-tuned settings
-        (ports, directories, gRPC) come first; advanced tuning (jobs, storage paths, profiler
-        defaults and database) follows.
+        (ports, directories, gRPC) come first; advanced tuning (jobs, storage paths,
+        workspace defaults and database) follows.
       </p>
 
       <DocsCallout type="info">
@@ -353,12 +352,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             </td>
           </tr>
           <tr>
-            <td><code>profiler-settings-synchronizer</code></td>
-            <td><code>5m</code></td>
-            <td><code>max-versions=5</code></td>
-            <td>Uploads effective profiler settings and prunes old versions</td>
-          </tr>
-          <tr>
             <td><code>project-instance-session-cleaner</code></td>
             <td><code>1h</code></td>
             <td><code>retention=7d</code> / <code>max-sessions=10</code></td>
@@ -458,36 +451,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         that exists purely to collect does not offer analysis entry points. It affects only the
         browser it was set in.
       </p>
-
-      <h2 id="profiler">Profiler Agent Settings</h2>
-      <p>Global settings for the Jeffrey profiler agent.</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.hub.profiler.global-settings.create-if-not-exists</code></td>
-            <td><code>true</code></td>
-            <td>Automatically create global profiler settings</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.profiler.global-settings.command</code></td>
-            <td><em>(see below)</em></td>
-            <td>Default profiler agent command with placeholders</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <DocsCallout type="tip">
-        <strong>Default Profiler Command:</strong>
-        <code>-agentpath:&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>
-      </DocsCallout>
 
       <h2 id="database">Database Persistence</h2>
       <p>DuckDB database connection and pool settings.</p>

@@ -1,7 +1,7 @@
 -- Two workspaces with a full object graph: projects (incl. a soft-deleted one),
--- repositories, instances, sessions, profiler settings on all levels, and queue rows.
+-- repositories, instances, sessions, and queue rows.
 -- Used to verify that deleting ws-001 removes everything reachable only through it
--- and leaves ws-002 (and global profiler settings) untouched.
+-- and leaves ws-002 untouched.
 INSERT INTO workspaces (workspace_id, reference_id, repository_id, name, location, base_location, created_at)
 VALUES
     ('ws-001', 'ref-001', NULL, 'Workspace One', NULL, NULL, '2025-01-01T10:00:00Z'),
@@ -29,10 +29,4 @@ VALUES
     ('sess-001', 'repo-001', 'inst-001', 1, 'sessions/sess-001', '2025-01-01T12:00:00Z', '2025-01-01T12:00:00Z'),
     ('sess-101', 'repo-101', 'inst-101', 1, 'sessions/sess-101', '2025-01-01T12:00:00Z', '2025-01-01T12:00:00Z');
 
-INSERT INTO profiler_settings (workspace_id, project_id, scope_key, agent_settings)
-VALUES
-    (NULL, NULL, ':', 'global-settings'),
-    ('ws-001', NULL, 'ws-001:', 'workspace-settings'),
-    ('ws-001', 'proj-001', 'ws-001:proj-001', 'project-settings'),
-    ('ws-002', NULL, 'ws-002:', 'other-workspace-settings');
 

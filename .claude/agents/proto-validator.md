@@ -35,13 +35,11 @@ These are the expected mappings (for reference, not hardcoded — always verify 
 
 | Proto Service | Server Implementation | Client |
 |---|---|---|
-| `WorkspaceService` | `WorkspaceGrpcService` | `RemoteDiscoveryClient` |
-| `ProjectService` | `ProjectGrpcService` | `RemoteProjectsClient` |
-| `InstanceService` | `InstanceGrpcService` | `RemoteInstancesClient` |
-| `RepositoryService` | `RepositoryGrpcService` | `RemoteRepositoryClient` |
-| `RecordingDownloadService` | `RecordingDownloadGrpcService` | `RemoteRecordingStreamClient` |
-| `ProfilerSettingsService` | `ProfilerSettingsGrpcService` | `RemoteProfilerClient` |
-| `MessagesService` | `MessagesGrpcService` | `RemoteMessagesClient` |
+| `WorkspaceService` | `WorkspaceGrpcService` | `DiscoveryClient` |
+| `ProjectService` | `ProjectGrpcService` | `ProjectsClient` |
+| `InstanceService` | `InstanceGrpcService` | `InstancesClient` |
+| `RepositoryService` | `RepositoryGrpcService` | `RepositoryClient` |
+| `FileDownloadService` | `FileDownloadGrpcService` | `FileStreamClient` |
 
 ### Report Format
 

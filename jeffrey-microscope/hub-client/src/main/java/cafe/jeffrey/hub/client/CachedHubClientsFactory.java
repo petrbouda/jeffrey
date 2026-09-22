@@ -66,7 +66,6 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
                 new DiscoveryClient(connection),
                 new RepositoryClient(connection),
                 new FileStreamClient(connection),
-                new ProfilerClient(connection),
                 new InstancesClient(connection),
                 new ProjectsClient(connection));
 

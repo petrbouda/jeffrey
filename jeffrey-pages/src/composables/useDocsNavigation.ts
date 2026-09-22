@@ -136,6 +136,14 @@ export const microscopeNavigation: DocSection[] = [
     children: [{ title: 'Recordings', to: '/docs/microscope/recordings' }]
   },
   {
+    // A standalone tool: it builds an async-profiler command and stores nothing, so it
+    // sits at the root rather than under Hub Integration.
+    title: 'Profiler Builder',
+    path: '_microscope-profiler-builder',
+    icon: 'bi-cpu',
+    children: [{ title: 'Profiler Builder', to: '/docs/microscope/profiler-builder' }]
+  },
+  {
     // The per-feature analysis references. They were reachable only from the Profiles
     // overview page before, which left them out of the sidebar, the breadcrumbs and the
     // prev/next chain — all three are derived from this array.
@@ -194,11 +202,9 @@ export const microscopeNavigation: DocSection[] = [
         path: 'projects',
         children: [
           { title: 'Overview', to: '/docs/microscope/projects' },
-          { title: 'Instances', to: '/docs/microscope/projects/instances' },
-          { title: 'Profiler Settings', to: '/docs/microscope/projects/profiler-settings' }
+          { title: 'Instances', to: '/docs/microscope/projects/instances' }
         ]
-      },
-      { title: 'Profiler Settings', to: '/docs/microscope/profiler-settings' }
+      }
     ]
   },
   {

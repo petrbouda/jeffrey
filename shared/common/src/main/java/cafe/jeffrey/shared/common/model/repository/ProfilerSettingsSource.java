@@ -25,17 +25,11 @@ package cafe.jeffrey.shared.common.model.repository;
  */
 public enum ProfilerSettingsSource {
 
-    /** Explicit {@code profiler-config} in the provisioner's HOCON config */
+    /**
+     * Explicit {@code profiler-command}, from the provisioner's HOCON config or the
+     * {@code JEFFREY_PROFILER_COMMAND} environment variable.
+     */
     CLI_CONFIG,
-
-    /** Hub-pushed workspace settings file, project-level entry */
-    HUB_PROJECT,
-
-    /** Hub-pushed workspace settings file, workspace-level default */
-    HUB_WORKSPACE,
-
-    /** Hub-pushed workspace settings file, global-level default */
-    HUB_GLOBAL,
 
     /** Built-in provisioner default ({@code CliConstants.DEFAULT_PROFILER_CONFIG}) */
     BUILT_IN

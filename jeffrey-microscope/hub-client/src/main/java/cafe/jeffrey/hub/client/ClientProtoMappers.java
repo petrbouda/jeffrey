@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.microscope.model.EffectiveProfilerSettings.SettingsLevel;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 
@@ -65,15 +64,6 @@ public abstract class ClientProtoMappers {
             case WORKSPACE_STATUS_AVAILABLE -> WorkspaceStatus.AVAILABLE;
             case WORKSPACE_STATUS_UNAVAILABLE -> WorkspaceStatus.UNAVAILABLE;
             default -> WorkspaceStatus.UNKNOWN;
-        };
-    }
-
-    public static SettingsLevel settingsLevel(cafe.jeffrey.hub.api.v1.SettingsLevel level) {
-        return switch (level) {
-            case SETTINGS_LEVEL_PROJECT -> SettingsLevel.PROJECT;
-            case SETTINGS_LEVEL_WORKSPACE -> SettingsLevel.WORKSPACE;
-            case SETTINGS_LEVEL_GLOBAL -> SettingsLevel.GLOBAL;
-            default -> SettingsLevel.NONE;
         };
     }
 

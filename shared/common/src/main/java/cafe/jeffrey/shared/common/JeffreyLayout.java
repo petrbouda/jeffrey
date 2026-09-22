@@ -28,7 +28,6 @@ package cafe.jeffrey.shared.common;
  * &lt;workspaces&gt;/
  *   &lt;workspace-ref-id&gt;/
  *     .pending/&lt;timestamp&gt;_&lt;uuid&gt;         provisioner-declared work for the hub to look at
- *     .settings/settings-&lt;timestamp&gt;.json hub-pushed profiler settings
  *     &lt;project-name&gt;/
  *       .project-info.json
  *       &lt;instance-id&gt;/
@@ -54,15 +53,6 @@ public abstract class JeffreyLayout {
      * hints, never a description of an entity — the marker files remain the only description.
      */
     public static final String PENDING_DIR = ".pending";
-
-    /** Directory under a workspace dir holding hub-pushed profiler settings files */
-    public static final String SETTINGS_DIR = ".settings";
-
-    /** Filename prefix of profiler settings files inside {@link #SETTINGS_DIR} */
-    public static final String SETTINGS_FILE_PREFIX = "settings-";
-
-    /** Timestamp pattern embedded in profiler settings filenames (UTC) */
-    public static final String SETTINGS_TIMESTAMP_PATTERN = "yyyy-MM-dd'T'HHmmssSSSSSS";
 
     /** Project metadata marker file inside a project directory */
     public static final String PROJECT_INFO_FILE = ".project-info.json";

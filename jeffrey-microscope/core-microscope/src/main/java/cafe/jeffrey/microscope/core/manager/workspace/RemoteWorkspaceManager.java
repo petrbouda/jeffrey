@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.DiscoveryClient;
-import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
@@ -103,28 +102,6 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public Optional<ProfilerClient> profilerClient() {
-        return Optional.of(hubClients.profiler());
-    }
-
-    @Override
-    public void upsertProfilerSettings(String agentSettings) {
-        hubClients.profiler().upsertSettingsAtLevel(workspaceInfo.id(), "", agentSettings);
-        LOG.debug("Upserted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
-    }
-
-    @Override
-    public ProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings() {
-        return hubClients.profiler().getWorkspaceEffectiveSettings(workspaceInfo.id());
-    }
-
-    @Override
-    public void deleteProfilerSettings() {
-        hubClients.profiler().deleteSettingsAtLevel(workspaceInfo.id(), "");
-        LOG.debug("Deleted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
-    }
-
-    @Override
     public void delete() {
         // Best-effort: drop the workspace on the hub via gRPC.
         try {
@@ -141,7 +118,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                     .emit();
         }
 
-        // Local cleanup: profiles/recordings/profiler_settings tied to this workspace.
+        // Local cleanup: profiles and recordings tied to this workspace.
         List<String> profileIds = workspaceRepository.delete();
         for (String profileId : profileIds) {
             try {

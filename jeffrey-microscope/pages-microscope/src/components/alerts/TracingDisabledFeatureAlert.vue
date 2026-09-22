@@ -33,8 +33,8 @@
           <ul class="mb-0">
             <li>
               Go to
-              <router-link to="/profiler-settings" class="text-decoration-none fw-semibold">
-                <i class="bi bi-gear me-1"></i>Profiler Settings
+              <router-link to="/profiler-builder" class="text-decoration-none fw-semibold">
+                <i class="bi bi-cpu me-1"></i>Profiler Builder
               </router-link>
               to configure method tracing for your AsyncProfiler agent
             </li>

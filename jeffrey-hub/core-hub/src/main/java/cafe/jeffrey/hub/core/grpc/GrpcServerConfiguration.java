@@ -84,13 +84,6 @@ public class GrpcServerConfiguration {
     }
 
     @Bean
-    public BindableService profilerSettingsGrpcService(
-            HubPlatformRepositories platformRepositories,
-            GrpcLookups grpcLookups) {
-        return new ProfilerSettingsGrpcService(platformRepositories.newProfilerRepository(), grpcLookups);
-    }
-
-    @Bean
     public BindableService repositoryGrpcService(GrpcLookups grpcLookups) {
         return new RepositoryGrpcService(grpcLookups);
     }

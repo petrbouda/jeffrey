@@ -301,6 +301,14 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         :code="testappEnv"
       />
 
+      <DocsCallout type="tip">
+        <strong>Changing what the agent records.</strong> Add a
+        <code>JEFFREY_PROFILER_COMMAND</code> entry to the pod's <code>env:</code> with a command
+        built in <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>.
+        It takes precedence over any <code>profiler-command</code> in a mounted configuration file,
+        so no rebuild or ConfigMap change is needed.
+      </DocsCallout>
+
       <DocsCallout type="warning">
         <strong>Spring Boot config-mount gotcha.</strong> Use
         <code>SPRING_CONFIG_ADDITIONAL_LOCATION</code>, not

@@ -35,28 +35,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProfilerSettingsResolverTest {
 
-    private static final String PROJECT_ID = "proj-id-1";
-
     private static ResolvedProfilerSettings resolve(
             String profilerPath,
-            String profilerConfig,
+            String profilerCommand,
             Path workspacePath,
             String projectName,
             Path sessionPath,
             String features) {
 
-        // Only the workspace and session matter here; the rest of the layout is never read back.
+        // Only the session matters here; the rest of the layout is never read back.
         SessionLayout layout = new SessionLayout(
                 null, workspacePath, workspacePath, workspacePath.resolve(projectName), sessionPath);
         Placeholders placeholders = Placeholders.of(
                 JeffreyPlaceholderSource.of(layout, profilerPath, EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
 
-        return new ProfilerSettingsResolver().resolve(
-                profilerConfig, workspacePath, PROJECT_ID, projectName, placeholders, features);
+        return new ProfilerSettingsResolver().resolve(profilerCommand, placeholders, features);
     }
 
     @Nested
-    class DirectProfilerConfig {
+    class ConfiguredProfilerCommand {
 
         @TempDir
         Path tempDir;
@@ -65,24 +62,23 @@ class ProfilerSettingsResolverTest {
         void usesProvidedProfilerConfigWhenNotBlank() {
             Path workspacePath = tempDir.resolve("workspace");
             Path sessionPath = tempDir.resolve("session");
-            String profilerConfig = "-agentpath:/custom/path=start,event=cpu";
+            String profilerCommand = "-agentpath:/custom/path=start,event=cpu";
 
             ResolvedProfilerSettings resolved = resolve(
-                    "/path/to/profiler", profilerConfig, workspacePath, "my-project", sessionPath, "");
+                    "/path/to/profiler", profilerCommand, workspacePath, "my-project", sessionPath, "");
 
-            assertEquals(profilerConfig, resolved.command().trim());
+            assertEquals(profilerCommand, resolved.command().trim());
             assertEquals(ProfilerSettingsSource.CLI_CONFIG, resolved.source());
-            assertNull(resolved.sourceDetail());
         }
 
         @Test
         void replacesPlaceholdersInProvidedConfig() {
             Path workspacePath = tempDir.resolve("workspace");
             Path sessionPath = tempDir.resolve("session");
-            String profilerConfig = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,file=<<JEFFREY:CURRENT_SESSION>>/output.jfr";
+            String profilerCommand = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,file=<<JEFFREY:CURRENT_SESSION>>/output.jfr";
 
             String result = resolve(
-                    "/custom/profiler.so", profilerConfig, workspacePath, "my-project", sessionPath, "").command();
+                    "/custom/profiler.so", profilerCommand, workspacePath, "my-project", sessionPath, "").command();
 
             assertTrue(result.contains("/custom/profiler.so"));
             assertTrue(result.contains(sessionPath.toString()));
@@ -94,11 +90,11 @@ class ProfilerSettingsResolverTest {
         void appendsFeaturesAfterConfig() {
             Path workspacePath = tempDir.resolve("workspace");
             Path sessionPath = tempDir.resolve("session");
-            String profilerConfig = "-agentpath:/custom/path=start";
+            String profilerCommand = "-agentpath:/custom/path=start";
             String features = "-XX:+UsePerfData -XX:+HeapDumpOnOutOfMemoryError";
 
             String result = resolve(
-                    "/path/to/profiler", profilerConfig, workspacePath, "my-project", sessionPath, features).command();
+                    "/path/to/profiler", profilerCommand, workspacePath, "my-project", sessionPath, features).command();
 
             assertTrue(result.startsWith("-agentpath:/custom/path=start"));
             assertTrue(result.endsWith(features));
@@ -143,21 +139,6 @@ class ProfilerSettingsResolverTest {
             assertTrue(result.contains("jfrsync=default"));
             assertTrue(result.contains(sessionPath.toString()));
             assertEquals(ProfilerSettingsSource.BUILT_IN, resolved.source());
-            assertNull(resolved.sourceDetail());
-        }
-
-        @Test
-        void createsSettingsDirectoryIfNotExists() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path sessionPath = tempDir.resolve("session");
-            Path settingsDir = workspacePath.resolve(".settings");
-
-            assertFalse(Files.exists(settingsDir));
-
-            resolve("/path/to/profiler.so", null, workspacePath, "my-project", sessionPath, "");
-
-            assertTrue(Files.exists(settingsDir));
-            assertTrue(Files.isDirectory(settingsDir));
         }
 
         @Test
@@ -169,247 +150,6 @@ class ProfilerSettingsResolverTest {
 
             // Profiler path placeholder should be replaced with empty string
             assertTrue(result.contains("-agentpath:="));
-        }
-    }
-
-    @Nested
-    class WorkspaceSettings {
-
-        @TempDir
-        Path tempDir;
-
-        @Test
-        void usesDefaultSettingsFromFile() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            String settingsJson = """
-                    {
-                        "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall,file=<<JEFFREY:CURRENT_SESSION>>/profile.jfr",
-                            "defaultSettingsLevel": "WORKSPACE",
-                            "projectSettings": {}
-                        }
-                    }
-                    """;
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/my/profiler.so", null, workspacePath, "unknown-project", sessionPath, "");
-            String result = resolved.command();
-
-            assertTrue(result.contains("-agentpath:/my/profiler.so"));
-            assertTrue(result.contains("event=wall"));
-            assertTrue(result.contains(sessionPath.toString() + "/profile.jfr"));
-            assertEquals(ProfilerSettingsSource.HUB_WORKSPACE, resolved.source());
-            assertEquals("settings-2025-01-15T120000000000.json", resolved.sourceDetail());
-        }
-
-        @Test
-        void globalLevelDefaultSettings_reportedAsHubGlobal() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            String settingsJson = """
-                    {
-                        "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
-                            "defaultSettingsLevel": "GLOBAL",
-                            "projectSettings": {}
-                        }
-                    }
-                    """;
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/my/profiler.so", null, workspacePath, "unknown-project", sessionPath, "");
-
-            assertEquals(ProfilerSettingsSource.HUB_GLOBAL, resolved.source());
-        }
-
-        @Test
-        void usesProjectSpecificSettings() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            String settingsJson = """
-                    {
-                        "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
-                            "defaultSettingsLevel": "GLOBAL",
-                            "projectSettings": {
-                                "my-project": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=cpu,alloc"
-                            }
-                        }
-                    }
-                    """;
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/my/profiler.so", null, workspacePath, "my-project", sessionPath, "");
-            String result = resolved.command();
-
-            // Should use project-specific settings, not default
-            assertTrue(result.contains("event=cpu"));
-            assertTrue(result.contains("alloc"));
-            assertFalse(result.contains("event=wall"));
-            assertEquals(ProfilerSettingsSource.HUB_PROJECT, resolved.source());
-        }
-
-        @Test
-        void prefersIdKeyedSettings_overNameKeyed() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            String settingsJson = """
-                    {
-                        "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
-                            "defaultSettingsLevel": "GLOBAL",
-                            "projectSettings": {
-                                "my-project": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=cpu"
-                            },
-                            "projectSettingsById": {
-                                "proj-id-1": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=itimer"
-                            }
-                        }
-                    }
-                    """;
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/my/profiler.so", null, workspacePath, "my-project", sessionPath, "");
-
-            assertTrue(resolved.command().contains("event=itimer"),
-                    "The id-keyed entry must win over the name-keyed one");
-            assertEquals(ProfilerSettingsSource.HUB_PROJECT, resolved.source());
-        }
-
-        @Test
-        void fallsBackToNameKeyedSettings_whenIdMapMissing() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            // Old-format settings file written by a hub that only publishes names
-            String settingsJson = """
-                    {
-                        "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
-                            "defaultSettingsLevel": "GLOBAL",
-                            "projectSettings": {
-                                "my-project": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=cpu"
-                            }
-                        }
-                    }
-                    """;
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/my/profiler.so", null, workspacePath, "my-project", sessionPath, "");
-
-            assertTrue(resolved.command().contains("event=cpu"));
-            assertEquals(ProfilerSettingsSource.HUB_PROJECT, resolved.source());
-        }
-
-        @Test
-        void usesSingleSettingsFile() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            String settingsJson = """
-                    {
-                        "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=custom-config",
-                            "defaultSettingsLevel": "WORKSPACE",
-                            "projectSettings": {}
-                        }
-                    }
-                    """;
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
-
-            String result = resolve(
-                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "").command();
-
-            assertTrue(result.contains("custom-config"));
-        }
-
-        @Test
-        void ignoresNonSettingsFiles() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            // Create non-settings files
-            Files.writeString(settingsDir.resolve("other-file.json"), "{}");
-            Files.writeString(settingsDir.resolve("settings.txt"), "text file");
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "");
-
-            // Should use built-in default since no valid settings files
-            assertTrue(resolved.command().contains("jfrsync=default"));
-            assertEquals(ProfilerSettingsSource.BUILT_IN, resolved.source());
-        }
-    }
-
-    @Nested
-    class SettingsFileOrdering {
-
-        @TempDir
-        Path tempDir;
-
-        private static String settingsWith(String marker) {
-            return """
-                    {
-                        "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=%s",
-                            "defaultSettingsLevel": "WORKSPACE",
-                            "projectSettings": {}
-                        }
-                    }
-                    """.formatted(marker);
-        }
-
-        /**
-         * The workspace lives under a directory carrying a dash — the shape of every real
-         * install (~/.jeffrey-microscope, /opt/jeffrey-home). Reading the timestamp out of the
-         * full path instead of the file name slices from that dash and blows up the parse.
-         */
-        @Test
-        void picksTheNewestFileWhenAParentDirectoryContainsADash() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("jeffrey-home").resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsWith("older"));
-            Files.writeString(settingsDir.resolve("settings-2025-06-20T080000000000.json"), settingsWith("newer"));
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "");
-
-            assertTrue(resolved.command().contains("newer"), resolved.command());
-            assertEquals("settings-2025-06-20T080000000000.json", resolved.sourceDetail());
-        }
-
-        @Test
-        void sortsAFileWithAnUnparseableTimestampLast() throws IOException {
-            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
-            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
-            Path sessionPath = tempDir.resolve("session");
-
-            Files.writeString(settingsDir.resolve("settings-not-a-timestamp.json"), settingsWith("malformed"));
-            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsWith("valid"));
-
-            ResolvedProfilerSettings resolved = resolve(
-                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "");
-
-            assertTrue(resolved.command().contains("valid"), resolved.command());
         }
     }
 

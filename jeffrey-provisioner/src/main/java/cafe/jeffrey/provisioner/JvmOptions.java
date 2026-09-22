@@ -26,7 +26,7 @@ import java.util.List;
  * round trip through a {@code java @argfile}.
  *
  * <p>The profiler command is assembled from free-form text — {@code additional-jvm-options} and
- * hub-pushed profiler settings — so an option may legitimately carry a space inside quotes
+ * {@code profiler-command} — so an option may legitimately carry a space inside quotes
  * ({@code -Djeffrey.dir="/opt/my app"}). Splitting on whitespace alone tears such an option
  * across two argfile lines, and the JVM then refuses the file; the failure surfaces as
  * "application will not start" rather than as a provisioner error.

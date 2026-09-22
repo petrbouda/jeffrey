@@ -69,13 +69,8 @@ public class InitExecutor {
         String features = JvmFeatures.of(config)
                 .render(session.layout().session(), placeholders);
 
-        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = profilerSettingsResolver.resolve(
-                config.getProfilerConfig(),
-                session.layout().workspace(),
-                session.projectId(),
-                config.getProjectName(),
-                placeholders,
-                features);
+        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings =
+                profilerSettingsResolver.resolve(config.getProfilerCommand(), placeholders, features);
 
         registrar.recordSession(config, session, resolvedSettings);
         outputWriter.write(config, session.layout(), resolvedSettings.command());

@@ -70,7 +70,7 @@ public class InitConfig {
             jeffrey-home = ""
             workspaces-dir = ""
             profiler-path = ""
-            profiler-config = ""
+            profiler-command = ""
             repository-type = ""
             project {
                 workspace-ref-id = ""
@@ -184,7 +184,7 @@ public class InitConfig {
     private final String jeffreyHome;
     private final String workspacesDir;
     private final String profilerPath;
-    private final String profilerConfig;
+    private final String profilerCommand;
     private final String repositoryType;
     private final boolean heartbeatEnabled;
     private final String additionalJvmOptions;
@@ -226,7 +226,7 @@ public class InitConfig {
         this.jeffreyHome = nullIfBlank(resolved.getString(ConfigPaths.JEFFREY_HOME));
         this.workspacesDir = nullIfBlank(resolved.getString(ConfigPaths.WORKSPACES_DIR));
         this.repositoryType = nullIfBlank(resolved.getString(ConfigPaths.REPOSITORY_TYPE));
-        this.profilerConfig = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_CONFIG)));
+        this.profilerCommand = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_COMMAND)));
         this.additionalJvmOptions =
                 nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.ADDITIONAL_JVM_OPTIONS)));
 
@@ -333,8 +333,8 @@ public class InitConfig {
         return profilerPath;
     }
 
-    public String getProfilerConfig() {
-        return profilerConfig;
+    public String getProfilerCommand() {
+        return profilerCommand;
     }
 
     public String getRepositoryType() {

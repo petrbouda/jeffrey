@@ -52,15 +52,15 @@ class DeleteCascadeTransactionTest {
         // The first statement would delete rows; the second fails — the whole cascade
         // must roll back, otherwise the graph is left half-deleted
         List<String> cascade = List.of(
-                "DELETE FROM profiler_settings WHERE workspace_id = :workspace_id",
+                "DELETE FROM projects WHERE workspace_id = :workspace_id",
                 "DELETE FROM no_such_table WHERE scope_id = :workspace_id");
 
         assertThrows(Exception.class,
                 () -> client.deleteCascade(StatementLabel.DELETE_WORKSPACE, cascade, params));
 
-        // The workspace's own row and its project's — both would have gone with the first statement
+        // Both of ws-001's projects would have gone with the first statement
         assertEquals(2, countRows(dataSource,
-                "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id = 'ws-001'"),
+                "SELECT COUNT(*) FROM projects WHERE workspace_id = 'ws-001'"),
                 "The successful first statement must be rolled back with the failed cascade");
     }
 
@@ -74,14 +74,14 @@ class DeleteCascadeTransactionTest {
                 .addValue("workspace_id", "ws-001");
 
         List<String> cascade = List.of(
-                "DELETE FROM profiler_settings WHERE workspace_id = :workspace_id",
+                "DELETE FROM projects WHERE workspace_id = :workspace_id",
                 "DELETE FROM workspaces WHERE workspace_id = :workspace_id");
 
         int lastStatementRows = client.deleteCascade(StatementLabel.DELETE_WORKSPACE, cascade, params);
 
         assertEquals(1, lastStatementRows, "Returns affected rows of the last (root-entity) statement");
         assertEquals(0, countRows(dataSource,
-                "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id = 'ws-001'"));
+                "SELECT COUNT(*) FROM projects WHERE workspace_id = 'ws-001'"));
         assertEquals(0, countRows(dataSource,
                 "SELECT COUNT(*) FROM workspaces WHERE workspace_id = 'ws-001'"));
     }

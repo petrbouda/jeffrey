@@ -30,7 +30,6 @@ const headings = [
   { id: 'add-hub', text: 'Step 1 — Add a Hub', level: 2 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Workspace Status', level: 2 },
-  { id: 'tabs', text: 'Per-Workspace Tabs', level: 2 },
   { id: 'not-in-ui', text: 'What\'s Not in the UI', level: 2 }
 ];
 
@@ -185,23 +184,6 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
-
-      <h2 id="tabs">Per-Workspace Tabs</h2>
-      <p>
-        Once you pick a workspace, the right pane exposes two tabs:
-      </p>
-      <ul>
-        <li>
-          <strong><router-link to="/docs/microscope/projects">Projects</router-link></strong> —
-          the list of projects in the workspace, with drill-down into instances, sessions,
-          recordings, and the repository.
-        </li>
-        <li>
-          <strong><router-link to="/docs/microscope/profiler-settings">Profiler Settings</router-link></strong> —
-          the Async-Profiler configuration scoped to this workspace (overrides the global
-          defaults; can be overridden per project).
-        </li>
-      </ul>
 
       <h2 id="not-in-ui">What's Not in the UI</h2>
       <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>

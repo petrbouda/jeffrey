@@ -204,7 +204,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>.session-info.json</code>
-              <p>Session ID, timestamps, project/workspace identifiers, profiler settings, and custom attributes (cluster, namespace).</p>
+              <p>Session ID, timestamps, project/workspace identifiers, the profiler command, and custom attributes (cluster, namespace).</p>
             </div>
           </div>
         </div>

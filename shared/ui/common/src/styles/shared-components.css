@@ -562,6 +562,13 @@
   transform: translateY(-1px);
 }
 
+.btn-primary-gradient:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ===========================================
    Job Table Styles (Scheduler)
    =========================================== */

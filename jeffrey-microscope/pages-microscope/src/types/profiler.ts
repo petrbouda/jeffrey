@@ -1,5 +1,4 @@
 export interface ProfilerConfig {
-  agentPath: string;
   agentPathCustom: string;
   event: string;
   wallValue: number | null;
@@ -55,13 +54,18 @@ export interface ConfigCardDefinition {
   component?: string;
 }
 
+/** Placeholder for the Agent Path field, and the path used when it is left blank. */
+export const DEFAULT_AGENT_PATH = '/path/to/libasyncProfiler.so';
+
+/** Where a copied command writes its recordings when the output field is left blank. */
+export const DEFAULT_OUTPUT_FILE = '/tmp/profile-%t.jfr';
+
 export const PROFILER_CONSTANTS = {
   selectableEvents: ['ctimer', 'cpu'] as const,
   allocUnits: ['kb', 'mb'] as const,
   lockUnits: ['us', 'ms', 's', 'm', 'h', 'd'] as const,
   intervalUnits: ['us', 'ms'] as const,
   defaultConfig: {
-    agentPath: '<<JEFFREY:PROFILER_PATH>>',
     agentPathCustom: '',
     event: 'ctimer',
     wallValue: null,
@@ -87,6 +91,6 @@ export const PROFILER_CONSTANTS = {
     jfrsync: 'default',
     jfrsyncFile: '',
     jfcMode: 'default',
-    file: '<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+    file: DEFAULT_OUTPUT_FILE
   } as ProfilerConfig
 } as const;

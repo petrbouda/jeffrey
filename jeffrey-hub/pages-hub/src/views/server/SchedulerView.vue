@@ -245,7 +245,6 @@ const displayNames: Record<JobTypeName, string> = {
     TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
     DELETED_PROJECTS_CLEANER: 'Deleted Projects Cleaner',
     STORAGE_OVERVIEW_REFRESHER: 'Storage Overview Refresher',
-    PROFILER_SETTINGS_SYNCHRONIZER: 'Profiler Settings Synchronizer',
     PROJECT_INSTANCE_SESSION_CLEANER: 'Instance Session Cleaner',
     PROJECT_STORAGE_QUOTA_CLEANER: 'Storage Quota Cleaner',
     EXPIRED_INSTANCE_CLEANER: 'Expired Instance Cleaner',
@@ -263,8 +262,6 @@ const descriptions: Record<JobTypeName, string> = {
         'Permanently purges soft-deleted project rows once their retention window has passed. Until then the project can still be restored, so this retention doubles as the restore window.',
     STORAGE_OVERVIEW_REFRESHER:
         'Recomputes the storage overview shown on the Workspaces dashboard into an in-memory cache. The scan walks every project repository on disk, so the dashboard serves the cached snapshot; figures may be up to one period stale. The first tick runs at startup.',
-    PROFILER_SETTINGS_SYNCHRONIZER:
-        'Resolves the effective profiler settings (global → workspace → project) for every workspace and uploads them to the remote workspace, pruning legacy versions to the configured max-versions cap.',
     PROJECT_INSTANCE_SESSION_CLEANER:
         'Ages recordings out under one retention window: a finished session is removed whole once older than it (with every recording and additional file — heap dumps, perf counters, ...), and a session still recording loses its closed chunks older than it one by one. Beside the window, each instance is capped at max-sessions logical sessions — a consecutive run of failed (0-byte) sessions counts as one, the live session occupies a slot, retained sessions are exempt — and the oldest beyond the cap go even before the window expires.',
     PROJECT_STORAGE_QUOTA_CLEANER:
@@ -283,7 +280,6 @@ const icons: Record<JobTypeName, [string, string]> = {
     TEMP_DIRECTORY_CLEANER: ['bi-eraser', 'job-icon-broom'],
     DELETED_PROJECTS_CLEANER: ['bi-trash', 'job-icon-trash'],
     STORAGE_OVERVIEW_REFRESHER: ['bi-hdd-stack', 'job-icon-sync'],
-    PROFILER_SETTINGS_SYNCHRONIZER: ['bi-cpu', 'job-icon-cpu'],
     PROJECT_INSTANCE_SESSION_CLEANER: ['bi-trash', 'job-icon-trash'],
     PROJECT_STORAGE_QUOTA_CLEANER: ['bi-hdd', 'job-icon-trash'],
     EXPIRED_INSTANCE_CLEANER: ['bi-trash', 'job-icon-trash'],
@@ -504,7 +500,6 @@ onMounted(async () => {
 .job-icon-sync   { background: var(--color-violet-lightest-bg); color: var(--color-violet-deeper); }
 .job-icon-bell   { background: var(--color-amber-light); color: var(--color-amber-text); }
 .job-icon-broom  { background: var(--color-red-bg); color: var(--color-red-text); }
-.job-icon-cpu    { background: var(--color-indigo-bg); color: var(--color-indigo-text); }
 .job-icon-default { background: var(--color-grey-bg); color: var(--color-slate-muted); }
 
 .job-name { font-weight: 600; color: var(--color-heading-dark); font-size: 0.86rem; }

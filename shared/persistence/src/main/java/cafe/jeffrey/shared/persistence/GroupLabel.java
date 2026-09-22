@@ -20,7 +20,6 @@ package cafe.jeffrey.shared.persistence;
 
 public enum GroupLabel {
     INTERNAL_PROFILES,
-    PROFILER,
     PROJECT_RECORDINGS,
     PROFILE_CACHE,
     PROFILE_EVENTS,

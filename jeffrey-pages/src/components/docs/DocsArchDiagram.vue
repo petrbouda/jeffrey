@@ -106,7 +106,6 @@ withDefaults(defineProps<{
             <div class="arch-chip scheduler"><i class="bi bi-clock"></i> Scheduler &amp; Jobs</div>
           </div>
           <div class="arch-layer">
-            <div class="arch-chip server-feat"><i class="bi bi-sliders"></i> Profiler Settings</div>
             <div v-if="variant !== 'hub'" class="arch-chip server-feat"><i class="bi bi-bell"></i> Notifications</div>
             <div v-else class="arch-chip server-feat"><i class="bi bi-lock"></i> Blocking &amp; Lifecycle</div>
           </div>

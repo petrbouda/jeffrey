@@ -54,7 +54,7 @@ class FileSystemRepositoryTest {
 
     private static final ProfilerSettingsResolver.ResolvedProfilerSettings PROFILER_SETTINGS =
             new ProfilerSettingsResolver.ResolvedProfilerSettings(
-                    "start,alloc", ProfilerSettingsSource.CLI_CONFIG, "provisioner.conf");
+                    "start,alloc", ProfilerSettingsSource.CLI_CONFIG);
 
     @TempDir
     Path tempDir;

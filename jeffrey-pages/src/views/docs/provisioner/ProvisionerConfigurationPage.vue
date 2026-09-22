@@ -277,10 +277,10 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>Print the <code>.env</code> file content to stdout (default: <code>false</code>)</td>
             </tr>
             <tr>
-              <td><code>profiler-config</code></td>
+              <td><code>profiler-command</code></td>
               <td>No</td>
-              <td>—</td>
-              <td>Explicit async-profiler command string. Overrides both hub-pushed workspace settings and the built-in default. Supports <a href="#placeholders">placeholders</a>.</td>
+              <td><code>JEFFREY_PROFILER_COMMAND</code></td>
+              <td>The async-profiler agent command the session runs with. Build one with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link> and paste it here or set the environment variable; leave it unset to take the built-in default. It takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
             </tr>
             <tr>
               <td><code>repository-type</code></td>
@@ -406,7 +406,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           thresholds for the profiler's recording as well, and the extra events reach the dumped
           <code>.jfr</code> files used for analysis without the profiler's own
           configuration being touched. That is why it works the same whether the
-          profiler settings came from the CLI, from the hub, or from the built-in default.
+          profiler command was configured or came from the built-in default.
         </p>
 
         <table>
@@ -474,8 +474,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
 
         <h2 id="placeholders">Placeholders</h2>
         <p>
-          Most configuration values — whatever supplied them: a HOCON file, a <code>JEFFREY_*</code>
-          environment variable, or hub-pushed profiler settings — may contain
+          Most configuration values — whatever supplied them: a HOCON file or a
+          <code>JEFFREY_*</code> environment variable — may contain
           <code>&lt;&lt;TYPE:NAME&gt;&gt;</code> placeholders. The type decides where the value is
           looked up:
         </p>

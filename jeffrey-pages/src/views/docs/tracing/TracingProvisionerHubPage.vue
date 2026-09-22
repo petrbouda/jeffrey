@@ -68,7 +68,6 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
 const sessionLayout = `<workspaces>/<workspace-ref-id>/
 ├── .pending/<timestamp>_<uuid>        # provisioner-declared work, for the hub to notice
-├── .settings/settings-<timestamp>.json # hub-pushed profiler settings, read on the next run
 └── <project-name>/<instance-id>/<session-id>/
     ├── profile-<timestamp>.jfr        # the durable chunks — traces live in these
     ├── .heartbeat/heartbeat           # epoch millis, rewritten every 5s
