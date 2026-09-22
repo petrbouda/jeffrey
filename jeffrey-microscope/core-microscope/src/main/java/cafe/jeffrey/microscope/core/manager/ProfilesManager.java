@@ -23,7 +23,6 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public interface ProfilesManager {
@@ -33,8 +32,6 @@ public interface ProfilesManager {
     }
 
     List<? extends ProfileManager> allProfiles();
-
-    CompletableFuture<ProfileManager> createProfile(String recordingId);
 
     Optional<ProfileManager> profile(String profileId);
 }

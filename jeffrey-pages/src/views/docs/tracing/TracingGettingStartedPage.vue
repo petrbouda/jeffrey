@@ -194,7 +194,7 @@ jeffrey.JdbcQuery {
 
       <h2 id="upload">5. Open It in Jeffrey</h2>
 
-      <p>Upload <code>app.jfr</code> to Jeffrey Microscope (create a project → upload recording → initialize profile). Jeffrey auto-detects the event types and activates the matching sections: the HTTP and Database dashboards, and — as soon as any event with trace identity is found — the <strong>Traces</strong> section, with <router-link to="/docs/tracing/analysis">Traces by Operation, attribute search and the trace waterfall</router-link>.</p>
+      <p>Upload <code>app.jfr</code> to Jeffrey Microscope and click <strong>Analyze</strong> on the recording. Jeffrey auto-detects the event types and activates the matching sections: the HTTP and Database dashboards, and — as soon as any event with trace identity is found — the <strong>Traces</strong> section, with <router-link to="/docs/tracing/analysis">Traces by Operation, attribute search and the trace waterfall</router-link>.</p>
 
       <figure class="docs-figure">
         <img src="/images/docs/tracing/operations.webp" alt="Traces by Operation after the first upload" />

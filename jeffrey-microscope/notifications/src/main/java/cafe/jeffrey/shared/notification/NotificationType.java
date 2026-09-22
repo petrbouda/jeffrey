@@ -121,9 +121,6 @@ public enum NotificationType {
 
     // ---------- Work that failed after the response had already been sent ----------
 
-    PROFILE_CREATION_FAILED(NotificationCategory.PROFILE, Severity.HIGH,
-            "Building a profile threw on a background thread, after the request had returned"),
-
     PROFILE_ANALYSIS_FAILED(NotificationCategory.PROFILE, Severity.HIGH,
             "Analysing the recording failed; the half-built profile was removed again"),
 

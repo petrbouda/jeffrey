@@ -35,7 +35,6 @@
         <module>microscope-model</module>
         <module>notifications</module>
         <module>recording-storage-api</module>
-        <module>filesystem-recording-storage</module>
         <module>hub-client</module>
         <module>recordings-core</module>
         <module>ui-hubs</module>

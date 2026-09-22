@@ -14,7 +14,7 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
   microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles, hubs)
   grpc-client/ + hub-client/           gRPC clients, aggregated by the HubClients record
-  recordings-core/ recording-storage-api/ filesystem-recording-storage/ notifications/
+  recordings-core/ recording-storage-api/ notifications/
   ui-hubs/ ui-instances/               shared Vue modules (@hubs, @instances)
   profiles/                            analysis modules: profile-management (features + REST), recording-parser/
                                        (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser),

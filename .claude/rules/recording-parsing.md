@@ -4,7 +4,6 @@ paths:
   - "jeffrey-microscope/profiles/profile-management/**"
   - "jeffrey-microscope/recordings-core/**"
   - "jeffrey-microscope/recording-storage-api/**"
-  - "jeffrey-microscope/filesystem-recording-storage/**"
 ---
 
 ## Recording parsing and storage rules
@@ -18,6 +17,7 @@ paths:
 
 ### Files are stored flat under `<recordingId>-<name>`
 - The prefix keeps the directory unique across recordings; it is **not** part of the name. `recording_files.filename` holds the name without it, `RecordingsCoreManagerImpl.storagePath` is the one place that joins the two, and `StoredFile` carries name beside path. Reading the name back off the storage path yields a doubled prefix that finds nothing (analysis reports missing, deletion leaves it, `IdeRecordingLookup` reads every recording as never imported).
+- `storagePath` (in `recordings-core`) writes the convention; `RecordingFileLookup` (in `profile-management`, used by auto-analysis) reads it back. Neither module depends on the other, so the two agree by hand — change one and change the other. The reader matches on `<recordingId>-`, separator included, or `rec-1` claims `rec-10`'s files, and prefers a `FileCategory.RECORDING` file over an artifact so JMC rules do not run over the GC log sitting beside the recording.
 
 ### Microscope's `ManagedFile` is the only type that knows a heap dump from a log
 - `recording-storage-api` (`ManagedFile`, `FileCategory`, `RecordingFile`, `Recording`) carries description, extension, matcher and category. The hub cannot see it and must not depend on it.

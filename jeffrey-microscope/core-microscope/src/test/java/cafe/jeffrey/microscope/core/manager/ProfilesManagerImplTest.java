@@ -24,22 +24,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
-import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.model.*;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -48,7 +41,6 @@ import static org.mockito.Mockito.*;
 class ProfilesManagerImplTest {
 
     private static final Instant NOW = Instant.parse("2025-06-01T12:00:00Z");
-    private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             "proj-1", null, "Test Project", null, null,
             "ws-1", NOW, null, Map.of(), null);
@@ -56,22 +48,13 @@ class ProfilesManagerImplTest {
     @Mock
     private MicroscopeCoreRepositories localCoreRepositories;
     @Mock
-    private ProfileInitializer profileInitializer;
-    @Mock
-    private RecordingRepository projectRecordingRepository;
-    @Mock
-    private ProjectRecordingStorage projectRecordingStorage;
-    @Mock
     private ProfileManager.Factory profileManagerFactory;
 
     private ProfilesManagerImpl manager;
 
     @BeforeEach
     void setUp() {
-        when(localCoreRepositories.newRecordingRepository("proj-1")).thenReturn(projectRecordingRepository);
-        manager = new ProfilesManagerImpl(
-                FIXED_CLOCK, PROJECT_INFO, localCoreRepositories,
-                 projectRecordingStorage, profileManagerFactory, profileInitializer);
+        manager = new ProfilesManagerImpl(PROJECT_INFO, localCoreRepositories, profileManagerFactory);
     }
 
     @Nested
@@ -136,41 +119,4 @@ class ProfilesManagerImplTest {
         }
     }
 
-    @Nested
-    class CreateProfile {
-
-        @Test
-        void throwsIllegalArgument_whenRecordingNotInDb() {
-            when(projectRecordingRepository.findById("missing-rec")).thenReturn(Optional.empty());
-
-            assertThrows(IllegalArgumentException.class, () -> manager.createProfile("missing-rec"));
-        }
-
-        @Test
-        void throwsIllegalArgument_whenRecordingFileNotInStorage() {
-            Recording recording = new Recording(
-                    "rec-1", "recording.jfr", "proj-1", null,
-                    RecordingEventSource.JDK, NOW, NOW, NOW, false, null, null, List.of());
-
-            when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));
-            when(projectRecordingStorage.findRecording("rec-1")).thenReturn(Optional.empty());
-
-            assertThrows(IllegalArgumentException.class, () -> manager.createProfile("rec-1"));
-        }
-
-        @Test
-        void returnsCompletableFuture_whenRecordingAndFileExist() {
-            Recording recording = new Recording(
-                    "rec-1", "recording.jfr", "proj-1", null,
-                    RecordingEventSource.JDK, NOW, NOW, NOW, false, null, null, List.of());
-            java.nio.file.Path recordingPath = java.nio.file.Path.of("/recordings/rec-1/recording.jfr");
-
-            when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));
-            when(projectRecordingStorage.findRecording("rec-1")).thenReturn(Optional.of(recordingPath));
-
-            CompletableFuture<ProfileManager> future = manager.createProfile("rec-1");
-
-            assertNotNull(future);
-        }
-    }
 }
