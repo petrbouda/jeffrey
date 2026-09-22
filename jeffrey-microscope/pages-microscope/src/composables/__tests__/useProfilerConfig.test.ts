@@ -19,12 +19,17 @@
 import { describe, expect, it } from 'vitest';
 import { useProfilerConfig } from '@/composables/useProfilerConfig';
 import { DEFAULT_AGENT_PATH, DEFAULT_OUTPUT_FILE } from '@/types/profiler';
+import type { MethodTraceTarget } from '@/types/profiler';
 
 const AGENT = '/opt/async-profiler/lib/libasyncProfiler.so';
 
 /** The command is a comma-joined list; splitting it keeps assertions readable. */
 function partsOf(command: string): string[] {
   return command.split(',');
+}
+
+function everyCall(pattern: string): MethodTraceTarget {
+  return { pattern, latencyValue: null, latencyUnit: 'ms' };
 }
 
 describe('useProfilerConfig', () => {
@@ -99,6 +104,25 @@ describe('useProfilerConfig', () => {
       expect(partsOf(generateFromBuilder())).toContain('lock=10ms');
     });
 
+    it('records every contention by default, written as lock=0 rather than a bare lock', () => {
+      const { optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.lock = true;
+
+      const parts = partsOf(generateFromBuilder());
+      expect(parts).toContain('lock=0');
+      expect(parts).not.toContain('lock');
+    });
+
+    it('emits lock=0 when the threshold is cleared, since a bare lock would still mean 10 µs', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.lock = true;
+      config.value.lockThresholdValue = null;
+
+      const parts = partsOf(generateFromBuilder());
+      expect(parts).toContain('lock=0');
+      expect(parts).not.toContain('lock');
+    });
+
     it('emits the event and its interval as two separate parts', () => {
       const { config, optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.event = true;
@@ -123,11 +147,77 @@ describe('useProfilerConfig', () => {
     it('emits one trace part per method pattern', () => {
       const { config, optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.methodTracing = true;
-      config.value.methodPatterns = ['java.nio.ByteBuffer.allocateDirect', 'java.net.Socket.*'];
+      config.value.methodTraces = [
+        everyCall('java.nio.ByteBuffer.allocateDirect'),
+        everyCall('java.net.Socket.*')
+      ];
 
       const parts = partsOf(generateFromBuilder());
       expect(parts).toContain('trace=java.nio.ByteBuffer.allocateDirect');
       expect(parts).toContain('trace=java.net.Socket.*');
+    });
+
+    it('appends the latency threshold to a trace pattern', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.methodTracing = true;
+      config.value.methodTraces = [
+        { pattern: 'com.acme.OrderService.place', latencyValue: 5, latencyUnit: 'ms' },
+        { pattern: 'com.acme.Cache.get', latencyValue: 200, latencyUnit: 'us' }
+      ];
+
+      const parts = partsOf(generateFromBuilder());
+      expect(parts).toContain('trace=com.acme.OrderService.place:5ms');
+      expect(parts).toContain('trace=com.acme.Cache.get:200us');
+    });
+
+    it('omits the latency when it is zero, since async-profiler then records every call anyway', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.methodTracing = true;
+      config.value.methodTraces = [
+        { pattern: 'com.acme.OrderService.place', latencyValue: 0, latencyUnit: 'ms' }
+      ];
+
+      expect(partsOf(generateFromBuilder())).toContain('trace=com.acme.OrderService.place');
+    });
+
+    it('skips a trace target whose pattern is blank', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.methodTracing = true;
+      config.value.methodTraces = [{ pattern: '   ', latencyValue: 5, latencyUnit: 'ms' }];
+
+      expect(generateFromBuilder()).not.toContain('trace=');
+    });
+
+    it('adds a trimmed trace target that records every call by default', () => {
+      const { config, optionStates, addMethodTrace, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.methodTracing = true;
+      addMethodTrace('  com.acme.OrderService.place  ');
+
+      expect(config.value.methodTraces).toHaveLength(1);
+      expect(partsOf(generateFromBuilder())).toContain('trace=com.acme.OrderService.place');
+    });
+
+    it('keeps traced methods per builder instead of sharing the default list', () => {
+      const first = useProfilerConfig();
+      first.addMethodTrace('com.acme.OrderService.place');
+
+      const second = useProfilerConfig();
+      expect(second.config.value.methodTraces).toHaveLength(0);
+    });
+
+    it('samples native memory every 512 KiB by default', () => {
+      const { optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.nativeMem = true;
+
+      expect(partsOf(generateFromBuilder())).toContain('nativemem=512k');
+    });
+
+    it('emits a bare nativemem, recording every malloc, when the interval is cleared', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.nativeMem = true;
+      config.value.nativeMemValue = null;
+
+      expect(partsOf(generateFromBuilder())).toContain('nativemem');
     });
 
     it('emits nativemem followed by nofree when free tracking is omitted', () => {
@@ -223,7 +313,9 @@ describe('useProfilerConfig', () => {
       optionStates.value.wall = true;
       config.value.wallValue = 50;
       optionStates.value.methodTracing = true;
-      config.value.methodPatterns = ['java.net.Socket.*'];
+      config.value.methodTraces = [
+        { pattern: 'java.net.Socket.*', latencyValue: 2, latencyUnit: 'ms' }
+      ];
       optionStates.value.nativeMem = true;
       config.value.nativeMemValue = 4;
       optionStates.value.jfrsync = true;

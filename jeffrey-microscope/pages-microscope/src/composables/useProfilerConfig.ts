@@ -1,9 +1,49 @@
 import { ref, watch, computed } from 'vue';
-import type { ProfilerConfig, OptionStates, ConfigToken } from '@/types/profiler';
-import { DEFAULT_AGENT_PATH, DEFAULT_OUTPUT_FILE, PROFILER_CONSTANTS } from '@/types/profiler';
+import type {
+  ProfilerConfig,
+  OptionStates,
+  ConfigToken,
+  MethodTraceTarget
+} from '@/types/profiler';
+import {
+  DEFAULT_AGENT_PATH,
+  DEFAULT_OUTPUT_FILE,
+  DEFAULT_TRACE_LATENCY,
+  PROFILER_CONSTANTS
+} from '@/types/profiler';
+
+/**
+ * The `trace=` option for one target. The latency is appended only when it is positive:
+ * async-profiler treats a missing latency as 0, i.e. every call is recorded.
+ */
+export function traceOption(target: MethodTraceTarget): string {
+  const pattern = target.pattern.trim();
+  if (target.latencyValue && target.latencyValue > 0) {
+    return `trace=${pattern}:${target.latencyValue}${target.latencyUnit}`;
+  }
+  return `trace=${pattern}`;
+}
+
+/**
+ * The `lock=` option. It is always written with a value: a bare `lock` means async-profiler's
+ * 10 µs default, so an empty field is written as `lock=0` -- every contention -- which is what
+ * the builder shows for it.
+ */
+export function lockOption(value: number | null, unit: string): string {
+  if (value && value > 0) {
+    return `lock=${value}${unit}`;
+  }
+  return 'lock=0';
+}
+
+function hasPattern(target: MethodTraceTarget): boolean {
+  return target.pattern.trim().length > 0;
+}
 
 export function useProfilerConfig() {
-  const config = ref<ProfilerConfig>({ ...PROFILER_CONSTANTS.defaultConfig });
+  // The spread is shallow: the traced-method list gets its own array, or every builder would
+  // push into the one held by the shared defaults.
+  const config = ref<ProfilerConfig>({ ...PROFILER_CONSTANTS.defaultConfig, methodTraces: [] });
 
   const optionStates = ref<OptionStates>({
     event: false,
@@ -145,19 +185,11 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.lock) {
-      if (config.value.lockThresholdValue && config.value.lockThresholdValue > 0) {
-        tokens.push({
-          key: 'lock',
-          label: 'Lock',
-          value: `lock=${config.value.lockThresholdValue}${config.value.lockThresholdUnit}`
-        });
-      } else {
-        tokens.push({
-          key: 'lock',
-          label: 'Lock',
-          value: 'lock'
-        });
-      }
+      tokens.push({
+        key: 'lock',
+        label: 'Lock',
+        value: lockOption(config.value.lockThresholdValue, config.value.lockThresholdUnit)
+      });
     }
 
     if (optionStates.value.event) {
@@ -203,12 +235,12 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.methodTracing) {
-      config.value.methodPatterns.forEach((pattern, index) => {
-        if (pattern && pattern.trim()) {
+      config.value.methodTraces.forEach((target, index) => {
+        if (hasPattern(target)) {
           tokens.push({
             key: `methodTracing${index}`,
             label: 'Method Tracing',
-            value: `trace=${pattern.trim()}`
+            value: traceOption(target)
           });
         }
       });
@@ -314,11 +346,7 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.lock) {
-      if (config.value.lockThresholdValue && config.value.lockThresholdValue > 0) {
-        parts.push(`lock=${config.value.lockThresholdValue}${config.value.lockThresholdUnit}`);
-      } else {
-        parts.push('lock');
-      }
+      parts.push(lockOption(config.value.lockThresholdValue, config.value.lockThresholdUnit));
     }
 
     if (optionStates.value.event) {
@@ -337,10 +365,8 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.methodTracing) {
-      config.value.methodPatterns.forEach(pattern => {
-        if (pattern && pattern.trim()) {
-          parts.push(`trace=${pattern.trim()}`);
-        }
+      config.value.methodTraces.filter(hasPattern).forEach(target => {
+        parts.push(traceOption(target));
       });
     }
 
@@ -399,15 +425,20 @@ export function useProfilerConfig() {
     return parts.join(',');
   };
 
-  const addMethodPattern = (pattern: string) => {
+  /** Adds a method at the default latency (every call); its row is where a threshold is set. */
+  const addMethodTrace = (pattern: string) => {
     if (pattern && pattern.trim()) {
-      config.value.methodPatterns.push(pattern.trim());
+      config.value.methodTraces.push({
+        pattern: pattern.trim(),
+        latencyValue: DEFAULT_TRACE_LATENCY.value,
+        latencyUnit: DEFAULT_TRACE_LATENCY.unit
+      });
     }
   };
 
-  const removeMethodPattern = (index: number) => {
-    if (index >= 0 && index < config.value.methodPatterns.length) {
-      config.value.methodPatterns.splice(index, 1);
+  const removeMethodTrace = (index: number) => {
+    if (index >= 0 && index < config.value.methodTraces.length) {
+      config.value.methodTraces.splice(index, 1);
     }
   };
 
@@ -416,8 +447,8 @@ export function useProfilerConfig() {
     optionStates,
     builderTokens,
     generateFromBuilder,
-    addMethodPattern,
-    removeMethodPattern,
+    addMethodTrace,
+    removeMethodTrace,
     constants: PROFILER_CONSTANTS
   };
 }
