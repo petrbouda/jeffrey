@@ -10,10 +10,9 @@ export interface ProfilerConfig {
   allocThresholdEnabled: boolean;
   allocValue: number | null;
   allocUnit: string;
-  lockThresholdEnabled: boolean;
   lockThresholdValue: number | null;
   lockThresholdUnit: string;
-  methodPatterns: string[];
+  methodTraces: MethodTraceTarget[];
   nativeMemValue: number | null;
   nativeMemUnit: string;
   nativeMemOmitFree: boolean;
@@ -25,6 +24,18 @@ export interface ProfilerConfig {
   jfrsyncFile: string;
   jfcMode: string;
   file: string;
+}
+
+/**
+ * One `trace=` target. Without a latency every call is recorded; with one, async-profiler keeps
+ * only the calls that took at least that long (`trace=Class.method:5ms`).
+ */
+export interface MethodTraceTarget {
+  /** Identifies the row across edits and removals; the command never carries it. */
+  id: number;
+  pattern: string;
+  latencyValue: number | null;
+  latencyUnit: string;
 }
 
 export interface OptionStates {
@@ -60,12 +71,29 @@ export const DEFAULT_AGENT_PATH = '/path/to/libasyncProfiler.so';
 /** Where a copied command writes its recordings when the output field is left blank. */
 export const DEFAULT_OUTPUT_FILE = '/tmp/profile-%t.jfr';
 
+/**
+ * The builder starts lock profiling at 10 µs, what a bare `lock` and the `all` preset use, written
+ * out as `lock=10us` so the field shows it. Recording every contention (`lock=0`) is as costly as
+ * recording every malloc, so it is a deliberate choice rather than the default.
+ */
+export const DEFAULT_LOCK_THRESHOLD = { value: 10, unit: 'us' } as const;
+
+/** What `all` uses for native memory. A bare `nativemem` would record every malloc. */
+export const DEFAULT_NATIVE_MEM_INTERVAL = { value: 512, unit: 'kb' } as const;
+
+/** A newly traced method records every call (`trace=M`) until a threshold is set on its row. */
+export const DEFAULT_TRACE_LATENCY = { value: 0, unit: 'ms' } as const;
+
 export const PROFILER_CONSTANTS = {
-  selectableEvents: ['ctimer', 'cpu'] as const,
-  allocUnits: ['kb', 'mb'] as const,
-  lockUnits: ['us', 'ms', 's', 'm', 'h', 'd'] as const,
-  intervalUnits: ['us', 'ms'] as const,
-  defaultConfig: {
+  selectableEvents: ['ctimer', 'cpu'] as const
+} as const;
+
+/**
+ * A fresh configuration for one builder. It is a function, not a shared object: the traced-method
+ * list is mutable, and a spread of a shared default would hand every builder the same array.
+ */
+export function defaultProfilerConfig(): ProfilerConfig {
+  return {
     agentPathCustom: '',
     event: 'ctimer',
     wallValue: null,
@@ -76,13 +104,12 @@ export const PROFILER_CONSTANTS = {
     intervalUnit: 'ms',
     allocThresholdEnabled: false,
     allocValue: null,
-    allocUnit: 'MB',
-    lockThresholdEnabled: false,
-    lockThresholdValue: null,
-    lockThresholdUnit: 'ms',
-    methodPatterns: [],
-    nativeMemValue: null,
-    nativeMemUnit: 'mb',
+    allocUnit: 'mb',
+    lockThresholdValue: DEFAULT_LOCK_THRESHOLD.value,
+    lockThresholdUnit: DEFAULT_LOCK_THRESHOLD.unit,
+    methodTraces: [],
+    nativeMemValue: DEFAULT_NATIVE_MEM_INTERVAL.value,
+    nativeMemUnit: DEFAULT_NATIVE_MEM_INTERVAL.unit,
     nativeMemOmitFree: false,
     chunksizeValue: 5,
     chunksizeUnit: 'm',
@@ -92,5 +119,5 @@ export const PROFILER_CONSTANTS = {
     jfrsyncFile: '',
     jfcMode: 'default',
     file: DEFAULT_OUTPUT_FILE
-  } as ProfilerConfig
-} as const;
+  };
+}

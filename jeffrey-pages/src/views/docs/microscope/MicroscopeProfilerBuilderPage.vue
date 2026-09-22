@@ -128,7 +128,7 @@ onMounted(() => {
           <div class="feature-icon"><i class="bi bi-lock"></i></div>
           <div class="feature-content">
             <h4>Lock Profiling</h4>
-            <p>Monitor contended locks and synchronization events to debug threading and concurrency issues</p>
+            <p>Monitor contended locks and synchronization events to debug threading and concurrency issues. The builder starts at <code>lock=10us</code>, async-profiler's own default, so only contentions that waited at least 10 µs are recorded; 0 records every contention, which can flood the recording on a busy service</p>
           </div>
         </div>
         <div class="feature-card">
@@ -142,14 +142,14 @@ onMounted(() => {
           <div class="feature-icon"><i class="bi bi-signpost-split"></i></div>
           <div class="feature-content">
             <h4>Method Tracing</h4>
-            <p>Trace specific method invocations for detailed timing analysis of critical code paths</p>
+            <p>Record calls to specific Java methods (<code>trace=Class.method</code>). A latency threshold keeps only the slow calls (<code>trace=Class.method:5ms</code>); without one, every call is recorded</p>
           </div>
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="bi bi-hdd-stack"></i></div>
           <div class="feature-content">
             <h4>Native Memory Profiling</h4>
-            <p>Track native (off-heap) memory allocations to debug memory usage outside the Java heap</p>
+            <p>Track native (off-heap) memory allocations to debug memory usage outside the Java heap. The builder samples every 512 KiB (<code>nativemem=512k</code>); clearing the interval records every malloc, the most expensive setting</p>
           </div>
         </div>
       </div>

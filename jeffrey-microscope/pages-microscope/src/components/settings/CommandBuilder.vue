@@ -238,8 +238,13 @@
                           v-model="config.intervalUnit"
                           class="form-select select-with-indicator"
                         >
-                          <option value="us">Micros</option>
-                          <option value="ms">Millis</option>
+                          <option
+                            v-for="option in SAMPLING_INTERVAL_UNITS"
+                            :key="option.unit"
+                            :value="option.unit"
+                          >
+                            {{ option.label }}
+                          </option>
                         </select>
                       </div>
                       <div class="form-help">
@@ -268,8 +273,13 @@
                         placeholder="2"
                       />
                       <select v-model="config.allocUnit" class="form-select select-with-indicator">
-                        <option value="mb">MB</option>
-                        <option value="kb">kB</option>
+                        <option
+                          v-for="option in BYTE_INTERVAL_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
@@ -289,26 +299,38 @@
                   @toggle="optionStates.lock = $event"
                 >
                   <div class="interval-block">
-                    <label class="interval-label">Sampling Threshold</label>
+                    <div class="threshold-label-row">
+                      <label class="interval-label" for="lockThresholdValue">Wait Threshold</label>
+                      <ThresholdBadge
+                        :state="lockThreshold(config.lockThresholdValue, config.lockThresholdUnit)"
+                      />
+                    </div>
                     <div class="input-group">
                       <input
+                        id="lockThresholdValue"
                         v-model.number="config.lockThresholdValue"
                         type="number"
                         class="form-control"
-                        placeholder="0"
+                        min="0"
+                        placeholder="every contention"
                       />
                       <select
                         v-model="config.lockThresholdUnit"
                         class="form-select select-with-indicator"
                       >
-                        <option value="us">Micros</option>
-                        <option value="ms">Millis</option>
-                        <option value="s">Seconds</option>
+                        <option
+                          v-for="option in DURATION_THRESHOLD_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
-                      Set a wait threshold, locks shorter than the threshold are ignored (captures
-                      all if empty).
+                      Only contentions that waited at least this long are recorded. Starts at 10 µs,
+                      async-profiler's own default. 0 or empty records every contention, which can
+                      flood the recording on a busy service.
                     </div>
                   </div>
                 </ConfigCard>
@@ -331,9 +353,13 @@
                         placeholder="10"
                       />
                       <select v-model="config.wallUnit" class="form-select select-with-indicator">
-                        <option value="us">Micros</option>
-                        <option value="ms">Millis</option>
-                        <option value="s">Seconds</option>
+                        <option
+                          v-for="option in DURATION_THRESHOLD_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
@@ -345,30 +371,57 @@
                 <!-- Method Tracing Card -->
                 <ConfigCard
                   title="Method Tracing"
-                  subtitle="Trace specific Java methods and JVM methods"
+                  subtitle="Record calls to specific Java methods, optionally only the slow ones"
                   icon="bi-search"
                   :is-enabled="optionStates.methodTracing"
                   @toggle="optionStates.methodTracing = $event"
                 >
                   <div class="interval-block">
-                    <!-- Existing Patterns List -->
+                    <!-- Traced methods, each with its own latency threshold -->
                     <div class="interval-block">
-                      <label class="interval-label">Active Method Patterns</label>
-                      <div v-if="config.methodPatterns.length > 0">
+                      <label class="interval-label">Traced Methods</label>
+                      <div v-if="config.methodTraces.length > 0">
                         <div
-                          v-for="(pattern, index) in config.methodPatterns"
-                          :key="index"
+                          v-for="(target, index) in config.methodTraces"
+                          :key="target.id"
                           class="method-pattern-item"
                         >
                           <div class="pattern-display">
-                            <div class="pattern-value">{{ pattern }}</div>
-                            <div class="pattern-preview">{{ `trace=${pattern}` }}</div>
+                            <div class="pattern-value">{{ target.pattern }}</div>
+                            <div class="pattern-meta">
+                              <ThresholdBadge :state="traceThreshold(target)" />
+                              <span class="pattern-preview">{{ traceOption(target) }}</span>
+                            </div>
+                          </div>
+                          <div class="trace-threshold">
+                            <span class="trace-threshold-sign">≥</span>
+                            <input
+                              v-model.number="target.latencyValue"
+                              type="number"
+                              class="form-control"
+                              min="0"
+                              placeholder="every call"
+                              :aria-label="`Latency threshold for ${target.pattern}`"
+                            />
+                            <select
+                              v-model="target.latencyUnit"
+                              class="form-select select-with-indicator"
+                              :aria-label="`Latency unit for ${target.pattern}`"
+                            >
+                              <option
+                                v-for="option in DURATION_THRESHOLD_UNITS"
+                                :key="option.unit"
+                                :value="option.unit"
+                              >
+                                {{ option.label }}
+                              </option>
+                            </select>
                           </div>
                           <button
                             type="button"
                             class="btn-remove-pattern"
-                            title="Remove Pattern"
-                            @click="removeMethodPattern(index)"
+                            title="Remove Method"
+                            @click="removeMethodTrace(index)"
                           >
                             <i class="bi bi-x-lg"></i>
                           </button>
@@ -376,20 +429,25 @@
                       </div>
                       <div v-else class="no-patterns-message">
                         <i class="bi bi-info-circle"></i>
-                        <span
-                          >No method patterns defined. Add patterns to trace specific methods.</span
-                        >
+                        <span>No methods traced yet. Add a method pattern below.</span>
+                      </div>
+                      <div class="form-help">
+                        Calls faster than the threshold are dropped. Clear it to record every call,
+                        which can flood the recording on a hot method.
                       </div>
                     </div>
 
-                    <!-- Add New Pattern -->
+                    <!-- Add New Method -->
                     <div class="interval-block">
-                      <label class="interval-label">Add Method Pattern</label>
+                      <label class="interval-label" for="newMethodPattern">Add Method</label>
                       <div class="input-group">
                         <input
+                          id="newMethodPattern"
                           v-model="newMethodPattern"
                           type="text"
                           class="form-control"
+                          placeholder="com.example.OrderService.place"
+                          :aria-invalid="newMethodError !== null"
                           @keyup.enter="addPattern"
                         />
                         <button
@@ -402,13 +460,18 @@
                           Add
                         </button>
                       </div>
-                      <div class="form-help">Java Methods: java.lang.Thread.*, *.&lt;init&gt;</div>
-                      <div class="form-help">All in Package: cafe.jeffrey.hub.core.grpc.*.*</div>
-                      <div class="form-help">
-                        Native Methods: Java_java_lang_Throwable_fillInStackTrace
+                      <div v-if="newMethodError !== null" class="field-error" role="alert">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span>{{ newMethodError }}</span>
                       </div>
                       <div class="form-help">
-                        JVM Methods: G1CollectedHeap::humongous_obj_allocate, JVM_StartThread
+                        New methods record every call; set a threshold on the row to keep only slow
+                        ones.
+                      </div>
+                      <div class="form-help">Methods: java.lang.Thread.*, *.&lt;init&gt;</div>
+                      <div class="form-help">All in a package: cafe.jeffrey.hub.core.grpc.*.*</div>
+                      <div class="form-help">
+                        One overload: java.lang.String.indexOf(Ljava/lang/String;)I
                       </div>
                     </div>
                   </div>
@@ -423,24 +486,37 @@
                   @toggle="optionStates.nativeMem = $event"
                 >
                   <div class="interval-block">
-                    <label class="interval-label">Sampling Threshold</label>
+                    <div class="threshold-label-row">
+                      <label class="interval-label" for="nativeMemValue">Sampling Interval</label>
+                      <ThresholdBadge
+                        :state="nativeMemThreshold(config.nativeMemValue, config.nativeMemUnit)"
+                      />
+                    </div>
                     <div class="input-group">
                       <input
+                        id="nativeMemValue"
                         v-model.number="config.nativeMemValue"
                         type="number"
                         class="form-control"
-                        placeholder="512"
+                        min="0"
+                        placeholder="every malloc"
                       />
                       <select
                         v-model="config.nativeMemUnit"
                         class="form-select select-with-indicator"
                       >
-                        <option value="mb">MB</option>
-                        <option value="kb">kB</option>
+                        <option
+                          v-for="option in BYTE_INTERVAL_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
-                      Minimum allocation size to profile. Use 0 for all allocations.
+                      One sample per this many bytes allocated. Clear the field to record every
+                      malloc and free, which is the most expensive thing async-profiler can do.
                     </div>
 
                     <div class="interval-block">
@@ -707,7 +783,19 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import ConfigCard from '@/components/settings/ConfigCard.vue';
+import ThresholdBadge from '@/components/settings/ThresholdBadge.vue';
+import {
+  lockThreshold,
+  nativeMemThreshold,
+  traceThreshold
+} from '@/components/settings/thresholdState';
 import { useProfilerConfig } from '@/composables/useProfilerConfig';
+import { traceOption } from '@/composables/profilerOptions';
+import {
+  BYTE_INTERVAL_UNITS,
+  DURATION_THRESHOLD_UNITS,
+  SAMPLING_INTERVAL_UNITS
+} from '@/composables/profilerUnits';
 import { DEFAULT_AGENT_PATH } from '@/types/profiler';
 import ToastService from '@shared/services/ToastService';
 
@@ -727,12 +815,19 @@ const {
   optionStates,
   builderTokens,
   generateFromBuilder,
-  addMethodPattern,
-  removeMethodPattern
+  addMethodTrace,
+  removeMethodTrace
 } = useProfilerConfig();
 
-// New pattern input
+// New method trace input; its latency threshold is tuned on the row once added
 const newMethodPattern = ref('');
+
+// Why the last pattern was refused; cleared as soon as the pattern is edited
+const newMethodError = ref<string | null>(null);
+
+watch(newMethodPattern, () => {
+  newMethodError.value = null;
+});
 
 // Generated configuration
 const generatedConfig = ref('');
@@ -751,11 +846,17 @@ const generateConfig = () => {
   generatedConfig.value = generateFromBuilder();
 };
 
-// Add new method pattern
+// Add new method pattern, or show why async-profiler would reject it
 const addPattern = () => {
-  if (newMethodPattern.value.trim()) {
-    addMethodPattern(newMethodPattern.value.trim());
+  const pattern = newMethodPattern.value.trim();
+  if (!pattern) {
+    return;
+  }
+  const result = addMethodTrace(pattern);
+  if (result.added) {
     newMethodPattern.value = '';
+  } else {
+    newMethodError.value = result.error;
   }
 };
 
@@ -1400,6 +1501,8 @@ generateConfig();
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 10px 14px;
   margin-bottom: 8px;
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.05), rgba(94, 100, 255, 0.02));
@@ -1410,14 +1513,19 @@ generateConfig();
 
 .method-pattern-item:hover {
   border-color: rgba(94, 100, 255, 0.2);
-  transform: translateY(-1px);
 }
 
+/*
+ * The pattern keeps a readable width: below it the row wraps and the threshold controls move to
+ * their own line, instead of the pattern shrinking to a few characters per line.
+ */
 .pattern-display {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
+  flex: 1 1 16rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pattern-value {
@@ -1449,6 +1557,46 @@ generateConfig();
 .btn-remove-pattern:hover {
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-danger-hover);
+}
+
+/* Threshold label + the badge stating what the threshold records */
+.threshold-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pattern-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trace-threshold {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.trace-threshold .form-control {
+  width: 5rem;
+}
+
+.trace-threshold .form-select {
+  width: 4.5rem;
+}
+
+.trace-threshold-sign {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Why the typed method pattern was refused, spaced like the help lines under it */
+.field-error {
+  margin-top: 6px;
 }
 
 .btn-add-pattern {

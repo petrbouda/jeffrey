@@ -1,9 +1,53 @@
 import { ref, watch, computed } from 'vue';
-import type { ProfilerConfig, OptionStates, ConfigToken } from '@/types/profiler';
-import { DEFAULT_AGENT_PATH, DEFAULT_OUTPUT_FILE, PROFILER_CONSTANTS } from '@/types/profiler';
+import type {
+  ProfilerConfig,
+  OptionStates,
+  ConfigToken,
+  MethodTraceTarget
+} from '@/types/profiler';
+import {
+  DEFAULT_AGENT_PATH,
+  DEFAULT_LOCK_THRESHOLD,
+  DEFAULT_OUTPUT_FILE,
+  DEFAULT_TRACE_LATENCY,
+  PROFILER_CONSTANTS,
+  defaultProfilerConfig
+} from '@/types/profiler';
+import {
+  allocOption,
+  lockOption,
+  nativeMemOption,
+  normalizeThreshold,
+  traceOption,
+  tracePatternError
+} from '@/composables/profilerOptions';
+import {
+  BYTE_INTERVAL_UNITS,
+  DURATION_THRESHOLD_UNITS,
+  SAMPLING_INTERVAL_UNITS,
+  isOffered
+} from '@/composables/profilerUnits';
+
+/** The outcome of adding a traced method: added, or refused with the reason to show the user. */
+export type AddMethodTraceResult = { added: true } | { added: false; error: string };
+
+/**
+ * Ids for traced-method rows, unique for the page's lifetime. The list is keyed by them, so removing
+ * a row cannot hand its neighbour's half-typed threshold to the next row the way an index key does.
+ */
+let lastMethodTraceId = 0;
+
+function nextMethodTraceId(): number {
+  lastMethodTraceId += 1;
+  return lastMethodTraceId;
+}
+
+function hasPattern(target: MethodTraceTarget): boolean {
+  return target.pattern.trim().length > 0;
+}
 
 export function useProfilerConfig() {
-  const config = ref<ProfilerConfig>({ ...PROFILER_CONSTANTS.defaultConfig });
+  const config = ref<ProfilerConfig>(defaultProfilerConfig());
 
   const optionStates = ref<OptionStates>({
     event: false,
@@ -37,7 +81,7 @@ export function useProfilerConfig() {
     () => optionStates.value.alloc,
     enabled => {
       if (enabled) {
-        if (!PROFILER_CONSTANTS.allocUnits.includes(config.value.allocUnit as any)) {
+        if (!isOffered(BYTE_INTERVAL_UNITS, config.value.allocUnit)) {
           config.value.allocUnit = 'mb';
         }
         if (!config.value.allocThresholdEnabled) {
@@ -55,8 +99,8 @@ export function useProfilerConfig() {
     () => optionStates.value.lock,
     enabled => {
       if (enabled) {
-        if (!PROFILER_CONSTANTS.lockUnits.includes(config.value.lockThresholdUnit as any)) {
-          config.value.lockThresholdUnit = 'ms';
+        if (!isOffered(DURATION_THRESHOLD_UNITS, config.value.lockThresholdUnit)) {
+          config.value.lockThresholdUnit = DEFAULT_LOCK_THRESHOLD.unit;
         }
       }
     }
@@ -66,7 +110,7 @@ export function useProfilerConfig() {
   watch(
     () => config.value.allocUnit,
     unit => {
-      if (!PROFILER_CONSTANTS.allocUnits.includes(unit as any)) {
+      if (!isOffered(BYTE_INTERVAL_UNITS, unit)) {
         config.value.allocUnit = 'kb';
       }
     }
@@ -97,10 +141,45 @@ export function useProfilerConfig() {
   watch(
     () => config.value.intervalUnit,
     unit => {
-      if (!PROFILER_CONSTANTS.intervalUnits.includes(unit as any)) {
+      if (!isOffered(SAMPLING_INTERVAL_UNITS, unit)) {
         config.value.intervalUnit = 'ms';
       }
     }
+  );
+
+  // Threshold fields are number inputs, and a cleared one stores '' rather than null. Keep the
+  // stored value a number or null, so the type on ProfilerConfig is what the fields really hold.
+  watch(
+    () => config.value.lockThresholdValue,
+    value => {
+      const normalized = normalizeThreshold(value);
+      if (normalized !== value) {
+        config.value.lockThresholdValue = normalized;
+      }
+    }
+  );
+
+  watch(
+    () => config.value.nativeMemValue,
+    value => {
+      const normalized = normalizeThreshold(value);
+      if (normalized !== value) {
+        config.value.nativeMemValue = normalized;
+      }
+    }
+  );
+
+  watch(
+    () => config.value.methodTraces,
+    traces => {
+      traces.forEach(target => {
+        const normalized = normalizeThreshold(target.latencyValue);
+        if (normalized !== target.latencyValue) {
+          target.latencyValue = normalized;
+        }
+      });
+    },
+    { deep: true }
   );
 
   /**
@@ -129,35 +208,19 @@ export function useProfilerConfig() {
     ];
 
     if (optionStates.value.alloc) {
-      if (config.value.allocValue && config.value.allocValue > 0) {
-        tokens.push({
-          key: 'alloc',
-          label: 'Alloc',
-          value: `alloc=${config.value.allocValue}${config.value.allocUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        });
-      } else {
-        tokens.push({
-          key: 'alloc',
-          label: 'Alloc',
-          value: 'alloc'
-        });
-      }
+      tokens.push({
+        key: 'alloc',
+        label: 'Alloc',
+        value: allocOption(config.value.allocValue, config.value.allocUnit)
+      });
     }
 
     if (optionStates.value.lock) {
-      if (config.value.lockThresholdValue && config.value.lockThresholdValue > 0) {
-        tokens.push({
-          key: 'lock',
-          label: 'Lock',
-          value: `lock=${config.value.lockThresholdValue}${config.value.lockThresholdUnit}`
-        });
-      } else {
-        tokens.push({
-          key: 'lock',
-          label: 'Lock',
-          value: 'lock'
-        });
-      }
+      tokens.push({
+        key: 'lock',
+        label: 'Lock',
+        value: lockOption(config.value.lockThresholdValue, config.value.lockThresholdUnit)
+      });
     }
 
     if (optionStates.value.event) {
@@ -203,31 +266,21 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.methodTracing) {
-      config.value.methodPatterns.forEach((pattern, index) => {
-        if (pattern && pattern.trim()) {
-          tokens.push({
-            key: `methodTracing${index}`,
-            label: 'Method Tracing',
-            value: `trace=${pattern.trim()}`
-          });
-        }
+      config.value.methodTraces.filter(hasPattern).forEach(target => {
+        tokens.push({
+          key: `methodTracing${target.id}`,
+          label: 'Method Tracing',
+          value: traceOption(target)
+        });
       });
     }
 
     if (optionStates.value.nativeMem) {
-      if (config.value.nativeMemValue && config.value.nativeMemValue > 0) {
-        tokens.push({
-          key: 'nativeMem',
-          label: 'Native Memory',
-          value: `nativemem=${config.value.nativeMemValue}${config.value.nativeMemUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        });
-      } else {
-        tokens.push({
-          key: 'nativeMem',
-          label: 'Native Memory',
-          value: 'nativemem'
-        });
-      }
+      tokens.push({
+        key: 'nativeMem',
+        label: 'Native Memory',
+        value: nativeMemOption(config.value.nativeMemValue, config.value.nativeMemUnit)
+      });
 
       if (config.value.nativeMemOmitFree) {
         tokens.push({
@@ -304,21 +357,11 @@ export function useProfilerConfig() {
     const parts = [`-agentpath:${agentPath}=start`];
 
     if (optionStates.value.alloc) {
-      if (config.value.allocValue && config.value.allocValue > 0) {
-        parts.push(
-          `alloc=${config.value.allocValue}${config.value.allocUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        );
-      } else {
-        parts.push('alloc');
-      }
+      parts.push(allocOption(config.value.allocValue, config.value.allocUnit));
     }
 
     if (optionStates.value.lock) {
-      if (config.value.lockThresholdValue && config.value.lockThresholdValue > 0) {
-        parts.push(`lock=${config.value.lockThresholdValue}${config.value.lockThresholdUnit}`);
-      } else {
-        parts.push('lock');
-      }
+      parts.push(lockOption(config.value.lockThresholdValue, config.value.lockThresholdUnit));
     }
 
     if (optionStates.value.event) {
@@ -337,21 +380,13 @@ export function useProfilerConfig() {
     }
 
     if (optionStates.value.methodTracing) {
-      config.value.methodPatterns.forEach(pattern => {
-        if (pattern && pattern.trim()) {
-          parts.push(`trace=${pattern.trim()}`);
-        }
+      config.value.methodTraces.filter(hasPattern).forEach(target => {
+        parts.push(traceOption(target));
       });
     }
 
     if (optionStates.value.nativeMem) {
-      if (config.value.nativeMemValue && config.value.nativeMemValue > 0) {
-        parts.push(
-          `nativemem=${config.value.nativeMemValue}${config.value.nativeMemUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        );
-      } else {
-        parts.push('nativemem');
-      }
+      parts.push(nativeMemOption(config.value.nativeMemValue, config.value.nativeMemUnit));
 
       if (config.value.nativeMemOmitFree) {
         parts.push('nofree');
@@ -399,15 +434,27 @@ export function useProfilerConfig() {
     return parts.join(',');
   };
 
-  const addMethodPattern = (pattern: string) => {
-    if (pattern && pattern.trim()) {
-      config.value.methodPatterns.push(pattern.trim());
+  /**
+   * Adds a method at the default latency (every call); its row is where a threshold is set.
+   * A pattern async-profiler would reject is refused, since one bad target fails the whole start.
+   */
+  const addMethodTrace = (pattern: string): AddMethodTraceResult => {
+    const error = tracePatternError(pattern);
+    if (error !== null) {
+      return { added: false, error };
     }
+    config.value.methodTraces.push({
+      id: nextMethodTraceId(),
+      pattern: pattern.trim(),
+      latencyValue: DEFAULT_TRACE_LATENCY.value,
+      latencyUnit: DEFAULT_TRACE_LATENCY.unit
+    });
+    return { added: true };
   };
 
-  const removeMethodPattern = (index: number) => {
-    if (index >= 0 && index < config.value.methodPatterns.length) {
-      config.value.methodPatterns.splice(index, 1);
+  const removeMethodTrace = (index: number) => {
+    if (index >= 0 && index < config.value.methodTraces.length) {
+      config.value.methodTraces.splice(index, 1);
     }
   };
 
@@ -416,8 +463,7 @@ export function useProfilerConfig() {
     optionStates,
     builderTokens,
     generateFromBuilder,
-    addMethodPattern,
-    removeMethodPattern,
-    constants: PROFILER_CONSTANTS
+    addMethodTrace,
+    removeMethodTrace
   };
 }
