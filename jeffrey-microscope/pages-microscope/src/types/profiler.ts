@@ -72,10 +72,11 @@ export const DEFAULT_AGENT_PATH = '/path/to/libasyncProfiler.so';
 export const DEFAULT_OUTPUT_FILE = '/tmp/profile-%t.jfr';
 
 /**
- * The builder starts lock profiling at 0, every contention. It is always written out as `lock=0`:
- * a bare `lock` would mean async-profiler's own 10 µs default instead.
+ * The builder starts lock profiling at 10 µs, what a bare `lock` and the `all` preset use, written
+ * out as `lock=10us` so the field shows it. Recording every contention (`lock=0`) is as costly as
+ * recording every malloc, so it is a deliberate choice rather than the default.
  */
-export const DEFAULT_LOCK_THRESHOLD = { value: 0, unit: 'us' } as const;
+export const DEFAULT_LOCK_THRESHOLD = { value: 10, unit: 'us' } as const;
 
 /** What `all` uses for native memory. A bare `nativemem` would record every malloc. */
 export const DEFAULT_NATIVE_MEM_INTERVAL = { value: 512, unit: 'kb' } as const;
@@ -84,11 +85,7 @@ export const DEFAULT_NATIVE_MEM_INTERVAL = { value: 512, unit: 'kb' } as const;
 export const DEFAULT_TRACE_LATENCY = { value: 0, unit: 'ms' } as const;
 
 export const PROFILER_CONSTANTS = {
-  selectableEvents: ['ctimer', 'cpu'] as const,
-  allocUnits: ['kb', 'mb'] as const,
-  // Lock thresholds are parsed with async-profiler's NANOS table, where 'm' means milli.
-  lockUnits: ['us', 'ms', 's'] as const,
-  intervalUnits: ['us', 'ms'] as const
+  selectableEvents: ['ctimer', 'cpu'] as const
 } as const;
 
 /**
@@ -107,7 +104,7 @@ export function defaultProfilerConfig(): ProfilerConfig {
     intervalUnit: 'ms',
     allocThresholdEnabled: false,
     allocValue: null,
-    allocUnit: 'MB',
+    allocUnit: 'mb',
     lockThresholdValue: DEFAULT_LOCK_THRESHOLD.value,
     lockThresholdUnit: DEFAULT_LOCK_THRESHOLD.unit,
     methodTraces: [],

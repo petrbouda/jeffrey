@@ -17,40 +17,18 @@
  */
 
 import type { MethodTraceTarget } from '@/types/profiler';
+import { BYTE_UNITS, DURATION_UNITS, findUnit } from '@/composables/profilerUnits';
+import type { OptionUnit } from '@/composables/profilerUnits';
 
 /**
- * The threshold options of an async-profiler command: `trace=M:T`, `lock=T` and `nativemem=N`.
+ * The threshold options of an async-profiler command: `trace=M:T`, `lock=T`, `alloc=N` and
+ * `nativemem=N`.
  *
  * async-profiler reads every amount with `strtol` followed by a one-letter unit, so a fraction such
  * as `0.5ms` is not a smaller threshold but an invalid one: the profiler start fails for `trace`,
  * and `lock` silently turns lock profiling off. An amount is therefore always written as an
  * integer, converted to the largest unit that holds it exactly (`0.5ms` becomes `500us`).
  */
-
-/** A unit of an amount: what the builder's select stores, what the command carries, its scale. */
-interface OptionUnit {
-  /** The value the unit select stores. */
-  readonly unit: string;
-  /** The suffix written into the command; async-profiler reads its first character. */
-  readonly suffix: string;
-  /** How many base units (nanoseconds or bytes) one of these holds. */
-  readonly scale: number;
-}
-
-/** async-profiler's NANOS table, largest first. The last row is the base unit and always fits. */
-const DURATION_UNITS: readonly OptionUnit[] = [
-  { unit: 's', suffix: 's', scale: 1_000_000_000 },
-  { unit: 'ms', suffix: 'ms', scale: 1_000_000 },
-  { unit: 'us', suffix: 'us', scale: 1_000 },
-  { unit: 'ns', suffix: 'ns', scale: 1 }
-];
-
-/** async-profiler's BYTES table, largest first. A bare number means bytes. */
-const BYTE_UNITS: readonly OptionUnit[] = [
-  { unit: 'mb', suffix: 'm', scale: 1024 * 1024 },
-  { unit: 'kb', suffix: 'k', scale: 1024 },
-  { unit: 'b', suffix: '', scale: 1 }
-];
 
 /** `lock=0` records every contention; a bare `lock` would mean async-profiler's 10 µs default. */
 const EVERY_CONTENTION = '0';
@@ -83,7 +61,7 @@ function baseAmount(
   units: readonly OptionUnit[]
 ): number | null {
   const normalized = normalizeThreshold(value);
-  const scale = units.find(candidate => candidate.unit === unit.toLowerCase())?.scale;
+  const scale = findUnit(units, unit)?.scale;
   if (normalized === null || scale === undefined) {
     return null;
   }
@@ -126,6 +104,12 @@ export function traceOption(target: MethodTraceTarget): string {
  */
 export function lockOption(value: number | null, unit: string): string {
   return `lock=${durationAmount(value, unit) ?? EVERY_CONTENTION}`;
+}
+
+/** The `alloc` option: one sample per N bytes allocated, or a bare `alloc` for the default. */
+export function allocOption(value: number | null, unit: string): string {
+  const interval = byteAmount(value, unit);
+  return interval === null ? 'alloc' : `alloc=${interval}`;
 }
 
 /** The `nativemem` option: one sample per N bytes, or a bare `nativemem` recording every malloc. */

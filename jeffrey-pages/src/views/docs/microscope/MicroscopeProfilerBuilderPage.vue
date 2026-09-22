@@ -128,7 +128,7 @@ onMounted(() => {
           <div class="feature-icon"><i class="bi bi-lock"></i></div>
           <div class="feature-content">
             <h4>Lock Profiling</h4>
-            <p>Monitor contended locks and synchronization events to debug threading and concurrency issues. The builder starts at <code>lock=0</code>, every contention; a wait threshold keeps only the longer ones</p>
+            <p>Monitor contended locks and synchronization events to debug threading and concurrency issues. The builder starts at <code>lock=10us</code>, async-profiler's own default, so only contentions that waited at least 10 µs are recorded; 0 records every contention, which can flood the recording on a busy service</p>
           </div>
         </div>
         <div class="feature-card">

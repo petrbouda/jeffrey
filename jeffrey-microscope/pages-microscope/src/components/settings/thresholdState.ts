@@ -18,6 +18,7 @@
 
 import type { MethodTraceTarget } from '@/types/profiler';
 import { byteAmount, durationAmount } from '@/composables/profilerOptions';
+import { unitLabel } from '@/composables/profilerUnits';
 
 /**
  * What a threshold field makes async-profiler do, in words. `recordsEverything` marks the
@@ -27,18 +28,6 @@ import { byteAmount, durationAmount } from '@/composables/profilerOptions';
 export interface ThresholdState {
   label: string;
   recordsEverything: boolean;
-}
-
-const UNIT_LABELS: Record<string, string> = {
-  us: 'µs',
-  ms: 'ms',
-  s: 's',
-  kb: 'KiB',
-  mb: 'MiB'
-};
-
-function unitLabel(unit: string): string {
-  return UNIT_LABELS[unit.toLowerCase()] ?? unit;
 }
 
 /**

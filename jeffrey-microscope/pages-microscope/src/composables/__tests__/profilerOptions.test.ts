@@ -18,6 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  allocOption,
   byteAmount,
   durationAmount,
   lockOption,
@@ -111,6 +112,14 @@ describe('profilerOptions', () => {
     it('writes lock=0 for no threshold, since a bare lock would mean 10 µs', () => {
       expect(lockOption(null, 'us')).toBe('lock=0');
       expect(lockOption(0, 'us')).toBe('lock=0');
+    });
+  });
+
+  describe('allocOption', () => {
+    it('writes the sampling interval, or a bare alloc when there is none', () => {
+      expect(allocOption(512, 'kb')).toBe('alloc=512k');
+      expect(allocOption(2, 'MB')).toBe('alloc=2m');
+      expect(allocOption(null, 'mb')).toBe('alloc');
     });
   });
 

@@ -88,6 +88,16 @@ describe('useProfilerConfig', () => {
       expect(partsOf(generateFromBuilder())).toContain('alloc=512k');
     });
 
+    it('writes a fractional alloc interval as an exact integer in a smaller unit', () => {
+      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      optionStates.value.alloc = true;
+      config.value.allocThresholdEnabled = true;
+      config.value.allocValue = 1.5;
+      config.value.allocUnit = 'mb';
+
+      expect(partsOf(generateFromBuilder())).toContain('alloc=1536k');
+    });
+
     it('emits a bare alloc when no threshold is given', () => {
       const { optionStates, config, generateFromBuilder } = useProfilerConfig();
       optionStates.value.alloc = true;
@@ -105,13 +115,14 @@ describe('useProfilerConfig', () => {
       expect(partsOf(generateFromBuilder())).toContain('lock=10ms');
     });
 
-    it('records every contention by default, written as lock=0 rather than a bare lock', () => {
+    it("starts at async-profiler's own 10 µs, written out rather than left to a bare lock", () => {
       const { optionStates, generateFromBuilder } = useProfilerConfig();
       optionStates.value.lock = true;
 
       const parts = partsOf(generateFromBuilder());
-      expect(parts).toContain('lock=0');
+      expect(parts).toContain('lock=10us');
       expect(parts).not.toContain('lock');
+      expect(parts).not.toContain('lock=0');
     });
 
     it('emits lock=0 when the threshold is cleared, since a bare lock would still mean 10 µs', () => {

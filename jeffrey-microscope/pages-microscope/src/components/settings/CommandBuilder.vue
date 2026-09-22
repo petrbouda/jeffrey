@@ -238,8 +238,13 @@
                           v-model="config.intervalUnit"
                           class="form-select select-with-indicator"
                         >
-                          <option value="us">Micros</option>
-                          <option value="ms">Millis</option>
+                          <option
+                            v-for="option in SAMPLING_INTERVAL_UNITS"
+                            :key="option.unit"
+                            :value="option.unit"
+                          >
+                            {{ option.label }}
+                          </option>
                         </select>
                       </div>
                       <div class="form-help">
@@ -268,8 +273,13 @@
                         placeholder="2"
                       />
                       <select v-model="config.allocUnit" class="form-select select-with-indicator">
-                        <option value="mb">MB</option>
-                        <option value="kb">kB</option>
+                        <option
+                          v-for="option in BYTE_INTERVAL_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
@@ -308,14 +318,19 @@
                         v-model="config.lockThresholdUnit"
                         class="form-select select-with-indicator"
                       >
-                        <option value="us">Micros</option>
-                        <option value="ms">Millis</option>
-                        <option value="s">Seconds</option>
+                        <option
+                          v-for="option in DURATION_THRESHOLD_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
-                      Only contentions that waited at least this long are recorded. 0 or empty
-                      records every contention.
+                      Only contentions that waited at least this long are recorded. Starts at 10 µs,
+                      async-profiler's own default. 0 or empty records every contention, which can
+                      flood the recording on a busy service.
                     </div>
                   </div>
                 </ConfigCard>
@@ -338,9 +353,13 @@
                         placeholder="10"
                       />
                       <select v-model="config.wallUnit" class="form-select select-with-indicator">
-                        <option value="us">Micros</option>
-                        <option value="ms">Millis</option>
-                        <option value="s">Seconds</option>
+                        <option
+                          v-for="option in DURATION_THRESHOLD_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
@@ -381,7 +400,7 @@
                               type="number"
                               class="form-control"
                               min="0"
-                              placeholder="all"
+                              placeholder="every call"
                               :aria-label="`Latency threshold for ${target.pattern}`"
                             />
                             <select
@@ -389,9 +408,13 @@
                               class="form-select select-with-indicator"
                               :aria-label="`Latency unit for ${target.pattern}`"
                             >
-                              <option value="us">µs</option>
-                              <option value="ms">ms</option>
-                              <option value="s">s</option>
+                              <option
+                                v-for="option in DURATION_THRESHOLD_UNITS"
+                                :key="option.unit"
+                                :value="option.unit"
+                              >
+                                {{ option.label }}
+                              </option>
                             </select>
                           </div>
                           <button
@@ -482,8 +505,13 @@
                         v-model="config.nativeMemUnit"
                         class="form-select select-with-indicator"
                       >
-                        <option value="kb">KiB</option>
-                        <option value="mb">MiB</option>
+                        <option
+                          v-for="option in BYTE_INTERVAL_UNITS"
+                          :key="option.unit"
+                          :value="option.unit"
+                        >
+                          {{ option.label }}
+                        </option>
                       </select>
                     </div>
                     <div class="form-help">
@@ -763,6 +791,11 @@ import {
 } from '@/components/settings/thresholdState';
 import { useProfilerConfig } from '@/composables/useProfilerConfig';
 import { traceOption } from '@/composables/profilerOptions';
+import {
+  BYTE_INTERVAL_UNITS,
+  DURATION_THRESHOLD_UNITS,
+  SAMPLING_INTERVAL_UNITS
+} from '@/composables/profilerUnits';
 import { DEFAULT_AGENT_PATH } from '@/types/profiler';
 import ToastService from '@shared/services/ToastService';
 

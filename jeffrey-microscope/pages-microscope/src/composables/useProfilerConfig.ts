@@ -14,12 +14,19 @@ import {
   defaultProfilerConfig
 } from '@/types/profiler';
 import {
+  allocOption,
   lockOption,
   nativeMemOption,
   normalizeThreshold,
   traceOption,
   tracePatternError
 } from '@/composables/profilerOptions';
+import {
+  BYTE_INTERVAL_UNITS,
+  DURATION_THRESHOLD_UNITS,
+  SAMPLING_INTERVAL_UNITS,
+  isOffered
+} from '@/composables/profilerUnits';
 
 /** The outcome of adding a traced method: added, or refused with the reason to show the user. */
 export type AddMethodTraceResult = { added: true } | { added: false; error: string };
@@ -74,7 +81,7 @@ export function useProfilerConfig() {
     () => optionStates.value.alloc,
     enabled => {
       if (enabled) {
-        if (!PROFILER_CONSTANTS.allocUnits.includes(config.value.allocUnit as any)) {
+        if (!isOffered(BYTE_INTERVAL_UNITS, config.value.allocUnit)) {
           config.value.allocUnit = 'mb';
         }
         if (!config.value.allocThresholdEnabled) {
@@ -92,7 +99,7 @@ export function useProfilerConfig() {
     () => optionStates.value.lock,
     enabled => {
       if (enabled) {
-        if (!PROFILER_CONSTANTS.lockUnits.includes(config.value.lockThresholdUnit as any)) {
+        if (!isOffered(DURATION_THRESHOLD_UNITS, config.value.lockThresholdUnit)) {
           config.value.lockThresholdUnit = DEFAULT_LOCK_THRESHOLD.unit;
         }
       }
@@ -103,7 +110,7 @@ export function useProfilerConfig() {
   watch(
     () => config.value.allocUnit,
     unit => {
-      if (!PROFILER_CONSTANTS.allocUnits.includes(unit as any)) {
+      if (!isOffered(BYTE_INTERVAL_UNITS, unit)) {
         config.value.allocUnit = 'kb';
       }
     }
@@ -134,7 +141,7 @@ export function useProfilerConfig() {
   watch(
     () => config.value.intervalUnit,
     unit => {
-      if (!PROFILER_CONSTANTS.intervalUnits.includes(unit as any)) {
+      if (!isOffered(SAMPLING_INTERVAL_UNITS, unit)) {
         config.value.intervalUnit = 'ms';
       }
     }
@@ -201,19 +208,11 @@ export function useProfilerConfig() {
     ];
 
     if (optionStates.value.alloc) {
-      if (config.value.allocValue && config.value.allocValue > 0) {
-        tokens.push({
-          key: 'alloc',
-          label: 'Alloc',
-          value: `alloc=${config.value.allocValue}${config.value.allocUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        });
-      } else {
-        tokens.push({
-          key: 'alloc',
-          label: 'Alloc',
-          value: 'alloc'
-        });
-      }
+      tokens.push({
+        key: 'alloc',
+        label: 'Alloc',
+        value: allocOption(config.value.allocValue, config.value.allocUnit)
+      });
     }
 
     if (optionStates.value.lock) {
@@ -358,13 +357,7 @@ export function useProfilerConfig() {
     const parts = [`-agentpath:${agentPath}=start`];
 
     if (optionStates.value.alloc) {
-      if (config.value.allocValue && config.value.allocValue > 0) {
-        parts.push(
-          `alloc=${config.value.allocValue}${config.value.allocUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
-        );
-      } else {
-        parts.push('alloc');
-      }
+      parts.push(allocOption(config.value.allocValue, config.value.allocUnit));
     }
 
     if (optionStates.value.lock) {
