@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model.repository;
+package cafe.jeffrey.provisioner;
 
 /**
- * Which source the provisioner's profiler configuration was resolved from.
- * Recorded in {@code .session-info.json} so every session documents where its
- * active async-profiler command came from.
+ * Which source the provisioner's profiler command was resolved from. Reported in the
+ * provisioner's verdict log line; it is not written into any marker, since nothing reads it.
  */
 public enum ProfilerSettingsSource {
 

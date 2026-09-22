@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.provisioner.ProfilerSettingsResolver.ResolvedProfilerSettings;
-import cafe.jeffrey.shared.common.model.repository.ProfilerSettingsSource;
 
 import java.io.IOException;
 import java.nio.file.Files;

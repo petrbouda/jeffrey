@@ -21,9 +21,10 @@ package cafe.jeffrey.provisioner;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tools.jackson.core.type.TypeReference;
 import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.model.repository.ProfilerSettingsSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,6 +34,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -52,9 +54,12 @@ class FileSystemRepositoryTest {
     private static final String INSTANCE_ID = "inst-001";
     private static final String SESSION_ID = "session-001";
 
-    private static final ProfilerSettingsResolver.ResolvedProfilerSettings PROFILER_SETTINGS =
-            new ProfilerSettingsResolver.ResolvedProfilerSettings(
-                    "start,alloc", ProfilerSettingsSource.CONFIGURED);
+    /** What the hub reads to materialize a session, plus the order the provisioner reads back. */
+    private static final Set<String> SESSION_INFO_FIELDS = Set.of(
+            "sessionId", "instanceId", "createdAt", "order", "relativeSessionPath", "heartbeatExpected");
+
+    private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {
+    };
 
     @TempDir
     Path tempDir;
@@ -111,14 +116,27 @@ class FileSystemRepositoryTest {
         }
 
         @Test
+        void addSession_writesOnlyTheFieldsItsReadersUse() throws IOException {
+            Path workspacePath = workspacePath();
+            Path sessionPath = Files.createDirectories(
+                    workspacePath.resolve(PROJECT_NAME).resolve(INSTANCE_ID).resolve(SESSION_ID));
+            var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
+
+            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath, true);
+
+            Map<String, Object> written = Json.read(
+                    Files.readString(sessionPath.resolve(JeffreyLayout.SESSION_INFO_FILE)), JSON_OBJECT);
+            assertEquals(SESSION_INFO_FIELDS, written.keySet());
+        }
+
+        @Test
         void addSession_announcesThePathRelativeToTheWorkspace() throws IOException {
             Path workspacePath = workspacePath();
             Path sessionPath = Files.createDirectories(
                     workspacePath.resolve(PROJECT_NAME).resolve(INSTANCE_ID).resolve(SESSION_ID));
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
-            repository.addSession(SESSION_ID, PROJECT_ID, WORKSPACE_REF_ID, INSTANCE_ID, 1,
-                    sessionPath, PROFILER_SETTINGS, true);
+            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath, true);
 
             List<Path> entries = pendingEntries(workspacePath);
             assertEquals(1, entries.size());
@@ -137,8 +155,7 @@ class FileSystemRepositoryTest {
             repository.addProject(PROJECT_ID, PROJECT_NAME, "Alpha", WORKSPACE_REF_ID,
                     "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
             repository.addInstance(INSTANCE_ID, PROJECT_ID, WORKSPACE_REF_ID, instancePath);
-            repository.addSession(SESSION_ID, PROJECT_ID, WORKSPACE_REF_ID, INSTANCE_ID, 1,
-                    sessionPath, PROFILER_SETTINGS, true);
+            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath, true);
 
             assertEquals(3, pendingEntries(workspacePath).size());
         }

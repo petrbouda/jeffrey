@@ -72,7 +72,7 @@ public class InitExecutor {
         ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings =
                 profilerSettingsResolver.resolve(config.getProfilerCommand(), placeholders, features);
 
-        registrar.recordSession(config, session, resolvedSettings);
+        registrar.recordSession(config, session);
         outputWriter.write(config, session.layout(), resolvedSettings.command());
 
         // Single greppable verdict line — the one place that tells a user their setup works

@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
-import cafe.jeffrey.shared.common.model.repository.ProfilerSettingsSource;
 
 /**
  * Picks the async-profiler command a session runs with. Two sources only: the command the

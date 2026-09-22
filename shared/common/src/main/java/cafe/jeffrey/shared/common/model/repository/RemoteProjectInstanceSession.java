@@ -20,10 +20,11 @@ package cafe.jeffrey.shared.common.model.repository;
 
 /**
  * Session metadata persisted as {@code .session-info.json} in the session
- * directory. The two profiler fields document which source the session's
- * async-profiler command was resolved from ({@code ProfilerSettingsSource}
- * name) and the resolved command itself; both are null in files written by
- * older provisioners.
+ * directory. It carries only what a reader needs: the hub materializes the session
+ * row from every field, and the provisioner reads {@code order} to number the next
+ * session of the instance. The project and workspace are not repeated here; the
+ * directory the file sits in, and the project's own marker, already say them.
+ * Files written by older provisioners carry more fields, which are ignored.
  *
  * <p>{@code heartbeatExpected} declares whether anything in this run will report
  * liveness — the {@code jeffrey-heartbeat} library, which is an ordinary
@@ -39,13 +40,9 @@ package cafe.jeffrey.shared.common.model.repository;
  */
 public record RemoteProjectInstanceSession(
         String sessionId,
-        String projectId,
-        String workspaceId,
         String instanceId,
         long createdAt,
         int order,
         String relativeSessionPath,
-        String profilerSettingsSource,
-        String profilerCommand,
         Boolean heartbeatExpected) {
 }
