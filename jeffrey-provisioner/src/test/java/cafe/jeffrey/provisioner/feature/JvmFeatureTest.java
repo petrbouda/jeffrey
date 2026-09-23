@@ -45,6 +45,33 @@ class JvmFeatureTest {
     }
 
     @Nested
+    class AsyncProfiler {
+
+        @Test
+        void loadsTheLibraryWithItsOptions() {
+            assertEquals("-agentpath:/opt/lib.so=start,event=cpu",
+                    render(new JvmFeature.AsyncProfiler("/opt/lib.so", "start,event=cpu")));
+        }
+
+        @Test
+        void loadsTheLibraryAloneWhenThereAreNoOptions() {
+            assertEquals("-agentpath:/opt/lib.so", render(new JvmFeature.AsyncProfiler("/opt/lib.so", null)));
+        }
+
+        @Test
+        void resolvesTheSessionIntoTheOptions() {
+            assertEquals("-agentpath:/opt/lib.so=start,file=" + SESSION + "/profile-%t.jfr",
+                    render(new JvmFeature.AsyncProfiler(
+                            "/opt/lib.so", "start,file=" + JvmFeature.CURRENT_SESSION + "/profile-%t.jfr")));
+        }
+
+        @Test
+        void rendersNothingWhenDisabled() {
+            assertEquals(Optional.empty(), JvmFeature.AsyncProfiler.disabled().render(SESSION, PLACEHOLDERS));
+        }
+    }
+
+    @Nested
     class DebugNonSafepoints {
 
         @Test

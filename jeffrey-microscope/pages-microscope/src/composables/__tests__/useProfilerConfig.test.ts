@@ -18,7 +18,11 @@
 import { describe, expect, it } from 'vitest';
 import { nextTick } from 'vue';
 import { useProfilerConfig } from '@/composables/useProfilerConfig';
-import { DEFAULT_AGENT_PATH, DEFAULT_OUTPUT_FILE } from '@/types/profiler';
+import {
+  DEFAULT_AGENT_PATH,
+  DEFAULT_OUTPUT_FILE,
+  JEFFREY_SESSION_OUTPUT_FILE
+} from '@/types/profiler';
 import type { MethodTraceTarget } from '@/types/profiler';
 
 const AGENT = '/opt/async-profiler/lib/libasyncProfiler.so';
@@ -28,6 +32,14 @@ function partsOf(command: string): string[] {
   return command.split(',');
 }
 
+/** A builder switched to a custom profiler, where the command names its own library. */
+function useCustomProfilerConfig() {
+  const builder = useProfilerConfig();
+  builder.config.value.profilerSource = 'custom';
+  builder.config.value.file = DEFAULT_OUTPUT_FILE;
+  return builder;
+}
+
 function everyCall(id: number, pattern: string): MethodTraceTarget {
   return { id, pattern, latencyValue: null, latencyUnit: 'ms' };
 }
@@ -35,7 +47,7 @@ function everyCall(id: number, pattern: string): MethodTraceTarget {
 describe('useProfilerConfig', () => {
   describe('generateFromBuilder', () => {
     it('emits only the mandatory options when nothing is toggled on', () => {
-      const { generateFromBuilder } = useProfilerConfig();
+      const { generateFromBuilder } = useCustomProfilerConfig();
 
       expect(generateFromBuilder()).toBe(
         `-agentpath:${DEFAULT_AGENT_PATH}=start,loop=15m,file=${DEFAULT_OUTPUT_FILE}`
@@ -43,21 +55,21 @@ describe('useProfilerConfig', () => {
     });
 
     it('uses the agent path that was typed in', () => {
-      const { config, generateFromBuilder } = useProfilerConfig();
+      const { config, generateFromBuilder } = useCustomProfilerConfig();
       config.value.agentPathCustom = AGENT;
 
       expect(generateFromBuilder()).toContain(`-agentpath:${AGENT}=start`);
     });
 
     it('falls back to the default agent path when the field holds only whitespace', () => {
-      const { config, generateFromBuilder } = useProfilerConfig();
+      const { config, generateFromBuilder } = useCustomProfilerConfig();
       config.value.agentPathCustom = '   ';
 
       expect(generateFromBuilder()).toContain(`-agentpath:${DEFAULT_AGENT_PATH}=start`);
     });
 
     it('falls back to the default output file when the field is cleared', () => {
-      const { config, generateFromBuilder } = useProfilerConfig();
+      const { config, generateFromBuilder } = useCustomProfilerConfig();
       config.value.file = '';
 
       expect(generateFromBuilder()).toContain(`file=${DEFAULT_OUTPUT_FILE}`);
@@ -71,8 +83,8 @@ describe('useProfilerConfig', () => {
       expect(generateFromBuilder()).not.toContain('file=  ');
     });
 
-    it('carries no Jeffrey placeholder, since the command is pasted into another JVM', () => {
-      const { generateFromBuilder } = useProfilerConfig();
+    it('carries no Jeffrey placeholder for a custom profiler, pasted into a JVM without the provisioner', () => {
+      const { generateFromBuilder } = useCustomProfilerConfig();
 
       expect(generateFromBuilder()).not.toContain('<<JEFFREY:');
     });
@@ -363,7 +375,7 @@ describe('useProfilerConfig', () => {
     });
 
     it('opens with the agent path and closes with the output file', () => {
-      const { config, optionStates, generateFromBuilder } = useProfilerConfig();
+      const { config, optionStates, generateFromBuilder } = useCustomProfilerConfig();
       config.value.agentPathCustom = AGENT;
       optionStates.value.alloc = true;
 
@@ -379,7 +391,8 @@ describe('useProfilerConfig', () => {
      * assembly and they order the options differently, so they are compared as sets.
      */
     it('describes the same option set as the generated command', () => {
-      const { config, optionStates, builderTokens, generateFromBuilder } = useProfilerConfig();
+      const { config, optionStates, builderTokens, generateFromBuilder } =
+        useCustomProfilerConfig();
       config.value.agentPathCustom = AGENT;
       optionStates.value.alloc = true;
       config.value.allocThresholdEnabled = true;
@@ -406,11 +419,63 @@ describe('useProfilerConfig', () => {
     });
 
     it('reports the typed agent path rather than a placeholder', () => {
-      const { config, builderTokens } = useProfilerConfig();
+      const { config, builderTokens } = useCustomProfilerConfig();
       config.value.agentPathCustom = AGENT;
 
       const agent = builderTokens.value.find(token => token.key === 'agent');
       expect(agent?.value).toBe(`-agentpath:${AGENT}=start`);
+    });
+  });
+
+  describe('Jeffrey JIB', () => {
+    it('is the default, carrying only options and writing into the provisioned session', () => {
+      const { generateFromBuilder } = useProfilerConfig();
+
+      expect(generateFromBuilder()).toBe(`start,loop=15m,file=${JEFFREY_SESSION_OUTPUT_FILE}`);
+    });
+
+    it('leaves out the typed agent path, since the provisioner supplies the library', () => {
+      const { config, generateFromBuilder } = useProfilerConfig();
+      config.value.agentPathCustom = AGENT;
+
+      expect(generateFromBuilder()).not.toContain('-agentpath:');
+    });
+
+    it('falls back to the session output file when the field is cleared', () => {
+      const { config, generateFromBuilder } = useProfilerConfig();
+      config.value.file = ' ';
+
+      expect(generateFromBuilder()).toContain(`file=${JEFFREY_SESSION_OUTPUT_FILE}`);
+    });
+
+    it('reports the bare start option as the agent chip', () => {
+      const { builderTokens } = useProfilerConfig();
+
+      expect(builderTokens.value.find(token => token.key === 'agent')?.value).toBe('start');
+    });
+  });
+
+  describe('switching the profiler source', () => {
+    it('moves an untouched output file to the other source default', async () => {
+      const { config } = useProfilerConfig();
+
+      config.value.profilerSource = 'custom';
+      await nextTick();
+      expect(config.value.file).toBe(DEFAULT_OUTPUT_FILE);
+
+      config.value.profilerSource = 'jeffrey-jib';
+      await nextTick();
+      expect(config.value.file).toBe(JEFFREY_SESSION_OUTPUT_FILE);
+    });
+
+    it('keeps an output file that was typed in', async () => {
+      const { config } = useProfilerConfig();
+      config.value.file = '/var/jfr/app-%t.jfr';
+
+      config.value.profilerSource = 'custom';
+      await nextTick();
+
+      expect(config.value.file).toBe('/var/jfr/app-%t.jfr');
     });
   });
 });

@@ -302,8 +302,9 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
 
       <DocsCallout type="tip">
         <strong>Changing what the agent records.</strong> Add a
-        <code>JEFFREY_PROFILER_COMMAND</code> entry to the pod's <code>env:</code> with a command
-        built in <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>.
+        <code>JEFFREY_PROFILER_COMMAND</code> entry to the pod's <code>env:</code> with options
+        built in <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>
+        (<code>start,event=cpu,...</code>); they run on the async-profiler the image bakes in.
         It takes precedence over any <code>profiler-command</code> in a mounted configuration file,
         so no rebuild or ConfigMap change is needed.
       </DocsCallout>

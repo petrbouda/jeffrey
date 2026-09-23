@@ -200,8 +200,10 @@ jeffrey-jib: baking 2 payload file(s) into the image layer 'jeffrey-payload' (45
 Setting `profilerPath` means *this image already has async-profiler*. That payload is then not
 baked, so a base image that already ships the library pays nothing for a second copy.
 Your library has to accept the agent command the provisioner generates, which uses
-`event=ctimer`, `jfrsync=default` and `chunksize`; if yours needs different options, replace the
-whole command with the provisioner's `profiler-command`.
+`event=ctimer`, `jfrsync=default` and `chunksize`; if yours needs different options, set them
+with the provisioner's `profiler-command` — options alone are passed to the library `profilerPath`
+names. If that file does not exist at container start, the provisioner logs a warning and the
+application starts unprofiled.
 
 **There is no `provisionerPath`.** The provisioner is not a third-party component you can
 substitute. It is Jeffrey's own binary, and the session layout and workspace events it writes are

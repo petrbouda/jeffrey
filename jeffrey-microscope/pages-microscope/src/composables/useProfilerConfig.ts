@@ -25,7 +25,7 @@ import type {
 import {
   DEFAULT_AGENT_PATH,
   DEFAULT_LOCK_THRESHOLD,
-  DEFAULT_OUTPUT_FILE,
+  DEFAULT_OUTPUT_FILES,
   DEFAULT_TRACE_LATENCY,
   PROFILER_CONSTANTS,
   defaultProfilerConfig
@@ -123,6 +123,18 @@ export function useProfilerConfig() {
     }
   );
 
+  // The output field follows the source while it still holds the previous source's default, so a
+  // Jeffrey JIB command writes into the session and a custom one into /tmp; a typed path is kept.
+  watch(
+    () => config.value.profilerSource,
+    (source, previous) => {
+      const file = config.value.file.trim();
+      if (!file || file === DEFAULT_OUTPUT_FILES[previous]) {
+        config.value.file = DEFAULT_OUTPUT_FILES[source];
+      }
+    }
+  );
+
   // Validation watchers
   watch(
     () => config.value.allocUnit,
@@ -199,28 +211,35 @@ export function useProfilerConfig() {
     { deep: true }
   );
 
-  /**
-   * The literal path the copied command carries. The field is free text: there is no
-   * Jeffrey-managed agent mode, because the command is pasted into someone else's JVM.
-   */
+  /** The literal path a custom-profiler command carries; a blank field means the placeholder. */
   const resolveAgentPath = (): string => {
     const custom = config.value.agentPathCustom.trim();
     return custom ? custom : DEFAULT_AGENT_PATH;
   };
 
+  /**
+   * What goes in front of the options. Nothing for Jeffrey JIB: Jeffrey Provisioner supplies the
+   * library itself. A custom profiler names its library as `-agentpath:<path>=`.
+   */
+  const resolveAgentPrefix = (): string => {
+    if (config.value.profilerSource === 'jeffrey-jib') {
+      return '';
+    }
+    return `-agentpath:${resolveAgentPath()}=`;
+  };
+
   /** The output file the command carries; a cleared or whitespace-only field means the default. */
   const resolveOutputFile = (): string => {
     const custom = config.value.file.trim();
-    return custom ? custom : DEFAULT_OUTPUT_FILE;
+    return custom ? custom : DEFAULT_OUTPUT_FILES[config.value.profilerSource];
   };
 
   const builderTokens = computed((): ConfigToken[] => {
-    const agentPath = resolveAgentPath();
     const tokens: ConfigToken[] = [
       {
         key: 'agent',
         label: 'Agent',
-        value: `-agentpath:${agentPath}=start`
+        value: `${resolveAgentPrefix()}start`
       }
     ];
 
@@ -370,8 +389,7 @@ export function useProfilerConfig() {
   });
 
   const generateFromBuilder = (): string => {
-    const agentPath = resolveAgentPath();
-    const parts = [`-agentpath:${agentPath}=start`];
+    const parts = [`${resolveAgentPrefix()}start`];
 
     if (optionStates.value.alloc) {
       parts.push(allocOption(config.value.allocValue, config.value.allocUnit));

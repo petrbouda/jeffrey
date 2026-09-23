@@ -28,15 +28,21 @@ import java.util.stream.Collectors;
 /**
  * The features a run asked for, in the order their options are written.
  *
- * <p>Order is part of the contract: {@code additional-jvm-options} is last so a deployment can
- * override an option Jeffrey set for it, since a later JVM option wins over an earlier one.
+ * <p>Order is part of the contract: the profiler agent is first, and {@code additional-jvm-options}
+ * is last so a deployment can override an option Jeffrey set for it, since a later JVM option wins
+ * over an earlier one.
  */
 public record JvmFeatures(List<JvmFeature> features) {
 
     private static final String OPTION_SEPARATOR = " ";
 
-    public static JvmFeatures of(InitConfig config) {
+    /**
+     * @param profiler the async-profiler agent, already resolved against the {@code profiler-path} library
+     *                 since that decision needs the filesystem and logs its outcome
+     */
+    public static JvmFeatures of(InitConfig config, JvmFeature.AsyncProfiler profiler) {
         return new JvmFeatures(List.of(
+                profiler,
                 new JvmFeature.DebugNonSafepoints(config.isDebugNonSafepointsEnabled()),
                 new JvmFeature.PerfCounters(config.isPerfCountersEnabled()),
                 new JvmFeature.HeapDump(config.resolveHeapDumpType()),

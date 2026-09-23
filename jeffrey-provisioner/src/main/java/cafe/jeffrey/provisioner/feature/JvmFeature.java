@@ -43,6 +43,42 @@ public sealed interface JvmFeature {
     /** The options this feature contributes, or empty when it is switched off. */
     Optional<String> render(Path sessionPath, Placeholders placeholders);
 
+    /**
+     * The async-profiler agent that records the session.
+     *
+     * <p>Unlike the other features it is on by default: switched off only when the library it
+     * points at is missing, which {@code AsyncProfilerResolver} decides before this is built. A
+     * {@code null} library means that, and renders nothing.
+     *
+     * <p>Both parts may carry {@code <<JEFFREY:...>>} placeholders, typically the session
+     * directory in the {@code file=} option, resolved here against this run.
+     */
+    record AsyncProfiler(String library, String options) implements JvmFeature {
+
+        public static final String AGENT_PATH_OPTION = "-agentpath:";
+        public static final char OPTIONS_SEPARATOR = '=';
+
+        public static AsyncProfiler disabled() {
+            return new AsyncProfiler(null, null);
+        }
+
+        public boolean enabled() {
+            return library != null;
+        }
+
+        @Override
+        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
+            if (!enabled()) {
+                return Optional.empty();
+            }
+            String agent = AGENT_PATH_OPTION + placeholders.resolve(library);
+            if (options == null || options.isBlank()) {
+                return Optional.of(agent);
+            }
+            return Optional.of(agent + OPTIONS_SEPARATOR + placeholders.resolve(options.trim()));
+        }
+    }
+
     /** More precise stack traces, by recording method information away from safepoints. */
     record DebugNonSafepoints(boolean enabled) implements JvmFeature {
 
@@ -98,9 +134,10 @@ public sealed interface JvmFeature {
      * The JFR thresholds a traced session needs, carried by a recording of their own.
      *
      * <p>The profiler starts its recording from a stock JFR configuration that keeps these events
-     * above the durations a trace is read at, and that configuration arrives from whichever source
-     * won — the CLI, the hub, or the built-in default — so lowering the thresholds by rewriting it
-     * would have to be done three times over. A second recording sidesteps that: JFR applies the
+     * above the durations a trace is read at, and its options come either from the configured
+     * {@code profiler-command} or from the built-in default, so lowering the thresholds by
+     * rewriting them would mean parsing whatever a deployment wrote. A second recording sidesteps
+     * that: JFR applies the
      * most verbose setting across every active recording, so this one lowers the thresholds for the
      * profiler's recording as well without either knowing about the other.
      *

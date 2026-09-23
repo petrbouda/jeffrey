@@ -22,8 +22,12 @@ public abstract class CliConstants {
     public static final String PROFILER_PATH = "<<JEFFREY:PROFILER_PATH>>";
     public static final String CURRENT_SESSION = "<<JEFFREY:CURRENT_SESSION>>";
 
-    public static final String DEFAULT_PROFILER_CONFIG =
-            "-agentpath:" + PROFILER_PATH + "=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file="
+    /**
+     * The async-profiler agent options a session runs with when no {@code profiler-command} is
+     * configured. Options only: the library they are passed to is the one {@code profiler-path} names.
+     */
+    public static final String DEFAULT_PROFILER_OPTIONS =
+            "start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file="
                     + CURRENT_SESSION + "/profile-%t.jfr";
 
     /**

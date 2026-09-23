@@ -250,7 +250,7 @@ export JDK_JAVA_OPTIONS='-agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc
           <tbody>
             <tr>
               <td><code>-agentpath:...libasyncProfiler.so=...</code></td>
-              <td>Core profiler (always included)</td>
+              <td>Core profiler, always first. Left out, with a warning in the provisioner log, when the library <code>profiler-path</code> names does not exist</td>
             </tr>
             <tr>
               <td><code>-XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints</code></td>

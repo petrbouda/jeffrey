@@ -60,7 +60,11 @@ onMounted(() => {
         through <router-link to="/docs/microscope/recordings">Recordings</router-link>. In a deployment provisioned by
         <router-link to="/docs/provisioner/configuration">Jeffrey Provisioner</router-link>, give it to the provisioner
         as <code>profiler-command</code> in its configuration file, or as the
-        <code>JEFFREY_PROFILER_COMMAND</code> environment variable, which wins over the file.
+        <code>JEFFREY_PROFILER_COMMAND</code> environment variable, which wins over the file. Pick
+        <strong>Jeffrey JIB</strong> and the command carries only the options: the provisioner runs them on the
+        Async-profiler library its <code>profiler-path</code> names, which jeffrey-jib bakes into the image. Every
+        combination of library and command is listed under
+        <router-link to="/docs/provisioner/configuration#choosing-the-profiler">Choosing the Profiler</router-link>.
       </p>
 
       <h2 id="builder">Building a Command</h2>
@@ -73,8 +77,8 @@ onMounted(() => {
 
       <DocsCallout type="info">
         <strong>The page stores nothing.</strong> Profiler Builder only assembles a command for you to copy — it does
-        not apply it to anything, and needs no hub, workspace or project. The agent path and output file are literal
-        values that go straight into the JVM you are about to profile.
+        not apply it to anything, and needs no hub, workspace or project. The profiler path and output file are
+        literal values that go straight into the command you copy.
       </DocsCallout>
 
       <h3 id="mandatory">Mandatory Options</h3>
@@ -84,9 +88,14 @@ onMounted(() => {
         <div class="option-item">
           <div class="option-header">
             <i class="bi bi-folder2-open"></i>
-            <strong>Agent Path</strong>
+            <strong>Async-profiler</strong>
           </div>
-          <p>Path to the Async-Profiler native library (libasyncProfiler.so)</p>
+          <p>
+            Which library the command runs on. <strong>Jeffrey JIB</strong> (the default) needs nothing else: the
+            command carries only the options, and Jeffrey Provisioner runs them on the Async-profiler baked into the
+            image. <strong>Custom Profiler</strong> asks for the path to your own <code>libasyncProfiler.so</code>,
+            which goes into the command as <code>-agentpath:&lt;path&gt;=</code>.
+          </p>
         </div>
         <div class="option-item">
           <div class="option-header">
@@ -207,12 +216,25 @@ onMounted(() => {
       <h3 id="command">The Generated Command</h3>
       <p>
         The panel on the right shows the assembled command and, above it, each active option as its own labelled
-        parameter, so you can check what a toggle contributed before copying. <strong>Copy command</strong> puts the
-        whole <code>-agentpath:</code> argument on the clipboard, ready to paste into your JVM arguments.
+        parameter, so you can check what a toggle contributed before copying. A switch above the command picks how
+        <strong>Copy command</strong> hands it over:
       </p>
+      <ul>
+        <li><strong>ENV var</strong> &mdash; <code>JEFFREY_PROFILER_COMMAND='…'</code>, to set on the pod. It wins
+          over the configuration file. The value is single-quoted so a shell does not read
+          <code>&lt;&lt;JEFFREY:…&gt;&gt;</code> or <code>%t</code>.</li>
+        <li><strong>HOCON</strong> &mdash; <code>profiler-command = "…"</code>, for the provisioner's configuration
+          file.</li>
+        <li><strong>Options</strong> (Jeffrey JIB) or <strong>JVM argument</strong> (Custom Profiler) &mdash; the bare
+          command. With a custom profiler that is the whole <code>-agentpath:</code> argument, ready to paste into the
+          JVM arguments of an application you start yourself.</li>
+      </ul>
       <p>
-        Leaving <strong>Agent Path</strong> empty falls back to <code>/path/to/libasyncProfiler.so</code> and leaving
-        the output empty falls back to <code>/tmp/profile-%t.jfr</code>; both are placeholders meant to be replaced.
+        With Jeffrey JIB the output defaults to <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>,
+        which the provisioner points at the session directory. With a custom profiler it defaults to
+        <code>/tmp/profile-%t.jfr</code>, and an empty profiler path falls back to
+        <code>/path/to/libasyncProfiler.so</code>; both are placeholders meant to be replaced. Switching between the two
+        keeps an output path you typed yourself.
       </p>
     </div>
 
