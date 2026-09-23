@@ -21,17 +21,17 @@ jobs:
     # (jeffrey-jib-maven-jar), which bakes the provisioner jar and async-profiler from the
     # jeffrey-jib-payload-jar artifact. That payload is built here, in this reactor, from THIS
     # release's own provisioner.jar (uploaded by the build job) and the async-profiler pinned in
-    # utilities/jeffrey-jib/pom.xml — so the hub image never depends on a jeffrey-jib release
+    # jeffrey-jib/pom.xml — so the hub image never depends on a jeffrey-jib release
     # having been published to Maven Central first, and always self-profiles with the provisioner
     # it shipped with. The native flavour (which would need the GraalVM binaries) is not built.
     - name: Stage this release's provisioner.jar as the jar payload
       uses: actions/download-artifact@v8
       with:
         name: provisioner-jar
-        path: ./utilities/jeffrey-jib/jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload
+        path: ./jeffrey-jib/jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload
 
     - name: Stage async-profiler payloads
-      run: ./build/scripts/stage-async-profiler-payload.sh ./utilities/jeffrey-jib
+      run: ./build/scripts/stage-async-profiler-payload.sh ./jeffrey-jib
 
     # Two-step: jib: prefix goal can only be invoked at the project level, so we install
     # the reactor up to build-hub-jib first, then run jib:build scoped to that module.
@@ -48,7 +48,7 @@ jobs:
         JEFFREY_TAG_VERSION: ${{ inputs.version }}
       run: |
         mvn -P payload \
-          -pl utilities/jeffrey-jib/jeffrey-jib-maven-jar -am \
+          -pl jeffrey-jib/jeffrey-jib-maven-jar -am \
           -DskipTests=true -Djeffrey.release=v${{ inputs.version }} install
 
     # docker/login-action shells out to `docker login`; the petrbouda/jeffrey-builder:25

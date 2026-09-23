@@ -32,7 +32,8 @@ jeffrey-provisioner/                   GraalVM native CLI that provisions a prof
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
-utilities/                             jeffrey-heartbeat (+ starter), jeffrey-tracing, jeffrey-events, jeffrey-jib
+utilities/                             jeffrey-heartbeat (+ starter), jeffrey-tracing, jeffrey-events (release-utilities.yml)
+jeffrey-jib/                           JIB extensions + provisioner payloads (release-jib.yml)
 build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native), build-agent-tests
 stubs/                                 jeffrey-hub-stub, outside the reactor (run-hub-stub.sh)
 ```

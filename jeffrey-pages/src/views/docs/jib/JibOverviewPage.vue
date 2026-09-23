@@ -60,7 +60,7 @@ onMounted(() => {
 
         <DocsCallout type="info">
           <strong>Open Source Library:</strong> Jeffrey JIB lives in the Jeffrey monorepo under
-          <a href="https://github.com/petrbouda/jeffrey/tree/master/utilities/jeffrey-jib" target="_blank" rel="noopener">utilities/jeffrey-jib</a>
+          <a href="https://github.com/petrbouda/jeffrey/tree/master/jeffrey-jib" target="_blank" rel="noopener">jeffrey-jib</a>
           and is published to Maven Central in four <em>flavours</em>, one per build tool and
           provisioner build: <code>cafe.jeffrey-analyst:jeffrey-jib-maven-jar</code>,
           <code>jeffrey-jib-maven-native</code>, <code>jeffrey-jib-gradle-jar</code> and

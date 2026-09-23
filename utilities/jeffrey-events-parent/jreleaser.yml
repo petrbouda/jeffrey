@@ -1,7 +1,7 @@
 # JReleaser configuration for deploying jeffrey-events to Maven Central.
 #
 # JReleaser only performs the SIGN + UPLOAD of artifacts that Maven has already
-# staged into target/staging-deploy (see the unified release-utilities workflow).
+# staged into target/staging-deploy (see the release-utilities workflow).
 # It replaces the central-publishing-maven-plugin + maven-gpg-plugin that used to
 # live in the pom's `release` profile.
 #

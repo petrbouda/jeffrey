@@ -4,16 +4,16 @@
 # jeffrey-jib-payload-jar and jeffrey-jib-payload-native modules (both flavours carry it), ready
 # for `mvn -P payload package`.
 #
-# The version is the async-profiler.version property of utilities/jeffrey-jib/pom.xml. It is
+# The version is the async-profiler.version property of jeffrey-jib/pom.xml. It is
 # pinned on purpose: this library is loaded into every profiled JVM, so which version ships is a
 # decision recorded in the pom, never whatever happened to be the latest release on the day of
 # the build. Downloads use `curl -f`, so a missing release or a rate-limited endpoint fails the
 # build instead of staging an empty archive.
 #
-# Usage: build/scripts/stage-async-profiler-payload.sh [path/to/utilities/jeffrey-jib]
+# Usage: build/scripts/stage-async-profiler-payload.sh [path/to/jeffrey-jib]
 set -euo pipefail
 
-JIB_DIR="${1:-$(cd "$(dirname "$0")/../.." && pwd)/utilities/jeffrey-jib}"
+JIB_DIR="${1:-$(cd "$(dirname "$0")/../.." && pwd)/jeffrey-jib}"
 PAYLOAD_MODULES="jeffrey-jib-payload-jar jeffrey-jib-payload-native"
 
 AP_VERSION=$(mvn -q -N -f "${JIB_DIR}/pom.xml" -DforceStdout help:evaluate -Dexpression=async-profiler.version)

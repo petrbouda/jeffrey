@@ -1,52 +1,35 @@
-# Ad-hoc, manual Maven Central release for the standalone utility libraries
-# (jeffrey-events-parent and jeffrey-jib). These are released independently and on demand,
-# NOT as part of the main tag-triggered Jeffrey release (release.yml). The module input is
-# the directory name under utilities/, which is where the pom and jreleaser.yml are read from;
-# picking jeffrey-events-parent publishes the whole family it aggregates by relative path -
-# ../jeffrey-events, ../jeffrey-events-test, ../jeffrey-heartbeat,
-# ../jeffrey-heartbeat-spring-boot-starter and ../jeffrey-tracing with its jeffrey-tracing-* modules.
+# Ad-hoc, manual Maven Central release of the standalone utility libraries under utilities/.
+# These are released independently and on demand, NOT as part of the main tag-triggered Jeffrey
+# release (release.yml); jeffrey-jib has its own workflow (release-jib.yml).
 #
-# Replaces the two near-identical workflows release-jeffrey-events.yml and
-# release-jeffrey-jib.yml. Maven stages the artifacts (jar + sources + javadoc)
-# into a local staging repository; JReleaser signs them and uploads to Maven Central.
-name: Publish utility library to Maven Central
+# jeffrey-events-parent is the release root: it aggregates by relative path ../jeffrey-events,
+# ../jeffrey-events-test, ../jeffrey-heartbeat, ../jeffrey-heartbeat-spring-boot-starter and
+# ../jeffrey-tracing with its jeffrey-tracing-* modules, so one run publishes the whole family on
+# one version. Maven stages the artifacts (jar + sources + javadoc) into a local staging
+# repository; JReleaser signs them and uploads to Maven Central.
+name: Publish utility libraries to Maven Central
 on:
   workflow_dispatch:
     inputs:
-      module:
-        description: 'Utility library to release'
-        required: true
-        type: choice
-        options:
-          - jeffrey-events-parent
-          - jeffrey-jib
       version:
         description: 'Release version (e.g. 0.11.0 or 0.11.0-b5). Must follow [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?'
         required: true
         type: string
-      provisionerTag:
-        description: 'Provisioner tag: the Jeffrey release whose provisioner jeffrey-jib bundles — "latest" or a tag such as v0.13.22.'
-        required: false
-        default: 'latest'
-        type: string
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      # jeffrey-jib adds the `payload` profile so the payload and flavour modules are versioned and deployed
-      # with the extension; jeffrey-events-parent has no such profile. Maven only warns about a
-      # profile it does not know, but keeping the list exact keeps the log clean.
-      MAVEN_PROFILES: ${{ inputs.module == 'jeffrey-jib' && 'release,payload' || 'release' }}
     defaults:
       run:
-        working-directory: utilities/${{ inputs.module }}
+        working-directory: utilities/jeffrey-events-parent
     steps:
       - uses: actions/checkout@v6
 
       - name: Validate version format
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [[ ! "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-b[0-9]+)?$ ]]; then
-            echo "ERROR: version '${{ inputs.version }}' does not match [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?" >&2
+          if [[ ! "${INPUT_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-b[0-9]+)?$ ]]; then
+            echo "ERROR: version '${INPUT_VERSION}' does not match [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?" >&2
             exit 1
           fi
 
@@ -56,71 +39,19 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
-      # The payload modules ship the provisioner and async-profiler that jeffrey-jib bakes into
-      # application images. The provisioner comes from a published Jeffrey release rather than a
-      # build of this repository, because jeffrey-jib releases on its own cadence: which Jeffrey
-      # release an extension carries is a choice, stated here (or defaulted to the latest
-      # release), recorded in each payload jar's descriptor (jeffrey-payload/payload.properties)
-      # and printed by the extension at build time. Consumers pick it up by the version of the
-      # flavour they declare.
-      - name: Resolve the Jeffrey release to bundle
-        id: jeffrey
-        if: inputs.module == 'jeffrey-jib'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INPUT_RELEASE: ${{ inputs.provisionerTag }}
-        run: |
-          if [ -n "${INPUT_RELEASE}" ] && [ "${INPUT_RELEASE}" != "latest" ]; then
-            RELEASE="${INPUT_RELEASE}"
-          else
-            # `gh release view` with no tag is GitHub's "latest": the newest non-prerelease,
-            # non-draft release — the same one the Releases page badges as Latest.
-            RELEASE=$(gh release view -R petrbouda/jeffrey --json tagName --jq .tagName)
-          fi
-          if [[ ! "${RELEASE}" =~ ^v[0-9] ]]; then
-            echo "ERROR: could not resolve a Jeffrey release tag (got '${RELEASE}')" >&2
-            exit 1
-          fi
-          echo "Bundling the provisioner from Jeffrey ${RELEASE}"
-          echo "RELEASE=${RELEASE}" >> "$GITHUB_OUTPUT"
-
-      - name: Stage provisioner payloads
-        if: inputs.module == 'jeffrey-jib'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download "${{ steps.jeffrey.outputs.RELEASE }}" -R petrbouda/jeffrey \
-            -p provisioner-amd64 -p provisioner-arm64 -p provisioner.jar -D /tmp/payload
-          install -Dm644 /tmp/payload/provisioner-amd64 \
-            jeffrey-jib-payload-native/src/main/payload/jeffrey-payload/provisioner-linux-amd64
-          install -Dm644 /tmp/payload/provisioner-arm64 \
-            jeffrey-jib-payload-native/src/main/payload/jeffrey-payload/provisioner-linux-arm64
-          install -Dm644 /tmp/payload/provisioner.jar \
-            jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload/provisioner.jar
-
-      # async-profiler is pinned by the async-profiler.version property in the jeffrey-jib pom; the
-      # script fails on a missing release rather than staging an empty download.
-      - name: Stage async-profiler payloads
-        if: inputs.module == 'jeffrey-jib'
-        run: ../../build/scripts/stage-async-profiler-payload.sh .
-
-      # The payload and flavour modules live behind the `payload` profile, so for jeffrey-jib every
-      # Maven invocation activates it — otherwise versions:set would leave them at 1.0-SNAPSHOT and
-      # deploy would skip them. One deploy builds every module exactly once.
       - name: Set version
-        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DprocessAllModules=true -P ${{ env.MAVEN_PROFILES }}
+        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DprocessAllModules=true -P release
 
       - name: Stage artifacts into local staging repository
         run: |
-          mvn -P ${{ env.MAVEN_PROFILES }} --batch-mode deploy -DskipTests \
-            -Djeffrey.release=${{ steps.jeffrey.outputs.RELEASE }} \
+          mvn -P release --batch-mode deploy -DskipTests \
             -DaltDeploymentRepository=local::file:$PWD/target/staging-deploy
 
       - name: Sign and deploy to Maven Central with JReleaser
         uses: jreleaser/release-action@v2
         with:
           arguments: deploy
-          working-directory: utilities/${{ inputs.module }}
+          working-directory: utilities/jeffrey-events-parent
         env:
           JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -134,7 +65,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: jreleaser-deploy-output-${{ inputs.module }}
+          name: jreleaser-deploy-output-utilities
           path: |
-            utilities/${{ inputs.module }}/out/jreleaser/trace.log
-            utilities/${{ inputs.module }}/out/jreleaser/output.properties
+            utilities/jeffrey-events-parent/out/jreleaser/trace.log
+            utilities/jeffrey-events-parent/out/jreleaser/output.properties

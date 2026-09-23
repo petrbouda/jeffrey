@@ -50,6 +50,5 @@
     -->
     <modules>
         <module>jeffrey-events-parent</module>
-        <module>jeffrey-jib</module>
     </modules>
 </project>

@@ -33,6 +33,7 @@
         <module>jeffrey-microscope</module>
         <module>jeffrey-provisioner</module>
         <module>utilities</module>
+        <module>jeffrey-jib</module>
         <module>build</module>
     </modules>
 
