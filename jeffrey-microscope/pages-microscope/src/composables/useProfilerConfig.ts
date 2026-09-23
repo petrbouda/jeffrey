@@ -234,14 +234,20 @@ export function useProfilerConfig() {
     return custom ? custom : DEFAULT_OUTPUT_FILES[config.value.profilerSource];
   };
 
+  /**
+   * The chips every command opens with: the `start` action, preceded by the library a custom
+   * profiler loads. Jeffrey JIB has no library chip, the provisioner supplies it.
+   */
+  const leadingTokens = (): ConfigToken[] => {
+    const action: ConfigToken = { key: 'action', label: 'Action', value: 'start' };
+    if (config.value.profilerSource === 'jeffrey-jib') {
+      return [action];
+    }
+    return [{ key: 'library', label: 'Library', value: resolveAgentPath() }, action];
+  };
+
   const builderTokens = computed((): ConfigToken[] => {
-    const tokens: ConfigToken[] = [
-      {
-        key: 'agent',
-        label: 'Agent',
-        value: `${resolveAgentPrefix()}start`
-      }
-    ];
+    const tokens: ConfigToken[] = leadingTokens();
 
     if (optionStates.value.alloc) {
       tokens.push({

@@ -17,137 +17,121 @@
 
 <template>
   <div>
-    <MainCard>
-      <template #header>
-        <MainCardHeader icon="bi bi-record-circle" title="Recordings" :badge="allRecordings.length">
-          <template #actions>
-            <div v-if="allRecordings.length > 0" class="page-search">
-              <i class="bi bi-search"></i>
-              <input v-model="searchText" type="text" placeholder="Search..." />
-            </div>
-          </template>
-        </MainCardHeader>
-      </template>
+    <!-- 1. Upload zone (format pills + auto-uploading files in the same panel) -->
+    <div class="upload-section">
+      <div
+        class="drop-zone"
+        :class="{ 'drag-over': dragActive }"
+        @dragenter.prevent="onDragEnter"
+        @dragover.prevent
+        @dragleave.prevent="onDragLeave"
+        @drop.prevent="handleDrop"
+      >
+        <input
+          ref="fileInputRef"
+          type="file"
+          :accept="FILE_INPUT_ACCEPT"
+          multiple
+          class="file-input-hidden"
+          @change="handleFileInput"
+        />
 
-      <!-- 1. Upload zone (format lanes + auto-uploading files in the same panel) -->
-      <div class="upload-section">
-        <div
-          class="drop-zone"
-          :class="{ 'drag-over': dragActive }"
-          @dragenter.prevent="onDragEnter"
-          @dragover.prevent
-          @dragleave.prevent="onDragLeave"
-          @drop.prevent="handleDrop"
+        <div class="drop-target-group">
+          <i class="bi bi-folder2"></i>
+          {{ dropHintPrefix }} <strong>{{ uploadTargetLabel }}</strong>
+          <template v-if="uploadStatusLine"> · {{ uploadStatusLine }}</template>
+        </div>
+
+        <!-- Centred upload target: the rings ripple out while a file is held over the zone -->
+        <button
+          class="drop-target"
+          type="button"
+          :title="browseButtonLabel"
+          @click="triggerFileInput"
         >
-          <input
-            ref="fileInputRef"
-            type="file"
-            :accept="FILE_INPUT_ACCEPT"
-            multiple
-            class="file-input-hidden"
-            @change="handleFileInput"
-          />
+          <span class="drop-ring"></span>
+          <span class="drop-ring drop-ring-outer"></span>
+          <span class="drop-core">
+            <i class="bi bi-upload"></i>
+          </span>
+        </button>
 
-          <div class="drop-head">
-            <div class="drop-body">
-              <div class="drop-title">{{ dropTitle }}</div>
-              <div class="drop-hint">
-                {{ dropHintPrefix }} <strong>{{ uploadTargetLabel }}</strong>
-                <template v-if="uploadStatusLine"> · {{ uploadStatusLine }}</template>
-              </div>
-            </div>
-            <button v-if="!dragActive" class="browse-btn" type="button" @click="triggerFileInput">
-              <i :class="browseButtonIcon"></i>
-              {{ browseButtonLabel }}
-            </button>
-          </div>
+        <div class="drop-title">{{ dropTitle }}</div>
+        <div class="drop-hint">
+          Drag files here, or
+          <button class="drop-browse" type="button" @click="triggerFileInput">
+            {{ browseLinkLabel }}
+          </button>
+        </div>
 
-          <!-- One lane per parser, in the colour that format wears everywhere else -->
-          <div v-if="uploadFiles.length === 0" class="drop-lanes">
-            <div
-              v-for="format in RECORDING_FORMATS"
-              :key="format.id"
-              class="lane"
-              :class="'lane-' + format.id"
-            >
-              <div class="lane-top">
-                <span class="lane-ic">
-                  <i :class="format.icon"></i>
-                </span>
-                <span class="lane-name">{{ format.label }}</span>
-              </div>
-              <div class="lane-ext">
-                <Badge
-                  v-for="extension in format.extensions"
-                  :key="extension"
-                  :value="extension"
-                  :variant="format.variant"
-                  size="s"
-                  :uppercase="false"
-                  borderless
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- While files are moving the lanes collapse to a legend that decodes the dots -->
-          <div v-else class="drop-legend">
-            <span v-for="format in RECORDING_FORMATS" :key="format.id" class="legend-item">
-              <span class="legend-dot" :class="'dot-' + format.id"></span>
-              {{ format.label }}
+        <!-- One pill per parser, in the colour that format wears everywhere else -->
+        <div class="drop-formats">
+          <span
+            v-for="format in RECORDING_FORMATS"
+            :key="format.id"
+            class="format-pill"
+            :class="'format-' + format.id"
+          >
+            <span class="format-ic">
+              <i :class="format.icon"></i>
             </span>
-          </div>
+            {{ format.label }}
+            <code class="format-ext">{{ format.extensions.join(' ') }}</code>
+          </span>
+        </div>
 
-          <div v-if="uploadFiles.length > 0" class="drop-files">
-            <div v-for="(file, index) in uploadFiles" :key="file.name + index" class="drop-file">
-              <span class="drop-file-dot" :class="'dot-' + formatIdForFile(file.name)"></span>
-              <span class="drop-file-name">{{ file.name }}</span>
-              <span class="drop-file-size">{{ FormattingService.formatBytes(file.size) }}</span>
-              <template v-if="uploadProgress[file.name]">
-                <div class="progress-track">
-                  <div
-                    class="progress-fill"
-                    :class="uploadProgress[file.name].status"
-                    :style="{ width: Math.min(uploadProgress[file.name].progress, 100) + '%' }"
-                  ></div>
-                </div>
-                <span class="progress-status" :class="'status-' + uploadProgress[file.name].status">
-                  <i
-                    v-if="uploadProgress[file.name].status === 'complete'"
-                    class="bi bi-check-circle"
-                  ></i>
-                  <i
-                    v-else-if="uploadProgress[file.name].status === 'error'"
-                    class="bi bi-exclamation-circle"
-                  ></i>
-                  <template v-else-if="uploadProgress[file.name].status === 'uploading'">
-                    {{ uploadProgress[file.name].progress }}%
-                  </template>
-                  <template v-else>Pending</template>
-                </span>
-                <button
-                  v-if="uploadProgress[file.name].status === 'error'"
-                  class="drop-file-remove"
-                  type="button"
-                  title="Dismiss"
-                  @click="removeFile(index)"
-                >
-                  <i class="bi bi-x"></i>
-                </button>
-              </template>
-            </div>
+        <div v-if="uploadFiles.length > 0" class="drop-files">
+          <div v-for="(file, index) in uploadFiles" :key="file.name + index" class="drop-file">
+            <span class="drop-file-dot" :class="'dot-' + formatIdForFile(file.name)"></span>
+            <span class="drop-file-name">{{ file.name }}</span>
+            <span class="drop-file-size">{{ FormattingService.formatBytes(file.size) }}</span>
+            <template v-if="uploadProgress[file.name]">
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  :class="uploadProgress[file.name].status"
+                  :style="{ width: Math.min(uploadProgress[file.name].progress, 100) + '%' }"
+                ></div>
+              </div>
+              <span class="progress-status" :class="'status-' + uploadProgress[file.name].status">
+                <i
+                  v-if="uploadProgress[file.name].status === 'complete'"
+                  class="bi bi-check-circle"
+                ></i>
+                <i
+                  v-else-if="uploadProgress[file.name].status === 'error'"
+                  class="bi bi-exclamation-circle"
+                ></i>
+                <template v-else-if="uploadProgress[file.name].status === 'uploading'">
+                  {{ uploadProgress[file.name].progress }}%
+                </template>
+                <template v-else>Pending</template>
+              </span>
+              <button
+                v-if="uploadProgress[file.name].status === 'error'"
+                class="drop-file-remove"
+                type="button"
+                title="Dismiss"
+                @click="removeFile(index)"
+              >
+                <i class="bi bi-x"></i>
+              </button>
+            </template>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Error -->
-      <div v-if="errorMessage" class="upload-error">
-        <i class="bi bi-exclamation-triangle-fill"></i>
-        {{ errorMessage }}
-      </div>
+    <!-- Error -->
+    <div v-if="errorMessage" class="upload-error">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      {{ errorMessage }}
+    </div>
 
-      <!-- 2. Group selector bar -->
-      <div v-if="allRecordings.length > 0 || allGroups.length > 0" class="group-bar">
+    <!-- 2. Recordings panel -->
+    <MainCard>
+      <!-- Group selector bar -->
+      <div class="group-bar">
         <span class="group-bar-label">Group</span>
         <button
           class="group-chip group-chip-all"
@@ -196,120 +180,116 @@
             <i class="bi bi-trash"></i>
           </span>
         </button>
+        <div class="page-search group-bar-search">
+          <i class="bi bi-search"></i>
+          <input v-model="searchText" type="text" placeholder="Search..." />
+        </div>
         <button class="new-group-btn" type="button" @click="showCreateGroupModal = true">
           <i class="bi bi-plus-lg"></i>
           New Group
         </button>
       </div>
 
-      <!-- 3. Type filter + unified recordings list -->
-      <EmptyState
-        v-if="allRecordings.length === 0 && allGroups.length === 0"
-        icon="bi-record-circle"
-        title="No recordings yet"
-        description="Drop a JFR, pprof or heap dump file above to get started"
-      />
-      <template v-else>
-        <!-- Type filter pills -->
-        <div class="type-filter">
-          <button
-            class="type-chip"
-            :class="{ active: typeFilter === 'all' }"
-            type="button"
-            @click="selectTypeFilter('all')"
-          >
-            All
-            <span class="type-count">{{ filteredRecordings.length }}</span>
-          </button>
-          <button
-            v-for="tf in TYPE_FILTERS"
-            :key="tf.key"
-            class="type-chip"
-            :class="[`type-chip--${tf.variant}`, { active: typeFilter === tf.key }]"
-            type="button"
-            @click="selectTypeFilter(tf.key)"
-          >
-            <i class="bi" :class="tf.icon"></i>
-            {{ tf.label }}
-            <span class="type-count">{{ typeCounts[tf.key] }}</span>
-          </button>
-        </div>
+      <!-- Type filter + unified recordings list -->
+      <!-- Type filter pills -->
+      <div class="type-filter">
+        <button
+          class="type-chip type-chip--all"
+          :class="{ active: typeFilter === 'all' }"
+          type="button"
+          @click="selectTypeFilter('all')"
+        >
+          <span class="type-ic">
+            <i class="bi bi-grid-fill"></i>
+          </span>
+          All
+          <span class="type-count">{{ filteredRecordings.length }}</span>
+        </button>
+        <button
+          v-for="tf in TYPE_FILTERS"
+          :key="tf.key"
+          class="type-chip"
+          :class="[`type-chip--${tf.format}`, { active: typeFilter === tf.key }]"
+          type="button"
+          @click="selectTypeFilter(tf.key)"
+        >
+          <span class="type-ic">
+            <i :class="FORMAT_ICON_BY_ID.get(tf.format)"></i>
+          </span>
+          {{ tf.label }}
+          <span class="type-count">{{ typeCounts[tf.key] }}</span>
+        </button>
+      </div>
 
-        <EmptyState
-          v-if="filteredRecordings.length === 0"
-          icon="bi-search"
-          title="No recordings match the current filter"
-        />
-        <EmptyState
-          v-else-if="visibleRecordings.length === 0"
-          icon="bi-funnel"
-          title="No recordings of this type in the current selection"
-        />
-        <div v-else class="recordings-split">
-          <section
-            v-for="column in recordingColumns"
-            :key="column.key"
-            class="rec-col"
-            :class="`rec-col--${column.key}`"
-          >
-            <div class="rec-col__head">
-              <span class="rec-col__dot" :class="`rec-col__dot--${column.key}`"></span>
-              {{ column.label }}
-              <span class="rec-col__count">{{ column.items.length }}</span>
-            </div>
-            <div v-if="column.items.length > 0" class="card-stack recordings-list">
-              <RecordingCard
-                v-for="recording in column.items"
-                :key="recording.id"
-                :recording-id="recording.id"
-                :name="recording.profileName ?? recording.filename"
-                :size-in-bytes="recording.sizeInBytes"
-                :duration-in-millis="recording.durationInMillis"
-                :uploaded-at="recording.uploadedAt"
-                :source-type="recording.eventSource"
-                :has-profile="recording.hasProfile"
-                :profile-id="recording.profileId"
-                :profile-size-in-bytes="recording.profileSizeInBytes"
-                :profile-created-at="recording.profileCreatedAt"
-                :profile-modified="recording.profileModified"
-                :analyzing="analyzingRecordings.has(recording.id)"
-                :init-progress="recording.initProgress"
-                :tick-now="tickNow"
-                :draggable="true"
-                :origin="buildOrigin(recording)"
-                :file-count="recording.files?.length ?? 0"
-                :expandable="(recording.files?.length ?? 0) > 1"
-                :expanded="expandedRecordings.has(recording.id)"
-                @click="handleCardClick(recording)"
-                @create-profile="analyzeRecording(recording.id)"
-                @open-profile="openProfile(recording)"
-                @edit-profile="startEditProfile(recording)"
-                @delete-profile="deleteProfileFromRecording(recording.id)"
-                @delete-recording="deleteRecording(recording.id)"
-                @toggle-expand="toggleRecordingFiles(recording.id)"
-                @dragend="onDragEnd"
-              >
-                <template #expanded-content>
-                  <RecordingFileGroupList
-                    v-if="recording.files && recording.files.length > 0"
-                    :recording-id="recording.id"
-                    :files="recording.files"
-                    @download="downloadFile"
-                  />
-                  <div v-else class="small py-1 text-muted">
-                    <i class="bi bi-exclamation-circle me-1"></i>
-                    No recording files available
-                  </div>
-                </template>
-              </RecordingCard>
-            </div>
-            <div v-else class="rec-col__empty">
-              <i class="bi" :class="column.emptyIcon"></i>
-              <span>{{ column.emptyText }}</span>
-            </div>
-          </section>
-        </div>
-      </template>
+      <EmptyState
+        v-if="searchText && filteredRecordings.length === 0"
+        icon="bi-search"
+        title="No recordings match the current filter"
+      />
+      <div v-else class="recordings-split">
+        <section
+          v-for="column in recordingColumns"
+          :key="column.key"
+          class="rec-col"
+          :class="`rec-col--${column.key}`"
+        >
+          <div class="rec-col__head">
+            <span class="rec-col__dot" :class="`rec-col__dot--${column.key}`"></span>
+            {{ column.label }}
+            <span class="rec-col__count">{{ column.items.length }}</span>
+          </div>
+          <div v-if="column.items.length > 0" class="card-stack recordings-list">
+            <RecordingCard
+              v-for="recording in column.items"
+              :key="recording.id"
+              :recording-id="recording.id"
+              :name="recording.profileName ?? recording.filename"
+              :size-in-bytes="recording.sizeInBytes"
+              :duration-in-millis="recording.durationInMillis"
+              :uploaded-at="recording.uploadedAt"
+              :source-type="recording.eventSource"
+              :has-profile="recording.hasProfile"
+              :profile-id="recording.profileId"
+              :profile-size-in-bytes="recording.profileSizeInBytes"
+              :profile-created-at="recording.profileCreatedAt"
+              :profile-modified="recording.profileModified"
+              :analyzing="analyzingRecordings.has(recording.id)"
+              :init-progress="recording.initProgress"
+              :tick-now="tickNow"
+              :draggable="true"
+              :origin="buildOrigin(recording)"
+              :file-count="recording.files?.length ?? 0"
+              :expandable="(recording.files?.length ?? 0) > 1"
+              :expanded="expandedRecordings.has(recording.id)"
+              @click="handleCardClick(recording)"
+              @create-profile="analyzeRecording(recording.id)"
+              @open-profile="openProfile(recording)"
+              @edit-profile="startEditProfile(recording)"
+              @delete-profile="deleteProfileFromRecording(recording.id)"
+              @delete-recording="deleteRecording(recording.id)"
+              @toggle-expand="toggleRecordingFiles(recording.id)"
+              @dragend="onDragEnd"
+            >
+              <template #expanded-content>
+                <RecordingFileGroupList
+                  v-if="recording.files && recording.files.length > 0"
+                  :recording-id="recording.id"
+                  :files="recording.files"
+                  @download="downloadFile"
+                />
+                <div v-else class="small py-1 text-muted">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  No recording files available
+                </div>
+              </template>
+            </RecordingCard>
+          </div>
+          <div v-else class="rec-col__empty">
+            <i class="bi" :class="column.emptyIcon"></i>
+            <span>{{ column.emptyText }}</span>
+          </div>
+        </section>
+      </div>
     </MainCard>
 
     <!-- Create Group modal -->
@@ -350,9 +330,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import RecordingsClient from '@hubs/services/api/RecordingsClient';
 import MainCard from '@shared/components/MainCard.vue';
-import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import RecordingCard from '@hubs/components/RecordingCard.vue';
-import Badge from '@shared/components/Badge.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
@@ -361,7 +339,6 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
-import type { Variant } from '@shared/types/ui';
 import { isInitializing } from '@hubs/components/profileInitChips';
 import {
   HEAP_DUMP_SOURCE,
@@ -372,12 +349,11 @@ import {
 
 const UNGROUPED_KEY = '__ungrouped__';
 
-/** One recording format Jeffrey can parse: a lane in the drop zone and a colour on every file row. */
+/** One recording format Jeffrey can parse: a pill in the drop zone and a colour on every file row. */
 interface RecordingFormat {
   id: string;
   label: string;
   icon: string;
-  variant: Variant;
   extensions: string[];
 }
 
@@ -386,28 +362,24 @@ const RECORDING_FORMATS: RecordingFormat[] = [
     id: 'jfr',
     label: 'JFR',
     icon: 'bi bi-activity',
-    variant: 'indigo',
     extensions: ['.jfr', '.jfr.lz4']
   },
   {
     id: 'pprof',
     label: 'pprof',
     icon: 'bi bi-bar-chart-fill',
-    variant: 'teal',
     extensions: ['.pprof', '.pb.gz']
   },
   {
     id: 'otlp',
     label: 'OpenTelemetry',
     icon: 'bi bi-broadcast',
-    variant: 'orange',
     extensions: ['.otlp']
   },
   {
     id: 'heap',
     label: 'Heap dump',
     icon: 'bi bi-pie-chart-fill',
-    variant: 'purple',
     extensions: ['.hprof', '.hprof.gz']
   }
 ];
@@ -422,7 +394,7 @@ const FILE_INPUT_ACCEPT = [
   ...new Set(ALLOWED_FILE_SUFFIXES.map(suffix => suffix.slice(suffix.lastIndexOf('.'))))
 ].join(',');
 
-/** Dot colour for a file that survived validation but matches no lane — defensive only. */
+/** Dot colour for a file that survived validation but matches no format — defensive only. */
 const UNKNOWN_FORMAT_ID = 'unknown';
 
 /** `DataTransfer.types` entry that marks a drag carrying files rather than a recording card. */
@@ -644,11 +616,11 @@ const uploadStatusLine = computed<string>(() => {
 });
 
 const browseButtonLabel = computed<string>(() => {
-  return uploadFiles.value.length > 0 ? 'Add more' : 'Browse files…';
+  return uploadFiles.value.length > 0 ? 'Add more files' : 'Browse files';
 });
 
-const browseButtonIcon = computed<string>(() => {
-  return uploadFiles.value.length > 0 ? 'bi bi-plus-lg' : 'bi bi-folder2-open';
+const browseLinkLabel = computed<string>(() => {
+  return uploadFiles.value.length > 0 ? 'add more from your computer' : 'browse your computer';
 });
 
 const filteredRecordings = computed<Recording[]>(() => {
@@ -748,8 +720,11 @@ const recordingColumns = computed<RecordingColumn[]>(() => {
       key: 'raw',
       label: 'Not initialized',
       items: notInitialized,
-      emptyIcon: 'bi-check2-all',
-      emptyText: 'All recordings here are initialized'
+      emptyIcon: visibleRecordings.value.length === 0 ? 'bi-inbox' : 'bi-check2-all',
+      emptyText:
+        visibleRecordings.value.length === 0
+          ? 'No recordings yet — drop a file above'
+          : 'All recordings here are initialized'
     },
     {
       key: 'initialized',
@@ -761,11 +736,14 @@ const recordingColumns = computed<RecordingColumn[]>(() => {
   ];
 });
 
-const TYPE_FILTERS: { key: RecordingType; label: string; icon: string; variant: string }[] = [
-  { key: 'JFR', label: 'JFR', icon: 'bi-activity', variant: 'indigo' },
-  { key: 'PPROF', label: 'pprof', icon: 'bi-fire', variant: 'teal' },
-  { key: 'OTLP', label: 'OpenTelemetry', icon: 'bi-box', variant: 'orange' },
-  { key: 'HEAP', label: 'Heap Dumps', icon: 'bi-pie-chart-fill', variant: 'purple' }
+// Type filters wear the drop zone's format icons, so a format looks the same wherever it appears.
+const FORMAT_ICON_BY_ID = new Map(RECORDING_FORMATS.map(format => [format.id, format.icon]));
+
+const TYPE_FILTERS: { key: RecordingType; label: string; format: string }[] = [
+  { key: 'JFR', label: 'JFR', format: 'jfr' },
+  { key: 'PPROF', label: 'pprof', format: 'pprof' },
+  { key: 'OTLP', label: 'OpenTelemetry', format: 'otlp' },
+  { key: 'HEAP', label: 'Heap Dumps', format: 'heap' }
 ];
 
 const selectTypeFilter = (type: TypeFilter) => {
@@ -1223,30 +1201,37 @@ const onDragEnd = () => {
 
 /* ============ Upload section ============ */
 .upload-section {
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border-light);
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-4);
 }
 
 .drop-zone {
-  padding: 18px 20px;
-  background: var(--color-light);
-  border: 1.5px dashed var(--color-border-input);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 24px 22px;
+  text-align: center;
+  background-color: var(--color-white);
+  background-image: radial-gradient(var(--color-border-input) 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   transition:
-    background var(--transition-base),
+    background-color var(--transition-base),
     border-color var(--transition-base),
     box-shadow var(--transition-base);
 }
 
-.drop-zone:hover,
-.drop-zone.drag-over {
-  border-color: var(--color-primary);
-  background: var(--color-primary-lighter);
+.drop-zone:hover {
+  border-color: var(--color-primary-border-light);
 }
 
 .drop-zone.drag-over {
-  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  background-color: var(--color-indigo-lightest);
+  background-image: radial-gradient(var(--color-indigo-accent) 1px, transparent 1px);
   box-shadow: 0 0 0 4px var(--color-primary-light);
 }
 
@@ -1254,16 +1239,104 @@ const onDragEnd = () => {
   display: none;
 }
 
-.drop-head {
-  display: flex;
+.drop-target-group {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 
-.drop-body {
-  flex: 1;
-  min-width: 0;
+.drop-target-group strong {
+  color: var(--color-dark);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ============ Upload target ============ */
+.drop-target {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 4px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.drop-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--color-primary-border-light);
+  border-radius: var(--radius-circle);
+}
+
+.drop-ring-outer {
+  inset: -14px;
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.drop-core {
+  position: relative;
+  z-index: 1;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-circle);
+  background: var(--color-white);
+  border: 1px solid var(--color-primary-border-light);
+  color: var(--color-primary);
+  font-size: var(--font-size-xxl);
+  box-shadow: var(--shadow-md);
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    transform var(--transition-base);
+}
+
+.drop-target:hover .drop-core,
+.drop-target:focus-visible .drop-core {
+  border-color: var(--color-primary);
+}
+
+.drop-zone.drag-over .drop-core {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+  transform: scale(1.08);
+}
+
+.drop-zone.drag-over .drop-ring {
+  border-color: var(--color-primary);
+  animation: drop-ripple 1.4s ease-out infinite;
+}
+
+.drop-zone.drag-over .drop-ring-outer {
+  animation-delay: 0.5s;
+}
+
+@keyframes drop-ripple {
+  from {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-zone.drag-over .drop-ring {
+    animation: none;
+  }
 }
 
 .drop-title {
@@ -1274,130 +1347,80 @@ const onDragEnd = () => {
 
 .drop-hint {
   font-size: var(--font-size-base);
-  color: var(--color-text-muted);
-  margin-top: 2px;
+  color: var(--color-text);
 }
 
-.drop-hint strong {
-  color: var(--color-dark);
-  font-weight: var(--font-weight-semibold);
+.drop-browse {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
-.browse-btn {
-  flex-shrink: 0;
+.drop-browse:hover {
+  color: var(--color-primary-hover);
+}
+
+/* ============ Format pills (one per parser) ============ */
+.drop-formats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.format-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 12px 6px 6px;
   background: var(--color-white);
-  border: 1px solid var(--color-border-input);
-  color: var(--color-primary);
-  font-size: var(--font-size-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  padding: 8px 14px;
-  border-radius: var(--radius-base);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.browse-btn:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
-/* ============ Format lanes (one per parser) ============ */
-.drop-lanes {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.lane {
-  background: var(--color-white);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  padding: 11px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  transition:
-    border-color var(--transition-base),
-    box-shadow var(--transition-base),
-    transform var(--transition-base);
-}
-
-.drop-zone.drag-over .lane {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-light);
-  transform: translateY(-2px);
-}
-
-.lane-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.lane-ic {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-base);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-white);
-  font-size: var(--font-size-base);
-  flex-shrink: 0;
-}
-
-.lane-name {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
   color: var(--color-dark);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.lane-ext {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+.format-ic {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-white);
+  font-size: var(--font-size-xs);
 }
 
-.lane-jfr .lane-ic {
+.format-ext {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.format-jfr .format-ic {
   background: var(--color-primary);
 }
 
-.lane-pprof .lane-ic {
+.format-pprof .format-ic {
   background: var(--color-teal);
 }
 
-.lane-otlp .lane-ic {
+.format-otlp .format-ic {
   background: var(--color-orange);
 }
 
-.lane-heap .lane-ic {
+.format-heap .format-ic {
   background: var(--color-purple);
 }
 
-/* ============ Legend (replaces the lanes while files are moving) ============ */
-.drop-legend {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-dot,
 .drop-file-dot {
   width: 8px;
   height: 8px;
@@ -1424,9 +1447,13 @@ const onDragEnd = () => {
 
 /* ============ Files (auto-uploading, inside the drop zone) ============ */
 .drop-files {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--color-border-input);
+  align-self: stretch;
+  margin-top: 8px;
+  padding: 6px;
+  text-align: left;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1544,7 +1571,7 @@ const onDragEnd = () => {
 
 /* ============ Error ============ */
 .upload-error {
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-4);
   padding: 8px 12px;
   background: var(--color-danger-bg-lighter);
   border: 1px solid var(--color-danger-border-light);
@@ -1698,8 +1725,11 @@ const onDragEnd = () => {
   color: var(--color-text-muted);
   cursor: pointer;
   font-family: inherit;
-  margin-left: auto;
   transition: all var(--transition-base);
+}
+
+.group-bar-search {
+  margin-left: auto;
 }
 
 .new-group-btn:hover {
@@ -1715,65 +1745,85 @@ const onDragEnd = () => {
   margin: 12px 0 14px;
 }
 
+/* Same shape as the drop zone's format pills; the active one takes its format's soft tint */
 .type-chip {
+  --type-solid: var(--color-dark-bg);
+  --type-soft: var(--color-lighter);
+  --type-text: var(--color-dark);
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 5px 10px 5px 5px;
   border-radius: var(--radius-base);
   background: var(--color-white);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-dark);
   cursor: pointer;
   font-family: inherit;
   transition: all var(--transition-base);
 }
 
-.type-chip:hover {
-  color: var(--color-text);
+.type-chip--jfr {
+  --type-solid: var(--color-primary);
+  --type-soft: var(--color-indigo-bg);
+  --type-text: var(--color-indigo-text);
 }
 
-.type-chip i {
-  font-size: 0.85rem;
+.type-chip--pprof {
+  --type-solid: var(--color-teal);
+  --type-soft: var(--color-teal-bg);
+  --type-text: var(--color-teal-text);
+}
+
+.type-chip--otlp {
+  --type-solid: var(--color-orange);
+  --type-soft: var(--color-orange-bg);
+  --type-text: var(--color-orange-text);
+}
+
+.type-chip--heap {
+  --type-solid: var(--color-purple);
+  --type-soft: var(--color-purple-bg);
+  --type-text: var(--color-purple-text);
+}
+
+.type-chip:hover {
+  border-color: var(--type-solid);
+}
+
+.type-ic {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--type-solid);
+  color: var(--color-white);
+  font-size: var(--font-size-xs);
 }
 
 .type-count {
   font-variant-numeric: tabular-nums;
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  padding: 0 6px;
-  border-radius: var(--radius-base);
-  background: var(--color-light);
-  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-lighter);
+  color: var(--color-text);
 }
 
-/* Active: "All" is neutral (dark), each type adopts its format hue */
 .type-chip.active {
-  color: var(--color-white);
-  background: var(--color-text);
-  border-color: var(--color-text);
+  background: var(--type-soft);
+  border-color: var(--type-solid);
+  color: var(--type-text);
 }
 
 .type-chip.active .type-count {
   background: var(--color-white);
-  color: var(--color-text);
-}
-
-.type-chip--indigo.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.type-chip--teal.active {
-  background: var(--color-teal);
-  border-color: var(--color-teal);
-}
-
-.type-chip--purple.active {
-  background: var(--color-purple);
-  border-color: var(--color-purple);
+  color: var(--type-text);
 }
 
 .card-stack {
