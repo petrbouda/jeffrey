@@ -94,17 +94,17 @@ const displayedTime = computed(() =>
   showsInitializedTime.value ? props.profileCreatedAt! : props.uploadedAt
 );
 
-// The recording's format drives its icon, colored type tag, and left-border accent so JFR, pprof,
+// The recording's format drives its icon (the same one the Recordings drop zone shows), colored type tag, and left-border accent so JFR, pprof,
 // OTLP and heap-dump recordings are visually distinct at a glance.
 const iconClass = computed(() => {
   if (props.sourceType === SOURCE_HEAP_DUMP) {
     return 'bi bi-pie-chart-fill';
   }
   if (props.sourceType === SOURCE_PPROF) {
-    return 'bi bi-fire';
+    return 'bi bi-bar-chart-fill';
   }
   if (props.sourceType === SOURCE_OTEL) {
-    return 'bi bi-box';
+    return 'bi bi-broadcast';
   }
   return 'bi bi-activity';
 });
@@ -480,6 +480,7 @@ onBeforeUnmount(() => {
 .rec-card--heap-dump .rec-card__icon,
 .rec-card--heap-dump.rec-card--analyzed .rec-card__icon {
   color: var(--color-purple);
+  background: var(--color-purple-bg);
 }
 
 .rec-card--heap-dump.rec-card--analyzed .rec-card__profile-info {
@@ -527,6 +528,7 @@ onBeforeUnmount(() => {
 .rec-card--pprof .rec-card__icon,
 .rec-card--pprof.rec-card--analyzed .rec-card__icon {
   color: var(--color-teal);
+  background: var(--color-teal-bg);
 }
 
 .rec-card--pprof.rec-card--analyzed .rec-card__profile-info {
@@ -574,6 +576,7 @@ onBeforeUnmount(() => {
 .rec-card--otel .rec-card__icon,
 .rec-card--otel.rec-card--analyzed .rec-card__icon {
   color: var(--color-orange);
+  background: var(--color-orange-bg);
 }
 
 .rec-card--otel.rec-card--analyzed .rec-card__profile-info {
@@ -641,8 +644,15 @@ onBeforeUnmount(() => {
   margin-bottom: 4px;
 }
 
+/* Soft tinted square, the same icon the drop zone and the type filters use */
 .rec-card__icon {
-  font-size: 1.05rem;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-indigo-bg);
+  font-size: var(--font-size-sm);
   color: var(--color-primary);
   flex-shrink: 0;
 }
@@ -706,7 +716,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding-left: 26px;
+  padding-left: 32px;
 }
 
 /* Right: actions */

@@ -20,7 +20,6 @@
       "@/*": ["./src/*"],
       "@shared/*": ["../../shared/ui/common/src/*"],
       "@hubs/*": ["../ui-hubs/ui/*"],
-      "@instances/*": ["../ui-instances/src/*"],
       // bootstrap ships untyped; before the catch-all below, its specifier must land on the
       // @types package rather than on the untyped dist bundle.
       "bootstrap": ["./node_modules/@types/bootstrap"],

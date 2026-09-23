@@ -389,6 +389,7 @@ describe('useProfilerConfig', () => {
     /**
      * The chips and the command are two independent implementations of the same
      * assembly and they order the options differently, so they are compared as sets.
+     * The library chip is the `-agentpath:` prefix, not an option, so it is compared apart.
      */
     it('describes the same option set as the generated command', () => {
       const { config, optionStates, builderTokens, generateFromBuilder } =
@@ -414,16 +415,23 @@ describe('useProfilerConfig', () => {
       optionStates.value.chunksize = true;
       optionStates.value.chunktime = true;
 
-      const fromChips = builderTokens.value.flatMap(token => token.value.split(','));
-      expect(new Set(fromChips)).toEqual(new Set(partsOf(generateFromBuilder())));
+      const fromChips = builderTokens.value
+        .filter(token => token.key !== 'library')
+        .flatMap(token => token.value.split(','));
+      const command = generateFromBuilder();
+      expect(command.startsWith(`-agentpath:${AGENT}=`)).toBe(true);
+      const options = command.slice(`-agentpath:${AGENT}=`.length);
+      expect(new Set(fromChips)).toEqual(new Set(partsOf(options)));
     });
 
-    it('reports the typed agent path rather than a placeholder', () => {
+    it('reports the typed library path rather than a placeholder, ahead of the action', () => {
       const { config, builderTokens } = useCustomProfilerConfig();
       config.value.agentPathCustom = AGENT;
 
-      const agent = builderTokens.value.find(token => token.key === 'agent');
-      expect(agent?.value).toBe(`-agentpath:${AGENT}=start`);
+      expect(builderTokens.value.slice(0, 2)).toEqual([
+        { key: 'library', label: 'Library', value: AGENT },
+        { key: 'action', label: 'Action', value: 'start' }
+      ]);
     });
   });
 
@@ -448,10 +456,15 @@ describe('useProfilerConfig', () => {
       expect(generateFromBuilder()).toContain(`file=${JEFFREY_SESSION_OUTPUT_FILE}`);
     });
 
-    it('reports the bare start option as the agent chip', () => {
+    it('reports the bare start as the action chip, with no library chip', () => {
       const { builderTokens } = useProfilerConfig();
 
-      expect(builderTokens.value.find(token => token.key === 'agent')?.value).toBe('start');
+      expect(builderTokens.value.find(token => token.key === 'action')).toEqual({
+        key: 'action',
+        label: 'Action',
+        value: 'start'
+      });
+      expect(builderTokens.value.find(token => token.key === 'library')).toBeUndefined();
     });
   });
 

@@ -29,10 +29,6 @@ export default defineConfig({
     // disturbing subpath imports.
     alias: [
       {
-        find: '@instances',
-        replacement: fileURLToPath(new URL('../ui-instances/src', import.meta.url))
-      },
-      {
         find: '@hubs',
         replacement: fileURLToPath(new URL('../ui-hubs/ui', import.meta.url))
       },

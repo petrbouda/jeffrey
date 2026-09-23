@@ -120,19 +120,19 @@ const router = createRouter({
                 {
                   path: 'instances',
                   name: 'project-instances-overview',
-                  component: () => import('@instances/InstancesOverview.vue'),
+                  component: () => import('@/views/projects/instances/InstancesOverview.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'instances/timeline',
                   name: 'project-instances-timeline',
-                  component: () => import('@instances/InstancesTimeline.vue'),
+                  component: () => import('@/views/projects/instances/InstancesTimeline.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'instances/:instanceId',
                   name: 'project-instance-detail',
-                  component: () => import('@instances/InstanceDetail.vue'),
+                  component: () => import('@/views/projects/instances/InstanceDetail.vue'),
                   meta: { layout: 'project' }
                 }
               ]

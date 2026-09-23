@@ -17,86 +17,6 @@
 
 <template>
   <div class="command-builder pt-3">
-    <div class="step-header">
-      <div class="step-header-status header-primary clickable-header" @click="toggleHelp">
-        <div class="step-type-info">
-          <i class="bi bi-ui-checks-grid"></i>
-          <span>ASYNC-PROFILER AGENT BUILDER</span>
-          <span class="header-description"
-            >Open to get more information about Async-Profiler Agent Configuration</span
-          >
-        </div>
-        <div class="help-toggle">
-          <i :class="isHelpExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
-        </div>
-      </div>
-
-      <!-- Collapsible Help Section -->
-      <div v-if="isHelpExpanded" class="step-header-content">
-        <div class="help-content">
-          <h4>AsyncProfiler Documentation & Resources</h4>
-          <p>
-            Learn more about AsyncProfiler configuration and profiling techniques from the official
-            documentation:
-          </p>
-
-          <div class="help-sections">
-            <a
-              href="https://github.com/async-profiler/async-profiler/blob/master/docs/ProfilingModes.md"
-              target="_blank"
-              class="help-section help-link-card clickable-card"
-            >
-              <h5><i class="bi bi-book"></i> Profiling Modes</h5>
-              <p>Information about profiling modes</p>
-              <div class="source-type">
-                <i class="bi bi-file-text"></i>
-                <span>Documentation</span>
-              </div>
-            </a>
-
-            <a
-              href="https://github.com/async-profiler/async-profiler/blob/master/docs/ProfilerOptions.md"
-              target="_blank"
-              class="help-section help-link-card clickable-card"
-            >
-              <h5><i class="bi bi-gear"></i> Profiler Options</h5>
-              <p>Information about Profiling Options</p>
-              <div class="source-type">
-                <i class="bi bi-file-text"></i>
-                <span>Documentation</span>
-              </div>
-            </a>
-
-            <a
-              href="https://github.com/async-profiler/async-profiler/pull/1435"
-              target="_blank"
-              class="help-section help-link-card clickable-card"
-            >
-              <h5><i class="bi bi-search"></i> Method Tracing Instrumentation</h5>
-              <p>Information about Instrumentation for Method Tracing</p>
-              <div class="source-type">
-                <i class="bi bi-git"></i>
-                <span>Pull Request</span>
-              </div>
-            </a>
-
-            <a
-              href="https://github.com/async-profiler/async-profiler/discussions/1497"
-              target="_blank"
-              class="help-section help-link-card clickable-card"
-            >
-              <h5><i class="bi bi-chat-dots"></i> Method Tracing Blog</h5>
-              <p>Blog about Method Tracing</p>
-              <div class="source-type">
-                <i class="bi bi-chat-square-text"></i>
-                <span>Discussion</span>
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Builder and Live Command Layout -->
     <div class="builder-and-command-layout">
       <!-- Configuration Builder Panel -->
@@ -110,30 +30,26 @@
                 <h6 class="section-title">Mandatory Options</h6>
               </div>
               <div class="config-cards-stack">
-                <!-- Async-profiler Card -->
+                <!-- Async-profiler library Card -->
                 <ConfigCard
-                  title="Async-profiler"
-                  subtitle="Which library the command runs on"
-                  icon="bi-folder-fill"
+                  title="Async-profiler Library"
+                  subtitle="Which build of async-profiler the command runs on"
+                  icon="bi-box-seam"
                   card-type="required"
                   :is-enabled="true"
-                  color-theme="blue"
+                  color-theme="yellow"
                   :collapsible="true"
-                  :is-expanded="mandatoryPanelsExpanded.agentPath"
+                  :is-expanded="mandatoryPanelsExpanded.library"
                   @toggle-collapse="
-                    mandatoryPanelsExpanded.agentPath = !mandatoryPanelsExpanded.agentPath
+                    mandatoryPanelsExpanded.library = !mandatoryPanelsExpanded.library
                   "
                 >
                   <div class="interval-block">
-                    <SegmentedSwitch
+                    <ChoiceTiles
                       v-model="config.profilerSource"
                       :options="profilerSourceOptions"
                       group-label="Async-profiler library"
                     />
-                    <div v-if="config.profilerSource === 'jeffrey-jib'" class="form-help">
-                      Jeffrey Provisioner runs the options on the Async-profiler that Jeffrey JIB
-                      baked into the image. Nothing else to configure.
-                    </div>
                   </div>
                   <div v-if="config.profilerSource === 'custom'" class="interval-block">
                     <label class="interval-label" for="profilerPath">Profiler Path</label>
@@ -141,7 +57,7 @@
                       id="profilerPath"
                       v-model="config.agentPathCustom"
                       type="text"
-                      class="form-control"
+                      class="form-control library-path-input"
                       :placeholder="DEFAULT_AGENT_PATH"
                     />
                     <div class="form-help">
@@ -838,16 +754,15 @@ import { DEFAULT_AGENT_PATH } from '@/types/profiler';
 import type { ProfilerSource } from '@/types/profiler';
 import { formatCommand } from '@/composables/profilerCommandFormat';
 import type { CommandFormat } from '@/composables/profilerCommandFormat';
+import ChoiceTiles from '@shared/components/ChoiceTiles.vue';
+import type { ChoiceTileOption } from '@shared/components/ChoiceTiles.vue';
 import SegmentedSwitch from '@shared/components/SegmentedSwitch.vue';
 import type { SegmentedOption } from '@shared/components/SegmentedSwitch.vue';
 import ToastService from '@shared/services/ToastService';
 
-// Help section state
-const isHelpExpanded = ref(false);
-
 // Mandatory panels collapse state (collapsed by default since defaults should be used in most cases)
 const mandatoryPanelsExpanded = ref({
-  agentPath: true,
+  library: true,
   outputFile: false,
   loopDuration: false
 });
@@ -872,29 +787,32 @@ watch(newMethodPattern, () => {
   newMethodError.value = null;
 });
 
-const profilerSourceOptions: SegmentedOption<ProfilerSource>[] = [
+const profilerSourceOptions: ChoiceTileOption<ProfilerSource>[] = [
   {
     id: 'jeffrey-jib',
     label: 'Jeffrey JIB',
-    title: 'The Async-profiler baked into the image by Jeffrey JIB'
+    description: 'Baked into the image by Jeffrey JIB. Nothing else to configure.',
+    icon: 'box-seam',
+    badge: 'Recommended'
   },
   {
     id: 'custom',
-    label: 'Custom Profiler',
-    title: 'Your own libasyncProfiler.so, named in the command'
+    label: 'Custom profiler',
+    description: 'Your own libasyncProfiler.so, named in the command as \u2011agentpath.',
+    icon: 'folder2-open',
+    tone: 'warning'
   }
 ];
 
 // How the Live Command panel hands the command over
 const commandFormat = ref<CommandFormat>('env');
 
+const isJeffreyJib = computed((): boolean => config.value.profilerSource === 'jeffrey-jib');
+
 const commandFormatOptions = computed((): SegmentedOption<CommandFormat>[] => [
   { id: 'env', label: 'ENV var' },
   { id: 'hocon', label: 'HOCON' },
-  {
-    id: 'raw',
-    label: config.value.profilerSource === 'jeffrey-jib' ? 'Options' : 'JVM argument'
-  }
+  { id: 'raw', label: isJeffreyJib.value ? 'Options' : 'JVM argument' }
 ]);
 
 const COMMAND_FORMAT_HINTS: Record<CommandFormat, string> = {
@@ -907,7 +825,7 @@ const commandFormatHint = computed((): string => {
   if (commandFormat.value !== 'raw') {
     return COMMAND_FORMAT_HINTS[commandFormat.value];
   }
-  return config.value.profilerSource === 'jeffrey-jib'
+  return isJeffreyJib.value
     ? 'Options only, run on the Async-profiler Jeffrey JIB baked in'
     : 'Paste into the JVM arguments of an application you start yourself';
 });
@@ -954,11 +872,6 @@ const copyToClipboard = async () => {
       ToastService.error('Copy Failed', 'Failed to copy command to clipboard.');
     }
   }
-};
-
-// Toggle help section
-const toggleHelp = () => {
-  isHelpExpanded.value = !isHelpExpanded.value;
 };
 
 // Check if chunk size warning should be shown
@@ -1031,19 +944,6 @@ generateConfig();
   width: 100%;
 }
 
-/* Step Header Styling - Matching HubsView */
-.step-header {
-  background: var(--color-white);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 24px;
-}
-
 .step-header-status {
   height: 32px;
   display: flex;
@@ -1056,28 +956,6 @@ generateConfig();
   letter-spacing: 0.5px;
   color: white;
   transition: all 0.2s ease;
-}
-
-.step-header-status.clickable-header {
-  cursor: pointer;
-  user-select: none;
-}
-
-.step-header-status.clickable-header:hover {
-  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary-hover));
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
-}
-
-.header-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-}
-
-.header-secondary {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
-}
-
-.header-tertiary {
-  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
 }
 
 .header-warning {
@@ -1103,122 +981,6 @@ generateConfig();
   letter-spacing: 0.3px;
 }
 
-.help-toggle {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  transition: transform 0.2s ease;
-  pointer-events: none;
-}
-
-.help-toggle i {
-  transition: transform 0.2s ease;
-  font-size: 10px;
-}
-
-/* Help Content Styling */
-.help-content {
-  padding: 20px 0;
-}
-
-.help-content h4 {
-  color: var(--color-dark);
-  font-weight: 700;
-  margin-bottom: 12px;
-  font-size: 1.1rem;
-}
-
-.help-content p {
-  color: var(--color-text-muted);
-  margin-bottom: 16px;
-  line-height: 1.5;
-}
-
-.help-sections {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-}
-
-.help-section {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(94, 100, 255, 0.1);
-  border-radius: 8px;
-  padding: 16px;
-  position: relative;
-  padding-bottom: 40px;
-}
-
-.help-section h5 {
-  color: var(--color-text);
-  font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.help-section h5 i {
-  color: var(--color-primary);
-}
-
-.help-section p {
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.help-section code {
-  background: rgba(94, 100, 255, 0.1);
-  color: var(--color-primary);
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-size: 0.8rem;
-}
-
-/* Help Link Cards */
-.help-link-card {
-  transition: all 0.2s ease;
-}
-
-.clickable-card {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-  display: block;
-}
-
-.clickable-card:hover {
-  text-decoration: none;
-  color: inherit;
-  border-color: rgba(94, 100, 255, 0.25);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.15);
-}
-
-.clickable-card:hover h5 {
-  color: var(--color-primary);
-}
-
-/* Source Type Indicator */
-.source-type {
-  position: absolute;
-  bottom: 12px;
-  left: 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
-
-.source-type i {
-  color: var(--color-text-light);
-  font-size: 0.7rem;
-}
-
 /* Custom JFC Mode Option Styling */
 .custom-option-label {
   font-style: italic;
@@ -1226,189 +988,10 @@ generateConfig();
   opacity: 0.8;
 }
 
-.help-hint-text {
-  font-weight: 400;
-  font-style: italic;
-  opacity: 0.8;
-  font-size: 9px;
-  margin-left: 6px;
-  letter-spacing: 0.3px;
-}
-
-.step-header-content {
-  padding: 20px 24px;
-}
-
-.step-header-title-row {
-  margin-bottom: 8px;
-}
-
-.help-panel-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, var(--color-blue-bg-light), var(--color-blue-bg-lighter));
-  border: 1px solid rgba(94, 100, 255, 0.2);
-  border-radius: 6px;
-  color: var(--color-primary);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none;
-}
-
-.help-panel-toggle:hover {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.25);
-}
-
-.help-panel-toggle i {
-  font-size: 0.8rem;
-}
-
-.step-header-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-dark);
-  margin: 0 0 8px 0;
-  letter-spacing: -0.02em;
-}
-
-.step-header-description {
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-}
-
-/* Help Section Styling */
-.help-section {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-border);
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.help-content {
-  background: linear-gradient(135deg, var(--color-blue-bg-light), var(--color-blue-bg-lighter));
-  border: 1px solid rgba(94, 100, 255, 0.1);
-  border-radius: 12px;
-  padding: 24px;
-}
-
-.help-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-dark);
-  margin: 0 0 16px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.help-title i {
-  color: var(--color-amber);
-  font-size: 1.2rem;
-}
-
-.help-text {
-  color: var(--color-text);
-  line-height: 1.6;
-}
-
-.help-text p {
-  margin-bottom: 20px;
-  font-size: 0.9rem;
-}
-
-.help-categories {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.help-category {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(94, 100, 255, 0.1);
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.2s ease;
-}
-
-.help-category:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
-}
-
-.help-category h6 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin: 0 0 8px 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.help-category h6 i {
-  color: var(--color-primary);
-  font-size: 0.9rem;
-}
-
-.help-category p {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.help-tips {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.help-tip {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 16px;
-  background: rgba(16, 185, 129, 0.05);
-  border: 1px solid rgba(16, 185, 129, 0.1);
-  border-radius: 8px;
-  font-size: 0.85rem;
-}
-
-.help-tip i {
-  color: var(--color-success);
-  font-size: 0.9rem;
-  margin-top: 1px;
-  flex-shrink: 0;
-}
-
-.help-tip span {
-  color: var(--color-text);
-  line-height: 1.4;
-}
-
 /* Builder and Live Command Layout */
 .builder-and-command-layout {
   display: flex;
   gap: 24px;
-  margin-top: 24px;
 }
 
 .configuration-section {
@@ -1700,6 +1283,33 @@ generateConfig();
   cursor: not-allowed;
 }
 
+/* The custom library path reads as a path */
+.library-path-input {
+  font-family: var(--font-family-monospace);
+  font-size: 0.8rem;
+}
+
+/* Step Header Styling - Matching HubsView */
+.step-header {
+  background: var(--color-white);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 24px;
+}
+
+.header-secondary {
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
+}
+
+.step-header-content {
+  padding: 20px 24px;
+}
+
 /* Token Chip Styling */
 .token-summary {
   margin-bottom: 16px;
@@ -1856,10 +1466,6 @@ generateConfig();
 
   .live-command-panel {
     flex: 1 1 auto;
-  }
-
-  .live-command-panel .config-output {
-    position: static;
   }
 }
 

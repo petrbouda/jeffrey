@@ -53,7 +53,8 @@ onMounted(() => {
         <a href="https://github.com/async-profiler/async-profiler" target="_blank" rel="noopener">Async-Profiler</a>
         agent command: which events to capture, sampling rates, output layout and the JFR-specific options. It is a
         top-level page in Microscope, next to Recordings and Hubs, and it does one thing — you build a command and
-        copy it. Nothing is saved.
+        copy it. Nothing is saved. Links in the page header lead to the async-profiler documentation on profiling
+        modes, profiler options and method tracing.
       </p>
       <p>
         Paste the result into the JVM you want to profile, then bring the recording it produces back into Microscope
@@ -88,12 +89,13 @@ onMounted(() => {
         <div class="option-item">
           <div class="option-header">
             <i class="bi bi-folder2-open"></i>
-            <strong>Async-profiler</strong>
+            <strong>Async-profiler library</strong>
           </div>
           <p>
-            Which library the command runs on. <strong>Jeffrey JIB</strong> (the default) needs nothing else: the
+            Which library the command runs on, picked from two tiles. <strong>Jeffrey JIB</strong> (the default,
+            marked Recommended) needs nothing else: the
             command carries only the options, and Jeffrey Provisioner runs them on the Async-profiler baked into the
-            image. <strong>Custom Profiler</strong> asks for the path to your own <code>libasyncProfiler.so</code>,
+            image. <strong>Custom profiler</strong> asks for the path to your own <code>libasyncProfiler.so</code>,
             which goes into the command as <code>-agentpath:&lt;path&gt;=</code>.
           </p>
         </div>
@@ -225,7 +227,7 @@ onMounted(() => {
           <code>&lt;&lt;JEFFREY:…&gt;&gt;</code> or <code>%t</code>.</li>
         <li><strong>HOCON</strong> &mdash; <code>profiler-command = "…"</code>, for the provisioner's configuration
           file.</li>
-        <li><strong>Options</strong> (Jeffrey JIB) or <strong>JVM argument</strong> (Custom Profiler) &mdash; the bare
+        <li><strong>Options</strong> (Jeffrey JIB) or <strong>JVM argument</strong> (Custom profiler) &mdash; the bare
           command. With a custom profiler that is the whole <code>-agentpath:</code> argument, ready to paste into the
           JVM arguments of an application you start yourself.</li>
       </ul>
