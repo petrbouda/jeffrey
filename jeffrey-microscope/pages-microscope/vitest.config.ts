@@ -35,10 +35,6 @@ export default defineConfig({
     // fails to resolve rather than fails an assertion.
     alias: [
       {
-        find: '@instances',
-        replacement: fileURLToPath(new URL('../ui-instances/src', import.meta.url))
-      },
-      {
         find: '@hubs',
         replacement: fileURLToPath(new URL('../ui-hubs/ui', import.meta.url))
       },
@@ -70,8 +66,7 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.ts',
       '../../shared/ui/**/*.{test,spec}.ts',
-      '../ui-hubs/**/*.{test,spec}.ts',
-      '../ui-instances/**/*.{test,spec}.ts'
+      '../ui-hubs/**/*.{test,spec}.ts'
     ],
     globals: true,
     environment: 'node'

@@ -3,7 +3,6 @@ paths:
   - "**/*.vue"
   - "jeffrey-microscope/pages-microscope/**/*.ts"
   - "jeffrey-microscope/ui-hubs/**"
-  - "jeffrey-microscope/ui-instances/**"
   - "jeffrey-hub/pages-hub/**"
   - "shared/ui/**"
 ---
@@ -11,8 +10,8 @@ paths:
 ## Vue/TypeScript Frontend Rules
 
 ### Shared-first (MUST)
-- Before writing any markup or component, check the shared modules for something to use, compose or extend — `@shared` first, then `@hubs`/`@instances`; and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup when nothing fits. Never duplicate a shared component locally.
-- Vite aliases (identical in every `pages-*` app): `@shared` → `shared/ui/common/src` (generic components, `FormattingService`, `BasePlatformClient`, `HttpUtils`, `ToastService`, styles, tokens); `@hubs` → `jeffrey-microscope/ui-hubs/ui` (hub browser: hubs → workspaces → projects, recording components and clients); `@instances` → `jeffrey-microscope/ui-instances/src`.
+- Before writing any markup or component, check the shared modules for something to use, compose or extend — `@shared` first, then `@hubs`; and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup when nothing fits. Never duplicate a shared component locally.
+- Vite aliases (identical in every `pages-*` app): `@shared` → `shared/ui/common/src` (generic components, `FormattingService`, `BasePlatformClient`, `HttpUtils`, `ToastService`, styles, tokens); `@hubs` → `jeffrey-microscope/ui-hubs/ui` (hub browser: hubs → workspaces → projects, recording components and clients).
 - A **generic** component (chart, table, form input, badge, breadcrumb, layout, modal, drawer — no page/JFR semantics) goes in `shared/ui/common/src/components/`. An app's `src/components/` is for page/feature-bound components (flamegraph, heap, gc, jdbc, …). When unsure, prefer `@shared`.
 
 ### Design tokens
