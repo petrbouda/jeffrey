@@ -9,6 +9,6 @@
   },
   "homepage": "https://www.jeffrey-analyst.cafe/docs/microscope-mcp",
   "repository": "https://github.com/petrbouda/jeffrey",
-  "license": "AGPL-3.0",
+  "license": "Apache-2.0",
   "keywords": ["jfr", "jvm", "profiling", "flamegraph", "heap-dump", "performance"]
 }

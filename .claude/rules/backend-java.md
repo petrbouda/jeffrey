@@ -19,7 +19,7 @@ paths:
 - Braces on every control-flow body, even one statement (`if (x) { return; }`); empty body is `{ }`.
 - Annotations on classes, fields and methods go on their **own line** above the declaration (`@Bean`, `@Test`, `@Mock`, `@GetMapping`, …). Parameter annotations (`@PathVariable`, `@RequestBody`) stay inline.
 - Always `import`; never a fully qualified class name inline.
-- AGPL header on every file, year 2026 (copy from `LICENSE_HEADER`).
+- Apache-2.0 header on every file, year 2026 (copy from `LICENSE_HEADER`).
 
 ### Literals and membership
 - Any string or number that is matched, compared, concatenated into SQL or used as configuration lives in a `private static final` constant with a descriptive name (SQL keywords, column aliases, row caps, timeouts, error tokens). Inline literals only when obvious from context (`Math.max(0, x)`, `LIMIT 1`).

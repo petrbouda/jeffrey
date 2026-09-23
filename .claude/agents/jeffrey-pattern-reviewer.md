@@ -9,7 +9,7 @@ Analyze recently changed files (use `git diff HEAD` or specified scope) and chec
 ### Java Backend Checks
 1. **Clock injection**: No usage of `Instant.now()` or `System.currentTimeMillis()` — must use injected `java.time.Clock`
 2. **Logging format**: SLF4J structured key-value format: `"Description: key1={} key2={}"` with no commas between key-value pairs
-3. **License headers**: All Java files must include AGPL-3.0 header with year 2026
+3. **License headers**: All Java files must include the Apache-2.0 header with year 2026
 4. **Constructor injection**: No `@Autowired` — use explicit constructor injection
 5. **Sealed interface completeness**: If a sealed interface was modified, verify all `permits` clauses are updated
 6. **Records for DTOs**: Request/response objects should be Java records, not classes

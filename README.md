@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/petrbouda/jeffrey/blob/master/LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-2563eb.svg"></a>
+  <a href="https://github.com/petrbouda/jeffrey/blob/master/LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-2563eb.svg"></a>
   <a href="https://github.com/petrbouda/jeffrey"><img alt="Java 25+" src="https://img.shields.io/badge/Java-25%2B-orange.svg"></a>
   <a href="https://github.com/petrbouda/jeffrey/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/petrbouda/jeffrey?color=7c3aed&label=release"></a>
   <a href="https://hub.docker.com/r/petrbouda/microscope"><img alt="Docker pulls" src="https://img.shields.io/docker/pulls/petrbouda/microscope?color=0ea5e9&logo=docker&logoColor=white"></a>
@@ -78,4 +78,4 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 
 ## 📄 License
 
-Jeffrey is released under the **[GNU Affero General Public License v3.0](LICENSE)** (AGPL-3.0).
+Jeffrey is released under the **[Apache License 2.0](LICENSE)** (Apache-2.0).

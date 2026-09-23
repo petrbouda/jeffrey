@@ -68,7 +68,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **Spring:** constructor injection only; no `@Component`/`@Service`/`@Repository`/`@Controller`/`@Autowired`. Only `@RestController` (MVC controllers) and `@ControllerAdvice` (`JeffreyExceptionHandler`) are allowed; everything else is an explicit `@Bean`.
 - **Time:** inject `java.time.Clock`, never `Instant.now()`; elapsed time via `Measuring`. Frontend timestamps are UTC epoch millis, formatted only by `FormattingService`.
 - **Literals:** anything matched, compared, put in SQL or used as config is a named `private static final`; set membership is `Set.of(...).contains`, not an `equals` ladder.
-- **Annotations** on classes/fields/methods go on their own line; always `import`, never an inline FQCN; AGPL header (2026) on every Java file; SLF4J `"what happened: k1={} k2={}"` without commas.
+- **Annotations** on classes/fields/methods go on their own line; always `import`, never an inline FQCN; Apache-2.0 header (2026) on every Java file; SLF4J `"what happened: k1={} k2={}"` without commas.
 - **Frontend shared-first:** check `@shared`, then `@hubs`/`@instances`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `shared/ui/common`.
 - **Records** for DTOs and for any 3+ parameters or callbacks that travel together; validate in compact constructors with standard exceptions; domain code never depends on Spring/gRPC types — map at the boundary.
 
@@ -98,4 +98,4 @@ JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `shared/test`, `Clock.fixed`
 
 ## License
 
-AGPL-3.0 — header text in `LICENSE_HEADER`.
+Apache-2.0 — header text in `LICENSE_HEADER`.

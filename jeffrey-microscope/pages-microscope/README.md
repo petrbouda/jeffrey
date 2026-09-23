@@ -74,4 +74,4 @@ npm run preview
 
 ## License
 
-This project is licensed under the GNU Affero General Public License v3.0.
+This project is licensed under the Apache License 2.0.
