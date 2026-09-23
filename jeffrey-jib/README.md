@@ -289,4 +289,4 @@ The native provisioner has none of these concerns: it is not a JVM and ignores a
 
 ## License
 
-GNU Affero General Public License v3.0 — see `LICENSE`.
+Apache License 2.0 — see `LICENSE`.
