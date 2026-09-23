@@ -47,8 +47,7 @@ const customProfilerRuntime = `env:
 const defaultAgentCommand = `-agentpath:<profiler-path>=start,alloc,lock,event=ctimer,jfrsync=default,\
 loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
 
-const customProfilerCommand = `profiler-command = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=itimer,\
-file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"`;
+const customProfilerCommand = `profiler-command = "start,event=itimer,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -194,9 +193,9 @@ onMounted(() => {
           ones to check against an older build. Jeffrey currently pins async-profiler 4.1, and the
           build log names the exact version it baked, so a custom library of a comparable generation
           is the safe choice. If yours needs different options, replace the whole command with
-          <code>profiler-command</code> rather than fighting the default &mdash; the
-          <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code> and
-          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholders keep it portable:</p>
+          <code>profiler-command</code> rather than fighting the default. Give it the options
+          alone and the provisioner passes them to the library <code>profilerPath</code> names;
+          the <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholder keeps it portable:</p>
 
         <DocsCodeBlock
           language="hocon"
@@ -206,16 +205,20 @@ onMounted(() => {
         <p>The same setting is reachable as the <code>JEFFREY_PROFILER_COMMAND</code> environment
           variable, which the extension does <em>not</em> bake &mdash; set it on the pod to change the
           agent command without rebuilding the image or mounting a ConfigMap. It takes precedence over
-          a command in a configuration file.</p>
+          a command in a configuration file. Every combination of library and command is listed under
+          <router-link to="/docs/provisioner/configuration#choosing-the-profiler">Choosing the
+          Profiler</router-link>.</p>
 
         <DocsCallout type="warning">
           <strong>A wrong library stops the application.</strong> The fail-open guarantee covers the
-          provisioner, not the agent: a missing provisioner is detected before the argfile exists, so
-          the application simply starts unprofiled. A <code>profilerPath</code> that is mistyped,
-          built for another architecture, or unhappy with one of the options above fails later
-          &mdash; the argfile is already written, the JVM starts with an <code>-agentpath</code> it
-          cannot load, and it exits. The path you name is never checked at build time or by
-          <code>provisioner init</code>. Start one container after the change before rolling it out.
+          provisioner, and only part of the agent. A missing provisioner is detected before the argfile
+          exists, and a <code>profilerPath</code> naming a file that does not exist is caught by
+          <code>provisioner init</code>, which logs a warning and leaves the agent out; either way the
+          application starts unprofiled. A library that exists but is built for another architecture,
+          or is unhappy with one of the options above, fails later &mdash; the argfile is already
+          written, the JVM starts with an <code>-agentpath</code> it cannot load, and it exits.
+          Nothing checks the path at build time. Start one container after the change before rolling
+          it out.
         </DocsCallout>
 
         <h2 id="build-time-vs-runtime">Build-time vs Runtime</h2>

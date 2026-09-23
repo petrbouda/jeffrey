@@ -55,8 +55,18 @@ class InitExecutorTest {
     private Path workspacesDir;
     private Path argFile;
     private Path envFile;
+    private Path profilerLibrary;
 
-    private InitConfig config() {
+    /** A run whose profiler-path library is in place, as jeffrey-jib bakes it. */
+    private InitConfig config() throws IOException {
+        profilerLibrary = tempDir.resolve("libasyncProfiler.so");
+        if (Files.notExists(profilerLibrary)) {
+            Files.createFile(profilerLibrary);
+        }
+        return config(profilerLibrary);
+    }
+
+    private InitConfig config(Path profilerPath) {
         workspacesDir = tempDir.resolve("workspaces");
         argFile = tempDir.resolve("jvm.args");
         envFile = tempDir.resolve("jeffrey.env");
@@ -67,9 +77,16 @@ class InitExecutorTest {
                 "JEFFREY_WORKSPACE_REF_ID", WORKSPACE_REF_ID,
                 "JEFFREY_INSTANCE_NAME", INSTANCE_NAME,
                 "JEFFREY_ARG_FILE", argFile.toString(),
-                "JEFFREY_ENV_FILE", envFile.toString());
+                "JEFFREY_ENV_FILE", envFile.toString(),
+                "JEFFREY_PROFILER_PATH", profilerPath.toString());
 
         return InitConfig.fromEnvironment(env::get);
+    }
+
+    private List<String> argFileOptions() throws IOException {
+        return Files.readString(argFile).lines()
+                .filter(line -> !line.isBlank() && !line.startsWith("#"))
+                .toList();
     }
 
     private Path sessionPath() throws IOException {
@@ -138,14 +155,32 @@ class InitExecutorTest {
         void argFileCarriesOneOptionPerLine() throws Exception {
             new InitExecutor(Clock.systemUTC()).execute(config());
 
-            List<String> options = Files.readString(argFile).lines()
-                    .filter(line -> !line.isBlank() && !line.startsWith("#"))
-                    .toList();
+            List<String> options = argFileOptions();
 
             assertTrue(options.stream().allMatch(option -> option.startsWith("-")),
                     () -> "every line must be a JVM option: " + options);
-            assertTrue(options.stream().anyMatch(option -> option.startsWith("-agentpath:")),
-                    () -> "the profiler must be armed: " + options);
+        }
+
+        @Test
+        void argFileArmsTheProfilerPathLibraryFirst() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config());
+
+            String session = sessionPath().toString();
+            assertEquals("-agentpath:" + profilerLibrary + "=start,alloc,lock,event=ctimer,jfrsync=default,"
+                    + "loop=15m,chunksize=5m,file=" + session + "/profile-%t.jfr", argFileOptions().getFirst());
+        }
+
+        /** A missing library would stop the JVM, so the session runs unprofiled instead. */
+        @Test
+        void argFileLeavesTheProfilerOutWhenTheProfilerPathLibraryIsMissing() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config(tempDir.resolve("missing.so")));
+
+            List<String> options = argFileOptions();
+            assertFalse(options.isEmpty(), "the other features are still written");
+            assertTrue(options.stream().noneMatch(option -> option.startsWith("-agentpath:")),
+                    () -> "the profiler must not be armed: " + options);
+            assertTrue(Files.exists(sessionPath().resolve(JeffreyLayout.SESSION_INFO_FILE)),
+                    "the session is still recorded");
         }
 
         @Test

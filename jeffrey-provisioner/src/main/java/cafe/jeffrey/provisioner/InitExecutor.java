@@ -34,13 +34,13 @@ public class InitExecutor {
 
     private final Clock clock;
     private final LayoutProvisioner layoutProvisioner;
-    private final ProfilerSettingsResolver profilerSettingsResolver;
+    private final AsyncProfilerResolver profilerResolver;
     private final OutputWriter outputWriter;
 
     public InitExecutor(Clock clock) {
         this.clock = clock;
         this.layoutProvisioner = new LayoutProvisioner();
-        this.profilerSettingsResolver = new ProfilerSettingsResolver();
+        this.profilerResolver = new AsyncProfilerResolver();
         this.outputWriter = new OutputWriter();
     }
 
@@ -65,19 +65,25 @@ public class InitExecutor {
                 JeffreyPlaceholderSource.of(session.layout(), config.getProfilerPath(),
                         EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
 
-        String features = JvmFeatures.of(config)
+        AsyncProfilerResolver.ResolvedProfiler profiler =
+                profilerResolver.resolve(config.getProfilerCommand(), config.getProfilerPath());
+
+        String jvmOptions = JvmFeatures.of(config, profiler.feature())
                 .render(session.layout().session(), placeholders);
 
-        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings =
-                profilerSettingsResolver.resolve(config.getProfilerCommand(), placeholders, features);
-
         registrar.recordSession(config, session);
-        outputWriter.write(config, session.layout(), resolvedSettings.command());
+        outputWriter.write(config, session.layout(), jvmOptions);
 
         // Single greppable verdict line — the one place that tells a user their setup works
-        LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} arg_file={}",
-                config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
-                resolvedSettings.source(), config.getArgFilePath());
+        if (profiler.feature().enabled()) {
+            LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} arg_file={}",
+                    config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
+                    profiler.source(), config.getArgFilePath());
+        } else {
+            LOG.warn("Jeffrey profiling DISABLED, async-profiler is not available: project={} workspace={} instance={} session={} arg_file={}",
+                    config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
+                    config.getArgFilePath());
+        }
     }
 
 }

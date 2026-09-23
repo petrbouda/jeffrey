@@ -29,6 +29,8 @@ const headings = [
   { id: 'env-only', text: 'Environment-Only Configuration', level: 2 },
   { id: 'config-file', text: 'Configuration File', level: 2 },
   { id: 'configuration-options', text: 'Configuration Options', level: 2 },
+  { id: 'choosing-the-profiler', text: 'Choosing the Profiler', level: 2 },
+  { id: 'profiler-examples', text: 'Examples', level: 3 },
   { id: 'features', text: 'Features', level: 2 },
   { id: 'tracing-thresholds', text: 'Tracing Event Thresholds', level: 2 },
   { id: 'placeholders', text: 'Placeholders', level: 2 }
@@ -37,6 +39,27 @@ const headings = [
 onMounted(() => {
   setHeadings(headings);
 });
+
+const profilerJibDefault = `# Nothing to set: Jeffrey JIB baked JEFFREY_PROFILER_PATH=/opt/jeffrey/libasyncProfiler.so
+# argfile:
+-agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
+
+const profilerJibOptions = `JEFFREY_PROFILER_COMMAND='start,event=cpu,interval=10ms,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+# argfile:
+-agentpath:/opt/jeffrey/libasyncProfiler.so=start,event=cpu,interval=10ms,loop=15m,file=<session>/profile-%t.jfr`;
+
+const profilerOwnLibrary = `JEFFREY_PROFILER_PATH=/opt/async-profiler/lib/libasyncProfiler.so
+JEFFREY_PROFILER_COMMAND='start,event=wall,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+# argfile:
+-agentpath:/opt/async-profiler/lib/libasyncProfiler.so=start,event=wall,loop=15m,file=<session>/profile-%t.jfr`;
+
+const profilerFullCommand = `JEFFREY_PROFILER_COMMAND='-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+# argfile (JEFFREY_PROFILER_PATH is ignored, /opt/ap/libasyncProfiler.so is not checked):
+-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<session>/profile-%t.jfr`;
+
+const profilerMissing = `WARN  async-profiler library not found, profiling is switched off: profiler_path=/opt/jeffrey/libasyncProfiler.so
+WARN  Jeffrey profiling DISABLED, async-profiler is not available: project=... session=... arg_file=/tmp/jvm.args
+# argfile: the other features only, no -agentpath`;
 
 const envOnlySetup = `# The complete environment-only setup - no config file needed:
 JEFFREY_HOME=/mnt/jeffrey             # shared volume root (baked by jeffrey-jib)
@@ -237,7 +260,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>profiler-path</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROFILER_PATH</code></td>
-              <td>Path to <code>libasyncProfiler.so</code>. Normally baked into the image as <code>JEFFREY_PROFILER_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Set it explicitly only when you supply your own async-profiler &mdash; see <router-link to="/docs/jib/configuration#custom-async-profiler">Using Your Own async-profiler</router-link> for the agent options your build must accept. Nothing is discovered on disk: when no path resolves the application starts without profiling, but a path that resolves to the wrong library stops the JVM.</td>
+              <td>Path to <code>libasyncProfiler.so</code>. Normally baked into the image as <code>JEFFREY_PROFILER_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Set it explicitly only when you supply your own async-profiler &mdash; see <router-link to="/docs/jib/configuration#custom-async-profiler">Using Your Own async-profiler</router-link> for the agent options your build must accept. Nothing is discovered on disk: when no path resolves, or the file it names does not exist, the provisioner logs a warning and the application starts without profiling. A path that resolves to the wrong library still stops the JVM.</td>
             </tr>
             <tr>
               <td><code>project.instance-name</code></td>
@@ -279,7 +302,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>profiler-command</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROFILER_COMMAND</code></td>
-              <td>The async-profiler agent command the session runs with. Build one with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link> and paste it here or set the environment variable; leave it unset to take the built-in default. It takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
+              <td>The async-profiler agent the session runs with, in one of two forms. Options alone (<code>start,event=cpu,file=&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>) run on the async-profiler library <code>profiler-path</code> names &mdash; the one jeffrey-jib bakes into the image, or your own. A full <code>-agentpath:&lt;library&gt;=&lt;options&gt;</code> loads that library instead, ignoring <code>profiler-path</code>, and the provisioner does not check it. Leave it unset to run the <code>profiler-path</code> library with the built-in default options. Whenever the <code>profiler-path</code> library is needed but missing, the provisioner logs a warning and switches profiling off. Build the options with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>. The environment variable takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
             </tr>
             <tr>
               <td><code>repository-type</code></td>
@@ -333,7 +356,89 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         </table>
 
         <DocsCallout type="info">
-          <strong>Architecture:</strong> the provisioner does not detect it and discovers nothing on disk. In a JIB-built image the extension bakes <code>JEFFREY_PROFILER_PATH</code> for the platform it built, and on a multi-platform image the entrypoint wrapper expands an <code>&#123;arch&#125;</code> placeholder from <code>uname -m</code> before the provisioner runs. Everywhere else, <code>profiler-path</code> names the <code>libasyncProfiler.so</code> you shipped for that architecture. When no path resolves the provisioner skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached.
+          <strong>Architecture:</strong> the provisioner does not detect it and discovers nothing on disk. In a JIB-built image the extension bakes <code>JEFFREY_PROFILER_PATH</code> for the platform it built, and on a multi-platform image the entrypoint wrapper expands an <code>&#123;arch&#125;</code> placeholder from <code>uname -m</code> before the provisioner runs. Everywhere else, <code>profiler-path</code> names the <code>libasyncProfiler.so</code> you shipped for that architecture. When no path resolves, or the library it names is missing, the provisioner logs a warning and skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached.
+        </DocsCallout>
+
+        <h2 id="choosing-the-profiler">Choosing the Profiler</h2>
+        <p>Two settings decide which async-profiler a session runs and with which options: <code>profiler-path</code> (<code>JEFFREY_PROFILER_PATH</code>) names the library, and <code>profiler-command</code> (<code>JEFFREY_PROFILER_COMMAND</code>) carries either the options alone or a whole <code>-agentpath:</code>. The table lists every combination; the last column also names the <code>profiler_source</code> the provisioner logs.</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Profiler path</th>
+              <th>Profiler command</th>
+              <th>Result and logged source</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Jeffrey JIB, default options</strong></td>
+              <td>baked by Jeffrey JIB</td>
+              <td>not set</td>
+              <td>Jeffrey JIB library, built-in options<br /><code>BUILT_IN</code></td>
+            </tr>
+            <tr>
+              <td><strong>Jeffrey JIB, own options</strong></td>
+              <td>baked by Jeffrey JIB</td>
+              <td>options only</td>
+              <td>Jeffrey JIB library, your options<br /><code>CONFIGURED_OPTIONS</code></td>
+            </tr>
+            <tr>
+              <td><strong>Own library, default options</strong></td>
+              <td>your path</td>
+              <td>not set</td>
+              <td>your library, built-in options<br /><code>BUILT_IN</code></td>
+            </tr>
+            <tr>
+              <td><strong>Own library, own options</strong></td>
+              <td>your path</td>
+              <td>options only</td>
+              <td>your library, your options<br /><code>CONFIGURED_OPTIONS</code></td>
+            </tr>
+            <tr>
+              <td><strong>Custom profiler, full command</strong></td>
+              <td>ignored</td>
+              <td><code>-agentpath:&lt;library&gt;=&lt;options&gt;</code></td>
+              <td>exactly that command; the library is <strong>not checked</strong><br /><code>AGENT_PATH</code></td>
+            </tr>
+            <tr>
+              <td><strong>Full command naming the placeholder</strong></td>
+              <td>baked or your path</td>
+              <td><code>-agentpath:&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;=&lt;options&gt;</code></td>
+              <td>same as options only<br /><code>CONFIGURED_OPTIONS</code></td>
+            </tr>
+            <tr>
+              <td><strong>Library missing</strong></td>
+              <td>file not there, or not set</td>
+              <td>anything but a full custom command</td>
+              <td>no <code>-agentpath</code>, a warning, the application <strong>starts unprofiled</strong><br /><code>DISABLED</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 id="profiler-examples">Examples</h3>
+        <p>Each example shows what is set on the pod and the <code>-agentpath</code> the provisioner writes into the argfile. <code>&lt;session&gt;</code> stands for the session directory it substitutes for <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code>.</p>
+
+        <p><strong>Jeffrey JIB, default options</strong> &mdash; nothing to set:</p>
+        <DocsCodeBlock language="bash" :code="profilerJibDefault" />
+
+        <p><strong>Jeffrey JIB, own options</strong> &mdash; only what is recorded changes:</p>
+        <DocsCodeBlock language="bash" :code="profilerJibOptions" />
+
+        <p><strong>Own library, own options</strong> &mdash; leave out the command to keep the built-in options:</p>
+        <DocsCodeBlock language="bash" :code="profilerOwnLibrary" />
+
+        <p><strong>Custom profiler, full command</strong> &mdash; library and options in one value:</p>
+        <DocsCodeBlock language="bash" :code="profilerFullCommand" />
+
+        <p><strong>Library missing</strong> &mdash; the provisioner log, and an argfile without the agent:</p>
+        <DocsCodeBlock language="text" :code="profilerMissing" />
+
+        <p><router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link> produces both kinds of value: its <strong>Jeffrey JIB</strong> choice gives the options alone, its <strong>Custom Profiler</strong> choice the whole <code>-agentpath:</code>. Its <strong>ENV var</strong> and <strong>HOCON</strong> tabs wrap the same value for the environment variable and for <code>profiler-command</code> in the configuration file; the environment variable wins when both are set.</p>
+
+        <DocsCallout type="warning">
+          <strong>Only the library is checked.</strong> The provisioner confirms that the file <code>profiler-path</code> names exists, nothing more. A library built for another architecture, or too old for one of the options, still stops the JVM when it loads the agent. The same applies to any library named in a full <code>-agentpath:</code>, which is not checked at all.
         </DocsCallout>
 
         <h2 id="features">Features</h2>

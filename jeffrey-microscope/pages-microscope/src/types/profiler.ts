@@ -15,7 +15,15 @@
  * limitations under the License.
  */
 
+/**
+ * Which async-profiler library the command runs on. `jeffrey-jib` leaves the library out: Jeffrey
+ * Provisioner runs the options on the one Jeffrey JIB baked into the image (`JEFFREY_PROFILER_PATH`).
+ * `custom` names the library in the command as `-agentpath:<path>=`.
+ */
+export type ProfilerSource = 'jeffrey-jib' | 'custom';
+
 export interface ProfilerConfig {
+  profilerSource: ProfilerSource;
   agentPathCustom: string;
   event: string;
   wallValue: number | null;
@@ -85,8 +93,20 @@ export interface ConfigCardDefinition {
 /** Placeholder for the Agent Path field, and the path used when it is left blank. */
 export const DEFAULT_AGENT_PATH = '/path/to/libasyncProfiler.so';
 
-/** Where a copied command writes its recordings when the output field is left blank. */
+/** Where a custom-profiler command writes its recordings when the output field is left blank. */
 export const DEFAULT_OUTPUT_FILE = '/tmp/profile-%t.jfr';
+
+/**
+ * Where a Jeffrey JIB command writes its recordings when the output field is left blank: the
+ * provisioned session's directory, which Jeffrey Provisioner substitutes before the JVM starts.
+ */
+export const JEFFREY_SESSION_OUTPUT_FILE = '<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr';
+
+/** The output file a command falls back to, per profiler source. */
+export const DEFAULT_OUTPUT_FILES: Record<ProfilerSource, string> = {
+  'jeffrey-jib': JEFFREY_SESSION_OUTPUT_FILE,
+  custom: DEFAULT_OUTPUT_FILE
+};
 
 /**
  * The builder starts lock profiling at 10 µs, what a bare `lock` and the `all` preset use, written
@@ -111,6 +131,7 @@ export const PROFILER_CONSTANTS = {
  */
 export function defaultProfilerConfig(): ProfilerConfig {
   return {
+    profilerSource: 'jeffrey-jib',
     agentPathCustom: '',
     event: 'ctimer',
     wallValue: null,
@@ -135,6 +156,6 @@ export function defaultProfilerConfig(): ProfilerConfig {
     jfrsync: 'default',
     jfrsyncFile: '',
     jfcMode: 'default',
-    file: DEFAULT_OUTPUT_FILE
+    file: JEFFREY_SESSION_OUTPUT_FILE
   };
 }

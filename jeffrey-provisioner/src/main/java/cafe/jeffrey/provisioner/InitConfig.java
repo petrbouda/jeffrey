@@ -230,8 +230,9 @@ public class InitConfig {
                 nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.ADDITIONAL_JVM_OPTIONS)));
 
         // Null when nothing named a profiler: the application then starts without profiling rather
-        // than failing. The path itself is baked into the image by the jeffrey-jib build extension,
-        // or named explicitly by whoever provides their own async-profiler.
+        // than failing, as it does when the named file is missing (see AsyncProfilerResolver).
+        // The path itself is baked into the image by the jeffrey-jib build extension, or named
+        // explicitly by whoever provides their own async-profiler.
         this.profilerPath = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_PATH)));
         this.heartbeatEnabled = resolved.getBoolean(ConfigPaths.HEARTBEAT_ENABLED);
 

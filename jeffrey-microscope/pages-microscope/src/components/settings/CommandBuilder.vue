@@ -110,10 +110,10 @@
                 <h6 class="section-title">Mandatory Options</h6>
               </div>
               <div class="config-cards-stack">
-                <!-- Agent Path Card -->
+                <!-- Async-profiler Card -->
                 <ConfigCard
-                  title="Agent Path"
-                  subtitle="Path to the AsyncProfiler shared library"
+                  title="Async-profiler"
+                  subtitle="Which library the command runs on"
                   icon="bi-folder-fill"
                   card-type="required"
                   :is-enabled="true"
@@ -125,15 +125,28 @@
                   "
                 >
                   <div class="interval-block">
+                    <SegmentedSwitch
+                      v-model="config.profilerSource"
+                      :options="profilerSourceOptions"
+                      group-label="Async-profiler library"
+                    />
+                    <div v-if="config.profilerSource === 'jeffrey-jib'" class="form-help">
+                      Jeffrey Provisioner runs the options on the Async-profiler that Jeffrey JIB
+                      baked into the image. Nothing else to configure.
+                    </div>
+                  </div>
+                  <div v-if="config.profilerSource === 'custom'" class="interval-block">
+                    <label class="interval-label" for="profilerPath">Profiler Path</label>
                     <input
+                      id="profilerPath"
                       v-model="config.agentPathCustom"
                       type="text"
                       class="form-control"
                       :placeholder="DEFAULT_AGENT_PATH"
                     />
                     <div class="form-help">
-                      Path to the AsyncProfiler shared library (.so file) on the machine you will
-                      profile.
+                      Path to <code>libasyncProfiler.so</code> on the machine you will profile. It
+                      goes into the command as <code>-agentpath:&lt;path&gt;=</code>.
                     </div>
                   </div>
                 </ConfigCard>
@@ -720,6 +733,14 @@
                 </span>
               </div>
             </div>
+            <div class="command-format">
+              <SegmentedSwitch
+                v-model="commandFormat"
+                :options="commandFormatOptions"
+                group-label="Copy as"
+              />
+              <span class="command-format-hint">{{ commandFormatHint }}</span>
+            </div>
             <div class="config-output-content compact-output" @click="copyToClipboard">
               <code class="config-output-text">{{
                 generatedConfig || 'No configuration generated yet.'
@@ -814,6 +835,11 @@ import {
   SAMPLING_INTERVAL_UNITS
 } from '@/composables/profilerUnits';
 import { DEFAULT_AGENT_PATH } from '@/types/profiler';
+import type { ProfilerSource } from '@/types/profiler';
+import { formatCommand } from '@/composables/profilerCommandFormat';
+import type { CommandFormat } from '@/composables/profilerCommandFormat';
+import SegmentedSwitch from '@shared/components/SegmentedSwitch.vue';
+import type { SegmentedOption } from '@shared/components/SegmentedSwitch.vue';
 import ToastService from '@shared/services/ToastService';
 
 // Help section state
@@ -821,7 +847,7 @@ const isHelpExpanded = ref(false);
 
 // Mandatory panels collapse state (collapsed by default since defaults should be used in most cases)
 const mandatoryPanelsExpanded = ref({
-  agentPath: false,
+  agentPath: true,
   outputFile: false,
   loopDuration: false
 });
@@ -846,12 +872,52 @@ watch(newMethodPattern, () => {
   newMethodError.value = null;
 });
 
+const profilerSourceOptions: SegmentedOption<ProfilerSource>[] = [
+  {
+    id: 'jeffrey-jib',
+    label: 'Jeffrey JIB',
+    title: 'The Async-profiler baked into the image by Jeffrey JIB'
+  },
+  {
+    id: 'custom',
+    label: 'Custom Profiler',
+    title: 'Your own libasyncProfiler.so, named in the command'
+  }
+];
+
+// How the Live Command panel hands the command over
+const commandFormat = ref<CommandFormat>('env');
+
+const commandFormatOptions = computed((): SegmentedOption<CommandFormat>[] => [
+  { id: 'env', label: 'ENV var' },
+  { id: 'hocon', label: 'HOCON' },
+  {
+    id: 'raw',
+    label: config.value.profilerSource === 'jeffrey-jib' ? 'Options' : 'JVM argument'
+  }
+]);
+
+const COMMAND_FORMAT_HINTS: Record<CommandFormat, string> = {
+  env: 'Set on the pod, wins over the configuration file',
+  hocon: 'Paste into the provisioner configuration file',
+  raw: ''
+};
+
+const commandFormatHint = computed((): string => {
+  if (commandFormat.value !== 'raw') {
+    return COMMAND_FORMAT_HINTS[commandFormat.value];
+  }
+  return config.value.profilerSource === 'jeffrey-jib'
+    ? 'Options only, run on the Async-profiler Jeffrey JIB baked in'
+    : 'Paste into the JVM arguments of an application you start yourself';
+});
+
 // Generated configuration
 const generatedConfig = ref('');
 
 // Watch for changes and auto-generate
 watch(
-  [config, optionStates],
+  [config, optionStates, commandFormat],
   () => {
     generateConfig();
   },
@@ -860,7 +926,7 @@ watch(
 
 // Generate configuration
 const generateConfig = () => {
-  generatedConfig.value = generateFromBuilder();
+  generatedConfig.value = formatCommand(generateFromBuilder(), commandFormat.value);
 };
 
 // Add new method pattern, or show why async-profiler would reject it
@@ -1637,6 +1703,19 @@ generateConfig();
 /* Token Chip Styling */
 .token-summary {
   margin-bottom: 16px;
+}
+
+/* The copy format switch and the one line saying where that format goes */
+.command-format {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.command-format-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .token-summary-title {
