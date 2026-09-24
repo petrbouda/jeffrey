@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.profile.manager.model.gc;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record GCOverviewData(
@@ -26,4 +27,25 @@ public record GCOverviewData(
         GCEfficiency efficiency,
         List<GCGenerationStats> generationStats,
         List<ConcurrentEvent> longestConcurrentEvents) {
+
+    /**
+     * The overview of a recording that carries no GC events: every count and time is zero.
+     */
+    public static GCOverviewData empty() {
+        GCHeader header = new GCHeader(
+                0, 0, 0, 0, 0, 0, 0, 0, 0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                0,
+                BigDecimal.ZERO,
+                new ManualGCCalls(0, 0, 0));
+
+        return new GCOverviewData(
+                header,
+                List.of(),
+                new GCPauseDistribution(List.of()),
+                new GCEfficiency(0, 0, BigDecimal.ZERO, BigDecimal.ZERO),
+                List.of(),
+                List.of());
+    }
 }

@@ -16,7 +16,9 @@
   -->
 
 <template>
-  <LoadingState v-if="loading" message="Loading garbage collection data..." />
+  <GcNotRecordedAlert v-if="gcNotRecorded" />
+
+  <LoadingState v-else-if="loading" message="Loading garbage collection data..." />
 
   <ErrorState v-else-if="error" message="Failed to load garbage collection data" />
 
@@ -912,6 +914,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import GcNotRecordedAlert from '@/components/alerts/GcNotRecordedAlert.vue';
+import FeatureType from '@/services/api/model/FeatureType';
 import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
@@ -952,6 +956,12 @@ import {
 } from '@/services/api/model/GarbageCollectionUtils';
 import { GarbageCollectionCauseDescriptions } from '@/services/api/model/GarbageCollectionCauseDescriptions';
 import '@shared/styles/shared-components.css';
+
+const props = withDefaults(defineProps<{ disabledFeatures?: FeatureType[] }>(), {
+  disabledFeatures: () => []
+});
+
+const gcNotRecorded = computed(() => props.disabledFeatures.includes(FeatureType.GC_DASHBOARD));
 
 const route = useRoute();
 
@@ -1565,7 +1575,9 @@ const loadGCData = async () => {
 };
 
 onMounted(() => {
-  loadGCData();
+  if (!gcNotRecorded.value) {
+    loadGCData();
+  }
 });
 
 onUnmounted(() => {

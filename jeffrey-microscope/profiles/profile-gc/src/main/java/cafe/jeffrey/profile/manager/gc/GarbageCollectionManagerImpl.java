@@ -60,9 +60,11 @@ import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
+import java.util.Optional;
 
 public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
 
+    private static final String OLD_COLLECTOR_FIELD = "oldCollector";
     private static final int MAX_FINALIZER_CLASSES = 100;
     private static final int MAX_LONGEST_PAUSES = 20;
     private static final int MAX_TENURING_COLLECTIONS = 50;
@@ -83,23 +85,25 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
     }
 
     @Override
-    public GarbageCollectorType garbageCollectorType() {
+    public Optional<GarbageCollectorType> garbageCollectorType() {
         List<JsonNode> gcConfigurationFields = eventRepository.eventsByTypeWithFields(Type.GC_CONFIGURATION);
-        if (!gcConfigurationFields.isEmpty()) {
-            JsonNode gcConfiguration = gcConfigurationFields.getFirst();
-
-            String oldCollector = gcConfiguration.get("oldCollector").asString();
-            return GarbageCollectorType.fromOldGenCollector(oldCollector);
-        } else {
-            throw new IllegalStateException("No GC configuration event found in the profile.");
+        if (gcConfigurationFields.isEmpty()) {
+            return Optional.empty();
         }
+        String oldCollector = gcConfigurationFields.getFirst().get(OLD_COLLECTOR_FIELD).asString();
+        return Optional.of(GarbageCollectorType.fromOldGenCollector(oldCollector));
     }
 
     @Override
     public GCOverviewData overviewData() {
+        return garbageCollectorType()
+                .map(this::overviewData)
+                .orElseGet(GCOverviewData::empty);
+    }
+
+    private GCOverviewData overviewData(GarbageCollectorType gcType) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
-        GarbageCollectorType gcType = garbageCollectorType();
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(List.of(
                         Type.GARBAGE_COLLECTION,
@@ -143,8 +147,13 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
 
     @Override
     public TimeseriesData timeseries(GCTimeseriesType timeseriesType) {
+        return garbageCollectorType()
+                .map(gcType -> timeseries(timeseriesType, gcType))
+                .orElseGet(TimeseriesData::empty);
+    }
+
+    private TimeseriesData timeseries(GCTimeseriesType timeseriesType, GarbageCollectorType gcType) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
-        GarbageCollectorType gcType = garbageCollectorType();
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.GARBAGE_COLLECTION)

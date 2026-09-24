@@ -63,7 +63,8 @@ public class GCConfigurationEventBuilder implements RecordBuilder<GenericRecord,
     @Override
     public GCConfigurationData build() {
         return new GCConfigurationData(
-                GarbageCollectorType.fromOldGenCollector(gcConfiguration.oldCollector()),
+                // No jdk.GCConfiguration (e.g. async-profiler without jfrsync): the collector is unknown
+                gcConfiguration == null ? null : GarbageCollectorType.fromOldGenCollector(gcConfiguration.oldCollector()),
                 gcConfiguration,
                 gcHeapConfiguration,
                 gcThreadConfiguration,

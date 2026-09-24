@@ -363,6 +363,7 @@ const checkOtlpOnlyProfile = (p: Profile): boolean => {
 const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
   const featureMapping: { [key: string]: FeatureType } = {
     container: FeatureType.CONTAINER_DASHBOARD,
+    gc: FeatureType.GC_DASHBOARD,
     'http-server': FeatureType.HTTP_SERVER_DASHBOARD,
     'http-client': FeatureType.HTTP_CLIENT_DASHBOARD,
     'grpc-server': FeatureType.GRPC_SERVER_DASHBOARD,
@@ -494,6 +495,16 @@ const adoptLinkedBaseline = async (baselineId: string) => {
   }
 };
 
+// Disabled features (includes heap dump status); a failure leaves every feature enabled.
+const loadDisabledFeatures = async (): Promise<FeatureType[]> => {
+  try {
+    return await new ProfileFeaturesClient(profileId).getDisabledFeatures();
+  } catch (error) {
+    console.error('Failed to load disabled features:', error);
+    return [];
+  }
+};
+
 onMounted(async () => {
   // Drop a baseline that belongs to a different primary before anything can read it — the child
   // views mount only once `profile` is set below, so they never see the previous profile's
@@ -518,8 +529,14 @@ onMounted(async () => {
   void ideProfileTargetStore.load(profileId);
 
   try {
-    // Fetch profile details using direct profile client (simplified URL)
-    const profileWithContext = (await directProfileClient.getById(profileId)) as ProfileWithContext;
+    // Fetch profile details using direct profile client (simplified URL). The disabled features are
+    // fetched alongside and assigned first: the child views mount the moment `profile` is set and
+    // decide on mount whether to call endpoints whose events the recording lacks.
+    const [profileWithContext, features] = await Promise.all([
+      directProfileClient.getById(profileId) as Promise<ProfileWithContext>,
+      loadDisabledFeatures()
+    ]);
+    disabledFeatures.value = features;
     profile.value = profileWithContext;
 
     // Store profile context in profileStore for navigation
@@ -572,13 +589,6 @@ onMounted(async () => {
       } catch (error) {
         console.error('Failed to check heap dump existence:', error);
       }
-    }
-
-    // Load disabled features (includes heap dump status)
-    try {
-      disabledFeatures.value = await new ProfileFeaturesClient(profileId).getDisabledFeatures();
-    } catch (error) {
-      console.error('Failed to load disabled features:', error);
     }
 
     // Restore the baseline picked for this profile earlier in the session; retainFor above has

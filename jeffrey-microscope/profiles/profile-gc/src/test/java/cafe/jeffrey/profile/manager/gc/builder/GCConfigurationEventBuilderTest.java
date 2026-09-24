@@ -195,15 +195,18 @@ class GCConfigurationEventBuilderTest {
     }
 
     @Nested
-    @DisplayName("NullGcConfigurationCausesNPE")
-    class NullGcConfigurationCausesNPE {
+    @DisplayName("WithoutGcConfiguration")
+    class WithoutGcConfiguration {
 
         @Test
-        @DisplayName("Building without GC_CONFIGURATION event throws NullPointerException")
-        void buildWithoutGcConfigurationThrowsNpe() {
+        @DisplayName("Building without GC_CONFIGURATION event leaves the collector unknown")
+        void buildWithoutGcConfigurationLeavesCollectorUnknown() {
             GCConfigurationEventBuilder builder = new GCConfigurationEventBuilder();
 
-            assertThrows(NullPointerException.class, builder::build);
+            GCConfigurationData data = builder.build();
+
+            assertNull(data.detectedType());
+            assertNull(data.collector());
         }
     }
 }

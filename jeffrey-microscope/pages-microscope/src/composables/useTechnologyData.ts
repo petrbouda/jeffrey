@@ -30,7 +30,8 @@ export function useTechnologyData<T>(
   isDisabled: ComputedRef<boolean> | Ref<boolean>
 ) {
   const data = ref<T | null>(null) as Ref<T | null>;
-  const isLoading = ref(true);
+  // A disabled source never loads, so it must not start out (and stay) loading.
+  const isLoading = ref(!isDisabled.value);
   const error = ref<string | null>(null);
 
   const load = async () => {

@@ -80,7 +80,7 @@
             aria-label="JVM CPU over recording"
           />
         </div>
-        <div class="spark-card" @click="navigateTo('/garbage-collection/timeseries')">
+        <div class="spark-card" @click="navigateTo(heapTargetPath)">
           <div class="spark-label">Heap Used</div>
           <div class="spark-value">
             {{ heapHeadline }}
@@ -93,31 +93,53 @@
             aria-label="Heap used over recording"
           />
         </div>
-        <div class="spark-card" @click="navigateTo('/garbage-collection')">
+        <div
+          class="spark-card"
+          :class="{ 'spark-card-muted': gcNotRecorded }"
+          @click="navigateTo('/garbage-collection')"
+        >
           <div class="spark-label">GC Pauses</div>
-          <div class="spark-value">
-            {{ gcPauseHeadline }}
-            <span class="spark-unit">worst</span>
-          </div>
-          <SparklineChart
-            :points="gcPausePoints"
-            :color="ChartColors.chartColor('color-warning')"
-            variant="bars"
-            aria-label="GC pauses over recording"
-          />
+          <template v-if="gcNotRecorded">
+            <div class="spark-value spark-value-muted">Not recorded</div>
+            <div class="spark-placeholder" aria-hidden="true"></div>
+            <div class="spark-note">No GC events in this recording</div>
+          </template>
+          <template v-else>
+            <div class="spark-value">
+              {{ gcPauseHeadline }}
+              <span class="spark-unit">worst</span>
+            </div>
+            <SparklineChart
+              :points="gcPausePoints"
+              :color="ChartColors.chartColor('color-warning')"
+              variant="bars"
+              aria-label="GC pauses over recording"
+            />
+          </template>
         </div>
-        <div class="spark-card" @click="navigateTo('/allocations')">
+        <div
+          class="spark-card"
+          :class="{ 'spark-card-muted': allocationNotRecorded }"
+          @click="navigateTo('/allocations')"
+        >
           <div class="spark-label">Allocation Rate</div>
-          <div class="spark-value">
-            {{ allocationRateHeadline }}
-            <span class="spark-unit">avg</span>
-          </div>
-          <SparklineChart
-            :points="allocationPoints"
-            :color="ChartColors.chartColor('color-success')"
-            variant="area"
-            aria-label="Allocation rate over recording"
-          />
+          <template v-if="allocationNotRecorded">
+            <div class="spark-value spark-value-muted">Not recorded</div>
+            <div class="spark-placeholder" aria-hidden="true"></div>
+            <div class="spark-note">No allocation samples in this recording</div>
+          </template>
+          <template v-else>
+            <div class="spark-value">
+              {{ allocationRateHeadline }}
+              <span class="spark-unit">avg</span>
+            </div>
+            <SparklineChart
+              :points="allocationPoints"
+              :color="ChartColors.chartColor('color-success')"
+              variant="area"
+              aria-label="Allocation rate over recording"
+            />
+          </template>
         </div>
       </div>
 
@@ -193,13 +215,17 @@ import ProfileHeapMemoryClient from '@/services/api/ProfileHeapMemoryClient';
 import EventSummariesClient from '@/services/api/EventSummariesClient';
 import Profile from '@/services/api/model/Profile';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
+import FeatureType from '@/services/api/model/FeatureType';
 import HeapMemoryTimeseriesType from '@/services/api/model/HeapMemoryTimeseriesType';
 
 interface Props {
   profile: Profile;
+  disabledFeatures?: FeatureType[];
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 const route = useRoute();
 const router = useRouter();
@@ -209,6 +235,12 @@ const NOT_AVAILABLE = '-';
 const LOADING_TEXT = 'Loading…';
 
 const alwaysEnabled = computed(() => false);
+// Recordings without jdk.GCConfiguration (async-profiler without jfrsync) have no GC pages to feed.
+const gcNotRecorded = computed(() => props.disabledFeatures.includes(FeatureType.GC_DASHBOARD));
+// Heap usage has a chart on both pages; without GC events the GC timeseries shows only the notice.
+const heapTargetPath = computed(() =>
+  gcNotRecorded.value ? '/allocations' : '/garbage-collection/timeseries'
+);
 
 const MILLIS_PER_SECOND = 1000;
 
@@ -235,7 +267,7 @@ const autoAnalysis = useTechnologyData(
 );
 const gcOverview = useTechnologyData(
   () => new ProfileGCClient(profileId).getOverview(),
-  alwaysEnabled
+  gcNotRecorded
 );
 const allocationOverview = useTechnologyData(
   () => new ProfileAllocationClient(profileId).getOverview(),
@@ -282,7 +314,7 @@ const heapTimeseries = useTechnologyData(
 );
 const gcPauseTimeseries = useTechnologyData(
   () => new ProfileGCClient(profileId).getTimeseries(GCTimeseriesType.MAX_PAUSE),
-  alwaysEnabled
+  gcNotRecorded
 );
 const allocationTimeline = useTechnologyData(
   () => new ProfileAllocationClient(profileId).getTimeline(),
@@ -638,6 +670,15 @@ const allocationPoints = computed<number[][]>(() => {
   return series[0]?.data ?? [];
 });
 
+// Loaded without error and still no allocated bytes: the recording has no allocation samples.
+const allocationNotRecorded = computed(() => {
+  if (allocationOverview.isLoading.value || allocationOverview.error.value) {
+    return false;
+  }
+  const allocation = allocationOverview.data.value;
+  return !allocation || allocation.totalBytes <= 0;
+});
+
 const allocationRateHeadline = computed(() => {
   const allocation = allocationOverview.data.value;
   if (!allocation || allocation.totalBytes <= 0) {
@@ -845,6 +886,30 @@ function navigateTo(subPath: string): void {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   font-weight: var(--font-weight-medium);
+}
+
+/* A metric the recording has no events for: quiet, dashed, no numbers */
+.spark-card-muted {
+  background: var(--color-bg-hover);
+  border-style: dashed;
+  border-color: var(--color-border-input);
+}
+
+.spark-value-muted {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.spark-placeholder {
+  height: 28px;
+  border-bottom: 1px dashed var(--color-border-input);
+}
+
+.spark-note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-1);
 }
 
 /* Top event types */

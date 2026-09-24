@@ -108,6 +108,7 @@ function techModeItem(
 }
 
 const HEAP_DUMP_KEY = 'heap-dump';
+const GC_KEY = 'gc';
 
 function httpGroups(mode: TechnologyQueryMode): TechnologyNavGroup[] {
   return [
@@ -262,11 +263,21 @@ export const profileNavSections: Record<
           icon: 'bi-recycle',
           activePathIncludes: '/garbage-collection',
           children: [
-            item('Overview', 'bi-bar-chart-line', '/garbage-collection'),
-            item('Timeseries', 'bi-graph-up-arrow', '/garbage-collection/timeseries'),
-            item('Configuration', 'bi-gear', '/garbage-collection/configuration'),
-            item('G1 Analysis', 'bi-diagram-3', '/garbage-collection/g1'),
-            item('ZGC Analysis', 'bi-cpu', '/garbage-collection/zgc')
+            item('Overview', 'bi-bar-chart-line', '/garbage-collection', {
+              disabledKeys: [GC_KEY]
+            }),
+            item('Timeseries', 'bi-graph-up-arrow', '/garbage-collection/timeseries', {
+              disabledKeys: [GC_KEY]
+            }),
+            item('Configuration', 'bi-gear', '/garbage-collection/configuration', {
+              disabledKeys: [GC_KEY]
+            }),
+            item('G1 Analysis', 'bi-diagram-3', '/garbage-collection/g1', {
+              disabledKeys: [GC_KEY]
+            }),
+            item('ZGC Analysis', 'bi-cpu', '/garbage-collection/zgc', {
+              disabledKeys: [GC_KEY]
+            })
           ]
         },
         item('String & Symbol Tables', 'bi-fonts', '/string-symbol-tables')

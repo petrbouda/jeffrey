@@ -49,6 +49,7 @@ public class ProfileFeaturesManagerImpl implements ProfileFeaturesManager {
 
         this.eventTypeRepository = eventTypeRepository;
         this.featureChecks = List.of(
+                FeatureCheckers.GC_DASHBOARD,
                 FeatureCheckers.HTTP_SERVER_DASHBOARD,
                 FeatureCheckers.HTTP_CLIENT_DASHBOARD,
                 FeatureCheckers.GRPC_SERVER_DASHBOARD,

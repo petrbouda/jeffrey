@@ -16,7 +16,9 @@
   -->
 
 <template>
-  <LoadingState v-if="loading" message="Loading GC configuration..." />
+  <GcNotRecordedAlert v-if="gcNotRecorded" />
+
+  <LoadingState v-else-if="loading" message="Loading GC configuration..." />
 
   <ErrorState v-else-if="error" message="Failed to load GC configuration" />
 
@@ -221,6 +223,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import GcNotRecordedAlert from '@/components/alerts/GcNotRecordedAlert.vue';
+import FeatureType from '@/services/api/model/FeatureType';
 import { useRoute } from 'vue-router';
 
 import PageHeader from '@shared/components/layout/PageHeader.vue';
@@ -231,6 +235,12 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCConfigurationData from '@/services/api/model/GCConfigurationData';
 import FormattingService from '@shared/services/FormattingService';
+
+const props = withDefaults(defineProps<{ disabledFeatures?: FeatureType[] }>(), {
+  disabledFeatures: () => []
+});
+
+const gcNotRecorded = computed(() => props.disabledFeatures.includes(FeatureType.GC_DASHBOARD));
 
 const route = useRoute();
 
@@ -343,7 +353,9 @@ const loadConfigurationData = async () => {
 };
 
 onMounted(() => {
-  loadConfigurationData();
+  if (!gcNotRecorded.value) {
+    loadConfigurationData();
+  }
 });
 </script>
 

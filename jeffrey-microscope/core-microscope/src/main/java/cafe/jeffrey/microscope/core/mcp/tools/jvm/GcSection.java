@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.gc.GCEvent;
 import cafe.jeffrey.profile.manager.model.gc.GCGenerationStats;
@@ -52,6 +53,8 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
     private static final int LONGEST_PAUSES_LIMIT = 10;
 
     private static final double NANOS_IN_MILLI = 1_000_000d;
+
+    private static final String UNKNOWN_COLLECTOR = "UNKNOWN";
 
     private static final Set<Type> EVENT_TYPES = Set.of(
             Type.GARBAGE_COLLECTION,
@@ -95,7 +98,9 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
         GCHeader header = overview.header();
 
         return new GcDashboard(
-                profileManager.gcManager().garbageCollectorType().name(),
+                profileManager.gcManager().garbageCollectorType()
+                        .map(GarbageCollectorType::name)
+                        .orElse(UNKNOWN_COLLECTOR),
                 pauseBudget(header),
                 header.manualGCCalls().systemGCCalls(),
                 header.manualGCCalls().diagnosticCommandCalls(),

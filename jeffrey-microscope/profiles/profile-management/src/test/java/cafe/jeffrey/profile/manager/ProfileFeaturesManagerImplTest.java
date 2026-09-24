@@ -83,6 +83,7 @@ class ProfileFeaturesManagerImplTest {
             assertTrue(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
             assertTrue(disabledFeatures.contains(FeatureType.CONTAINER_DASHBOARD));
             assertTrue(disabledFeatures.contains(FeatureType.PERF_COUNTERS_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
         }
     }
 
@@ -145,6 +146,34 @@ class ProfileFeaturesManagerImplTest {
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertFalse(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
+        }
+
+        @Test
+        @DisplayName("GC feature is enabled when GC_CONFIGURATION has samples")
+        void gcEnabled() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.GC_CONFIGURATION, 1)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+            when(cacheRepository.contains(any())).thenReturn(false);
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertFalse(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
+        }
+
+        @Test
+        @DisplayName("GC feature stays disabled when only GC_HEAP_SUMMARY was recorded (async-profiler without jfrsync)")
+        void gcDisabledWithHeapSummaryOnly() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.GC_HEAP_SUMMARY, 21)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+            when(cacheRepository.contains(any())).thenReturn(false);
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertTrue(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
         }
     }
 }

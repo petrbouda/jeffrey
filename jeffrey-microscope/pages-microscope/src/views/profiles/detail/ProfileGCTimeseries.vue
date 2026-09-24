@@ -16,7 +16,9 @@
   -->
 
 <template>
-  <LoadingState v-if="loading" message="Loading GC timeseries data..." />
+  <GcNotRecordedAlert v-if="gcNotRecorded" />
+
+  <LoadingState v-else-if="loading" message="Loading GC timeseries data..." />
 
   <ErrorState v-else-if="error" message="Failed to load GC timeseries data" />
 
@@ -107,9 +109,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import GcNotRecordedAlert from '@/components/alerts/GcNotRecordedAlert.vue';
+import FeatureType from '@/services/api/model/FeatureType';
 import { useRoute } from 'vue-router';
 import ChartColors from '@shared/services/ChartColors';
+
+const props = withDefaults(defineProps<{ disabledFeatures?: FeatureType[] }>(), {
+  disabledFeatures: () => []
+});
+
+const gcNotRecorded = computed(() => props.disabledFeatures.includes(FeatureType.GC_DASHBOARD));
 
 const gcPrimaryColor = ChartColors.chartColor('primary');
 const gcSecondaryColor = ChartColors.chartColor('color-amber');
@@ -201,7 +211,9 @@ const loadTimeseriesData = async () => {
 };
 
 onMounted(() => {
-  loadTimeseriesData();
+  if (!gcNotRecorded.value) {
+    loadTimeseriesData();
+  }
 });
 </script>
 

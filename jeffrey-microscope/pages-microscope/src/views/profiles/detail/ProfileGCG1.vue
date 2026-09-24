@@ -16,7 +16,9 @@
   -->
 
 <template>
-  <LoadingState v-if="loading" message="Loading G1 analysis..." />
+  <GcNotRecordedAlert v-if="gcNotRecorded" />
+
+  <LoadingState v-else-if="loading" message="Loading G1 analysis..." />
 
   <ErrorState v-else-if="error" message="Failed to load G1 analysis" />
 
@@ -515,6 +517,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import GcNotRecordedAlert from '@/components/alerts/GcNotRecordedAlert.vue';
+import FeatureType from '@/services/api/model/FeatureType';
 import { useRoute } from 'vue-router';
 
 import PageHeader from '@shared/components/layout/PageHeader.vue';
@@ -541,6 +545,12 @@ import ProfileGCClient from '@/services/api/ProfileGCClient';
 import FormattingService from '@shared/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type G1AnalysisData from '@/services/api/model/G1AnalysisData';
+
+const props = withDefaults(defineProps<{ disabledFeatures?: FeatureType[] }>(), {
+  disabledFeatures: () => []
+});
+
+const gcNotRecorded = computed(() => props.disabledFeatures.includes(FeatureType.GC_DASHBOARD));
 
 const route = useRoute();
 
@@ -688,7 +698,11 @@ const loadData = async () => {
   }
 };
 
-onMounted(loadData);
+onMounted(() => {
+  if (!gcNotRecorded.value) {
+    loadData();
+  }
+});
 </script>
 
 <style scoped>

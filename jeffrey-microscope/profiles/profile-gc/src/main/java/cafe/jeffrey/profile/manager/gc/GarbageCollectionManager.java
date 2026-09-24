@@ -34,6 +34,7 @@ import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 public interface GarbageCollectionManager {
@@ -42,7 +43,11 @@ public interface GarbageCollectionManager {
     interface Factory extends Function<ProfileInfo, GarbageCollectionManager> {
     }
 
-    GarbageCollectorType garbageCollectorType();
+    /**
+     * The collector named by {@code jdk.GCConfiguration}, empty when the recording has none (typically
+     * async-profiler without {@code jfrsync}); the overview and timeseries are empty in that case.
+     */
+    Optional<GarbageCollectorType> garbageCollectorType();
 
     GCOverviewData overviewData();
 

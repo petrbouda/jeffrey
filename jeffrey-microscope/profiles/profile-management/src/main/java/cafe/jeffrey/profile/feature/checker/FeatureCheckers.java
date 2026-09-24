@@ -39,6 +39,14 @@ public abstract class FeatureCheckers {
             Type.POOLED_JDBC_CONNECTION_BORROWED,
             Type.POOLED_JDBC_CONNECTION_CREATED);
 
+    /**
+     * Every GC page starts from the collector named in {@code jdk.GCConfiguration}. A recording without
+     * it -- typically async-profiler without {@code jfrsync} -- still carries {@code jdk.GCHeapSummary},
+     * which the heap pages read, so the heap summary alone must not open the GC dashboard.
+     */
+    public static final FeatureChecker GC_DASHBOARD =
+            new SamplesFeatureChecker(FeatureType.GC_DASHBOARD, Type.GC_CONFIGURATION);
+
     public static final FeatureChecker HTTP_SERVER_DASHBOARD =
             new SamplesFeatureChecker(FeatureType.HTTP_SERVER_DASHBOARD, Type.HTTP_SERVER_EXCHANGE);
 

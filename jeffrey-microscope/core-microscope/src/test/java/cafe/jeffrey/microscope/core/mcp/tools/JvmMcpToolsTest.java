@@ -70,6 +70,7 @@ import tools.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -238,7 +239,7 @@ class JvmMcpToolsTest {
         @Test
         void sendsAGcReaderOnToTheAllocationFlamegraph() {
             recorded(EventTypeName.GARBAGE_COLLECTION);
-            when(gcManager.garbageCollectorType()).thenReturn(GarbageCollectorType.G1);
+            when(gcManager.garbageCollectorType()).thenReturn(Optional.of(GarbageCollectorType.G1));
             when(gcManager.overviewData()).thenReturn(Gc.overview());
 
             String result = tools().gc();
@@ -254,7 +255,7 @@ class JvmMcpToolsTest {
         @Test
         void carriesTheSameRoutingWhateverTheFiguresSay() {
             recorded(EventTypeName.GARBAGE_COLLECTION);
-            when(gcManager.garbageCollectorType()).thenReturn(GarbageCollectorType.G1);
+            when(gcManager.garbageCollectorType()).thenReturn(Optional.of(GarbageCollectorType.G1));
             when(gcManager.overviewData()).thenReturn(Gc.overview());
 
             String result = tools().gc();
@@ -283,7 +284,7 @@ class JvmMcpToolsTest {
         @Test
         void reportsThePauseBudgetInMilliseconds() {
             recorded(EventTypeName.GARBAGE_COLLECTION);
-            when(gcManager.garbageCollectorType()).thenReturn(GarbageCollectorType.G1);
+            when(gcManager.garbageCollectorType()).thenReturn(Optional.of(GarbageCollectorType.G1));
             when(gcManager.overviewData()).thenReturn(overview());
 
             String result = tools().gc();
@@ -297,7 +298,7 @@ class JvmMcpToolsTest {
         @Test
         void carriesTheManualCollectionCountsThatExplainAnUnexpectedFullGc() {
             recorded(EventTypeName.GARBAGE_COLLECTION);
-            when(gcManager.garbageCollectorType()).thenReturn(GarbageCollectorType.G1);
+            when(gcManager.garbageCollectorType()).thenReturn(Optional.of(GarbageCollectorType.G1));
             when(gcManager.overviewData()).thenReturn(overview());
 
             String result = tools().gc();

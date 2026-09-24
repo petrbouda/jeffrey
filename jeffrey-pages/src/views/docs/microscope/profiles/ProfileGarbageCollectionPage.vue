@@ -60,6 +60,10 @@ onMounted(() => {
         <strong>Where to start:</strong> open <em>Pause Distribution</em> first to see whether pauses are short and tight or long-tailed, then jump to <em>Longest Pauses</em> to investigate the worst events.
       </DocsCallout>
 
+      <DocsCallout type="info">
+        <strong>No GC events in the recording:</strong> the Garbage Collection pages are built from <code>jdk.GCConfiguration</code> and the JDK's collection events. A recording that lacks them — typically async-profiler without <code>jfrsync</code>, which writes only heap summaries — greys out the Garbage Collection entries in the sidebar and shows a <em>Garbage Collection Unavailable</em> notice on every GC page instead, and the <em>GC Pauses</em> tile on the Summary reads <em>Not recorded</em>. Heap usage is still on the Heap Allocations page. Add <code>jfrsync=default</code> to async-profiler, or record with JFR directly, to get them next time.
+      </DocsCallout>
+
       <h2 id="pause-distribution">Pause Distribution</h2>
       <p>A bar chart that buckets every pause by duration (e.g. 0–5&nbsp;ms, 5–10&nbsp;ms, 10–25&nbsp;ms, …). The shape of the histogram tells you whether pauses cluster around a tight value (healthy) or spread across a wide range (problematic tail latencies). Useful for spotting outliers that the headline percentiles smooth over.</p>
 

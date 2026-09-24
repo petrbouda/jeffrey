@@ -122,6 +122,14 @@ final class ProfileCapabilityGaps {
     private static final double PERCENT = 100.0;
 
     /**
+     * Features whose gap another pass words better: the heap dump by {@link #addHeapDumpGap}, which
+     * tells a missing dump from an unindexed one, and the GC dashboard by the jvm_gc section gap,
+     * which names the GC events the recording lacks.
+     */
+    private static final Set<FeatureType> FEATURES_REPORTED_ELSEWHERE =
+            Set.of(FeatureType.HEAP_DUMP, FeatureType.GC_DASHBOARD);
+
+    /**
      * One sentence per feature the profile lacks, naming the events it is gated on so the reader can
      * tell "never instrumented" from "instrumented, nothing happened". A feature without an entry is
      * reported by name alone.
@@ -223,7 +231,7 @@ final class ProfileCapabilityGaps {
 
     private static void addFeatureGaps(List<CapabilityGap> gaps, List<FeatureType> disabledFeatures) {
         for (FeatureType feature : disabledFeatures) {
-            if (feature == FeatureType.HEAP_DUMP) {
+            if (FEATURES_REPORTED_ELSEWHERE.contains(feature)) {
                 continue;
             }
             FeatureGap text = FEATURE_GAPS.get(feature);
