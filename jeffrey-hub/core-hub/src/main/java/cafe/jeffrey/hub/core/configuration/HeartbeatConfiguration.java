@@ -45,7 +45,7 @@ import java.time.Clock;
 @ConditionalOnProperty(name = HeartbeatConstants.ENABLED_PROPERTY, havingValue = "true")
 public class HeartbeatConfiguration {
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public JeffreyHeartbeat jeffreyHeartbeat(Clock clock) {
         return JeffreyHeartbeat.start(HeartbeatSettings.fromEnvironment(), clock);
     }

@@ -64,7 +64,7 @@ public class JeffreyHeartbeatAutoConfiguration {
      * {@code destroyMethod} is left to Spring's default, which calls {@link AutoCloseable#close()}
      * on a bean that implements it. Naming it explicitly would be the same thing said twice.
      */
-    @Bean
+    @Bean(destroyMethod = "close")
     @ConditionalOnMissingBean
     public JeffreyHeartbeat jeffreyHeartbeat(JeffreyHeartbeatProperties properties) {
         return JeffreyHeartbeat.start(properties.toSettings());
