@@ -461,7 +461,7 @@ const searchText = ref('');
 const analyzingRecordings = ref<Set<string>>(new Set());
 const expandedRecordings = ref<Set<string>>(new Set());
 
-// Drop zone. dragDepth counts enter/leave pairs, because the lanes inside the zone
+// Drop zone. dragDepth counts enter/leave pairs, because the pills and buttons inside the zone
 // each fire dragleave as the cursor crosses them and a plain flag would flicker.
 const dragActive = ref(false);
 const dragDepth = ref(0);
