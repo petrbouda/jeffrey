@@ -16,7 +16,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { formatCommand } from '@/composables/profilerCommandFormat';
+import { commandSegments, formatCommand } from '@/composables/profilerCommandFormat';
 
 const OPTIONS = 'start,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr';
 
@@ -48,5 +48,33 @@ describe('formatCommand', () => {
   it('keeps an empty command empty in every format', () => {
     expect(formatCommand('', 'env')).toBe('');
     expect(formatCommand('', 'hocon')).toBe('');
+  });
+});
+
+describe('commandSegments', () => {
+  it('opens an ENV assignment with the variable name and marks the placeholder', () => {
+    expect(commandSegments(formatCommand(OPTIONS, 'env'), 'env')).toEqual([
+      { kind: 'key', text: 'JEFFREY_PROFILER_COMMAND' },
+      { kind: 'text', text: "='start,loop=15m,file=" },
+      { kind: 'placeholder', text: '<<JEFFREY:CURRENT_SESSION>>' },
+      { kind: 'text', text: "/profile-%t.jfr'" }
+    ]);
+  });
+
+  it('opens a HOCON entry with the configuration key', () => {
+    expect(commandSegments(formatCommand(OPTIONS, 'hocon'), 'hocon')[0]).toEqual({
+      kind: 'key',
+      text: 'profiler-command'
+    });
+  });
+
+  it('gives the bare command no key and joins back to the command', () => {
+    const segments = commandSegments(OPTIONS, 'raw');
+    expect(segments.some(segment => segment.kind === 'key')).toBe(false);
+    expect(segments.map(segment => segment.text).join('')).toBe(OPTIONS);
+  });
+
+  it('leaves a command without a placeholder as one text piece', () => {
+    expect(commandSegments('event=cpu', 'raw')).toEqual([{ kind: 'text', text: 'event=cpu' }]);
   });
 });

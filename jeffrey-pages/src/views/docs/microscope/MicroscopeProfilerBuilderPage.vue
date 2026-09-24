@@ -218,8 +218,8 @@ onMounted(() => {
       <h3 id="command">The Generated Command</h3>
       <p>
         The panel on the right shows the assembled command and, above it, each active option as its own labelled
-        parameter, so you can check what a toggle contributed before copying. A switch above the command picks how
-        <strong>Copy command</strong> hands it over:
+        parameter, so you can check what a toggle contributed before copying. Click the command to copy it; a switch
+        above it picks the form it is copied in:
       </p>
       <ul>
         <li><strong>ENV var</strong> &mdash; <code>JEFFREY_PROFILER_COMMAND='…'</code>, to set on the pod. It wins

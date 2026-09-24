@@ -52,6 +52,45 @@ const FORMATTERS: Record<CommandFormat, (command: string) => string> = {
   raw: command => command
 };
 
+const FORMAT_KEYS: Record<CommandFormat, string> = {
+  env: PROFILER_COMMAND_ENV,
+  hocon: PROFILER_COMMAND_KEY,
+  raw: ''
+};
+
+const JEFFREY_PLACEHOLDER = /(<<JEFFREY:[A-Z_]+>>)/;
+
+/**
+ * A piece of a wrapped command, told apart so the panel can colour it: the variable or
+ * configuration key the format opens with, a `<<JEFFREY:...>>` placeholder the provisioner
+ * resolves, or the command text around them.
+ */
+export type CommandSegmentKind = 'key' | 'placeholder' | 'text';
+
+export interface CommandSegment {
+  kind: CommandSegmentKind;
+  text: string;
+}
+
+function textSegments(text: string): CommandSegment[] {
+  return text
+    .split(JEFFREY_PLACEHOLDER)
+    .filter(part => part.length > 0)
+    .map(part => ({
+      kind: JEFFREY_PLACEHOLDER.test(part) ? 'placeholder' : 'text',
+      text: part
+    }));
+}
+
+/** Splits a command already wrapped by {@link formatCommand} into its coloured pieces. */
+export function commandSegments(formatted: string, format: CommandFormat): CommandSegment[] {
+  const key = FORMAT_KEYS[format];
+  if (key && formatted.startsWith(key)) {
+    return [{ kind: 'key', text: key }, ...textSegments(formatted.slice(key.length))];
+  }
+  return textSegments(formatted);
+}
+
 /** Wraps a generated command for the chosen format; an empty command stays empty. */
 export function formatCommand(command: string, format: CommandFormat): string {
   if (!command) {

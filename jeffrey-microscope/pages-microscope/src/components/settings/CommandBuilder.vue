@@ -650,30 +650,27 @@
               </div>
             </div>
             <div class="command-format">
-              <SegmentedSwitch
+              <PillSwitch
                 v-model="commandFormat"
                 :options="commandFormatOptions"
                 group-label="Copy as"
               />
               <span class="command-format-hint">{{ commandFormatHint }}</span>
             </div>
-            <div class="config-output-content compact-output" @click="copyToClipboard">
-              <code class="config-output-text">{{
-                generatedConfig || 'No configuration generated yet.'
-              }}</code>
-            </div>
-
-            <!-- Builder Actions -->
-            <div class="builder-actions">
-              <button
-                type="button"
-                class="btn btn-primary-gradient btn-copy-command"
-                :disabled="!generatedConfig"
-                @click="copyToClipboard"
+            <div
+              class="config-output-content compact-output"
+              title="Click to copy"
+              @click="copyToClipboard"
+            >
+              <code v-if="generatedConfig" class="config-output-text"
+                ><span
+                  v-for="(segment, index) in commandParts"
+                  :key="index"
+                  :class="`command-part-${segment.kind}`"
+                  >{{ segment.text }}</span
+                ></code
               >
-                <i class="bi bi-clipboard"></i>
-                Copy command
-              </button>
+              <code v-else class="config-output-text">No configuration generated yet.</code>
             </div>
           </div>
         </div>
@@ -752,11 +749,12 @@ import {
 } from '@/composables/profilerUnits';
 import { DEFAULT_AGENT_PATH } from '@/types/profiler';
 import type { ProfilerSource } from '@/types/profiler';
-import { formatCommand } from '@/composables/profilerCommandFormat';
+import { commandSegments, formatCommand } from '@/composables/profilerCommandFormat';
+import type { CommandSegment } from '@/composables/profilerCommandFormat';
 import type { CommandFormat } from '@/composables/profilerCommandFormat';
 import ChoiceTiles from '@shared/components/ChoiceTiles.vue';
 import type { ChoiceTileOption } from '@shared/components/ChoiceTiles.vue';
-import SegmentedSwitch from '@shared/components/SegmentedSwitch.vue';
+import PillSwitch from '@shared/components/PillSwitch.vue';
 import type { SegmentedOption } from '@shared/components/SegmentedSwitch.vue';
 import ToastService from '@shared/services/ToastService';
 
@@ -810,9 +808,9 @@ const commandFormat = ref<CommandFormat>('env');
 const isJeffreyJib = computed((): boolean => config.value.profilerSource === 'jeffrey-jib');
 
 const commandFormatOptions = computed((): SegmentedOption<CommandFormat>[] => [
-  { id: 'env', label: 'ENV var' },
-  { id: 'hocon', label: 'HOCON' },
-  { id: 'raw', label: isJeffreyJib.value ? 'Options' : 'JVM argument' }
+  { id: 'env', label: 'ENV var', icon: 'terminal' },
+  { id: 'hocon', label: 'HOCON', icon: 'braces' },
+  { id: 'raw', label: isJeffreyJib.value ? 'Options' : 'JVM argument', icon: 'sliders' }
 ]);
 
 const COMMAND_FORMAT_HINTS: Record<CommandFormat, string> = {
@@ -832,6 +830,11 @@ const commandFormatHint = computed((): string => {
 
 // Generated configuration
 const generatedConfig = ref('');
+
+// The command split so its key and <<JEFFREY:...>> placeholders are coloured apart from the rest
+const commandParts = computed((): CommandSegment[] =>
+  commandSegments(generatedConfig.value, commandFormat.value)
+);
 
 // Watch for changes and auto-generate
 watch(
@@ -1423,6 +1426,15 @@ generateConfig();
   box-shadow: 0 6px 16px rgba(245, 158, 11, 0.15);
 }
 
+.command-part-key {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.command-part-placeholder {
+  color: var(--color-text-muted);
+}
+
 .config-output-text {
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.8rem;
@@ -1434,24 +1446,6 @@ generateConfig();
   margin: 0;
   padding: 0;
   border: none;
-}
-
-/* Builder Actions */
-.builder-actions {
-  display: flex;
-  padding-top: 12px;
-}
-
-.btn-copy-command {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 16px;
-  font-size: 0.85rem;
-  color: var(--color-white);
-  cursor: pointer;
 }
 
 /* Responsive Design */
