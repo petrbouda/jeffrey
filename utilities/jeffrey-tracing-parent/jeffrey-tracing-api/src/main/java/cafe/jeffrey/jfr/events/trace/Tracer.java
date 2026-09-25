@@ -34,10 +34,10 @@ import java.util.function.Supplier;
  * needs to be cleared.
  * <p>
  * Where the binding is kept is a {@link cafe.jeffrey.jfr.events.trace.spi.SpanContextStorage}
- * found on the class path — {@code jeffrey-tracing} ({@code ScopedValue}, Java 25+) or
- * {@code jeffrey-tracing-thread-local} ({@code ThreadLocal}, Java 21+). With both present the
- * {@code ScopedValue} one wins wherever the JVM can load it; with neither, this class fails to
- * initialise with a message naming both.
+ * found on the class path — {@code jeffrey-tracing-scoped-value} ({@code ScopedValue},
+ * Java 25+) or {@code jeffrey-tracing-thread-local} ({@code ThreadLocal}, Java 21+). With both
+ * present the {@code ScopedValue} one wins; with neither, this class fails to initialise with a
+ * message naming both.
  *
  * <pre>{@code
  * Tracer.run("order.checkout", SpanKind.SERVER, () -> {

@@ -31,11 +31,11 @@
     <!--
       The span in progress kept in a ScopedValue: the binding is scoped to the body by
       construction and is inherited by structured concurrency. The only module of the family
-      that needs Java 25. On an older JVM this jar
-      is skipped rather than fatal, so an application can carry it next to
-      jeffrey-tracing-thread-local and get whichever its JVM supports.
+      that needs Java 25, and an explicit opt-in: nothing in the family depends on it, so it only
+      reaches a JVM whose application added it - a Java 25 one. Everything else, the Spring Boot
+      starter included, brings jeffrey-tracing-thread-local.
     -->
-    <artifactId>jeffrey-tracing</artifactId>
+    <artifactId>jeffrey-tracing-scoped-value</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>ScopedValue storage for the Jeffrey Tracer (Java 25+)</description>
@@ -46,31 +46,6 @@
         <!-- ScopedValue is final from Java 25 (JEP 506). -->
         <maven.compiler.release>25</maven.compiler.release>
     </properties>
-
-    <build>
-        <plugins>
-            <!--
-              No module-info, deliberately. A named module's descriptor is read when the module
-              path is resolved, and a Java 21 JVM cannot read a Java 25 module-info.class: the
-              whole boot layer fails before main. As an automatic module the jar resolves on any
-              JVM, its class is loaded only when the ServiceLoader reaches it (META-INF/services
-              counts as provides for an automatic module), and there an older JVM's
-              UnsupportedClassVersionError is skipped - so carrying it next to
-              jeffrey-tracing-thread-local stays safe on the module path too.
-            -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.trace.scoped</Automatic-Module-Name>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
     <dependencies>
         <dependency>

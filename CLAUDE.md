@@ -35,8 +35,9 @@ jeffrey-pages/                         documentation site — keep in sync (see 
 utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of three
                                        independent parts: jeffrey-events, jeffrey-heartbeat-parent
                                        (library + starter), jeffrey-tracing-parent:
-                                       tracing API on Java 21 + two span storages — jeffrey-tracing (ScopedValue, 25)
-                                       and jeffrey-tracing-thread-local (21), picked by ServiceLoader — + instrumentation
+                                       tracing API on Java 21 + two span storages picked by ServiceLoader —
+                                       jeffrey-tracing-scoped-value (ScopedValue, 25, opt-in) and
+                                       jeffrey-tracing-thread-local (21, the starter's) — + instrumentation
 jeffrey-jib/                           JIB extensions + provisioner payloads (release-jib.yml)
 build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native), build-agent-tests
 stubs/                                 jeffrey-hub-stub, outside the reactor (run-hub-stub.sh)

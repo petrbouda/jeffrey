@@ -29,9 +29,10 @@
     </parent>
 
     <!--
-      The span in progress kept in a ThreadLocal, for JVMs older than 25. Each binding is set and
-      restored around its body, so it never outlives the span. Next to jeffrey-tracing, the
-      ScopedValue storage wins wherever it can load.
+      The span in progress kept in a ThreadLocal, the storage for Java 21+ and the one the Spring
+      Boot starter brings. Each binding is set and restored around its body, so it never outlives
+      the span. A Java 25 application that adds jeffrey-tracing-scoped-value runs on that instead: the
+      ScopedValue storage has the higher priority.
     -->
     <artifactId>jeffrey-tracing-thread-local</artifactId>
 

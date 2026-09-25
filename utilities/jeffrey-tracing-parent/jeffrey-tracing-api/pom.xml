@@ -31,8 +31,8 @@
     <!--
       The Tracer, the span model and the event shapes every traced event extends. Java 21 and
       nothing but jdk.jfr. The span in progress is kept by a SpanContextStorage this module only
-      declares: jeffrey-tracing (ScopedValue) or jeffrey-tracing-thread-local (ThreadLocal) has to
-      be on the class path next to it, or the Tracer fails to initialise.
+      declares: jeffrey-tracing-scoped-value (ScopedValue) or jeffrey-tracing-thread-local
+      (ThreadLocal) has to be on the class path next to it, or the Tracer fails to initialise.
     -->
     <artifactId>jeffrey-tracing-api</artifactId>
 

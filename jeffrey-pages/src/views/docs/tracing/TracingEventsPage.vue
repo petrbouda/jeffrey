@@ -217,7 +217,7 @@ const dependency = `<dependency>
 <!-- (on Java 21-24: jeffrey-tracing-thread-local) -->
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-tracing</artifactId>
+    <artifactId>jeffrey-tracing-scoped-value</artifactId>
     <version><!-- same version --></version>
 </dependency>`;
 </script>

@@ -54,13 +54,10 @@
             <version>${project.version}</version>
         </dependency>
         <!--
-          Both storages, so the starter stays one dependency on any JVM: the Tracer picks the
-          ScopedValue one where the JVM can load it (25+) and the ThreadLocal one elsewhere.
+          The ThreadLocal storage, so the starter works on any JVM from Java 21 as one dependency.
+          On Java 25 an application adds jeffrey-tracing-scoped-value next to it to run on
+          ScopedValue instead: it has the higher priority, so it wins when both are present.
         -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jeffrey-tracing-thread-local</artifactId>

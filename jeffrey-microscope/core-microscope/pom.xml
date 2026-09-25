@@ -89,6 +89,12 @@
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-tracing-spring-boot-starter</artifactId>
         </dependency>
+        <!-- The starter brings the ThreadLocal storage; Microscope runs on Java 25, so ScopedValue takes over. -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing-scoped-value</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- gRPC remote clients (brings in hub-api + grpc-netty transitively) -->
         <dependency>

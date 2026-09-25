@@ -31,10 +31,10 @@ import java.util.ServiceLoader;
  * Chooses the {@link SpanContextStorage} the {@link Tracer} runs on: the highest-priority one the
  * running JVM can load.
  * <p>
- * "Can load" is the point. {@code jeffrey-tracing} is compiled for Java 25, and a Spring Boot
- * starter carries it next to {@code jeffrey-tracing-thread-local} so an application gets the best
- * storage its JVM supports without choosing. On Java 21 that provider fails with
- * {@link UnsupportedClassVersionError}; it is skipped, not fatal.
+ * An application normally carries one: {@code jeffrey-tracing-thread-local}, which the Spring Boot
+ * starter brings, or {@code jeffrey-tracing-scoped-value}, added explicitly on Java 25. With both,
+ * the ScopedValue one wins. A provider the JVM cannot load - the Java 25 class on an older JVM put on
+ * the class path by mistake - is skipped rather than fatal.
  * <p>
  * Having none at all is fatal, and fails the Tracer's initialisation with a message naming both
  * artifacts: a Tracer with nowhere to keep the span in progress would record every span as a root
@@ -46,7 +46,7 @@ final class SpanContextStorages {
 
     private static final String NONE_AVAILABLE = """
             No Jeffrey span-context storage on the class path. Add one of:
-              cafe.jeffrey-analyst:jeffrey-tracing               (ScopedValue, Java 25+)
+              cafe.jeffrey-analyst:jeffrey-tracing-scoped-value  (ScopedValue, Java 25+)
               cafe.jeffrey-analyst:jeffrey-tracing-thread-local  (ThreadLocal, Java 21+)""";
 
     private SpanContextStorages() {

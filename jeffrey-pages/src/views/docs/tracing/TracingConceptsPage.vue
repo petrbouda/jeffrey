@@ -160,7 +160,7 @@ const namingExamples = `// Good: one name per operation — stable, low-cardinal
 
       <h2 id="span-context">SpanContext and Its Binding</h2>
 
-      <p>A span's position in its trace is fully described by a <code>SpanContext</code>, the value the API binds on the thread for the duration of a span — in a <code>ScopedValue</code> with <code>jeffrey-tracing</code> (Java&nbsp;25+), in a <code>ThreadLocal</code> with <code>jeffrey-tracing-thread-local</code> (Java&nbsp;21+):</p>
+      <p>A span's position in its trace is fully described by a <code>SpanContext</code>, the value the API binds on the thread for the duration of a span — in a <code>ScopedValue</code> with <code>jeffrey-tracing-scoped-value</code> (Java&nbsp;25+), in a <code>ThreadLocal</code> with <code>jeffrey-tracing-thread-local</code> (Java&nbsp;21+):</p>
 
       <DocsCodeBlock :code="spanContextShape" language="java" />
 

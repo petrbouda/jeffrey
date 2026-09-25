@@ -48,7 +48,7 @@ const mavenDependency = `<dependency>
 <!-- (on Java 21-24: jeffrey-tracing-thread-local) -->
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-tracing</artifactId>
+    <artifactId>jeffrey-tracing-scoped-value</artifactId>
     <version><!-- same version --></version>
 </dependency>`;
 
@@ -148,7 +148,7 @@ jeffrey.JdbcQuery {
       <DocsCodeBlock :code="mavenDependency" language="xml" filename="pom.xml" />
 
       <ul>
-        <li><strong>Java 21 or newer.</strong> <code>jeffrey-events</code> brings the <code>Tracer</code> API; where it keeps the span in progress is a second artifact you add next to it — <code>jeffrey-tracing</code> (a <code>ScopedValue</code>, Java&nbsp;25+) or <code>jeffrey-tracing-thread-local</code> (a <code>ThreadLocal</code>, Java&nbsp;21+). Both on the class path is fine: the <code>ScopedValue</code> one wins wherever the JVM can load it. With neither, the <code>Tracer</code> fails at startup with a message naming both. The Spring Boot starter brings both.</li>
+        <li><strong>Java 21 or newer.</strong> <code>jeffrey-events</code> brings the <code>Tracer</code> API; where it keeps the span in progress is a second artifact you add next to it — <code>jeffrey-tracing-scoped-value</code> (a <code>ScopedValue</code>, Java&nbsp;25+) or <code>jeffrey-tracing-thread-local</code> (a <code>ThreadLocal</code>, Java&nbsp;21+). Add exactly one — on Java&nbsp;25 the <code>ScopedValue</code> one, otherwise the <code>ThreadLocal</code> one. With neither, the <code>Tracer</code> fails at startup with a message naming both. The Spring Boot starter brings the <code>ThreadLocal</code> one; on Java&nbsp;25 add <code>jeffrey-tracing-scoped-value</code> next to it and the <code>ScopedValue</code> one takes over.</li>
         <li>The library has <strong>zero dependencies</strong> (only <code>jdk.jfr</code>) and is safe to leave in production code: with no recording running, every emit path checks <code>event.isEnabled()</code> and runs the body directly.</li>
         <li>No registration step: JFR auto-registers each event type the first time an instance is created.</li>
       </ul>

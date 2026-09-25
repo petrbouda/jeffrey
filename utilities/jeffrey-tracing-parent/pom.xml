@@ -44,9 +44,11 @@
       jeffrey-tracing-api is the Tracer, the span model and the event shapes every traced event
       extends; it runs on Java 21. Where the span in progress is kept is not part of it: that is a
       SpanContextStorage, found through ServiceLoader, and exactly two exist -
-        jeffrey-tracing               ScopedValue, Java 25+
+        jeffrey-tracing-scoped-value  ScopedValue, Java 25+
         jeffrey-tracing-thread-local  ThreadLocal, Java 21+
-      An application puts one or both on its classpath; the best one its JVM can load wins.
+      jeffrey-tracing-scoped-value is an explicit opt-in for Java 25 applications; nothing in the
+      family depends on it, so its Java 25 bytes never reach an older JVM. When both are present the
+      ScopedValue one wins (higher priority).
 
       The jeffrey-tracing-* instrumentation modules depend on the API only, so they run on
       Java 21 too and leave the choice of storage to the application.
@@ -54,7 +56,7 @@
     <modules>
         <module>jeffrey-tracing-test</module>
         <module>jeffrey-tracing-api</module>
-        <module>jeffrey-tracing</module>
+        <module>jeffrey-tracing-scoped-value</module>
         <module>jeffrey-tracing-thread-local</module>
         <module>jeffrey-tracing-servlet</module>
         <module>jeffrey-tracing-spring</module>

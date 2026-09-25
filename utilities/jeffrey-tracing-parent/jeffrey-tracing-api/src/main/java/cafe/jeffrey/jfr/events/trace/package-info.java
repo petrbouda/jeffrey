@@ -42,7 +42,8 @@
  * model, the cost when nothing is recording, and the limits.
  *
  * <p>Java 21+. Where the span in progress is kept is not part of this package: add
- * {@code jeffrey-tracing} ({@code ScopedValue}, Java 25+) or {@code jeffrey-tracing-thread-local}
- * ({@code ThreadLocal}, Java 21+) - see {@link cafe.jeffrey.jfr.events.trace.spi.SpanContextStorage}.
+ * {@code jeffrey-tracing-scoped-value} ({@code ScopedValue}, Java 25+) or
+ * {@code jeffrey-tracing-thread-local} ({@code ThreadLocal}, Java 21+) - see
+ * {@link cafe.jeffrey.jfr.events.trace.spi.SpanContextStorage}.
  */
 package cafe.jeffrey.jfr.events.trace;

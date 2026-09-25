@@ -187,7 +187,7 @@ const composedSpans = [
       </DocsCallout>
 
       <DocsCallout type="warning">
-        <strong>Java 21 or newer, plus a span storage.</strong> Add <code>jeffrey-tracing</code> (a <code>ScopedValue</code>, Java&nbsp;25+) or <code>jeffrey-tracing-thread-local</code> (a <code>ThreadLocal</code>, Java&nbsp;21+) next to <code>jeffrey-events</code>; the <code>Tracer</code> fails at startup without one. The Spring Boot starter brings both.
+        <strong>Java 21 or newer, plus a span storage.</strong> Add <code>jeffrey-tracing-scoped-value</code> (a <code>ScopedValue</code>, Java&nbsp;25+) or <code>jeffrey-tracing-thread-local</code> (a <code>ThreadLocal</code>, Java&nbsp;21+) next to <code>jeffrey-events</code>; the <code>Tracer</code> fails at startup without one. The Spring Boot starter brings the <code>ThreadLocal</code> one.
       </DocsCallout>
 
       <p>The data model behind every method — <code>SpanContext</code>, <code>SpanKind</code>, <code>SpanStatus</code>, and the id semantics — is on the <router-link to="/docs/tracing/concepts">Core Concepts</router-link> page.</p>

@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+module cafe.jeffrey.jfr.events.trace.scopedvalue {
+    requires cafe.jeffrey.jfr.events.trace;
 
-/**
- * The service-provider interface behind {@link cafe.jeffrey.jfr.events.trace.Tracer}: where the
- * span in progress is kept. Applications do not implement it; they put
- * {@code jeffrey-tracing-scoped-value} (Java 25+) or {@code jeffrey-tracing-thread-local}
- * (Java 21+) on the class path.
- */
-package cafe.jeffrey.jfr.events.trace.spi;
+    provides cafe.jeffrey.jfr.events.trace.spi.SpanContextStorage
+            with cafe.jeffrey.jfr.events.trace.scopedvalue.ScopedValueSpanContextStorage;
+}

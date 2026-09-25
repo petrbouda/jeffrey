@@ -39,7 +39,7 @@
         jeffrey-events/            the JFR event types
         jeffrey-heartbeat-parent/  jeffrey-heartbeat, jeffrey-heartbeat-spring-boot-starter
         jeffrey-tracing-parent/    jeffrey-tracing-api, its two span-context storages
-                                   (jeffrey-tracing, jeffrey-tracing-thread-local) and the
+                                   (jeffrey-tracing-scoped-value, jeffrey-tracing-thread-local) and the
                                    jeffrey-tracing-* instrumentation modules, plus the
                                    internal, unpublished jeffrey-tracing-test toolkit
       jeffrey-events and each family parent inherit from this pom only, never from a sibling, so
@@ -85,9 +85,9 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--
-          Java 21 for the whole family. The one exception is jeffrey-tracing, the ScopedValue
-          storage for the tracing API, which overrides this to 25; everything else, the API
-          included, runs on 21.
+          Java 21 for the whole family. The one exception is jeffrey-tracing-scoped-value, the
+          ScopedValue storage for the tracing API, which overrides this to 25; everything else,
+          the API included, runs on 21.
         -->
         <maven.compiler.release>21</maven.compiler.release>
         <junit.version>6.1.3</junit.version>
@@ -149,7 +149,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jeffrey-tracing</artifactId>
+                <artifactId>jeffrey-tracing-scoped-value</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

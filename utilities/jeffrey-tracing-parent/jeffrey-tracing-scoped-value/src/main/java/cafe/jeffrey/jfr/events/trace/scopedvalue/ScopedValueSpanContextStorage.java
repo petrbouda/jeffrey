@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.jfr.events.trace.scoped;
+package cafe.jeffrey.jfr.events.trace.scopedvalue;
 
 import cafe.jeffrey.jfr.events.trace.SpanBody;
 import cafe.jeffrey.jfr.events.trace.SpanContext;

@@ -296,7 +296,7 @@
             </dependency>
             <dependency>
                 <groupId>cafe.jeffrey-analyst</groupId>
-                <artifactId>jeffrey-tracing</artifactId>
+                <artifactId>jeffrey-tracing-scoped-value</artifactId>
                 <version>${jeffrey-events.version}</version>
             </dependency>
             <dependency>

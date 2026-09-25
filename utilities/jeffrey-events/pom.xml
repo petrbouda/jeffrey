@@ -46,7 +46,8 @@
           The span model every traced event extends - AbstractTracedEvent, AbstractTracedInstant,
           SpanKind - and the Tracer those events stamp themselves from, so a consumer of the events
           gets the tracing API with them. The storage the Tracer keeps the span in progress in is a
-          separate choice (jeffrey-tracing or jeffrey-tracing-thread-local) left to the application.
+          separate choice (jeffrey-tracing-scoped-value or jeffrey-tracing-thread-local) left to
+          the application.
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -65,11 +66,13 @@
         </dependency>
         <!--
           Both storages: the Tracer's own tests live here, next to the events they trace, and run
-          once per storage - see the surefire executions below.
+          once per storage - see the surefire executions below. Never both in one run: the
+          ScopedValue jar is a Java 25 named module, which an older JVM cannot even put on its
+          module path.
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
+            <artifactId>jeffrey-tracing-scoped-value</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -79,28 +82,45 @@
         </dependency>
     </dependencies>
 
+    <properties>
+        <!--
+          The ScopedValue run needs a Java 25 test JVM; set this to true when the tests run on an
+          older one (e.g. -Djvm=<java 21>).
+        -->
+        <jeffrey.tests.scoped-value.skip>false</jeffrey.tests.scoped-value.skip>
+    </properties>
+
     <build>
         <plugins>
             <!--
-              The default run has both storages on the class path, so the Tracer picks the
-              ScopedValue one; the second run removes it, so the same tests exercise the
-              ThreadLocal one.
+              The same tests, once per storage: the default run with only the ThreadLocal one, the
+              scoped-value-storage run with only the ScopedValue one. StorageRunTest checks each run
+              got the storage it was meant to.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <jeffrey.test.expected-storage>ThreadLocalSpanContextStorage</jeffrey.test.expected-storage>
+                    </systemPropertyVariables>
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>${project.groupId}:jeffrey-tracing-scoped-value</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>thread-local-storage</id>
+                        <id>scoped-value-storage</id>
                         <goals>
                             <goal>test</goal>
                         </goals>
                         <configuration>
-                            <systemPropertyVariables>
-                                <jeffrey.test.scoped-value-storage>false</jeffrey.test.scoped-value-storage>
+                            <skip>${jeffrey.tests.scoped-value.skip}</skip>
+                            <systemPropertyVariables combine.self="override">
+                                <jeffrey.test.expected-storage>ScopedValueSpanContextStorage</jeffrey.test.expected-storage>
                             </systemPropertyVariables>
-                            <classpathDependencyExcludes>
-                                <classpathDependencyExclude>${project.groupId}:jeffrey-tracing</classpathDependencyExclude>
+                            <classpathDependencyExcludes combine.self="override">
+                                <classpathDependencyExclude>${project.groupId}:jeffrey-tracing-thread-local</classpathDependencyExclude>
                             </classpathDependencyExcludes>
                         </configuration>
                     </execution>

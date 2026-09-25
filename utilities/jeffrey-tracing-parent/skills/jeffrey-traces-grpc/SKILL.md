@@ -33,8 +33,9 @@ Rules recap (from the core skill) that this embodies:
 ```
 
 Next to it, one span-context storage — the `Tracer` fails at startup without one:
-`jeffrey-tracing` (a `ScopedValue`, Java 25+) or `jeffrey-tracing-thread-local` (a `ThreadLocal`,
-Java 21+). The Spring Boot starter already brings both.
+`jeffrey-tracing-scoped-value` (a `ScopedValue`, Java 25+) or `jeffrey-tracing-thread-local`
+(a `ThreadLocal`, Java 21+). The Spring Boot starter brings the ThreadLocal one; on Java 25 add
+`jeffrey-tracing-scoped-value` next to it for ScopedValue.
 
 ```java
 Server server = ServerBuilder.forPort(port)

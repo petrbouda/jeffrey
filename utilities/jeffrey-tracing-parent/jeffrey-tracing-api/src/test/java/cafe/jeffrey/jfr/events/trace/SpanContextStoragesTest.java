@@ -45,7 +45,7 @@ class SpanContextStoragesTest {
         IllegalStateException error =
                 assertThrows(IllegalStateException.class, () -> SpanContextStorages.choose(List.of()));
 
-        assertTrue(error.getMessage().contains("jeffrey-tracing "));
+        assertTrue(error.getMessage().contains("jeffrey-tracing-scoped-value "));
         assertTrue(error.getMessage().contains("jeffrey-tracing-thread-local"));
     }
 

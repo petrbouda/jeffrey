@@ -99,18 +99,19 @@ Understand this model first; every rule follows from it.
 <!-- Java 25+; on Java 21-24 use jeffrey-tracing-thread-local instead -->
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-tracing</artifactId>
+    <artifactId>jeffrey-tracing-scoped-value</artifactId>
     <version><!-- same version --></version>
 </dependency>
 ```
 
 - **Java 21 or newer.** `jeffrey-events` brings the `Tracer` API
   (`jeffrey-tracing-api`); where the `Tracer` keeps the span in progress is a
-  separate artifact you add next to it: `jeffrey-tracing` (a `ScopedValue`,
+  separate artifact you add next to it: `jeffrey-tracing-scoped-value` (a `ScopedValue`,
   Java 25+) or `jeffrey-tracing-thread-local` (a `ThreadLocal`, Java 21+).
-  Both on the class path is fine — the `ScopedValue` one wins wherever the JVM
-  can load it. With neither, the `Tracer` fails at startup with a message
-  naming both. The Spring Boot starter brings both.
+  Add exactly one: on Java 25 the `ScopedValue` one, otherwise the
+  `ThreadLocal` one. With neither, the `Tracer` fails at startup with a
+  message naming both. The Spring Boot starter brings the `ThreadLocal` one;
+  on Java 25 add `jeffrey-tracing-scoped-value` next to it and it takes over.
 - On **Java 17–20** you can use the HTTP, gRPC and JDBC events from an earlier
   `jeffrey-events` release (they still light up the HTTP/Database dashboards),
   but not `Tracer` — no hand-written spans and no cross-event trace nesting.

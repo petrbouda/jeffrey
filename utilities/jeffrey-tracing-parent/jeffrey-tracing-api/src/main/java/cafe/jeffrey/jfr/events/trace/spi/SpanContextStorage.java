@@ -28,12 +28,13 @@ import cafe.jeffrey.jfr.events.trace.SpanContext;
  * events — lives in the Tracer; an implementation of this interface only binds a context for the
  * duration of a body and answers which context is bound. Two exist, each in its own artifact:
  * <ul>
- *   <li>{@code jeffrey-tracing} — a {@code ScopedValue}, Java 25+</li>
+ *   <li>{@code jeffrey-tracing-scoped-value} — a {@code ScopedValue}, Java 25+</li>
  *   <li>{@code jeffrey-tracing-thread-local} — a {@code ThreadLocal}, Java 21+</li>
  * </ul>
  * The Tracer finds them through {@link java.util.ServiceLoader} and uses the one with the highest
- * {@link #priority()} among those the running JVM can load, so an application may carry both and
- * gets the {@code ScopedValue} one wherever it runs on Java 25.
+ * {@link #priority()} among those the running JVM can load. The Spring Boot starter brings the
+ * {@code ThreadLocal} one; a Java 25 application adds {@code jeffrey-tracing-scoped-value} to run
+ * on {@code ScopedValue}, which then wins.
  * <p>
  * A binding never outlives its body: {@link #callWith} must leave the thread exactly as it found
  * it, whether the body returns or throws.
