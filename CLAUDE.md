@@ -28,11 +28,15 @@ shared/                                common (utilities + hub↔provisioner con
                                        sql-builder, test (@DuckDBTest), hub-api (protos only), pending-index,
                                        ui/common (@shared: generic components, services, design tokens), ui/version
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM (no Java agent;
-                                       liveness comes from utilities/jeffrey-heartbeat, declared by heartbeat.enabled)
+                                       liveness comes from utilities/jeffrey-heartbeat-parent, declared by heartbeat.enabled)
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
-utilities/                             jeffrey-heartbeat (+ starter), jeffrey-tracing, jeffrey-events (release-utilities.yml)
+utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of three
+                                       independent families: jeffrey-events-parent (events, events-test), jeffrey-heartbeat-parent
+                                       (library + starter), jeffrey-tracing-parent:
+                                       tracing API on Java 21 + two span storages — jeffrey-tracing (ScopedValue, 25)
+                                       and jeffrey-tracing-thread-local (21), picked by ServiceLoader — + instrumentation
 jeffrey-jib/                           JIB extensions + provisioner payloads (release-jib.yml)
 build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native), build-agent-tests
 stubs/                                 jeffrey-hub-stub, outside the reactor (run-hub-stub.sh)

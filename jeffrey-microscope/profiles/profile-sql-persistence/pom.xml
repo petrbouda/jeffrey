@@ -40,6 +40,12 @@
             <artifactId>jeffrey-events</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Where the Tracer keeps the span in progress; Jeffrey runs on Java 25, so the ScopedValue one. -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>profile-persistence-api</artifactId>
@@ -99,7 +105,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <!-- Event API contracts are a test-only dependency, not part of the persistence module. -->
-                    <argLine>--add-reads cafe.jeffrey.microscope.profile.persistence.jdbc=cafe.jeffrey.jfr.events</argLine>
+                    <argLine>--add-reads cafe.jeffrey.microscope.profile.persistence.jdbc=cafe.jeffrey.jfr.events,cafe.jeffrey.jfr.events.trace</argLine>
                 </configuration>
             </plugin>
         </plugins>

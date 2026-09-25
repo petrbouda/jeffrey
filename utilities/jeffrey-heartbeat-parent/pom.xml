@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     https://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cafe.jeffrey-analyst</groupId>
+        <artifactId>jeffrey-utilities-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>jeffrey-heartbeat-parent</artifactId>
+    <packaging>pom</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Parent of the Jeffrey heartbeat library and its Spring Boot starter</description>
+    <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
+    <url>https://github.com/petrbouda/jeffrey</url>
+
+    <!--
+      The heartbeat family: the library that reports JVM liveness to a Jeffrey Hub from inside the
+      application, and the starter that wires it into Spring Boot. It shares nothing with the events
+      or tracing modules but the build: configuration, dependencyManagement and the release profile
+      come from jeffrey-utilities-parent above, so it is published in the same run on the same version.
+    -->
+    <modules>
+        <module>jeffrey-heartbeat</module>
+        <module>jeffrey-heartbeat-spring-boot-starter</module>
+    </modules>
+</project>

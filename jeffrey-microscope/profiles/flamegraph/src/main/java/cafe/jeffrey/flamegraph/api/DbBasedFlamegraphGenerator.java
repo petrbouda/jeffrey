@@ -67,7 +67,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
     @Override
     public byte[] generate(GraphParameters params) {
-        // Both branches run on a shared pool, where ScopedValue does not reach. fork captures the
+        // Both branches run on a shared pool, where the span in progress does not reach. fork captures the
         // enclosing span here and re-establishes it inside each task so the two halves of a graph
         // request stay under the request that asked for them instead of starting traces of their own.
         CompletableFuture<cafe.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;

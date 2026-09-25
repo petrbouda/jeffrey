@@ -17,11 +17,11 @@
 # These are released independently and on demand, NOT as part of the main tag-triggered Jeffrey
 # release (release.yml); jeffrey-jib has its own workflow (release-jib.yml).
 #
-# jeffrey-events-parent is the release root: it aggregates by relative path ../jeffrey-events,
-# ../jeffrey-events-test, ../jeffrey-heartbeat, ../jeffrey-heartbeat-spring-boot-starter and
-# ../jeffrey-tracing with its jeffrey-tracing-* modules, so one run publishes the whole family on
-# one version. Maven stages the artifacts (jar + sources + javadoc) into a local staging
-# repository; JReleaser signs them and uploads to Maven Central.
+# utilities/pom.xml (jeffrey-utilities-parent) is the release root: it aggregates the three
+# independent families - jeffrey-events-parent, jeffrey-heartbeat-parent and
+# jeffrey-tracing-parent - so one run publishes every library on one version. Maven stages the
+# artifacts (jar + sources + javadoc) into utilities/target/staging-deploy; JReleaser
+# (utilities/jreleaser.yml) signs them and uploads to Maven Central.
 name: Publish utility libraries to Maven Central
 on:
   workflow_dispatch:
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: utilities/jeffrey-events-parent
+        working-directory: utilities
     steps:
       - uses: actions/checkout@v6
 
@@ -66,7 +66,7 @@ jobs:
         uses: jreleaser/release-action@v2
         with:
           arguments: deploy
-          working-directory: utilities/jeffrey-events-parent
+          working-directory: utilities
         env:
           JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,5 +82,5 @@ jobs:
         with:
           name: jreleaser-deploy-output-utilities
           path: |
-            utilities/jeffrey-events-parent/out/jreleaser/trace.log
-            utilities/jeffrey-events-parent/out/jreleaser/output.properties
+            utilities/out/jreleaser/trace.log
+            utilities/out/jreleaser/output.properties

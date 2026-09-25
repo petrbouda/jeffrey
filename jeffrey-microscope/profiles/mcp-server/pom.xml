@@ -35,6 +35,12 @@
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-events</artifactId>
         </dependency>
+        <!-- Where the Tracer keeps the span in progress; Jeffrey runs on Java 25, so the ScopedValue one. -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Spring AI - the @Tool/@ToolParam annotations and ToolUtils the toolsets reflect over.
              spring-ai-model is where those live; the chat client would only add machinery for calling

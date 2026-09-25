@@ -42,8 +42,8 @@ import java.util.concurrent.Future;
  * nothing more, which is why the groups are worth reading with that in mind.
  *
  * <p>Every statement is issued through {@link HeapDumpDatabaseClient} so it emits its own JFR
- * event, on the parallel path as much as the sequential one. A span lives in a {@code ScopedValue}
- * and a plain executor does not inherit one, so each task is wrapped with {@link Tracer#fork} to
+ * event, on the parallel path as much as the sequential one. The span in progress is bound to the
+ * thread and a plain executor does not inherit it, so each task is wrapped with {@link Tracer#fork} to
  * re-establish the phase's span on the thread that actually runs the DDL. Without it the phase is
  * a single opaque bar that cannot say which index its time went to.
  */

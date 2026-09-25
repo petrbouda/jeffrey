@@ -129,8 +129,8 @@ public final class HprofPassBWalker {
                     List<HprofRecord.HeapDumpRegion> assigned = partitions.get(w);
                     Map<String, Path> outputs = staging.partFiles(
                             w, INSTANCE_TABLE, GC_ROOT_TABLE, OUTBOUND_REF_TABLE);
-                    // forkCallable, not a bare lambda: a span lives in a ScopedValue and a plain
-                    // executor does not inherit one, so without this the workers run outside the
+                    // forkCallable, not a bare lambda: the span in progress is bound to the thread and a
+                    // plain executor does not inherit it, so without this the workers run outside the
                     // trace and the phase reports its whole parallel decode as unexplained self time.
                     futures.add(executor.submit(Tracer.forkCallable(SPAN_WORKER, () ->
                             runWorker(file, assigned, classesById, idSize, layout, outputs))));

@@ -172,7 +172,7 @@ jeffrey.TraceSpan {
 
       <h2 id="pinning">Pinning to a Span</h2>
 
-      <p>Sometimes a notification belongs to a span whose <code>ScopedValue</code> binding is already gone — a failure reported from a callback after the work completed. Since a committed span event still carries its ids, set them on the notification explicitly (from the span event or a kept <code>SpanContext</code>) before <code>emit()</code> — ids already present are never overwritten. Without that, the notification would land in whatever trace happened to be running, or in none.</p>
+      <p>Sometimes a notification belongs to a span whose binding is already gone — a failure reported from a callback after the work completed. Since a committed span event still carries its ids, set them on the notification explicitly (from the span event or a kept <code>SpanContext</code>) before <code>emit()</code> — ids already present are never overwritten. Without that, the notification would land in whatever trace happened to be running, or in none.</p>
 
       <h2 id="exceptions-recording">Exceptions: What Is Recorded on a Span</h2>
 

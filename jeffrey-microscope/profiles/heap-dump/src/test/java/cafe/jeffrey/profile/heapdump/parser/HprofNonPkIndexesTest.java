@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * emitted and a reader could not tell which of the eight indexes the time went to. These tests pin
  * both halves of the fix — that a statement event is emitted at all, and that it lands under the
  * phase's span rather than floating loose on a worker thread, which is the part a plain executor
- * gets wrong because a span lives in a {@code ScopedValue}.
+ * gets wrong because the span in progress is bound to the thread.
  */
 class HprofNonPkIndexesTest {
 
@@ -108,7 +108,7 @@ class HprofNonPkIndexesTest {
 
             // The assertion that matters, and the failure it guards is quieter than "no events":
             // without Tracer.fork every statement is still emitted, but with traceId=0 and spanId=0,
-            // because a ScopedValue does not cross a plain executor. The derivation drops an
+            // because the span in progress does not cross a plain executor. The derivation drops an
             // untraced event, so the phase stays a single bar however many events it committed.
             SpansAssert.assertThat(events)
                     .hasNoUntracedSpans()

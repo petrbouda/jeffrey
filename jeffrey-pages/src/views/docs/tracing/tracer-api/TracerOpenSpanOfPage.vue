@@ -109,7 +109,7 @@ const outputSpans = [
 
       <ul>
         <li>Stamps the event with a fresh span — a child of the span in progress on the calling thread, or a <strong>root</strong> when none is. On a client that is the calling thread, so the outbound call nests under the request being served; on a server there is nothing above it, so it roots the trace.</li>
-        <li><strong>Deliberately binds nothing.</strong> The caller keeps the returned context and re-establishes it per callback with <code>reenter</code> — an eager binding would leak past the method's return, which is exactly what <code>ScopedValue</code> forbids.</li>
+        <li><strong>Deliberately binds nothing.</strong> The caller keeps the returned context and re-establishes it per callback with <code>reenter</code> — an eager binding would leak past the method's return, which a binding bounded by its body forbids.</li>
         <li>Still stamps with nothing recording — like <code>inSpanOf</code>, whether the interval is recorded is the event's decision.</li>
         <li>The event's identity is fixed from this moment: a later <code>commitSpan()</code>, on any thread, never re-stamps it.</li>
       </ul>

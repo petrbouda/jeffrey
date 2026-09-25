@@ -41,7 +41,7 @@ onMounted(() => {
 });
 
 const signatures = `static <R, X extends Throwable>
-R inSpanOf(AbstractTracedEvent event, ScopedValue.CallableOp<R, X> body) throws X
+R inSpanOf(AbstractTracedEvent event, SpanBody<R, X> body) throws X
 
 static void inSpanOf(AbstractTracedEvent event, Runnable body)`;
 

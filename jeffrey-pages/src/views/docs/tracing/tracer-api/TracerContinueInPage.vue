@@ -42,11 +42,11 @@ onMounted(() => {
 
 const signatures = `static <R, X extends Throwable>
 R continueIn(SpanContext parent, String name, SpanKind kind,
-             ScopedValue.CallableOp<R, X> body) throws X
+             SpanBody<R, X> body) throws X
 
 static <R, X extends Throwable>
 R continueIn(SpanContext parent, String name,
-             ScopedValue.CallableOp<R, X> body) throws X          // INTERNAL
+             SpanBody<R, X> body) throws X          // INTERNAL
 
 static void continueIn(SpanContext parent, String name, SpanKind kind, Runnable body)
 static void continueIn(SpanContext parent, String name, Runnable body)   // INTERNAL
@@ -109,7 +109,7 @@ const outputSpans = [
       <h2 id="behavior">Behavior</h2>
 
       <ul>
-        <li><code>ScopedValue</code> propagates only through structured concurrency; work submitted to a plain executor does not inherit the current span. <code>continueIn</code> is the bridge: it parents the new span to the <em>given</em> context, whatever the receiving thread has bound.</li>
+        <li>The current span does not follow work to another thread; work submitted to a plain executor does not inherit the current span. <code>continueIn</code> is the bridge: it parents the new span to the <em>given</em> context, whatever the receiving thread has bound.</li>
         <li>Mints a <strong>child</strong> span and emits one <code>jeffrey.TraceSpan</code> for it — the receiving thread is doing a separate piece of work, which is exactly what distinguishes it from <router-link to="/docs/tracing/tracer-api/reenter">reenter</router-link>.</li>
         <li><code>null</code> parent → a fresh root in a fresh trace — the untraced-caller fallback.</li>
         <li>Failure semantics are <router-link to="/docs/tracing/tracer-api/run">run</router-link>'s: an escaping exception marks the span <code>ERROR</code> and is rethrown unchanged.</li>

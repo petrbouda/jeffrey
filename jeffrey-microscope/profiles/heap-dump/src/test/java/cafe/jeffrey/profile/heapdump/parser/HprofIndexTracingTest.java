@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * What a whole {@code hprof.index.build} reports about itself.
  * <p>
  * Three of its phases hand their real work to {@code Executors.newVirtualThreadPerTaskExecutor()},
- * and a span lives in a {@code ScopedValue}, which a plain executor does not inherit. Everything
+ * and the span in progress is bound to the thread, which a plain executor does not inherit. Everything
  * those workers do therefore left the trace behind: the phase drew as one bar, its duration counted
  * as the coordinator's own work, and the parallel decode that actually took the time was nowhere.
  * <p>

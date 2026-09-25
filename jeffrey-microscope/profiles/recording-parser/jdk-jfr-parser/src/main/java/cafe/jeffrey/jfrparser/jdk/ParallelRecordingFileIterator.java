@@ -75,7 +75,7 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
 
     private CompletableFuture<PARTIAL> asyncExecution(Path recording, Collector<PARTIAL, ?> collector) {
         // fork captures the enclosing span here, on the submitting thread: the workers run on a
-        // shared pool, which ScopedValue does not reach, so without it each file would parse under
+        // shared pool, which the span in progress does not reach, so without it each file would parse under
         // a trace of its own rather than under the parse that spawned it.
         return CompletableFuture.supplyAsync(
                 Tracer.fork(JdkRecordingIterators.SPAN_CHUNK_PARSE,

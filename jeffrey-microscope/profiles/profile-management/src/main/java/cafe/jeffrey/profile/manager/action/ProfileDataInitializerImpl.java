@@ -190,7 +190,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
     private CompletableFuture<Void> warm(
             String span, String component, ProfileInfo profileInfo, Runnable work) {
 
-        // ScopedValue does not cross an executor boundary; fork captures the enclosing span here, on
+        // The span in progress does not cross an executor boundary; fork captures the enclosing span here, on
         // the submitting thread, and re-establishes it inside the task. Without it each view would
         // start a trace of its own rather than appearing under the initialization that asked for it.
         return CompletableFuture

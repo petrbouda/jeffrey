@@ -22,7 +22,7 @@ import java.time.Duration;
 /**
  * Shared constants for the file-based heartbeat mechanism, as the hub reads it.
  *
- * <p>{@code utilities/jeffrey-heartbeat} — the library that writes these files from inside a
+ * <p>{@code utilities/jeffrey-heartbeat-parent/jeffrey-heartbeat} — the library that writes these files from inside a
  * profiled application — carries its own copy in {@code HeartbeatFiles} rather than depending on
  * this module, which no application should ever be made to pull in. The two move together; there
  * is no third reader.</p>
