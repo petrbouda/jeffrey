@@ -67,7 +67,6 @@ JEFFREY_PROJECT_NAME=my-service       # baked by jeffrey-jib from the artifactId
 JEFFREY_WORKSPACE_REF_ID=production   # optional (default: the hub's default workspace)
 
 # Optional extras:
-JEFFREY_PROJECT_LABEL="My Service"
 JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUID
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
@@ -107,7 +106,6 @@ arg-file = "/tmp/jvm.args"
 project {
     workspace-ref-id = "production"
     name = "my-service"
-    label = "My Service"
     instance-name = "my-service-pod-1"
 }
 attributes { cluster = "blue", namespace = "production" }
@@ -183,8 +181,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           keeps its history separately. If you rely on the jeffrey-jib default (the Maven artifactId /
           Gradle project name), renaming the module changes the project too — pin
           <code>projectName</code> in the jib configuration (or set <code>JEFFREY_PROJECT_NAME</code>
-          on the pod) to keep continuity. The <code>label</code> (<code>JEFFREY_PROJECT_LABEL</code>)
-          is display-only and can change freely.
+          on the pod) to keep continuity.
         </DocsCallout>
 
         <h2 id="config-file">Configuration File</h2>
@@ -267,12 +264,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>No</td>
               <td><code>JEFFREY_INSTANCE_NAME</code></td>
               <td>Instance name (defaults to <code>HOSTNAME</code> environment variable or generated UUID)</td>
-            </tr>
-            <tr>
-              <td><code>project.label</code></td>
-              <td>No</td>
-              <td><code>JEFFREY_PROJECT_LABEL</code></td>
-              <td>Human-readable project label</td>
             </tr>
             <tr>
               <td><code>heartbeat.enabled</code></td>

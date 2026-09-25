@@ -33,7 +33,7 @@ import java.util.Locale;
  *
  * @param hub       a hub id, or a fragment of a hub name; {@code null} for every hub
  * @param workspace a fragment of a workspace name or reference id; {@code null} for every workspace
- * @param project   a fragment of a project name or label; {@code null} for every project
+ * @param project   a fragment of a project name; {@code null} for every project
  * @param sessions  what each hub is asked for
  */
 public record HubScanFilter(
@@ -80,8 +80,7 @@ public record HubScanFilter(
             return true;
         }
         return project.equals(lower(projectInfo.id()))
-                || contains(projectInfo.name(), project)
-                || contains(projectInfo.label(), project);
+                || contains(projectInfo.name(), project);
     }
 
     private static String normalise(String value) {

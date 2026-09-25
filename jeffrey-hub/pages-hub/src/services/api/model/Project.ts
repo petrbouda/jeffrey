@@ -21,14 +21,9 @@ export default class Project {
     constructor(
         public id: string,
         public name: string,
-        public label: string | null,
         // UTC epoch millis — format with FormattingService, never by parsing date strings
         public createdAt: number,
         public workspaceId: string,
         public status: RecordingStatus) {
-    }
-
-    static displayName(project: Project): string {
-        return project.label?.trim() ? project.label : project.name;
     }
 }

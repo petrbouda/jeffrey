@@ -58,9 +58,6 @@ final class StubProtoMappers {
                 .setWorkspaceId(project.workspaceId())
                 .setStatus(recordingStatus(project.status()))
                 .setSessionCount(project.sessionCount());
-        if (project.label() != null) {
-            builder.setLabel(project.label());
-        }
         if (project.namespace() != null) {
             builder.setNamespace(project.namespace());
         }

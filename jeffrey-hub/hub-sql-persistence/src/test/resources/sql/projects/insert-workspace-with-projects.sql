@@ -17,7 +17,7 @@
 INSERT INTO workspaces (workspace_id, reference_id, repository_id, name, location, base_location,  created_at)
 VALUES ('ws-001', 'ws-001', NULL, 'Test Workspace', NULL, NULL, '2025-01-01T10:00:00Z');
 
-INSERT INTO projects (project_id, origin_project_id, project_name, project_label, namespace, workspace_id, created_at, origin_created_at, attributes)
+INSERT INTO projects (project_id, origin_project_id, project_name, namespace, workspace_id, created_at, origin_created_at, attributes)
 VALUES
-    ('proj-001', NULL, 'Project One', 'Label 1', NULL, 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}'),
-    ('proj-002', 'origin-002', 'Project Two', NULL, NULL, 'ws-001', '2025-01-01T12:00:00Z', '2025-01-01T10:00:00Z', '{"key":"value"}');
+    ('proj-001', NULL, 'Project One', NULL, 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}'),
+    ('proj-002', 'origin-002', 'Project Two', NULL, 'ws-001', '2025-01-01T12:00:00Z', '2025-01-01T10:00:00Z', '{"key":"value"}');

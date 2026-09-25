@@ -24,7 +24,6 @@ public record ProjectResponse(
         String id,
         String originId,
         String name,
-        String label,
         String namespace,
         long createdAt,
         String workspaceId,

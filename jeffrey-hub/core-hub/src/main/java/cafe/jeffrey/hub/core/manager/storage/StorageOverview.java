@@ -44,7 +44,6 @@ public record StorageOverview(
             String workspaceName,
             String projectId,
             String projectName,
-            String projectLabel,
             long totalSizeBytes,
             int totalFiles,
             long lastActivityTimeMillis) {

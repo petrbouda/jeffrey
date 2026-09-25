@@ -42,7 +42,6 @@ public abstract class Mappers {
                 projectInfo.id(),
                 projectInfo.id(),
                 projectInfo.name(),
-                projectInfo.label(),
                 projectInfo.namespace(),
                 projectInfo.createdAt().toEpochMilli(),
                 projectInfo.workspaceId(),

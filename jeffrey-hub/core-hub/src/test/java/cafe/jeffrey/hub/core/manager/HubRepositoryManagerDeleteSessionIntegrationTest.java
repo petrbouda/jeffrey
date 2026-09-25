@@ -61,7 +61,7 @@ class HubRepositoryManagerDeleteSessionIntegrationTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
-            PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
+            PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", null,
             WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
 
     @Mock

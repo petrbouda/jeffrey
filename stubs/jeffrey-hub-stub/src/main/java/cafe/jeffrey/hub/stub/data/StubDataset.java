@@ -91,7 +91,6 @@ public record StubDataset(List<Workspace> workspaces) {
             String id,
             String originId,
             String name,
-            String label,
             String namespace,
             Instant createdAt,
             String workspaceId,

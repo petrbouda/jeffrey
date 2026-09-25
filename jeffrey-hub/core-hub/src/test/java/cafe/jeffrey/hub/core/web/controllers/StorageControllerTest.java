@@ -49,7 +49,7 @@ class StorageControllerTest {
                 new InfrastructureUsage(2_900_000_000L, 1_300_000_000L),
                 List.of(new ProjectStorage(
                         "ws-1", "production",
-                        "prj-1", "order-service", null,
+                        "prj-1", "order-service",
                         27_100_000_000L, 342, 1_775_000_000_000L)));
         when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
 

@@ -46,7 +46,6 @@ public class ProjectCreator {
                 IDGenerator.generate(),
                 project.originProjectId(),
                 project.projectName(),
-                project.projectLabel(),
                 project.namespace(),
                 workspaceInfo.id(),
                 clock.instant(),

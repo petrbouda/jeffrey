@@ -78,7 +78,7 @@ class ProjectStorageQuotaCleanerJobTest {
     @BeforeEach
     void setUp() {
         ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", null, null, "ws-1", NOW, NOW, java.util.Map.of(), null);
+                "proj-1", null, "my-project", null, "ws-1", NOW, NOW, java.util.Map.of(), null);
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);

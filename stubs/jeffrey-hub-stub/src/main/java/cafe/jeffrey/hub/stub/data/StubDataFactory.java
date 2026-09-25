@@ -98,7 +98,7 @@ public class StubDataFactory {
                 finishedInstance("inst-sandbox-1", "sandbox-app@1", now, Duration.ofHours(2), 1),
                 pendingInstance("inst-sandbox-2", "sandbox-app@2", now)));
 
-        Project deleted = new Project("proj-legacy", "origin-legacy", "legacy-batch", "legacy-batch", null,
+        Project deleted = new Project("proj-legacy", "origin-legacy", "legacy-batch", null,
                 minus(now, Duration.ofDays(60)), workspaceId, RecState.FINISHED,
                 minus(now, Duration.ofDays(3)), List.of());
 
@@ -110,7 +110,7 @@ public class StubDataFactory {
     private Project project(String workspaceId, String id, String name, String namespace,
                             Instant now, List<Instance> instances) {
         boolean anyActive = instances.stream().anyMatch(instance -> instance.status() == InstState.ACTIVE);
-        return new Project(id, "origin-" + id, name, name, namespace,
+        return new Project(id, "origin-" + id, name, namespace,
                 minus(now, Duration.ofDays(40)), workspaceId,
                 anyActive ? RecState.ACTIVE : RecState.FINISHED, null, instances);
     }

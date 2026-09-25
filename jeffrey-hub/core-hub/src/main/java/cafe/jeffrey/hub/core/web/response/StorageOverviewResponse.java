@@ -46,7 +46,6 @@ public record StorageOverviewResponse(
             String workspaceName,
             String projectId,
             String projectName,
-            String projectLabel,
             long totalSizeBytes,
             int totalFiles,
             long lastActivityTimeMillis) {
@@ -57,7 +56,6 @@ public record StorageOverviewResponse(
                     project.workspaceName(),
                     project.projectId(),
                     project.projectName(),
-                    project.projectLabel(),
                     project.totalSizeBytes(),
                     project.totalFiles(),
                     project.lastActivityTimeMillis());

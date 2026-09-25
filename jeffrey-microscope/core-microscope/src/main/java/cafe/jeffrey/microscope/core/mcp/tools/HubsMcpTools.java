@@ -263,7 +263,7 @@ public class HubsMcpTools {
             String hub,
             @ToolParam(required = false, description = "Optional filter on part of a workspace name or its reference id")
             String workspace,
-            @ToolParam(required = false, description = "Optional filter on part of a project name or label, e.g. checkout")
+            @ToolParam(required = false, description = "Optional filter on part of a project name, e.g. checkout")
             String project,
             @ToolParam(required = false, description = "Only sessions that were recording at some point within the last "
                     + "N minutes - 60 for the last hour, 1440 for the last day. This is an overlap, "

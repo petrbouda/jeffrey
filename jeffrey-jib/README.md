@@ -73,7 +73,7 @@ volumes:
 ```
 
 Optional pod-level env overrides: `JEFFREY_PROJECT_NAME`, `JEFFREY_WORKSPACE_REF_ID`,
-`JEFFREY_PROJECT_LABEL`, `JEFFREY_ATTRIBUTES` (`key=value,key=value`),
+`JEFFREY_ATTRIBUTES` (`key=value,key=value`),
 `JEFFREY_HEAP_DUMP` (`exit`|`crash`|`off`), `JEFFREY_PERF_COUNTERS`,
 `JEFFREY_ADDITIONAL_JVM_OPTIONS` (JVM unified logging goes here — pass `-Xlog:…` commands).
 
@@ -86,8 +86,7 @@ help — it expands only variables declared earlier in the same container's `env
 **The project name is a stable identity** — it keys the project directory on the shared
 volume and links every session to the same project on Jeffrey Hub. Changing it creates a
 new project. If you rename the Maven artifactId / Gradle project, pin `projectName` in the
-jib configuration to keep the project's history continuous; only the label
-(`JEFFREY_PROJECT_LABEL`) is safe to change freely.
+jib configuration to keep the project's history continuous.
 
 ## Fail-open guarantee
 

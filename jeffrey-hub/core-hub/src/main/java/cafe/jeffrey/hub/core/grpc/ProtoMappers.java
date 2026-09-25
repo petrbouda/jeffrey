@@ -127,7 +127,6 @@ public final class ProtoMappers {
                 .setId(info.id())
                 .setOriginId(orEmpty(info.originId()))
                 .setName(info.name())
-                .setLabel(orEmpty(info.label()))
                 .setNamespace(orEmpty(info.namespace()))
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setWorkspaceId(info.workspaceId())

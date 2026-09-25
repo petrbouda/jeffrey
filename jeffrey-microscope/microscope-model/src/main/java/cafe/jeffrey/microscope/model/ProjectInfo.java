@@ -24,7 +24,6 @@ public record ProjectInfo(
         String id,
         String originId,
         String name,
-        String label,
         String namespace,
         String workspaceId,
         Instant createdAt,

@@ -89,7 +89,6 @@ public class SessionRegistrar {
         repository.addProject(
                 projectId,
                 config.getProjectName(),
-                config.getProjectLabel(),
                 config.getWorkspaceRefId(),
                 config.getWorkspacesDir(),
                 config.resolveRepositoryType(),

@@ -90,18 +90,16 @@ message ProjectInfo {
   string origin_id = 2;
   // Project name (can be renamed by the user).
   string name = 3;
-  // Optional display label (shown in UI if set, otherwise name is used).
-  string label = 4;
   // Optional namespace for grouping related projects.
-  string namespace = 5;
+  string namespace = 4;
   // Creation timestamp (epoch millis).
-  int64 created_at = 6;
+  int64 created_at = 5;
   // ID of the workspace this project belongs to.
-  string workspace_id = 7;
+  string workspace_id = 6;
   // Current recording status.
-  RecordingStatus status = 8;
+  RecordingStatus status = 7;
   // Number of active and finished recording sessions.
-  int32 session_count = 9;
+  int32 session_count = 8;
   // Soft-deletion timestamp (epoch millis). Present only for deleted projects.
-  optional int64 deleted_at = 10;
+  optional int64 deleted_at = 9;
 }

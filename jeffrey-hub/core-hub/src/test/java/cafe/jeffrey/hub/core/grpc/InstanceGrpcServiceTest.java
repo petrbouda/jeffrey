@@ -78,7 +78,7 @@ class InstanceGrpcServiceTest {
      */
     private static void knownProject(HubPlatformRepositories platformRepositories) {
         ProjectInfo projectInfo = new ProjectInfo(
-                PROJECT_ID, null, "test-project", null, null, null,
+                PROJECT_ID, null, "test-project", null, null,
                 FIXED_TIME, null, null, null);
         var projectRepo = mock(ProjectRepository.class);
         when(projectRepo.find()).thenReturn(Optional.of(projectInfo));
@@ -506,7 +506,7 @@ class InstanceGrpcServiceTest {
             ));
 
             ProjectInfo projectInfo = new ProjectInfo(
-                    PROJECT_ID, null, "test-project", null, null, null,
+                    PROJECT_ID, null, "test-project", null, null,
                     FIXED_TIME, null, null, null);
             var projectRepo = mock(ProjectRepository.class);
             when(projectRepo.find()).thenReturn(Optional.of(projectInfo));

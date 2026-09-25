@@ -168,7 +168,6 @@ import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient';
 import RecordingStatus from '@/services/api/model/RecordingStatus';
 import type Workspace from '@/services/api/model/Workspace';
 import type Project from '@/services/api/model/Project';
-import ProjectModel from '@/services/api/model/Project';
 import type { ProjectStorage, StorageOverview } from '@/services/api/model/StorageOverview';
 
 type SortColumn = 'project' | 'size' | 'files' | 'activity';
@@ -222,7 +221,6 @@ const emptyStorage = (workspace: Workspace, project: Project): ProjectStorage =>
   workspaceName: workspace.name,
   projectId: project.id,
   projectName: project.name,
-  projectLabel: project.label,
   totalSizeBytes: 0,
   totalFiles: 0,
   lastActivityTimeMillis: 0
@@ -230,8 +228,7 @@ const emptyStorage = (workspace: Workspace, project: Project): ProjectStorage =>
 
 const toProjectRow = (storage: ProjectStorage, project: Project | undefined): ProjectRow => ({
   projectId: storage.projectId,
-  name: project ? ProjectModel.displayName(project)
-      : (storage.projectLabel?.trim() ? storage.projectLabel : storage.projectName),
+  name: project ? project.name : storage.projectName,
   active: project?.status === RecordingStatus.ACTIVE,
   totalSizeBytes: storage.totalSizeBytes,
   totalFiles: storage.totalFiles,

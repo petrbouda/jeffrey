@@ -75,7 +75,7 @@ class HubSessionScanTest {
     }
 
     private static ProjectInfo projectInfo(String id, String name) {
-        return new ProjectInfo(id, "origin-" + id, name, name, "ns", "ws-1", NOW, NOW, Map.of(), null);
+        return new ProjectInfo(id, "origin-" + id, name, "ns", "ws-1", NOW, NOW, Map.of(), null);
     }
 
     private static RecordingSession session(String id, Instant createdAt) {

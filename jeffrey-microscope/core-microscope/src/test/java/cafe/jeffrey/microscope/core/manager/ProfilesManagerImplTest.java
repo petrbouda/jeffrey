@@ -41,7 +41,7 @@ class ProfilesManagerImplTest {
 
     private static final Instant NOW = Instant.parse("2025-06-01T12:00:00Z");
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
-            "proj-1", null, "Test Project", null, null,
+            "proj-1", null, "Test Project", null,
             "ws-1", NOW, null, Map.of(), null);
 
     @Mock

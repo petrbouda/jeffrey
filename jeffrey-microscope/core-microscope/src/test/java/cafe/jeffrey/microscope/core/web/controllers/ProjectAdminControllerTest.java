@@ -57,7 +57,7 @@ class ProjectAdminControllerTest {
         when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
         when(projectManager.info()).thenReturn(new ProjectInfo(
-                "p-1", "p-1", "demo", "Demo", "demo", "ws-1",
+                "p-1", "p-1", "demo", "demo", "ws-1",
                 Instant.EPOCH, Instant.EPOCH, Map.of(), null));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectAdminController(resolver));

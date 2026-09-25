@@ -138,7 +138,6 @@ class HubStorageManagerTest {
             assertThat(project.workspaceName()).isEqualTo("production");
             assertThat(project.projectId()).isEqualTo("prj-1");
             assertThat(project.projectName()).isEqualTo("order-service");
-            assertThat(project.projectLabel()).isEqualTo("Order Service");
             assertThat(project.totalSizeBytes()).isEqualTo(1780L);
             assertThat(project.totalFiles()).isEqualTo(7);
             assertThat(project.lastActivityTimeMillis()).isEqualTo(LAST_ACTIVITY.toEpochMilli());
@@ -162,7 +161,7 @@ class HubStorageManagerTest {
                     "ws-1", "ws-1", "repo-1", "production",
                     null, null, CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
             ProjectInfo projectInfo = new ProjectInfo(
-                    "prj-1", "origin-1", "order-service", "Order Service", "default",
+                    "prj-1", "origin-1", "order-service", "default",
                     "ws-1", CREATED_AT, CREATED_AT, Map.of(), null);
 
             doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();

@@ -67,13 +67,12 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  project_id,
                  origin_project_id,
                  project_name,
-                 project_label,
                  namespace,
                  workspace_id,
                  created_at,
                  origin_created_at,
                  attributes)
-                SELECT :project_id, :origin_project_id, :project_name, :project_label, :namespace, :workspace_id, :created_at, :origin_created_at, :attributes
+                SELECT :project_id, :origin_project_id, :project_name, :namespace, :workspace_id, :created_at, :origin_created_at, :attributes
                 WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL AND deleted_at IS NULL)
                 ON CONFLICT DO NOTHING""";
 
@@ -126,7 +125,6 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("project_id", newProject.id())
                 .addValue("origin_project_id", newProject.originId())
                 .addValue("project_name", newProject.name())
-                .addValue("project_label", newProject.label())
                 .addValue("namespace", newProject.namespace())
                 .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().atOffset(ZoneOffset.UTC))
