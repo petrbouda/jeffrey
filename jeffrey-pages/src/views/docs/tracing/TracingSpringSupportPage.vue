@@ -204,7 +204,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
 
       <DocsCodeBlock :code="starterDependency" language="xml" />
 
-      <p>That is the whole integration. The auto-configuration registers the filter first in the chain, names spans by the matched Spring MVC handler pattern, and binds <code>jeffrey.tracing.*</code>. It backs off entirely if you define your own filter, naming strategy or settings. Four auto-configurations decide independently what applies:</p>
+      <p>That is the whole integration. The starter also brings both span storages, so it works on any JVM from Java&nbsp;21 up and uses the <code>ScopedValue</code> one on Java&nbsp;25+. The auto-configuration registers the filter first in the chain, names spans by the matched Spring MVC handler pattern, and binds <code>jeffrey.tracing.*</code>. It backs off entirely if you define your own filter, naming strategy or settings. Four auto-configurations decide independently what applies:</p>
 
       <table>
         <thead>
@@ -310,7 +310,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
 
       <h2 id="plain-spring">Plain Spring: @Import</h2>
 
-      <p><code>jeffrey-tracing-spring</code> carries the same beans with no Spring Boot dependency and no auto-configuration — nothing happens until you ask:</p>
+      <p><code>jeffrey-tracing-spring</code> carries the same beans with no Spring Boot dependency and no auto-configuration — nothing happens until you ask. Unlike the starter it brings no span storage: add <code>jeffrey-tracing</code> (Java&nbsp;25+) or <code>jeffrey-tracing-thread-local</code> (Java&nbsp;21+) next to it.</p>
 
       <DocsCodeBlock :code="springImport" language="java" />
 

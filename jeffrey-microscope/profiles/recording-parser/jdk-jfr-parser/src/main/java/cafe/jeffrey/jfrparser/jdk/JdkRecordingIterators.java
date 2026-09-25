@@ -119,7 +119,7 @@ public abstract class JdkRecordingIterators {
      */
     public static CompletableFuture<Void> parseAsync(Path chunk, EventProcessor<Void> processor) {
         // fork captures the enclosing span here, on the submitting thread: the workers run on a
-        // shared pool, which ScopedValue does not reach.
+        // shared pool, which the span in progress does not reach.
         return CompletableFuture.runAsync(
                 Tracer.fork(SPAN_CHUNK_PARSE, () -> {
                     RecordingFileIterator<Void, Void> iterator = single(chunk, processor);

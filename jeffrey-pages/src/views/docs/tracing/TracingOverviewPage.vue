@@ -86,7 +86,7 @@ const tasteSpans = [
       <ul>
         <li><strong>A span is an event that carries trace identity.</strong> Every traced event extends <code>AbstractTracedEvent</code>, which declares <code>traceId</code>, <code>spanId</code> and <code>parentSpanId</code> (64-bit longs, <code>0</code> = absent) plus <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code>. The trace tree is rebuilt from the three ids alone.</li>
         <li><strong>Span discovery is structural.</strong> Jeffrey treats an event type as a span when the recording's own metadata says it declares a <code>spanId</code> field — no event-type list, no configuration. Your own custom event types take part in traces the moment they extend <code>AbstractTracedEvent</code>.</li>
-        <li><strong>Context travels in a <code>ScopedValue</code>.</strong> The span in progress is published on the thread, so a nested span, a JDBC statement or a notification discovers its parent by itself — nothing is threaded through method signatures, and the binding cannot leak because it is bounded by a lambda.</li>
+        <li><strong>Context is bound to the thread.</strong> The span in progress is bound on the thread for the duration of each body — in a <code>ScopedValue</code> on Java&nbsp;25+, a <code>ThreadLocal</code> on Java&nbsp;21–24. A nested span, a JDBC statement or a notification discovers its parent by itself; nothing is threaded through method signatures, and the binding cannot leak because it is bounded by a lambda.</li>
       </ul>
 
       <p>After a recording is parsed into a profile, Jeffrey derives the trace tables once: spans are assembled into trees, JDK blocking events (socket and file I/O, lock waits, parking) are <em>promoted</em> into synthesized leaf spans under the span that was waiting, exceptions are attributed to the span that threw them, and GC pauses and safepoints are matched against every trace window they overlap.</p>
@@ -186,8 +186,8 @@ const tasteSpans = [
       <h2 id="requirements">Requirements</h2>
 
       <ul>
-        <li><strong>Java 25 or newer</strong> for the <code>Tracer</code> API — it is built on <code>ScopedValue</code> (JEP&nbsp;506), finalized in Java&nbsp;25.</li>
-        <li>On <strong>Java 17–24</strong>, an earlier <code>jeffrey-events</code> release still provides the HTTP, gRPC and JDBC events (they light up the HTTP and Database dashboards), but no hand-written spans and no cross-event nesting.</li>
+        <li><strong>Java 21 or newer.</strong> <code>jeffrey-events</code> brings the <code>Tracer</code> API; where it keeps the span in progress is a second artifact you add next to it — <code>jeffrey-tracing</code> (a <code>ScopedValue</code>, Java&nbsp;25+) or <code>jeffrey-tracing-thread-local</code> (a <code>ThreadLocal</code>, Java&nbsp;21+). Both on the class path is fine: the <code>ScopedValue</code> one wins wherever the JVM can load it. With neither, the <code>Tracer</code> fails at startup with a message naming both. The Spring Boot starter brings both.</li>
+        <li>On <strong>Java 17–20</strong>, an earlier <code>jeffrey-events</code> release still provides the HTTP, gRPC and JDBC events (they light up the HTTP and Database dashboards), but no hand-written spans and no cross-event nesting.</li>
         <li><strong>Any JFR recording</strong> records the events — plain <code>-XX:StartFlightRecording</code>, <code>jcmd</code>, or async-profiler with <code>--jfrsync</code>. Nothing to enable; the events are on by default in any recording.</li>
       </ul>
 

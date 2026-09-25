@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     https://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cafe.jeffrey-analyst</groupId>
+        <artifactId>jeffrey-utilities-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>jeffrey-tracing-parent</artifactId>
+    <packaging>pom</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Parent of the Jeffrey tracing API, its span-context storage implementations and the instrumentation modules</description>
+    <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
+    <url>https://github.com/petrbouda/jeffrey</url>
+
+    <!--
+      The tracing family in one directory with one parent. The build configuration,
+      dependencyManagement and release profile come from jeffrey-utilities-parent above, so the
+      whole family stays on one version and one release run.
+
+      jeffrey-tracing-api is the Tracer, the span model and the event shapes every traced event
+      extends; it runs on Java 21. Where the span in progress is kept is not part of it: that is a
+      SpanContextStorage, found through ServiceLoader, and exactly two exist -
+        jeffrey-tracing               ScopedValue, Java 25+
+        jeffrey-tracing-thread-local  ThreadLocal, Java 21+
+      An application puts one or both on its classpath; the best one its JVM can load wins.
+
+      The jeffrey-tracing-* instrumentation modules depend on the API only, so they run on
+      Java 21 too and leave the choice of storage to the application.
+    -->
+    <modules>
+        <module>jeffrey-tracing-api</module>
+        <module>jeffrey-tracing</module>
+        <module>jeffrey-tracing-thread-local</module>
+        <module>jeffrey-tracing-servlet</module>
+        <module>jeffrey-tracing-spring</module>
+        <module>jeffrey-tracing-jdbc</module>
+        <module>jeffrey-tracing-hikari</module>
+        <module>jeffrey-tracing-mybatis</module>
+        <module>jeffrey-tracing-grpc</module>
+        <module>jeffrey-tracing-spring-boot-starter</module>
+    </modules>
+</project>

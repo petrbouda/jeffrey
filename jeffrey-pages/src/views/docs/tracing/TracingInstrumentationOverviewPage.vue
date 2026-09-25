@@ -166,7 +166,7 @@ const composedSpans = [
 
       <h2 id="model">The Tracer Model</h2>
 
-      <p>The <code>Tracer</code> class (<code>cafe.jeffrey.jfr.events.trace.Tracer</code>) is a small set of static methods that record nested spans into the JFR recording. The span currently in progress is published through a <code>ScopedValue</code>: a nested call discovers its parent by itself — nothing is threaded through the call chain, and the binding is bounded by the lambda, so it cannot outlive the span and never needs clearing:</p>
+      <p>The <code>Tracer</code> class (<code>cafe.jeffrey.jfr.events.trace.Tracer</code>) is a small set of static methods that record nested spans into the JFR recording. The span currently in progress is bound on the thread for the duration of each body: a nested call discovers its parent by itself — nothing is threaded through the call chain, and the binding is bounded by the lambda, so it cannot outlive the span and never needs clearing:</p>
 
       <DocsCodeBlock :code="quickStart" language="java" />
 
@@ -187,7 +187,7 @@ const composedSpans = [
       </DocsCallout>
 
       <DocsCallout type="warning">
-        <strong>Java 25 or newer.</strong> The API is built on <code>ScopedValue</code> (JEP&nbsp;506), finalized in Java&nbsp;25.
+        <strong>Java 21 or newer, plus a span storage.</strong> Add <code>jeffrey-tracing</code> (a <code>ScopedValue</code>, Java&nbsp;25+) or <code>jeffrey-tracing-thread-local</code> (a <code>ThreadLocal</code>, Java&nbsp;21+) next to <code>jeffrey-events</code>; the <code>Tracer</code> fails at startup without one. The Spring Boot starter brings both.
       </DocsCallout>
 
       <p>The data model behind every method — <code>SpanContext</code>, <code>SpanKind</code>, <code>SpanStatus</code>, and the id semantics — is on the <router-link to="/docs/tracing/concepts">Core Concepts</router-link> page.</p>

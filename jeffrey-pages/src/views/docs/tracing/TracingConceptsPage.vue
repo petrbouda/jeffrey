@@ -29,7 +29,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'model', text: 'Spans, Traces, Instants', level: 2 },
   { id: 'span-shape', text: 'The Span Shape: AbstractTracedEvent', level: 2 },
-  { id: 'span-context', text: 'SpanContext and the ScopedValue', level: 2 },
+  { id: 'span-context', text: 'SpanContext and Its Binding', level: 2 },
   { id: 'kind-status', text: 'SpanKind and SpanStatus', level: 2 },
   { id: 'discovery', text: 'Structural Span Discovery', level: 2 },
   { id: 'five-rules', text: 'The Five Rules', level: 2 },
@@ -158,9 +158,9 @@ const namingExamples = `// Good: one name per operation — stable, low-cardinal
 
       <p>Ids are <code>long</code>s rather than strings on purpose: JFR varint-encodes integrals, while every distinct string enters the per-chunk constant pool — and a zero is the cheapest varint there is, so the three id fields cost nearly nothing on an untraced code path.</p>
 
-      <h2 id="span-context">SpanContext and the ScopedValue</h2>
+      <h2 id="span-context">SpanContext and Its Binding</h2>
 
-      <p>A span's position in its trace is fully described by a <code>SpanContext</code>, the value the API publishes through a <code>ScopedValue</code>:</p>
+      <p>A span's position in its trace is fully described by a <code>SpanContext</code>, the value the API binds on the thread for the duration of a span — in a <code>ScopedValue</code> with <code>jeffrey-tracing</code> (Java&nbsp;25+), in a <code>ThreadLocal</code> with <code>jeffrey-tracing-thread-local</code> (Java&nbsp;21+):</p>
 
       <DocsCodeBlock :code="spanContextShape" language="java" />
 
@@ -172,10 +172,10 @@ const namingExamples = `// Good: one name per operation — stable, low-cardinal
         caption="A parentSpanId of 0 means the span is a root; the arrows are the only structure Jeffrey needs."
       />
 
-      <p>The record is immutable — a nested span never mutates its parent's context, it derives a child — which is what makes it safe to publish through a <code>ScopedValue</code> and to carry across threads. The binding is bounded by a lambda (<code>Tracer.run</code>, <code>call</code>, <code>inSpanOf</code>, …), so it cannot outlive the span and never needs clearing.</p>
+      <p>The record is immutable — a nested span never mutates its parent's context, it derives a child — which is what makes it safe to bind and to carry across threads. The binding is bounded by a lambda (<code>Tracer.run</code>, <code>call</code>, <code>inSpanOf</code>, …), so it cannot outlive the span and never needs clearing.</p>
 
       <DocsCallout type="info">
-        <strong><code>ScopedValue</code> propagates only through structured concurrency.</strong> Work submitted to a plain executor does not inherit the current span — it must be handed over explicitly with <code>Tracer.fork</code>, <code>Tracer.continueIn</code> or a <code>Tracer.propagating(executor)</code> wrapper. See the <router-link to="/docs/tracing/instrumentation">Tracer API Reference</router-link> for all three.
+        <strong>The current span does not follow work to another thread.</strong> Work submitted to a plain executor does not inherit the current span — it must be handed over explicitly with <code>Tracer.fork</code>, <code>Tracer.continueIn</code> or a <code>Tracer.propagating(executor)</code> wrapper. See the <router-link to="/docs/tracing/instrumentation">Tracer API Reference</router-link> for all three.
       </DocsCallout>
 
       <h2 id="kind-status">SpanKind and SpanStatus</h2>

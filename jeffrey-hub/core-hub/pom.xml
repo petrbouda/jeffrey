@@ -70,6 +70,12 @@
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-events</artifactId>
         </dependency>
+        <!-- Where the Tracer keeps the span in progress; Jeffrey runs on Java 25, so the ScopedValue one. -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-tracing-grpc</artifactId>

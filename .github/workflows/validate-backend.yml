@@ -49,7 +49,7 @@ jobs:
           # Not reachable from Hub or Microscope: the heartbeat library is a dependency of the
           # applications Jeffrey profiles, not of Jeffrey itself, so nothing else builds it.
           - component: Heartbeat
-            module: utilities/jeffrey-heartbeat-spring-boot-starter
+            module: utilities/jeffrey-heartbeat-parent/jeffrey-heartbeat-spring-boot-starter
             phase: test
     steps:
       - uses: actions/checkout@v6

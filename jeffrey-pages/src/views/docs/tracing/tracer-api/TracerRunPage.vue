@@ -123,7 +123,7 @@ const errorExample = `Tracer.run("payment.charge", SpanKind.CLIENT, () -> {
 
       <ul>
         <li>Opens a span whose parent is whatever span is bound on the current thread — or a <strong>fresh root</strong> when none is.</li>
-        <li>Runs the body with the new <code>SpanContext</code> bound through the <code>ScopedValue</code>, so anything traced inside nests under it.</li>
+        <li>Runs the body with the new <code>SpanContext</code> bound on the thread for the duration of the body, so anything traced inside nests under it.</li>
         <li>Emits one <code>jeffrey.TraceSpan</code> when the body completes.</li>
         <li>An exception escaping the body marks the span <code>ERROR</code> with the exception's class name and is <strong>rethrown unchanged</strong>.</li>
         <li>With the event type disabled (nothing recording), the body runs directly — no binding, no event, no allocation that survives escape analysis.</li>

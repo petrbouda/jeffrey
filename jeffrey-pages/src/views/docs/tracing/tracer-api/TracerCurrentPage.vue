@@ -41,7 +41,7 @@ onMounted(() => {
 
 const signature = `static Optional<SpanContext> current()
 
-// SpanContext is the immutable value the ScopedValue carries:
+// SpanContext is the immutable value bound for the span in progress:
 public record SpanContext(long traceId, long spanId, long parentSpanId) { … }`;
 
 const examples = `// Use-case 1: correlation ids in logs — print the trace id beside a log line,

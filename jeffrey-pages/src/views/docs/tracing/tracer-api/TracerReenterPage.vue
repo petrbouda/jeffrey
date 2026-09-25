@@ -40,7 +40,7 @@ onMounted(() => {
 });
 
 const signatures = `static <R, X extends Throwable>
-R reenter(SpanContext context, ScopedValue.CallableOp<R, X> body) throws X
+R reenter(SpanContext context, SpanBody<R, X> body) throws X
 
 static void reenter(SpanContext context, Runnable body)`;
 

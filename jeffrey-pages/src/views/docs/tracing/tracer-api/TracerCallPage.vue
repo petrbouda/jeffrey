@@ -48,10 +48,10 @@ static <R> R call(String name, SpanKind kind, Supplier<R> body)
 // A body that may throw a checked exception: the thrown type X is
 // inferred from the lambda — not wrapped, not erased to Exception
 static <R, X extends Throwable>
-R callChecked(String name, ScopedValue.CallableOp<? extends R, X> body) throws X
+R callChecked(String name, SpanBody<? extends R, X> body) throws X
 
 static <R, X extends Throwable>
-R callChecked(String name, SpanKind kind, ScopedValue.CallableOp<? extends R, X> body) throws X`;
+R callChecked(String name, SpanKind kind, SpanBody<? extends R, X> body) throws X`;
 
 const kotlinExample = `// call: one type variable, inferred from the lambda
 val rules = Tracer.call("scheduling-rules.get-view") {
@@ -127,7 +127,7 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
 
       <DocsCodeBlock :code="signatures" language="java" />
 
-      <p><code>call</code> takes a plain <code>Supplier</code>, so the body throws nothing checked and there is one type variable, inferred from the lambda. <code>callChecked</code> takes <code>ScopedValue.CallableOp</code> rather than <code>Callable</code> on purpose: <code>CallableOp</code> carries the thrown type as a type variable, so a body that throws <code>IOException</code> makes the whole call throw <code>IOException</code> — no wrapping into <code>Exception</code>, no unchecked rethrow tricks.</p>
+      <p><code>call</code> takes a plain <code>Supplier</code>, so the body throws nothing checked and there is one type variable, inferred from the lambda. <code>callChecked</code> takes <code>SpanBody</code> rather than <code>Callable</code> on purpose: <code>SpanBody</code> carries the thrown type as a type variable, so a body that throws <code>IOException</code> makes the whole call throw <code>IOException</code> — no wrapping into <code>Exception</code>, no unchecked rethrow tricks.</p>
 
       <h2 id="behavior">Behavior</h2>
 
@@ -151,7 +151,7 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
 
       <p><code>Tracer.callChecked</code> is <code>call</code> for a body that throws a checked exception: the same span, the same <code>ERROR</code> status on an escaping exception, the same rethrow — plus a second type variable, <code>X</code>, that Java infers from the body's <code>throws</code> so the exception keeps its type at the call site.</p>
 
-      <p>The two are separate names rather than overloads of <code>call</code>, the way <code>ScopedValue.Carrier</code> keeps <code>get(Supplier)</code> and <code>call(CallableOp)</code> apart: a result-bearing lambda matches both interfaces, and javac picks the <code>Supplier</code> overload before it looks at what the body throws, so a checked exception would fail to compile instead of selecting the other form.</p>
+      <p>The two are separate names rather than overloads of <code>call</code>: a result-bearing lambda matches both interfaces, and javac picks the <code>Supplier</code> overload before it looks at what the body throws, so a checked exception would fail to compile instead of selecting the other form.</p>
 
       <p>The split is also what makes <code>call</code> usable from Kotlin. Kotlin has no checked exceptions, so its lambdas leave <code>X</code> unconstrained, and Kotlin then requires every type argument spelled out. With one type variable, <code>call</code> infers cleanly:</p>
 
