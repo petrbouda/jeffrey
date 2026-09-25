@@ -18,7 +18,6 @@
 package cafe.jeffrey.jfr.events.trace;
 
 import jdk.jfr.Category;
-import jdk.jfr.Contextual;
 import jdk.jfr.Description;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
@@ -60,7 +59,6 @@ public class TraceScopeEvent extends Event {
     public static final String NAME = "jeffrey.TraceScope";
 
     @Label("Trace Id")
-    @Contextual
     public long traceId;
 
     @Label("Scoped Span Id")

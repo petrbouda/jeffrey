@@ -171,7 +171,7 @@ const testDependency = `<dependency>
 
       <h2 id="jmc">JMC and jfr print Interop</h2>
 
-      <p>The trace fields are declared <code>@Contextual</code> (Java 25), which does nothing for Jeffrey's own analysis — but it makes <code>jfr print</code> and JDK Mission Control display the trace and span ids <em>beside every event that occurred inside the span</em>: lock events, I/O, exceptions. A recording instrumented for Jeffrey is therefore more readable in plain JDK tooling too:</p>
+      <p>The trace events are ordinary JFR events, so <code>jfr print</code> and JDK Mission Control read them like any other: each <code>jeffrey.*</code> event shows its trace, span and parent span id as plain fields. Relating a lock, I/O or exception event to the span it happened in — by thread and time window — is Jeffrey's job; plain JDK tooling shows the spans themselves:</p>
 
       <DocsCodeBlock code="jfr print --events &quot;jeffrey.*&quot; app.jfr | less" language="bash" />
 

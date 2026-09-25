@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.jfr.events.trace;
 
-import jdk.jfr.Contextual;
 import jdk.jfr.Description;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
@@ -48,20 +47,13 @@ import jdk.jfr.Label;
  * The trace id is 64-bit, not the 128-bit shape used by W3C Trace Context and OpenTelemetry.
  * Jeffrey mints every id itself within a single recording, where 64 bits is far more than enough;
  * the trade-off is that an externally supplied 128-bit trace id cannot be stored without loss.
- * <p>
- * {@link Contextual} on the id fields does nothing for Jeffrey's own analysis — it reconstructs the
- * span-to-event association from the thread and the time window. It is there so that {@code jfr
- * print} and JDK Mission Control show the trace and span id next to every lock, I/O and exception
- * event that occurred inside the span, for anyone opening the recording in another tool.
  */
 public abstract class AbstractTracedEvent extends Event {
 
     @Label("Trace Id")
-    @Contextual
     public long traceId;
 
     @Label("Span Id")
-    @Contextual
     public long spanId;
 
     @Label("Parent Span Id")

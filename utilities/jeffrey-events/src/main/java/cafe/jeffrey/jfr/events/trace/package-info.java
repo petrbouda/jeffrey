@@ -41,7 +41,6 @@
  * Start with {@link cafe.jeffrey.jfr.events.trace.Tracer} — its class documentation covers the
  * model, the cost when nothing is recording, and the limits.
  *
- * <p>Requires Java 25: the API is built on {@link java.lang.ScopedValue} and
- * {@code jdk.jfr.Contextual}, both finalized there.
+ * <p>Requires Java 25: the API is built on {@link java.lang.ScopedValue}, finalized there.
  */
 package cafe.jeffrey.jfr.events.trace;

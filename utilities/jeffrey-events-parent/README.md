@@ -12,7 +12,7 @@ into full request traces with per-span flamegraphs.
 - **Zero dependencies** — only `jdk.jfr`.
 - **Zero cost when off** — every emit path checks `event.isEnabled()` first; with no recording
   running the instrumented code runs directly. Safe to leave in production code.
-- **Java 25+** for the `Tracer` API (built on `ScopedValue` and `jdk.jfr.Contextual`); the plain
+- **Java 25+** for the `Tracer` API (built on `ScopedValue`); the plain
   event types work on earlier releases via older versions of this library.
 
 ```xml
