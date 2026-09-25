@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.jfr.events.trace;
 
-import jdk.jfr.Contextual;
 import jdk.jfr.Description;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
@@ -40,10 +39,6 @@ import jdk.jfr.Label;
  * JFR varint-encodes integral fields while every distinct string enters the per-chunk constant pool;
  * and {@code 0} meaning "absent", which is also the cheapest varint encoding, so an instant recorded
  * outside any trace costs practically nothing over its untraced shape.
- * <p>
- * {@link Contextual} on the id fields does nothing for Jeffrey's own analysis. It is there so that
- * {@code jfr print} and JDK Mission Control show the trace and span id next to the instant, for
- * anyone opening the recording in another tool.
  *
  * <h2>Why the field is not called {@code spanId}</h2>
  * The derivation discovers which event types are spans structurally, by looking for a declared
@@ -67,7 +62,6 @@ public abstract class AbstractTracedInstant extends Event {
      * The trace that was open when this fired, or {@code 0} when there was none -- the same
      * "no id" convention {@link SpanContext} uses.
      */
-    @Contextual
     @Label("Trace Id")
     @Description("The trace that was open when the instant fired, 0 when there was none")
     public long traceId;
@@ -76,7 +70,6 @@ public abstract class AbstractTracedInstant extends Event {
      * The innermost span that was open when this fired, or {@code 0} when there was none.
      * Deliberately not named {@code spanId} -- see the class javadoc.
      */
-    @Contextual
     @Label("Enclosing Span Id")
     @Description("The span that was open when the instant fired; not named spanId, an instant is not a span")
     public long enclosingSpanId;

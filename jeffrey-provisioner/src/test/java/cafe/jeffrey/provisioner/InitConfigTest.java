@@ -41,7 +41,7 @@ class InitConfigTest {
 
     // Base config template with all required fields for ConfigBeanFactory
     private static final String BASE_CONFIG = """
-            project { workspace-ref-id = "", name = "", label = "", instance-name = "" }
+            project { workspace-ref-id = "", name = "", instance-name = "" }
             perf-counters { enabled = false }
             heap-dump { enabled = false }
             jdk-java-options { enabled = false }
@@ -69,7 +69,6 @@ class InitConfigTest {
             assertNull(config.getProfilerCommand());
             assertEquals("uat", config.getWorkspaceRefId());
             assertEquals("test-project", config.getProjectName());
-            assertEquals("Test Project", config.getProjectLabel());
             assertEquals("ASYNC_PROFILER", config.getRepositoryType());
         }
 
@@ -130,7 +129,6 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNull(config.getWorkspacesDir());
-            assertNull(config.getProjectLabel());
             assertNull(config.getProfilerPath());
             assertNull(config.getProfilerCommand());
             assertNull(config.getRepositoryType());
@@ -634,7 +632,6 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromEnvironment(env(Map.of(
                     "JEFFREY_HOME", "/mnt/jeffrey",
                     "JEFFREY_PROJECT_NAME", "my-service",
-                    "JEFFREY_PROJECT_LABEL", "My Service",
                     "JEFFREY_WORKSPACE_REF_ID", "production",
                     "JEFFREY_INSTANCE_NAME", "instance-7",
                     "JEFFREY_ATTRIBUTES", "cluster=blue, namespace=test-namespace",
@@ -642,7 +639,6 @@ class InitConfigTest {
                     "JEFFREY_PERF_COUNTERS", "true",
                     "JEFFREY_ADDITIONAL_JVM_OPTIONS", "-Xmx2g")));
 
-            assertEquals("My Service", config.getProjectLabel());
             assertEquals("production", config.getWorkspaceRefId());
             assertEquals("instance-7", config.getInstanceName());
             assertEquals(Map.of("cluster", "blue", "namespace", "test-namespace"), config.getAttributes());
@@ -721,10 +717,10 @@ class InitConfigTest {
                     "JEFFREY_HOME", "/mnt/jeffrey",
                     "JEFFREY_PROJECT_NAME", "my-service",
                     "SF_ENV", "uat",
-                    "JEFFREY_PROJECT_LABEL", "My Service (<<ENV:SF_ENV>>)",
+                    "JEFFREY_WORKSPACE_REF_ID", "team-<<ENV:SF_ENV>>",
                     "JEFFREY_ADDITIONAL_JVM_OPTIONS", "-Denv=<<ENV:SF_ENV>>")));
 
-            assertEquals("My Service (uat)", config.getProjectLabel());
+            assertEquals("team-uat", config.getWorkspaceRefId());
             assertEquals("-Denv=uat", config.getAdditionalJvmOptions());
         }
 

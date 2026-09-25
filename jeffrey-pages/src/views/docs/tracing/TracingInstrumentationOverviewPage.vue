@@ -187,7 +187,7 @@ const composedSpans = [
       </DocsCallout>
 
       <DocsCallout type="warning">
-        <strong>Java 25 or newer.</strong> The API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25.
+        <strong>Java 25 or newer.</strong> The API is built on <code>ScopedValue</code> (JEP&nbsp;506), finalized in Java&nbsp;25.
       </DocsCallout>
 
       <p>The data model behind every method — <code>SpanContext</code>, <code>SpanKind</code>, <code>SpanStatus</code>, and the id semantics — is on the <router-link to="/docs/tracing/concepts">Core Concepts</router-link> page.</p>

@@ -141,7 +141,7 @@ jeffrey.JdbcQuery {
       <DocsCodeBlock :code="mavenDependency" language="xml" filename="pom.xml" />
 
       <ul>
-        <li><strong>Java 25 or newer</strong> is required for the <code>Tracer</code> API — it is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25.</li>
+        <li><strong>Java 25 or newer</strong> is required for the <code>Tracer</code> API — it is built on <code>ScopedValue</code> (JEP&nbsp;506), finalized in Java&nbsp;25.</li>
         <li>The library has <strong>zero dependencies</strong> (only <code>jdk.jfr</code>) and is safe to leave in production code: with no recording running, every emit path checks <code>event.isEnabled()</code> and runs the body directly.</li>
         <li>No registration step: JFR auto-registers each event type the first time an instance is created.</li>
       </ul>

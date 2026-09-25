@@ -74,7 +74,6 @@ public class InitConfig {
             project {
                 workspace-ref-id = ""
                 name = ""
-                label = ""
                 instance-name = ""
             }
             attributes = {}
@@ -190,7 +189,6 @@ public class InitConfig {
 
     private final String workspaceRefId;
     private final String projectName;
-    private final String projectLabel;
     private final String instanceName;
     private final Map<String, String> attributes;
 
@@ -237,7 +235,6 @@ public class InitConfig {
         this.heartbeatEnabled = resolved.getBoolean(ConfigPaths.HEARTBEAT_ENABLED);
 
         this.projectName = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_NAME)));
-        this.projectLabel = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_LABEL)));
         this.workspaceRefId = resolveWorkspaceRefId(
                 placeholders.resolve(resolved.getString(ConfigPaths.PROJECT_WORKSPACE_REF_ID)));
         this.instanceName = resolveInstanceName(
@@ -370,10 +367,6 @@ public class InitConfig {
 
     public String getProjectName() {
         return projectName;
-    }
-
-    public String getProjectLabel() {
-        return projectLabel;
     }
 
     public String getInstanceName() {

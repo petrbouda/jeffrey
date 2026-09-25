@@ -38,7 +38,6 @@ public abstract class ConfigPaths {
     public static final String ATTRIBUTES = "attributes";
 
     public static final String PROJECT_NAME = "project.name";
-    public static final String PROJECT_LABEL = "project.label";
     public static final String PROJECT_WORKSPACE_REF_ID = "project.workspace-ref-id";
     public static final String PROJECT_INSTANCE_NAME = "project.instance-name";
 

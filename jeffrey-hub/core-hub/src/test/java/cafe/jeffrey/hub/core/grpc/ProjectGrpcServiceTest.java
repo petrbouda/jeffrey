@@ -183,7 +183,7 @@ class ProjectGrpcServiceTest {
         @Test
         void restoresSoftDeletedProject() throws IOException {
             var deletedInfo = new cafe.jeffrey.hub.model.ProjectInfo(
-                    PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
+                    PROJECT_ID, "origin-1", "Test Project", "namespace",
                     WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
 
             var projectManager = mock(ProjectManager.class);
@@ -210,7 +210,7 @@ class ProjectGrpcServiceTest {
 
     private static final cafe.jeffrey.hub.model.ProjectInfo TEST_PROJECT_INFO =
             new cafe.jeffrey.hub.model.ProjectInfo(
-                    PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
+                    PROJECT_ID, "origin-1", "Test Project", "namespace",
                     WORKSPACE_ID, FIXED_TIME, null, null, null);
 
     /**
@@ -245,7 +245,7 @@ class ProjectGrpcServiceTest {
      */
     private ProjectGrpcService serviceWithDeletedWorkspaceProject() {
         var deletedInfo = new cafe.jeffrey.hub.model.ProjectInfo(
-                PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
+                PROJECT_ID, "origin-1", "Test Project", "namespace",
                 WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
 
         return serviceWithProjectInLookup(deletedInfo, new DetailedProjectInfo(
@@ -260,7 +260,7 @@ class ProjectGrpcServiceTest {
      */
     private ProjectGrpcService serviceWithProjectInAnotherWorkspace() {
         var foreignInfo = new cafe.jeffrey.hub.model.ProjectInfo(
-                PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
+                PROJECT_ID, "origin-1", "Test Project", "namespace",
                 "other-workspace", FIXED_TIME, null, null, null);
 
         return serviceWithProjectInLookup(foreignInfo, null);

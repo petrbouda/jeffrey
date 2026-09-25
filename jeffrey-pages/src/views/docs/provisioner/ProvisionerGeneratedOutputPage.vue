@@ -76,7 +76,6 @@ env-file = "/tmp/jeffrey.env"
 project {
     workspace-ref-id = "uat"
     name = "jeffrey"
-    label = "Jeffrey"
     instance-name = "instance-1"
 }
 

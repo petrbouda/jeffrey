@@ -95,7 +95,6 @@ public class HubStorageManager {
                 workspaceInfo.name(),
                 projectInfo.id(),
                 projectInfo.name(),
-                projectInfo.label(),
                 totalSize,
                 files.size(),
                 lastActivity);

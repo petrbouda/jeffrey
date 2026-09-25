@@ -84,7 +84,7 @@ class WorkspaceReconcilerIntegrationTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
-            PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
+            PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", null,
             WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
 
     private static final RepositoryInfo REPO_INFO = new RepositoryInfo(
@@ -158,7 +158,7 @@ class WorkspaceReconcilerIntegrationTest {
     private static Path declareProject(Path workspaceDir) {
         Path projectDir = createDir(workspaceDir.resolve("proj-001"));
         RemoteProject marker = new RemoteProject(
-                ORIGIN_PROJECT_ID, "project-alpha", "Alpha Label", WORKSPACE_ID,
+                ORIGIN_PROJECT_ID, "project-alpha", WORKSPACE_ID,
                 Instant.parse("2025-06-15T10:00:00Z").toEpochMilli(),
                 "/workspaces", "ws-001", "proj-001",
                 RepositoryType.ASYNC_PROFILER, Map.of("env", "prod"));

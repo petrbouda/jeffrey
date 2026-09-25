@@ -99,8 +99,7 @@ Understand this model first; every rule follows from it.
 ```
 
 - **Java 25 or newer is required for `Tracer` and `TraceSpanEvent`** — the API
-  is built on `ScopedValue` (JEP 506) and `jdk.jfr.Contextual`, both finalized
-  in Java 25.
+  is built on `ScopedValue` (JEP 506), finalized in Java 25.
 - On **Java 17–24** you can use the HTTP, gRPC and JDBC events from an earlier
   `jeffrey-events` release (they still light up the HTTP/Database dashboards),
   but not `Tracer` — no hand-written spans and no cross-event trace nesting.

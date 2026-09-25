@@ -25,7 +25,6 @@ import cafe.jeffrey.hub.model.repository.RecordingStatus;
 public record ProjectResponse(
         String id,
         String name,
-        String label,
         long createdAt,
         String workspaceId,
         RecordingStatus status) {

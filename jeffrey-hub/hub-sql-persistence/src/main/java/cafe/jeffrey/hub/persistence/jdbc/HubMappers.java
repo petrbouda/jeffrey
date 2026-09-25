@@ -113,7 +113,6 @@ public abstract class HubMappers {
                     rs.getString("project_id"),
                     rs.getString("origin_project_id"),
                     rs.getString("project_name"),
-                    rs.getString("project_label"),
                     rs.getString("namespace"),
                     rs.getString("workspace_id"),
                     HubMappers.instant(rs, "created_at"),

@@ -47,7 +47,6 @@ CREATE TABLE IF NOT EXISTS projects
     project_id              VARCHAR NOT NULL,
     origin_project_id       VARCHAR,
     project_name            VARCHAR NOT NULL,
-    project_label           VARCHAR,
     namespace               VARCHAR,
     workspace_id            VARCHAR NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL,

@@ -25,7 +25,6 @@ public record RemoteProjectResponse(
         String id,
         String originId,
         String name,
-        String label,
         String namespace,
         String createdAt,
         String workspaceId,

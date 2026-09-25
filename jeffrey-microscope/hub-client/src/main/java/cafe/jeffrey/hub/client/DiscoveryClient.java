@@ -191,7 +191,6 @@ public class DiscoveryClient {
                 proto.getId(),
                 ClientProtoMappers.nullIfEmpty(proto.getOriginId()),
                 proto.getName(),
-                ClientProtoMappers.nullIfEmpty(proto.getLabel()),
                 ClientProtoMappers.nullIfEmpty(proto.getNamespace()),
                 proto.getCreatedAt() != 0 ? InstantUtils.formatInstant(Instant.ofEpochMilli(proto.getCreatedAt())) : null,
                 proto.getWorkspaceId(),

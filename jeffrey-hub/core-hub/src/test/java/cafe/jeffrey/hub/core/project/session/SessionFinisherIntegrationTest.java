@@ -55,7 +55,7 @@ class SessionFinisherIntegrationTest {
     private static final Path SESSION_PATH = Path.of("/workspaces/ws-001/proj-001/session-2025-06-15");
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
-            PROJECT_ID, null, "Test Project", "Label 1", null,
+            PROJECT_ID, null, "Test Project", null,
             WORKSPACE_ID,
             Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
 

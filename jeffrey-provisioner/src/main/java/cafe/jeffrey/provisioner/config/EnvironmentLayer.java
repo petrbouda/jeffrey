@@ -60,7 +60,6 @@ public abstract class EnvironmentLayer {
             new EnvBinding.Value("JEFFREY_ENV_FILE", ConfigPaths.ENV_FILE),
             new EnvBinding.Value("JEFFREY_ADDITIONAL_JVM_OPTIONS", ConfigPaths.ADDITIONAL_JVM_OPTIONS),
             new EnvBinding.Value("JEFFREY_PROJECT_NAME", ConfigPaths.PROJECT_NAME),
-            new EnvBinding.Value("JEFFREY_PROJECT_LABEL", ConfigPaths.PROJECT_LABEL),
             new EnvBinding.Value("JEFFREY_WORKSPACE_REF_ID", ConfigPaths.PROJECT_WORKSPACE_REF_ID),
             new EnvBinding.Value("JEFFREY_INSTANCE_NAME", ConfigPaths.PROJECT_INSTANCE_NAME),
             new EnvBinding.Flag("JEFFREY_PRINT_ENV", ConfigPaths.PRINT_ENV),

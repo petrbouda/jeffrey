@@ -81,8 +81,7 @@ const baseConf = `# helm/jeffrey-testapp-server/jeffrey-base.conf
 # profiler-path arrives as JEFFREY_PROFILER_PATH, baked by jeffrey-jib.
 
 project {
-    name  = \${JEFFREY_TESTAPP_MODE}"-jeffrey-testapp-server"
-    label = "Jeffrey TestApp Server ("\${JEFFREY_TESTAPP_MODE}")"
+    name = \${JEFFREY_TESTAPP_MODE}"-jeffrey-testapp-server"
 }
 
 perf-counters {
@@ -97,8 +96,7 @@ heap-dump {
 additional-jvm-options = "-Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const projectBlock = `project {
-    name  = \${JEFFREY_TESTAPP_MODE}"-jeffrey-testapp-server"
-    label = "Jeffrey TestApp Server ("\${JEFFREY_TESTAPP_MODE}")"
+    name = \${JEFFREY_TESTAPP_MODE}"-jeffrey-testapp-server"
 }`;
 
 const configMapMount = `# In the testapp-server Deployment template
@@ -215,7 +213,7 @@ volumes:
       <p>
         Controls how the workload appears in Jeffrey Hub. The
         <code>name</code> is the logical identifier (used as the project key in the
-        catalog DB); the <code>label</code> is the human-readable display string.
+        catalog DB) and the name shown for the project everywhere.
       </p>
 
       <DocsCodeBlock

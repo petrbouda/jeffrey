@@ -221,7 +221,6 @@ public class WorkspaceReconciler {
         CreateProject createProject = new CreateProject(
                 marker.projectId(),
                 marker.projectName(),
-                marker.projectLabel(),
                 null, // namespace — not declared on disk
                 Instant.ofEpochMilli(marker.createdAt()),
                 marker.attributes());

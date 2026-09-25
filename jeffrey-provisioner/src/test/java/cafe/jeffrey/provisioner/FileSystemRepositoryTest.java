@@ -90,7 +90,7 @@ class FileSystemRepositoryTest {
             Path projectPath = createProjectDir(workspacePath);
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
-            repository.addProject(PROJECT_ID, PROJECT_NAME, "Alpha", WORKSPACE_REF_ID,
+            repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
                     "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
 
             List<Path> entries = pendingEntries(workspacePath);
@@ -151,7 +151,7 @@ class FileSystemRepositoryTest {
             Path sessionPath = Files.createDirectories(instancePath.resolve(SESSION_ID));
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
-            repository.addProject(PROJECT_ID, PROJECT_NAME, "Alpha", WORKSPACE_REF_ID,
+            repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
                     "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
             repository.addInstance(INSTANCE_ID, PROJECT_ID, WORKSPACE_REF_ID, instancePath);
             repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath, true);
@@ -173,7 +173,7 @@ class FileSystemRepositoryTest {
             Path projectPath = createProjectDir(workspacePath);
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
-            repository.addProject(PROJECT_ID, PROJECT_NAME, "Alpha", WORKSPACE_REF_ID,
+            repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
                     "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
 
             String announced = Files.readString(pendingEntries(workspacePath).getFirst());
@@ -189,7 +189,7 @@ class FileSystemRepositoryTest {
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
             assertThrows(RuntimeException.class, () ->
-                    repository.addProject(PROJECT_ID, PROJECT_NAME, "Alpha", WORKSPACE_REF_ID,
+                    repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
                             "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), missingProjectPath));
 
             assertTrue(pendingEntries(workspacePath).isEmpty());

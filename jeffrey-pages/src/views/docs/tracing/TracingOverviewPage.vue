@@ -186,7 +186,7 @@ const tasteSpans = [
       <h2 id="requirements">Requirements</h2>
 
       <ul>
-        <li><strong>Java 25 or newer</strong> for the <code>Tracer</code> API — it is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, finalized in Java&nbsp;25.</li>
+        <li><strong>Java 25 or newer</strong> for the <code>Tracer</code> API — it is built on <code>ScopedValue</code> (JEP&nbsp;506), finalized in Java&nbsp;25.</li>
         <li>On <strong>Java 17–24</strong>, an earlier <code>jeffrey-events</code> release still provides the HTTP, gRPC and JDBC events (they light up the HTTP and Database dashboards), but no hand-written spans and no cross-event nesting.</li>
         <li><strong>Any JFR recording</strong> records the events — plain <code>-XX:StartFlightRecording</code>, <code>jcmd</code>, or async-profiler with <code>--jfrsync</code>. Nothing to enable; the events are on by default in any recording.</li>
       </ul>

@@ -20,7 +20,6 @@ export interface ProjectStorage {
     workspaceName: string;
     projectId: string;
     projectName: string;
-    projectLabel: string | null;
     totalSizeBytes: number;
     totalFiles: number;
     // UTC epoch millis — format with FormattingService, never by parsing date strings

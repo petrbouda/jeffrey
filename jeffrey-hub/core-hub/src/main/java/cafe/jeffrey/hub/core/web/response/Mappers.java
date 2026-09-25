@@ -42,7 +42,6 @@ public final class Mappers {
         return new ProjectResponse(
                 projectInfo.id(),
                 projectInfo.name(),
-                projectInfo.label(),
                 projectInfo.createdAt().toEpochMilli(),
                 projectInfo.workspaceId(),
                 detail.status());

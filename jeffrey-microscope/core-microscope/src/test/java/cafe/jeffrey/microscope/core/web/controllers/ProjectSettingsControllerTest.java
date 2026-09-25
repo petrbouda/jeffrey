@@ -55,7 +55,7 @@ class ProjectSettingsControllerTest {
     @Test
     void getsSettings() {
         ProjectInfo info = new ProjectInfo(
-                "p-1", "p-1", "demo", "Demo", "demo", "ws-1",
+                "p-1", "p-1", "demo", "demo", "ws-1",
                 Instant.EPOCH, Instant.EPOCH, Map.of(), null);
         when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));

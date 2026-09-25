@@ -150,7 +150,7 @@ class HubsMcpToolsTest {
 
         ProjectManager project = mock(ProjectManager.class);
         when(project.info()).thenReturn(new ProjectInfo(
-                PROJECT_ID, "origin", projectName, projectName, "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
+                PROJECT_ID, "origin", projectName, "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
         when(project.repositoryManager()).thenReturn(repo);
 
         ProjectsManager projects = mock(ProjectsManager.class);
@@ -561,7 +561,7 @@ class HubsMcpToolsTest {
             ProjectManager project = mock(ProjectManager.class);
             when(project.repositoryManager()).thenReturn(repo);
             when(project.info()).thenReturn(new ProjectInfo(
-                    PROJECT_ID, "origin", "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
+                    PROJECT_ID, "origin", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
             if (downloads != null) {
                 when(project.recordingsDownloadManager()).thenReturn(downloads);
             }

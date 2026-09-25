@@ -68,7 +68,6 @@ public class FileSystemRepository {
     public void addProject(
             String projectId,
             String projectName,
-            String projectLabel,
             String workspaceRefId,
             String workspacesDir,
             RepositoryType repositoryType,
@@ -79,7 +78,6 @@ public class FileSystemRepository {
             RemoteProject project = new RemoteProject(
                     projectId,
                     projectName,
-                    projectLabel,
                     workspaceRefId,
                     clock.instant().toEpochMilli(),
                     workspacesDir,

@@ -58,7 +58,7 @@ class HeartbeatToSessionFinishIntegrationTest {
     private static final Duration HEARTBEAT_THRESHOLD = Duration.ofMinutes(5);
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
-            PROJECT_ID, null, "Test Project", "Label 1", null,
+            PROJECT_ID, null, "Test Project", null,
             WORKSPACE_ID,
             Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
 

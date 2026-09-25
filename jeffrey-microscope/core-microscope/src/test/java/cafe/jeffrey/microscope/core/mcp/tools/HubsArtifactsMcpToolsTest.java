@@ -133,7 +133,7 @@ class HubsArtifactsMcpToolsTest {
         ProjectManager project = mock(ProjectManager.class);
         when(project.repositoryManager()).thenReturn(repository);
         when(project.info()).thenReturn(new ProjectInfo(
-                PROJECT_ID, "checkout", "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
+                PROJECT_ID, "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
         HubManager hub = mock(HubManager.class);
         when(hub.info()).thenReturn(new HubInfo(
                 HUB_ID, "production", new HubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG));

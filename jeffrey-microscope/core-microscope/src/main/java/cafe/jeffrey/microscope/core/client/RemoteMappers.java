@@ -38,7 +38,6 @@ public abstract class RemoteMappers {
                 response.id(),
                 response.id(),
                 response.name(),
-                response.label(),
                 null,
                 response.workspaceId(),
                 InstantUtils.parseInstant(response.createdAt()),
