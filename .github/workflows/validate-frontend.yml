@@ -78,7 +78,7 @@ jobs:
 
       - name: Upload frontend test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-${{ matrix.product }}-test-reports
           path: jeffrey-${{ matrix.product }}/core-${{ matrix.product }}/target/surefire-reports/**
