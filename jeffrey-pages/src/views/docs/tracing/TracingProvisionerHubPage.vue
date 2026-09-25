@@ -82,7 +82,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
     />
 
     <div class="docs-content">
-      <p>Everything else in this guide assumes you can already open a recording. This page is about how a traced recording gets from a JVM in a cluster to a waterfall on your machine — what the <router-link to="/docs/provisioner">Provisioner</router-link> switches on, what lands on the shared volume, what the <router-link to="/docs/hub">Hub</router-link> does with it, and how Microscope pulls it down. If you record locally and open the file yourself, none of this applies: see <router-link to="/docs/tracing/configuration">Configuration &amp; Testing</router-link> instead.</p>
+      <p>Everything else in this guide assumes you can already open a recording. This page is about how a traced recording gets from a JVM in a cluster to a waterfall on your machine — what the <router-link to="/docs/provisioner">Provisioner</router-link> switches on, what lands on the shared volume, what the <router-link to="/docs/hub">Hub</router-link> does with it, and how Microscope pulls it down. If you record locally and open the file yourself, none of this applies: see <router-link to="/docs/tracing/configuration">Configuration</router-link> instead.</p>
 
       <h2 id="path">How a Traced Recording Travels</h2>
 

@@ -540,10 +540,10 @@ export const tracingNavigation: DocSection[] = [
     children: [{ title: 'Provisioner & Hub', to: '/docs/tracing/provisioner-hub' }]
   },
   {
-    title: 'Configuration & Testing',
+    title: 'Configuration',
     path: '_tracing-configuration',
     icon: 'bi-gear',
-    children: [{ title: 'Configuration & Testing', to: '/docs/tracing/configuration' }]
+    children: [{ title: 'Configuration', to: '/docs/tracing/configuration' }]
   },
   {
     title: 'Jeffrey Events',

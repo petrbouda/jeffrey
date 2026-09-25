@@ -29,8 +29,7 @@ const headings = [
   { id: 'recording', text: 'Recording Setup', level: 2 },
   { id: 'volume', text: 'Volume Control', level: 2 },
   { id: 'jdk-thresholds', text: 'JDK Event Thresholds', level: 2 },
-  { id: 'jmc', text: 'JMC and jfr print Interop', level: 2 },
-  { id: 'testing', text: 'Testing Your Instrumentation', level: 2 }
+  { id: 'jmc', text: 'JMC and jfr print Interop', level: 2 }
 ];
 
 onMounted(() => {
@@ -67,62 +66,17 @@ jdk.FileRead#enabled=true,jdk.FileRead#threshold=0ms,jdk.FileRead#throttle=10000
 jdk.FileWrite#enabled=true,jdk.FileWrite#threshold=0ms,jdk.FileWrite#throttle=1000000/s,\
 jdk.JavaMonitorEnter#enabled=true,jdk.JavaMonitorEnter#threshold=1ms,\
 jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms`;
-
-const testExample = `import cafe.jeffrey.jfr.events.test.JfrRecordings;
-import cafe.jeffrey.jfr.events.test.SpansAssert;
-
-@Test
-void checkoutTracesAssembleCorrectly() throws IOException {
-    // JfrRecordings starts an in-process recording, runs the body, and
-    // returns the recorded events — no files, no fixtures.
-    List<RecordedEvent> events = JfrRecordings.all(
-            List.of("jeffrey.TraceSpan", "jeffrey.JdbcQuery"),
-            () -> service.checkout("a-1"));
-
-    SpansAssert.assertThat(events)
-            .hasNoUntracedSpans()                     // nothing committed with commit()
-            .hasNoOrphanedSpans()                     // every parent id resolves
-            .hasSpanCount(4)
-            .hasSpan("order.checkout").isRoot()
-                    .hasKind("SERVER")
-                    .hasNoError()
-            .and()
-            .hasSpan("UserMapper.selectById")
-                    .nestedUnder("order.checkout")
-                    .hasEventType("jeffrey.JdbcQuery")
-            .and()
-            .hasSpanNameCardinalityAtMost(10);        // catches ids leaking into names
-}
-
-@Test
-void failedChargeMarksTheSpan() throws IOException {
-    List<RecordedEvent> events = JfrRecordings.all("jeffrey.TraceSpan", () -> {
-        assertThrows(CardDeclinedException.class, () -> service.charge("a-1"));
-    });
-
-    SpansAssert.assertThat(events)
-            .hasSpan("order.charge")
-            .hasStatus("ERROR")
-            .hasErrorType(CardDeclinedException.class);
-}`;
-
-const testDependency = `<dependency>
-    <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events-test</artifactId>
-    <version><!-- latest release --></version>
-    <scope>test</scope>
-</dependency>`;
 </script>
 
 <template>
   <article class="docs-article">
     <DocsPageHeader
-      title="Configuration &amp; Testing"
+      title="Configuration"
       icon="bi bi-gear"
     />
 
     <div class="docs-content">
-      <p>The events are recorded by whatever JFR recording is running, and they are enabled by default in any recording — so "configuration" means three things: how you record, how you control volume, and how the JDK's own events get thresholds fine enough for traces. This page is the hand-rolled path; for Provisioner-managed deployments see <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link>. Plus: asserting on spans in your own tests, so instrumentation regressions fail CI instead of blank dashboards.</p>
+      <p>The events are recorded by whatever JFR recording is running, and they are enabled by default in any recording — so "configuration" means three things: how you record, how you control volume, and how the JDK's own events get thresholds fine enough for traces. This page is the hand-rolled path; for Provisioner-managed deployments see <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link>.</p>
 
       <h2 id="recording">Recording Setup</h2>
 
@@ -174,44 +128,6 @@ const testDependency = `<dependency>
       <p>The trace events are ordinary JFR events, so <code>jfr print</code> and JDK Mission Control read them like any other: each <code>jeffrey.*</code> event shows its trace, span and parent span id as plain fields. Relating a lock, I/O or exception event to the span it happened in — by thread and time window — is Jeffrey's job; plain JDK tooling shows the spans themselves:</p>
 
       <DocsCodeBlock code="jfr print --events &quot;jeffrey.*&quot; app.jfr | less" language="bash" />
-
-      <h2 id="testing">Testing Your Instrumentation</h2>
-
-      <p><code>jeffrey-events-test</code> is the executable form of the <router-link to="/docs/tracing/getting-started">verification checklist</router-link> — assertions over the spans in a recording, dependency-free (plain <code>AssertionError</code>, works under JUnit, TestNG or neither):</p>
-
-      <DocsCodeBlock :code="testDependency" language="xml" />
-      <DocsCodeBlock :code="testExample" language="java" />
-
-      <p>The toolkit:</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Class</th>
-            <th>What it does</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>JfrRecordings</code></td>
-            <td><code>all(eventType(s), body)</code> / <code>single(eventType, body)</code> — records an in-process JFR recording around the body and returns the events</td>
-          </tr>
-          <tr>
-            <td><code>RecordedSpan</code></td>
-            <td>The span view over a <code>RecordedEvent</code>: <code>isSpan</code> (structural — any event with a <code>spanId</code> field), <code>from(events)</code>, <code>isRoot()</code>, <code>isTraced()</code></td>
-          </tr>
-          <tr>
-            <td><code>SpansAssert</code></td>
-            <td><code>assertThat(events)</code> — <code>hasSpan</code>, <code>hasNoSpan</code>, <code>hasSpanCount</code>, <code>hasNoUntracedSpans</code>, <code>hasNoOrphanedSpans</code>, <code>hasSpanNameCardinalityAtMost</code></td>
-          </tr>
-          <tr>
-            <td><code>SpanAssert</code></td>
-            <td>Per-span: <code>isRoot</code>, <code>nestedUnder</code>, <code>inSameTraceAs</code>, <code>isTraced</code>, <code>hasKind</code>, <code>hasStatus</code>, <code>hasErrorType</code>, <code>hasNoError</code>, <code>hasEventType</code>, chained with <code>and()</code></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p>Every failure names what was actually recorded — the useful question when instrumentation is wrong is never "did it fail" but "what did it emit instead". The three assertions worth having in every service's test suite: <code>hasNoUntracedSpans()</code> (catches <code>commit()</code>-instead-of-<code>commitSpan()</code>), <code>hasNoOrphanedSpans()</code> (catches executor boundaries crossed without <code>fork</code>), and <code>hasSpanNameCardinalityAtMost(n)</code> (catches ids leaking into span names).</p>
     </div>
 
     <DocsNavFooter />

@@ -52,6 +52,7 @@
       Java 21 too and leave the choice of storage to the application.
     -->
     <modules>
+        <module>jeffrey-tracing-test</module>
         <module>jeffrey-tracing-api</module>
         <module>jeffrey-tracing</module>
         <module>jeffrey-tracing-thread-local</module>

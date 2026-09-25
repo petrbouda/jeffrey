@@ -18,7 +18,7 @@
 # release (release.yml); jeffrey-jib has its own workflow (release-jib.yml).
 #
 # utilities/pom.xml (jeffrey-utilities-parent) is the release root: it aggregates the three
-# independent families - jeffrey-events-parent, jeffrey-heartbeat-parent and
+# independent parts - jeffrey-events, jeffrey-heartbeat-parent and
 # jeffrey-tracing-parent - so one run publishes every library on one version. Maven stages the
 # artifacts (jar + sources + javadoc) into utilities/target/staging-deploy; JReleaser
 # (utilities/jreleaser.yml) signs them and uploads to Maven Central.

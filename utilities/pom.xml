@@ -35,14 +35,15 @@
       and the staging deploy run here, and jreleaser.yml next to this file signs and uploads
       what they stage. It holds only what the families share - the build configuration,
       dependencyManagement, the release profile and the Maven Central metadata - and aggregates
-      three families that are independent of one another:
-        jeffrey-events-parent/     jeffrey-events, jeffrey-events-test
+      the libraries, which are independent of one another:
+        jeffrey-events/            the JFR event types
         jeffrey-heartbeat-parent/  jeffrey-heartbeat, jeffrey-heartbeat-spring-boot-starter
         jeffrey-tracing-parent/    jeffrey-tracing-api, its two span-context storages
                                    (jeffrey-tracing, jeffrey-tracing-thread-local) and the
-                                   jeffrey-tracing-* instrumentation modules
-      Each family parent inherits from this pom only, never from a sibling, so a family can be
-      reshaped without touching the others. They still release together, on one version.
+                                   jeffrey-tracing-* instrumentation modules, plus the
+                                   internal, unpublished jeffrey-tracing-test toolkit
+      jeffrey-events and each family parent inherit from this pom only, never from a sibling, so
+      one can be reshaped without touching the others. They still release together, on one version.
 
       Deliberately not a child of the monorepo's parent: this pom is published to Maven Central
       and every library's pom points at it, so it must not reference anything that is not
@@ -54,7 +55,7 @@
       maps to a path without translation.
     -->
     <modules>
-        <module>jeffrey-events-parent</module>
+        <module>jeffrey-events</module>
         <module>jeffrey-heartbeat-parent</module>
         <module>jeffrey-tracing-parent</module>
     </modules>
@@ -132,7 +133,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jeffrey-events-test</artifactId>
+                <artifactId>jeffrey-tracing-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

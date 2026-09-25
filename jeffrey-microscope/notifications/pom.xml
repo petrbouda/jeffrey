@@ -50,7 +50,7 @@
         </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
+            <artifactId>jeffrey-tracing-test</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

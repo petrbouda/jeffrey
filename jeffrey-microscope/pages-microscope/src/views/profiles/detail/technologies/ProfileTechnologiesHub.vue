@@ -48,7 +48,7 @@
             </a>
             <a
               class="info-strip-btn info-strip-btn-ghost"
-              href="https://github.com/petrbouda/jeffrey/tree/master/utilities/jeffrey-events-parent"
+              href="https://github.com/petrbouda/jeffrey/tree/master/utilities/jeffrey-events"
               target="_blank"
             >
               <i class="bi bi-github"></i> Sources

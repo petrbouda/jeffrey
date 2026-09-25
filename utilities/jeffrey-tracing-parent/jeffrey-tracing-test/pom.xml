@@ -23,27 +23,35 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-events-parent</artifactId>
+        <artifactId>jeffrey-tracing-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <!--
-      Deliberately does not depend on jeffrey-events. It reads spans out of a
-      recording by their declared field names, which are the frozen wire format,
-      exactly as Jeffrey's own derivation discovers spans structurally - which is
-      what lets the jeffrey-events module use this toolkit in its own tests
-      without a reactor cycle.
+      Jeffrey's own test toolkit for traces: records a real JFR recording around a body and asserts
+      the spans in it - roots, nesting, names, status, attributes. Internal: used at test scope by
+      the tracing modules, jeffrey-events and the Microscope modules that emit spans, and never
+      published (maven.deploy.skip below).
 
-      Jackson is the one dependency, for reading a span's attributes back out of
-      the JSON object they are recorded as.
+      Deliberately depends on neither jeffrey-events nor jeffrey-tracing-api. It reads spans out of a
+      recording by their declared field names, which are the frozen wire format, exactly as
+      Jeffrey's own derivation discovers spans structurally - which is what lets those modules use
+      it in their own tests without a reactor cycle.
+
+      Jackson is the one dependency, for reading a span's attributes back out of the JSON object
+      they are recorded as.
     -->
-    <artifactId>jeffrey-events-test</artifactId>
+    <artifactId>jeffrey-tracing-test</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Test toolkit for asserting Jeffrey JFR events and traces in a real flight recording</description>
-    <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
+    <description>Internal test toolkit for asserting Jeffrey traces in a real flight recording</description>
     <url>https://github.com/petrbouda/jeffrey</url>
+
+    <properties>
+        <!-- Internal: built and used by the reactor's tests, never released to Maven Central. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
 
     <dependencies>
         <dependency>

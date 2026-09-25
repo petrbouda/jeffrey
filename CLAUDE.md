@@ -33,7 +33,7 @@ jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, 
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
 utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of three
-                                       independent families: jeffrey-events-parent (events, events-test), jeffrey-heartbeat-parent
+                                       independent parts: jeffrey-events, jeffrey-heartbeat-parent
                                        (library + starter), jeffrey-tracing-parent:
                                        tracing API on Java 21 + two span storages — jeffrey-tracing (ScopedValue, 25)
                                        and jeffrey-tracing-thread-local (21), picked by ServiceLoader — + instrumentation
