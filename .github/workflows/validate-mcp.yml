@@ -62,6 +62,16 @@ jobs:
           java-version: '25'
           cache: maven
 
+      # hub-api runs protoc with protoc-gen-doc while it builds (the Hub's gRPC documentation), and
+      # the Microscope jar depends on hub-api, so this job needs the same tools Validate Backend installs.
+      - name: Install protobuf documentation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes protobuf-compiler golang-go
+          mkdir -p "$RUNNER_TEMP/bin"
+          GOBIN="$RUNNER_TEMP/bin" go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
       # -DskipTests: this job only needs the packaged jar, not the module's own test suite,
       # which Validate Backend already runs. No -Dexec.skip: the frontend must actually be on
       # the classpath for the jar to start like the real artifact would.
