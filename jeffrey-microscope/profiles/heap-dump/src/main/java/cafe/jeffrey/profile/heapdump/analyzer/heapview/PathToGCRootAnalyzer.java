@@ -61,7 +61,8 @@ import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
  */
 public final class PathToGCRootAnalyzer {
 
-    static final int MAX_DEPTH = 100;
+    /** How many hops back from the target the search walks before it gives up on a branch. */
+    public static final int MAX_DEPTH = 100;
 
     private static final Set<String> WEAK_REF_CLASSES = Set.of(
             "java.lang.ref.WeakReference",

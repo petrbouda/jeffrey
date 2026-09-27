@@ -11,8 +11,10 @@
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
 # every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off
 # recordings_ (including recordings_delete), the two hubs_ tools that write (hubs_download,
-# hubs_fetchFile), operations_cancel and the two ide_ tools. To make it a wall, name those tools
-# in excludeTools on the server entry in settings.json.
+# hubs_fetchFile), operations_cancel and the two ide_ tools. Of the eleven writers it keeps
+# heap_prepare, which writes only a cache, and jvm_autoAnalysis with compute and heap_oql with
+# includeRetainedSize, which fill a cache and are bounded (45 s, then an operationId). To make it a
+# wall, name the denied tools in excludeTools on the server entry in settings.json.
 name: heap-triage
 description: Works a heap dump end to end and returns only the findings — what is holding the memory, with class names, retained bytes and the GC-root paths that make each claim checkable. Delegate a whole heap question to it rather than reading histograms and dominator trees in the main conversation. It reports figures; it never maps them to source, edits anything, or decides what to change.
 tools:
@@ -41,7 +43,8 @@ heap dump, say that and stop.
    until something computes them. When they are missing, `heap_prepare` builds them and `heap_status`
    says when it is done; an empty retained ranking is a signal to prepare, never a finding that
    nothing retains memory. The cached reports — leak suspects, class-loader analysis, top consumers —
-   are the same, and `heap_prepare` can compute one by name.
+   are the same: each answers `status: NOT_RUN_YET` until `heap_prepare` computes it by name, and
+   the answer's `followUp.nextTools` carries that exact call.
 2. **Never report a leak without a GC-root path.** A large class is an observation; the path is the
    reason it is still alive. Objects reachable only through weak or soft references show no path, and
    that is the answer rather than an error.
@@ -63,6 +66,7 @@ Findings only, under roughly forty lines:
 1. `<fully.qualified.ClassName>` — retained <bytes>, <n> instances (shallow <bytes>)
    GC-root path: <root kind> → <field> → … → the object
    What this is, and why it is still reachable, in one line.
+   Link: the uiLink of the answer the path came from, for the caller to hand to the user.
 2. …
 
 Notes: what was computed for this, what is still missing, and anything a reader would want to know

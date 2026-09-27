@@ -16,6 +16,7 @@
  */
 
 import type { LocationQueryValue } from 'vue-router';
+import linkParams from '@/router/link-params.json';
 
 /**
  * The query parameter that names a baseline on a profile URL.
@@ -24,9 +25,10 @@ import type { LocationQueryValue } from 'vue-router';
  * in-app picker wrote. That makes a comparison impossible to link to: the IntelliJ plugin can
  * open a profile but not the comparison a developer just set up in its recording panel. This
  * parameter is the one addition that closes it — `?baseline=<profileId>` on any profile route
- * seeds the same selection the picker would have made.
+ * seeds the same selection the picker would have made. The name comes from the link contract
+ * (link-params.json) the server's tests hold every MCP link to; every page there spells it alike.
  */
-export const BASELINE_QUERY_PARAM = 'baseline';
+export const BASELINE_QUERY_PARAM = linkParams['flamegraphs/differential'].BASELINE;
 
 type QueryValue = LocationQueryValue | LocationQueryValue[] | undefined;
 

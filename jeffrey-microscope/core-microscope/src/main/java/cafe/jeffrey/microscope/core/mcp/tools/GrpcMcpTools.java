@@ -17,8 +17,14 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
@@ -32,7 +38,10 @@ import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcSizeBucket;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcSlowCall;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.profile.mcp.McpToolCost;
+import cafe.jeffrey.profile.mcp.McpToolMeta;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -49,9 +58,9 @@ import java.util.Map;
  */
 public class GrpcMcpTools {
 
-    private static final String OVERVIEW_VIEW = "technologies/grpc/overview";
-    private static final String SERVICES_VIEW = "technologies/grpc/services";
-    private static final String TRAFFIC_VIEW = "technologies/grpc/traffic";
+    private static final MicroscopeView OVERVIEW_VIEW = MicroscopeView.GRPC_OVERVIEW;
+    private static final MicroscopeView SERVICES_VIEW = MicroscopeView.GRPC_SERVICES;
+    private static final MicroscopeView TRAFFIC_VIEW = MicroscopeView.GRPC_TRAFFIC;
     private static final String MODE_PARAM = "mode";
     private static final String SERVICE_PARAM = "service";
 
@@ -62,17 +71,13 @@ public class GrpcMcpTools {
                     + "a profiler-configuration finding worth reporting rather than evidence that the "
                     + "service handles no gRPC in that direction.";
 
-    private static final String STEP_SERVICE =
-            "For one service broken down by method, grpc_service takes a name from the services list "
-                    + "above.";
-    private static final String STEP_TRAFFIC =
-            "These are timings. The bytes moved - and an oversized payload, which shows up nowhere in "
-                    + "the latency figures until it is already a problem - are in grpc_traffic.";
-    private static final String STEP_ERRORS =
-            "Some calls failed. What the application said about them is in traces_notifications, and "
-                    + "the individual calls are in traces_operations, when this profile carries traces.";
-    private static final String STEP_TIMINGS =
-            "How long these calls took, rather than how large they were, is in grpc_overview.";
+    private static final String SERVICE_WHY = "the busiest service broken down by method";
+    private static final String TRAFFIC_WHY =
+            "the bytes moved - an oversized payload shows up nowhere in the latency figures until it is a problem";
+    private static final String TIMINGS_WHY = "how long these calls took, rather than how large they were";
+    private static final String OTHER_SIDE_WHY =
+            "the other direction - what this application called out to, or what it served";
+    private static final String ERRORS_WHY = "what the application said about the failed calls, when this profile carries traces";
 
     private static final String NO_SUCH_SERVICE =
             "No calls were recorded for service '%s'. Call grpc_overview and take a name from its "
@@ -82,47 +87,69 @@ public class GrpcMcpTools {
             "Call grpc_overview and take a name from its services list.";
 
     private final ProfileManager profileManager;
+    private final AdvertisedFamilies advertised;
 
-    public GrpcMcpTools(ProfileManager profileManager) {
+    public GrpcMcpTools(ProfileManager profileManager, AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
+        this.advertised = advertised;
     }
 
-    @Tool(description = "The gRPC server dashboard: call count, response-time percentiles, success "
-            + "rate and error count, the services ranked by traffic, the status-code breakdown and the "
-            + "slowest individual calls. Start here for gRPC latency questions.")
-    public String overview(
-            @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
-                    + "answered (the default), 'CLIENT' for calls it made to somebody else.")
+    @Tool(description = "Returns the gRPC server dashboard: call count, response-time percentiles in "
+            + "nanoseconds, success rate and error count, the services ranked by traffic (the "
+            + "busiest 40, with omittedServices counting the rest), the status-code breakdown and "
+            + "the slowest individual calls with their UTC epoch-millisecond instant. Answers gRPC "
+            + "latency questions. status NOT_RECORDED: the recording did not capture that "
+            + "direction's exchange events.")
+    @McpOutputSchema(GrpcDashboard.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    public McpToolResult overview(
+            @ToolParam(required = false, description = "Which side to report on: SERVER for calls this application "
+                    + "answered (the default), CLIENT for calls it made to somebody else.")
             ExchangeDirection direction) {
 
         ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
-        if (DashboardFeature.missing(profileManager, feature(side))) {
-            return noData(side);
+        String uiLink = UiLinks.view(profileId(), OVERVIEW_VIEW, mode(side));
+        if (notRecorded(side)) {
+            return McpToolResult.of(new GrpcDashboard(DashboardStatus.NOT_RECORDED, noData(side), profileId(), side,
+                    null, List.of(), null, List.of(), List.of(), notRecordedFollowUp(side), uiLink));
         }
 
         GrpcOverviewData data = profileManager.custom().grpcManager(side).overviewData();
-        return LinkedOutput.json(new GrpcDashboard(
-                data.header(),
-                ToolArguments.firstOf(data.services(), MAX_SERVICES),
+        List<GrpcServiceInfo> shown = ToolArguments.firstOf(data.services(), MAX_SERVICES);
+        NextSteps.Builder steps = NextSteps.builder(advertised);
+        if (!shown.isEmpty()) {
+            steps.next(call(FollowUpCalls.GRPC_SERVICE)
+                    .with(FollowUpCalls.SERVICE, shown.getFirst().service())
+                    .with(FollowUpCalls.DIRECTION, side)
+                    .why(SERVICE_WHY));
+        }
+        McpFollowUp followUp = steps
+                .next(call(FollowUpCalls.GRPC_TRAFFIC).with(FollowUpCalls.DIRECTION, side).why(TRAFFIC_WHY))
+                .nextWhen(data.header().errorCount() > 0, call(FollowUpCalls.TRACES_NOTIFICATIONS).why(ERRORS_WHY))
+                .nextWhen(!notRecorded(other(side)), otherSide(side))
+                .followUp();
+        return McpToolResult.of(new GrpcDashboard(DashboardStatus.OK, null, profileId(), side,
+                GrpcTotals.of(data.header()),
+                shown.stream().map(GrpcServiceRow::of).toList(),
+                data.services().size() - shown.size(),
                 data.statusCodes(),
-                data.slowCalls(),
-                NextSteps.builder()
-                        .add(STEP_SERVICE)
-                        .when(data.header().errorCount() > 0, STEP_ERRORS)
-                        .add(STEP_TRAFFIC)
-                        .build(),
-                UiLinks.view(profileId(), OVERVIEW_VIEW, mode(side))));
+                data.slowCalls().stream().map(GrpcCall::of).toList(),
+                followUp,
+                uiLink));
     }
 
-    @Tool(description = "One gRPC service in detail, broken down by method: percentiles per method, "
-            + "the status codes it returned and its slowest calls. Use it after grpc_overview has "
-            + "named the service worth looking at.")
-    public String service(
+    @Tool(description = "Returns one gRPC service in detail, broken down by method: percentiles per "
+            + "method in nanoseconds, the status codes it returned and its slowest calls - a service "
+            + "grpc_overview ranked. An unknown service is an error naming it. status NOT_RECORDED: "
+            + "the recording did not capture that direction's exchange events.")
+    @McpOutputSchema(GrpcServiceDetail.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    public McpToolResult service(
             @ToolParam(required = true, description = "Service name exactly as recorded, taken from the services list "
                     + "in grpc_overview.")
             String service,
-            @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
-                    + "answered (the default), 'CLIENT' for calls it made to somebody else.")
+            @ToolParam(required = false, description = "Which side to report on: SERVER for calls this application "
+                    + "answered (the default), CLIENT for calls it made to somebody else.")
             ExchangeDirection direction) {
 
         // Insisted on rather than passed through: the manager reads a null service as "no filter", so
@@ -130,49 +157,82 @@ public class GrpcMcpTools {
         String name = ToolArguments.required(service, "service", NO_SERVICE_RECOVERY);
 
         ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
-        if (DashboardFeature.missing(profileManager, feature(side))) {
-            return noData(side);
+        String uiLink = UiLinks.view(profileId(), SERVICES_VIEW, serviceQuery(side, name));
+        if (notRecorded(side)) {
+            return McpToolResult.of(new GrpcServiceDetail(DashboardStatus.NOT_RECORDED, noData(side), profileId(),
+                    side, name, null, List.of(), List.of(), List.of(), notRecordedFollowUp(side), uiLink));
         }
 
-        GrpcServiceDetailData data =
-                profileManager.custom().grpcManager(side).serviceDetailData(name);
+        GrpcServiceDetailData data = profileManager.custom().grpcManager(side).serviceDetailData(name);
         if (data.methods().isEmpty()) {
-            return McpToolOutput.error(NO_SUCH_SERVICE.formatted(name));
+            throw new ToolExecutionException(NO_SUCH_SERVICE.formatted(name));
         }
 
-        return LinkedOutput.json(new GrpcServiceDetail(
-                data.header(),
-                data.methods(),
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .next(call(FollowUpCalls.GRPC_TRAFFIC).with(FollowUpCalls.DIRECTION, side).why(TRAFFIC_WHY))
+                .nextWhen(data.header().errorCount() > 0, call(FollowUpCalls.TRACES_NOTIFICATIONS).why(ERRORS_WHY))
+                .followUp();
+        return McpToolResult.of(new GrpcServiceDetail(DashboardStatus.OK, null, profileId(), side, name,
+                GrpcTotals.of(data.header()),
+                data.methods().stream().map(GrpcMethodRow::of).toList(),
                 data.statusCodes(),
-                data.slowCalls(),
-                NextSteps.builder()
-                        .when(data.header().errorCount() > 0, STEP_ERRORS)
-                        .add(STEP_TRAFFIC)
-                        .build(),
-                UiLinks.view(profileId(), SERVICES_VIEW, serviceQuery(side, name))));
+                data.slowCalls().stream().map(GrpcCall::of).toList(),
+                followUp,
+                uiLink));
     }
 
-    @Tool(description = "gRPC message sizes rather than timings: bytes sent and received, average and "
-            + "maximum request and response sizes, the size-bucket distribution and the largest "
-            + "individual calls. This is where an oversized payload shows up - it will not be visible "
-            + "in the latency percentiles until it is already a problem.")
-    public String traffic(
-            @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
-                    + "answered (the default), 'CLIENT' for calls it made to somebody else.")
+    @Tool(description = "Returns gRPC message sizes rather than timings: bytes sent and received, "
+            + "average and maximum request and response sizes, the size-bucket distribution and the "
+            + "largest individual calls with their UTC epoch-millisecond instant. An oversized "
+            + "payload shows up here before it is visible in the latency percentiles. status "
+            + "NOT_RECORDED: the recording did not capture that direction's exchange events.")
+    @McpOutputSchema(GrpcTraffic.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    public McpToolResult traffic(
+            @ToolParam(required = false, description = "Which side to report on: SERVER for calls this application "
+                    + "answered (the default), CLIENT for calls it made to somebody else.")
             ExchangeDirection direction) {
 
         ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
-        if (DashboardFeature.missing(profileManager, feature(side))) {
-            return noData(side);
+        String uiLink = UiLinks.view(profileId(), TRAFFIC_VIEW, mode(side));
+        if (notRecorded(side)) {
+            return McpToolResult.of(new GrpcTraffic(DashboardStatus.NOT_RECORDED, noData(side), profileId(), side,
+                    null, List.of(), List.of(), notRecordedFollowUp(side), uiLink));
         }
 
         GrpcTrafficData data = profileManager.custom().grpcManager(side).trafficData();
-        return LinkedOutput.json(new GrpcTraffic(
-                data.header(),
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .next(call(FollowUpCalls.GRPC_OVERVIEW).with(FollowUpCalls.DIRECTION, side).why(TIMINGS_WHY))
+                .followUp();
+        return McpToolResult.of(new GrpcTraffic(DashboardStatus.OK, null, profileId(), side,
+                GrpcTotals.of(data.header()),
                 data.sizeBuckets(),
-                data.largestCalls(),
-                NextSteps.builder().add(STEP_TIMINGS).build(),
-                UiLinks.view(profileId(), TRAFFIC_VIEW, mode(side))));
+                data.largestCalls().stream().map(GrpcLargeCall::of).toList(),
+                followUp,
+                uiLink));
+    }
+
+    /** A direction that was not recorded: the other one, when that one was. */
+    private McpFollowUp notRecordedFollowUp(ExchangeDirection side) {
+        return NextSteps.builder(advertised)
+                .nextWhen(!notRecorded(other(side)), otherSide(side))
+                .followUp();
+    }
+
+    private McpNextTool otherSide(ExchangeDirection side) {
+        return call(FollowUpCalls.GRPC_OVERVIEW).with(FollowUpCalls.DIRECTION, other(side)).why(OTHER_SIDE_WHY);
+    }
+
+    private McpNextTool.Call call(String tool) {
+        return McpNextTool.call(tool).with(FollowUpCalls.PROFILE_ID, profileId());
+    }
+
+    private boolean notRecorded(ExchangeDirection side) {
+        return DashboardFeature.missing(profileManager, feature(side));
+    }
+
+    private static ExchangeDirection other(ExchangeDirection side) {
+        return side == ExchangeDirection.SERVER ? ExchangeDirection.CLIENT : ExchangeDirection.SERVER;
     }
 
     private static Map<String, String> mode(ExchangeDirection direction) {
@@ -202,29 +262,169 @@ public class GrpcMcpTools {
         return profileManager.info().id();
     }
 
-    private record GrpcDashboard(
-            GrpcHeader header,
-            List<GrpcServiceInfo> services,
+    /** The direction's totals: durations in nanoseconds, sizes in bytes. */
+    record GrpcTotals(
+            long callCount,
+            long maxResponseTimeNanos,
+            long p99ResponseTimeNanos,
+            long p95ResponseTimeNanos,
+            @McpDescription("Share of calls that ended OK, from 0 to 1")
+            double successRate,
+            long errorCount,
+            long totalBytesSent,
+            long totalBytesReceived,
+            long avgRequestSizeBytes,
+            long avgResponseSizeBytes,
+            long maxRequestSizeBytes,
+            long maxResponseSizeBytes) {
+
+        static GrpcTotals of(GrpcHeader header) {
+            return new GrpcTotals(header.callCount(), header.maxResponseTime(), header.p99ResponseTime(),
+                    header.p95ResponseTime(), Figures.number(header.successRate()), header.errorCount(),
+                    header.totalBytesSent(), header.totalBytesReceived(), header.avgRequestSize(),
+                    header.avgResponseSize(), header.maxRequestSize(), header.maxResponseSize());
+        }
+    }
+
+    /** One service's row in the ranking. */
+    record GrpcServiceRow(
+            String service,
+            long callCount,
+            long maxResponseTimeNanos,
+            long p99ResponseTimeNanos,
+            long p95ResponseTimeNanos,
+            @McpDescription("Share of calls that ended OK, from 0 to 1")
+            double successRate,
+            long avgRequestSizeBytes,
+            long avgResponseSizeBytes) {
+
+        static GrpcServiceRow of(GrpcServiceInfo info) {
+            return new GrpcServiceRow(info.service(), info.callCount(), info.maxResponseTime(),
+                    info.p99ResponseTime(), info.p95ResponseTime(), Figures.number(info.successRate()),
+                    info.avgRequestSize(), info.avgResponseSize());
+        }
+    }
+
+    /** One method of a service. */
+    record GrpcMethodRow(
+            String method,
+            long callCount,
+            long maxResponseTimeNanos,
+            long p99ResponseTimeNanos,
+            long p95ResponseTimeNanos,
+            @McpDescription("Share of calls that ended OK, from 0 to 1")
+            double successRate,
+            long avgRequestSizeBytes,
+            long avgResponseSizeBytes) {
+
+        static GrpcMethodRow of(GrpcMethodInfo info) {
+            return new GrpcMethodRow(info.method(), info.callCount(), info.maxResponseTime(),
+                    info.p99ResponseTime(), info.p95ResponseTime(), Figures.number(info.successRate()),
+                    info.avgRequestSize(), info.avgResponseSize());
+        }
+    }
+
+    /** One slow call; what the event did not carry is null. */
+    record GrpcCall(
+            String service,
+            String method,
+            long responseTimeNanos,
+            String status,
+            @McpNullable
+            Long requestSizeBytes,
+            @McpNullable
+            Long responseSizeBytes,
+            @McpNullable
+            String host,
+            @McpNullable
+            Integer port,
+            @McpDescription("When the call started, as UTC epoch milliseconds")
+            long atEpochMs) {
+
+        static GrpcCall of(GrpcSlowCall call) {
+            return new GrpcCall(call.service(), call.method(), call.responseTime(), call.status(),
+                    Figures.bytes(call.requestSize()), Figures.bytes(call.responseSize()),
+                    Figures.name(call.host()), Figures.port(call.port()), call.timestamp());
+        }
+    }
+
+    /** One of the largest calls; a size the event did not carry is null. */
+    record GrpcLargeCall(
+            String service,
+            String method,
+            @McpNullable
+            Long requestSizeBytes,
+            @McpNullable
+            Long responseSizeBytes,
+            @McpDescription("Request and response together, counting a size not recorded as 0")
+            long totalSizeBytes,
+            long responseTimeNanos,
+            String status,
+            @McpDescription("When the call started, as UTC epoch milliseconds")
+            long atEpochMs) {
+
+        static GrpcLargeCall of(GrpcLargestCall call) {
+            return new GrpcLargeCall(call.service(), call.method(), Figures.bytes(call.requestSize()),
+                    Figures.bytes(call.responseSize()), call.totalSize(), call.responseTime(), call.status(),
+                    call.timestamp());
+        }
+    }
+
+    record GrpcDashboard(
+            DashboardStatus status,
+            @McpNullable
+            @McpDescription("Why there is no dashboard; null when status is OK")
+            String reason,
+            String profileId,
+            ExchangeDirection direction,
+            @McpNullable
+            @McpDescription("The direction's totals; null when status is NOT_RECORDED")
+            GrpcTotals header,
+            @McpDescription("The busiest services, at most 40")
+            List<GrpcServiceRow> services,
+            @McpNullable
+            @McpDescription("Services left out of services by its cap of 40; null when status is NOT_RECORDED")
+            Integer omittedServices,
             List<GrpcStatusStats> statusCodes,
-            List<GrpcSlowCall> slowCalls,
-            List<String> nextSteps,
+            List<GrpcCall> slowCalls,
+            McpFollowUp followUp,
+            @McpDescription("The direction's gRPC dashboard in the Microscope UI, for the user")
             String uiLink) {
     }
 
-    private record GrpcServiceDetail(
-            GrpcHeader header,
-            List<GrpcMethodInfo> methods,
+    record GrpcServiceDetail(
+            DashboardStatus status,
+            @McpNullable
+            @McpDescription("Why there is no detail; null when status is OK")
+            String reason,
+            String profileId,
+            ExchangeDirection direction,
+            String service,
+            @McpNullable
+            @McpDescription("The service's totals; null when status is NOT_RECORDED")
+            GrpcTotals header,
+            List<GrpcMethodRow> methods,
             List<GrpcStatusStats> statusCodes,
-            List<GrpcSlowCall> slowCalls,
-            List<String> nextSteps,
+            List<GrpcCall> slowCalls,
+            McpFollowUp followUp,
+            @McpDescription("The service in the Microscope services view, for the user")
             String uiLink) {
     }
 
-    private record GrpcTraffic(
-            GrpcHeader header,
+    record GrpcTraffic(
+            DashboardStatus status,
+            @McpNullable
+            @McpDescription("Why there is no traffic dashboard; null when status is OK")
+            String reason,
+            String profileId,
+            ExchangeDirection direction,
+            @McpNullable
+            @McpDescription("The direction's totals; null when status is NOT_RECORDED")
+            GrpcTotals header,
             List<GrpcSizeBucket> sizeBuckets,
-            List<GrpcLargestCall> largestCalls,
-            List<String> nextSteps,
+            List<GrpcLargeCall> largestCalls,
+            McpFollowUp followUp,
+            @McpDescription("The direction's gRPC traffic page in the Microscope UI, for the user")
             String uiLink) {
     }
 }

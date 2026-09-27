@@ -17,6 +17,9 @@
 
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.protocol.UnknownToolException;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -78,7 +81,8 @@ class ReflectiveToolsetTest {
     void refusesACallOmittingARequiredArgument() {
         ToolDispatchException e = assertThrows(ToolDispatchException.class,
                 () -> toolset.call("test_add", Json.createObject().put("a", 2)));
-        assertTrue(e.getMessage().contains("b"), e.getMessage());
+        assertEquals("Missing required argument 'b'. Expected: second addend", e.getMessage());
+        assertFalse(e instanceof UnknownToolException);
     }
 
     @Test
@@ -118,7 +122,7 @@ class ReflectiveToolsetTest {
 
     @Test
     void rejectsUnknownTool() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(UnknownToolException.class,
                 () -> toolset.call("test_missing", Json.createObject()));
     }
 

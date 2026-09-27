@@ -30,4 +30,7 @@ import java.nio.file.Path;
 public interface AgentLauncher {
 
     void launch(Project project, Path workingDirectory, String command);
+
+    /** How a command for this launcher has to be quoted — the shell it will be typed into decides. */
+    ShellQuoting shellQuoting(Project project);
 }

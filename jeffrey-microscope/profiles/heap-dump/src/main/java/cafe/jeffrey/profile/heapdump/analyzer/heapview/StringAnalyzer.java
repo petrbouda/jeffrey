@@ -229,7 +229,7 @@ public final class StringAnalyzer {
 
         List<JavaClassRow> stringClasses = view.findClassesByName(String.class.getName());
         if (stringClasses.isEmpty()) {
-            return emptyReport();
+            return emptyReport(topN);
         }
 
         // Only the top-N candidates per String class travel out of DuckDB; the totals come out
@@ -361,7 +361,8 @@ public final class StringAnalyzer {
                 topInstances,
                 already,
                 opps,
-                List.<JvmStringFlag>of());
+                List.<JvmStringFlag>of(),
+                topN);
     }
 
     private static List<StringInstanceEntry> topNInstances(
@@ -468,14 +469,15 @@ public final class StringAnalyzer {
         return StringTruncate.to(s, PREVIEW_MAX_CHARS);
     }
 
-    private static StringAnalysisReport emptyReport() {
+    private static StringAnalysisReport emptyReport(int topN) {
         return new StringAnalysisReport(
                 0, 0, 0, 0, 0, 0, 0,
                 List.<StringTopEntry>of(),
                 List.<StringInstanceEntry>of(),
                 List.<StringDeduplicationEntry>of(),
                 List.<StringDeduplicationEntry>of(),
-                List.<JvmStringFlag>of());
+                List.<JvmStringFlag>of(),
+                topN);
     }
 
     private record PhysicalSharingRow(long arrayShallowSize, long refCount, long sampleStringId) {

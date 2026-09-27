@@ -63,6 +63,12 @@ import java.util.concurrent.TimeUnit;
  */
 public final class PipelineRunRegistry<K> {
 
+    /**
+     * The phase every run reports in its operation snapshot. Read back by name by the MCP layer, which
+     * pins this constant to its own phase of the same name.
+     */
+    public static final String OPERATION_PHASE = "pipeline";
+
     private static final Logger LOG = LoggerFactory.getLogger(PipelineRunRegistry.class);
 
     private static final Duration EVICTION_INTERVAL = Duration.ofMinutes(1);
@@ -521,7 +527,7 @@ public final class PipelineRunRegistry<K> {
             RuntimeException failure = state == OperationState.FAILED
                     ? new IllegalStateException(progress.errorMessage()) : null;
             return new OperationSnapshot<>(operationId, state, run.startedAt(), finishedAt,
-                    cancellationRequested, "pipeline", progress,
+                    cancellationRequested, OPERATION_PHASE, progress,
                     state == OperationState.COMPLETED ? progress : null, failure);
         }
     }

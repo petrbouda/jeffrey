@@ -35,6 +35,9 @@ import java.util.List;
  * @param alreadyDeduplicated    list of strings already sharing arrays (sorted by savings desc)
  * @param opportunities          list of deduplication opportunities (sorted by potential savings desc)
  * @param jvmFlags               JVM flags related to string handling extracted from JFR events
+ * @param topN                   the most entries each ranking above was built to keep, so a ranking of
+ *                               that length may have left entries out; null for a report stored before
+ *                               the cap was recorded, whose rankings cannot say whether they are whole
  */
 public record StringAnalysisReport(
         long totalStrings,
@@ -48,6 +51,7 @@ public record StringAnalysisReport(
         List<StringInstanceEntry> topInstancesByRetained,
         List<StringDeduplicationEntry> alreadyDeduplicated,
         List<StringDeduplicationEntry> opportunities,
-        List<JvmStringFlag> jvmFlags
+        List<JvmStringFlag> jvmFlags,
+        Integer topN
 ) {
 }

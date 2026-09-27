@@ -17,15 +17,15 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.common.treetable.EventViewerData;
-import cafe.jeffrey.profile.manager.EventViewerManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.ToolExecutionException;
-import cafe.jeffrey.provider.profile.api.FieldDescription;
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.common.treetable.EventViewerData;
+import cafe.jeffrey.profile.manager.EventViewerManager;
+import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.provider.profile.api.FieldDescription;
+import cafe.jeffrey.shared.common.model.EventTypeName;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -38,10 +38,13 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.List;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,7 +91,11 @@ class EventTypeMcpToolsTest {
     }
 
     private EventTypeMcpTools tools() {
-        return new EventTypeMcpTools(profileManager);
+        return new EventTypeMcpTools(profileManager, EVERY_FAMILY);
+    }
+
+    private static String text(McpToolResult result) {
+        return StructuredAnswers.json(EventTypeMcpTools.class, "describeEventType", result).toString();
     }
 
     private void recorded(String code) {
@@ -112,7 +119,7 @@ class EventTypeMcpToolsTest {
         void namesTheJfrFieldsRatherThanTheirLabels() {
             recorded(RECORDED_TYPE);
 
-            String out = tools().describeEventType(RECORDED_TYPE);
+            String out = text(tools().describeEventType(RECORDED_TYPE));
 
             assertTrue(out.contains("\"name\":\"" + SUM_OF_PAUSES_FIELD + "\""), out);
             assertTrue(out.contains("\"name\":\"" + LONGEST_PAUSE_FIELD + "\""), out);
@@ -123,7 +130,7 @@ class EventTypeMcpToolsTest {
         void carriesTheCountTheCategoriesAndWhetherTheTypeHasAStack() {
             recorded(RECORDED_TYPE);
 
-            String out = tools().describeEventType(RECORDED_TYPE);
+            String out = text(tools().describeEventType(RECORDED_TYPE));
 
             assertTrue(out.contains("\"eventType\":\"" + RECORDED_TYPE + "\""), out);
             assertTrue(out.contains("\"count\":128"), out);
@@ -135,7 +142,7 @@ class EventTypeMcpToolsTest {
         void linksTheEventsViewNarrowedToThisType() {
             recorded(RECORDED_TYPE);
 
-            String out = tools().describeEventType(RECORDED_TYPE);
+            String out = text(tools().describeEventType(RECORDED_TYPE));
 
             assertTrue(out.contains(EVENTS_VIEW_LINK), out);
             assertTrue(out.contains("eventType=jdk.GarbageCollection"), out);
@@ -149,8 +156,8 @@ class EventTypeMcpToolsTest {
         void refusesAnUnrecordedTypeWithoutAskingForItsColumns() {
             recorded(RECORDED_TYPE);
 
-            ToolExecutionException error = assertThrows(
-                    ToolExecutionException.class,
+            IllegalArgumentException error = assertThrows(
+                    IllegalArgumentException.class,
                     () -> tools().describeEventType(UNRECORDED_TYPE));
 
             assertTrue(error.getMessage().contains("recorded no event type called '" + UNRECORDED_TYPE + "'"),
@@ -177,7 +184,7 @@ class EventTypeMcpToolsTest {
         void trimsTheEventTypeBeforeMatching() {
             recorded(RECORDED_TYPE);
 
-            String out = tools().describeEventType("  " + RECORDED_TYPE + "  ");
+            String out = text(tools().describeEventType("  " + RECORDED_TYPE + "  "));
 
             assertTrue(out.contains("\"eventType\":\"" + RECORDED_TYPE + "\""), out);
             assertFalse(out.contains("recorded no event type"), out);
@@ -187,10 +194,29 @@ class EventTypeMcpToolsTest {
         void sendsTheReaderOnToTheQueryToolsTheseFieldNamesAreFor() {
             recorded(RECORDED_TYPE);
 
-            String out = tools().describeEventType(RECORDED_TYPE);
+            String out = text(tools().describeEventType(RECORDED_TYPE));
 
-            assertTrue(out.contains("jfr_queryEvents"), out);
-            assertTrue(out.contains("jfr_executeQuery"), out);
+            JsonNode answer = StructuredAnswers.json(EventTypeMcpTools.class, "describeEventType",
+                    tools().describeEventType(RECORDED_TYPE));
+            JsonNode query = StructuredAnswers.call(answer, "jfr_queryEvents");
+            assertEquals(RECORDED_TYPE, query.get("eventType").asString());
+            assertEquals(PROFILE_ID, query.get("profileId").asString());
+            assertTrue(StructuredAnswers.guidance(answer).contains("jfr_executeQuery"), answer.toString());
+            assertFalse(answer.has("nextSteps"), "no prose next steps are left");
+        }
+
+        /** A field the recording declared without a label or type still conforms, with nulls. */
+        @Test
+        void aFieldWithoutLabelTypeOrDescriptionConformsWithNulls() {
+            when(eventViewerManager.eventTypes()).thenReturn(List.of(new EventViewerData(
+                    List.of("GC"), RECORDED_LABEL, RECORDED_TYPE, 1, "JDK", false)));
+            when(eventViewerManager.eventColumns(Type.fromCode(RECORDED_TYPE))).thenReturn(List.of(
+                    new FieldDescription(SUM_OF_PAUSES_FIELD, null, null, null)));
+
+            JsonNode answer = StructuredAnswers.json(EventTypeMcpTools.class, "describeEventType",
+                    tools().describeEventType(RECORDED_TYPE));
+
+            assertTrue(answer.get("fields").get(0).get("label").isNull());
         }
     }
 }

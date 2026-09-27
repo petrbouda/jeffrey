@@ -17,13 +17,18 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.memory.NativeMemoryManager;
 import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeMemoryOverview;
 import cafe.jeffrey.profile.manager.model.nmt.NmtCategory;
 import cafe.jeffrey.profile.manager.model.nmt.NmtOverview;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
 
 import java.util.List;
 import java.util.Set;
@@ -38,7 +43,7 @@ import java.util.Set;
  * started with {@code -XX:NativeMemoryTracking=summary} or {@code detail}; RSS and direct buffers are
  * there regardless.
  */
-public record NativeMemorySection(ProfileManager profileManager) implements JvmSection {
+public record NativeMemorySection(ProfileManager profileManager) implements JvmSection<NativeMemorySection.NativeMemoryDashboard> {
 
     public static final String ID = "nativeMemory";
 
@@ -54,12 +59,12 @@ public record NativeMemorySection(ProfileManager profileManager) implements JvmS
             Type.DIRECT_BUFFER_STATISTICS,
             Type.NATIVE_LIBRARY);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "Memory outside the Java heap does not appear in a heap dump. The native allocation "
-                    + "flamegraphs are profiler.Malloc and jeffrey.NativeLeak when the recording carries them; "
-                    + "flamegraph_list says whether it does.",
-            "A large untracked figure means something outside the JVM's own allocators holds the memory, "
-                    + "which NMT cannot attribute for you.");
+    private static final String NATIVE_FLAMEGRAPHS_WHY =
+            "says whether the recording carries profiler.Malloc or jeffrey.NativeLeak, the native allocation "
+                    + "flamegraphs; memory outside the Java heap does not appear in a heap dump";
+    private static final String UNTRACKED_GUIDANCE =
+            "A large untrackedBytes means something outside the JVM's own allocators holds the memory, "
+                    + "which NMT cannot attribute.";
 
     @Override
     public String id() {
@@ -77,22 +82,30 @@ public record NativeMemorySection(ProfileManager profileManager) implements JvmS
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.NATIVE_MEMORY;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, NativeMemoryDashboard dashboard) {
+        next.next(SectionCalls.on(SectionCalls.FLAMEGRAPH_LIST, profileManager.info().id()).why(NATIVE_FLAMEGRAPHS_WHY))
+                .guidanceWhen(dashboard.tracking() != null, UNTRACKED_GUIDANCE);
+    }
+
+    @Override
+    public NativeMemoryDashboard render() {
         NativeMemoryManager memoryManager = profileManager.nativeMemoryManager();
         NativeMemoryTrackingManager trackingManager = profileManager.nativeMemoryTrackingManager();
 
         NativeMemoryOverview overview = memoryManager.overview();
         NmtOverview nmt = trackingManager.overview();
 
+        List<NmtCategory> tracked = nmt.hasNmtData() ? trackingManager.categories() : List.of();
         return new NativeMemoryDashboard(
                 process(overview),
                 nmt.hasNmtData() ? tracking(nmt) : null,
-                nmt.hasNmtData() ? categories(trackingManager.categories()) : List.of());
+                categories(tracked),
+                Math.max(0, tracked.size() - CATEGORIES_LIMIT));
     }
 
     private static Process process(NativeMemoryOverview overview) {
@@ -135,17 +148,21 @@ public record NativeMemorySection(ProfileManager profileManager) implements JvmS
      * @param tracking   the Native Memory Tracking totals, null when the JVM was started without NMT
      * @param categories where the tracked memory went, largest committed first; empty without NMT
      */
-    private record NativeMemoryDashboard(
+    public record NativeMemoryDashboard(
             Process process,
+            @McpNullable
             Tracking tracking,
-            List<Category> categories) {
+            @McpDescription("The " + CATEGORIES_LIMIT + " categories with the most committed memory")
+            List<Category> categories,
+            @McpDescription("How many further tracked categories the list leaves out")
+            int omittedCategories) {
     }
 
     /**
      * @param rssGrowthBytes resident set size at the end minus the beginning — the number that says
      *                       whether the process was still growing when the recording stopped
      */
-    private record Process(
+    public record Process(
             long peakRssBytes,
             long finalRssBytes,
             long rssGrowthBytes,
@@ -159,21 +176,47 @@ public record NativeMemorySection(ProfileManager profileManager) implements JvmS
      * @param untrackedBytes resident memory NMT does not account for — a large value is the signal
      *                       that something outside the JVM's own allocators holds the memory
      */
-    private record Tracking(
+    public record Tracking(
             long totalCommittedBytes,
             long totalReservedBytes,
             long peakCommittedBytes,
+            @McpNullable
             String largestCategory,
             long largestCategoryCommittedBytes,
             int categoryCount,
             long untrackedBytes) {
     }
 
-    private record Category(
+    public record Category(
             String category,
             long reservedBytes,
             long committedBytes,
             long startCommittedBytes,
             long growthBytes) {
+    }
+
+    /**
+     * What {@code jvm_nativeMemory} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            NativeMemoryDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, NativeMemoryDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

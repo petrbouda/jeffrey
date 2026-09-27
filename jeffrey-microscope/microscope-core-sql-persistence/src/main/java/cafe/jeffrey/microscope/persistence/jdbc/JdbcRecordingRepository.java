@@ -52,6 +52,22 @@ public class JdbcRecordingRepository implements RecordingRepository {
     //language=sql
     private static final String NO_PROJECT = "project_id IS NULL";
 
+    /**
+     * The recording made of one file with a given name and size. A recording of several files — a
+     * downloaded session — never matches, even when one of its files has that name and size. Among
+     * several matches one that already has a profile wins, since handing that profile back is the
+     * point; newest first within each group.
+     */
+    //language=sql
+    private static final String FIND_RECORDING_ID_BY_FILE_NAME_AND_SIZE =
+            "SELECT r.id FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id WHERE r." + NO_PROJECT + """
+              AND (SELECT count(*) FROM recording_files f WHERE f.recording_id = r.id) = 1
+              AND EXISTS (SELECT 1 FROM recording_files f WHERE f.recording_id = r.id AND f.filename = :filename AND f.size_in_bytes = :size_in_bytes)
+            ORDER BY (p.profile_id IS NULL), r.created_at DESC LIMIT 1""";
+
+    private static final String PARAM_FILENAME = "filename";
+    private static final String PARAM_SIZE_IN_BYTES = "size_in_bytes";
+
     private final DatabaseClient databaseClient;
     private final Clock clock;
 
@@ -190,6 +206,18 @@ public class JdbcRecordingRepository implements RecordingRepository {
             databaseClient.insert(StatementLabel.INSERT_RECORDING, sql, params);
             insertRecordingFile(recordingFile);
         });
+    }
+
+    @Override
+    public Optional<Recording> findByFileNameAndSize(String fileName, long sizeInBytes) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue(PARAM_FILENAME, fileName)
+                .addValue(PARAM_SIZE_IN_BYTES, sizeInBytes);
+
+        return databaseClient.querySingle(
+                        StatementLabel.FIND_RECORDING, FIND_RECORDING_ID_BY_FILE_NAME_AND_SIZE, params,
+                        (rs, _) -> rs.getString("id"))
+                .flatMap(this::findRecording);
     }
 
     @Override

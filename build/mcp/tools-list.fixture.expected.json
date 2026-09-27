@@ -1,0 +1,173 @@
+{
+  "tools": [
+    {
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": null,
+        "properties": {
+          "classNamePattern": {
+            "default": "*",
+            "type": "string"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "sortBy": {
+            "default": "retainedSize",
+            "enum": [
+              "retainedSize",
+              "instanceCount"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "profileId"
+        ]
+      },
+      "name": "heap_list_classes"
+    },
+    {
+      "_meta": {
+        "anthropic/maxResultSizeChars": 120000,
+        "cafe.jeffrey/category": null,
+        "jeffrey/cost": "MODERATE",
+        "jeffrey/requires": [
+          "TRACES",
+          "HEAP_DUMP_INDEXED"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "eventType": {
+            "enum": [
+              "jdk.ExecutionSample",
+              "jdk.ObjectAllocationInNewTLAB"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventType",
+          "profileId"
+        ]
+      },
+      "name": "jfr_query_events",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rows": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "kind": {
+                  "enum": [
+                    "SAMPLE",
+                    "ALLOCATION"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "description",
+                "kind"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "truncation": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "omitted": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "omitted"
+              ],
+              "type": "object"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "nextCursor",
+          "rows",
+          "truncation"
+        ],
+        "type": "object"
+      },
+      "title": "Query JFR Events"
+    },
+    {
+      "_meta": {
+        "anthropic/maxResultSizeChars": 120000,
+        "cafe.jeffrey/category": null,
+        "cafe.jeffrey/writer": null,
+        "jeffrey/cost": "CHEAP"
+      },
+      "annotations": {
+        "destructiveHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "force": {
+            "default": false,
+            "type": "boolean"
+          },
+          "profileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profileId"
+        ]
+      },
+      "name": "profiles_delete",
+      "outputSchema": {
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "title": "Delete Profile"
+    }
+  ]
+}

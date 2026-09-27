@@ -29,24 +29,31 @@ import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.MemoryMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.MethodTracingMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TraceAttributesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
-import cafe.jeffrey.profile.mcp.McpToolSpec;
-import cafe.jeffrey.profile.mcp.McpToolResult;
-import cafe.jeffrey.profile.mcp.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.profile.mcp.McpTestToolsets;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
+import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -64,16 +71,24 @@ import tools.jackson.databind.JsonNode;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.RecordComponent;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -88,7 +103,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * So every {@code @Tool} method the MCP server serves is put through both readings and the two are
  * compared. Spring AI's {@link ToolDefinitions}/{@link ToolUtils} are the oracle, and the assertions
  * below say exactly where Jeffrey is allowed to differ and where it is not. Where they legitimately
- * diverge — the prefixed name, the synthetic {@code profileId}, the required-by-default rule — the
+ * diverge — the prefixed name, the synthetic {@code profileId}, the envelope's {@code McpCallContext}
+ * parameter, the required-by-default rule — the
  * divergence is pinned here in one place instead of being rediscovered per family.
  * <p>
  * This is the whole surface at once: no other test covers every family, and a family added to the
@@ -134,6 +150,30 @@ class SpringAiToolConformanceTest {
 
     private static final String TEST_PREFIX = "test";
 
+    private static final String OBJECT_TYPE = "object";
+    private static final String SCHEMA_ITEMS = "items";
+    private static final String SCHEMA_ADDITIONAL_PROPERTIES = "additionalProperties";
+    private static final String TOOL_SEPARATOR = ":";
+    private static final String PROPERTY_SEPARATOR = ".";
+    private static final String ITEM_SUFFIX = "[]";
+    private static final String VALUE_SUFFIX = "{}";
+
+    /**
+     * The record components an output schema may leave open as {@code {"type":"object"}}: the plan's
+     * three genuinely polymorphic payloads. A next call's arguments differ per tool, a finding's
+     * evidence per source, and an operation's result per kind. They are allowed by the component they
+     * come from rather than listed per tool, since after the family batches most payloads carry one;
+     * a new open object anywhere else fails {@link Identity#openObjectsAppearOnlyWhereThePayloadIsGenuinelyPolymorphic}.
+     */
+    private static final Set<SanctionedComponent> SANCTIONED_COMPONENTS = Set.of(
+            new SanctionedComponent(McpNextTool.class, "arguments"),
+            new SanctionedComponent(McpFinding.class, "evidence"),
+            new SanctionedComponent(McpOperationRegistry.Snapshot.class, "result"));
+
+    /** One record component, by the record that declares it and its name. */
+    private record SanctionedComponent(Class<?> owner, String name) {
+    }
+
     private static final String SCHEMA_PROPERTIES = "properties";
     private static final String SCHEMA_REQUIRED = "required";
     private static final String SCHEMA_TYPE = "type";
@@ -144,6 +184,76 @@ class SpringAiToolConformanceTest {
      * has no counterpart in Spring AI's reading of the method.
      */
     private static final String SYNTHETIC_PROFILE_ID = ProfileScopedToolset.PROFILE_ID_ARGUMENT;
+
+    /** What a tool without an output schema may return: text, or an outcome that may be a question or a task. */
+    private static final Set<Class<?>> TEXT_RETURN_TYPES = Set.of(String.class, McpToolOutcome.class);
+
+    /** What a tool with an output schema may return: something that can carry structured data. */
+    private static final Set<Class<?>> STRUCTURED_RETURN_TYPES = Set.of(McpToolResult.class, McpToolOutcome.class);
+
+    private static boolean admitsAnObject(JsonNode type) {
+        if (type.isString()) {
+            return OBJECT_TYPE.equals(type.asString());
+        }
+        for (JsonNode name : type) {
+            if (OBJECT_TYPE.equals(name.asString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * An object schema that lists no properties and constrains no values: what the generator writes for
+     * {@code McpJsonObject}, and nowhere else.
+     */
+    private static void collectOpenObjects(JsonNode schema, String path, Set<String> open) {
+        if (!schema.isObject()) {
+            return;
+        }
+        if (admitsAnObject(schema.path(SCHEMA_TYPE))
+                && !schema.has(SCHEMA_PROPERTIES) && !schema.has(SCHEMA_ADDITIONAL_PROPERTIES)) {
+            open.add(path);
+        }
+        for (Map.Entry<String, JsonNode> property : schema.path(SCHEMA_PROPERTIES).properties()) {
+            String separator = path.endsWith(TOOL_SEPARATOR) ? "" : PROPERTY_SEPARATOR;
+            collectOpenObjects(property.getValue(), path + separator + property.getKey(), open);
+        }
+        collectOpenObjects(schema.path(SCHEMA_ITEMS), path + ITEM_SUFFIX, open);
+        collectOpenObjects(schema.path(SCHEMA_ADDITIONAL_PROPERTIES), path + VALUE_SUFFIX, open);
+    }
+
+    /**
+     * The paths, spelled as {@link #collectOpenObjects} spells them, at which the record a tool declares
+     * carries a {@link #SANCTIONED_COMPONENTS sanctioned} component: walked through the record components
+     * themselves, so a path is allowed because of the type behind it and not because of how it happens
+     * to be named.
+     */
+    private static void collectSanctioned(Type type, String path, Set<String> found) {
+        Class<?> raw = type instanceof ParameterizedType parameterized
+                ? (Class<?>) parameterized.getRawType() : (Class<?>) type;
+        if (type instanceof ParameterizedType parameterized) {
+            Type[] arguments = parameterized.getActualTypeArguments();
+            if (Collection.class.isAssignableFrom(raw)) {
+                collectSanctioned(arguments[0], path + ITEM_SUFFIX, found);
+            } else if (Map.class.isAssignableFrom(raw)) {
+                collectSanctioned(arguments[1], path + VALUE_SUFFIX, found);
+            }
+            return;
+        }
+        if (!raw.isRecord()) {
+            return;
+        }
+        for (RecordComponent component : raw.getRecordComponents()) {
+            String separator = path.endsWith(TOOL_SEPARATOR) ? "" : PROPERTY_SEPARATOR;
+            String componentPath = path + separator + component.getName();
+            if (SANCTIONED_COMPONENTS.contains(new SanctionedComponent(raw, component.getName()))) {
+                found.add(componentPath);
+            } else {
+                collectSanctioned(component.getGenericType(), componentPath, found);
+            }
+        }
+    }
 
     /**
      * One {@code @Tool} method, read both ways.
@@ -162,6 +272,23 @@ class SpringAiToolConformanceTest {
         JsonNode springAiSchema() {
             return Json.readTree(springAi.inputSchema());
         }
+
+        /**
+         * The names of the method's {@link McpCallContext} parameters: arguments to Spring AI, the
+         * envelope's own to Jeffrey.
+         */
+        Set<String> callContextParameters() {
+            return Stream.of(method.getParameters())
+                    .filter(parameter -> parameter.getType() == McpCallContext.class)
+                    .map(Parameter::getName)
+                    .collect(Collectors.toSet());
+        }
+
+        /** Spring AI's names for the arguments, without the context parameter it reads as one. */
+        List<String> springAiArguments(List<String> names) {
+            Set<String> context = callContextParameters();
+            return names.stream().filter(name -> !context.contains(name)).toList();
+        }
     }
 
     /**
@@ -173,9 +300,13 @@ class SpringAiToolConformanceTest {
      * want a live profile database.
      */
     static Stream<ToolMethod> toolMethods() {
+        return toolMethodsOf(TOOL_CLASSES);
+    }
+
+    private static Stream<ToolMethod> toolMethodsOf(List<Class<?>> types) {
         List<ToolMethod> methods = new ArrayList<>();
-        for (Class<?> type : TOOL_CLASSES) {
-            ProfileScopedToolset<?> toolset = new ProfileScopedToolset<>(
+        for (Class<?> type : types) {
+            ProfileScopedToolset<?> toolset = McpTestToolsets.unscoped(
                     type, TEST_PREFIX, profileId -> {
                         throw new UnsupportedOperationException("specs need no target");
                     });
@@ -226,12 +357,75 @@ class SpringAiToolConformanceTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("cafe.jeffrey.microscope.core.mcp.SpringAiToolConformanceTest#toolMethods")
         void theToolReturnsTextOrADeclaredStructuredResult(ToolMethod tool) {
+            Class<?> returned = tool.method().getReturnType();
             if (tool.method().isAnnotationPresent(McpOutputSchema.class)) {
-                assertEquals(McpToolResult.class, tool.method().getReturnType());
+                assertTrue(STRUCTURED_RETURN_TYPES.contains(returned), returned.getName());
                 assertNotNull(tool.jeffrey().outputSchema());
             } else {
-                assertEquals(String.class, tool.method().getReturnType());
+                assertTrue(TEXT_RETURN_TYPES.contains(returned), returned.getName());
             }
+        }
+
+        /**
+         * Every advertised output schema is the one {@link McpSchemaGenerator} writes for the declared
+         * record: closed, the generator's keywords only, and never a hand-written string beside it.
+         */
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("cafe.jeffrey.microscope.core.mcp.SpringAiToolConformanceTest#toolMethods")
+        void theOutputSchemaIsTheGeneratorsReadingOfTheDeclaredRecord(ToolMethod tool) {
+            McpOutputSchema declared = tool.method().getAnnotation(McpOutputSchema.class);
+            if (declared == null) {
+                assertNull(tool.jeffrey().outputSchema());
+                return;
+            }
+            assertEquals(McpSchemaGenerator.schemaOf(declared.value()), tool.jeffrey().outputSchema());
+        }
+
+        /**
+         * {@code McpJsonObject} is the one open shape an output schema may hold, and only where a payload
+         * is genuinely polymorphic. Pinned as a set, so a new open object is a decision somebody makes
+         * here rather than a schema that quietly promises nothing.
+         */
+        @Test
+        void openObjectsAppearOnlyWhereThePayloadIsGenuinelyPolymorphic() {
+            Set<String> open = new TreeSet<>();
+            Set<String> sanctioned = new TreeSet<>();
+            toolMethods()
+                    .filter(tool -> tool.jeffrey().outputSchema() != null)
+                    .forEach(tool -> {
+                        collectOpenObjects(tool.jeffrey().outputSchema(), tool + TOOL_SEPARATOR, open);
+                        collectSanctioned(tool.method().getAnnotation(McpOutputSchema.class).value(),
+                                tool + TOOL_SEPARATOR, sanctioned);
+                    });
+
+            assertEquals(sanctioned, open);
+        }
+
+        /**
+         * The component rule finds each sanctioned component where the converted families carry it,
+         * and nothing that is not one of them.
+         */
+        @Test
+        void sanctionedComponentsAreFoundThroughTheRecordComponent() {
+            Set<String> sanctioned = new TreeSet<>();
+            toolMethods()
+                    .filter(tool -> tool.jeffrey().outputSchema() != null)
+                    .forEach(tool -> collectSanctioned(tool.method().getAnnotation(McpOutputSchema.class).value(),
+                            tool + TOOL_SEPARATOR, sanctioned));
+
+            assertTrue(sanctioned.containsAll(List.of(
+                    "ProfileEvidenceMcpTools.evidence:followUp.nextTools[].arguments",
+                    "ProfileEvidenceMcpTools.evidence:findings[].evidence",
+                    "ProfileEvidenceMcpTools.evidence:findings[].nextTool.arguments",
+                    "ProfileMcpTools.summary:topFindings[].evidence",
+                    "CompareMcpTools.quality:followUp.nextTools[].arguments",
+                    "OperationsMcpTools.status:result",
+                    "RecordingsMcpTools.status:operation.result",
+                    "RecordingsMcpTools.status:operation.followUp.nextTools[].arguments")),
+                    sanctioned.toString());
+            assertTrue(sanctioned.stream().allMatch(path -> path.endsWith(".arguments")
+                    || path.endsWith(".evidence") || path.endsWith(":result") || path.endsWith(".result")),
+                    sanctioned.toString());
         }
     }
 
@@ -245,10 +439,7 @@ class SpringAiToolConformanceTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("cafe.jeffrey.microscope.core.mcp.SpringAiToolConformanceTest#toolMethods")
         void bothReadTheSameArguments(ToolMethod tool) {
-            assertEquals(
-                    propertyNames(tool.springAiSchema()),
-                    withoutSyntheticArgument(propertyNames(tool.jeffreySchema())),
-                    "the two readings disagree about which arguments the tool takes");
+            assertSameArguments(tool);
         }
 
         @ParameterizedTest(name = "{0}")
@@ -257,7 +448,7 @@ class SpringAiToolConformanceTest {
             JsonNode springAi = tool.springAiSchema().get(SCHEMA_PROPERTIES);
             JsonNode jeffrey = tool.jeffreySchema().get(SCHEMA_PROPERTIES);
 
-            for (String name : propertyNames(tool.springAiSchema())) {
+            for (String name : tool.springAiArguments(propertyNames(tool.springAiSchema()))) {
                 assertEquals(
                         springAi.get(name).get(SCHEMA_TYPE).asString(),
                         jeffrey.get(name).get(SCHEMA_TYPE).asString(),
@@ -271,7 +462,7 @@ class SpringAiToolConformanceTest {
             JsonNode springAi = tool.springAiSchema().get(SCHEMA_PROPERTIES);
             JsonNode jeffrey = tool.jeffreySchema().get(SCHEMA_PROPERTIES);
 
-            for (String name : propertyNames(tool.springAiSchema())) {
+            for (String name : tool.springAiArguments(propertyNames(tool.springAiSchema()))) {
                 JsonNode expected = springAi.get(name).get(SCHEMA_DESCRIPTION);
                 JsonNode actual = jeffrey.get(name).get(SCHEMA_DESCRIPTION);
                 assertEquals(
@@ -302,12 +493,7 @@ class SpringAiToolConformanceTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("cafe.jeffrey.microscope.core.mcp.SpringAiToolConformanceTest#toolMethods")
         void everyArgumentDeclaresWhetherItIsRequired(ToolMethod tool) {
-            for (Parameter parameter : tool.method().getParameters()) {
-                ToolParam declared = parameter.getAnnotation(ToolParam.class);
-                assertTrue(declared != null,
-                        "argument '" + parameter.getName() + "' carries no @ToolParam, so Spring AI "
-                                + "reads it as required and Jeffrey reads it as optional");
-            }
+            assertEveryArgumentDeclaresItsRequiredness(tool);
         }
 
         /**
@@ -316,12 +502,54 @@ class SpringAiToolConformanceTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("cafe.jeffrey.microscope.core.mcp.SpringAiToolConformanceTest#toolMethods")
         void bothRequireTheSameArguments(ToolMethod tool) {
-            assertEquals(
-                    requiredNames(tool.springAiSchema()),
-                    withoutSyntheticArgument(requiredNames(tool.jeffreySchema())),
-                    "the two readings disagree about which arguments a caller must supply");
+            assertSameRequired(tool);
         }
 
+    }
+
+    /**
+     * The second pinned divergence, beside {@code profileId}: a tool that has to know what the client
+     * can do declares an {@link McpCallContext} parameter. Spring AI reads it as one more argument (it
+     * exempts only its own {@code ToolContext}); Jeffrey binds it from the envelope and leaves it out of
+     * the schema. With it set aside, the two readings must agree as they do for every other tool.
+     * <p>
+     * Held against a fixture as well as the real families, so the rule is proven before the first
+     * production tool takes a context.
+     */
+    @Nested
+    class CallContext {
+
+        @Test
+        void springAiReadsTheContextAsAnArgumentAndJeffreyDoesNot() {
+            ToolMethod tool = toolMethodsOf(List.of(ContextFixture.class)).findFirst().orElseThrow();
+
+            assertTrue(propertyNames(tool.springAiSchema()).contains(CONTEXT_FIXTURE_PARAMETER),
+                    "Spring AI no longer reads the context as an argument; the divergence can be dropped");
+            assertFalse(propertyNames(tool.jeffreySchema()).contains(CONTEXT_FIXTURE_PARAMETER));
+            assertFalse(requiredNames(tool.jeffreySchema()).contains(CONTEXT_FIXTURE_PARAMETER));
+        }
+
+        @Test
+        void withTheContextSetAsideBothReadingsAgree() {
+            ToolMethod tool = toolMethodsOf(List.of(ContextFixture.class)).findFirst().orElseThrow();
+
+            assertSameArguments(tool);
+            assertSameRequired(tool);
+            assertEveryArgumentDeclaresItsRequiredness(tool);
+        }
+    }
+
+    /** The parameter name the fixture gives its context, so the divergence has something to point at. */
+    private static final String CONTEXT_FIXTURE_PARAMETER = "call";
+
+    public static class ContextFixture {
+
+        @Tool(description = "Answers or asks, depending on the client")
+        public McpToolOutcome decide(
+                @ToolParam(required = true, description = "what to decide") String question,
+                McpCallContext call) {
+            return McpToolResult.text(question + ":" + call.canElicitForm());
+        }
     }
 
     /**
@@ -429,6 +657,32 @@ class SpringAiToolConformanceTest {
             return Class.forName(className);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Scanned a class that cannot be loaded: " + className, e);
+        }
+    }
+
+    private static void assertSameArguments(ToolMethod tool) {
+        assertEquals(
+                tool.springAiArguments(propertyNames(tool.springAiSchema())),
+                withoutSyntheticArgument(propertyNames(tool.jeffreySchema())),
+                "the two readings disagree about which arguments the tool takes");
+    }
+
+    private static void assertSameRequired(ToolMethod tool) {
+        assertEquals(
+                tool.springAiArguments(requiredNames(tool.springAiSchema())),
+                withoutSyntheticArgument(requiredNames(tool.jeffreySchema())),
+                "the two readings disagree about which arguments a caller must supply");
+    }
+
+    private static void assertEveryArgumentDeclaresItsRequiredness(ToolMethod tool) {
+        for (Parameter parameter : tool.method().getParameters()) {
+            if (tool.callContextParameters().contains(parameter.getName())) {
+                continue;
+            }
+            ToolParam declared = parameter.getAnnotation(ToolParam.class);
+            assertTrue(declared != null,
+                    "argument '" + parameter.getName() + "' carries no @ToolParam, so Spring AI "
+                            + "reads it as required and Jeffrey reads it as optional");
         }
     }
 

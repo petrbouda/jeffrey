@@ -186,7 +186,7 @@ onMounted(() => {
       </div>
 
       <h2 id="from-an-agent">From a Coding Agent</h2>
-      <p>Every view above is also a tool of the <strong>Microscope MCP</strong> server, so a Claude Code, Codex or Gemini CLI session in your repository can ask about retained sizes, suspected leaks, dominator chains, string duplication and class-loader unloadability in natural language and drive the same analysis — with the <code>analyze-heap</code> skill as its method and <code>heap_oql</code> for the questions the reports do not answer.</p>
+      <p>Every view above is also a tool of the <strong>Microscope MCP</strong> server, so a coding-agent session in your repository that speaks MCP <code>2026-07-28</code> (Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its <code>mcp_2026_07_28</code> flag on) can ask about retained sizes, suspected leaks, dominator chains, string duplication and class-loader unloadability in natural language and drive the same analysis — with the <code>analyze-heap</code> skill as its method and <code>heap_oql</code> for the questions the reports do not answer.</p>
 
       <p class="docs-read-more">
         <router-link to="/docs/microscope-mcp/tools#heap">Read the heap tool reference &rarr;</router-link>

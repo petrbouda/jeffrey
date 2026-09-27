@@ -69,13 +69,25 @@
             <artifactId>profile-management</artifactId>
         </dependency>
 
-        <!-- MCP server machinery (JSON-RPC envelope, @Tool toolsets) -->
+        <!-- MCP: the pure 2026-07-28 protocol, and Jeffrey's adapter over it (Spring MVC, @Tool toolsets) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-protocol</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>mcp-server</artifactId>
         </dependency>
 
         <!-- Third-party -->
+        <!--
+          Reads the skills' YAML frontmatter (McpSkillCatalogue). Already on the classpath through
+          spring-boot-starter; declared because this module uses it directly. Version from the Boot BOM.
+        -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+        </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-events</artifactId>
@@ -135,6 +147,22 @@
             <artifactId>test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- McpTestRequests and McpSchemaConformance: the protocol's generic test helpers -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-protocol</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <!-- McpNextToolConformance and McpTestToolsets: Jeffrey's own MCP test helpers -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-server</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -150,27 +178,28 @@
             </plugin>
 
             <!--
-                The MCP prompts are the plugin's skills. Copied in at build time rather than kept as a
-                second copy in this module: a client with the plugin reads the files themselves, and a
-                client that cannot take a plugin reads them over the protocol, and the two must not
-                drift apart. One source, two ways of reaching it.
+                The plugin's skills, every file of every skill, copied in at build time rather than kept
+                as a second copy in this module: a client with the plugin reads the files themselves, and
+                a client that cannot take a plugin reads them over the protocol - as MCP prompts and over
+                the skills extension, both from this one classpath copy - and the two must not drift
+                apart. The bytes are copied unfiltered: the digests served are those of the files.
             -->
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-mcp-prompts</id>
+                        <id>copy-mcp-skills</id>
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/mcp-prompts</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/mcp-skills</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${project.basedir}/../../jeffrey-claude-plugin/skills</directory>
                                     <includes>
-                                        <include>*/SKILL.md</include>
+                                        <include>*/**</include>
                                     </includes>
                                 </resource>
                             </resources>

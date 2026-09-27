@@ -42,6 +42,7 @@
         <module>grpc-client</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>
+        <module>mcp-protocol</module>
         <module>profiles</module>
     </modules>
 

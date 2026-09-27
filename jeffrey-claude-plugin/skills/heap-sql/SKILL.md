@@ -18,6 +18,8 @@ reports in SQL is slower and easier to get wrong.
 Reach for `heap_executeQuery` only for a question they do not cover. `heap_listTables` and
 `heap_describeTable` give the live schema.
 
+Tool names here omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
+
 ## The tables
 
 - **`dump_metadata`** (one row) — `id_size` (4 or 8), `hprof_version`, `compressed_oops`,
@@ -86,9 +88,12 @@ WITH RECURSIVE subs AS (
 
 ## Caps and caveats
 
-`heap_executeQuery` accepts SELECT and WITH only, caps the rows and times out after thirty seconds —
-aggregate in SQL rather than fetching rows to count them. It runs against the index directly, so
-`information_schema` works and so do CTEs.
+`heap_executeQuery` accepts SELECT and WITH only, caps the rows at `rowCap` (100, whatever `LIMIT`
+the query carries) and times out after thirty seconds — aggregate in SQL rather than fetching rows to
+count them. The answer is JSON: `columns`, then `rows` with SQL `NULL` as `null`, and `capped` saying
+the query matched more rows than the cap. It runs against the index directly, so
+`information_schema` works and so do CTEs. An `objectId` another heap tool takes is the decimal
+string of an `instance_id`.
 
 **SQL is not the only query language here.** `heap_oql` runs Jeffrey's OQL against the object graph
 the index implies: every instance of a type *including its subclasses*
@@ -98,5 +103,6 @@ SQL spelling. Reach for SQL when the question is about the tables, and OQL when 
 Shallow size is the object itself; retained size is what dies with it, and only the second answers
 "who is holding this memory". Object ids are stable within one dump and meaningless across dumps.
 
-`heap_oql` answers with a link that opens the same query in Jeffrey's OQL console, so a result worth
-keeping can be handed to someone reading the UI rather than re-typed there.
+`heap_oql` answers with a link to Jeffrey's OQL console. The console opens empty — the link cannot
+carry the query, as the answer's `uiLinkNote` says — so hand the reader the query text beside the
+link, to paste there.

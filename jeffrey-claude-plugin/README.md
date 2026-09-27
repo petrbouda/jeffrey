@@ -11,10 +11,30 @@ the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plu
 `mcp.json`; **Gemini CLI** reads `gemini-extension.json`. The skills and the MCP server underneath
 are the same files for all three.
 
+**Jeffrey speaks MCP `2026-07-28` only.** A client that still opens with `initialize` is refused with
+`-32602` (HTTP 400), an error whose message and `data.supported` name that version, so which clients
+can connect today is narrower than which clients can install the package:
+
+- **Claude Code** — on its v2 MCP runtime only; the v1 runtime cannot talk to a server that speaks
+  only `2026-07-28`. v2 is the default on Claude Code v2.1.274 or later for Bedrock, Claude Platform
+  on AWS, Google Cloud's Agent Platform, Microsoft Foundry, Claude apps gateway sessions and sessions
+  with telemetry or feature-flag fetching off. Anywhere else, start it with `MCP_SDK_GENERATION=v2`
+  (see [Claude Code's MCP docs](https://code.claude.com/docs/en/mcp)).
+- **Codex** — v0.147.0 or later, with the opt-in protocol turned on. It is a global feature flag,
+  not a per-server setting: `[features] mcp_2026_07_28 = true` in `~/.codex/config.toml`, or
+  `codex --enable mcp_2026_07_28`. It applies to every HTTP MCP server Codex connects to, and Codex
+  marks it as under development.
+- **Gemini CLI** — cannot connect to this Jeffrey until it supports MCP `2026-07-28`. The extension
+  files stay here so it works once Gemini CLI does.
+- **Anything else** (Cursor, VS Code, Kiro, …) — works with any client that speaks MCP `2026-07-28`
+  over Streamable HTTP.
+
 Every analysis tool is **read-only**, and every tool says so in its MCP annotations rather than
-leaving a client to infer it. Nine do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
+leaving a client to infer it. Eleven do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
 rather than changing them, `recordings_delete`, the one destructive tool, which removes a recording and the
-profile built from it, `heap_prepare`, which writes only a cache, `hubs_download`, which pulls a session or a
+profile built from it, `heap_prepare`, which writes only a cache, `heap_oql` with `includeRetainedSize`
+and `jvm_autoAnalysis` with `compute`, which fill the dominator tree and the Auto Analysis cache and run as
+operations for that reason, `hubs_download`, which pulls a session or a
 window of it off another machine, `hubs_fetchFile`, which pulls one of a session's artifacts off it the same way,
 `operations_cancel`, which asks background work to stop, and `ide_link` and `ide_open`, which act on the
 editor running beside Jeffrey rather than on any profile. Each declares itself, so the reading members
@@ -36,18 +56,16 @@ Jeffrey's MCP server is **on by default** — a running Jeffrey is already servi
 `/api/mcp` on whatever address and port you reach Jeffrey on (`http://localhost:8585` unless
 you changed `server.port`).
 
-That endpoint used to be `/api/internal/mcp`, and still answers there, so a client configured before
-the move keeps working. A Microscope older than the move serves *only* the old path — point the
-plugin at it, or upgrade Jeffrey.
+`/api/mcp` is the one path the server answers on.
 
-**Claude Code:**
+**Claude Code** (on the v2 MCP runtime — `MCP_SDK_GENERATION=v2 claude` where it is not the default):
 
 ```
 /plugin marketplace add petrbouda/jeffrey
 /plugin install microscope@jeffrey
 ```
 
-**Codex:**
+**Codex** (v0.147.0 or later, with the global feature flag `[features] mcp_2026_07_28 = true`):
 
 ```bash
 codex plugin marketplace add petrbouda/jeffrey
@@ -55,7 +73,7 @@ codex plugin marketplace add petrbouda/jeffrey
 
 then `/plugins` in Codex, or work from a clone with `codex plugin marketplace add ./jeffrey`.
 
-**Gemini CLI:**
+**Gemini CLI** (installs, but cannot connect until Gemini CLI supports MCP `2026-07-28`):
 
 ```bash
 git clone https://github.com/petrbouda/jeffrey
@@ -68,8 +86,8 @@ root of what it clones, and in this repository it lives one directory down. `/ex
 `/mcp` says whether it reached Jeffrey.
 
 Any of them can also skip the plugin and register the endpoint by hand — the docs above cover
-`claude mcp add`, `codex mcp add`, Gemini's `mcpServers` block, and the raw JSON-RPC for anything
-else.
+`claude mcp add`, `codex mcp add`, Gemini's `mcpServers` block, and the raw `2026-07-28` requests
+(`server/discover`, `tools/call`, …) for anything else.
 
 ## Pointing it at your Jeffrey
 
@@ -90,9 +108,16 @@ plugin's server and register your own in `~/.codex/config.toml`:
 ```toml
 [mcp_servers.jeffrey]
 url = "http://localhost:9000/api/mcp"
+tool_timeout_sec = 120
+bearer_token_env_var = "JEFFREY_MCP_TOKEN"
 ```
 
-The skills keep working; only the server registration moves.
+The skills keep working; only the server registration moves. `tool_timeout_sec = 120` matters more
+than it looks: Codex gives up on a tool call after 60 seconds by default, while a slow Jeffrey read
+(`jvm_autoAnalysis` with `compute`, `heap_oql` with `includeRetainedSize`, a large flamegraph export)
+waits up to 45 seconds before handing back an `operationId` and can take longer than that to render —
+at 60 seconds Codex reports a timeout for a call that was about to answer. The
+`bearer_token_env_var` line is harmless without a token; see below.
 
 **Gemini CLI has a setting, like Claude Code.** The extension declares one, and Gemini asks for it
 while installing; the manifest reads `${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}`, so the
@@ -119,6 +144,27 @@ too, because Gemini tries HTTP first and falls back to SSE only when that fails.
 is wrong here. Keep the name `jeffrey`: the skills name tools by the part after the prefix, and the
 prefix is built from the server's name.
 
+### A token, when Jeffrey asks for one
+
+A Jeffrey reachable from more than your machine can require a bearer token:
+`jeffrey.microscope.mcp.token` in its `application.properties`. Each client then sends it as
+`Authorization: Bearer <token>`; outside Claude Code's own setting it comes from `JEFFREY_MCP_TOKEN`:
+
+- **Claude Code** — the plugin's second setting, *Jeffrey MCP token* (`/plugin` → microscope), kept in
+  the system's secure storage and sent as `Authorization: Bearer …`. Left empty, the header goes out
+  empty, and a Jeffrey without a token ignores it.
+- **Codex** — `bearer_token_env_var = "JEFFREY_MCP_TOKEN"` in the server's `config.toml` block above;
+  export the variable before starting Codex. The plugin's own fixed server sends no token, so a
+  Jeffrey that requires one is registered by hand, like any other address.
+- **Gemini CLI** — the extension sends `Authorization: Bearer ${JEFFREY_MCP_TOKEN:-}`; export the
+  variable before starting Gemini.
+
+The session-start check sends the token the tools send — under Claude Code only the plugin's
+setting, elsewhere `JEFFREY_MCP_TOKEN` — and says which of three things is wrong when a session
+opens: nothing answering, a missing or mismatched token (HTTP 401 — it names where this client takes
+the token from), or a refused host or origin (HTTP 403 — it quotes Jeffrey's own reason, which names
+the property to change).
+
 ## What you get
 
 **Tools**, in nineteen families:
@@ -141,7 +187,7 @@ prefix is built from the server's name.
 | `memory_` | Allocation by type, and JFR-side leak candidates that need no heap dump |
 | `jfr_` | The profile's DuckDB tables — schema, the fields of one event type, and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL, OQL, and the one pair that builds rather than reads: `heap_prepare` and `heap_status` |
-| `recordings_` | One of the five families with a writer in it: imports a recording file and builds a profile from it |
+| `recordings_` | One of the six families with a writer in it: imports a recording file and builds a profile from it |
 | `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub, pulls one in — the whole session, the recording files covering a time window, or files named from the listing — and lists the files a session holds beside its recording (application logs, `gc.jvm-log`, the crash file, perf counters, a heap dump) and fetches one of them on its own, as a path the agent reads with its own tools |
 | `ide_` | Where a frame actually lives, answered by the developer's running IntelliJ: the file and line for a class and method, a class's source, which checkouts are open and on what commit, and — the one tool here with a visible side effect — opening a location in the editor |
 
@@ -175,7 +221,12 @@ loads a skill when the question calls for it:
   findings
 
 The exports carry their own reading instructions, so the skills stay short: they cover the
-workflows and the two schemas, not things the tool output already explains.
+workflows and the two schemas, not things the tool output already explains. They name tools
+without the prefix each client puts in front of them, and each says in one sentence what the three
+prefixes are; the full table is in
+[`skills/report/references/tool-prefixes.md`](skills/report/references/tool-prefixes.md). No skill
+points into another's directory: a client that loads the skills from the server reads only the files
+a skill lists as its own.
 
 **Three agents.** `profile-analyst` is the general one. A single flamegraph export can run to 120,000 characters,
 and a question usually takes several. The analyst runs a sequence and returns only the findings — the
@@ -193,7 +244,9 @@ the capability gaps before anything else, dispatches `profile-analyst` and `heap
 the dimensions the summary justifies and all at once, then merges what comes back: findings carry a
 stable id, so the same condition reported twice collapses into one, ranked by share of wall clock,
 of samples or of the heap. It holds the orientation tools and the two specialists, and no export
-tool of its own.
+tool of its own. Its `Agent` tool is the plain one: Claude Code ignores a type list on a subagent's
+`Agent` tool (it narrows only an agent run as the main thread with `claude --agent`), so that it
+dispatches to the two specialists and nothing else is a rule in its instructions.
 
 Claude Code gets them from the plugin as `microscope:profile-analyst`, `microscope:heap-triage` and
 `microscope:profile-lead`, restricted to the reading tools so they cannot touch your files, import
@@ -215,28 +268,42 @@ any key it does not define, and the plugin's own agents carry Claude Code's `dis
 dispatch another subagent, and dispatching the other two is that agent's whole job — so lead an
 open-ended investigation from the main conversation there.
 
-**Prompts and resources.** The server also serves the ten skills over the protocol itself, as MCP
-prompts — the same files the plugin ships, copied onto the server's classpath when it is built, so
-the two cannot drift. A client that cannot install a plugin (Cursor, VS Code, Kiro, anything
-registered by hand) gets them through `prompts/list` and `prompts/get` rather than being left with
-the tools and no account of how to use them. `resources/list` and `resources/read` expose the profile
+**Prompts, skills and resources.** The server also serves the ten skills over the protocol itself,
+as MCP prompts and over the MCP skills extension — the same files the plugin ships, copied onto the
+server's classpath when it is built, so the two cannot drift. A client that cannot install a plugin
+(Cursor, VS Code, Kiro, anything registered by hand) gets them through `skills/list` when it speaks
+`2026-07-28` with the skills extension, or through `prompts/list` and `prompts/get`, rather than
+being left with the tools and no account of how to use them. `resources/list` and `resources/read` expose the profile
 catalogue the same way, with URI templates for one profile's summary
-(`jeffrey://profile/{profileId}/summary`) and a flamegraph of one event type
-(`jeffrey://profile/{profileId}/flamegraph/{eventType}`) — a client can pin one into the conversation
-instead of spending a tool call on it.
+(`jeffrey://profile/{profileId}/summary`), a flamegraph of one event type
+(`jeffrey://profile/{profileId}/flamegraph/{eventType}`), its evidence snapshot (`…/evidence`), its
+database schema (`…/schema`) and the findings it already holds (`…/findings`, read from the cache, so
+reading it never starts an analysis) — a client can pin one into the conversation instead of spending
+a tool call on it.
+
+**How an answer reads.** Every tool but `ide_source` declares an `outputSchema` and answers a typed
+record in `structuredContent`: times are UTC epoch milliseconds (`…EpochMs`), enum values are upper
+case in answers and arguments alike, a heap `objectId` is a decimal string, "no data" is a `status`
+with a `reason` rather than an error, a list that continues returns `hasMore` and a `nextCursor` to pass
+back as `cursor`, and `followUp.nextTools` are the next calls with their arguments filled in. An answer
+whose subject has a page in Microscope carries a `uiLink` to it — the skills hand it to the user with
+the finding. Nothing is exported to a file. Each tool's `_meta` says what a call costs
+(`jeffrey/cost`) and what it needs in place (`jeffrey/requires`).
 
 **Narrowing what is advertised.** `jeffrey.microscope.mcp.families` takes a comma-separated
-allow-list of family prefixes — `profiles,flamegraph,jfr,heap`, say — and everything outside it is
+allow-list of family prefixes — `profiles,flamegraph,jfr,heap,operations`, say — and everything outside it is
 left out of `tools/list` entirely. Empty, the default, advertises whatever
 `jeffrey.microscope.mcp.preset` selects — `all`, or `jfr`, `heap` and `hub`, each of which keeps
 `profiles`, `recordings` and `operations` beside the families it is named for. A non-empty list wins
-over the preset, and `operations` belongs in any list that keeps a writer, since it is how the work
-the writer starts is followed. It is the blunt instrument for a shared installation, and it composes
+over the preset, and `operations` must be in any list that keeps a writer family (`recordings`, `heap`,
+`hubs`, `ide` or `jvm`) — startup fails otherwise — since it is how the work the writer starts is followed;
+likewise `recordings` must be in any list that keeps `hubs`, since a downloaded session is analysed with
+`recordings_analyzeRecording`. It is the blunt instrument for a shared installation, and it composes
 with the three per-family switches above.
 
 ## Permissions
 
-Every client asks before each tool the first time. Every Jeffrey tool reads except the nine named
+Every client asks before each tool the first time. Every Jeffrey tool reads except the eleven named
 above, so approving a family once is usually what you want — `hubs_` and `ide_` are the two worth
 reading twice, since one moves data off another machine and the other acts on your editor.
 
@@ -345,10 +412,17 @@ The endpoint refuses a request carrying an `Origin` header it did not serve, whi
 MCP specification asks of a local HTTP server — a CLI client sends no `Origin`, so it costs nothing
 here and closes the path where a page in your browser drives the server.
 
-Beyond that it is unauthenticated, exactly like the rest of Jeffrey's API: anyone who can reach the
-address can read every profile in that installation, and Jeffrey has nothing of its own to turn on.
-Keep it bound to localhost with `server.address=127.0.0.1`, or put it behind an SSH tunnel or an
-authenticating reverse proxy.
+It also refuses a `Host` outside `jeffrey.microscope.mcp.allowed-hosts` (loopback by default), with a
+403 that names the property: reaching Jeffrey from a container as `host.docker.internal`, or through a
+reverse proxy, means adding that name. Behind a proxy that sets `X-Forwarded-Host` and
+`X-Forwarded-Proto`, `jeffrey.microscope.mcp.trust-forwarded-headers=true` makes the guard judge the
+address the client used rather than the proxy's — only when the proxy is the one way in, since anyone
+who reaches Jeffrey directly can write those headers.
+
+Without `jeffrey.microscope.mcp.token` it is unauthenticated, exactly like the rest of Jeffrey's API:
+anyone who can reach the address can read every profile in that installation. Keep it bound to
+localhost with `server.address=127.0.0.1`, put it behind an SSH tunnel or an authenticating reverse
+proxy, or set the token (above) so every request has to present it.
 
 ## Licence
 

@@ -22,6 +22,9 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.shared.common.exception.ErrorCode;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -99,6 +102,28 @@ class McpProfileContextCacheTest {
                 new DatabaseLease(mock(DataSource.class), () -> {
                     throw new IllegalStateException("pool already closed");
                 }));
+    }
+
+    /**
+     * The model is the one that sent the unknown id, so the refusal says where the known ones are. The
+     * error stays Jeffrey's own not-found, so a resource read still answers it as a missing resource.
+     */
+    @Nested
+    class UnknownProfile {
+
+        @Test
+        void pointsTheCallerAtTheProfileList() {
+            when(profileManagerResolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+            McpProfileContextCache cache = newCache();
+
+            JeffreyException e = assertThrows(JeffreyException.class, () -> cache.acquire("ghost"));
+
+            assertEquals("Profile not found: ghost. Call profiles_list to see the analysed profiles.",
+                    e.getMessage());
+            assertEquals(ErrorCode.PROFILE_NOT_FOUND, e.getCode());
+            assertTrue(e.isClientError());
+            assertEquals(0, cache.size());
+        }
     }
 
     @Nested

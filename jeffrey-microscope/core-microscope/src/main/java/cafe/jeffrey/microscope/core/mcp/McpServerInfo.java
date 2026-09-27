@@ -17,9 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.mcp.tools.OperationTasks;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
-import cafe.jeffrey.profile.mcp.McpToolProvider;
-import cafe.jeffrey.profile.mcp.McpToolSpec;
+import cafe.jeffrey.profile.mcp.McpToolNames;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -40,7 +42,11 @@ public final class McpServerInfo {
 
     private final String json;
 
-    public McpServerInfo(ExternalMcpProperties properties, McpToolProvider toolset) {
+    /**
+     * @param servesSkills whether the skills extension is served — the catalogue holds at least one
+     *                     skill — exactly when {@code server/discover} declares it
+     */
+    public McpServerInfo(ExternalMcpProperties properties, McpToolProvider toolset, boolean servesSkills) {
         List<McpToolSpec> specs = toolset.specs();
         ObjectNode info = Json.createObject()
                 .put("version", AbstractMcpStreamableHttpController.serverVersion())
@@ -48,7 +54,7 @@ public final class McpServerInfo {
                 .put("toolCount", specs.size());
         info.set("effectiveFamilies", Json.toTree(specs.stream()
                 .map(McpToolSpec::name)
-                .map(name -> name.substring(0, name.indexOf('_')))
+                .map(McpToolNames::familyOf)
                 .distinct()
                 .sorted()
                 .toList()));
@@ -61,13 +67,17 @@ public final class McpServerInfo {
                 .put("resourceSubscriptions", false)
                 .put("listChangedNotifications", false)
                 .put("structuredToolResults", true)
-                .put("structuredToolResultsFromProtocol",
-                        AbstractMcpStreamableHttpController.STRUCTURED_RESULTS_VERSION)
-                .put("completions", true)
+                .put("completions", properties.advertises(AdvertisedFamilies.PROFILES))
                 .put("instructions", true)
                 .put("resourceLinks", true)
+                // The tasks extension, declared exactly when server/discover declares it: some served
+                // family starts operations a task could follow.
+                .put("tasks", OperationTasks.followsAny(kind -> McpToolsetAssembler.reachable(kind, properties)))
+                // The skills extension, likewise declared exactly when server/discover declares it.
+                .put("skills", servesSkills)
                 // POST-only and stateless on purpose: no SSE stream, no session id, and therefore no
-                // server-initiated notifications. Work a writer starts is polled through operations_.
+                // server-initiated notifications. Work a writer starts is polled through operations_,
+                // or through tasks/get by a client that declared the tasks extension.
                 .put("streaming", false)
                 .put("sessions", false)
                 .put("progressNotifications", false);

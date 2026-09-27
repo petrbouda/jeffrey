@@ -176,7 +176,7 @@ const tasteSpans = [
       <h2 id="not-distributed">What It Is Not</h2>
 
       <DocsCallout type="info">
-        <strong>Not a distributed tracer.</strong> Traces are scoped to a <strong>single JVM</strong> — one recording, one set of traces. Jeffrey mints every trace and span id itself (64-bit, not the 128-bit W3C shape); it does not read or propagate a <code>traceparent</code> header and will not stitch a request across service boundaries. The goal is profiler-grade breakdown of one process, not a replacement for Jaeger or Tempo.
+        <strong>Not a distributed tracer.</strong> Traces are scoped to a <strong>single JVM</strong> — one recording, one set of traces. Jeffrey mints every trace and span id itself (64-bit, not the 128-bit W3C shape); it does not read or propagate a <code>traceparent</code> header and will not stitch a request across service boundaries. (The one place a <code>traceparent</code> is read is Microscope&rsquo;s own MCP server, which records a calling agent&rsquo;s trace context verbatim as attributes of its tool-call span &mdash; kept beside Jeffrey&rsquo;s ids, never adopted as them; see <router-link to="/docs/microscope-mcp/tools#trace-context">the Tool Reference</router-link>.) The goal is profiler-grade breakdown of one process, not a replacement for Jaeger or Tempo.
       </DocsCallout>
 
       <DocsCallout type="info">

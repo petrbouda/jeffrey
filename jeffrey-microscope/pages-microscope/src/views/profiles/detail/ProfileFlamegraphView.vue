@@ -25,7 +25,6 @@ import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import CpuTimeSampleLossAlert from '@/components/alerts/CpuTimeSampleLossAlert.vue';
 import { computed, onBeforeMount, ref } from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
-import GraphType from '@/services/flamegraphs/GraphType';
 import { useRoute } from 'vue-router';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -36,6 +35,10 @@ import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/Flamegraph
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
+import { linkedGraphState } from '@/services/flamegraphs/FlamegraphLinkQuery';
+import { flamegraphViewOpening } from '@/services/flamegraphs/FlamegraphViewOpening';
+import { profileStore } from '@/stores/profileStore';
+import EmptyState from '@shared/components/EmptyState.vue';
 
 const route = useRoute();
 
@@ -61,6 +64,9 @@ const useWeight = ref(false);
 const isDifferential = ref(false);
 const isPrimary = ref(false);
 const aiExportContext = ref<AiExportContext | null>(null);
+// A differential graph with no baseline to subtract - a link whose baseline could not be loaded, or
+// one opened without any. Drawn as its own state rather than as a request for profile "null".
+const missingBaseline = ref(false);
 
 function scrollToTop() {
   const workspaceContent = document.querySelector('.workspace-content');
@@ -79,8 +85,10 @@ onBeforeMount(() => {
   const excludeNonJavaSamples = queryParams.excludeNonJavaSamples === 'true';
   const excludeIdleSamples = queryParams.excludeIdleSamples === 'true';
   const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 'true';
-  const isPrimaryValue = queryParams.graphMode === GraphType.PRIMARY;
-  const isDifferentialValue = queryParams.graphMode === GraphType.DIFFERENTIAL;
+  // Only a differential graph needs a baseline; a link that names no graphMode opens the primary.
+  const opening = flamegraphViewOpening(queryParams.graphMode, SecondaryProfileService.id());
+  const isPrimaryValue = opening.kind === 'PRIMARY';
+  const isDifferentialValue = !isPrimaryValue;
 
   // Set reactive refs for template
   profileId.value = route.params.profileId as string;
@@ -89,8 +97,13 @@ onBeforeMount(() => {
   isPrimary.value = isPrimaryValue;
   isDifferential.value = isDifferentialValue;
 
+  if (opening.kind === 'MISSING_BASELINE') {
+    missingBaseline.value = true;
+    return;
+  }
+
   let flamegraphClient;
-  if (isPrimaryValue) {
+  if (opening.kind === 'PRIMARY') {
     flamegraphClient = new PrimaryFlamegraphClient(
       route.params.profileId as string,
       eventTypeValue,
@@ -104,7 +117,7 @@ onBeforeMount(() => {
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
       route.params.profileId as string,
-      SecondaryProfileService.id() as string,
+      opening.baselineId,
       eventTypeValue,
       useWeightValue,
       excludeNonJavaSamples,
@@ -114,6 +127,9 @@ onBeforeMount(() => {
   }
 
   graphUpdater = new FullGraphUpdater(flamegraphClient, true);
+  // A link may open the graph on a window of the recording and a search - the graph an MCP answer
+  // described. Without them the view opens as it always has.
+  graphUpdater.openAt(linkedGraphState(queryParams, profileStore.recordingWindow.value));
   graphUpdater.setTimeseriesEnabled(showTimeseries.value);
   graphUpdater.setTimeseriesSearchEnabled(isPrimaryValue && showTimeseries.value);
   flamegraphTooltip = FlamegraphTooltipFactory.create(
@@ -122,9 +138,10 @@ onBeforeMount(() => {
     isDifferentialValue
   );
 
-  // The filters in effect travel with the request, so the exported document describes the graph as
-  // it is on screen rather than the unfiltered one.
+  // The filters and the range in effect travel with the request, so the exported document describes
+  // the graph as it is on screen rather than the unfiltered, whole-recording one.
   const aiExportClient = new FlamegraphAiExportClient(route.params.profileId as string);
+  const updater = graphUpdater;
   aiExportContext.value = {
     graphMode: isDifferentialValue ? 'DIFFERENTIAL' : 'PRIMARY',
     filenameStem: flamegraphFilenameStem(eventTypeValue),
@@ -136,14 +153,21 @@ onBeforeMount(() => {
         search,
         excludeNonJavaSamples,
         excludeIdleSamples,
-        onlyUnsafeAllocationSamples
+        onlyUnsafeAllocationSamples,
+        timeRange: updater.currentTimeRange()
       })
   };
 });
 </script>
 
 <template>
-  <div style="padding-left: 5px; padding-right: 5px">
+  <EmptyState
+    v-if="missingBaseline"
+    icon="bi-file-diff"
+    title="No Baseline Profile"
+    description="This differential graph needs a baseline. Select a secondary profile to compare against."
+  />
+  <div v-else style="padding-left: 5px; padding-right: 5px">
     <CpuTimeSampleLossAlert v-if="profileId" :profile-id="profileId" :event-type="eventType" />
     <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="showTimeseries" />
     <TimeSeriesChart

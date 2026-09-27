@@ -65,6 +65,7 @@ class GrpcServerConfigurationTest {
         ClassLoader loader = getClass().getClassLoader();
         assertNull(loader.getResource("cafe/jeffrey/hub/core/mcp/HubMcpController.class"));
         assertNull(loader.getResource("cafe/jeffrey/profile/mcp/AbstractMcpStreamableHttpController.class"));
+        assertNull(loader.getResource("cafe/jeffrey/microscope/mcp/protocol/McpDispatcher.class"));
     }
 
     @Test

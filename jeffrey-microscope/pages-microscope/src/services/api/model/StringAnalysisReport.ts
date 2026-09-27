@@ -46,4 +46,9 @@ export default interface StringAnalysisReport {
   alreadyDeduplicated: StringDeduplicationEntry[];
   opportunities: StringDeduplicationEntry[];
   jvmFlags: JvmStringFlag[];
+  /**
+   * The most entries each ranking above was built to keep, so a ranking of that length may have left
+   * entries out; null for a report stored before the cap was recorded.
+   */
+  topN: number | null;
 }

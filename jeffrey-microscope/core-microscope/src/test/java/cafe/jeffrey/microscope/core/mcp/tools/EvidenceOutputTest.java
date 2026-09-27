@@ -17,14 +17,18 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.tools.EvidenceOutput.Truncation;
+import cafe.jeffrey.microscope.core.mcp.tools.EvidenceOutput.TruncationReason;
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.McpToolResult;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,7 +42,11 @@ class EvidenceOutputTest {
 
     private static final int ROW_LIMIT = 100;
 
-    private final ObjectNode root = Json.createObject().put("schemaVersion", 1);
+    /** A document with two bounded collections, shaped like the evidence records. */
+    record Document(int schemaVersion, Map<String, Truncation> truncation, List<String> events, List<String> threads) {
+    }
+
+    private static final Document SKELETON = new Document(1, Map.of(), List.of(), List.of());
 
     /** Rows wide enough that a few hundred of them pass the output budget. */
     private static List<String> wideRows(int count, int width) {
@@ -46,30 +54,25 @@ class EvidenceOutputTest {
     }
 
     @Nested
-    class Truncation {
+    class Bounding {
 
         @Test
         void keepsEverythingWhenItFits() {
-            EvidenceOutput output = new EvidenceOutput(root, ROW_LIMIT);
-            output.rows("events", wideRows(10, 8));
+            EvidenceOutput output = new EvidenceOutput(SKELETON, ROW_LIMIT);
+            List<String> kept = output.rows("events", wideRows(10, 8));
 
-            ObjectNode counts = (ObjectNode) output.result().structuredContent().get("truncation").get("events");
-            assertEquals(10, counts.get("total").asInt());
-            assertEquals(10, counts.get("returned").asInt());
-            assertEquals(0, counts.get("omitted").asInt());
-            assertEquals("complete", counts.get("reason").asString());
+            assertEquals(10, kept.size());
+            assertEquals(new Truncation(10, 10, 0, TruncationReason.COMPLETE), output.truncation().get("events"));
         }
 
         @Test
         void stopsAtTheRowLimitAndSaysSo() {
-            EvidenceOutput output = new EvidenceOutput(root, ROW_LIMIT);
-            output.rows("events", wideRows(ROW_LIMIT + 40, 8));
+            EvidenceOutput output = new EvidenceOutput(SKELETON, ROW_LIMIT);
+            List<String> kept = output.rows("events", wideRows(ROW_LIMIT + 40, 8));
 
-            ObjectNode counts = (ObjectNode) output.result().structuredContent().get("truncation").get("events");
-            assertEquals(ROW_LIMIT + 40, counts.get("total").asInt());
-            assertEquals(ROW_LIMIT, counts.get("returned").asInt());
-            assertEquals(40, counts.get("omitted").asInt());
-            assertEquals("row-limit", counts.get("reason").asString());
+            assertEquals(ROW_LIMIT, kept.size());
+            assertEquals(new Truncation(ROW_LIMIT + 40, ROW_LIMIT, 40, TruncationReason.ROW_LIMIT),
+                    output.truncation().get("events"));
         }
 
         /**
@@ -81,15 +84,15 @@ class EvidenceOutputTest {
         void stopsOnTheOutputBudgetBeforeTheRowLimit() {
             int rowWidth = 4_000;
             int rows = McpToolOutput.MAX_CHARS / rowWidth + 20;
-            EvidenceOutput output = new EvidenceOutput(root, rows);
-            output.rows("events", wideRows(rows, rowWidth));
+            EvidenceOutput output = new EvidenceOutput(SKELETON, rows);
+            List<String> events = output.rows("events", wideRows(rows, rowWidth));
 
-            McpToolResult result = output.result();
-            ObjectNode counts = (ObjectNode) result.structuredContent().get("truncation").get("events");
-            assertEquals(rows, counts.get("total").asInt());
-            assertTrue(counts.get("returned").asInt() > 0, "a budget that fits several rows returns some");
-            assertTrue(counts.get("omitted").asInt() > 0, "and drops the ones past it");
-            assertEquals("output-size-limit", counts.get("reason").asString());
+            Truncation counts = output.truncation().get("events");
+            McpToolResult result = McpToolResult.of(new Document(1, output.truncation(), events, List.of()));
+            assertEquals(rows, counts.total());
+            assertTrue(counts.returned() > 0, "a budget that fits several rows returns some");
+            assertTrue(counts.omitted() > 0, "and drops the ones past it");
+            assertEquals(TruncationReason.OUTPUT_SIZE_LIMIT, counts.reason());
             assertTrue(result.text().length() <= McpToolOutput.MAX_CHARS,
                     "the document stays inside the budget it reports");
         }
@@ -99,14 +102,45 @@ class EvidenceOutputTest {
         void chargesEveryCollectionAgainstTheSameBudget() {
             int rowWidth = 4_000;
             int rows = McpToolOutput.MAX_CHARS / rowWidth + 20;
-            EvidenceOutput output = new EvidenceOutput(root, rows);
-            output.rows("events", wideRows(rows, rowWidth));
-            output.rows("threads", wideRows(rows, rowWidth));
+            EvidenceOutput output = new EvidenceOutput(SKELETON, rows);
+            List<String> events = output.rows("events", wideRows(rows, rowWidth));
+            List<String> threads = output.rows("threads", wideRows(rows, rowWidth));
 
-            ObjectNode truncation = (ObjectNode) output.result().structuredContent().get("truncation");
-            assertEquals(0, truncation.get("threads").get("returned").asInt(),
+            assertEquals(0, output.truncation().get("threads").returned(),
                     "the first collection spent the budget, so the second reports nothing rather than overrunning");
-            assertTrue(output.result().text().length() <= McpToolOutput.MAX_CHARS);
+            assertTrue(McpToolResult.of(new Document(1, output.truncation(), events, threads)).text().length()
+                    <= McpToolOutput.MAX_CHARS);
         }
+
+        /** What the skeleton already holds is charged before the first row. */
+        @Test
+        void chargesTheSkeletonBeforeAnyRow() {
+            int rowWidth = 4_000;
+            int rows = McpToolOutput.MAX_CHARS / rowWidth + 20;
+            Document heavy = new Document(1, Map.of(), List.of("y".repeat(McpToolOutput.MAX_CHARS / 2)), List.of());
+            EvidenceOutput light = new EvidenceOutput(SKELETON, rows);
+            EvidenceOutput loaded = new EvidenceOutput(heavy, rows);
+
+            assertTrue(loaded.rows("threads", wideRows(rows, rowWidth)).size()
+                    < light.rows("threads", wideRows(rows, rowWidth)).size());
+        }
+    }
+
+    @Test
+    void keepsTheCollectionsInTheOrderTheyWereBounded() {
+        EvidenceOutput output = new EvidenceOutput(SKELETON, ROW_LIMIT);
+        output.rows("threads", List.of());
+        output.rows("events", List.of());
+
+        assertEquals(List.of("threads", "events"), List.copyOf(output.truncation().keySet()));
+    }
+
+    @Test
+    void theTruncationMapFitsTheGeneratedSchema() {
+        EvidenceOutput output = new EvidenceOutput(SKELETON, ROW_LIMIT);
+        List<String> events = output.rows("events", wideRows(ROW_LIMIT + 1, 8));
+
+        McpSchemaConformance.assertConforms(Json.toTree(new Document(1, output.truncation(), events, List.of())),
+                McpSchemaGenerator.schemaOf(Document.class));
     }
 }

@@ -83,6 +83,17 @@ public interface RecordingRepository {
     void insertRecording(Recording recording, RecordingFile recordingFile);
 
     /**
+     * Finds the recording holding exactly one file with this name and size, the shape a single
+     * imported or uploaded file is stored in. When several match, one that already has a profile
+     * is preferred, and the newest wins within the recordings with a profile and within those without.
+     *
+     * @param fileName    the file's own name, without any directory
+     * @param sizeInBytes the file's size in bytes
+     * @return the preferred one-file recording of a file with this name and size, otherwise empty
+     */
+    Optional<Recording> findByFileNameAndSize(String fileName, long sizeInBytes);
+
+    /**
      * Inserts a new recording file into the project and recording folder.
      *
      * @param recordingFile the recording file to insert.

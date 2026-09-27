@@ -22,9 +22,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import cafe.jeffrey.microscope.core.mcp.McpRequestGuard.Refusal;
+
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,7 +43,15 @@ class McpRequestGuardTest {
     private static final String SERVER_NAME = "localhost";
     private static final int SERVER_PORT = 8585;
 
-    private final McpRequestGuard guard = new McpRequestGuard();
+    private static final String PUBLIC_HOST = "jeffrey.example";
+    private static final String BACKEND_ADDRESS = "127.0.0.1";
+    private static final String FORWARDED_HOST = "X-Forwarded-Host";
+    private static final String FORWARDED_PROTO = "X-Forwarded-Proto";
+    private static final String AUTHORIZATION = "Authorization";
+    private static final String TOKEN = "s3cret-token";
+    private static final String NO_TOKEN = "";
+
+    private final McpRequestGuard guard = McpTestGuards.loopback();
 
     private static MockHttpServletRequest request(String origin) {
         return request("http", SERVER_NAME, SERVER_PORT, origin);
@@ -85,7 +97,7 @@ class McpRequestGuardTest {
 
         @Test
         void servesAConfiguredRemoteHost() {
-            McpRequestGuard remoteGuard = new McpRequestGuard(Set.of("jeffrey.example"));
+            McpRequestGuard remoteGuard = McpTestGuards.allowing(Set.of("jeffrey.example"));
 
             assertNull(remoteGuard.refusalReason(
                     request("https", "jeffrey.example", 443, "https://jeffrey.example")));
@@ -118,11 +130,12 @@ class McpRequestGuardTest {
          */
         @Test
         void namesThePropertyAndTheHostWhenRefusingAnUntrustedHost() {
-            String reason = guard.refusalReason(request("http", "host.docker.internal", SERVER_PORT, null));
+            Refusal refusal = guard.refusalReason(request("http", "host.docker.internal", SERVER_PORT, null));
 
-            assertNotNull(reason);
-            assertTrue(reason.contains(McpRequestGuard.ALLOWED_HOSTS_PROPERTY), reason);
-            assertTrue(reason.contains("host.docker.internal"), reason);
+            assertInstanceOf(Refusal.Forbidden.class, refusal);
+            assertEquals(403, refusal.status());
+            assertTrue(refusal.message().contains(McpRequestGuard.ALLOWED_HOSTS_PROPERTY), refusal.message());
+            assertTrue(refusal.message().contains("host.docker.internal"), refusal.message());
         }
 
         /**
@@ -131,10 +144,10 @@ class McpRequestGuardTest {
          */
         @Test
         void keepsTheOriginRefusalApartFromTheHostOne() {
-            String reason = guard.refusalReason(request("https://evil.example"));
+            Refusal refusal = guard.refusalReason(request("https://evil.example"));
 
-            assertNotNull(reason);
-            assertFalse(reason.contains(McpRequestGuard.ALLOWED_HOSTS_PROPERTY), reason);
+            assertInstanceOf(Refusal.Forbidden.class, refusal);
+            assertFalse(refusal.message().contains(McpRequestGuard.ALLOWED_HOSTS_PROPERTY), refusal.message());
         }
 
         @Test
@@ -208,10 +221,196 @@ class McpRequestGuardTest {
      */
     @Test
     void servesAnOriginOnTheDefaultPortWhenJeffreyIsThere() {
-        McpRequestGuard remoteGuard = new McpRequestGuard(Set.of("jeffrey.example"));
+        McpRequestGuard remoteGuard = McpTestGuards.allowing(Set.of("jeffrey.example"));
         MockHttpServletRequest request = request(
                 "https", "jeffrey.example", 443, "https://jeffrey.example");
 
         assertNull(remoteGuard.refusalReason(request));
+    }
+
+    /**
+     * Behind a reverse proxy the servlet sees the proxy's connection to the backend, not the address
+     * the client used. With forwarded headers trusted, the authority the client typed is the one the
+     * allowlist and the origin comparison judge.
+     */
+    @Nested
+    class ForwardedHeaders {
+
+        private final McpRequestGuard trusting = new McpRequestGuard(Set.of(PUBLIC_HOST), true, NO_TOKEN);
+
+        private MockHttpServletRequest proxied(String forwardedHost, String forwardedProto, String origin) {
+            MockHttpServletRequest request = request("http", BACKEND_ADDRESS, SERVER_PORT, origin);
+            if (forwardedHost != null) {
+                request.addHeader(FORWARDED_HOST, forwardedHost);
+            }
+            if (forwardedProto != null) {
+                request.addHeader(FORWARDED_PROTO, forwardedProto);
+            }
+            return request;
+        }
+
+        @Test
+        void judgesTheForwardedHostAgainstTheAllowlist() {
+            assertNull(trusting.refusalReason(proxied(PUBLIC_HOST, "https", null)));
+        }
+
+        @Test
+        void comparesTheOriginWithTheForwardedSchemeHostAndDefaultPort() {
+            assertNull(trusting.refusalReason(proxied(PUBLIC_HOST, "https", "https://jeffrey.example")));
+        }
+
+        @Test
+        void takesThePortTheForwardedHostCarries() {
+            assertNull(trusting.refusalReason(
+                    proxied("jeffrey.example:8443", "https", "https://jeffrey.example:8443")));
+        }
+
+        /**
+         * A chain of proxies appends one value per hop; the first is the one the client sent.
+         */
+        @Test
+        void takesTheFirstForwardedHostOfAChain() {
+            assertNull(trusting.refusalReason(proxied("jeffrey.example, internal.proxy", "https", null)));
+        }
+
+        /**
+         * Only the first hop counts: an allowed name later in the chain does not rescue a client that
+         * dialled a host outside the list.
+         */
+        @Test
+        void refusesAChainWhoseFirstForwardedHostIsUntrusted() {
+            assertInstanceOf(Refusal.Forbidden.class,
+                    trusting.refusalReason(proxied("evil.example, jeffrey.example", "https", null)));
+        }
+
+        @Test
+        void refusesAForwardedHostOutsideTheAllowlistAndNamesIt() {
+            Refusal refusal = trusting.refusalReason(proxied("evil.example", "https", null));
+
+            assertInstanceOf(Refusal.Forbidden.class, refusal);
+            assertTrue(refusal.message().contains("evil.example"), refusal.message());
+        }
+
+        @Test
+        void refusesAnOriginWhoseSchemeDiffersFromTheForwardedOne() {
+            assertNotNull(trusting.refusalReason(proxied(PUBLIC_HOST, "https", "http://jeffrey.example")));
+        }
+
+        @Test
+        void fallsBackToTheServletAuthorityWithoutAForwardedHost() {
+            McpRequestGuard loopbackTrusting = new McpRequestGuard(Set.of(BACKEND_ADDRESS), true, NO_TOKEN);
+
+            assertNull(loopbackTrusting.refusalReason(proxied(null, null, null)));
+        }
+
+        @Test
+        void ignoresForwardedHeadersUnlessTrusted() {
+            McpRequestGuard notTrusting = new McpRequestGuard(Set.of(PUBLIC_HOST), false, NO_TOKEN);
+
+            assertInstanceOf(Refusal.Forbidden.class,
+                    notTrusting.refusalReason(proxied(PUBLIC_HOST, "https", null)));
+        }
+
+        @Test
+        void aLoopbackRequestIsNotRefusedOverAForwardedHeaderItDoesNotTrust() {
+            MockHttpServletRequest request = request(null);
+            request.addHeader(FORWARDED_HOST, "evil.example");
+
+            assertNull(guard.refusalReason(request));
+        }
+    }
+
+    /**
+     * An optional shared secret for a Jeffrey reachable from more than this machine. Claude Code,
+     * Codex and Gemini can all send a bearer token, so the check is the header they already know.
+     */
+    @Nested
+    class BearerToken {
+
+        private final McpRequestGuard guarded = new McpRequestGuard(Set.of(SERVER_NAME), false, TOKEN);
+
+        private MockHttpServletRequest authorized(String authorization) {
+            MockHttpServletRequest request = request(null);
+            if (authorization != null) {
+                request.addHeader(AUTHORIZATION, authorization);
+            }
+            return request;
+        }
+
+        @Test
+        void servesTheMatchingToken() {
+            assertNull(guarded.refusalReason(authorized("Bearer " + TOKEN)));
+        }
+
+        /**
+         * The authentication scheme is case-insensitive (RFC 9110); the token itself is not.
+         */
+        @Test
+        void acceptsTheSchemeInAnyCase() {
+            assertNull(guarded.refusalReason(authorized("bearer " + TOKEN)));
+        }
+
+        @Test
+        void refusesAMismatchedTokenWith401() {
+            Refusal refusal = guarded.refusalReason(authorized("Bearer wrong"));
+
+            assertInstanceOf(Refusal.Unauthorized.class, refusal);
+            assertEquals(401, refusal.status());
+            assertFalse(refusal.message().contains(TOKEN), refusal.message());
+            assertNamesEveryClientsTokenSource(refusal);
+        }
+
+        @Test
+        void refusesATokenThatDiffersOnlyInCase() {
+            assertInstanceOf(Refusal.Unauthorized.class,
+                    guarded.refusalReason(authorized("Bearer " + TOKEN.toUpperCase())));
+        }
+
+        @Test
+        void refusesAnAbsentTokenAndSaysWhatToSet() {
+            Refusal refusal = guarded.refusalReason(authorized(null));
+
+            assertInstanceOf(Refusal.Unauthorized.class, refusal);
+            assertTrue(refusal.message().contains(McpRequestGuard.TOKEN_PROPERTY), refusal.message());
+            assertNamesEveryClientsTokenSource(refusal);
+        }
+
+        /**
+         * The Claude Code plugin sends its own setting and never reads the variable, so a text that
+         * named only {@code JEFFREY_MCP_TOKEN} sent Claude Code users to set something nothing reads.
+         */
+        private void assertNamesEveryClientsTokenSource(Refusal refusal) {
+            assertTrue(refusal.message().contains(McpRequestGuard.TOKEN_SOURCES), refusal.message());
+            assertTrue(refusal.message().contains("Claude Code: the plugin's Jeffrey MCP token setting"),
+                    refusal.message());
+            assertTrue(refusal.message().contains(McpRequestGuard.TOKEN_ENV_VAR), refusal.message());
+            assertTrue(refusal.message().contains("bearer_token_env_var"), refusal.message());
+        }
+
+        @Test
+        void refusesAnotherAuthenticationScheme() {
+            assertInstanceOf(Refusal.Unauthorized.class, guarded.refusalReason(authorized("Basic " + TOKEN)));
+        }
+
+        /**
+         * The manifests always send the header, with an empty value when the reader set no token, so a
+         * server without a token has to ignore it rather than refuse it.
+         */
+        @ParameterizedTest
+        @ValueSource(strings = {"Bearer ", "Bearer", "Bearer anything", "Basic xyz"})
+        void ignoresAnyAuthorizationWhenNoTokenIsConfigured(String authorization) {
+            assertNull(guard.refusalReason(authorized(authorization)));
+        }
+
+        /**
+         * A request to the wrong host is a configuration problem the operator fixes with a property;
+         * answering it with 401 would send them looking for a token instead.
+         */
+        @Test
+        void checksTheHostBeforeTheToken() {
+            Refusal refusal = guarded.refusalReason(request("http", "audit.invalid", SERVER_PORT, null));
+
+            assertInstanceOf(Refusal.Forbidden.class, refusal);
+        }
     }
 }

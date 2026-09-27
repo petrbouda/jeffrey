@@ -1,6 +1,6 @@
 ---
 name: jfr-sql
-description: Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables — including the event_types columns that say what a type's fields are and how the recording was configured. Use when jfr_executeQuery or jfr_queryEvents is needed because no flamegraph, trace, heap or jvm dashboard tool answers the question: a distribution over time, a correlation between event types, the cardinality of a field.
+description: "Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables — including the event_types columns that say what a type's fields are and how the recording was configured. Use when jfr_executeQuery or jfr_queryEvents is needed because no flamegraph, trace, heap or jvm dashboard tool answers the question: a distribution over time, a correlation between event types, the cardinality of a field."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
@@ -8,6 +8,7 @@ allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 
 Each profile is one DuckDB database. Reach it with `jfr_executeQuery` (SELECT/WITH only, row-capped)
 or `jfr_queryEvents` for the common "give me events of this type" case.
+Tool names here omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
 
 Prefer a purpose-built tool where one exists — `flamegraph_export` beats reconstructing a call tree
 by hand, and the `heap_` family beats querying the heap index. SQL is for the questions they do not
@@ -218,8 +219,11 @@ than a steady-state cost.
 
 ## Results are capped
 
-`jfr_executeQuery` caps rows and total characters and says so when it truncates. Aggregate in SQL
-rather than pulling rows back to count them.
+`jfr_executeQuery` caps rows (`rowCap`, 1,000) and total characters, and says which in `truncation`:
+`COMPLETE`, `ROW_LIMIT` or `OUTPUT_SIZE_LIMIT`. Its answer is JSON — `columns`, then `rows` with every
+cell as a string and SQL `NULL` as `null`, and `returned`. `jfr_queryEvents` answers the same shape
+with a `status` of `OK`, `NO_EVENTS` or `NO_MATCH`; an event type the profile never recorded is an
+error. Aggregate in SQL rather than pulling rows back to count them.
 
 ## One statement, and no way out of the database
 

@@ -23,6 +23,8 @@ that each one accounts for — never by how confident the wording sounds. Each i
 > **Recommendation** — the change, at a named location; or "none yet", and what would be needed.
 >
 > **Confidence** — high, medium or low, and what would raise it.
+>
+> **Link** — the `uiLink` of the answer the evidence came from, for the reader to open.
 
 Then, separately and always: **Not assessed** — what this profile could not answer, and why.
 
@@ -36,8 +38,8 @@ that shaped the result:
 > `jdk.JavaMonitorEnter` on `com.example.SessionCache` accounts for 41.2 s of blocked time across a
 > 300 s recording — 13.7% of wall clock.
 > Evidence: `blocking_monitors profileId=p-7c1` → `SessionCache` total 41,203 ms over 3,812
-> contentions; recording length from `profiles_summary` (`startedAtMillis` to `finishedAtMillis`)
-> = 300.4 s.
+> contentions; recording length from `profiles_summary` (`startedAtEpochMs` to
+> `finishedAtEpochMs`) = 300.4 s.
 
 If you cannot name the call, you cannot make the claim. Delete it, or go and measure it.
 
@@ -50,16 +52,14 @@ the same line:
 > `~/.jeffrey-microscope/artifacts/…/hs-jvm-err.log`, lines 1–12 and the `Java frames:` block
 > at lines 38–46.
 
-Tool names above omit the prefix your client puts in front of them —
-`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
+Tool names above omit the prefix your client puts in front of them — per host in `references/tool-prefixes.md`.
 
 ## Shares and rates, with the denominator stated
 
 The exports already speak in shares: a frame's `total` and `self` are percentages of *that
 export's* total. Quote them as such, and say what the total was — how many samples, bytes or
-nanoseconds — and what shaped it: the `thresholdPct`, a `startMs`/`endMs` window, `useWeight`,
-`excludeIdle`. A share of a filtered export is not a share of the recording.
+nanoseconds — and what shaped it: the `thresholdPct`, a `startEpochMs`/`endEpochMs` window, `useWeight`,
+`excludeIdle` — the export's structured answer records every one of them. A share of a filtered export is not a share of the recording.
 
 Everything else needs a denominator before it means anything:
 
@@ -70,9 +70,9 @@ Everything else needs a denominator before it means anything:
   `jdk.ObjectAllocationSample`
 - **a heap figure → retained bytes**, never shallow; and against the heap's total
 
-A profile built from a **window of a hub session** — `hubs_download` with `startTime`/`endTime`
+A profile built from a **window of a hub session** — `hubs_download` with `startEpochMs`/`endEpochMs`
 or `fileIds` — is that window, not the session. Its recording length is the span the chunks cover,
-which `hubs_download` reported as `windowStart`/`windowEnd`; name that span with every rate drawn
+which `hubs_download` reported as `coveredStartEpochMs`/`coveredEndEpochMs`; name that span with every rate drawn
 from it, and never extrapolate a rate or a count across the session it was cut from. "12 GC pauses
 in the 14:00–14:30 window" is a finding; "about 600 a day" is not.
 
@@ -98,8 +98,8 @@ Things that cap a finding at **medium** at most, and must be said out loud when 
   say the loss share beside any share you quote from it.
 - **The auto-analysis rules.** `jvm_autoAnalysis` applies fixed thresholds that know nothing about
   this service's normal behaviour. A rule that fired is a lead worth following into the matching
-  `jvm_` section for the figures; it is not a diagnosis, and its `solution` is not a recommendation
-  until the figures support it.
+  `jvm_` section for the figures (its `nextTool` is that call); it is not a diagnosis, and its
+  `action` is not a recommendation until the figures support it.
 - **Leak candidates.** `memory_leakCandidates` lists objects that survived collections. Survival is
   not retention: without a heap dump and a GC-root path it stays a candidate.
 - **Comparison limitations from `compare_list` and `compare_quality`.** The latter returns
@@ -124,7 +124,9 @@ before you believe a negative result, and carry every gap that touches the quest
   events", plus how to enable it next time.
 - `blocking_`, `io_` and `jvm_jit` read event types that are **threshold-gated**: a recording holds
   none either because nothing crossed the threshold or because the profiler was never asked. The
-  tools say which, and the two are different sentences in a report.
+  tools answer `NOT_RECORDED` with a `reason` saying which, and the two are different sentences in
+  a report. Any `status` other than `OK` — `NOT_RECORDED`, `NOT_COMPUTED`, `NOT_RUN_YET`, `NO_TRACES`
+  — belongs under **Not assessed**, quoted with its `reason`.
 - A feature in `disabledFeatures` — traces, the HTTP or JDBC dashboards, a heap dump — was never
   instrumented or captured. Its absence is a fact about the recording, not about the application.
 - A rule under `notEvaluated` in `jvm_autoAnalysis` had no events to run on. It did not pass.
@@ -145,14 +147,24 @@ flamegraph_export profileId=p-7c1 eventType=jdk.JavaMonitorEnter useWeight=true 
 ```
 
 For a regression claim, the two profiles and the `compare_list` and `compare_quality` calls are the
-reproduction.
+reproduction. Where an answer's `followUp.nextTools` produced the next call, cite that entry — the
+tool and its arguments exactly as the answer gave them — rather than retyping it: it carries the
+ids, the epoch-millisecond window and the cursor that answer was about.
+
+**Give the reader the link.** Every answer about something Microscope has a page for carries a
+`uiLink` — the same profile and view, with the same event type, filters, window, search and
+baseline. Put it beside the finding it opens (and quote the `uiLinkNote` when there is one, saying
+what the page does not reproduce), so the reader can see the graph or dashboard the figure came
+from. It is for the person reading; never fetch it or read it back. Nothing is exported to a file:
+the data is in the answers, the picture is behind the link.
 
 A profile id alone names a thing that can change under the reader — a report computed later, a
 finding re-evaluated, the profile deleted. `profiles_evidence` (the MCP resource
 `jeffrey://profile/{profileId}/evidence` is the same document) is the versioned snapshot to cite
 beside it: the recording's identity and build, the whole-recording units and denominators, the
 sampling settings it was recorded with, the findings as they were evaluated and the capability gaps
-as they stood, with the replay arguments and the omission counts of every bounded collection. It is
+as they stood, with the `followUp` calls that re-read it and the omission counts of every bounded
+collection. It is
 a live snapshot rather than an archive, so save what it returned with the report; a reader can then
 check the figures against what the profile said at the time rather than what it says now.
 

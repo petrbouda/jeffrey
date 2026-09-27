@@ -17,45 +17,52 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.BoundedOperation;
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapComputeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDiffMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.MemoryMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.MethodTracingMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.TraceAttributesMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
-import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
+import cafe.jeffrey.microscope.core.mcp.tools.MemoryMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.MethodTracingMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationAnswers;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileFindingsReader;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileSchemaReader;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.TraceAttributesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisSection.AutoAnalysisDashboard;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
+import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.microscope.core.mcp.tools.HeapComputeMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.profile.mcp.CompositeToolset;
-import cafe.jeffrey.profile.mcp.McpToolAnnotations;
-import cafe.jeffrey.profile.mcp.McpToolSpec;
-import cafe.jeffrey.profile.mcp.McpToolProvider;
+import cafe.jeffrey.profile.mcp.McpToolNames;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
@@ -94,6 +101,11 @@ import java.util.function.Function;
  * dominator tree the reading heap tools need, rather than altering anything already analysed. Both are
  * marked {@link McpToolAnnotations#CREATES} so a client can tell them apart from their neighbours.
  * <p>
+ * Two reads that can run for minutes — {@code jvm_autoAnalysis} with {@code compute} and
+ * {@code heap_oql} with {@code includeRetainedSize} — run as operations the way the writers' long
+ * work does, through one {@link BoundedOperation} each shared by every call, and say so per tool with
+ * {@code @McpToolHints}: they fill a cache rather than only reading one.
+ * <p>
  * {@link HubsMcpTools} and {@link IdeMcpTools} are the two families gated by configuration, because
  * they are the two that reach outside this server: the hub family leaves the machine altogether, and
  * the IDE family reaches into another process on it and can put a file on the developer's screen.
@@ -101,6 +113,7 @@ import java.util.function.Function;
 public class McpToolsetAssembler {
 
     private static final String PREFIX_PROFILES = "profiles";
+    private static final String PREFIX_OPERATIONS = "operations";
     private static final String PREFIX_JFR = "jfr";
     private static final String PREFIX_FLAMEGRAPH = "flamegraph";
     private static final String PREFIX_COMPARE = "compare";
@@ -120,6 +133,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_IDE = "ide";
 
     private final McpToolProvider toolset;
+    private final McpProfileDocuments documents;
 
     public McpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
@@ -132,85 +146,100 @@ public class McpToolsetAssembler {
             HeapDumpInitService heapDumpInitService,
             IdeBridge ideBridge,
             ExternalMcpProperties properties,
+            AdvertisedFamilies advertised,
             HubsArtifactsMcpTools hubsArtifactsMcpTools,
             McpOperationRegistry operations,
+            OperationAnswers answers,
             Clock clock) {
+
+        // Shared by every call rather than built per call, so a second request joins the run in flight.
+        BoundedOperation<AutoAnalysisDashboard> autoAnalysisRuns =
+                BoundedOperation.standard(OperationKind.JVM_AUTO_ANALYSIS, operations, answers, clock);
+        BoundedOperation<OQLQueryResult> retainedOqlRuns =
+                BoundedOperation.standard(OperationKind.HEAP_OQL, operations, answers, clock);
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
-                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> reachable(kind, properties)), "operations"),
+                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> reachable(kind, properties)), PREFIX_OPERATIONS),
                 ProfileScopedToolset.leased(ProfileEvidenceMcpTools.class, PREFIX_PROFILES,
                         profileId -> scoped(contextCache, profileId, scope -> new ProfileEvidenceMcpTools(
                                 scope.profileManager(), recordingCommitResolver, jfrPanelProvider,
-                                stackSamplePanelProvider, clock))),
+                                stackSamplePanelProvider, clock, advertised))),
                 ProfileScopedToolset.leased(ProfileMcpTools.class, PREFIX_PROFILES,
                         profileId -> scoped(contextCache, profileId, scope -> new ProfileMcpTools(
                                 scope.profileManager(),
                                 recordingCommitResolver,
                                 jfrPanelProvider,
-                                stackSamplePanelProvider))),
+                                stackSamplePanelProvider,
+                                advertised))),
                 ProfileScopedToolset.leased(EventTypeMcpTools.class, PREFIX_JFR,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new EventTypeMcpTools(scope.profileManager()))),
+                                scope -> new EventTypeMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(DuckDbMcpTools.class, PREFIX_JFR,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new DuckDbMcpTools(scope.dataSource()))),
+                                scope -> new DuckDbMcpTools(scope.dataSource(), profileId, advertised))),
                 ProfileScopedToolset.leased(FlamegraphMcpTools.class, PREFIX_FLAMEGRAPH,
                         profileId -> scoped(contextCache, profileId, scope -> new FlamegraphMcpTools(
                                 scope.profileManager(),
                                 jfrPanelProvider,
-                                stackSamplePanelProvider))),
+                                stackSamplePanelProvider,
+                                advertised))),
                 ProfileScopedToolset.leased(CompareMcpTools.class, PREFIX_COMPARE,
                         profileId -> scoped(contextCache, profileId, scope -> new CompareMcpTools(
-                                scope.profileManager(), scope::profileManager, clock))),
+                                scope.profileManager(), scope::profileManager, clock, advertised))),
                 ProfileScopedToolset.leased(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new TracesMcpTools(scope.profileManager()))),
+                                scope -> new TracesMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(JvmMcpTools.class, PREFIX_JVM,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new JvmMcpTools(scope.profileManager()))),
+                                scope -> new JvmMcpTools(scope.profileManager(), autoAnalysisRuns,
+                                        () -> contextCache.acquire(profileId), advertised))),
                 ProfileScopedToolset.leased(HttpMcpTools.class, PREFIX_HTTP,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new HttpMcpTools(scope.profileManager()))),
+                                scope -> new HttpMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(JdbcMcpTools.class, PREFIX_JDBC,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new JdbcMcpTools(scope.profileManager()))),
+                                scope -> new JdbcMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(GrpcMcpTools.class, PREFIX_GRPC,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new GrpcMcpTools(scope.profileManager()))),
+                                scope -> new GrpcMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(MethodTracingMcpTools.class, PREFIX_METHOD_TRACING,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new MethodTracingMcpTools(scope.profileManager()))),
+                                scope -> new MethodTracingMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(IoMcpTools.class, PREFIX_IO,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new IoMcpTools(scope.profileManager()))),
+                                scope -> new IoMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(BlockingMcpTools.class, PREFIX_BLOCKING,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new BlockingMcpTools(scope.profileManager()))),
+                                scope -> new BlockingMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(TimelineMcpTools.class, PREFIX_TIMELINE,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new TimelineMcpTools(scope.profileManager()))),
+                                scope -> new TimelineMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(MemoryMcpTools.class, PREFIX_MEMORY,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new MemoryMcpTools(scope.profileManager()))),
+                                scope -> new MemoryMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(TraceAttributesMcpTools.class, PREFIX_TRACES,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> new TraceAttributesMcpTools(scope.profileManager()))),
+                                scope -> new TraceAttributesMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(HeapDiffMcpTools.class, PREFIX_HEAP,
                         profileId -> scoped(contextCache, profileId, scope -> new HeapDiffMcpTools(
-                                scope.profileManager(), scope::profileManager))),
+                                scope.profileManager(), scope::profileManager, advertised))),
                 ProfileScopedToolset.leased(HeapOqlMcpTools.class, PREFIX_HEAP,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new HeapOqlMcpTools(scope.profileManager()))),
+                        profileId -> scoped(contextCache, profileId, scope -> {
+                            // OQL reads the same index, so it is refused on the same terms.
+                            requireIndexedHeapDump(scope.profileManager(), profileId);
+                            return new HeapOqlMcpTools(scope.profileManager(), retainedOqlRuns,
+                                    () -> contextCache.acquire(profileId), advertised);
+                        })),
                 ProfileScopedToolset.leased(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> scoped(contextCache, profileId,
-                                scope -> heapTools(scope.profileManager(), profileId))),
+                                scope -> heapTools(scope.profileManager(), profileId, advertised))),
                 ProfileScopedToolset.leased(HeapComputeMcpTools.class, PREFIX_HEAP,
                         profileId -> scoped(contextCache, profileId,
                                 scope -> new HeapComputeMcpTools(
                                         scope.profileManager(),
                                         heapDumpInitService,
-                                        () -> contextCache.acquire(profileId), operations)),
+                                        () -> contextCache.acquire(profileId), operations, answers, advertised)),
                         McpToolAnnotations.CREATES),
                 new ReflectiveToolset(
                         recordingsMcpTools, PREFIX_RECORDINGS, McpToolAnnotations.CREATES)));
@@ -224,7 +253,8 @@ public class McpToolsetAssembler {
                             ideBridge,
                             scope.profileManager(),
                             recordingCommitResolver,
-                            profileId)),
+                            profileId,
+                            advertised)),
                     McpToolAnnotations.READS_REMOTE));
         }
 
@@ -238,6 +268,14 @@ public class McpToolsetAssembler {
         }
 
         this.toolset = new CompositeToolset(retained(families, properties));
+        // Read through a call scope like any tool call, so a document read pins the profile for as
+        // long as it runs and releases it after, and an unknown id is the same not-found a tool gets.
+        this.documents = new McpProfileDocuments(
+                profileId -> read(contextCache, profileId,
+                        scope -> new ProfileSchemaReader(scope.dataSource()).read(profileId)),
+                profileId -> read(contextCache, profileId,
+                        scope -> new ProfileFindingsReader(scope.profileManager(), jfrPanelProvider,
+                                stackSamplePanelProvider, advertised).read()));
     }
 
     public McpToolProvider toolset() {
@@ -245,11 +283,28 @@ public class McpToolsetAssembler {
     }
 
     /**
-     * Whether {@code operations_status} and {@code operations_cancel} may reach an operation of this
-     * kind: only when the family that started it is served, and -- for the two hub kinds -- only when
-     * the hub switch is on, since the family filter alone does not know about that switch.
+     * The per-profile documents {@code McpResources} serves beside the tool-backed resources. Whether
+     * each is offered is the resources' decision, made on the families the toolset serves.
      */
-    private static boolean reachable(OperationKind kind, ExternalMcpProperties properties) {
+    public McpProfileDocuments documents() {
+        return documents;
+    }
+
+    /** One read of one profile, holding its lease for exactly as long as the read runs. */
+    private static <T> T read(
+            McpProfileContextCache contextCache, String profileId, Function<ProfileCallScope, T> read) {
+        try (ProfileCallScope scope = new ProfileCallScope(contextCache, profileId)) {
+            return read.apply(scope);
+        }
+    }
+
+    /**
+     * Whether {@code operations_status} and {@code operations_cancel} -- and the tasks extension, which
+     * reads the same operations -- may reach an operation of this kind: only when the family that
+     * started it is served, and -- for the two hub kinds -- only when the hub switch is on, since the
+     * family filter alone does not know about that switch.
+     */
+    public static boolean reachable(OperationKind kind, ExternalMcpProperties properties) {
         if (kind.reachesHub() && !properties.hubsEnabled()) {
             return false;
         }
@@ -284,9 +339,7 @@ public class McpToolsetAssembler {
         if (specs.isEmpty()) {
             return "";
         }
-        String name = specs.getFirst().name();
-        int separator = name.indexOf('_');
-        return separator < 0 ? name : name.substring(0, separator);
+        return McpToolNames.familyOf(specs.getFirst().name());
     }
 
     private static <T> ProfileScopedToolset.ScopedTarget<T> scoped(
@@ -320,7 +373,17 @@ public class McpToolsetAssembler {
      * fails deep inside the engine with a null-dereference message that says nothing about the actual
      * problem, which is that this profile is a JFR recording and the model asked the wrong family.
      */
-    private static HeapDumpMcpTools heapTools(ProfileManager profileManager, String profileId) {
+    private static HeapDumpMcpTools heapTools(
+            ProfileManager profileManager, String profileId, AdvertisedFamilies advertised) {
+        return new HeapDumpMcpTools(new HeapDumpManagerToolsDelegate(
+                requireIndexedHeapDump(profileManager, profileId)), profileId, advertised);
+    }
+
+    /**
+     * The heap dump the {@code heap_} reading tools — {@link HeapDumpMcpTools} and
+     * {@link HeapOqlMcpTools} alike — answer from, refused for a JFR recording or a dump not yet indexed.
+     */
+    private static HeapDumpManager requireIndexedHeapDump(ProfileManager profileManager, String profileId) {
         HeapDumpManager heapDumpManager = profileManager.heapDumpManager();
         if (!heapDumpManager.heapDumpExists()) {
             throw new IllegalArgumentException(
@@ -334,7 +397,7 @@ public class McpToolsetAssembler {
                             + "tools read the index rather than the dump. Call heap_prepare to build it "
                             + "and heap_status to follow it; the tools answer once it reports ready.");
         }
-        return new HeapDumpMcpTools(new HeapDumpManagerToolsDelegate(heapDumpManager));
+        return heapDumpManager;
     }
 
     static final class ProfileCallScope implements AutoCloseable {

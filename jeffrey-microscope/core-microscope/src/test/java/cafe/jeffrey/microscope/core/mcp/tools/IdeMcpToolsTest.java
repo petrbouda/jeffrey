@@ -18,19 +18,22 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
+import cafe.jeffrey.microscope.core.manager.ide.IdeOpenResult;
 import cafe.jeffrey.microscope.core.manager.ide.IdeResolveRequest;
 import cafe.jeffrey.microscope.core.manager.ide.IdeResolveResult;
 import cafe.jeffrey.microscope.core.manager.ide.IdeSourceResult;
 import cafe.jeffrey.microscope.core.manager.ide.IdeTarget;
 import cafe.jeffrey.microscope.core.manager.ide.IdeTargetStatus;
-import cafe.jeffrey.microscope.core.manager.ide.IdeTargetsResult;
 import cafe.jeffrey.microscope.core.manager.ide.IdeTargetsResult.IdeInstanceView;
 import cafe.jeffrey.microscope.core.manager.ide.IdeTargetsResult.IdeProjectView;
+import cafe.jeffrey.microscope.core.manager.ide.IdeTargetsResult;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.ToolExecutionException;
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.profile.manager.ProfileManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,11 +43,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -81,7 +86,7 @@ class IdeMcpToolsTest {
                 PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
                 RECORDED_AT, RECORDED_AT.plusSeconds(60), RECORDED_AT, true, false, RECORDING_ID));
         when(recordingCommitResolver.resolve(any())).thenReturn(Optional.empty());
-        tools = new IdeMcpTools(ideBridge, profileManager, recordingCommitResolver, PROFILE_ID);
+        tools = new IdeMcpTools(ideBridge, profileManager, recordingCommitResolver, PROFILE_ID, EVERY_FAMILY);
     }
 
     private static IdeProjectView project(String id, String name, boolean hasClass) {
@@ -96,6 +101,14 @@ class IdeMcpToolsTest {
 
     private void resolvesTo(IdeResolveResult result) {
         when(ideBridge.resolve(any())).thenReturn(result);
+    }
+
+    private static JsonNode resolved(McpToolResult result) {
+        return StructuredAnswers.jsonWithoutPage(IdeMcpTools.class, "resolve", result);
+    }
+
+    private static JsonNode windowsOf(McpToolResult result) {
+        return StructuredAnswers.jsonWithoutPage(IdeMcpTools.class, "windows", result);
     }
 
     private static IdeResolveResult found() {
@@ -126,10 +139,14 @@ class IdeMcpToolsTest {
             when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(linked());
             resolvesTo(found());
 
-            String answer = tools.resolve(FQN, "process", 214);
+            JsonNode answer = resolved(tools.resolve(FQN, "process", 214));
 
-            assertTrue(answer.contains("/code/app/OrderService.java"));
-            assertTrue(answer.contains("214"));
+            assertEquals("OK", answer.get("status").asString());
+            assertEquals("/code/app/OrderService.java", answer.get("file").asString());
+            assertEquals(214, answer.get("line").asInt());
+            assertEquals(Instant.parse("2026-05-01T09:00:00Z").toEpochMilli(),
+                    answer.get("sourceModifiedAtEpochMs").asLong(), "the IDE's ISO instant as epoch milliseconds");
+            assertTrue(StructuredAnswers.guidance(answer).contains("Read the file at this line"), answer.toString());
         }
 
         @Test
@@ -158,10 +175,12 @@ class IdeMcpToolsTest {
             resolvesTo(new IdeResolveResult(
                     true, "/jars/lib.jar!/Pool.class", 88, "JAVA_LINE", true, false, false, null, null));
 
-            String answer = tools.resolve(FQN, "acquire", 88);
+            JsonNode answer = resolved(tools.resolve(FQN, "acquire", 88));
 
-            assertTrue(answer.contains("decompiled"));
-            assertTrue(answer.contains("\"decompiled\" : true") || answer.contains("\"decompiled\":true"));
+            assertTrue(answer.get("decompiled").asBoolean());
+            assertTrue(StructuredAnswers.guidance(answer).contains("decompiled"), answer.toString());
+            assertEquals(FQN, StructuredAnswers.call(answer, "ide_source").get("className").asString());
+            assertTrue(answer.get("sourceModifiedAtEpochMs").isNull());
         }
 
         @Test
@@ -170,7 +189,11 @@ class IdeMcpToolsTest {
             resolvesTo(new IdeResolveResult(
                     true, "/code/app/OrderService.java", 214, "JAVA_LINE", false, false, true, null, null));
 
-            assertTrue(tools.resolve(FQN, "process", 214).contains("no longer exists"));
+            JsonNode answer = resolved(tools.resolve(FQN, "process", 214));
+
+            assertTrue(answer.get("stale").asBoolean());
+            assertTrue(StructuredAnswers.guidance(answer).contains("no longer exists"), answer.toString());
+            assertEquals(List.of("profiles_get"), StructuredAnswers.nextTools(answer));
         }
 
         @Test
@@ -179,7 +202,10 @@ class IdeMcpToolsTest {
             resolvesTo(new IdeResolveResult(
                     true, "/code/app/OrderService.java", 30, "JAVA_LINE", false, true, false, null, null));
 
-            assertTrue(tools.resolve(FQN, "process", -1).contains("declaration"));
+            JsonNode answer = resolved(tools.resolve(FQN, "process", -1));
+
+            assertTrue(answer.get("imprecise").asBoolean());
+            assertTrue(StructuredAnswers.guidance(answer).contains("declaration"), answer.toString());
         }
     }
 
@@ -221,12 +247,16 @@ class IdeMcpToolsTest {
             when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notLinked());
             windowsOpen(project("a", "service", true), project("b", "service-fork", true));
 
-            String answer = tools.resolve(FQN, "process", 214);
+            JsonNode answer = resolved(tools.resolve(FQN, "process", 214));
 
             verify(ideBridge, never()).selectTarget(any(), any());
             verify(ideBridge, never()).resolve(any());
-            assertTrue(answer.contains("service-fork"));
-            assertTrue(answer.contains("ide_link"));
+            assertEquals("NOT_LINKED", answer.get("status").asString());
+            assertEquals("service-fork", answer.get("candidates").get(1).get("project").asString());
+            assertEquals("b", answer.get("candidates").get(1).get("projectId").asString());
+            assertTrue(answer.get("file").isNull());
+            assertEquals(FQN, StructuredAnswers.call(answer, "ide_windows").get("className").asString());
+            assertTrue(StructuredAnswers.guidance(answer).contains("ide_link"), answer.toString());
         }
 
         @Test
@@ -234,15 +264,67 @@ class IdeMcpToolsTest {
             when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notLinked());
             when(ideBridge.discoverTargets(eq(PROFILE_ID), any())).thenReturn(IdeTargetsResult.empty());
 
-            assertTrue(tools.resolve(FQN, "process", 214).contains("No IntelliJ IDEA window"));
+            JsonNode answer = resolved(tools.resolve(FQN, "process", 214));
+
+            assertEquals("NO_IDE_RUNNING", answer.get("status").asString());
+            assertTrue(answer.get("reason").asString().contains("No IntelliJ IDEA window"));
+            assertEquals(List.of(), StructuredAnswers.nextTools(answer));
+        }
+
+        @Test
+        void linkingAWindowAnswersWhichOne() {
+            windowsOpen(project("a", "service", true));
+
+            JsonNode answer = StructuredAnswers.jsonWithoutPage(IdeMcpTools.class, "link", tools.link("a"));
+
+            assertEquals("a", answer.get("projectId").asString());
+            assertEquals("service", answer.get("project").asString());
+            verify(ideBridge).selectTarget(eq(PROFILE_ID), any());
+        }
+
+        @Test
+        void openingWhileSeveralWindowsCouldBeMeantListsThemAndOpensNothing() {
+            when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notLinked());
+            windowsOpen(project("a", "service", true), project("b", "service-fork", true));
+
+            JsonNode answer = StructuredAnswers.jsonWithoutPage(IdeMcpTools.class, "open",
+                    tools.open(FQN, "process", 214));
+
+            assertEquals("NOT_LINKED", answer.get("status").asString());
+            assertEquals(2, answer.get("candidates").size());
+            verify(ideBridge, never()).open(any());
+        }
+
+        @Test
+        void openingALinkedWindowSaysItOpened() {
+            when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(linked());
+            when(ideBridge.open(any())).thenReturn(IdeOpenResult.succeeded());
+
+            JsonNode answer = StructuredAnswers.jsonWithoutPage(IdeMcpTools.class, "open",
+                    tools.open(FQN, "process", 214));
+
+            assertEquals("OK", answer.get("status").asString());
+            assertEquals(214, answer.get("line").asInt());
+        }
+
+        /** The source tool answers text, so its ambiguous answer names the candidates in words. */
+        @Test
+        void sourceWhileSeveralWindowsCouldBeMeantNamesThemInText() {
+            when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notLinked());
+            windowsOpen(project("a", "service", true), project("b", "service-fork", true));
+
+            String answer = tools.source(FQN);
+
+            assertTrue(answer.contains("service-fork (projectId b)"), answer);
+            assertTrue(answer.contains("ide_link"), answer);
         }
 
         @Test
         void linkRefusesAProjectIdThatIsNotOpen() {
             windowsOpen(project("a", "service", true));
 
-            ToolExecutionException error = assertThrows(
-                    ToolExecutionException.class,
+            IllegalArgumentException error = assertThrows(
+                    IllegalArgumentException.class,
                     () -> tools.link("gone"));
 
             verify(ideBridge, never()).selectTarget(any(), any());
@@ -263,12 +345,13 @@ class IdeMcpToolsTest {
                             project("a", "service", true),
                             new IdeProjectView("b", "fork", "/code/fork", "main", "999999999", false, true))))));
 
-            String answer = tools.windows(FQN);
+            JsonNode answer = windowsOf(tools.windows(FQN));
 
             // The recording's short commit is a prefix of the first window's HEAD and not of the
             // second, so exactly one row can be confirmed as the profiled build.
-            assertTrue(answer.contains("| yes |"));
-            assertTrue(answer.contains("| no |"));
+            assertTrue(answer.get("windows").get(0).get("sameCommitAsRecording").asBoolean());
+            assertFalse(answer.get("windows").get(1).get("sameCommitAsRecording").asBoolean());
+            assertEquals("abc1234", answer.get("recordingCommit").asString());
         }
 
         @Test
@@ -276,17 +359,67 @@ class IdeMcpToolsTest {
             when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notLinked());
             windowsOpen(project("a", "service", true));
 
-            assertTrue(tools.windows(FQN).contains("no commit tag"));
+            JsonNode answer = windowsOf(tools.windows(FQN));
+
+            assertTrue(answer.get("windows").get(0).get("sameCommitAsRecording").isNull());
+            assertTrue(StructuredAnswers.guidance(answer).contains("no commit tag"), answer.toString());
+            assertEquals("a", StructuredAnswers.call(answer, "ide_link").get("projectId").asString(),
+                    "the only window holding the class can be linked straight away");
+        }
+
+        @Test
+        void saysSoWhenNoIdeAnswers() {
+            when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notLinked());
+            when(ideBridge.discoverTargets(eq(PROFILE_ID), any())).thenReturn(IdeTargetsResult.empty());
+
+            JsonNode answer = windowsOf(tools.windows(null));
+
+            assertEquals("NO_IDE_RUNNING", answer.get("status").asString());
+            assertEquals(0, answer.get("windows").size());
+        }
+
+        /** Without a class name, whether a window holds it is unknown, never a false no. */
+        @Test
+        void aWindowListedWithoutAClassNameSaysNothingAboutTheClass() {
+            when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notLinked());
+            windowsOpen(project("a", "service", false), project("b", "other", false));
+
+            JsonNode answer = windowsOf(tools.windows(null));
+
+            assertTrue(answer.get("windows").get(0).get("hasClass").isNull());
+            assertEquals(List.of(), StructuredAnswers.nextTools(answer), "nothing to link without a choice");
         }
 
         @Test
         void explainsItselfUnderTheSingleUrlBridge() {
             when(ideBridge.targetStatus(PROFILE_ID)).thenReturn(IdeTargetStatus.notSelectable());
 
-            String answer = tools.windows(FQN);
+            JsonNode answer = windowsOf(tools.windows(FQN));
 
-            assertTrue(answer.contains("JFR Profiler"));
+            assertEquals("NOT_SELECTABLE", answer.get("status").asString());
+            assertTrue(answer.get("reason").asString().contains("JFR Profiler"));
             verify(ideBridge, never()).discoverTargets(any(), any());
+        }
+    }
+
+    @Nested
+    class Surface {
+
+        /** ide_source answers a document; every other ide_ tool answers a record. */
+        @Test
+        void everyToolButSourceDeclaresAnOutputSchema() {
+            assertEquals(List.of("source"), StructuredAnswers.unschematised(IdeMcpTools.class));
+        }
+
+        /** The plugin sends its resolver's enum names verbatim; the schema says which they are. */
+        @Test
+        void aLocationsKindNamesThePluginsValues() {
+            String description = McpSchemaGenerator.schemaOf(IdeMcpTools.Location.class)
+                    .path("properties").path("kind").path("description").asString();
+
+            for (String kind : List.of("JAVA_PRECISE", "JAVA_LINE", "KOTLIN_LINE", "KOTLIN_FALLBACK")) {
+                assertTrue(description.contains(kind), description);
+            }
         }
     }
 

@@ -17,10 +17,12 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.model.Type;
 
-import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * One machine-level dashboard, in the shape the Jeffrey UI already computes it.
@@ -35,10 +37,15 @@ import java.util.Set;
  * <p>
  * A section declares {@link #eventTypes()} — the types whose presence makes it answerable at all.
  * {@link JvmSections} tests that against what the recording holds, which is what lets a section be
- * refused with a sentence instead of returning a page of zeroes, and lets {@code jvm_sections}
- * advertise the same availability without rendering anything.
+ * answered with {@link SectionStatus#NOT_RECORDED} instead of a page of zeroes, and lets
+ * {@code jvm_sections} advertise the same availability without rendering anything.
+ * <p>
+ * {@code D} is the section's own dashboard record, and the tool that serves the section publishes it
+ * inside the section's answer record, so every dashboard reaches the wire typed and schema'd.
+ *
+ * @param <D> the dashboard this section renders
  */
-public sealed interface JvmSection permits
+public sealed interface JvmSection<D extends Record> permits
         AutoAnalysisSection,
         ClassLoadingSection,
         ConfigurationSection,
@@ -52,6 +59,9 @@ public sealed interface JvmSection permits
         SecuritySection,
         SystemSection,
         ThreadsSection {
+
+    /** The prefix every tool of the family carries; a section's tool is this and its id. */
+    String TOOL_PREFIX = "jvm_";
 
     /**
      * The identifier the tool methods and {@code jvm_sections} share, lower camel case.
@@ -72,19 +82,47 @@ public sealed interface JvmSection permits
     Set<Type> eventTypes();
 
     /**
-     * What this dashboard cannot answer, and which tool answers it — carried back with every result.
+     * The Microscope page the dashboard is drawn on, which every answer links for the user — on a
+     * {@link SectionStatus#NOT_RECORDED} answer too, since the page exists either way.
+     */
+    MicroscopeView view();
+
+    /**
+     * The page a rendered dashboard is best seen on; the section's own page unless what it holds is
+     * drawn on a more specific one.
+     */
+    default MicroscopeView view(D dashboard) {
+        return view();
+    }
+
+    /**
+     * What this dashboard cannot answer, and which call answers it — carried back with every
+     * rendered result as the answer's {@code followUp}.
      * <p>
      * The figures alone do not say what to do next, and the tool description that does say it was
-     * read many turns earlier. Jeffrey's flamegraph and trace exports have always opened with their
-     * own reading instructions for exactly this reason; a dashboard is no different. These lines
-     * route, they never diagnose: no threshold decides whether they appear, and none of them claims
-     * that this particular recording is bad. The reader is told where the next answer lives and left
-     * to decide whether to go there.
+     * read many turns earlier. These entries route, they never diagnose: a call is added because the
+     * thing it explains is present in the dashboard, never because a figure crossed a threshold. A
+     * call to a tool this installation does not serve is left out by the builder.
+     *
+     * @param dashboard what {@link #render()} produced, so a call can carry this answer's own values
      */
-    List<String> nextSteps();
+    void followUp(NextSteps.Builder next, D dashboard);
 
     /**
      * The dashboard itself, as a record tree that serialises to JSON.
      */
-    Object render();
+    D render();
+
+    /**
+     * The dashboard as it is handed out, with every finding's next call that this installation cannot
+     * serve left out. Only a dashboard that carries findings has anything to drop.
+     */
+    default D reachable(D dashboard, Predicate<String> servesTool) {
+        return dashboard;
+    }
+
+    /** The tool that serves this section. */
+    default String tool() {
+        return TOOL_PREFIX + id();
+    }
 }

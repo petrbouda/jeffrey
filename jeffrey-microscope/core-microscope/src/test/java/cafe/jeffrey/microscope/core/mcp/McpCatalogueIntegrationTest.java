@@ -19,17 +19,23 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.mcp.CompositeToolset;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -38,10 +44,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -53,23 +59,31 @@ class McpCatalogueIntegrationTest {
 
     McpCatalogueIntegrationTest() {
         var tools = new CompositeToolset(List.of(
-                new ReflectiveToolset(new ProfilesMcpTools(repositories), "profiles"),
-                new ReflectiveToolset(new HubsMcpTools(hubs, mock(ProjectManagerResolver.class),
-                        mock(RecordingsManager.class), Clock.systemUTC()), "hubs")));
+                new ReflectiveToolset(new ProfilesMcpTools(repositories, EVERY_FAMILY), "profiles"),
+                new ReflectiveToolset(HubsMcpToolsFixture.of(hubs, mock(ProjectManagerResolver.class),
+                        mock(RecordingsManager.class), Clock.systemUTC()).build(), "hubs")));
         var assembler = mock(McpToolsetAssembler.class);
         when(assembler.toolset()).thenReturn(tools);
-        controller = new ExternalMcpController(assembler,
-                new ExternalMcpProperties(true, true, true, Set.of(), "hub"),
-                new McpRequestGuard(), new McpPromptRegistry(), mock(McpDiagnostics.class));
+        ExternalMcpProperties properties = McpTestProperties.of(true, true, true, Set.of(), "hub");
+        controller = new ExternalMcpController(assembler, properties,
+                McpTestGuards.loopback(), new McpPromptRegistry(McpSkillCatalogue.fromClasspath()),
+                mock(McpDiagnostics.class),
+                AdvertisedFamilies.of(properties), McpTaskProvider.NONE, McpSkillProvider.NONE);
     }
 
     private JsonNode request(String method, ObjectNode params) {
-        ObjectNode body = Json.createObject().put("jsonrpc", "2.0").put("id", 1).put("method", method);
-        body.set("params", params);
+        McpTestRequests.Request modern = McpTestRequests.request(method, params);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServerName("localhost");
-        request.addHeader("MCP-Protocol-Version", "2025-06-18");
-        JsonNode response = controller.handle(body, request).getBody();
+        modern.httpHeaders().forEach(request::addHeader);
+        // Bound the way the dispatcher binds a real request, so the answers can build their page links.
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        JsonNode response;
+        try {
+            response = controller.handle(modern.body(), request).getBody();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
         assertFalse(response.has("error"), response.toString());
         return response.path("result");
     }
@@ -84,8 +98,8 @@ class McpCatalogueIntegrationTest {
     }
 
     /**
-     * The declared schema is a string literal and the object is built field by field beside it, so the
-     * two agree only for as long as somebody keeps them agreeing. A client that validates
+     * The schema is generated from the record the tool returns, so the two agree by construction; this
+     * checks it end to end, through the endpoint a client calls. A client that validates
      * structuredContent against the advertised outputSchema is entitled to reject the call when they
      * drift, which is a failure this server would otherwise learn about from the client.
      */
@@ -93,8 +107,8 @@ class McpCatalogueIntegrationTest {
     void theProfileCatalogueConformsToTheSchemaItAdvertises() {
         Instant time = Instant.parse("2026-01-01T00:00:00Z");
         when(repositories.findAllProfiles()).thenReturn(List.of(
-                // A row with every nullable field null and a name past the declared maxLength, which is
-                // where the ["string","null"] unions and the bound are the parts worth checking.
+                // A row with every nullable field null and a name past the display bound, which is
+                // where the ["string","null"] unions and the shortened name are the parts worth checking.
                 new ProfileInfo("p2", null, null, "N".repeat(4_000), RecordingEventSource.JDK,
                         null, null, time, true, true, null),
                 new ProfileInfo("p1", "proj-1", "ws-1", "First", RecordingEventSource.JDK,
@@ -125,92 +139,16 @@ class McpCatalogueIntegrationTest {
         throw new AssertionError("No advertised tool named " + toolName);
     }
 
-    /** Only the vocabulary these two schemas use; anything else fails rather than passing unchecked. */
-    private static final Set<String> SUPPORTED_KEYWORDS = Set.of(
-            "type", "properties", "required", "additionalProperties", "items",
-            "enum", "const", "maxLength", "minimum", "maximum", "description");
-
+    /**
+     * The advertised schema, as the client sees it on the wire, and the check every tool test uses: it
+     * understands exactly the generator's keywords and fails on any other.
+     */
     private static void assertConforms(JsonNode instance, JsonNode schema, String path) {
-        for (String keyword : schema.propertyNames()) {
-            if (!SUPPORTED_KEYWORDS.contains(keyword)) {
-                fail("This check does not understand '" + keyword + "' at " + path
-                        + "; teach it the keyword rather than trusting a pass it did not make");
-            }
+        try {
+            McpSchemaConformance.assertConforms(instance, schema);
+        } catch (AssertionError e) {
+            throw new AssertionError(path + ": " + e.getMessage(), e);
         }
-        JsonNode type = schema.get("type");
-        if (type != null && !matchesType(instance, type)) {
-            fail(path + " is " + instance.getNodeType() + ", which none of " + type + " allows");
-        }
-        JsonNode constant = schema.get("const");
-        if (constant != null && !constant.equals(instance)) {
-            fail(path + " must be " + constant + " but was " + instance);
-        }
-        JsonNode enumeration = schema.get("enum");
-        if (enumeration != null) {
-            boolean matched = false;
-            for (JsonNode candidate : enumeration) {
-                matched |= candidate.equals(instance);
-            }
-            if (!matched) {
-                fail(path + " is " + instance + ", which is not one of " + enumeration);
-            }
-        }
-        JsonNode maxLength = schema.get("maxLength");
-        if (maxLength != null && instance.isString() && instance.asString().length() > maxLength.asInt()) {
-            fail(path + " is " + instance.asString().length() + " characters, past the declared "
-                    + maxLength.asInt());
-        }
-        JsonNode minimum = schema.get("minimum");
-        if (minimum != null && instance.isNumber() && instance.asDouble() < minimum.asDouble()) {
-            fail(path + " is " + instance + ", below the declared minimum " + minimum);
-        }
-        if (instance.isObject()) {
-            JsonNode properties = schema.path("properties");
-            for (JsonNode required : schema.path("required")) {
-                if (!instance.has(required.asString())) {
-                    fail(path + " is missing the required property " + required.asString());
-                }
-            }
-            for (String property : instance.propertyNames()) {
-                JsonNode child = properties.get(property);
-                if (child == null) {
-                    if (schema.path("additionalProperties").isBoolean()
-                            && !schema.path("additionalProperties").asBoolean()) {
-                        fail(path + " carries " + property + ", which the schema does not declare");
-                    }
-                    continue;
-                }
-                assertConforms(instance.get(property), child, path + "." + property);
-            }
-        }
-        JsonNode items = schema.get("items");
-        if (items != null && instance.isArray()) {
-            int index = 0;
-            for (JsonNode element : instance) {
-                assertConforms(element, items, path + "[" + index++ + "]");
-            }
-        }
-    }
-
-    private static boolean matchesType(JsonNode instance, JsonNode type) {
-        if (type.isString()) {
-            return switch (type.asString()) {
-                case "object" -> instance.isObject();
-                case "array" -> instance.isArray();
-                case "string" -> instance.isString();
-                case "integer" -> instance.isIntegralNumber();
-                case "number" -> instance.isNumber();
-                case "boolean" -> instance.isBoolean();
-                case "null" -> instance.isNull();
-                default -> false;
-            };
-        }
-        for (JsonNode candidate : type) {
-            if (matchesType(instance, candidate)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Test
@@ -226,13 +164,13 @@ class McpCatalogueIntegrationTest {
         assertEquals(2, first.path("total").asInt());
         assertEquals("p2", first.path("profiles").get(0).path("profileId").asString());
         assertEquals("r2", first.path("profiles").get(0).path("recordingId").asString());
-        assertEquals("yes", first.path("profiles").get(0).path("ready").asString());
+        assertEquals("YES", first.path("profiles").get(0).path("ready").asString());
         assertTrue(first.path("hasMore").asBoolean());
         JsonNode second = call("profiles_list", Json.createObject().put("limit", 1)
                 .put("cursor", first.path("nextCursor").asString()));
         assertEquals("p1", second.path("profiles").get(0).path("profileId").asString());
         assertEquals("r1", second.path("profiles").get(0).path("recordingId").asString());
-        assertEquals("building", second.path("profiles").get(0).path("ready").asString());
+        assertEquals("BUILDING", second.path("profiles").get(0).path("ready").asString());
         assertFalse(second.path("hasMore").asBoolean());
         assertTrue(second.path("nextCursor").isNull());
     }
@@ -257,7 +195,9 @@ class McpCatalogueIntegrationTest {
         JsonNode info = Json.readTree(resource.path("contents").get(0).path("text").asString());
         assertEquals("hub", info.path("preset").asString());
         assertEquals(tools.size(), info.path("toolCount").asInt());
-        assertEquals(request("initialize", Json.createObject()).path("serverInfo").path("version"), info.path("version"));
-        assertEquals(Json.readTree("[\"hubs_sessions\",\"profiles_list\"]"), info.path("capabilities").path("paginatedTools"));
+        assertEquals(request("server/discover", Json.createObject())
+                .path("_meta").path("io.modelcontextprotocol/serverInfo").path("version"), info.path("version"));
+        assertEquals(Json.readTree("[\"hubs_list\",\"hubs_sessions\",\"profiles_list\"]"),
+                info.path("capabilities").path("paginatedTools"));
     }
 }

@@ -17,8 +17,10 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.analysis.AnalysisResult;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.profile.mcp.finding.McpFindings;
 
@@ -41,9 +43,9 @@ import static java.util.Map.entry;
  * <p>
  * The category is the rule's JMC topic — {@code garbage_collection}, {@code exceptions},
  * {@code lock_instances} — which is what lets a finding from the rules and one from the dashboard
- * that carries the figures share an id and merge. The {@code nextTool} is the Jeffrey tool that
- * renders that topic's figures, so a fired rule routes the reader to the numbers rather than to the
- * rule's own suggestion.
+ * that carries the figures share an id and merge. The {@code nextTool} is the call, on the same
+ * profile, that renders that topic's figures, so a fired rule routes the reader to the numbers rather
+ * than to the rule's own suggestion.
  */
 public final class AutoAnalysisFindings {
 
@@ -59,49 +61,56 @@ public final class AutoAnalysisFindings {
             Set.of(AnalysisResult.Severity.NA, AnalysisResult.Severity.IGNORE);
 
     /**
-     * JMC's {@code JfrRuleTopics} to the tool that carries the figures behind a rule in that topic.
+     * JMC's {@code JfrRuleTopics} to the call that carries the figures behind a rule in that topic.
      * A topic missing here yields a finding with no {@code nextTool}; the reader still has the
      * category and the summary.
      */
-    private static final Map<String, String> NEXT_TOOL_BY_TOPIC = Map.ofEntries(
-            entry("garbage_collection", "jvm_gc"),
-            entry("gc_summary", "jvm_gc"),
-            entry("gc_configuration", "jvm_gcDetail page=configuration"),
-            entry("heap", "jvm_gc"),
-            entry("tlab", "memory_allocations"),
-            entry("memoryleak", "memory_leakCandidates"),
-            entry("exceptions", "jvm_exceptions"),
-            entry("classloading", "jvm_classLoading"),
-            entry("code_cache", "jvm_jit"),
-            entry("compilations", "jvm_jit"),
-            entry("lock_instances", "blocking_monitors"),
-            entry("biased_locking", "blocking_overview"),
-            entry("threads", "jvm_threads"),
-            entry("thread_dumps", "jvm_threadDumps"),
-            entry("vm_operations", "jvm_safepoints"),
-            entry("method_profiling", "flamegraph_export eventType=jdk.ExecutionSample"),
-            entry("file_io", "io_overview kind=FILE"),
-            entry("socket_io", "io_overview kind=SOCKET"),
-            entry("jvm_information", "jvm_configuration"),
-            entry("environment_variables", "jvm_configuration"),
-            entry("system_properties", "jvm_configuration"),
-            entry("agent_information", "jvm_configuration"),
-            entry("system_information", "jvm_system"),
-            entry("processes", "jvm_system"),
-            entry("native_library", "jvm_nativeMemory"),
-            entry("java_application", "jvm_threads"),
-            entry("recording", "jfr_listEventTypes"),
-            entry("constant_pools", "jfr_listEventTypes"));
+    private static final Map<String, FigureCall> NEXT_TOOL_BY_TOPIC = Map.ofEntries(
+            entry("garbage_collection", FigureCall.of("jvm_gc")),
+            entry("gc_summary", FigureCall.of("jvm_gc")),
+            entry("gc_configuration", FigureCall.of("jvm_gcDetail", "page", GcDetailPage.CONFIGURATION.name())),
+            entry("heap", FigureCall.of("jvm_gc")),
+            entry("tlab", FigureCall.of("memory_allocations")),
+            entry("memoryleak", FigureCall.of("memory_leakCandidates")),
+            entry("exceptions", FigureCall.of("jvm_exceptions")),
+            entry("classloading", FigureCall.of("jvm_classLoading")),
+            entry("code_cache", FigureCall.of("jvm_jit")),
+            entry("compilations", FigureCall.of("jvm_jit")),
+            entry("lock_instances", FigureCall.of("blocking_monitors")),
+            entry("biased_locking", FigureCall.of("blocking_overview")),
+            entry("threads", FigureCall.of("jvm_threads")),
+            entry("thread_dumps", FigureCall.of("jvm_threadDumps")),
+            entry("vm_operations", FigureCall.of("jvm_safepoints")),
+            // No recorded-type gate: the method-profiling rule only emits a finding when jdk.ExecutionSample
+            // was evaluated, so a finding in this topic means the profile recorded it.
+            entry("method_profiling", FigureCall.of("flamegraph_export", "eventType", Type.EXECUTION_SAMPLE.code())),
+            entry("file_io", FigureCall.of("io_overview", "kind", "FILE")),
+            entry("socket_io", FigureCall.of("io_overview", "kind", "SOCKET")),
+            entry("jvm_information", FigureCall.of("jvm_configuration")),
+            entry("environment_variables", FigureCall.of("jvm_configuration")),
+            entry("system_properties", FigureCall.of("jvm_configuration")),
+            entry("agent_information", FigureCall.of("jvm_configuration")),
+            entry("system_information", FigureCall.of("jvm_system")),
+            entry("processes", FigureCall.of("jvm_system")),
+            entry("native_library", FigureCall.of("jvm_nativeMemory")),
+            entry("java_application", FigureCall.of("jvm_threads")),
+            entry("recording", FigureCall.of("jfr_listEventTypes")),
+            entry("constant_pools", FigureCall.of("jfr_listEventTypes")));
+
+    private static final String PROFILE_ID = "profileId";
+    private static final String FIGURES_WHY = "shows the figures this finding rests on";
 
     private AutoAnalysisFindings() {
     }
 
     /**
-     * Every rule that reached a verdict, ordered by severity.
+     * Every rule that reached a verdict, ordered by severity, each routed to the call on this profile
+     * that carries its figures. The call is not gated here: the tool that hands the list out drops
+     * the calls its installation does not serve, with {@link McpFindings#reachable}.
      */
-    public static List<McpFinding> findings(List<AutoAnalysisResult> results) {
+    public static List<McpFinding> findings(String profileId, List<AutoAnalysisResult> results) {
         return McpFindings.merge(results.stream()
-                .map(AutoAnalysisFindings::finding)
+                .map(result -> finding(profileId, result))
                 .flatMap(Optional::stream)
                 .toList());
     }
@@ -110,8 +119,8 @@ public final class AutoAnalysisFindings {
      * Only the rules that flagged something — what a summary leads with. A pass is still a finding,
      * but not one to spend the first five lines of an orientation on.
      */
-    public static List<McpFinding> flagged(List<AutoAnalysisResult> results) {
-        return findings(results).stream()
+    public static List<McpFinding> flagged(String profileId, List<AutoAnalysisResult> results) {
+        return findings(profileId, results).stream()
                 .filter(finding -> finding.severity() != McpFinding.Severity.OK)
                 .toList();
     }
@@ -126,7 +135,12 @@ public final class AutoAnalysisFindings {
                 .toList();
     }
 
-    static Optional<McpFinding> finding(AutoAnalysisResult result) {
+    /** The topics a finding is routed from, for a test that follows every route. */
+    static Set<String> routedTopics() {
+        return NEXT_TOOL_BY_TOPIC.keySet();
+    }
+
+    static Optional<McpFinding> finding(String profileId, AutoAnalysisResult result) {
         if (result.severity() == null || NOT_EVALUATED.contains(result.severity())) {
             return Optional.empty();
         }
@@ -141,8 +155,31 @@ public final class AutoAnalysisFindings {
                 .evidence(EVIDENCE_RULE, result.rule())
                 .evidence(EVIDENCE_SCORE, result.score())
                 .action(result.solution())
-                .nextTool(NEXT_TOOL_BY_TOPIC.get(category))
+                .nextTool(Optional.ofNullable(NEXT_TOOL_BY_TOPIC.get(category))
+                        .map(call -> call.on(profileId))
+                        .orElse(null))
                 .build());
+    }
+
+    /**
+     * The tool that carries a topic's figures, with the arguments beyond the profile that pick the
+     * right page of it where the tool shows more than one.
+     */
+    private record FigureCall(String tool, Map<String, String> arguments) {
+
+        static FigureCall of(String tool) {
+            return new FigureCall(tool, Map.of());
+        }
+
+        static FigureCall of(String tool, String argument, String value) {
+            return new FigureCall(tool, Map.of(argument, value));
+        }
+
+        McpNextTool on(String profileId) {
+            McpNextTool.Call call = McpNextTool.call(tool).with(PROFILE_ID, profileId);
+            arguments.forEach(call::with);
+            return call.why(FIGURES_WHY);
+        }
     }
 
     private static McpFinding.Severity severity(AnalysisResult.Severity severity) {

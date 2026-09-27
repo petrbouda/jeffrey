@@ -29,7 +29,7 @@ const headings = [
   { id: 'one-package', text: 'One Package, Three Manifests', level: 2 },
   { id: 'the-skills', text: 'The Ten Skills', level: 2 },
   { id: 'the-agents', text: 'The Three Agents', level: 2 },
-  { id: 'what-writes', text: 'The Nine Tools That Write', level: 2 },
+  { id: 'what-writes', text: 'The Eleven Tools That Write', level: 2 },
   { id: 'long-calls', text: 'Long Calls', level: 2 },
   { id: 'the-tool-list', text: 'The Size of the Tool List', level: 2 },
   { id: 'when-it-is-not-connected', text: 'When It Is Not Connected', level: 2 },
@@ -41,7 +41,7 @@ onMounted(() => {
 });
 
 const familiesProperty = `# On the Jeffrey side, in application.properties
-jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
+jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap,operations`;
 </script>
 
 <template>
@@ -52,7 +52,11 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
     />
 
     <div class="docs-content">
-      <p>Three coding agents connect to Jeffrey through the same <strong>Microscope plugin</strong>, and most of what there is to know about the connection is the same for all of them: which skills arrive, which tools write, how a long call behaves, what a hundred-odd tools cost. This page holds that once. The <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link>, <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> pages hold only what differs: how to install, where the endpoint is configured, how approvals are spelled, and what that client can and cannot carry.</p>
+      <p>Three coding agents are packaged for Jeffrey in the same <strong>Microscope plugin</strong>, and most of what there is to know about the connection is the same for all of them: which skills arrive, which tools write, how a long call behaves, what a hundred-odd tools cost. This page holds that once. The <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link>, <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> pages hold only what differs: how to install, where the endpoint is configured, how approvals are spelled, and what that client can and cannot carry.</p>
+
+      <DocsCallout type="warning" title="The client has to speak MCP 2026-07-28">
+        Jeffrey speaks only MCP <code>2026-07-28</code>. A client that still opens with <code>initialize</code> is refused with <code>-32602</code> (HTTP 400), an error whose message and <code>data.supported</code> name that version, so a plugin installs but its tools never connect. <router-link to="/docs/microscope-mcp/claude-code#before-you-start">Claude Code</router-link> needs its v2 MCP runtime (<code>MCP_SDK_GENERATION=v2</code> where that is not the default). <router-link to="/docs/microscope-mcp/codex#before-you-start">Codex</router-link> needs v0.147.0 or later with the global feature flag <code>[features] mcp_2026_07_28 = true</code> (or <code>codex --enable mcp_2026_07_28</code>), which applies to every HTTP server and which Codex marks as under development. <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> cannot connect until it supports MCP <code>2026-07-28</code>; the rows for it below describe the extension as it will behave then.
+      </DocsCallout>
 
       <DocsCallout type="info" title="Jeffrey has to be running">
         A plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
@@ -71,6 +75,12 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td>Speaks MCP <code>2026-07-28</code></td>
+            <td>On the v2 MCP runtime</td>
+            <td>v0.147.0+, with the global <code>mcp_2026_07_28</code> feature flag on</td>
+            <td>Not yet</td>
+          </tr>
           <tr>
             <td>The endpoint, already configured</td>
             <td>Yes &mdash; a per-machine setting</td>
@@ -101,39 +111,40 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
       <h2 id="the-skills">The Ten Skills</h2>
       <p>Every client gets the same ten skills, which the agent picks up on its own when a question calls for one: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. They are one set of files in the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, which all three clients read, so the directory is shared rather than duplicated. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page; how each client invokes one directly is on that client's page.</p>
 
-      <p>The same skills are also served by Jeffrey itself as MCP <strong>prompts</strong>, so a client with no plugin at all can still read them &mdash; <router-link to="/docs/microscope-mcp/other-clients#prompts-and-resources">Other Clients</router-link> has the call.</p>
+      <p>The same skills are also served by Jeffrey itself, so a client with no plugin at all can still read them: over the MCP skills extension, where a client that speaks <code>2026-07-28</code> with that extension gets all ten and loads them on its own, and as MCP <strong>prompts</strong> &mdash; <router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the calls.</p>
 
       <h2 id="the-agents">The Three Agents</h2>
       <p><code>profile-analyst</code>, <code>heap-triage</code> and <code>profile-lead</code> read an export end to end and return only the findings, so the raw document never lands in the main conversation. What each one is for is on the <router-link to="/docs/microscope-mcp/agent">Agents</router-link> page. How a client gets them differs: Claude Code carries them in the plugin with a tool deny-list; Codex and Gemini take them as files to copy, held to reading by an instruction rather than a wall, and Gemini has no <code>profile-lead</code> at all because one of its subagents may not dispatch another. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping the copy costs context rather than correctness.</p>
 
-      <h2 id="what-writes">The Nine Tools That Write</h2>
-      <p>Every client asks before a tool the first time, and the answer that fits Jeffrey is the same everywhere: approve the read-only families once. Every tool reads except nine, and each of the nine says so in its own MCP annotations rather than inheriting its family's:</p>
+      <h2 id="what-writes">The Eleven Tools That Write</h2>
+      <p>Every client asks before a tool the first time, and the answer that fits Jeffrey is the same everywhere: approve the read-only families once. Every tool reads except eleven, and each of the eleven says so in its own MCP annotations rather than inheriting its family's:</p>
 
       <ul>
         <li><code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which build a profile from a recording file on this machine or from one already in the Quick Analysis store;</li>
-        <li><code>recordings_delete</code>, the one destructive tool, which removes a recording together with the profile built from it;</li>
-        <li><code>hubs_download</code>, which pulls a session &mdash; or an hour of one, or files named from its listing &mdash; off a connected hub and creates a recording here;</li>
+        <li><code>recordings_delete</code>, the one destructive tool, which removes a recording together with the profile built from it &mdash; after asking the user to confirm, on a client that declared form elicitation;</li>
+        <li><code>hubs_download</code>, which pulls a session &mdash; or an hour of one, or files named from its listing &mdash; off a connected hub and creates a recording here, asking first which part of a large session to bring on a client that declared form elicitation;</li>
         <li><code>hubs_fetchFile</code>, which pulls one of a session&rsquo;s artifacts off that machine;</li>
         <li><code>heap_prepare</code>, which builds a cache;</li>
+        <li><code>heap_oql</code> and <code>jvm_autoAnalysis</code>, which read &mdash; but with <code>includeRetainedSize</code> or <code>compute</code> can run for minutes filling the dominator tree or the Auto Analysis cache, so they run as operations the way the writers do, and are safe to repeat &mdash; bounded that way, they stay open to the <router-link to="/docs/microscope-mcp/agent">analyst agents</router-link> where the other writers are closed to them;</li>
         <li><code>operations_cancel</code>, which stops background work;</li>
         <li><code>ide_link</code> and <code>ide_open</code>, which act on the editor beside Jeffrey rather than on a profile.</li>
       </ul>
 
-      <p>None of them alters an analysed profile. The reading members of those same families &mdash; <code>recordings_list</code>, <code>recordings_status</code>, <code>heap_status</code>, <code>hubs_files</code>, <code>operations_status</code> &mdash; declare themselves read-only, so a client that gates on the hints does not sweep them up. The <router-link to="/docs/microscope-mcp/tools">Tool Reference</router-link> has the full list; a client that wants a strictly read-only Jeffrey on one machine denies those nine at its own server entry, and each client page shows the spelling.</p>
+      <p>None of them alters an analysed profile. The reading members of those same families &mdash; <code>recordings_list</code>, <code>recordings_status</code>, <code>heap_status</code>, <code>hubs_files</code>, <code>operations_status</code> &mdash; declare themselves read-only, so a client that gates on the hints does not sweep them up. The <router-link to="/docs/microscope-mcp/tools">Tool Reference</router-link> has the full list; a client that wants a strictly read-only Jeffrey on one machine denies those eleven at its own server entry, and each client page shows the spelling.</p>
 
       <h2 id="long-calls">Long Calls</h2>
       <p>Most of Jeffrey&rsquo;s tools answer in well under a second, but a few do real work: importing a recording parses every event in it, pulling a session off a hub moves however many gigabytes it holds, and preparing a heap dump walks the whole graph. Each client has its own idea of how long a tool call may take, and the client pages say what it is and how to raise it.</p>
 
-      <p>The long tools are built for the wait either way. <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code> wait about forty-five seconds and then hand back a status of <code>running</code> with an <code>operationId</code>; <code>hubs_download</code>, <code>hubs_fetchFile</code> and <code>heap_prepare</code> do the same. <code>operations_status</code> reports where the work has got to and the result once it lands, and <code>operations_cancel</code> asks it to stop. <strong>What matters is not retrying the analyze call:</strong> a second <code>recordings_analyzeFile</code> imports the file again and builds a second profile of it. The skills know this; a hand-driven session should too.</p>
+      <p>The long tools are built for the wait either way. <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code> wait about forty-five seconds and then hand back a status of <code>RUNNING</code> with an <code>operationId</code>; <code>hubs_download</code>, <code>hubs_fetchFile</code>, <code>heap_oql</code> with <code>includeRetainedSize</code> and <code>jvm_autoAnalysis</code> with <code>compute</code> do the same, and <code>heap_prepare</code> does not wait at all. <code>operations_status</code> reports where the work has got to and the result once it lands, and <code>operations_cancel</code> asks it to stop. A client that declared the MCP tasks extension is not held that long: it gets a standard <router-link to="/docs/microscope-mcp/tools#tasks">task</router-link> after about five seconds instead &mdash; from <code>heap_prepare</code>, at once &mdash; and follows it with <code>tasks/get</code>. <strong>What matters is polling rather than retrying the analyze call.</strong> A second <code>recordings_analyzeFile</code> on the same file does not build a second profile &mdash; once a recording with that file name and size is stored, it answers with the existing profile (<code>reused=true</code>), or analyses the stored recording if it has none yet, and only <code>force=true</code> imports it again &mdash; but it answers about a stored recording, not about the import still running, so <code>operations_status</code> is the call that says where that import has got to. The skills know this; a hand-driven session should too.</p>
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
       <p>Jeffrey advertises a hundred and eleven tools across nineteen families. Whether that costs anything depends on the client: one fetches a tool&rsquo;s schema when it needs it, another declares every enabled tool to the model on each turn, and the client pages say which. When it matters, the Jeffrey side can advertise fewer:</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />
 
-      <p>Families are named by their tool prefix, and <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> lists them and the named presets. Leave it alone unless you have a reason &mdash; the skills route between families freely, and one that is not advertised is one their advice sends the model to in vain. Keep <code>operations</code> wherever a writer is: it is how the work a writer starts is polled and cancelled.</p>
+      <p>Families are named by their tool prefix, and <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> lists them and the named presets. Leave it alone unless you have a reason &mdash; the skills route between families freely, and one that is not advertised is one their advice sends the model to in vain. Keep <code>operations</code> wherever a writer is &mdash; a list with <code>recordings</code>, <code>heap</code>, <code>hubs</code>, <code>ide</code> or <code>jvm</code> but no <code>operations</code> fails startup &mdash; since it is how the work a writer starts is polled and cancelled.</p>
 
       <h2 id="when-it-is-not-connected">When It Is Not Connected</h2>
-      <p>Each client lists its MCP servers with a command of its own; the <code>jeffrey</code> server should be there with its tools. When it is not, the causes are the same everywhere and worth checking in this order: the session predates the install and needs restarting; this installation set <code>jeffrey.microscope.mcp.enabled=false</code>; Jeffrey is not on the address the client is pointed at; Jeffrey is not running. A server that shows as connected but whose tools never appear is the client&rsquo;s problem rather than Jeffrey&rsquo;s &mdash; <code>curl</code> against the endpoint settles which side is at fault, and <router-link to="/docs/microscope-mcp/other-clients#the-wire-protocol">Other Clients</router-link> has the exact request.</p>
+      <p>Each client lists its MCP servers with a command of its own; the <code>jeffrey</code> server should be there with its tools. When it is not, the causes are the same everywhere and worth checking in this order: the client does not speak MCP <code>2026-07-28</code> &mdash; Jeffrey&rsquo;s log then records <em>An MCP client sent a request this server cannot speak: code=-32602 message=This server speaks MCP 2026-07-28 only&hellip;</em>; the session predates the install and needs restarting; this installation set <code>jeffrey.microscope.mcp.enabled=false</code>; Jeffrey is not on the address the client is pointed at; Jeffrey is not running. A server that shows as connected but whose tools never appear is the client&rsquo;s problem rather than Jeffrey&rsquo;s &mdash; <code>curl</code> against the endpoint settles which side is at fault, and <router-link to="/docs/microscope-mcp/other-clients#the-wire-protocol">Other Clients</router-link> has the exact request.</p>
 
       <h2 id="removing">Removing the Plugin</h2>
       <p>Uninstalling takes the skills with it &mdash; and the startup check, where the client has one. It does not change anything inside Jeffrey: the MCP server keeps serving, and a client that registered the server by hand is still connected. It does not remove an agent you copied into a client&rsquo;s own <code>agents/</code> directory either.</p>

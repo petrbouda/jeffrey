@@ -39,8 +39,6 @@ import java.util.List;
 
 public class BlockingManagerImpl implements BlockingManager {
 
-    private static final int MAX_PINNED_ENTRIES = 100;
-
     private static final String MONITOR_CLASS_FIELD = "monitorClass";
     private static final String PARKED_CLASS_FIELD = "parkedClass";
 
@@ -131,7 +129,7 @@ public class BlockingManagerImpl implements BlockingManager {
                 .withEventType(Type.VIRTUAL_THREAD_PINNED)
                 .withJsonFields();
 
-        return eventStreamRepository.genericStreaming(configurer, new PinnedThreadsBuilder(MAX_PINNED_ENTRIES));
+        return eventStreamRepository.genericStreaming(configurer, new PinnedThreadsBuilder(PINNED_THREADS_KEPT));
     }
 
     @Override

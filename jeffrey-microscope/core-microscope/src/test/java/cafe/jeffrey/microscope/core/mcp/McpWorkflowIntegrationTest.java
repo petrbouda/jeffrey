@@ -22,13 +22,18 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
+import cafe.jeffrey.microscope.core.mcp.tools.OperationResults;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.ToolFixtures;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.ProfileInitStages;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
@@ -46,9 +51,9 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -65,13 +70,13 @@ class McpWorkflowIntegrationTest {
     @Test
     void operationResultAndMetricsAreAvailableThroughTheRealEndpoint() {
         String id = completed(OperationKind.RECORDING_ANALYSIS);
-        var controller = controller(new ExternalMcpProperties(true, false, false,
+        var controller = controller(McpTestProperties.of(true, false, false,
                 Set.of("operations", "recordings")));
         JsonNode response = call(controller, "operations_status", id);
         assertFalse(response.path("result").path("isError").asBoolean());
         JsonNode operation = Json.readTree(response.path("result").path("content").get(0).path("text").asText());
         assertEquals(id, operation.path("operationId").asText());
-        assertEquals("completed", operation.path("status").asText());
+        assertEquals("COMPLETED", operation.path("status").asText());
         assertEquals("profile-1", operation.path("result").path("profileId").asText());
         JsonNode read = dispatch(controller, "resources/read", Json.createObject().put("uri", "jeffrey://diagnostics"));
         JsonNode diagnostics = Json.readTree(read.path("result").path("contents").get(0).path("text").asText());
@@ -83,7 +88,7 @@ class McpWorkflowIntegrationTest {
     @Test
     void operationToolsCannotReachAnExcludedOriginatingFamily() {
         String id = completed(OperationKind.HUB_DOWNLOAD);
-        var controller = controller(new ExternalMcpProperties(true, false, false,
+        var controller = controller(McpTestProperties.of(true, false, false,
                 Set.of("operations", "recordings")));
         assertTrue(call(controller, "operations_status", id).path("result").path("isError").asBoolean());
         assertTrue(call(controller, "operations_cancel", id).path("result").path("isError").asBoolean());
@@ -91,9 +96,9 @@ class McpWorkflowIntegrationTest {
 
     private String completed(OperationKind kind) {
         BoundedJobs<String, String> jobs =
-                new BoundedJobs<>(BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, clock);
+                ToolFixtures.jobs(BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, clock);
         var handle = jobs.startOrJoin("key", false, value -> true, () -> "profile-1");
-        String id = operations.register(kind, handle, value -> Map.of("profileId", value));
+        String id = operations.register(kind, handle, OperationResults.Profile::new);
         assertEquals("profile-1", jobs.awaitWithin(handle, Duration.ofSeconds(5)).orElseThrow());
         return id;
     }
@@ -103,17 +108,21 @@ class McpWorkflowIntegrationTest {
         RecordingsManager recordings = mock(RecordingsManager.class);
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
         McpToolsetAssembler assembler = new McpToolsetAssembler(
-                new ProfilesMcpTools(repositories),
-                new RecordingsMcpTools(recordings, new PipelineRunRegistry<>(ProfileInitStages.DEFINITION,
-                        PipelineRunOptions.unbounded(), clock), operations, clock),
-                new HubsMcpTools(hubs, resolver, recordings, clock, operations),
+                new ProfilesMcpTools(repositories, EVERY_FAMILY),
+                RecordingsMcpToolsFixture.of(recordings, new PipelineRunRegistry<>(ProfileInitStages.DEFINITION,
+                        PipelineRunOptions.unbounded(), clock), operations, clock).build(),
+                HubsMcpToolsFixture.of(hubs, resolver, recordings, clock).withOperations(operations).build(),
                 mock(McpProfileContextCache.class), mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
-                new HubsArtifactsMcpTools(resolver, recordings, Path.of("artifacts"), Path.of("profiles"), operations, clock),
-                operations, clock);
-        return new ExternalMcpController(assembler, properties, new McpRequestGuard(), new McpPromptRegistry(),
-                new McpDiagnostics(repositories, hubs, properties, clock, Duration.ofSeconds(1)));
+                AdvertisedFamilies.of(properties),
+                HubsArtifactsMcpToolsFixture.of(resolver, recordings, Path.of("artifacts"), Path.of("profiles"),
+                        operations, clock, EVERY_FAMILY).build(),
+                operations, ToolFixtures.answers(), clock);
+        return new ExternalMcpController(assembler, properties, McpTestGuards.loopback(),
+                new McpPromptRegistry(McpSkillCatalogue.fromClasspath()),
+                new McpDiagnostics(repositories, hubs, properties, clock, Duration.ofSeconds(1), McpSkillProvider.NONE),
+                AdvertisedFamilies.of(properties), McpTaskProvider.NONE, McpSkillProvider.NONE);
     }
 
     private static JsonNode call(ExternalMcpController controller, String tool, String id) {
@@ -123,11 +132,10 @@ class McpWorkflowIntegrationTest {
     }
 
     private static JsonNode dispatch(ExternalMcpController controller, String method, ObjectNode params) {
-        ObjectNode request = Json.createObject().put("jsonrpc", "2.0").put("id", 1).put("method", method);
-        request.set("params", params);
+        McpTestRequests.Request request = McpTestRequests.request(method, params);
         MockHttpServletRequest http = new MockHttpServletRequest();
         http.setServerName("localhost");
-        http.addHeader("MCP-Protocol-Version", "2025-06-18");
-        return controller.handle(request, http).getBody();
+        request.httpHeaders().forEach(http::addHeader);
+        return controller.handle(request.body(), http).getBody();
     }
 }

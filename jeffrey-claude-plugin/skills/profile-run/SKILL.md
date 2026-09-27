@@ -1,6 +1,6 @@
 ---
 name: profile-run
-description: Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: "profile this benchmark", "record a JFR while the tests run", "why is this slow" with no recording in hand, or when a hotspot needs measuring rather than guessing.
+description: "Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: \"profile this benchmark\", \"record a JFR while the tests run\", \"why is this slow\" with no recording in hand, or when a hotspot needs measuring rather than guessing."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 argument-hint: "[what to run] [cpu|wall|alloc|lock]"
 ---
@@ -13,9 +13,7 @@ that does not have a recording yet, and ends where `analyze-jfr` begins.
 Requested scope: `$ARGUMENTS` — what to run, and optionally what to look for. Empty means ask, or
 infer from the repository if a benchmark or a test is the obvious thing to profile.
 
-Tool names below omit the prefix your client puts in front of them
-(`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex,
-`mcp_jeffrey_` in Gemini CLI).
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
 
 ## 1. Decide what to run, and say so before running it
 
@@ -62,14 +60,19 @@ path. If Jeffrey runs in a container, write into a mounted directory.
 ## 3. Import and analyse
 
 ```
-recordings_analyzeFile(path="/absolute/path/run.jfr")
+recordings_analyzeFile(path="/absolute/path/run.jfr", force=true)
 ```
 
-A small recording comes back with a `profileId`. A large one comes back with a status of `running`
+`force=true` because this file was just written: a run recorded to the same path as an earlier one
+often has the same name and a size Jeffrey already knows, and without it the import hands back the
+old profile instead of this run.
+
+A small recording comes back with a `profileId`. A large one comes back with a status of `RUNNING`
 and an `operationId` — no `recordingId` yet, because the copy may still be in flight — and
 `operations_status(operationId)` follows it until the `profileId` appears. Poll that rather than
-importing again, which would build a second profile of the same file; `operations_cancel(operationId)`
-stops an import that pointed at the wrong file. The ids live for an hour in Jeffrey's memory.
+calling again; `recordings_analyzeFile` returns the existing profile for a file with the same name
+and size as one already imported; after re-recording to the same path, pass `force=true`.
+`operations_cancel(operationId)` stops an import that pointed at the wrong file. The ids live for an hour in Jeffrey's memory.
 
 Then hand off: the **analyze-jfr** skill has the families, the entry sequence and the flamegraph
 choice per question. Start with `profiles_summary` — it reports what the recording actually captured,

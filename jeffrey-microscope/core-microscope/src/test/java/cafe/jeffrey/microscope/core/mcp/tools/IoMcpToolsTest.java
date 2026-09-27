@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.manager.IoManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
@@ -24,10 +28,7 @@ import cafe.jeffrey.profile.manager.model.io.IoKind;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.profile.mcp.ToolDispatchException;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -40,12 +41,14 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -65,6 +68,7 @@ class IoMcpToolsTest {
 
     /** Above the tool's own endpoint cap, so the head of a long list can be told from the whole. */
     private static final int MORE_ENDPOINTS_THAN_THE_CAP = 45;
+    private static final int ENDPOINT_CAP = 40;
 
     @Mock
     ProfileManager profileManager;
@@ -93,7 +97,11 @@ class IoMcpToolsTest {
     }
 
     private IoMcpTools tools() {
-        return new IoMcpTools(profileManager);
+        return new IoMcpTools(profileManager, EVERY_FAMILY);
+    }
+
+    private static JsonNode answer(String method, McpToolResult result) {
+        return StructuredAnswers.json(IoMcpTools.class, method, result);
     }
 
     private static IoOverview overview(String slowestTarget) {
@@ -116,6 +124,11 @@ class IoMcpToolsTest {
         return endpoints;
     }
 
+    @Test
+    void everyToolDeclaresAnOutputSchema() {
+        assertEquals(List.of(), StructuredAnswers.unschematised(IoMcpTools.class));
+    }
+
     @Nested
     class Overview {
 
@@ -123,12 +136,13 @@ class IoMcpToolsTest {
         void carriesTheThroughputAndTheSlowestTargetForSockets() {
             when(ioManager.overview(IoKind.SOCKET)).thenReturn(overview(SOCKET_PEER));
 
-            String out = tools().overview(IoKind.SOCKET);
+            JsonNode out = answer("overview", tools().overview(IoKind.SOCKET));
 
-            assertTrue(out.contains("\"kind\":\"SOCKET\""), out);
-            assertTrue(out.contains("\"bytesRead\":4096000"), out);
-            assertTrue(out.contains(SOCKET_PEER), out);
-            assertTrue(out.contains(SOCKET_VIEW_LINK), out);
+            assertEquals("OK", out.get("status").asString());
+            assertEquals("SOCKET", out.get("kind").asString());
+            assertEquals(4_096_000L, out.get("overview").get("bytesRead").asLong());
+            assertEquals(SOCKET_PEER, out.get("overview").get("slowestTarget").asString());
+            assertTrue(out.get("uiLink").asString().endsWith(SOCKET_VIEW_LINK), out.get("uiLink").asString());
         }
 
         /**
@@ -139,21 +153,34 @@ class IoMcpToolsTest {
         void linksTheFileDashboardWhenTheQuestionWasAboutFiles() {
             when(ioManager.overview(IoKind.FILE)).thenReturn(overview(FILE_PATH));
 
-            String out = tools().overview(IoKind.FILE);
+            JsonNode out = answer("overview", tools().overview(IoKind.FILE));
 
-            assertTrue(out.contains("\"kind\":\"FILE\""), out);
-            assertTrue(out.contains(FILE_VIEW_LINK), out);
-            assertFalse(out.contains(SOCKET_VIEW_LINK), out);
+            assertEquals("FILE", out.get("kind").asString());
+            assertTrue(out.get("uiLink").asString().endsWith(FILE_VIEW_LINK), out.get("uiLink").asString());
         }
 
         @Test
-        void saysThereIsNoSocketDataRatherThanRenderingAZeroDashboard() {
+        void routesToTheTargetsAndTheSlowestOperationsOfTheSameKind() {
+            when(ioManager.overview(IoKind.FILE)).thenReturn(overview(FILE_PATH));
+
+            JsonNode out = answer("overview", tools().overview(IoKind.FILE));
+
+            assertEquals("FILE", StructuredAnswers.call(out, "io_endpoints").get("kind").asString());
+            assertEquals("FILE", StructuredAnswers.call(out, "io_slowest").get("kind").asString());
+            assertTrue(StructuredAnswers.guidance(out).contains("off-CPU"), StructuredAnswers.guidance(out));
+        }
+
+        @Test
+        void saysThereIsNoSocketDataAsAStatusRatherThanRenderingAZeroDashboard() {
             when(ioManager.overview(IoKind.SOCKET)).thenReturn(nothingRecorded());
 
-            String out = tools().overview(IoKind.SOCKET);
+            JsonNode out = answer("overview", tools().overview(IoKind.SOCKET));
 
-            assertTrue(out.contains("recorded no socket I/O events"), out);
-            assertFalse(out.contains("\"bytesRead\""), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("recorded no socket I/O events"), out.toString());
+            assertTrue(out.get("overview").isNull());
+            assertTrue(out.get("uiLink").asString().endsWith(SOCKET_VIEW_LINK));
+            assertEquals("FILE", StructuredAnswers.call(out, "io_overview").get("kind").asString());
         }
 
         /**
@@ -177,35 +204,57 @@ class IoMcpToolsTest {
         void ranksTheTargetsWithWhatEachCost() {
             when(ioManager.endpoints(IoKind.SOCKET)).thenReturn(List.of(endpoint(SOCKET_PEER)));
 
-            String out = tools().endpoints(IoKind.SOCKET);
+            JsonNode endpoint = answer("endpoints", tools().endpoints(IoKind.SOCKET)).get("endpoints").get(0);
 
-            assertTrue(out.contains(SOCKET_PEER), out);
-            assertTrue(out.contains("\"opCount\":620"), out);
-            assertTrue(out.contains("\"maxNanos\":9000000"), out);
+            assertEquals(SOCKET_PEER, endpoint.get("target").asString());
+            assertEquals(620, endpoint.get("opCount").asLong());
+            assertEquals(9_000_000L, endpoint.get("maxNanos").asLong());
         }
 
         @Test
         void saysThereIsNoFileDataWhenNoFileEndpointWasRecorded() {
             when(ioManager.endpoints(IoKind.FILE)).thenReturn(List.of());
 
-            String out = tools().endpoints(IoKind.FILE);
+            JsonNode out = answer("endpoints", tools().endpoints(IoKind.FILE));
 
-            assertTrue(out.contains("recorded no file I/O events"), out);
-            assertFalse(out.contains("\"endpoints\""), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("recorded no file I/O events"), out.toString());
+            assertEquals(0, out.get("endpoints").size());
+            assertTrue(out.get("omittedEndpoints").isNull());
         }
 
         /**
          * A service that puts identifiers in its paths produces one endpoint per request, so the
-         * ranking is rendered head-first and the tail is left out of the answer.
+         * ranking keeps its head and counts the tail it left out.
          */
         @Test
-        void rendersOnlyTheHeadOfALongEndpointRanking() {
+        void keepsTheHeadOfALongEndpointRankingAndCountsTheRest() {
             when(ioManager.endpoints(IoKind.SOCKET)).thenReturn(manyEndpoints());
 
-            String out = tools().endpoints(IoKind.SOCKET);
+            JsonNode out = answer("endpoints", tools().endpoints(IoKind.SOCKET));
 
-            assertTrue(out.contains("\"target\":\"peer-39\""), out);
-            assertFalse(out.contains("\"target\":\"peer-40\""), out);
+            assertEquals(ENDPOINT_CAP, out.get("endpoints").size());
+            assertEquals("peer-39", out.get("endpoints").get(39).get("target").asString());
+            assertEquals(MORE_ENDPOINTS_THAN_THE_CAP - ENDPOINT_CAP, out.get("omittedEndpoints").asInt());
+        }
+
+        /** The event fields name an unknown host or path with their own label, so a target is never null. */
+        @Test
+        void aTargetIsNeverNull() {
+            assertEquals("string", StructuredAnswers.schemaTypeOf(
+                    IoMcpTools.class, "endpoints", "endpoints", "target").asString());
+            assertEquals("string", StructuredAnswers.schemaTypeOf(
+                    IoMcpTools.class, "slowest", "operations", "target").asString());
+        }
+
+        /** The slowest operation is only set by an operation that took time, so an all-zero recording has none. */
+        @Test
+        void anOverviewWithNoSlowestTargetConformsAsNull() {
+            when(ioManager.overview(IoKind.SOCKET)).thenReturn(new IoOverview(10, 0, 3, 0, null, true));
+
+            JsonNode out = answer("overview", tools().overview(IoKind.SOCKET));
+
+            assertTrue(out.get("overview").get("slowestTarget").isNull());
         }
 
         @Test
@@ -222,18 +271,31 @@ class IoMcpToolsTest {
             when(ioManager.slowestOperations(IoKind.SOCKET)).thenReturn(List.of(
                     new IoOperation("Socket Read", SOCKET_PEER, 8_192L, 96_000_000L, "http-nio-8080-exec-3")));
 
-            String out = tools().slowest(IoKind.SOCKET);
+            JsonNode operation = answer("slowest", tools().slowest(IoKind.SOCKET)).get("operations").get(0);
 
-            assertTrue(out.contains("\"thread\":\"http-nio-8080-exec-3\""), out);
-            assertTrue(out.contains("\"durationNanos\":96000000"), out);
-            assertTrue(out.contains(SOCKET_PEER), out);
+            assertEquals("http-nio-8080-exec-3", operation.get("thread").asString());
+            assertEquals(96_000_000L, operation.get("durationNanos").asLong());
+            assertEquals(SOCKET_PEER, operation.get("target").asString());
+        }
+
+        @Test
+        void anOperationWithoutAThreadConformsAsNull() {
+            when(ioManager.slowestOperations(IoKind.SOCKET)).thenReturn(List.of(
+                    new IoOperation("Socket Read", SOCKET_PEER, 8_192L, 96_000_000L, null)));
+
+            JsonNode operation = answer("slowest", tools().slowest(IoKind.SOCKET)).get("operations").get(0);
+
+            assertTrue(operation.get("thread").isNull());
         }
 
         @Test
         void saysThereIsNoDataWhenNoOperationWasRecorded() {
             when(ioManager.slowestOperations(IoKind.FILE)).thenReturn(List.of());
 
-            assertTrue(tools().slowest(IoKind.FILE).contains("recorded no file I/O events"));
+            JsonNode out = answer("slowest", tools().slowest(IoKind.FILE));
+
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("recorded no file I/O events"), out.toString());
         }
     }
 

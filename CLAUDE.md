@@ -14,6 +14,8 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
   microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles, hubs)
   grpc-client/ + hub-client/           gRPC clients, aggregated by the HubClients record
+  mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
+                                       no Jeffrey, no Spring (ModuleBoundaryTest)
   recordings-core/ recording-storage-api/ notifications/
   ui-hubs/                             hub browser: REST controllers + Vue module (@hubs)
   profiles/                            analysis modules: profile-management (features + REST), recording-parser/
@@ -21,7 +23,8 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        profile-{persistence-api,sql-persistence}, flamegraph, timeseries, subsecond,
                                        profile-threads, profile-gc, profile-memory, profile-custom-events, frame-ir,
                                        heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
-                                       mcp-server (the MCP protocol layer)
+                                       mcp-server (Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile
+                                       scoping, hints, findings)
 jeffrey-hub/                           HubApplication (core-hub: gRPC services, scheduler/jobs, web/), hub-model,
                                        hub-{persistence-api,sql-persistence}, pages-hub (minimal Vue UI)
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
@@ -80,13 +83,13 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 ## Architecture invariants (never)
 
 - **Hub and Microscope share no domain type.** Each maps `shared/hub-api` protos onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
-- **MCP belongs to Microscope only** (`POST /api/mcp`; `/api/internal/mcp` is the legacy alias). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks and reads them itself.
+- **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
 - **A recording's files are never joined**; a download is an unbroken run of chunks; the hub serves one file per call and reports only `is_recording`; compression happens in the compression job, never on a read path.
 - **Protos carry no `reserved`**: hub and Microscope ship together, so removed numbers are reused and survivors renumbered.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
-- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 111 tools and the nine writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
+- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 111 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
 

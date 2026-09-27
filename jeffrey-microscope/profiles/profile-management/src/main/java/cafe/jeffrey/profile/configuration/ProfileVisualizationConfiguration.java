@@ -48,7 +48,7 @@ public class ProfileVisualizationConfiguration {
             "${jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct:0.05}";
 
     private static final String AI_EXPORT_MIN_FRAME_THRESHOLD_PCT_PROPERTY =
-            "${jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct:1.0}";
+            "${jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct:2.0}";
 
     private final ProfileRepositories profileRepositories;
     private final DatabaseManagerResolver databaseManagerResolver;

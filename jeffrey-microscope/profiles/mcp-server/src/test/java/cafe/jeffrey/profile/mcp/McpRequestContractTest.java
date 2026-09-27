@@ -16,6 +16,12 @@
  */
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpPrompt;
+import cafe.jeffrey.microscope.mcp.protocol.McpPromptProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpServerFeatures;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestFeatures;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,10 +29,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.BooleanNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests.request;
+import static cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests.toolCall;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -38,7 +48,7 @@ class McpRequestContractTest {
     private final ContractTools target = new ContractTools();
     private final McpPrompt prompt = new McpPrompt("analyze", "Analyze", "Analyze a profile",
             List.of(new McpPrompt.Argument("profileId", "Profile to analyze", true)), "Read the profile.");
-    private final McpServerFeatures features = new McpServerFeatures(
+    private final McpServerFeatures features = McpTestFeatures.of(
             () -> new ReflectiveToolset(target, "test"),
             () -> new McpPromptProvider() {
                 @Override
@@ -53,35 +63,42 @@ class McpRequestContractTest {
             }, () -> null);
     private final AbstractMcpStreamableHttpController controller = new AbstractMcpStreamableHttpController() {};
 
-    private JsonNode dispatch(String body) {
-        return controller.dispatch(Json.readTree(body), null, features).getBody();
+    private JsonNode dispatch(McpTestRequests.Request request) {
+        return controller.dispatch(request.body(), request.headers(), features).getBody();
     }
 
-    private void assertError(String body, int code) {
-        JsonNode response = dispatch(body);
-        assertNotNull(response, body);
+    private void assertError(McpTestRequests.Request request, int code) {
+        JsonNode response = dispatch(request);
+        assertNotNull(response, request.json());
         assertEquals(code, response.path("error").path("code").asInt(), response.toString());
+    }
+
+    private static McpTestRequests.Request check(String argumentsJson) {
+        return toolCall("test_check", (ObjectNode) Json.readTree(argumentsJson));
     }
 
     @Test
     void rejectsMalformedEnvelopesBeforeTreatingThemAsNotifications() {
-        for (String body : List.of("{}", "{\"id\":1,\"method\":\"ping\"}",
-                "{\"jsonrpc\":\"1.0\",\"id\":1,\"method\":\"ping\"}",
-                "{\"jsonrpc\":\"2.0\",\"id\":{},\"method\":\"ping\"}",
-                "{\"jsonrpc\":\"2.0\",\"id\":true,\"method\":\"ping\"}",
-                "{\"jsonrpc\":\"2.0\",\"method\":42}")) {
-            assertError(body, -32600);
+        McpTestRequests.Request list = request("tools/list");
+        for (McpTestRequests.Request malformed : List.of(
+                list.editBody(body -> body.remove("jsonrpc")),
+                list.editBody(body -> body.put("jsonrpc", "1.0")),
+                list.withId(Json.createObject()),
+                list.withId(BooleanNode.TRUE),
+                list.editBody(body -> body.put("method", 42)),
+                list.editBody(body -> body.remove("id")).editBody(body -> body.put("method", 42)))) {
+            assertError(malformed, -32600);
         }
     }
 
     @Test
     void answersRequestsEvenWhenTheirMethodLooksLikeANotification() {
-        assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"notifications/initialized\"}", -32601);
+        assertError(request("notifications/initialized"), -32601);
     }
 
     @Test
     void refusesNonObjectParams() {
-        assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":[]}", -32602);
+        assertError(request("tools/list").editBody(body -> body.set("params", Json.createArray())), -32602);
     }
 
     /**
@@ -94,9 +111,9 @@ class McpRequestContractTest {
     @Test
     void refusesACursorOnEveryListMethodBecauseNoneOfThemPaginates() {
         for (String method : List.of("tools/list", "prompts/list", "resources/list", "resources/templates/list")) {
-            String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"" + method + "\",\"params\":{\"cursor\":\"page-2\"}}";
-            assertError(body, -32602);
-            String message = dispatch(body).path("error").path("message").asString();
+            McpTestRequests.Request paged = request(method, "{\"cursor\":\"page-2\"}");
+            assertError(paged, -32602);
+            String message = dispatch(paged).path("error").path("message").asString();
             assertTrue(message.contains("cursor"), message);
             assertTrue(message.contains(method), message);
         }
@@ -104,53 +121,72 @@ class McpRequestContractTest {
 
     @Test
     void refusesACursorThatIsNotEvenAString() {
-        assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"cursor\":7}}", -32602);
+        assertError(request("tools/list", "{\"cursor\":7}"), -32602);
     }
 
     /** An omitted, null or blank cursor is no cursor, and the list is answered as usual. */
     @Test
     void listsWhenTheCursorIsAbsentNullOrBlank() {
         for (String params : List.of("{}", "{\"cursor\":null}", "{\"cursor\":\"\"}")) {
-            JsonNode response = dispatch("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":" + params + "}");
+            JsonNode response = dispatch(request("tools/list", params));
             assertFalse(response.has("error"), response.toString());
             assertTrue(response.path("result").path("tools").isArray(), response.toString());
         }
     }
 
+    /**
+     * Arguments that are not an object at all are a malformed request, not a mistake in one value: the
+     * call has no shape a tool could be given, so it stays a JSON-RPC error.
+     */
     @Test
-    void refusesIncorrectToolTypesAndRangesBeforeInvocation() {
-        for (String args : List.of("[]", "null", "{\"limit\":1.9}", "{\"limit\":\"1\"}",
+    void refusesArgumentsThatAreNotAnObjectAsAProtocolError() {
+        for (String args : List.of("[]", "null", "\"x\"", "7")) {
+            assertError(toolCall("test_check", null).editBody(body ->
+                    ((ObjectNode) body.get("params")).set("arguments", Json.readTree(args))), -32602);
+        }
+        assertEquals(0, target.calls);
+    }
+
+    @Test
+    void refusesAnUnknownToolAsAProtocolError() {
+        assertError(toolCall("test_nosuch", Json.createObject()), -32602);
+    }
+
+    /**
+     * A value that does not fit its type or range is something the model can correct, so it comes back
+     * as a tool result with isError set, naming the argument, and the tool body never runs.
+     */
+    @Test
+    void answersIncorrectToolTypesAndRangesAsToolErrorsBeforeInvocation() {
+        for (String args : List.of("{\"limit\":1.9}", "{\"limit\":\"1\"}",
                 "{\"limit\":2147483648}", "{\"limit\":true}", "{\"limit\":{}}",
                 "{\"label\":12}", "{\"enabled\":\"true\"}", "{\"direction\":\"invalid\"}",
                 "{\"direction\":42}", "{\"direction\":true}", "{\"direction\":[]}", "{\"direction\":{}}",
                 "{\"sequence\":9223372036854775808}", "{\"ratio\":1e100}", "{\"measured\":1e400}")) {
-            assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"test_check\",\"arguments\":" + args + "}}", -32602);
+            JsonNode response = dispatch(check(args));
+            assertFalse(response.has("error"), args + " -> " + response);
+            assertTrue(response.path("result").path("isError").asBoolean(), args + " -> " + response);
+            String text = response.path("result").path("content").get(0).path("text").asString();
+            assertTrue(text.startsWith("Error: Invalid argument '"), args + " -> " + text);
         }
         assertEquals(0, target.calls);
     }
 
     @Test
     void acceptsValidTypesAndOptionalOmissions() {
-        JsonNode response = dispatch("""
-                {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"test_check",
-                "arguments":{"limit":2,"label":"x","enabled":true,"direction":"server"}}}
-                """);
+        JsonNode response = dispatch(check("""
+                {"limit":2,"label":"x","enabled":true,"direction":"server"}"""));
         assertFalse(response.path("result").path("isError").asBoolean());
         assertEquals(1, target.calls);
         assertEquals("SERVER", target.direction);
-        assertFalse(dispatch("""
-                {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"test_check"}}
-                """).path("result").path("isError").asBoolean());
+        assertFalse(dispatch(toolCall("test_check", null)).path("result").path("isError").asBoolean());
         assertEquals(2, target.calls);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "\t\n", "\u2003"})
     void passesBlankEnumeratedArgumentsToTheTool(String direction) {
-        JsonNode response = dispatch("""
-                {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"test_check",
-                "arguments":%s}}
-                """.formatted(Json.createObject().put("direction", direction)));
+        JsonNode response = dispatch(toolCall("test_check", Json.createObject().put("direction", direction)));
 
         assertTrue(response.has("result"), response.toString());
         assertFalse(response.path("result").path("isError").asBoolean(), response.toString());
@@ -162,7 +198,7 @@ class McpRequestContractTest {
     @Test
     void rejectsNonStringProfileIdsBeforeResolvingAProfile() {
         AtomicInteger resolutions = new AtomicInteger();
-        var tools = new ProfileScopedToolset<>(ContractTools.class, "test", id -> {
+        var tools = McpTestToolsets.unscoped(ContractTools.class, "test", id -> {
             resolutions.incrementAndGet();
             return target;
         });
@@ -174,14 +210,18 @@ class McpRequestContractTest {
     @Test
     void preservesPromptContextAndRejectsInvalidArguments() {
         for (String id : List.of("profile-a", "profile-b")) {
-            String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"prompts/get\",\"params\":{\"name\":\"analyze\",\"arguments\":{\"profileId\":\"" + id + "\"}}}";
-            String text = dispatch(body).path("result").path("messages").get(0).path("content").path("text").asString();
+            ObjectNode params = Json.createObject().put("name", "analyze");
+            params.putObject("arguments").put("profileId", id);
+            String text = dispatch(request("prompts/get", params))
+                    .path("result").path("messages").get(0).path("content").path("text").asString();
             assertTrue(text.contains(id));
             assertTrue(text.contains(prompt.text()));
         }
         for (String args : List.of("{}", "[]", "{\"profileId\":123}",
                 "{\"profileId\":\"p\",\"unknown\":\"x\"}")) {
-            assertError("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"prompts/get\",\"params\":{\"name\":\"analyze\",\"arguments\":" + args + "}}", -32602);
+            ObjectNode params = Json.createObject().put("name", "analyze");
+            params.set("arguments", Json.readTree(args));
+            assertError(request("prompts/get", params), -32602);
         }
     }
 

@@ -34,7 +34,6 @@ import java.util.Map;
 public class AllocatedTypesBuilder implements RecordBuilder<GenericRecord, List<AllocatedType>> {
 
     private static final String OBJECT_CLASS_FIELD = "objectClass";
-    private static final String UNKNOWN_CLASS = "<unknown>";
 
     private static final class Accumulator {
         private long bytes;
@@ -55,7 +54,7 @@ public class AllocatedTypesBuilder implements RecordBuilder<GenericRecord, List<
     public void onRecord(GenericRecord record) {
         String objectClass = Json.readString(record.jsonFields(), OBJECT_CLASS_FIELD);
         if (objectClass == null) {
-            objectClass = UNKNOWN_CLASS;
+            objectClass = AllocatedType.UNKNOWN_CLASS;
         }
         Accumulator accumulator = accumulatorsByClass.computeIfAbsent(objectClass, key -> new Accumulator());
         accumulator.bytes += Math.max(0, record.sampleWeight());

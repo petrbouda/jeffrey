@@ -167,6 +167,11 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         }
     }
 
+    @Override
+    public Optional<Recording> findByFileNameAndSize(String fileName, long sizeInBytes) {
+        return recordingRepository.findByFileNameAndSize(fileName, sizeInBytes);
+    }
+
     /**
      * Stores a downloaded session as one recording holding the several files it arrived as.
      * <p>

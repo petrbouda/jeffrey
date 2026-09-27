@@ -49,13 +49,38 @@ class MarkdownTableTest {
     @Nested
     class Escaping {
 
+        /**
+         * The escape is GitHub-flavoured Markdown's own, so the value survives byte for byte for a reader
+         * that knows it: a pipe inside JSON, a URL or a regular expression is data, and rewriting it to
+         * a slash handed back a different value.
+         */
         @Test
         void keepsAPipeInsideItsCell() {
             String out = MarkdownTable.withColumns("name", "id")
                     .row("checkout | before", "p-1")
                     .render();
 
-            assertTrue(out.contains("| checkout / before | p-1 |"), out);
+            assertTrue(out.contains("| checkout \\| before | p-1 |"), out);
+        }
+
+        /** Only the pipe is escaped, so unescaping only {@code \\|} gives back the original bytes. */
+        @Test
+        void escapesAPipeAfterABackslashOnlyByItsOwnEscape() {
+            String out = MarkdownTable.withColumns("value")
+                    .row("a\\|b")
+                    .render();
+
+            assertTrue(out.contains("| a\\\\|b |"), out);
+        }
+
+        @Test
+        void escapesAPipeRatherThanRewritingIt() {
+            String out = MarkdownTable.withColumns("fields")
+                    .row("{\"filter\":\"a|b\",\"url\":\"http://x/?q=1|2\"}")
+                    .render();
+
+            assertTrue(out.contains("| {\"filter\":\"a\\|b\",\"url\":\"http://x/?q=1\\|2\"} |"), out);
+            assertFalse(out.contains("a/b"), out);
         }
 
         @Test

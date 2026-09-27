@@ -17,8 +17,12 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.shared.common.Json;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -36,77 +40,85 @@ import java.util.List;
  */
 public final class LinkedOutput {
 
-    private static final String LINK_BLOCK = "%s%n%n---%nOpen in Jeffrey: %s";
-    private static final String LINK_BLOCK_WITH_NOTE = "%s%n%n---%nOpen in Jeffrey (%s): %s";
-    private static final String NEXT_STEPS_HEADING = "Where to go next:";
+    /**
+     * What ends a line. Written out rather than taken from the platform, as {@code MarkdownTable} does:
+     * the text is read by a model, and an answer whose table rows ended one way and whose link block
+     * ended another was one document in two conventions.
+     */
+    private static final String LINE_BREAK = "\n";
     private static final String NEXT_STEPS_BULLET = "- ";
+
+    private static final String FOOTER_RULE = "\n\n---\n";
+    private static final String FOOTER_LINK = "Open in Microscope: ";
+    private static final String FOOTER_NOTE = "Link note: ";
+    private static final String FOOTER_NEXT = "Next:";
+    private static final String FOOTER_GUIDANCE = "Guidance:";
+    private static final String CALL_SEPARATOR = " ";
+
+    /**
+     * The longest guidance line the footer repeats. A longer one is advice to read with the record,
+     * not a line the text should spend its budget on.
+     */
+    private static final int MAX_FOOTER_GUIDANCE_CHARS = 200;
 
     private LinkedOutput() {
     }
 
     /**
-     * The answer, capped, followed by the link.
+     * A Markdown answer with its footer, rendered from the record its structured content is: the body
+     * capped with the footer's length reserved, then the footer. A host may hand the model only the
+     * text, so the text has to carry the link and the next calls too; reserving the footer's length is
+     * what keeps it whole when the envelope caps the full text again.
+     *
+     * @param followUp   the record's follow-up; each next call becomes one {@code Next:} line
+     * @param uiLink     the record's page for the user
+     * @param uiLinkNote what the link cannot reproduce, or {@code null}
      */
-    public static String of(String body, String url) {
-        return LINK_BLOCK.formatted(McpToolOutput.capped(body), url);
+    public static Footed footed(String body, McpFollowUp followUp, String uiLink, String uiLinkNote) {
+        String footer = footer(followUp, uiLink, uiLinkNote);
+        int budget = McpToolOutput.MAX_CHARS - footer.length();
+        String text = body == null ? "" : body;
+        return new Footed(McpToolOutput.cappedWithin(text, budget) + footer, text.length() > budget);
     }
 
     /**
-     * The same, for a link that cannot reproduce everything the answer was built with — the note says
-     * what the reader will see instead, rather than letting a URL quietly show a different view.
+     * The footer alone, for an answer whose body is sized to fit before it is rendered - a page of
+     * rows that is measured, never cut - and so needs no cap of its own.
+     *
+     * @param uiLink the record's page for the user, or {@code null} for a tool whose subject has no
+     *               page; the footer then holds the next calls alone
      */
-    public static String of(String body, String url, String note) {
-        return LINK_BLOCK_WITH_NOTE.formatted(McpToolOutput.capped(body), note, url);
-    }
-
-    /**
-     * The answer, capped, then where to go next, then the link.
-     * <p>
-     * A Markdown export has no field to put routing in the way a JSON answer does, so it goes in the
-     * same trailing block as the link - after the cap, for the same reason the link is: an oversized
-     * export is exactly the one whose reader most needs to know what to do with it.
-     */
-    public static String of(String body, List<String> nextSteps, String url) {
-        return LINK_BLOCK.formatted(cappedWithNextSteps(body, nextSteps), url);
-    }
-
-    /**
-     * The same, for a link that cannot reproduce everything the answer was built with.
-     */
-    public static String of(String body, List<String> nextSteps, String url, String note) {
-        return LINK_BLOCK_WITH_NOTE.formatted(cappedWithNextSteps(body, nextSteps), note, url);
-    }
-
-    /**
-     * The body capped, with the routing after it — capped exactly once.
-     * <p>
-     * Capping twice is what this avoids, and it is not a hypothetical: an oversized body comes back
-     * from {@link McpToolOutput#capped(String)} already <em>at</em> the limit plus its truncation
-     * note, so appending anything and capping again cuts the note and the steps straight back off.
-     * The steps were being dropped from precisely the answers they were added for.
-     */
-    private static String cappedWithNextSteps(String body, List<String> nextSteps) {
-        String capped = McpToolOutput.capped(body);
-        if (nextSteps.isEmpty()) {
-            return capped;
+    public static String footer(McpFollowUp followUp, String uiLink, String uiLinkNote) {
+        List<String> lines = new ArrayList<>();
+        if (uiLink != null) {
+            lines.add(FOOTER_LINK + uiLink);
         }
-
-        StringBuilder builder = new StringBuilder(capped)
-                .append(System.lineSeparator())
-                .append(System.lineSeparator())
-                .append(NEXT_STEPS_HEADING);
-        for (String step : nextSteps) {
-            builder.append(System.lineSeparator()).append(NEXT_STEPS_BULLET).append(step);
+        if (uiLinkNote != null) {
+            lines.add(FOOTER_NOTE + uiLinkNote);
         }
-        return builder.toString();
+        if (!followUp.nextTools().isEmpty()) {
+            lines.add(FOOTER_NEXT);
+            for (McpNextTool call : followUp.nextTools()) {
+                lines.add(NEXT_STEPS_BULLET + call.tool() + CALL_SEPARATOR + Json.toString(call.arguments()));
+            }
+        }
+        List<String> shortGuidance = followUp.guidance().stream()
+                .filter(line -> line.length() <= MAX_FOOTER_GUIDANCE_CHARS)
+                .toList();
+        if (!shortGuidance.isEmpty()) {
+            lines.add(FOOTER_GUIDANCE);
+            for (String line : shortGuidance) {
+                lines.add(NEXT_STEPS_BULLET + line);
+            }
+        }
+        return lines.isEmpty() ? "" : FOOTER_RULE + String.join(LINE_BREAK, lines);
     }
 
     /**
-     * A value rendered as JSON, capped. The link belongs <em>inside</em> the value here - as a
-     * {@code uiLink} field on the record being returned - because appending it as text would leave
-     * the answer no longer parseable as JSON.
+     * A footed answer's text, and whether its body had to be cut to leave the footer room.
+     *
+     * @param truncated whether the body exceeded the budget the footer left it
      */
-    public static String json(Object value) {
-        return McpToolOutput.json(value);
+    public record Footed(String text, boolean truncated) {
     }
 }

@@ -14,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionTypeStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionsOverview;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 
 import java.util.List;
 import java.util.Set;
@@ -38,7 +45,7 @@ import java.util.Set;
  * profile can honestly report millions of exceptions and name none of them, and that is a finding
  * about the profiler's configuration rather than an empty result.
  */
-public record ExceptionsSection(ProfileManager profileManager) implements JvmSection {
+public record ExceptionsSection(ProfileManager profileManager) implements JvmSection<ExceptionsSection.ExceptionsDashboard> {
 
     public static final String ID = "exceptions";
 
@@ -52,14 +59,17 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
             Type.JAVA_EXCEPTION_THROW,
             Type.JAVA_ERROR_THROW);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "A high total with no types named means jdk.JavaExceptionThrow was not recorded — the "
-                    + "count is real, the attribution is missing, and only a new recording fixes that.",
-            "Constructing an exception walks the stack, so a hot throw site shows up as "
-                    + "fillInStackTrace in an on-CPU flamegraph: flamegraph_export with eventType "
-                    + "jdk.ExecutionSample and a search for fillInStackTrace finds it.",
-            "Exceptions crossing a traced boundary are counted per operation in traces_operations, "
-                    + "which says which request they belong to.");
+    private static final String THROW_SITE_FRAME = "fillInStackTrace";
+
+    private static final String UNATTRIBUTED_GUIDANCE =
+            "The total is counted, but jdk.JavaExceptionThrow was not recorded, so no type is named: the "
+                    + "attribution is missing, and only a new recording with that event enabled supplies it.";
+    private static final String THROW_SITE_WHY =
+            "finds the hot throw sites: constructing an exception walks the stack, which shows up as "
+                    + "fillInStackTrace in the on-CPU flamegraph";
+    private static final String PER_OPERATION_WHY =
+            "counts the exceptions crossing a traced boundary per operation, which says which request they "
+                    + "belong to";
 
     @Override
     public String id() {
@@ -77,12 +87,26 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.EXCEPTIONS;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, ExceptionsDashboard dashboard) {
+        String profileId = profileManager.info().id();
+        SectionCalls.onCpu(next, profileManager, eventType -> SectionCalls.on(SectionCalls.FLAMEGRAPH_EXPORT, profileId)
+                .with(SectionCalls.EVENT_TYPE, eventType)
+                .with(SectionCalls.SEARCH, THROW_SITE_FRAME)
+                .why(THROW_SITE_WHY));
+        next.next(SectionCalls.on(SectionCalls.TRACES_OPERATIONS, profileId)
+                        .with(SectionCalls.SORT, TraceOperationSortField.ERRORS)
+                        .why(PER_OPERATION_WHY))
+                .guidanceWhen(dashboard.totalThrowables() > 0 && !dashboard.exceptionThrowsRecorded(),
+                        UNATTRIBUTED_GUIDANCE);
+    }
+
+    @Override
+    public ExceptionsDashboard render() {
         ExceptionsOverview overview = profileManager.exceptionsManager().overview();
         return new ExceptionsDashboard(
                 overview.totalThrowables(),
@@ -118,20 +142,55 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
      *                      built from — well below {@code totalThrowables} whenever the throw events
      *                      were not recorded
      */
-    private record ExceptionsDashboard(
+    public record ExceptionsDashboard(
             long totalThrowables,
             long sampledThrows,
             long errors,
             int distinctTypes,
             boolean exceptionThrowsRecorded,
             boolean errorThrowsRecorded,
+            @McpDescription("The " + TOP_TYPES_LIMIT + " types thrown most often, out of distinctTypes")
             List<ThrownType> topTypes) {
     }
 
-    private record ThrownType(
-            String thrownClass, long count, boolean error, int threadCount, List<Message> messages) {
+    public record ThrownType(
+            @McpNullable
+            String thrownClass,
+            long count,
+            boolean error,
+            int threadCount,
+            @McpDescription("The " + MESSAGES_LIMIT + " commonest messages")
+            List<Message> messages) {
     }
 
-    private record Message(String message, long count) {
+    public record Message(
+            @McpNullable
+            String message,
+            long count) {
+    }
+
+    /**
+     * What {@code jvm_exceptions} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            ExceptionsDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, ExceptionsDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

@@ -38,7 +38,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,7 +54,7 @@ class BoundedJobsTest {
 
     @Test
     void cancelledAttemptKeepsItsIdentityAndKeyUntilTheWorkerExits() throws InterruptedException {
-        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch interrupted = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
@@ -97,7 +96,7 @@ class BoundedJobsTest {
 
     @Test
     void cancellationBeforeHookRegistrationStillCancelsTheUnderlyingTransport() throws Exception {
-        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch installHook = new CountDownLatch(1);
         AtomicInteger cancellations = new AtomicInteger();
@@ -128,7 +127,7 @@ class BoundedJobsTest {
 
     @Test
     void cancellationDoesNotDiscardASuccessfullyPersistedResult() throws Exception {
-        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         OperationHandle<String> operation = jobs.startOrJoin("persisted", false, value -> true, () -> {
@@ -156,7 +155,7 @@ class BoundedJobsTest {
      */
     @Test
     void marksAnErrorAsFailedRatherThanLeavingTheAttemptRunning() {
-        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
         OperationHandle<String> operation = jobs.startOrJoin("fatal", false, value -> true, () -> {
             throw new StackOverflowError("simulated");
         });
@@ -168,7 +167,7 @@ class BoundedJobsTest {
 
     @Test
     void cancellationDoesNotHideAnIndependentWorkerFailure() throws Exception {
-        BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+        BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         OperationHandle<String> operation = jobs.startOrJoin("disk", false, value -> true, () -> {
@@ -186,6 +185,23 @@ class BoundedJobsTest {
         assertEquals(OperationState.FAILED, operation.snapshot().state());
         assertEquals("disk full", operation.snapshot().failure().getMessage());
         assertTrue(operation.snapshot().cancellationRequested());
+    }
+
+    /** Starts the work under its key, or joins the attempt there, and waits the jobs' own budget. */
+    private static <K, V> Optional<V> runWithin(BoundedJobs<K, V> jobs, K key, Supplier<V> work) {
+        return runWithin(jobs, key, jobs.waitBudget(), work);
+    }
+
+    /** The same, waiting {@code waitBudget}; a retained failure is started again. */
+    private static <K, V> Optional<V> runWithin(
+            BoundedJobs<K, V> jobs, K key, Duration waitBudget, Supplier<V> work) {
+        return runWithin(jobs, key, waitBudget, true, work);
+    }
+
+    /** The same, answering a retained failure unless {@code retryFailure}; a success is never reused. */
+    private static <K, V> Optional<V> runWithin(
+            BoundedJobs<K, V> jobs, K key, Duration waitBudget, boolean retryFailure, Supplier<V> work) {
+        return jobs.awaitWithin(jobs.startOrJoin(key, retryFailure, value -> false, work), waitBudget);
     }
 
     private static void awaitIgnoringInterrupts(CountDownLatch latch) {
@@ -206,17 +222,15 @@ class BoundedJobsTest {
     @Nested
     class CompletedSuccess {
 
-        private final BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+        private final BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
 
         private Object runWithReuse(Predicate<String> reuse, Supplier<String> work) {
-            var method = assertDoesNotThrow(() -> BoundedJobs.class.getMethod("runWithin",
-                    Object.class, Duration.class, boolean.class, Predicate.class, Supplier.class));
-            return assertDoesNotThrow(() -> method.invoke(jobs, "download", GENEROUS, false, reuse, work));
+            return jobs.awaitWithin(jobs.startOrJoin("download", false, reuse, work), GENEROUS);
         }
 
         @Test
         void atomicallyReusesAPersistedSuccessWhenPreflightFinishesAfterTheTransfer() {
-            jobs.runWithin("download", () -> "stored-recording");
+            runWithin(jobs, "download", () -> "stored-recording");
             assertEquals(Optional.of("stored-recording"), runWithReuse("stored-recording"::equals, () -> {
                 throw new AssertionError("A persisted completed transfer must not start again");
             }));
@@ -224,14 +238,14 @@ class BoundedJobsTest {
 
         @Test
         void restartsWhenThePreviouslyDownloadedRecordingWasDeleted() {
-            jobs.runWithin("download", () -> "deleted-recording");
+            runWithin(jobs, "download", () -> "deleted-recording");
             assertEquals(Optional.of("replacement"), runWithReuse(_ -> false, () -> "replacement"));
         }
 
         @Test
         void existingCallersStillStartFreshWorkAfterSuccess() {
-            jobs.runWithin("download", () -> "first");
-            assertEquals(Optional.of("second"), jobs.runWithin("download", () -> "second"));
+            runWithin(jobs, "download", () -> "first");
+            assertEquals(Optional.of("second"), runWithin(jobs, "download", () -> "second"));
         }
     }
 
@@ -253,7 +267,7 @@ class BoundedJobsTest {
         @Test
         void dropsTheOldestFinishedAttemptsOnceTheCapIsPassed() {
             for (int i = 0; i < MAX_RETAINED + 3; i++) {
-                jobs.runWithin("job-" + i, () -> "done");
+                runWithin(jobs, "job-" + i, () -> "done");
                 clock.advance(Duration.ofSeconds(1));
             }
 
@@ -265,7 +279,7 @@ class BoundedJobsTest {
         @Test
         void keepsEverythingWhileUnderTheCap() {
             for (int i = 0; i < MAX_RETAINED; i++) {
-                jobs.runWithin("job-" + i, () -> "done");
+                runWithin(jobs, "job-" + i, () -> "done");
                 clock.advance(Duration.ofSeconds(1));
             }
 
@@ -287,21 +301,21 @@ class BoundedJobsTest {
 
         private final MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
         private final BoundedJobs<String, String> jobs =
-                new BoundedJobs<>(GENEROUS, RETENTION, clock);
+                ToolFixtures.jobs(GENEROUS, RETENTION, clock);
 
         @Test
         void refusesARetentionOrClockThatCannotDateAnOutcome() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new BoundedJobs<>(GENEROUS, Duration.ZERO, clock));
+                    () -> ToolFixtures.jobs(GENEROUS, Duration.ZERO, clock));
             assertThrows(IllegalArgumentException.class,
-                    () -> new BoundedJobs<>(GENEROUS, null, clock));
+                    () -> ToolFixtures.jobs(GENEROUS, null, clock));
             assertThrows(IllegalArgumentException.class,
-                    () -> new BoundedJobs<>(GENEROUS, RETENTION, null));
+                    () -> ToolFixtures.jobs(GENEROUS, RETENTION, null));
         }
 
         @Test
         void keepsAnOutcomeReadableWithinTheRetentionWindow() {
-            jobs.runWithin("import-1", () -> "done");
+            runWithin(jobs, "import-1", () -> "done");
 
             clock.advance(RETENTION.minusMinutes(1));
 
@@ -310,15 +324,15 @@ class BoundedJobsTest {
 
         @Test
         void sweepsOutcomesNothingIsGoingToRead() {
-            jobs.runWithin("import-1", () -> "done");
+            runWithin(jobs, "import-1", () -> "done");
             assertThrows(RuntimeException.class,
-                    () -> jobs.runWithin("import-2", () -> {
+                    () -> runWithin(jobs, "import-2", () -> {
                         throw new IllegalStateException("no such file");
                     }));
 
             clock.advance(RETENTION.plusMinutes(1));
             // The sweep runs where keys are added, so asking for unrelated work is what collects them.
-            jobs.runWithin("import-3", () -> "done");
+            runWithin(jobs, "import-3", () -> "done");
 
             assertTrue(jobs.outcome("import-1").isEmpty(), "a stale success must not be retained");
             assertTrue(jobs.outcome("import-2").isEmpty(), "a stale failure must not be retained");
@@ -328,7 +342,7 @@ class BoundedJobsTest {
         @Test
         void doesNotReportASweptFailureToTheCallerThatFollowsIt() {
             assertThrows(RuntimeException.class,
-                    () -> jobs.runWithin("import-1", () -> {
+                    () -> runWithin(jobs, "import-1", () -> {
                         throw new IllegalStateException("no such file");
                     }));
 
@@ -336,7 +350,7 @@ class BoundedJobsTest {
 
             // retryFailure=false would rethrow a retained failure; a swept one starts fresh instead.
             assertEquals(Optional.of("done"),
-                    jobs.runWithin("import-1", GENEROUS, false, () -> "done"));
+                    runWithin(jobs, "import-1", GENEROUS, false, () -> "done"));
         }
     }
 
@@ -353,7 +367,7 @@ class BoundedJobsTest {
         @Test
         void aJobThatCannotBeScheduledLeavesItsKeyRetryable() {
             AtomicInteger scheduled = new AtomicInteger();
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS, Duration.ofMinutes(30), clock,
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS, Duration.ofMinutes(30), clock,
                     command -> {
                         if (scheduled.incrementAndGet() == 1) {
                             throw new RejectedExecutionException("shutting down");
@@ -362,11 +376,11 @@ class BoundedJobsTest {
                     });
 
             assertThrows(RejectedExecutionException.class,
-                    () -> jobs.runWithin("import-1", () -> "done"));
+                    () -> runWithin(jobs, "import-1", () -> "done"));
 
             assertFalse(jobs.isRunning("import-1"), "an attempt nothing will run is not running");
             assertTrue(jobs.outcome("import-1").isPresent(), "it must be readable as a failure");
-            assertEquals(Optional.of("done"), jobs.runWithin("import-1", () -> "done"),
+            assertEquals(Optional.of("done"), runWithin(jobs, "import-1", () -> "done"),
                     "the key must accept work again");
         }
     }
@@ -383,18 +397,18 @@ class BoundedJobsTest {
         private static final int ONE_AT_A_TIME = 1;
 
         private final BoundedJobs<String, String> jobs =
-                new BoundedJobs<>(GENEROUS, Duration.ofMinutes(30), Clock.systemUTC(), ONE_AT_A_TIME);
+                ToolFixtures.jobs(GENEROUS, Duration.ofMinutes(30), Clock.systemUTC(), ONE_AT_A_TIME);
 
         @Test
         void refusesAPermitCountThatCouldRunNothing() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new BoundedJobs<>(GENEROUS, Duration.ofMinutes(30), Clock.systemUTC(), 0));
+                    () -> ToolFixtures.jobs(GENEROUS, Duration.ofMinutes(30), Clock.systemUTC(), 0));
         }
 
         @Test
         void reportsThePermitCountItWasBuiltWith() {
             assertEquals(ONE_AT_A_TIME, jobs.maxConcurrent());
-            assertEquals(BoundedJobs.UNBOUNDED_CONCURRENCY, new BoundedJobs<>(GENEROUS).maxConcurrent());
+            assertEquals(BoundedJobs.UNBOUNDED_CONCURRENCY, ToolFixtures.jobs(GENEROUS).maxConcurrent());
         }
 
         @Test
@@ -501,22 +515,22 @@ class BoundedJobsTest {
 
         @Test
         void refusesABudgetThatIsNotPositive() {
-            assertThrows(IllegalArgumentException.class, () -> new BoundedJobs<>(Duration.ZERO));
+            assertThrows(IllegalArgumentException.class, () -> ToolFixtures.jobs(Duration.ZERO));
             assertThrows(IllegalArgumentException.class,
-                    () -> new BoundedJobs<>(Duration.ofSeconds(-1)));
-            assertThrows(IllegalArgumentException.class, () -> new BoundedJobs<>(null));
+                    () -> ToolFixtures.jobs(Duration.ofSeconds(-1)));
+            assertThrows(IllegalArgumentException.class, () -> ToolFixtures.jobs(null));
         }
 
         @Test
         void refusesAPerCallBudgetThatIsNotPositive() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
 
             assertThrows(IllegalArgumentException.class,
-                    () -> jobs.runWithin("r-1", Duration.ZERO, () -> "done"));
+                    () -> runWithin(jobs, "r-1", Duration.ZERO, () -> "done"));
             assertThrows(IllegalArgumentException.class,
-                    () -> jobs.runWithin("r-1", Duration.ofMillis(-1), () -> "done"));
+                    () -> runWithin(jobs, "r-1", Duration.ofMillis(-1), () -> "done"));
             assertThrows(IllegalArgumentException.class,
-                    () -> jobs.runWithin("r-1", null, () -> "done"));
+                    () -> runWithin(jobs, "r-1", null, () -> "done"));
         }
     }
 
@@ -525,9 +539,9 @@ class BoundedJobsTest {
 
         @Test
         void handsBackTheResultOfWorkThatFinishedInTime() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
 
-            assertEquals(Optional.of("done"), jobs.runWithin("r-1", () -> "done"));
+            assertEquals(Optional.of("done"), runWithin(jobs, "r-1", () -> "done"));
         }
 
         /**
@@ -537,10 +551,10 @@ class BoundedJobsTest {
          */
         @Test
         void reportsTheFailureTheWorkActuallyThrew() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
 
             IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                    () -> jobs.runWithin("r-1", () -> {
+                    () -> runWithin(jobs, "r-1", () -> {
                         throw new IllegalArgumentException("recording is not a JFR file");
                     }));
 
@@ -549,15 +563,15 @@ class BoundedJobsTest {
 
         @Test
         void canRetryImmediatelyAfterTheFirstAttemptThrows() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
             AtomicInteger attempts = new AtomicInteger();
 
-            assertThrows(IllegalStateException.class, () -> jobs.runWithin("r-1", () -> {
+            assertThrows(IllegalStateException.class, () -> runWithin(jobs, "r-1", () -> {
                 attempts.incrementAndGet();
                 throw new IllegalStateException("first attempt failed");
             }));
 
-            assertEquals(Optional.of("retry succeeded"), jobs.runWithin("r-1", () -> {
+            assertEquals(Optional.of("retry succeeded"), runWithin(jobs, "r-1", () -> {
                 attempts.incrementAndGet();
                 return "retry succeeded";
             }));
@@ -566,14 +580,14 @@ class BoundedJobsTest {
 
         @Test
         void canInspectARetainedFailureWithoutStartingTheSupplierAgain() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
             AtomicInteger attempts = new AtomicInteger();
-            assertThrows(IllegalStateException.class, () -> jobs.runWithin("r-1", () -> {
+            assertThrows(IllegalStateException.class, () -> runWithin(jobs, "r-1", () -> {
                 throw new IllegalStateException("first attempt failed");
             }));
 
             IllegalStateException failure = assertThrows(IllegalStateException.class,
-                    () -> jobs.runWithin("r-1", GENEROUS, false, () -> {
+                    () -> runWithin(jobs, "r-1", GENEROUS, false, () -> {
                         attempts.incrementAndGet();
                         return "must not run";
                     }));
@@ -588,9 +602,9 @@ class BoundedJobsTest {
          */
         @Test
         void forgetsAJobThatFailed() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
 
-            assertThrows(IllegalStateException.class, () -> jobs.runWithin("r-1", () -> {
+            assertThrows(IllegalStateException.class, () -> runWithin(jobs, "r-1", () -> {
                 throw new IllegalStateException("hub stopped answering");
             }));
 
@@ -599,8 +613,8 @@ class BoundedJobsTest {
 
         @Test
         void forgetsAJobThatSucceeded() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
-            jobs.runWithin("r-1", () -> "done");
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
+            runWithin(jobs, "r-1", () -> "done");
 
             await().atMost(5, SECONDS).untilAsserted(() -> assertFalse(jobs.isRunning("r-1")));
         }
@@ -615,10 +629,10 @@ class BoundedJobsTest {
          */
         @Test
         void handsBackNothingWhileTheWorkContinues() throws InterruptedException {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
             CountDownLatch release = new CountDownLatch(1);
 
-            Optional<String> answer = jobs.runWithin("r-1", () -> {
+            Optional<String> answer = runWithin(jobs, "r-1", () -> {
                 awaitQuietly(release);
                 return "done";
             });
@@ -631,10 +645,10 @@ class BoundedJobsTest {
 
         @Test
         void retainsALateFailureForRepeatedStatusPolls() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
             CountDownLatch release = new CountDownLatch(1);
 
-            assertTrue(jobs.runWithin("r-1", () -> {
+            assertTrue(runWithin(jobs, "r-1", () -> {
                 awaitQuietly(release);
                 throw new IllegalStateException("recording parser stopped");
             }).isEmpty());
@@ -651,11 +665,11 @@ class BoundedJobsTest {
 
         @Test
         void anExplicitRetryReplacesARetainedFailure() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
             CountDownLatch release = new CountDownLatch(1);
             AtomicInteger attempts = new AtomicInteger();
 
-            assertTrue(jobs.runWithin("r-1", () -> {
+            assertTrue(runWithin(jobs, "r-1", () -> {
                 attempts.incrementAndGet();
                 awaitQuietly(release);
                 throw new IllegalStateException("first attempt failed");
@@ -663,7 +677,7 @@ class BoundedJobsTest {
             release.countDown();
             await().atMost(5, SECONDS).until(() -> jobs.outcome("r-1").isPresent());
 
-            assertEquals(Optional.of("retry succeeded"), jobs.runWithin("r-1", () -> {
+            assertEquals(Optional.of("retry succeeded"), runWithin(jobs, "r-1", () -> {
                 attempts.incrementAndGet();
                 return "retry succeeded";
             }));
@@ -677,16 +691,16 @@ class BoundedJobsTest {
          */
         @Test
         void joinsWorkAlreadyRunningForTheSameKey() throws InterruptedException {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
             CountDownLatch release = new CountDownLatch(1);
             AtomicInteger started = new AtomicInteger();
 
-            jobs.runWithin("r-1", () -> {
+            runWithin(jobs, "r-1", () -> {
                 started.incrementAndGet();
                 awaitQuietly(release);
                 return "done";
             });
-            Optional<String> second = jobs.runWithin("r-1", () -> {
+            Optional<String> second = runWithin(jobs, "r-1", () -> {
                 started.incrementAndGet();
                 return "a rival";
             });
@@ -699,24 +713,24 @@ class BoundedJobsTest {
 
         @Test
         void runsDifferentKeysIndependently() throws InterruptedException {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(IMMEDIATE);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(IMMEDIATE);
             CountDownLatch release = new CountDownLatch(1);
 
-            jobs.runWithin("r-1", () -> {
+            runWithin(jobs, "r-1", () -> {
                 awaitQuietly(release);
                 return "slow";
             });
 
-            assertEquals(Optional.of("quick"), jobs.runWithin("r-2", () -> "quick"));
+            assertEquals(Optional.of("quick"), runWithin(jobs, "r-2", () -> "quick"));
             release.countDown();
         }
 
         @Test
         void usesThePerCallBudgetWhenOneIsProvided() {
-            BoundedJobs<String, String> jobs = new BoundedJobs<>(GENEROUS);
+            BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
             CountDownLatch release = new CountDownLatch(1);
 
-            Optional<String> answer = jobs.runWithin("r-1", IMMEDIATE, () -> {
+            Optional<String> answer = runWithin(jobs, "r-1", IMMEDIATE, () -> {
                 awaitQuietly(release);
                 return "done";
             });
@@ -729,7 +743,7 @@ class BoundedJobsTest {
 
     @Test
     void reportsNothingRunningForAKeyItHasNeverSeen() {
-        assertFalse(new BoundedJobs<String, String>(GENEROUS).isRunning("never-asked-for"));
+        assertFalse(ToolFixtures.jobs(GENEROUS).isRunning("never-asked-for"));
     }
 
     private static void awaitQuietly(CountDownLatch latch) {

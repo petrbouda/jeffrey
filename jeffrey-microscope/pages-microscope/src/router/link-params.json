@@ -1,0 +1,74 @@
+{
+  "events": {
+    "EVENT_TYPE": "eventType"
+  },
+  "flamegraph-view": {
+    "EVENT_TYPE": "eventType",
+    "GRAPH_MODE": "graphMode",
+    "BASELINE": "baseline",
+    "USE_WEIGHT": "useWeight",
+    "USE_THREAD_MODE": "useThreadMode",
+    "EXCLUDE_IDLE_SAMPLES": "excludeIdleSamples",
+    "EXCLUDE_NON_JAVA_SAMPLES": "excludeNonJavaSamples",
+    "ONLY_UNSAFE_ALLOCATION_SAMPLES": "onlyUnsafeAllocationSamples",
+    "START_EPOCH_MS": "startEpochMs",
+    "END_EPOCH_MS": "endEpochMs",
+    "SEARCH": "search"
+  },
+  "flamegraphs/differential": {
+    "BASELINE": "baseline"
+  },
+  "heap-dump/diff": {
+    "BASELINE": "baseline"
+  },
+  "heap-dump/gc-root-path": {
+    "OBJECT_ID": "objectId"
+  },
+  "subsecond-view": {
+    "EVENT_TYPE": "eventType",
+    "GRAPH_MODE": "graphMode",
+    "BASELINE": "baseline",
+    "USE_WEIGHT": "useWeight"
+  },
+  "technologies/grpc/overview": {
+    "MODE": "mode"
+  },
+  "technologies/grpc/services": {
+    "MODE": "mode",
+    "SERVICE": "service"
+  },
+  "technologies/grpc/traffic": {
+    "MODE": "mode"
+  },
+  "technologies/http/endpoints": {
+    "MODE": "mode",
+    "URI": "uri"
+  },
+  "technologies/http/overview": {
+    "MODE": "mode"
+  },
+  "technologies/jdbc/statement-groups": {
+    "GROUP": "group"
+  },
+  "traces/attributes/search": {
+    "WHERE": "where",
+    "SCOPE": "scope",
+    "TRACE": "trace"
+  },
+  "traces/attributes/values": {
+    "KEY": "key",
+    "SOURCE": "source",
+    "OWNER": "owner",
+    "EVENT_TYPE": "eventType"
+  },
+  "traces/operations": {
+    "OPERATION": "operation",
+    "KIND": "kind",
+    "EVENT_TYPE": "eventType",
+    "TAB": "tab",
+    "TRACE": "trace",
+    "SEARCH": "q",
+    "ERRORS": "errors",
+    "SORT": "sort"
+  }
+}

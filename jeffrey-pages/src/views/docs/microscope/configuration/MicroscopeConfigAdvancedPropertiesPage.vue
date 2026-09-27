@@ -136,7 +136,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct</code></td>
-            <td><code>1.0</code></td>
+            <td><code>2.0</code></td>
             <td>
               Prune threshold for the Markdown flamegraph export handed to a coding agent &mdash; the
               Copy-for-AI buttons and the MCP flamegraph, compare and trace-span exports. Subtrees below

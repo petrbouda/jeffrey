@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'install-it', text: 'Install It', level: 2 },
   { id: 'pointing-it-elsewhere', text: 'Pointing It Elsewhere', level: 2 },
+  { id: 'a-token', text: 'When Jeffrey Asks for a Token', level: 2 },
   { id: 'what-the-extension-adds', text: 'What the Extension Adds', level: 2 },
   { id: 'the-agents', text: 'The Agents', level: 2 },
   { id: 'tool-names', text: 'Tool Names Are Spelled Differently', level: 2 },
@@ -60,6 +61,9 @@ const manifest = `{
   "mcpServers": {
     "jeffrey": {
       "httpUrl": "\${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}",
+      "headers": {
+        "Authorization": "Bearer \${JEFFREY_MCP_TOKEN:-}"
+      },
       "timeout": 900000
     }
   }
@@ -104,6 +108,9 @@ cp jeffrey/jeffrey-claude-plugin/gemini/agents/heap-triage.md ~/.gemini/agents/`
 
 const endpointEnv = `export JEFFREY_MCP_ENDPOINT=http://localhost:9000/api/mcp`;
 
+const tokenEnv = `export JEFFREY_MCP_TOKEN=the-token-jeffrey-is-configured-with
+gemini`;
+
 const manualAdd = `gemini mcp add jeffrey http://localhost:8585/api/mcp \\
   --transport http --scope user --timeout 900000`;
 
@@ -122,6 +129,10 @@ const update = `gemini extensions update microscope`;
     />
 
     <div class="docs-content">
+      <DocsCallout type="warning" title="Gemini CLI cannot connect to this Jeffrey yet">
+        Jeffrey speaks <strong>MCP <code>2026-07-28</code> only</strong>. A client that still opens with <code>initialize</code> is refused with <code>-32602</code> (HTTP 400), an error whose message and <code>data.supported</code> name that version, and Gemini CLI does: its release notes up to v0.61.0 (2026-09-23) show no support for <code>2026-07-28</code>. Until Gemini CLI supports MCP <code>2026-07-28</code>, the extension installs but its <code>jeffrey</code> server does not connect, and none of the tools are available. The extension files stay in the plugin, unchanged, so that it works once Gemini CLI speaks that revision. Everything below describes the extension as it will behave then.
+      </DocsCallout>
+
       <p>The <strong>Microscope plugin</strong> installs into Gemini CLI as an <strong>extension</strong>, through the <code>gemini-extension.json</code> manifest beside the other two. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Gemini does differently: an endpoint <strong>asked for at install</strong>, <strong>two of the three agents</strong> as files to copy, tool names spelled with <strong>single underscores</strong>, and a tool list <strong>declared every turn</strong>.</p>
 
       <h2 id="install-it">Install It</h2>
@@ -149,6 +160,11 @@ const update = `gemini extensions update microscope`;
 
       <p>Keep the name <code>jeffrey</code>: the skills name tools by the part after the prefix, and the prefix is built from the server's name. Then remove the extension, or accept that the same tools are registered twice.</p>
 
+      <h2 id="a-token">When Jeffrey Asks for a Token</h2>
+      <p>A Jeffrey with <router-link to="/docs/microscope-mcp/enabling#bearer-token"><code>jeffrey.microscope.mcp.token</code></router-link> set answers <code>401</code> to every request without it. The extension sends <code>Authorization: Bearer ${JEFFREY_MCP_TOKEN:-}</code>, so export the token before starting Gemini:</p>
+      <DocsCodeBlock :code="tokenEnv" language="bash" />
+      <p>Unset, the header goes out empty and a Jeffrey without a token ignores it. The session-start check reads the same variable and says which it was &mdash; a missing or wrong token (<code>401</code>) or a refused host (<code>403</code>, with Jeffrey&rsquo;s reason quoted). A server you register yourself takes the same <code>headers</code> block.</p>
+
       <h2 id="what-the-extension-adds">What the Extension Adds</h2>
       <p>The endpoint already configured, a check that Jeffrey is serving when a session starts &mdash; the same one the Claude Code plugin runs, read from the same file &mdash; and the <router-link to="/docs/microscope-mcp/clients#the-skills">ten skills</router-link>, which Gemini loads on its own when a question calls for one. <code>/skills</code> lists what a session actually loaded, and <code>gemini extensions list</code> prints them with the server and the endpoint setting from outside one.</p>
 
@@ -166,7 +182,7 @@ const update = `gemini extensions update microscope`;
 
       <p>There is <strong>no <code>profile-lead</code> for Gemini at all</strong>, and that is a property of the client rather than an omission: <strong>a Gemini subagent may not dispatch another subagent</strong>, and dispatching the other two is the whole of what the lead does. Ask an open-ended question in the main conversation instead; <code>analyze-jfr</code> carries the same triage order, and the two specialists work beneath it.</p>
 
-      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off <code>recordings_</code>, <code>hubs_download</code> and the two <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep those tools away from the whole session instead:</p>
+      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off the <code>recordings_</code> writers, <code>hubs_download</code> and the two <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep those tools away from the whole session instead:</p>
       <DocsCodeBlock :code="excludeWriters" language="json" />
 
       <h2 id="tool-names">Tool Names Are Spelled Differently</h2>
@@ -176,16 +192,18 @@ const update = `gemini extensions update microscope`;
       <p><strong>A wildcard there covers a server, not a family.</strong> <code>mcp_jeffrey_*</code> is valid and means every Jeffrey tool; <code>mcp_jeffrey_heap_*</code> is <em>not</em> a valid tool name, and one invalid entry makes the whole agent fail to load. Narrowing to a family means naming its tools one by one. The part after the prefix is the same everywhere and is exact and camelCase: <code>jfr_listTables</code>, never <code>jfr_list_tables</code>.</p>
 
       <h2 id="approvals">Approvals</h2>
-      <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Only <router-link to="/docs/microscope-mcp/clients#what-writes">nine tools write</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
+      <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Only <router-link to="/docs/microscope-mcp/clients#what-writes">eleven tools write</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
       <DocsCodeBlock :code="trustServer" language="json" />
 
       <p><code>trust</code> covers every tool on the server, the three <code>hubs_</code> writers, <code>operations_cancel</code> and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
 
       <h2 id="timeouts">Timeouts on Long Calls</h2>
-      <p>Gemini abandons a tool call after ten minutes by default; the extension asks for <strong>fifteen</strong> (<code>timeout</code> is milliseconds), which the <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> never need, since they hand back <code>running</code> and an <code>operationId</code> well inside a minute.</p>
+      <p>Gemini abandons a tool call after ten minutes by default; the extension asks for <strong>fifteen</strong> (<code>timeout</code> is milliseconds), which the <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> never need, since they hand back <code>RUNNING</code> and an <code>operationId</code> well inside a minute.</p>
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
       <p>Gemini declares every enabled tool to the model on each turn. On its own Jeffrey's list is comfortably inside the API's ceiling on function declarations; stacked with several other MCP servers it stops being comfortable, and the symptom is a request rejected for declaring too many functions rather than anything that looks like Jeffrey. Two ways to narrow it compose: <router-link to="/docs/microscope-mcp/clients#the-tool-list">fewer families on the Jeffrey side</router-link>, and <code>includeTools</code> or <code>excludeTools</code> on the server entry, which narrows what this client sees without touching what Jeffrey serves to anything else.</p>
+
+      <p><strong>Gemini trims the tool schemas, harmlessly.</strong> Before it declares a tool to the model, Gemini CLI strips the JSON-Schema keywords its function declarations do not take, <code>additionalProperties</code> and <code>$schema</code> among them. Jeffrey closes every <router-link to="/docs/microscope-mcp/tools#input-schemas">input schema</router-link> with <code>"additionalProperties": false</code>, so under Gemini the model is not told up front that a misspelt argument is refused. Nothing is lost that matters: the server refuses it anyway, answering <code>Unknown argument 'limt'; this tool accepts: &hellip;</code> as a tool error the model reads and corrects on the next call. Claude Code and Codex pass the closed schema through, so there the model is told before it calls.</p>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
       <p>Run <code>/mcp</code> inside a session, or <code>gemini mcp list</code> outside one. The <code>jeffrey</code> server should be listed with its tools. If it is listed but <strong>Disabled</strong>, the directory is untrusted &mdash; Gemini disables every MCP server in an untrusted folder, user-level ones included, and says so above the list; trust the folder and start again. If it is not listed at all, <router-link to="/docs/microscope-mcp/clients#when-it-is-not-connected">the usual causes</router-link> apply.</p>
@@ -204,7 +222,7 @@ const update = `gemini extensions update microscope`;
 
       <p><code>--scope user</code> writes <code>~/.gemini/settings.json</code> and serves every project; the default, <code>project</code>, writes the checkout's <code>.gemini/settings.json</code> instead. Or write the <code>mcpServers</code> block from <a href="#pointing-it-elsewhere">above</a> by hand. Either way, use the address you actually reach Jeffrey on &mdash; behind a container, a proxy or a non-default port, <code>localhost:8585</code> is not it.</p>
 
-      <p>What you give up is the skills and the session-start check: the entry sequence, the two database schemas, and being told when Jeffrey is not answering. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first. The server also offers the skills as MCP <strong>prompts</strong>, so they are not lost &mdash; somebody has to ask for one rather than the client loading it. The agents were never part of the extension anyway.</p>
+      <p>What you give up is the skills and the session-start check: the entry sequence, the two database schemas, and being told when Jeffrey is not answering. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first. The server also offers the skills, so they are not lost: a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all ten from the server and loads them on its own, and any client can ask for one as an MCP <strong>prompt</strong>. The agents were never part of the extension anyway.</p>
 
       <h2 id="what-differs">What Differs from Claude Code</h2>
       <p>The tools and the skills are identical. Everything below is a property of the clients, not of Jeffrey.</p>

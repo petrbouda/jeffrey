@@ -191,7 +191,7 @@ LIMIT 20`;
 
       <p>Drives <code>timeline_hotWindows</code> &rarr; <code>flamegraph_export</code> with the window it returned, and <code>timeline_zoom</code> when a second is too coarse.</p>
 
-      <p>This is the recipe for anything bursty, and for a startup. A flamegraph of a whole recording is an average, and an average hides a spike: on a real Jeffrey recording, a quarter of all allocation landed in five seconds out of nearly eight hours, and exporting only those five seconds moved the top frame from 56% to 99% of the graph. The tool returns the <code>startMs</code> and <code>endMs</code> ready to pass on, plus a one-line shape so a steady load, a ramp and a single burst are told apart before anything is exported.</p>
+      <p>This is the recipe for anything bursty, and for a startup. A flamegraph of a whole recording is an average, and an average hides a spike: on a real Jeffrey recording, a quarter of all allocation landed in five seconds out of nearly eight hours, and exporting only those five seconds moved the top frame from 56% to 99% of the graph. The tool returns the <code>startEpochMs</code> and <code>endEpochMs</code> ready to pass on &mdash; the export of the busiest window is already in its <code>followUp.nextTools</code> &mdash; plus a one-line shape so a steady load, a ramp and a single burst are told apart before anything is exported.</p>
 
       <p><code>timeline_zoom</code> is the only view that resolves below a second, which is what a startup needs &mdash; one-second buckets hide everything that happens while the JVM is warming up.</p>
 
@@ -211,7 +211,7 @@ LIMIT 20`;
 
       <p>The two-step matters. A class histogram answers &ldquo;what is there&rdquo;; the dominator tree answers &ldquo;what would be freed&rdquo;, which is the one that finds a leak. And <code>heap_getPathToGCRoot</code> is the actual answer to &ldquo;why is this still alive&rdquo; &mdash; a reference chain from a root, usually ending somewhere recognisable like a static cache or a thread-local.</p>
 
-      <p>The order is not optional: <code>dominator</code> and <code>retained_size</code> are built lazily, so every retained figure comes back missing until <code>heap_getDominatorTreeRoots</code> has run once. That is what the skill exists to get right.</p>
+      <p>The order is not optional: <code>dominator</code> and <code>retained_size</code> are built lazily, so every retained figure comes back missing until <code>heap_getDominatorTreeRoots</code> has run once, and a cached report answers <code>NOT_RUN_YET</code> with the <code>heap_prepare</code> call that builds it in its <code>followUp</code>. Object ids travel as decimal strings, and the paged tools continue with <code>cursor</code>. That is what the skill exists to get right.</p>
 
       <p>On a dump nobody has opened in the UI, the cached reports have not been built either, and their tools say so. The skill&rsquo;s first move there is <code>heap_prepare</code>, which builds the index, the dominator tree and all nine reports and returns straight away; <code>heap_status</code> says how far it has got. Expect minutes on a large heap &mdash; and expect the session to do something else meanwhile rather than poll.</p>
 

@@ -31,8 +31,9 @@ import java.util.stream.Collectors;
  * <p>A hub session can run for days and roll a chunk every few minutes, and the question is almost
  * never about all of it. A chunk's {@link RepositoryFile#createdAt()} is the moment the profiler
  * opened it — the timestamp in the file's own name — so chunk <em>n</em> covers everything from its
- * own start to the start of chunk <em>n+1</em>, and the last one runs to the session's end, or is
- * still open while the session records. A chunk is selected when that span touches the window.
+ * own start to the start of chunk <em>n+1</em>. The last finished one runs to the session's end, or,
+ * while the session records, to the start of the chunk the profiler still holds open — that one is
+ * never selected. A chunk is selected when that span touches the window.
  *
  * <p>Both bounds are optional: a window with no start reaches back to the first chunk, one with no
  * end reaches forward to the last. A window with neither is not a window, and the whole-session
@@ -86,8 +87,9 @@ public record ChunkWindow(Instant start, Instant end) {
     }
 
     /**
-     * Whether a chunk spanning {@code [chunkStart, chunkEnd)} touches the window; a chunk with no
-     * end is still being appended to by the session and reaches as far forward as the window does.
+     * Whether a chunk spanning {@code [chunkStart, chunkEnd)} touches the window. A chunk with no
+     * end is one nothing bounds — the session reports neither when it finished nor a newer chunk
+     * held open — and it reaches as far forward as the window does.
      */
     private boolean covers(Instant chunkStart, Instant chunkEnd) {
         boolean startsBeforeWindowEnds = end == null || chunkStart.isBefore(end);
@@ -114,8 +116,9 @@ public record ChunkWindow(Instant start, Instant end) {
          * One chunk and the stretch it holds: from when the profiler opened it to when it opened
          * the next one.
          *
-         * @param end the start of the following chunk, the session's end for the last one, or
-         *            {@code null} while the session is still writing it
+         * @param end the start of the following finished chunk; for the last finished one, the
+         *            session's end, or while the session records the start of the chunk it still
+         *            holds open; {@code null} only when the session reports neither
          */
         public record Chunk(RepositoryFile file, Instant start, Instant end) {
         }
@@ -127,12 +130,16 @@ public record ChunkWindow(Instant start, Instant end) {
         private static Selection of(
                 RecordingSession session, BiPredicate<RepositoryFile, Instant> keep) {
             List<RepositoryFile> chunks = session.finishedRecordings();
-            Instant finishedAt = session.finishedAt();
+            // The last finished chunk ends where the session ended, or, while it still records, where
+            // the chunk the profiler holds open began: file n covers up to the start of n+1.
+            Instant lastEnd = session.finishedAt() != null
+                    ? session.finishedAt()
+                    : session.openRecording().map(RepositoryFile::createdAt).orElse(null);
 
             List<Chunk> selected = new ArrayList<>();
             for (int i = 0; i < chunks.size(); i++) {
                 RepositoryFile chunk = chunks.get(i);
-                Instant chunkEnd = i + 1 < chunks.size() ? chunks.get(i + 1).createdAt() : finishedAt;
+                Instant chunkEnd = i + 1 < chunks.size() ? chunks.get(i + 1).createdAt() : lastEnd;
                 if (keep.test(chunk, chunkEnd)) {
                     selected.add(new Chunk(chunk, chunk.createdAt(), chunkEnd));
                 }
@@ -155,8 +162,8 @@ public record ChunkWindow(Instant start, Instant end) {
         }
 
         /**
-         * When the last selected chunk ended, or {@code null} for no chunk and for a chunk the
-         * session is still writing.
+         * When the last selected chunk ended, or {@code null} for no chunk and for a last chunk
+         * nothing bounds (see {@link Chunk#end()}).
          */
         public Instant coverageEnd() {
             return chunks.isEmpty() ? null : chunks.getLast().end();

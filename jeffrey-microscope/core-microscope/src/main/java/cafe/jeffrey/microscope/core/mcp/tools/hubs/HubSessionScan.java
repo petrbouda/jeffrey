@@ -18,19 +18,19 @@
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
 import cafe.jeffrey.hub.client.GrpcClientErrors;
-import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
-import cafe.jeffrey.microscope.core.mcp.tools.McpDeadlines;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.core.mcp.tools.McpDeadlines;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.common.exception.ErrorCode;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;

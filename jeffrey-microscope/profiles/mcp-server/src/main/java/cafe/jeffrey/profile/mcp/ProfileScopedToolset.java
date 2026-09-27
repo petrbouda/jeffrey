@@ -17,12 +17,18 @@
 
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolArguments;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import org.springframework.ai.tool.annotation.Tool;
 import tools.jackson.databind.JsonNode;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * The same {@link Tool}-annotated class as {@link ReflectiveToolset}, but with the target chosen per
@@ -41,45 +47,19 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
 
     private static final String PROFILE_ID_DESCRIPTION =
             "Id of the profile to work on, as listed by profiles_list.";
+    private static final String EXPECTED_STRING = "Expected a string";
 
     private final ToolMethodIndex index;
     private final ScopedTargetResolver<T> targetResolver;
 
     /**
-     * @param targetType     the {@code @Tool} class; indexed once, not per call
-     * @param prefix         the tool-name prefix, e.g. {@code jfr}
-     * @param targetResolver builds the tool object for one profile id
-     */
-    public ProfileScopedToolset(Class<T> targetType, String prefix, Function<String, T> targetResolver) {
-        this(targetType, prefix, targetResolver, McpToolAnnotations.READ_ONLY);
-    }
-
-    /**
+     * @param targetType         the {@code @Tool} class; indexed once, not per call
+     * @param prefix             the tool-name prefix, e.g. {@code jfr}
+     * @param targetResolver     builds the tool object for one profile id, for one invocation
      * @param defaultAnnotations what this family does to the world. Every profile-scoped family reads,
      *                           so the default stands unless a single method declares otherwise with
-     *                           {@link McpToolHints} — the compute tools, which build an index or a report.
+     *                           {@link McpToolHints} — the compute tools, which build an index or a report
      */
-    public ProfileScopedToolset(
-            Class<T> targetType,
-            String prefix,
-            Function<String, T> targetResolver,
-            McpToolAnnotations defaultAnnotations) {
-        this(targetType, prefix, unscoped(targetResolver), defaultAnnotations);
-    }
-
-    private static <T> ScopedTargetResolver<T> unscoped(Function<String, T> targetResolver) {
-        return profileId -> new ScopedTarget<>() {
-            @Override
-            public T target() {
-                return targetResolver.apply(profileId);
-            }
-
-            @Override
-            public void close() {
-            }
-        };
-    }
-
     private ProfileScopedToolset(
             Class<T> targetType,
             String prefix,
@@ -120,31 +100,31 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
     }
 
     @Override
-    public McpToolResult callResult(String toolName, JsonNode arguments) {
+    public McpToolOutcome call(String toolName, JsonNode arguments, McpCallContext context) {
         Method method = index.method(toolName);
         String profileId = readProfileId(arguments);
         // Bound before the profile is resolved, so that an argument the schema does not accept is
-        // refused as the protocol error it is whether or not the profile exists. Resolving first made
+        // refused as the argument error it is whether or not the profile exists. Resolving first made
         // the answer depend on which mistake was noticed: a bad enum against a missing profile came
         // back as "profile not found", which sends the caller after the wrong one of its two errors.
-        Object[] args = index.bindArguments(method, arguments);
+        Object[] args = index.bindArguments(method, arguments, context);
         try (ScopedTarget<T> scoped = targetResolver.resolve(profileId)) {
-            return ToolInvocation.invoke(toolName, method, scoped.target(), args);
+            return ToolInvocation.invoke(toolName, method, scoped.target(), args, context);
         }
     }
 
     private static String readProfileId(JsonNode arguments) {
-        ToolMethodIndex.validateArgumentsObject(arguments);
+        McpToolArguments.requireObject(arguments);
         JsonNode node = arguments == null ? null : arguments.get(PROFILE_ID_ARGUMENT);
         if (node == null || node.isNull()) {
-            throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " is required");
+            throw ToolDispatchException.missingArgument(PROFILE_ID_ARGUMENT, PROFILE_ID_DESCRIPTION);
         }
         if (!node.isString()) {
-            throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " must be a string");
+            throw ToolDispatchException.invalidArgument(PROFILE_ID_ARGUMENT, EXPECTED_STRING);
         }
         String profileId = node.asString();
         if (profileId == null || profileId.isBlank()) {
-            throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " is required");
+            throw ToolDispatchException.missingArgument(PROFILE_ID_ARGUMENT, PROFILE_ID_DESCRIPTION);
         }
         return profileId;
     }

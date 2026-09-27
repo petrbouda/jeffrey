@@ -1,0 +1,84 @@
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Expected failures for the MCP conformance suite, as .github/workflows/validate-mcp.yml runs it --
+# twice, with this one file:
+#
+#   npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 server --url <microscope>/api/mcp \
+#     --spec-version 2026-07-28 --suite active \
+#     --expected-failures build/mcp/conformance-expected-failures.yml
+#
+#   npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 server --url <microscope>/api/mcp \
+#     --spec-version 2026-07-28 --scenario server-stateless \
+#     --expected-failures build/mcp/conformance-expected-failures.yml
+#
+# server-stateless is required by the 2026-07-28 requirement set but is not in the active suite,
+# hence the second run. An entry for a scenario a run does not execute is ignored by that run.
+#
+# Generated from a run of that command against a locally started Microscope, not written by hand.
+# Each entry is one check (<scenario>:<check-id>), never a whole scenario, so the rest of the
+# scenario -- above all its wire-schema-valid check, which validates every message Jeffrey sent
+# against the 2026-07-28 JSON schema -- stays enforced.
+#
+# Every entry below is the same case: the scenario calls a fixture the suite's own reference server
+# carries (a test_* tool or prompt, a test://* resource) and Jeffrey, a real server, does not. Jeffrey
+# answers each with a well-formed -32602 naming the unknown tool, prompt or resource, which is why
+# the scenario's wire-schema check passes while its fixture check fails. The server-stateless entries
+# are the suite reporting such a check as "Not testable"; every check in that scenario that tests
+# Jeffrey's own behaviour (_meta and version refusals, header mismatch, 404 for removed methods,
+# error ids) passes and stays enforced.
+#
+# The suite exits non-zero when a listed check starts passing, so a stale entry cannot linger.
+# Bumping the pinned suite version means regenerating this file from a fresh run.
+server:
+  # Calls the fixture tool test_simple_text; Jeffrey has no such tool.
+  - tools-call-simple-text:tools-call-simple-text
+  # Calls the fixture tool test_image_content; Jeffrey has no such tool.
+  - tools-call-image:tools-call-image
+  # Calls the fixture tool test_audio_content; Jeffrey has no such tool.
+  - tools-call-audio:tools-call-audio
+  # Calls the fixture tool test_embedded_resource; Jeffrey has no such tool.
+  - tools-call-embedded-resource:tools-call-embedded-resource
+  # Calls the fixture tool test_multiple_content_types; Jeffrey has no such tool.
+  - tools-call-mixed-content:tools-call-mixed-content
+  # Calls the fixture tool test_error_handling; Jeffrey has no such tool.
+  - tools-call-error:tools-call-error
+  # Calls the fixture tool test_tool_with_progress; Jeffrey has no such tool, and it sends no
+  # notifications/progress anyway (long work is polled through operations_*, or followed as a task
+  # by a client that declared the tasks extension).
+  - tools-call-with-progress:tools-call-with-progress
+  # Reads the fixture resource test://static-text; Jeffrey serves jeffrey:// URIs only.
+  - resources-read-text:resources-read-text
+  # Reads the fixture resource test://static-binary; Jeffrey serves jeffrey:// URIs only.
+  - resources-read-binary:resources-read-binary
+  # Reads test://template/123/data from the fixture template; Jeffrey serves jeffrey:// URIs only.
+  - resources-templates-read:resources-templates-read
+  # Gets the fixture prompt test_simple_prompt; Jeffrey's prompts are its ten skills.
+  - prompts-get-simple:prompts-get-simple
+  # Gets the fixture prompt test_prompt_with_arguments; Jeffrey's prompts are its ten skills.
+  - prompts-get-with-args:prompts-get-with-args
+  # Gets the fixture prompt test_prompt_with_embedded_resource; Jeffrey's prompts are its ten skills.
+  - prompts-get-embedded-resource:prompts-get-embedded-resource
+  # Gets the fixture prompt test_prompt_with_image; Jeffrey's prompts are its ten skills.
+  - prompts-get-with-image:prompts-get-with-image
+  # Not testable: calls the fixture tool test_missing_capability to provoke a -32021. Jeffrey has no
+  # such tool; its own -32021 (tasks/* without the tasks extension) is pinned by unit tests.
+  - server-stateless:sep-2575-server-rejects-undeclared-capability
+  # Not testable: the HTTP 400 of that same -32021, via the same fixture tool.
+  - server-stateless:sep-2575-missing-capability-http-400
+  # Not testable: calls the fixture tool test_streaming_elicitation. Jeffrey never streams a response.
+  - server-stateless:sep-2575-http-server-no-independent-requests-on-stream
+  # Not testable: calls the fixture tool test_logging_tool. Jeffrey sends no notifications/message.
+  - server-stateless:sep-2575-server-no-log-without-loglevel

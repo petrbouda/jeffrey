@@ -23,4 +23,7 @@ public record SlowestMethodTrace(
         long duration,
         String threadName
 ) {
+
+    /** The thread name an invocation whose event named no thread is filed under. */
+    public static final String UNKNOWN_THREAD = "unknown";
 }

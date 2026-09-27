@@ -17,13 +17,18 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.VmOperationManager;
 import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.profile.manager.model.vmoperation.SafepointOffender;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOverview;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
 
 import java.util.List;
 import java.util.Set;
@@ -44,7 +49,7 @@ import java.util.Set;
  * {@code _thread_in_Java} is a loop the JIT stripped the safepoint poll out of, slow from
  * {@code _thread_in_native} is a call the JVM cannot interrupt at all.
  */
-public record SafepointsSection(ProfileManager profileManager) implements JvmSection {
+public record SafepointsSection(ProfileManager profileManager) implements JvmSection<SafepointsSection.SafepointsDashboard> {
 
     public static final String ID = "safepoints";
 
@@ -60,12 +65,12 @@ public record SafepointsSection(ProfileManager profileManager) implements JvmSec
             Type.SAFEPOINT_STATE_SYNCHRONIZATION,
             Type.SAFEPOINT_LATENCY);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "The collector's own pauses are in jvm_gc; this section is everything else that stops the "
-                    + "application.",
+    private static final String GC_WHY =
+            "shows the collector's own pauses; this section is everything else that stops the application";
+    private static final String THREAD_STATE_GUIDANCE =
             "A thread slow from _thread_in_Java is a loop the JIT stripped the safepoint poll out of; one "
                     + "slow from _thread_in_native is inside a call the JVM cannot interrupt. Read the method "
-                    + "in the checkout before concluding which.");
+                    + "in the checkout before concluding which.";
 
     @Override
     public String id() {
@@ -83,12 +88,18 @@ public record SafepointsSection(ProfileManager profileManager) implements JvmSec
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.VM_OPERATIONS;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, SafepointsDashboard dashboard) {
+        next.next(SectionCalls.on(SectionCalls.JVM_GC, profileManager.info().id()).why(GC_WHY))
+                .guidanceWhen(!dashboard.offenders().isEmpty(), THREAD_STATE_GUIDANCE);
+    }
+
+    @Override
+    public SafepointsDashboard render() {
         VmOperationManager manager = profileManager.vmOperationManager();
         VmOverview overview = manager.overview();
         SafepointLatencyData latency = manager.safepointOffenders();
@@ -140,39 +151,67 @@ public record SafepointsSection(ProfileManager profileManager) implements JvmSec
     }
 
     /**
-     * @param totalSafepointPauseMillis the application's whole stop-the-world budget outside the
+     * @param totalSafepointPauseMs the application's whole stop-the-world budget outside the
      *                                  collector, which is the figure to compare against the GC one
      * @param timeToSafepoint           how long threads took to reach the safepoints, in aggregate
      * @param offenders                 the threads that kept everyone else waiting, worst first
      */
-    private record SafepointsDashboard(
+    public record SafepointsDashboard(
             long vmOperationCount,
-            double totalSafepointPauseMillis,
-            double longestPauseMillis,
+            double totalSafepointPauseMs,
+            double longestPauseMs,
+            @McpNullable
             String longestPauseOperation,
             List<Operation> operations,
             TimeToSafepoint timeToSafepoint,
+            @McpDescription("The " + OFFENDERS_LIMIT + " threads that kept everyone else waiting longest, worst first")
             List<Offender> offenders) {
     }
 
-    private record Operation(
+    public record Operation(
             String operation,
             long count,
-            double totalMillis,
-            double maxMillis,
+            double totalMs,
+            double maxMs,
             boolean safepoint,
             boolean blocking) {
     }
 
-    private record TimeToSafepoint(int measuredThreads, double totalMillis, double worstMillis) {
+    public record TimeToSafepoint(int measuredThreads, double totalMs, double worstMs) {
     }
 
-    private record Offender(
+    public record Offender(
             String threadName,
+            @McpNullable
             String threadState,
             long safepoints,
-            double totalMillis,
-            double p99Millis,
-            double maxMillis) {
+            double totalMs,
+            double p99Ms,
+            double maxMs) {
+    }
+
+    /**
+     * What {@code jvm_safepoints} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            SafepointsDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, SafepointsDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

@@ -17,36 +17,60 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
+import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.MicroscopePage;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindowQuestion;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadedSessionIndex;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Download;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.DownloadStatus;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.HubRow;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.HubStatus;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Hubs;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.SessionRow;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Sessions;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubCalls;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubScanFilter;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionLocator;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
-import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionCursor;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.WindowAnswer;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.profile.mcp.McpToolHints;
-import cafe.jeffrey.profile.common.operation.OperationHandle;
-import cafe.jeffrey.profile.common.operation.OperationState;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.McpToolResult;
-import cafe.jeffrey.profile.mcp.ToolExecutionException;
-import cafe.jeffrey.profile.mcp.McpOutputSchema;
-import cafe.jeffrey.shared.common.Json;
-import tools.jackson.databind.node.ObjectNode;
-import tools.jackson.databind.node.ArrayNode;
+import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
+import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
+import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
-import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.profile.common.operation.OperationHandle;
+import cafe.jeffrey.profile.common.operation.OperationState;
+import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.profile.mcp.McpToolCost;
+import cafe.jeffrey.profile.mcp.McpToolHints;
+import cafe.jeffrey.profile.mcp.McpToolMeta;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.McpToolRequirement;
+import cafe.jeffrey.profile.mcp.ToolParamBounds;
+import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.Schedulers;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -60,14 +84,15 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * The recordings that never reached this machine: everything sitting on a connected Jeffrey Hub.
@@ -89,18 +114,35 @@ import java.util.concurrent.TimeUnit;
  * is exactly the shape that trips a client's tool timeout — and a timeout in the middle tells the
  * model nothing about whether the work survived.
  * <p>
- * <strong>No UI links anywhere in this family.</strong> {@code UiLinks} reads the request bound to
- * the calling thread, and the scan runs on other threads; nothing here has a profile to link to
- * before analysis has happened, so there is nothing to add and a trap to avoid.
+ * <strong>Links to the hub browser.</strong> Every answer carries a {@code uiLink} for the user: the hub
+ * browser for the hubs and their sessions, and the recording or its profile once a download has
+ * brought one here. {@code UiLinks} reads the request bound to the calling thread, and the scan and the
+ * transfer run on other threads, so a link is built on the call's own thread - or from a base read
+ * there, for an answer a task completes with later.
  */
 public class HubsMcpTools {
 
+    /**
+     * The application property: a whole-session download of a session longer than this asks a client
+     * that renders forms which part to bring (an ISO-8601 duration, default one hour).
+     */
+    public static final String ASK_WINDOW_OVER_DURATION_PROPERTY =
+            "jeffrey.microscope.mcp.hubs.ask-window-over-duration";
+
+    /**
+     * The application property: likewise for a session bigger than this (a Spring data size, default
+     * {@code 1GB}).
+     */
+    public static final String ASK_WINDOW_OVER_SIZE_PROPERTY = "jeffrey.microscope.mcp.hubs.ask-window-over-size";
+
     private static final String DOWNLOAD_PREFLIGHT_FAILED = "Hub download preflight failed: ";
     private static final String DOWNLOAD_FAILED = "Hub download failed: ";
+    private static final String RESPONSE_DEADLINE_ELAPSED = "Hub download response deadline elapsed";
     private static final Logger LOG = LoggerFactory.getLogger(HubsMcpTools.class);
 
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 500;
+    private static final int DEFAULT_HUBS_LIMIT = 100;
     private static final int DISPLAY_CHARS = 256;
     private static final int FAILURE_CHARS = 512;
     private static final int MAX_DISPLAYED_FAILURES = 24;
@@ -108,35 +150,64 @@ public class HubsMcpTools {
             "Live view: a cursor continues after the last returned row among observed sessions. "
                     + "Newer insertions require a fresh scan. Missing remote scopes remain incomplete "
                     + "even when hasMore=false. Long display names and failure details are shortened; "
-                    + "session_ref identities are preserved.";
-
-    /**
-     * How long a listing may spend waiting on hubs. Needed because no deadline is set on the hub
-     * channels and this runs inside a synchronous tool call, so a hub that neither answers nor
-     * refuses would otherwise hang the caller for good.
-     */
-    private static final Duration SCAN_BUDGET = Duration.ofSeconds(20);
-    private static final Duration DOWNLOAD_RESPONSE_BUDGET = BoundedJobs.WAIT_BUDGET;
-    private static final Duration DOWNLOAD_DEADLINE = Duration.ofHours(1);
+                    + "sessionRef identities are preserved.";
 
     private static final String NO_HUBS =
-            "No Jeffrey Hub is connected to this installation. Recordings can still be analysed from "
-                    + "a local file with recordings_analyzeFile.";
+            "No Jeffrey Hub is connected to this installation. Recordings can still be analysed from a local "
+                    + "file with recordings_analyzeFile.";
+    private static final String HUBS_NOTE =
+            "A hub marked `UNREACHABLE` did not answer just now, so hubs_sessions can list nothing from it. A "
+                    + "hub whose source is `CONFIG` is declared in this installation's configuration and cannot "
+                    + "be removed from the UI.";
 
-    private static final String NO_SESSIONS =
-            "No recording sessions matched on any connected hub.";
+    private static final String NEXT_HUBS_WHY = "continues the list of hubs past this page";
+    private static final String SESSIONS_WHY = "lists the recording sessions of every hub that answered";
+    private static final String UNREACHABLE_GUIDANCE =
+            "A hub marked UNREACHABLE did not answer; ask the user whether it should be up before relying on "
+                    + "hubs_sessions for its recordings.";
 
-    private static final String STATUS_OK = "ok";
-    private static final String STATUS_UNREACHABLE = "unreachable";
+    private static final String FOOTER_LOCAL =
+            "A row with `local` empty is not in this Jeffrey yet; `recording:<id>` is downloaded but not "
+                    + "analysed; `profile:<id>` is already analysed and every analysis tool takes that id.\n";
+
+    private static final String NO_SESSIONS = "No recording sessions matched on any connected hub.";
+    private static final String NO_SESSIONS_WIDEN =
+            NO_SESSIONS + " The window was the last %d minutes: widen withinLastMinutes, or drop it for every session.";
+
+    private static final String NEXT_SESSIONS_WHY = "continues the session list past this page with the same filters";
+    private static final String FILES_WHY =
+            "lists what the session holds - its chunks and the artifacts beside them - before anything is transferred";
+    private static final String CHECK_HUBS_WHY = "shows which hubs are connected and whether each answers";
+    private static final String DOWNLOAD_GUIDANCE =
+            "hubs_download brings a session as one local recording. Ask the user which part they need - the last "
+                    + "hour, the minutes around an incident - and pass it as startEpochMs/endEpochMs rather than "
+                    + "bringing a whole long session.";
+
+    private static final String NOT_DOWNLOADED_GUIDANCE =
+            "Nothing was transferred. To download without being asked, call hubs_download with startEpochMs and "
+                    + "endEpochMs (UTC epoch milliseconds) for a window, or fileIds from hubs_files; otherwise ask "
+                    + "the user which part of the session they need.";
+    private static final String CHOOSE_FILES_WHY = "names the session's chunks, whose fileIds bring an exact part";
+    private static final String RUNNING_REASON =
+            "The transfer is still running. The same hubs_download call joins it and, once the recording lands, "
+                    + "returns it from the local store rather than fetching the session a second time.";
+    private static final String JOIN_WHY = "joins this transfer and returns the recordingId once it lands";
+    private static final String RETRY_WHY = "starts a new transfer of the same part of the session";
+    private static final String PART_GUIDANCE =
+            "This recording covers only the part asked for, so its figures are about that span, not the whole "
+                    + "session; recordings_delete removes it once the question is answered. The same sessionRef "
+                    + "with the same startEpochMs/endEpochMs or fileIds asks for this part again.";
+    private static final String WHOLE_ANALYSED_GUIDANCE =
+            "The whole session is also here, already analysed as profile %s.";
+    private static final String WHOLE_RECORDING_GUIDANCE = "The whole session is also here as recording %s.";
+
+    private static final String NO_FINISHED_CHUNK =
+            "No finished chunk covers the window from %s to %s: the session's recording there is missing or "
+                    + "still being written. Choose another window, or the whole session.";
 
     private final HubsManager hubsManager;
     private final ProjectManagerResolver resolver;
     private final RecordingsManager recordingsManager;
-    private static final String DOWNLOAD_STILL_RUNNING =
-            "The transfer is still running. Call hubs_download again with the same session_ref to "
-                    + "check: it answers from the local store first, so once the transfer lands it "
-                    + "returns the recordingId rather than fetching the session a second time.";
-
     private final Clock clock;
     private final Duration downloadResponseBudget;
     private final Duration downloadDeadline;
@@ -148,118 +219,117 @@ public class HubsMcpTools {
     private final HubSessionScan scan;
     private final HubSessionLocator locator;
     private final McpOperationRegistry operations;
+    private final OperationAnswers answers;
+    private final DownloadWindowQuestion windowQuestion;
+    private final AdvertisedFamilies advertised;
 
-    public HubsMcpTools(
-            HubsManager hubsManager,
-            ProjectManagerResolver resolver,
-            RecordingsManager recordingsManager,
-            Clock clock) {
-
-        this(
-                hubsManager,
-                resolver,
-                recordingsManager,
-                clock,
-                SCAN_BUDGET,
-                DOWNLOAD_RESPONSE_BUDGET,
-                DOWNLOAD_DEADLINE);
-    }
-
-    public HubsMcpTools(
-            HubsManager hubsManager,
-            ProjectManagerResolver resolver,
-            RecordingsManager recordingsManager,
-            Clock clock,
-            Duration scanBudget,
-            Duration downloadResponseBudget,
-            Duration downloadDeadline) {
-
-        this(hubsManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, downloadDeadline, new McpOperationRegistry(clock));
-    }
-
-    public HubsMcpTools(HubsManager hubsManager, ProjectManagerResolver resolver,
-            RecordingsManager recordingsManager, Clock clock, McpOperationRegistry operations) {
-        this(hubsManager, resolver, recordingsManager, clock, SCAN_BUDGET,
-                DOWNLOAD_RESPONSE_BUDGET, DOWNLOAD_DEADLINE, operations);
-    }
-
+    /**
+     * @param scanBudget             how long a listing may spend waiting on hubs. Needed because no
+     *                               deadline is set on the hub channels and a listing runs inside a
+     *                               synchronous tool call, so a hub that neither answers nor refuses
+     *                               would otherwise hang the caller for good
+     * @param downloadResponseBudget how long a download call waits on its preflight and its transfer
+     *                               together; a client that declared tasks waits on the transfer for
+     *                               less, see {@link OperationAnswers}
+     * @param downloadDeadline       the deadline the transfer itself runs under on the hub, off the
+     *                               caller's thread
+     * @param operations             the registry operations_status reads
+     * @param answers                how a call that outlasts its wait answers, by what the client declared
+     * @param windowQuestion         which whole-session downloads a client that renders forms is first
+     *                               asked about, from the {@code ask-window-over-*} properties
+     * @param advertised             the families this installation serves, so a next call never names a
+     *                               tool it does not
+     */
     public HubsMcpTools(HubsManager hubsManager, ProjectManagerResolver resolver,
             RecordingsManager recordingsManager, Clock clock, Duration scanBudget,
-            Duration downloadResponseBudget, Duration downloadDeadline, McpOperationRegistry operations) {
+            Duration downloadResponseBudget, Duration downloadDeadline, McpOperationRegistry operations,
+            OperationAnswers answers, DownloadWindowQuestion windowQuestion, AdvertisedFamilies advertised) {
+        this.windowQuestion = Objects.requireNonNull(windowQuestion, "windowQuestion");
+        this.advertised = Objects.requireNonNull(advertised, "advertised");
         this.operations = operations;
+        this.answers = answers;
         this.hubsManager = hubsManager;
         this.resolver = resolver;
         this.recordingsManager = recordingsManager;
         this.clock = clock;
         this.downloadResponseBudget = requirePositive(downloadResponseBudget, "downloadResponseBudget");
         this.downloadDeadline = requirePositive(downloadDeadline, "downloadDeadline");
-        this.downloads = new BoundedJobs<>(downloadResponseBudget, BoundedJobs.COMPLETED_RETENTION, clock);
+        this.downloads = new BoundedJobs<>(downloadResponseBudget, BoundedJobs.COMPLETED_RETENTION, clock,
+                Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.scan = new HubSessionScan(hubsManager, scanBudget);
         this.locator = new HubSessionLocator(resolver);
     }
 
-    @Tool(description = "Every Jeffrey Hub this installation is connected to, and whether it answers "
-            + "right now. Call it when hubs_sessions came back empty for a hub you expected to see, "
-            + "or to learn the hub names the `hub` filter of hubs_sessions accepts.")
-    public String list() {
-        List<HubManager> hubs = hubsManager.findAll();
-        if (hubs.isEmpty()) {
-            return NO_HUBS;
+    @Tool(description = "Returns every Jeffrey Hub this installation is connected to and whether it "
+            + "answers right now (status REACHABLE or UNREACHABLE) - the hub names the `hub` filter of "
+            + "hubs_sessions accepts, and why hubs_sessions shows nothing from a hub that is down. Pages "
+            + "with cursor: follow nextCursor until hasMore=false. status EMPTY: no hub is connected.")
+    @McpOutputSchema(Hubs.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    public McpToolResult list(
+            @ToolParam(required = false, description = "Maximum number of hubs to return (default "
+                    + DEFAULT_HUBS_LIMIT + ", maximum " + MAX_LIMIT + ")")
+            @ToolParamBounds(defaultValue = DEFAULT_HUBS_LIMIT, min = 1, max = MAX_LIMIT)
+            Integer limit,
+            @ToolParam(required = false, description = "Opaque nextCursor from the preceding page")
+            String cursor) {
+        String uiLink = UiLinks.page(MicroscopePage.HUBS);
+        McpCursor.Filters filters = McpCursor.Filters.of(HubCalls.HUBS_LIST);
+        int start = OffsetPaging.offset(cursor, filters);
+        List<HubManager> all = hubsManager.findAll();
+        if (all.isEmpty()) {
+            McpFollowUp followUp = NextSteps.builder(advertised).followUp();
+            Hubs empty = new Hubs(CatalogueStatus.EMPTY, NO_HUBS, List.of(), 0, 0, false, null, followUp, uiLink);
+            return McpToolResult.of(LinkedOutput.footed(NO_HUBS, followUp, uiLink, null).text(), empty);
         }
 
-        Map<String, Optional<String>> versions = scan.probeVersions(hubs);
+        int rows = ToolArguments.boundedLimit(limit, DEFAULT_HUBS_LIMIT, MAX_LIMIT);
+        int end = (int) Math.min(all.size(), (long) start + rows);
+        List<HubManager> hubs = start < all.size() ? all.subList(start, end) : List.of();
+        McpCursor.Next next = OffsetPaging.next(filters, start, hubs.size(), end < all.size());
 
+        // Only the page is probed: each probe is a call to a hub, and a hub not shown need not answer.
+        Map<String, Optional<String>> versions = scan.probeVersions(hubs);
+        List<HubRow> hubRows = new ArrayList<>(hubs.size());
         MarkdownTable table = MarkdownTable.withColumns(
                 "hub", "hub_id", "address", "source", "status", "hub_version");
         for (HubManager hub : hubs) {
             HubInfo info = hub.info();
             Optional<String> version = versions.getOrDefault(info.hubId(), Optional.empty());
-            table.row(
-                    info.name(),
-                    info.hubId(),
-                    address(info),
-                    info.source() == null ? "" : info.source().name().toLowerCase(Locale.ROOT),
-                    version.isPresent() ? STATUS_OK : STATUS_UNREACHABLE,
-                    version.orElse(""));
+            HubRow row = new HubRow(info.name(), info.hubId(), address(info), info.source(),
+                    version.isPresent() ? HubStatus.REACHABLE : HubStatus.UNREACHABLE, version.orElse(null));
+            hubRows.add(row);
+            table.row(row.name(), row.hubId(), row.address(), row.source(), row.status(), row.hubVersion());
         }
-        return table
-                .note("A hub marked `" + STATUS_UNREACHABLE + "` did not answer just now, so "
-                        + "hubs_sessions can list nothing from it. A hub whose source is `config` is "
-                        + "declared in this installation's configuration and cannot be removed from "
-                        + "the UI.")
-                .render();
+        boolean anyReachable = hubRows.stream().anyMatch(row -> row.status() == HubStatus.REACHABLE);
+        boolean anyUnreachable = hubRows.stream().anyMatch(row -> row.status() == HubStatus.UNREACHABLE);
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .nextWhen(next.hasMore(), McpNextTool.call(HubCalls.HUBS_LIST)
+                        .with(HubCalls.LIMIT, rows).with(HubCalls.CURSOR, next.nextCursor()).why(NEXT_HUBS_WHY))
+                .nextWhen(anyReachable, McpNextTool.call(HubCalls.HUBS_SESSIONS).why(SESSIONS_WHY))
+                .guidanceWhen(anyUnreachable, UNREACHABLE_GUIDANCE)
+                .followUp();
+        Hubs answer = new Hubs(CatalogueStatus.OK, null, List.copyOf(hubRows), hubRows.size(), all.size(),
+                next.hasMore(), next.nextCursor(), followUp, uiLink);
+        String body = "Returned " + hubRows.size() + " of " + all.size() + " connected hubs.\n\n"
+                + table.note(HUBS_NOTE).renderUncapped();
+        return McpToolResult.of(LinkedOutput.footed(body, followUp, uiLink, null).text(), answer);
     }
 
-    @Tool(description = "Recording sessions across every connected Jeffrey Hub, newest first, in one "
-            + "flat list - this is where to start when the user asks about recordings from an "
-            + "environment rather than from a file, such as \"the JFR recordings from the last hour "
-            + "on production\". Every row carries a session_ref to pass to hubs_download. The `local` "
-            + "column says a session has already been pulled into this Jeffrey, so it can be analysed "
-            + "without downloading it again. Follow nextCursor with the same filters for more rows. "
-            + "This is a live view: complete describes whether all remote scopes answered, independently "
-            + "of hasMore. A relative time window keeps its original cutoff across pages.")
-    @McpOutputSchema("""
-            {"type":"object","properties":{
-              "sessions":{"type":"array","items":{"type":"object","properties":{
-                "hub":{"type":"string"},"workspace":{"type":"string"},"project":{"type":"string"},
-                "started":{"type":["string","null"]},"duration":{"type":"string"},
-                "status":{"type":["string","null"]},"files":{"type":"integer"},
-                "size":{"type":"string"},"local":{"type":"string"},"session_ref":{"type":"string"}
-              },"required":["hub","workspace","project","started","duration","status","files","size","local","session_ref"]}},
-              "returned":{"type":"integer"},"total":{"type":["integer","null"]},
-              "observedTotal":{"type":"integer"},"hasMore":{"type":"boolean"},
-              "nextCursor":{"type":["string","null"]},"complete":{"type":"boolean"},
-              "failures":{"type":"array","items":{"type":"object","properties":{
-                "hubName":{"type":"string"},"scope":{"type":"string"},
-                "kind":{"type":"string","description":"UNREACHABLE, DEADLINE_EXCEEDED, CAPACITY_EXHAUSTED or OTHER"},
-                "reason":{"type":"string"}
-              },"required":["hubName","scope","kind","reason"]}}
-            },"required":["sessions","returned","total","observedTotal","hasMore","nextCursor","complete","failures"]}
-            """)
+    @Tool(description = "Returns recording sessions across every connected Jeffrey Hub, newest first, "
+            + "in one flat list - recordings from an environment rather than from a file, such as "
+            + "\"the JFR recordings from the last hour on production\". Every row carries a "
+            + "sessionRef for hubs_download and hubs_files; recordingId or profileId say a session is "
+            + "already in this Jeffrey, and startedAtEpochMs and durationMs give the span a window can "
+            + "be chosen from. Follow nextCursor with the same filters for more rows. A live view: "
+            + "complete says whether all remote scopes answered, independently of hasMore; a "
+            + "relative time window keeps its original cutoff across pages. status EMPTY: nothing "
+            + "matched and every hub answered.")
+    @McpOutputSchema(Sessions.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE, requires = McpToolRequirement.HUB)
     public McpToolResult sessions(
             @ToolParam(required = false, description = "Optional hub filter: a hub id, or part of a hub name as "
-                    + "hubs_list prints it, e.g. production. Omit to search every hub")
+                    + "hubs_list returns it, e.g. production. Omit to search every hub")
             String hub,
             @ToolParam(required = false, description = "Optional filter on part of a workspace name or its reference id")
             String workspace,
@@ -269,11 +339,14 @@ public class HubsMcpTools {
                     + "N minutes - 60 for the last hour, 1440 for the last day. This is an overlap, "
                     + "not a start time: a JVM that began recording three hours ago and is still "
                     + "running does match a 60-minute window")
+            @ToolParamBounds(min = 1)
             Integer withinLastMinutes,
             @ToolParam(required = false, description = "Only sessions in this status: ACTIVE for one still recording, "
                     + "FINISHED for one that has stopped. Omit for both")
             RecordingStatus status,
-            @ToolParam(required = false, description = "Most rows to return across all hubs. Default 50, maximum 500")
+            @ToolParam(required = false, description = "Most rows to return across all hubs. Default "
+                    + DEFAULT_LIMIT + ", maximum " + MAX_LIMIT)
+            @ToolParamBounds(defaultValue = DEFAULT_LIMIT, min = 1, max = MAX_LIMIT)
             Integer limit,
             @ToolParam(required = false, description = "Opaque nextCursor from the previous page. Keep all "
                     + "filters unchanged; limit may change. Omit to start a fresh live scan")
@@ -282,9 +355,10 @@ public class HubsMcpTools {
         int rowLimit = ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT);
         HubScanFilter requested = new HubScanFilter(
                 hub, workspace, project, sessionFilter(withinLastMinutes, status));
-        String fingerprint = HubSessionCursor.fingerprint(requested, withinLastMinutes);
-        HubSessionCursor continuation = cursor == null ? null
-                : HubSessionCursor.decode(cursor, fingerprint, withinLastMinutes != null);
+        McpCursor.Filters filters = McpCursor.Filters.of(HubCalls.HUBS_SESSIONS, requested.hub(),
+                requested.workspace(), requested.project(), withinLastMinutes, requested.sessions().status());
+        SessionPosition continuation = cursor == null ? null : JeffreyMcpServer.CURSOR.decodeKeyset(
+                cursor, filters, keyset -> SessionPosition.read(keyset, withinLastMinutes != null));
         HubScanFilter filter = continuation == null ? requested : requested.withSessions(
                 new RecordingSessionFilter(continuation.activeFrom(), null, status, RecordingSessionFilter.NO_LIMIT));
 
@@ -292,13 +366,15 @@ public class HubsMcpTools {
         List<HubSessionScan.Row> remaining = scanned.rows().stream()
                 .filter(row -> continuation == null || row.key().compareTo(continuation.after()) > 0)
                 .toList();
-        SessionPage page = new SessionPage(filter, fingerprint, withinLastMinutes, scanned.rows().size(),
-                remaining.size(), boundedFailures(scanned.failures()));
+        SessionPage page = new SessionPage(filter, filters, withinLastMinutes, scanned.rows().size(),
+                remaining.size(), boundedFailures(scanned.failures()),
+                new SessionQuery(hub, workspace, project, withinLastMinutes, status, rowLimit),
+                UiLinks.page(MicroscopePage.HUBS));
         DownloadedSessionIndex local = DownloadedSessionIndex.build(recordingsManager);
         int selected = Math.min(rowLimit, remaining.size());
         PageCandidate whole = renderPage(page, remaining.subList(0, selected), local);
         if (fits(whole)) {
-            return new McpToolResult(whole.text(), whole.structuredContent());
+            return McpToolResult.of(whole.text(), whole.structuredContent());
         }
 
         // The largest complete prefix that fits, found by halving rather than by dropping one row at a
@@ -323,7 +399,7 @@ public class HubsMcpTools {
             throw new IllegalArgumentException(
                     "A session identity exceeds the catalogue response limit and cannot be returned intact.");
         }
-        return new McpToolResult(fitting.text(), fitting.structuredContent());
+        return McpToolResult.of(fitting.text(), fitting.structuredContent());
     }
 
     private static boolean fits(PageCandidate candidate) {
@@ -331,79 +407,153 @@ public class HubsMcpTools {
                 && Json.toString(candidate.structuredContent()).length() <= McpToolOutput.MAX_CHARS;
     }
 
-    /** Java callers retain the original text-only contract; MCP reflects the cursor overload. */
-    public String sessions(String hub, String workspace, String project, Integer withinLastMinutes,
-                           RecordingStatus status, Integer limit) {
-        return sessions(hub, workspace, project, withinLastMinutes, status, limit, null).text();
+    /**
+     * What one listing call asked for, as its arguments name it: the filters a next page repeats, and
+     * the most rows a page holds.
+     */
+    private record SessionQuery(String hub, String workspace, String project, Integer withinLastMinutes,
+                                RecordingStatus status, int limit) {
+
+        McpNextTool nextPage(String cursor) {
+            McpNextTool.Call call = McpNextTool.call(HubCalls.HUBS_SESSIONS)
+                    .with(HubCalls.HUB, hub)
+                    .with(HubCalls.WORKSPACE, workspace)
+                    .with(HubCalls.PROJECT, project);
+            if (withinLastMinutes != null) {
+                call.with(HubCalls.WITHIN_LAST_MINUTES, withinLastMinutes.longValue());
+            }
+            return call.with(HubCalls.STATUS, status)
+                    .with(HubCalls.LIMIT, limit)
+                    .with(HubCalls.CURSOR, cursor)
+                    .why(NEXT_SESSIONS_WHY);
+        }
     }
 
-    private record SessionPage(HubScanFilter filter, String fingerprint, Integer withinLastMinutes,
-                               int observedTotal, int remaining, List<HubSessionScan.Failure> failures) {
+    private record SessionPage(HubScanFilter filter, McpCursor.Filters cursorFilters, Integer withinLastMinutes,
+                               int observedTotal, int remaining, List<HubSessionScan.Failure> failures,
+                               SessionQuery query, String uiLink) {
 
         boolean complete() {
             return failures.isEmpty();
         }
     }
 
-    private record PageCandidate(String text, ObjectNode structuredContent) {
+    private record PageCandidate(String text, Sessions structuredContent) {
     }
 
-    private static PageCandidate renderPage(
+    /**
+     * Where a {@code hubs_sessions} page continues: after the last returned row, keeping the cutoff
+     * the first page's relative window resolved to, so a later page does not slide the window.
+     */
+    private record SessionPosition(Instant activeFrom, HubSessionScan.Key after) {
+
+        /** Where each value sits in the keyset: the window cutoff, then the last row's sort key. */
+        private static final int ACTIVE_FROM = 0;
+        private static final int CREATED_AT = 1;
+        private static final int SESSION_REF = 2;
+        private static final int VALUES = 3;
+
+        McpCursor.Keyset keyset() {
+            String[] values = new String[VALUES];
+            values[ACTIVE_FROM] = text(activeFrom);
+            values[CREATED_AT] = text(after.createdAt());
+            values[SESSION_REF] = after.ref().encode();
+            return new McpCursor.Keyset(Arrays.asList(values));
+        }
+
+        /**
+         * The position a keyset holds; refused when its shape is not this tool's, or when it carries a
+         * cutoff for a scan without a window or none for a scan with one.
+         */
+        static SessionPosition read(McpCursor.Keyset keyset, boolean windowed) {
+            List<String> values = keyset.after();
+            if (values.size() != VALUES || values.get(SESSION_REF) == null) {
+                throw new IllegalArgumentException("not a hubs_sessions position: after=" + values);
+            }
+            Instant activeFrom = instant(values.get(ACTIVE_FROM));
+            if (windowed != (activeFrom != null)) {
+                throw new IllegalArgumentException(
+                        "the cursor's window does not match the call: windowed=" + windowed);
+            }
+            return new SessionPosition(activeFrom,
+                    new HubSessionScan.Key(instant(values.get(CREATED_AT)), HubSessionRef.decode(values.get(SESSION_REF))));
+        }
+
+        private static String text(Instant value) {
+            return value == null ? null : value.toString();
+        }
+
+        private static Instant instant(String value) {
+            return value == null ? null : Instant.parse(value);
+        }
+    }
+
+    private PageCandidate renderPage(
             SessionPage page, List<HubSessionScan.Row> rows, DownloadedSessionIndex local) {
         boolean hasMore = rows.size() < page.remaining();
-        String nextCursor = hasMore && !rows.isEmpty() ? new HubSessionCursor(
-                page.fingerprint(), page.filter().sessions().activeFrom(), rows.getLast().key()).encode() : null;
-        ObjectNode structured = Json.createObject();
-        ArrayNode sessions = structured.putArray("sessions");
-        structured.put("returned", rows.size());
-        if (page.complete()) {
-            structured.put("total", page.observedTotal());
-        } else {
-            structured.putNull("total");
-        }
-        structured.put("observedTotal", page.observedTotal());
-        structured.put("hasMore", hasMore);
-        structured.put("nextCursor", nextCursor);
-        structured.put("complete", page.complete());
-        structured.set("failures", Json.toTree(page.failures()));
+        String nextCursor = hasMore && !rows.isEmpty() ? JeffreyMcpServer.CURSOR.encode(page.cursorFilters(),
+                new SessionPosition(page.filter().sessions().activeFrom(), rows.getLast().key()).keyset()) : null;
+        List<SessionRow> sessions = new ArrayList<>(rows.size());
         MarkdownTable table = MarkdownTable.withColumns(
                 "hub", "workspace", "project", "started", "duration", "status", "files", "size",
-                "local", "session_ref");
+                "local", "sessionRef");
         for (HubSessionScan.Row row : rows) {
             RecordingSession session = row.session();
             String hub = bounded(row.hubName(), DISPLAY_CHARS);
             String workspace = bounded(row.workspaceName(), DISPLAY_CHARS);
             String project = bounded(row.projectName(), DISPLAY_CHARS);
-            String duration = duration(session);
-            String size = ByteSizes.format(session.totalSizeBytes());
-            String localCopy = localColumn(local, row.ref());
+            Optional<DownloadedSessionIndex.LocalCopy> copy = local.find(row.ref());
             String ref = row.ref().encode();
             int files = session.files() == null ? 0 : session.files().size();
-            table.row(hub, workspace, project, session.createdAt(), duration, session.status(), files, size,
-                    localCopy, ref);
-            ObjectNode entry = sessions.addObject();
-            entry.put("hub", hub);
-            entry.put("workspace", workspace);
-            entry.put("project", project);
-            entry.put("started", session.createdAt() == null ? null : session.createdAt().toString());
-            entry.put("duration", duration);
-            entry.put("status", session.status() == null ? null : session.status().name());
-            entry.put("files", files);
-            entry.put("size", size);
-            entry.put("local", localCopy);
-            entry.put("session_ref", ref);
+            table.row(hub, workspace, project, session.createdAt(), duration(session), session.status(), files,
+                    ByteSizes.format(session.totalSizeBytes()), localColumn(copy), ref);
+            sessions.add(new SessionRow(hub, workspace, project,
+                    session.createdAt() == null ? null : session.createdAt().toEpochMilli(),
+                    durationMs(session), session.status(), files, session.totalSizeBytes(),
+                    copy.map(DownloadedSessionIndex.LocalCopy::recordingId).orElse(null),
+                    copy.map(DownloadedSessionIndex.LocalCopy::profileId).orElse(null),
+                    ref));
         }
+        boolean empty = page.observedTotal() == 0 && page.complete();
+        String reason = empty ? emptyReason(page.withinLastMinutes()) : null;
+        McpFollowUp followUp = sessionsFollowUp(page, sessions, nextCursor);
+        Sessions structured = new Sessions(empty ? CatalogueStatus.EMPTY : CatalogueStatus.OK, reason,
+                List.copyOf(sessions), rows.size(), page.complete() ? page.observedTotal() : null,
+                page.observedTotal(), hasMore, nextCursor, page.complete(), page.failures(), followUp, page.uiLink());
         String metadata = "Returned " + rows.size() + " of " + page.observedTotal() + " observed sessions. "
-                + "complete=" + page.complete() + "; hasMore=" + hasMore + ". "
-                + (nextCursor == null ? "" : "nextCursor: `" + nextCursor + "`\n") + LIVE_PAGING_NOTE;
+                + "complete=" + page.complete() + "; hasMore=" + hasMore + ". " + LIVE_PAGING_NOTE;
         String text;
-        if (page.observedTotal() == 0 && page.complete()) {
-            text = emptyResult(page.withinLastMinutes()) + "\n\n" + metadata;
+        if (empty) {
+            text = reason + "\n\n" + metadata;
         } else {
             text = table.note(footer(new HubSessionScan.Result(rows, page.failures())))
                     .note(metadata).renderUncapped();
         }
-        return new PageCandidate(text, structured);
+        // The page is measured whole, footer included, and never cut: the footer is appended, not capped.
+        return new PageCandidate(text + LinkedOutput.footer(followUp, page.uiLink(), null), structured);
+    }
+
+    /**
+     * Where a page of sessions leads: the next page, a look at the first session not here yet, the
+     * analysis of one downloaded but not analysed, or the profile of one that is. A download is never
+     * offered as a call: which part of a session to bring is the user's choice, so it is guidance.
+     */
+    private McpFollowUp sessionsFollowUp(SessionPage page, List<SessionRow> sessions, String nextCursor) {
+        Optional<SessionRow> notHere = sessions.stream().filter(row -> row.recordingId() == null).findFirst();
+        Optional<SessionRow> unanalysed = sessions.stream()
+                .filter(row -> row.recordingId() != null && row.profileId() == null).findFirst();
+        Optional<SessionRow> analysed = sessions.stream().filter(row -> row.profileId() != null).findFirst();
+        boolean emptyWithoutWindow = page.observedTotal() == 0 && page.withinLastMinutes() == null;
+        return NextSteps.builder(advertised)
+                .nextWhen(nextCursor != null, () -> page.query().nextPage(nextCursor))
+                .nextWhen(notHere.isPresent(), () -> HubCalls.onSession(HubCalls.HUBS_FILES,
+                        notHere.orElseThrow().sessionRef()).why(FILES_WHY))
+                .nextWhen(unanalysed.isPresent(), () -> HubCalls.analyse(unanalysed.orElseThrow().recordingId()))
+                .nextWhen(analysed.isPresent(), () -> HubCalls.summary(analysed.orElseThrow().profileId()))
+                .nextWhen(!page.complete() || emptyWithoutWindow,
+                        McpNextTool.call(HubCalls.HUBS_LIST).why(CHECK_HUBS_WHY))
+                .guidanceWhen(notHere.isPresent(), DOWNLOAD_GUIDANCE)
+                .followUp();
     }
 
     private static List<HubSessionScan.Failure> boundedFailures(List<HubSessionScan.Failure> failures) {
@@ -434,57 +584,125 @@ public class HubsMcpTools {
      * The one tool in this family that writes. The family is advertised READS_REMOTE because the other
      * two observe; this one creates a local recording and can move gigabytes across a network to do it,
      * which is exactly the case a client's read-only hint is there to let a reader approve knowingly.
+     * A client that declared form elicitation is also asked which part of a large session to bring
+     * (DownloadWindowQuestion) before a whole-session transfer starts; the description does not say so,
+     * because the tool list is the same for every client.
      */
     @McpToolHints(readOnly = false, openWorld = true)
-    @Tool(description = "Download a recording session from its hub into this Jeffrey - the whole "
-            + "session, or the part of it that matters. Without a selection it brings the session's "
-            + "finished recording files, kept as the several files they are, and its artifacts - heap "
-            + "dumps, JVM and application logs - with them, as one local recording. A session on a hub can run for days and roll a chunk every few minutes, so the "
-            + "part is usually what to pull, chosen one of two ways: startTime and/or endTime name a "
-            + "span, and the chunks covering it are brought - every one whose span touches the window, "
-            + "so a chunk straddling a bound is included and the recording always covers the whole "
-            + "window with some slack at either end; or fileIds name files from hubs_files by id, "
-            + "an unbroken run of chunks and any artifact beside them. Either way the chunks become one "
-            + "recording and the answer reports the span they actually cover. The started and duration "
-            + "columns of hubs_sessions say what span there is to choose from. Takes the "
-            + "session_ref from a hubs_sessions row. Returns a recording id: pass it to "
-            + "recordings_analyzeRecording to build the profile the analysis tools take, and "
-            + "recordings_delete removes it once its question is answered. A small "
-            + "transfer completes inside this call; a large one takes longer than a client waits, so "
-            + "the answer is a status saying the transfer continues and calling this tool again with "
-            + "the same arguments reports it once it lands. A whole session already downloaded is "
-            + "returned as it is rather than fetched twice; a part always makes a recording of its "
-            + "own. Failed transfer outcomes are retained in memory for "
-            + "one hour after completion. During that window, later calls report the failure without "
-            + "restarting unless retry=true. Every started transfer includes an operationId; use "
-            + "operations_status to poll locally or operations_cancel to request cancellation. "
-            + "Fast transfer failures also return their operationId. After expiry or a server restart, this tool can "
-            + "start a new transfer even when retry is omitted or false.")
-    public String download(
-            @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
+    @Tool(description = "Downloads a recording session from its hub into this Jeffrey as one local "
+            + "recording, by the sessionRef of a hubs_sessions row, and returns a recordingId for "
+            + "recordings_analyzeRecording. With no selection it brings the session's finished "
+            + "recording files, kept as the several files they are, and its artifacts - heap dumps, "
+            + "JVM and application logs. A part instead: startEpochMs and/or endEpochMs bring every "
+            + "chunk whose span touches the window, so the recording covers it with some slack; or "
+            + "fileIds bring named hubs_files rows - an unbroken run of chunks and any artifacts beside "
+            + "them. The answer reports the span actually covered. A whole session already "
+            + "downloaded is returned as it is; a part always makes a recording of its own. status "
+            + "DOWNLOADED, or RUNNING when a large transfer outlasts the call - the same call again "
+            + "joins it. Every started transfer carries an operationId for operations_status and "
+            + "operations_cancel, and a client that declared the MCP tasks extension gets a task after "
+            + "about 5 s instead. A FAILED or CANCELLED outcome is kept in memory for one hour and "
+            + "reported rather than restarted unless retry=true; after that, or a server restart, the "
+            + "call starts a new transfer.")
+    @McpOutputSchema(Download.class)
+    @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.HUB)
+    public McpToolOutcome download(
+            @ToolParam(required = true, description = "The sessionRef from a hubs_sessions row, copied exactly")
             String sessionRef,
             @ToolParam(required = false, description = "Retry a failed transfer while its outcome is retained "
                     + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
                     + "After expiry or a server restart, this call can start a new transfer regardless of retry")
             Boolean retry,
             @ToolParam(required = false, description = "Start of the window as UTC epoch milliseconds. Omit "
-                    + "with endTime for the whole session; omit on its own to reach back to the session's start")
-            Long startTime,
+                    + "with endEpochMs for the whole session; omit on its own to reach back to the session's start")
+            Long startEpochMs,
             @ToolParam(required = false, description = "End of the window as UTC epoch milliseconds, after "
-                    + "startTime. Omit on its own to reach forward to the session's end")
-            Long endTime,
-            @ToolParam(required = false, description = "Comma-separated file_id values from hubs_files rows to "
+                    + "startEpochMs. Omit on its own to reach forward to the session's end")
+            Long endEpochMs,
+            @ToolParam(required = false, description = "The fileId values from hubs_files rows to "
                     + "bring instead of a window - at least one must be a JFR chunk, and the chunks must be an "
                     + "unbroken run of the session because the recording reports one span across them. Artifacts beside "
-                    + "them are free to pick. Not combined with startTime or endTime")
-            String fileIds) {
+                    + "them are free to pick. Not combined with startEpochMs or endEpochMs")
+            List<String> fileIds,
+            McpCallContext call) {
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
-        DownloadKey key = DownloadKey.of(ref, startTime, endTime, ToolArguments.commaSeparated(fileIds));
+        DownloadKey key = DownloadKey.of(ref, startEpochMs, endEpochMs, fileIds);
+        // Read here, where the request is bound: an answer is rendered wherever the finished transfer is
+        // first seen, and that need not be a request thread.
+        String base = UiLinks.base();
+        if (!mayAskForWindow(key, call)) {
+            return downloadReportingRetained(key, retry, call, Optional.empty(), base);
+        }
+
+        // Asked before anything crosses the network. The session is read once, under the call's
+        // whole response budget, and that read is what the transfer then starts from.
+        Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
+        DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
+        Optional<SessionRead> read = Optional.of(new SessionRead(responseDeadline, preflight));
+        Instant now = clock.instant();
+        if (!windowQuestion.asks(preflight.session(), now)) {
+            return downloadReportingRetained(key, retry, call, read, base);
+        }
+        DownloadWindowQuestion.Subject subject = new DownloadWindowQuestion.Subject(
+                preflight.session(), preflight.hubInfo().name(), preflight.project().info().name(), now);
+        Optional<McpInputResponse> response = call.inputResponse(DownloadWindowQuestion.KEY);
+        if (response.isEmpty()) {
+            LOG.info("Asking which part of a large hub session to download: session_id={} size_bytes={}",
+                    ref.sessionId(), preflight.session().totalSizeBytes());
+            return windowQuestion.ask(subject);
+        }
+        return switch (windowQuestion.read(response.get(), subject)) {
+            case WindowAnswer.Chosen chosen -> downloadChosen(
+                    DownloadKey.of(ref, chosen.startEpochMs(), chosen.endEpochMs(), null), subject, retry, call, read,
+                    base);
+            case WindowAnswer.Whole _ -> downloadReportingRetained(key, retry, call, read, base);
+            case WindowAnswer.NotAnswered notAnswered -> answer(key, DownloadFacts.notDownloaded(
+                    notAnswered.reason(), preflight), null, base);
+            case WindowAnswer.Incomplete incomplete -> windowQuestion.ask(subject, incomplete.problem());
+        };
+    }
+
+    /**
+     * The window the user chose, unless no finished chunk covers it — then the question is put again,
+     * saying so, rather than the transfer failing on an empty selection.
+     */
+    private McpToolOutcome downloadChosen(DownloadKey chosen, DownloadWindowQuestion.Subject subject,
+                                          Boolean retry, McpCallContext call, Optional<SessionRead> read,
+                                          String base) {
+        if (chosen.coversNothing(subject.session())) {
+            return windowQuestion.ask(subject,
+                    NO_FINISHED_CHUNK.formatted(chosen.window().start(), chosen.window().end()));
+        }
+        return downloadReportingRetained(chosen, retry, call, read, base);
+    }
+
+    /**
+     * Whether this call may be asked which part of the session to bring: only a client that renders
+     * forms, only for the whole session, and only when there is nothing to answer from already — no
+     * attempt under that key, running or retained, and no whole copy here. A large session is judged
+     * after the preflight has read it.
+     */
+    private boolean mayAskForWindow(DownloadKey key, McpCallContext call) {
+        return call.canElicitForm()
+                && key.wholeSession()
+                && downloads.current(key).isEmpty()
+                && DownloadedSessionIndex.build(recordingsManager).find(key.ref()).isEmpty();
+    }
+
+    /**
+     * The download, with a retained failure of this very attempt turned into its status rather than
+     * thrown again.
+     *
+     * @param read the session as the window question already read it, if it did
+     * @param base the link base, read on the request thread
+     */
+    private McpToolOutcome downloadReportingRetained(
+            DownloadKey key, Boolean retry, McpCallContext call, Optional<SessionRead> read, String base) {
         Optional<OperationHandle<String>> before = downloads.current(key);
         String priorId = before.map(OperationHandle::operationId).orElse(null);
         boolean priorTerminal = before.map(handle -> handle.snapshot().state().terminal()).orElse(false);
         try {
-            return download(key, retry);
+            return download(key, retry, call, read, base);
         } catch (RuntimeException failure) {
             Optional<OperationHandle<String>> attempt = downloads.current(key);
             if (attempt.isPresent()) {
@@ -493,7 +711,8 @@ public class HubsMcpTools {
                 boolean reportsThisAttempt = !Boolean.TRUE.equals(retry) || !priorTerminal
                         || !current.operationId().equals(priorId);
                 if (reportsThisAttempt && (state == OperationState.FAILED || state == OperationState.CANCELLED)) {
-                    return McpToolOutput.json(operations.status(registerDownload(key, current)));
+                    String operationId = registerDownload(key, current, null, base);
+                    return answer(key, DownloadFacts.ended(state, failureMessage(current)), operationId, base);
                 }
             }
             // A rejected retry preflight did not create an attempt. Its own error must not be
@@ -502,8 +721,20 @@ public class HubsMcpTools {
         }
     }
 
-    /** The transfer itself; the annotated method above turns a retained failure into a status. */
-    private String download(DownloadKey key, Boolean retry) {
+    private static String failureMessage(OperationHandle<String> attempt) {
+        Throwable failure = attempt.snapshot().failure();
+        return failure == null ? null : failure.getMessage();
+    }
+
+    /**
+     * The transfer itself; {@link #downloadReportingRetained} turns a retained failure into a status.
+     *
+     * @param read the session as the window question already read it, reused rather than read twice;
+     *             empty to read it here
+     * @param base the link base, read on the request thread
+     */
+    private McpToolOutcome download(
+            DownloadKey key, Boolean retry, McpCallContext call, Optional<SessionRead> read, String base) {
         HubSessionRef ref = key.ref();
         boolean retryFailed = Boolean.TRUE.equals(retry);
 
@@ -514,11 +745,13 @@ public class HubsMcpTools {
         Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
                 DownloadedSessionIndex.build(recordingsManager).find(ref);
         if (key.wholeSession() && alreadyHere.isPresent()) {
+            DownloadedSessionIndex.LocalCopy copy = alreadyHere.get();
             LOG.debug("Hub session was already downloaded: session_id={} recording_id={}",
-                    ref.sessionId(), alreadyHere.get().recordingId());
-            OperationHandle<String> operation = downloads.rememberCompleted(key, alreadyHere.get().recordingId());
-            return operations.decorate(McpToolOutput.json(existing(ref, alreadyHere.get())),
-                    registerDownload(key, operation));
+                    ref.sessionId(), copy.recordingId());
+            OperationHandle<String> operation = downloads.rememberCompleted(key, copy.recordingId());
+            DownloadFacts facts = DownloadFacts.here(copy.recordingId(), copy.profileId());
+            String operationId = registerDownload(key, operation, recordingId -> facts, base);
+            return answer(key, facts, operationId, base);
         }
 
         Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
@@ -526,12 +759,16 @@ public class HubsMcpTools {
             throw mapRemoteFailure(prior.get().failure());
         }
 
-        Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
-        DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
-        HubInfo hubInfo = preflight.hubInfo();
+        // The preflight has the whole response budget, whatever the client declared: only the wait
+        // on the transfer below is shortened for a client that can follow a task.
+        Deadline responseDeadline = read.map(SessionRead::responseDeadline)
+                .orElseGet(() -> McpDeadlines.after(downloadResponseBudget));
+        DownloadPreflight preflight = read.map(SessionRead::preflight)
+                .orElseGet(() -> preflightWithin(ref, responseDeadline));
         ProjectManager project = preflight.project();
         RecordingSession session = preflight.session();
         ChunkWindow.Selection selection = key.select(session);
+        Landing landing = new Landing(key, preflight, selection, alreadyHere);
 
         // Handing back the recording an identical call already made, unless the answer has moved
         // on since. A window with no end means "up to now" on a session that is still recording,
@@ -541,8 +778,8 @@ public class HubsMcpTools {
         if (prior.isPresent() && !key.reachesPastTheEnd(session)) {
             String recordingId = prior.get().value();
             if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
-                return operations.decorate(McpToolOutput.json(completedOutcome(ref, recordingId)),
-                        registerDownload(key, downloads.current(key).orElseThrow()));
+                String operationId = registerDownload(key, downloads.current(key).orElseThrow(), landing::landed, base);
+                return answer(key, landing.landed(recordingId), operationId, base);
             }
         }
 
@@ -552,89 +789,102 @@ public class HubsMcpTools {
         // unless what was asked for is still growing, in which case the retained one answers a
         // shorter question than the one being put. A transfer still in flight is joined either way.
         boolean stillGrowing = key.reachesPastTheEnd(session);
+        long transferBytes = selection == null
+                ? session.totalSizeBytes()
+                : selection.files().stream().mapToLong(RepositoryFile::size).sum();
         OperationHandle<String> operation = downloads.startOrJoin(key, retryFailed,
                 recordingId -> !stillGrowing && recordingsManager.findRecording(recordingId).isPresent(),
                 control -> {
-                    control.phase("downloading");
-                    control.progress(Map.of("sessionRef", ref.encode(), "sessionId", ref.sessionId(),
-                            "totalSizeBytes", selection == null
-                                    ? session.totalSizeBytes()
-                                    : selection.files().stream().mapToLong(RepositoryFile::size).sum()));
+                    control.phase(OperationPhase.DOWNLOADING);
+                    control.progress(OperationDetails.hubDownload(ref.encode(), ref.sessionId(), transferBytes));
                     return transferWithinDeadline(project, key, control);
                 });
-        String operationId = registerDownload(key, operation);
+        String operationId = registerDownload(key, operation, landing::landed, base);
         Optional<String> transferred;
         try {
-            transferred = downloads.awaitWithin(operation, remaining(responseDeadline));
+            transferred = downloads.awaitWithin(operation, McpDeadlines.remainingWithin(responseDeadline,
+                    answers.waitBudget(call, downloadResponseBudget), RESPONSE_DEADLINE_ELAPSED));
         } catch (RuntimeException e) {
             throw mapRemoteFailure(e);
         }
         if (transferred.isEmpty()) {
-            // Nothing to poll but this tool: it answers from the local store first, so calling it again
-            // with the same ref reports the finished copy once the transfer lands.
-            // Names travel unescaped here. Replacing a pipe is a Markdown-cell concern, and these
-            // two answers are JSON, where the serialiser escapes what needs escaping and a mangled
-            // name is simply the wrong name.
-            return operations.decorate(McpToolOutput.json(new DownloadInProgress(
-                    ref.sessionId(),
-                    session.name(),
-                    session.totalSizeBytes(),
-                    DOWNLOAD_STILL_RUNNING)), operationId);
+            // Nothing to poll but this tool and the operation: the tool answers from the local store
+            // first, so calling it again with the same part reports the finished copy once it lands.
+            return answers.stillRunning(call, operationId,
+                    () -> answer(key, DownloadFacts.running(preflight, transferBytes), operationId, base));
         }
-        String recordingId = transferred.get();
-
-        List<RepositoryFile> finished = session.finishedFiles();
-        if (selection != null) {
-            List<RepositoryFile> others = key.others(finished);
-            return operations.decorate(McpToolOutput.json(new DownloadedSession(
-                    recordingId,
-                    session.name(),
-                    hubInfo.name(),
-                    project.info().name(),
-                    ref.sessionId(),
-                    selection.files().size(),
-                    others.size(),
-                    selection.files().stream().mapToLong(RepositoryFile::size).sum()
-                            + others.stream().mapToLong(RepositoryFile::size).sum(),
-                    selection.coverageStart(),
-                    selection.coverageEnd(),
-                    "Call recordings_analyzeRecording with recordingId=" + recordingId
-                            + " to build the profile every analysis tool takes. Its figures are about "
-                            + "the covered span, not the whole session; recordings_delete removes it once "
-                            + "the question is answered." + wholeSessionNote(alreadyHere))), operationId);
-        }
-        return operations.decorate(McpToolOutput.json(new DownloadedSession(
-                recordingId,
-                session.name(),
-                hubInfo.name(),
-                project.info().name(),
-                ref.sessionId(),
-                (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
-                (int) finished.stream().filter(RepositoryFiles::isArtifact).count(),
-                session.totalSizeBytes(),
-                null,
-                null,
-                "Call recordings_analyzeRecording with recordingId=" + recordingId
-                        + " to build the profile every analysis tool takes.")), operationId);
-    }
-
-    private String registerDownload(DownloadKey key, OperationHandle<String> operation) {
-        String sessionRef = key.ref().encode();
-        return operations.register(OperationKind.HUB_DOWNLOAD, operation,
-                recordingId -> Map.of("recordingId", recordingId, "sessionRef", sessionRef));
+        return answer(key, landing.landed(transferred.get()), operationId, base);
     }
 
     /**
-     * Java callers written before failed-download retry became explicit keep their source contract.
-     * MCP reflection uses the annotated method above.
+     * Registers the transfer with the call that retries it and, when it can finish, the answer a task
+     * following it completes with: the answer a caller that waited for it is given.
+     *
+     * @param landed what the finished transfer reports, or {@code null} for an attempt already ended
+     *               without a recording
+     * @return the operation id
      */
-    public String download(String sessionRef) {
-        return download(new DownloadKey(HubSessionRef.decode(sessionRef), null, null), false);
+    private String registerDownload(
+            DownloadKey key, OperationHandle<String> operation, Function<String, DownloadFacts> landed, String base) {
+        String operationId = operation.operationId();
+        Function<String, McpToolResult> finished = landed == null
+                ? recordingId -> answer(key, DownloadFacts.here(recordingId, null), operationId, base)
+                : recordingId -> answer(key, landed.apply(recordingId), operationId, base);
+        return operations.register(OperationKind.HUB_DOWNLOAD, operation, downloadResult(key), finished,
+                key.retryCall());
     }
 
-    /** The two-argument form the tests written before the window keep calling. */
-    public String download(String sessionRef, Boolean retry) {
-        return download(sessionRef, retry, null, null, null);
+    private static Function<String, DownloadResult> downloadResult(DownloadKey key) {
+        String sessionRef = key.ref().encode();
+        return recordingId -> new DownloadResult(recordingId, sessionRef);
+    }
+
+    /** What a finished download produced, as operations_status reports it. */
+    private record DownloadResult(String recordingId, String sessionRef) {
+    }
+
+    /**
+     * The one answer every state of a download gives: the facts, the part asked for, the transfer
+     * behind them, what to call next and the page for the user.
+     *
+     * @param operationId the transfer this answer reports, or null when there is none
+     * @param base        the link base, read on the request thread; see {@link UiLinks#base()}
+     */
+    private McpToolResult answer(DownloadKey key, DownloadFacts facts, String operationId, String base) {
+        McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
+        String uiLink = facts.profileId() != null
+                ? UiLinks.profile(base, facts.profileId())
+                : facts.recordingId() != null
+                ? UiLinks.page(base, MicroscopePage.RECORDINGS)
+                : UiLinks.page(base, MicroscopePage.HUBS);
+        return McpToolResult.of(new Download(facts.status(), facts.reason(), key.ref().encode(), key.ref().sessionId(),
+                facts.sessionName(), facts.hub(), facts.project(), key.startEpochMs(), key.endEpochMs(),
+                key.fileIds() == null ? List.of() : key.fileIds(), facts.recordingId(), facts.profileId(),
+                facts.recordingFiles(), facts.artifactFiles(), facts.sizeBytes(), facts.coveredStartEpochMs(),
+                facts.coveredEndEpochMs(), operationId, operation, followUp(key, facts, operationId), uiLink));
+    }
+
+    private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, String operationId) {
+        NextSteps.Builder next = NextSteps.builder(advertised);
+        return switch (facts.status()) {
+            case DOWNLOADED -> next
+                    .nextWhen(facts.profileId() != null, () -> HubCalls.summary(facts.profileId()))
+                    .nextWhen(facts.profileId() == null, HubCalls.analyse(facts.recordingId()))
+                    .guidanceWhen(!key.wholeSession(), PART_GUIDANCE)
+                    .guidance(facts.wholeCopyNote())
+                    .followUp();
+            case RUNNING -> next
+                    .next(HubCalls.poll(operationId))
+                    .next(key.sameCall(JOIN_WHY))
+                    .followUp();
+            case NOT_DOWNLOADED -> next
+                    .next(HubCalls.onSession(HubCalls.HUBS_FILES, key.ref().encode()).why(CHOOSE_FILES_WHY))
+                    .guidance(NOT_DOWNLOADED_GUIDANCE)
+                    .followUp();
+            case FAILED, CANCELLED -> next
+                    .next(key.retryCall())
+                    .followUp();
+        };
     }
 
     private RecordingSessionFilter sessionFilter(
@@ -651,13 +901,11 @@ public class HubsMcpTools {
         return filter.withStatus(status);
     }
 
-
-    private static String emptyResult(Integer withinLastMinutes) {
+    private static String emptyReason(Integer withinLastMinutes) {
         if (withinLastMinutes == null) {
-            return NO_SESSIONS + " Call hubs_list to check the hubs are connected and answering.";
+            return NO_SESSIONS;
         }
-        return NO_SESSIONS + " The window was the last " + withinLastMinutes
-                + " minutes - widen it with withinLastMinutes, or drop it to see every session.";
+        return NO_SESSIONS_WIDEN.formatted(withinLastMinutes);
     }
 
     /**
@@ -666,29 +914,23 @@ public class HubsMcpTools {
      * a reader into thinking their recordings are gone.
      */
     private static String footer(HubSessionScan.Result result) {
-        StringBuilder footer = new StringBuilder(256);
-        footer.append("A row with `local` empty is not in this Jeffrey yet - pass its `session_ref` to "
-                + "hubs_download. `recording:<id>` is downloaded but not analysed, so it is ready for "
-                + "recordings_analyzeRecording; `profile:<id>` is already analysed and every analysis "
-                + "tool takes that id straight away.\n");
-
+        StringBuilder footer = new StringBuilder(256).append(FOOTER_LOCAL);
         if (!result.complete()) {
             footer.append('\n');
             for (HubSessionScan.Failure failure : result.failures()) {
                 footer.append("Not listed: ").append(failure.scope())
                         .append(" - ").append(failure.reason()).append('\n');
             }
-            footer.append("Nothing from there appears above. Call hubs_list to check, "
+            footer.append("Nothing from there appears above. Check the hubs with hubs_list, "
                     + "or ask the user whether that hub should be up.\n");
         }
         return footer.toString();
     }
 
-    private static String localColumn(DownloadedSessionIndex index, HubSessionRef ref) {
-        return index.find(ref)
-                .map(copy -> copy.analysed()
-                        ? "profile:" + copy.profileId()
-                        : "recording:" + copy.recordingId())
+    private static String localColumn(Optional<DownloadedSessionIndex.LocalCopy> copy) {
+        return copy.map(local -> local.analysed()
+                        ? "profile:" + local.profileId()
+                        : "recording:" + local.recordingId())
                 .orElse("");
     }
 
@@ -760,16 +1002,6 @@ public class HubsMcpTools {
         }
     }
 
-    private static Duration remaining(Deadline deadline) {
-        long remainingNanos = deadline.timeRemaining(TimeUnit.NANOSECONDS);
-        if (remainingNanos <= 0) {
-            throw GrpcClientErrors.toJeffreyException(
-                    Status.DEADLINE_EXCEEDED.withDescription("Hub download response deadline elapsed")
-                            .asRuntimeException());
-        }
-        return Duration.ofNanos(remainingNanos);
-    }
-
     private static Duration requirePositive(Duration value, String name) {
         if (value == null || value.isZero() || value.isNegative()) {
             throw new IllegalArgumentException(name + " must be positive: " + value);
@@ -788,57 +1020,26 @@ public class HubsMcpTools {
         return exception;
     }
 
-    private static DownloadedSession existing(
-            HubSessionRef ref, DownloadedSessionIndex.LocalCopy copy) {
-
-        String next = copy.analysed()
-                ? "Already analysed as profile " + copy.profileId()
-                + " - every analysis tool takes that profileId straight away."
-                : "Call recordings_analyzeRecording with recordingId=" + copy.recordingId()
-                        + " to build the profile every analysis tool takes.";
-        return new DownloadedSession(
-                copy.recordingId(), null, null, null, ref.sessionId(), 0, 0, 0L, null, null, next);
-    }
-
-    /**
-     * Said on a part download when the whole session is here too: a reader who asked for an hour
-     * of it may well be able to use what is already analysed instead of keeping a second recording.
-     */
-    private static String wholeSessionNote(Optional<DownloadedSessionIndex.LocalCopy> wholeSession) {
-        if (wholeSession.isEmpty()) {
-            return "";
-        }
-        DownloadedSessionIndex.LocalCopy copy = wholeSession.get();
-        return copy.analysed()
-                ? " The whole session is also here, already analysed as profile " + copy.profileId() + "."
-                : " The whole session is also here as recording " + copy.recordingId() + ".";
-    }
-
-    private static DownloadedSession completedOutcome(HubSessionRef ref, String recordingId) {
-        return new DownloadedSession(
-                recordingId,
-                null,
-                null,
-                null,
-                ref.sessionId(),
-                0,
-                0,
-                0L,
-                null,
-                null,
-                "Call recordings_analyzeRecording with recordingId=" + recordingId
-                        + " to build the profile every analysis tool takes.");
-    }
-
     private static String address(HubInfo info) {
         return info.address() == null
-                ? ""
+                ? null
                 : info.address().hostname() + ":" + info.address().port();
     }
 
     /**
-     * How long the JVM has been recording. A session with no finish time is still going, which is a
-     * fact about the row rather than a gap in it.
+     * The session's span in milliseconds, or null while it is still recording or never started — a
+     * running session has no duration yet, and zero would claim one.
+     */
+    private static Long durationMs(RecordingSession session) {
+        if (session.createdAt() == null || session.finishedAt() == null) {
+            return null;
+        }
+        return Duration.between(session.createdAt(), session.finishedAt()).toMillis();
+    }
+
+    /**
+     * How long the JVM has been recording, for the table. A session with no finish time is still
+     * going, which is a fact about the row rather than a gap in it.
      */
     private static String duration(RecordingSession session) {
         Instant start = session.createdAt();
@@ -859,36 +1060,116 @@ public class HubsMcpTools {
         return elapsed.toSeconds() + "s";
     }
 
-    /**
-     * @param status what to do next, rather than a bare flag: the caller is holding a tool result and
-     *               needs to know that calling the same tool again is the way to check
-     */
-    private record DownloadInProgress(
-            String sessionId, String sessionName, long totalSizeBytes, String status) {
-    }
-
     private record DownloadPreflight(
             HubInfo hubInfo, ProjectManager project, RecordingSession session) {
     }
 
     /**
-     * @param windowStart when the first downloaded chunk started, for a window download; {@code null}
-     *                    for the whole session
-     * @param windowEnd   when the last downloaded chunk ended; {@code null} for the whole session and
-     *                    for a chunk the session is still writing
+     * The session as the window question read it, and the response deadline that read ran under, so
+     * the transfer that follows starts from the same read within the same budget.
      */
-    private record DownloadedSession(
-            String recordingId,
+    private record SessionRead(Deadline responseDeadline, DownloadPreflight preflight) {
+    }
+
+    /**
+     * What one state of a download reports, before the part asked for, the transfer, the next calls
+     * and the link are added to it. A count this answer did not make is null, never a zero.
+     *
+     * @param wholeCopyNote what is said on a part when the whole session is here too, or blank
+     */
+    private record DownloadFacts(
+            DownloadStatus status,
+            String reason,
             String sessionName,
             String hub,
             String project,
-            String sessionId,
-            int recordingFiles,
-            int artifactFiles,
-            long sizeBytes,
-            Instant windowStart,
-            Instant windowEnd,
-            String nextStep) {
+            String recordingId,
+            String profileId,
+            Integer recordingFiles,
+            Integer artifactFiles,
+            Long sizeBytes,
+            Long coveredStartEpochMs,
+            Long coveredEndEpochMs,
+            String wholeCopyNote) {
+
+        /** A recording already here: what the local store knows of it, and nothing it would have to guess. */
+        static DownloadFacts here(String recordingId, String profileId) {
+            return new DownloadFacts(DownloadStatus.DOWNLOADED, null, null, null, null, recordingId, profileId,
+                    null, null, null, null, null, "");
+        }
+
+        static DownloadFacts running(DownloadPreflight preflight, long transferBytes) {
+            return new DownloadFacts(DownloadStatus.RUNNING, RUNNING_REASON, preflight.session().name(),
+                    preflight.hubInfo().name(), preflight.project().info().name(), null, null, null, null,
+                    transferBytes, null, null, "");
+        }
+
+        static DownloadFacts notDownloaded(String reason, DownloadPreflight preflight) {
+            return new DownloadFacts(DownloadStatus.NOT_DOWNLOADED, reason, preflight.session().name(),
+                    preflight.hubInfo().name(), preflight.project().info().name(), null, null, null, null, null,
+                    null, null, "");
+        }
+
+        /** An attempt that ended without a recording, retained and reported rather than started again. */
+        static DownloadFacts ended(OperationState state, String message) {
+            return new DownloadFacts(state == OperationState.CANCELLED ? DownloadStatus.CANCELLED : DownloadStatus.FAILED,
+                    message, null, null, null, null, null, null, null, null, null, null, "");
+        }
+    }
+
+    /**
+     * What a finished transfer is reported with, gathered before it starts so that the call that waited
+     * for it and a task that followed it render the same answer.
+     *
+     * @param selection the chunks of a window or of named files; {@code null} for the whole session
+     * @param wholeCopy the whole session, when it is already here beside a part being downloaded
+     */
+    private record Landing(
+            DownloadKey key,
+            DownloadPreflight preflight,
+            ChunkWindow.Selection selection,
+            Optional<DownloadedSessionIndex.LocalCopy> wholeCopy) {
+
+        DownloadFacts landed(String recordingId) {
+            RecordingSession session = preflight.session();
+            List<RepositoryFile> finished = session.finishedFiles();
+            String sessionName = session.name();
+            String hub = preflight.hubInfo().name();
+            String project = preflight.project().info().name();
+            if (selection != null) {
+                List<RepositoryFile> others = key.others(finished);
+                return new DownloadFacts(DownloadStatus.DOWNLOADED, null, sessionName, hub, project, recordingId, null,
+                        selection.files().size(),
+                        others.size(),
+                        selection.files().stream().mapToLong(RepositoryFile::size).sum()
+                                + others.stream().mapToLong(RepositoryFile::size).sum(),
+                        epochMs(selection.coverageStart()),
+                        epochMs(selection.coverageEnd()),
+                        wholeCopyNote());
+            }
+            return new DownloadFacts(DownloadStatus.DOWNLOADED, null, sessionName, hub, project, recordingId, null,
+                    (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
+                    (int) finished.stream().filter(RepositoryFiles::isArtifact).count(),
+                    session.totalSizeBytes(), null, null, "");
+        }
+
+        /**
+         * Said on a part download when the whole session is here too: a reader who asked for an hour
+         * of it may well be able to use what is already analysed instead of keeping a second recording.
+         */
+        private String wholeCopyNote() {
+            if (wholeCopy.isEmpty()) {
+                return "";
+            }
+            DownloadedSessionIndex.LocalCopy copy = wholeCopy.get();
+            return copy.analysed()
+                    ? WHOLE_ANALYSED_GUIDANCE.formatted(copy.profileId())
+                    : WHOLE_RECORDING_GUIDANCE.formatted(copy.recordingId());
+        }
+
+        private static Long epochMs(Instant instant) {
+            return instant == null ? null : instant.toEpochMilli();
+        }
     }
 
     /**
@@ -901,20 +1182,60 @@ public class HubsMcpTools {
      */
     private record DownloadKey(HubSessionRef ref, ChunkWindow window, List<String> fileIds) {
 
-        static DownloadKey of(HubSessionRef ref, Long startTime, Long endTime, List<String> fileIds) {
-            boolean windowed = startTime != null || endTime != null;
+        static DownloadKey of(HubSessionRef ref, Long startEpochMs, Long endEpochMs, List<String> fileIds) {
+            boolean windowed = startEpochMs != null || endEpochMs != null;
             boolean named = fileIds != null && !fileIds.isEmpty();
             if (windowed && named) {
-                throw new IllegalArgumentException(
-                        "Choose the part of the session one way: a window (startTime/endTime) or fileIds, not both.");
+                throw new IllegalArgumentException("Choose the part of the session one way: a window "
+                        + "(startEpochMs/endEpochMs) or fileIds, not both.");
             }
             return new DownloadKey(ref,
-                    windowed ? ChunkWindow.ofEpochMillis(startTime, endTime) : null,
+                    windowed ? ChunkWindow.ofEpochMillis(startEpochMs, endEpochMs) : null,
                     named ? List.copyOf(new TreeSet<>(fileIds)) : null);
         }
 
         boolean wholeSession() {
             return window == null && fileIds == null;
+        }
+
+        Long startEpochMs() {
+            return window == null || window.start() == null ? null : window.start().toEpochMilli();
+        }
+
+        Long endEpochMs() {
+            return window == null || window.end() == null ? null : window.end().toEpochMilli();
+        }
+
+        /**
+         * The call that names this download again: it builds an equal key, so it joins the attempt in
+         * flight or returns the recording it made. For a window the user chose when asked, its exact
+         * bounds, since a whole-session call would put the question again rather than find the transfer.
+         */
+        McpNextTool sameCall(String why) {
+            return arguments().why(why);
+        }
+
+        /** The same call with retry=true, which starts a new attempt once this one failed or was cancelled. */
+        McpNextTool retryCall() {
+            return arguments().with(HubCalls.RETRY, true).why(RETRY_WHY);
+        }
+
+        private McpNextTool.Call arguments() {
+            McpNextTool.Call call = HubCalls.onSession(HubCalls.HUBS_DOWNLOAD, ref.encode());
+            Long start = startEpochMs();
+            Long end = endEpochMs();
+            if (start != null) {
+                call.with(HubCalls.START_EPOCH_MS, start.longValue());
+            }
+            if (end != null) {
+                call.with(HubCalls.END_EPOCH_MS, end.longValue());
+            }
+            return call.with(HubCalls.FILE_IDS, fileIds);
+        }
+
+        /** Whether this is a window no finished chunk of the session covers. */
+        boolean coversNothing(RecordingSession session) {
+            return window != null && window.select(session).isEmpty();
         }
 
         /**
@@ -966,7 +1287,7 @@ public class HubsMcpTools {
                     throw new IllegalArgumentException("No finished chunk of session " + ref.sessionId()
                             + " covers the window: the session started at " + session.createdAt()
                             + (session.finishedAt() == null ? " and is still recording" : " and finished at " + session.finishedAt())
-                            + ". Choose a window inside that span, in UTC epoch milliseconds.");
+                            + ". Choose a window inside that span, as startEpochMs/endEpochMs in UTC epoch milliseconds.");
                 }
                 return selection;
             }
@@ -976,7 +1297,7 @@ public class HubsMcpTools {
             List<String> unknown = fileIds.stream().filter(id -> !known.contains(id)).toList();
             if (!unknown.isEmpty()) {
                 throw new IllegalArgumentException("Session " + ref.sessionId() + " has no finished file "
-                        + unknown + ". Take file_id values from hubs_files; a file still being written is not one yet.");
+                        + unknown + ". Take fileId values from hubs_files; a file still being written is not one yet.");
             }
             ChunkWindow.Selection selection = ChunkWindow.ofFiles(session, Set.copyOf(fileIds));
             if (selection.isEmpty()) {
@@ -993,7 +1314,7 @@ public class HubsMcpTools {
                         + " are not next to each other: " + selection.describeGap(session)
                         + " lies between them. hubs_download makes them one recording reporting one span, so they have "
                         + "to be an unbroken run. Name the chunks in between as well, or ask for the span with "
-                        + "startTime and endTime and let the window pick them.");
+                        + "startEpochMs and endEpochMs and let the window pick them.");
             }
             return selection;
         }

@@ -18,22 +18,33 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.common.analysis.AnalysisResult;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
-import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
+import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.SamplerHealthManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.profile.mcp.McpNextToolConformance;
+import cafe.jeffrey.profile.mcp.McpTestToolsets;
+import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -47,13 +58,22 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,7 +123,13 @@ class ProfileMcpToolsTest {
                 profileManager,
                 recordingCommitResolver,
                 new JfrFlamegraphPanelProvider(),
-                new StackSampleFlamegraphPanelProvider());
+                new StackSampleFlamegraphPanelProvider(),
+                EVERY_FAMILY);
+    }
+
+    /** The link a viewLink answer carries, which is all it carries for the reader. */
+    private String viewLink(String view, String objectId) {
+        return tools().viewLink(view, objectId).structuredContent().get("uiLink").asString();
     }
 
     private void stubProfile(RecordingEventSource eventSource) {
@@ -141,7 +167,7 @@ class ProfileMcpToolsTest {
             stubProfile(RecordingEventSource.JDK);
             when(profileManager.sizeInBytes()).thenReturn(4096L);
 
-            String result = tools().get();
+            String result = tools().get().text();
 
             assertTrue(result.contains("\"profileId\":\"p-1\""));
             assertTrue(result.contains("\"sizeInBytes\":4096"));
@@ -156,14 +182,34 @@ class ProfileMcpToolsTest {
             stubProfile(RecordingEventSource.JDK);
             when(recordingCommitResolver.resolve("rec-1")).thenReturn(Optional.of("abc123"));
 
-            assertTrue(tools().get().contains("\"recordingCommit\":\"abc123\""));
+            assertTrue(tools().get().text().contains("\"recordingCommit\":\"abc123\""));
+        }
+
+        /**
+         * A profile whose recording carried no start or end instant used to fail the whole call with a
+         * NullPointerException instead of answering with the identity it does have.
+         */
+        @Test
+        void answersForAProfileWithoutTimestamps() {
+            stubProfile(RecordingEventSource.JDK);
+            when(profileManager.info()).thenReturn(new ProfileInfo(
+                    "p-1", "proj-1", "ws-1", "Checkout run", RecordingEventSource.JDK,
+                    null, null, null, true, false, "rec-1"));
+
+            String result = tools().get().text();
+
+            assertTrue(result.contains("\"profileId\":\"p-1\""), result);
+            assertTrue(result.contains("\"recordingStartedAtEpochMs\":null"), result);
+            assertTrue(result.contains("\"recordingFinishedAtEpochMs\":null"), result);
+            assertTrue(result.contains("\"durationMs\":null"), result);
+            assertTrue(result.contains("\"createdAtEpochMs\":null"), result);
         }
 
         @Test
         void reportsAnUnknownCommitAsNullRatherThanOmittingIt() {
             stubProfile(RecordingEventSource.JDK);
 
-            assertTrue(tools().get().contains("\"recordingCommit\":null"));
+            assertTrue(tools().get().text().contains("\"recordingCommit\":null"));
         }
     }
 
@@ -178,7 +224,7 @@ class ProfileMcpToolsTest {
                             "jdk.ExecutionSample", "Execution Sample", null, null,
                             1200, 0, true, false, List.of(), null, null))));
 
-            String result = tools().features();
+            String result = tools().features().text();
 
             assertTrue(result.contains("jdk.ExecutionSample"));
             assertTrue(result.contains("1200"));
@@ -193,7 +239,7 @@ class ProfileMcpToolsTest {
             stubProfile(RecordingEventSource.JDK);
             when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
-            assertTrue(tools().features().contains(FeatureType.HEAP_DUMP.name()));
+            assertTrue(tools().features().text().contains(FeatureType.HEAP_DUMP.name()));
         }
 
         /**
@@ -206,7 +252,7 @@ class ProfileMcpToolsTest {
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
 
-            String result = tools().features();
+            String result = tools().features().text();
 
             assertTrue(result.contains(FeatureType.SUBSECOND.name()));
             assertTrue(result.contains(FeatureType.TIMESERIES.name()));
@@ -219,7 +265,7 @@ class ProfileMcpToolsTest {
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(featuresManager.getDisabledFeatures()).thenReturn(List.of(FeatureType.TRACES));
 
-            String result = tools().features();
+            String result = tools().features().text();
 
             assertTrue(result.contains("\"capabilityGaps\":["), result);
             assertTrue(result.contains("\"subject\":\"TRACES\""), result);
@@ -243,7 +289,7 @@ class ProfileMcpToolsTest {
             when(flamegraphManager.eventSummaries()).thenReturn(List.of(
                     recorded("jdk.ExecutionSample", 4200)));
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("\"subject\":\"allocation\""), result);
             assertTrue(result.contains("The recording holds no Allocation Samples (jdk.ObjectAllocationInNewTLAB)"), result);
@@ -259,7 +305,7 @@ class ProfileMcpToolsTest {
             when(flamegraphManager.allEventSummaries()).thenReturn(List.of(
                     recorded("jdk.GarbageCollection", 12)));
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertFalse(result.contains("\"subject\":\"jvm_gc\""), result);
             assertTrue(result.contains("\"subject\":\"jvm_safepoints\""), result);
@@ -276,7 +322,7 @@ class ProfileMcpToolsTest {
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("\"subject\":\"jvm_gc\""), result);
             assertFalse(result.contains("\"subject\":\"jvm_gcDetail\""), result);
@@ -287,12 +333,12 @@ class ProfileMcpToolsTest {
             stubProfile(RecordingEventSource.JDK);
             when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
-            assertTrue(tools().summary().contains("This profile has no heap dump"));
+            assertTrue(tools().summary().text().contains("This profile has no heap dump"));
 
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(false);
 
-            String result = tools().summary();
+            String result = tools().summary().text();
             assertTrue(result.contains("index has not been built"), result);
             assertTrue(result.contains("heap_prepare builds it"), result);
         }
@@ -304,7 +350,7 @@ class ProfileMcpToolsTest {
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(samplerHealthManager.cpuTimeSampleLoss()).thenReturn(new CpuTimeSampleLoss(900, 100, 3));
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("\"subject\":\"sampler\""), result);
             assertTrue(result.contains("dropped 100 of 1,000 samples (10.0%) in 3 loss events"), result);
@@ -318,7 +364,7 @@ class ProfileMcpToolsTest {
             when(autoAnalysisManager.isComputed()).thenReturn(false);
             when(autoAnalysisManager.canGenerate()).thenReturn(true);
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("\"subject\":\"autoAnalysis\""), result);
             assertTrue(result.contains("jvm_autoAnalysis with compute true"), result);
@@ -335,7 +381,7 @@ class ProfileMcpToolsTest {
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("\"topFindings\":[]"), result);
             assertFalse(result.contains("\"subject\":\"autoAnalysis\""), result);
@@ -351,7 +397,7 @@ class ProfileMcpToolsTest {
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("This profile is a heap dump"), result);
             assertFalse(result.contains("\"subject\":\"jvm_gc\""), result);
@@ -364,7 +410,7 @@ class ProfileMcpToolsTest {
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("imported pprof sample set"), result);
             assertFalse(result.contains("\"subject\":\"jvm_gc\""), result);
@@ -388,12 +434,202 @@ class ProfileMcpToolsTest {
                     rule("Thrown Errors", AnalysisResult.Severity.OK, "exceptions"),
                     rule("Allocated Classes", AnalysisResult.Severity.NA, "tlab")));
 
-            String result = tools().summary();
+            String result = tools().summary().text();
 
             assertTrue(result.contains("\"id\":\"garbage_collection:long-gc-pauses\""), result);
-            assertTrue(result.contains("\"nextTool\":\"jvm_gc\""), result);
+            assertTrue(result.contains("\"nextTool\":{\"tool\":\"jvm_gc\",\"arguments\":{\"profileId\":\"p-1\"}"),
+                    result);
             assertFalse(result.contains("exceptions:thrown-errors"), result);
             assertFalse(result.contains("tlab:allocated-classes"), result);
+        }
+    }
+
+    /**
+     * Every answer is a typed record that fits the schema the tool advertises, carries the page it is
+     * about for the user, and hands back its next calls ready to pass on.
+     */
+    @Nested
+    class StructuredAnswers {
+
+        private JsonNode conforming(String method, McpToolResult result) {
+            JsonNode structured = result.structuredContent();
+            McpSchemaConformance.assertConforms(structured, schemaOf(method));
+            UiLinkRoutes.assertResolves(structured.get("uiLink").asString());
+            return structured;
+        }
+
+        @Test
+        void getCarriesTimeAsEpochMillisecondsAndNamesTheSummary() {
+            stubProfile(RecordingEventSource.JDK);
+
+            JsonNode detail = conforming("get", tools().get());
+
+            assertEquals(START.toEpochMilli(), detail.get("recordingStartedAtEpochMs").asLong());
+            assertEquals(START.plusSeconds(120).toEpochMilli(), detail.get("recordingFinishedAtEpochMs").asLong());
+            assertEquals(120_000, detail.get("durationMs").asLong());
+            assertEquals(START.toEpochMilli(), detail.get("createdAtEpochMs").asLong());
+            assertFalse(detail.has("duration"), detail.toString());
+            assertTrue(detail.get("uiLink").asString().endsWith("/profiles/p-1"));
+            JsonNode next = detail.get("followUp").get("nextTools").get(0);
+            assertEquals("profiles_summary", next.get("tool").asString());
+            assertEquals(1, McpNextToolConformance.assertFollowable(detail, profilesSpecs()));
+        }
+
+        @Test
+        void getOfAProfileWithoutTimestampsStillConforms() {
+            stubProfile(RecordingEventSource.JDK);
+            when(profileManager.info()).thenReturn(new ProfileInfo(
+                    "p-1", null, null, null, RecordingEventSource.JDK, null, null, null, true, false, "rec-1"));
+
+            JsonNode detail = conforming("get", tools().get());
+
+            assertTrue(detail.get("durationMs").isNull());
+        }
+
+        @Test
+        void featuresLinkTheEventTypesPage() {
+            stubProfile(RecordingEventSource.JDK);
+
+            JsonNode features = conforming("features", tools().features());
+
+            assertTrue(features.get("uiLink").asString().endsWith("/profiles/p-1/event-types"));
+            assertEquals("p-1", features.get("profileId").asString());
+        }
+
+        @Test
+        void samplerHealthReportsTheCountsWithStatusReported() {
+            stubProfile(RecordingEventSource.JDK);
+            when(samplerHealthManager.cpuTimeSampleLoss()).thenReturn(new CpuTimeSampleLoss(900, 100, 3));
+
+            JsonNode health = conforming("samplerHealth", tools().samplerHealth());
+
+            assertEquals("REPORTED", health.get("status").asString());
+            assertTrue(health.get("reason").isNull());
+            assertEquals(100, health.get("lostSamples").asLong());
+            assertFalse(health.has("nextSteps"), health.toString());
+            assertEquals("profiles_features", health.get("followUp").get("nextTools").get(0).get("tool").asString());
+            assertEquals(1, health.get("followUp").get("guidance").size());
+            assertEquals(1, McpNextToolConformance.assertFollowable(health, profilesSpecs()));
+        }
+
+        /** No loss evidence is a status with a reason, not a sentence in place of the record. */
+        @Test
+        void samplerHealthWithoutLossEvidenceIsAStatusNotText() {
+            stubProfile(RecordingEventSource.JDK);
+
+            JsonNode health = conforming("samplerHealth", tools().samplerHealth());
+
+            assertEquals("UNAVAILABLE", health.get("status").asString());
+            assertTrue(health.get("reason").asString().contains("jdk.CPUTimeSampleLoss"));
+            assertTrue(health.get("capturedSamples").isNull());
+            assertTrue(health.get("lostSamples").isNull());
+            assertTrue(health.get("lossEvents").isNull());
+            // Uneven loss is advice about loss that happened; with no loss evidence it has nothing to qualify.
+            assertEquals(0, health.get("followUp").get("guidance").size(), health.toString());
+        }
+
+        @Test
+        void summaryOfAnAnalysedProfileSaysTheRulesRan() {
+            stubProfile(RecordingEventSource.JDK);
+
+            JsonNode summary = conforming("summary", tools().summary());
+
+            assertEquals("COMPUTED", summary.get("autoAnalysis").asString());
+            assertEquals(START.toEpochMilli(), summary.get("startedAtEpochMs").asLong());
+            assertFalse(summary.has("startedAtMillis"), summary.toString());
+            assertEquals(0, summary.get("followUp").get("nextTools").size());
+        }
+
+        /**
+         * The rules have not run: the summary says so in a field of its own and names the call that
+         * runs them, and never reads the empty cache as a clean recording.
+         */
+        @Test
+        void summaryOfAnUnanalysedProfileNamesTheCallThatRunsTheRules() {
+            stubProfile(RecordingEventSource.JDK);
+            when(autoAnalysisManager.isComputed()).thenReturn(false);
+            when(autoAnalysisManager.canGenerate()).thenReturn(true);
+
+            JsonNode summary = conforming("summary", tools().summary());
+
+            assertEquals("NOT_COMPUTED", summary.get("autoAnalysis").asString());
+            JsonNode compute = summary.get("followUp").get("nextTools").get(0);
+            assertEquals("jvm_autoAnalysis", compute.get("tool").asString());
+            assertTrue(compute.get("arguments").get("compute").asBoolean());
+            assertEquals(1, McpNextToolConformance.assertFollowable(summary,
+                    CatalogueSpecs.of(profilesSpecs(), CatalogueSpecs.profileScoped(JvmMcpTools.class, "jvm"))));
+            verify(autoAnalysisManager, never()).analysisResults();
+        }
+
+        @Test
+        void summaryOfAProfileTheRulesCannotRunOnOffersNoCall() {
+            stubProfile(RecordingEventSource.PPROF);
+            when(autoAnalysisManager.isComputed()).thenReturn(false);
+            when(autoAnalysisManager.canGenerate()).thenReturn(false);
+
+            JsonNode summary = conforming("summary", tools().summary());
+
+            assertEquals("CANNOT_COMPUTE", summary.get("autoAnalysis").asString());
+            assertEquals(0, summary.get("followUp").get("nextTools").size());
+        }
+
+        /** A finding's call to a family this installation withholds is dropped; the finding stays. */
+        @Test
+        void summaryDropsAFindingsCallToAFamilyThatIsNotServed() {
+            stubProfile(RecordingEventSource.JDK);
+            when(autoAnalysisManager.analysisResults()).thenReturn(List.of(
+                    rule("Long GC Pauses", AnalysisResult.Severity.WARNING, "garbage_collection")));
+            ProfileMcpTools withoutJvm = new ProfileMcpTools(profileManager, recordingCommitResolver,
+                    new JfrFlamegraphPanelProvider(), new StackSampleFlamegraphPanelProvider(),
+                    new AdvertisedFamilies(Set.of(AdvertisedFamilies.PROFILES)));
+
+            JsonNode summary = conforming("summary", withoutJvm.summary());
+
+            assertEquals(1, summary.get("topFindings").size());
+            assertTrue(summary.get("topFindings").get(0).get("nextTool").isNull());
+        }
+
+        @Test
+        void linkAnswersWithTheProfilesPage() {
+            stubProfile(RecordingEventSource.JDK);
+
+            JsonNode link = conforming("link", tools().link());
+
+            assertTrue(link.get("uiLink").asString().endsWith("/profiles/p-1"));
+        }
+
+        @Test
+        void viewLinkEchoesTheViewAndTheObjectItPreselects() {
+            stubProfile(RecordingEventSource.JDK);
+
+            JsonNode link = conforming("viewLink", tools().viewLink("heap-dump/gc-root-path", " 18446744073709551615 "));
+
+            assertEquals("heap-dump/gc-root-path", link.get("view").asString());
+            assertEquals("18446744073709551615", link.get("objectId").asString());
+            assertTrue(link.get("uiLink").asString().endsWith("?objectId=18446744073709551615"));
+            assertTrue(conforming("viewLink", tools().viewLink("events", "42")).get("objectId").isNull());
+        }
+
+        @Test
+        void viewLinkRefusesAnObjectIdThatIsNotADecimalHeapId() {
+            stubProfile(RecordingEventSource.JDK);
+
+            IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                    () -> tools().viewLink("heap-dump/gc-root-path", "0x2a"));
+
+            assertTrue(thrown.getMessage().contains("decimal"), thrown.getMessage());
+        }
+
+        private JsonNode schemaOf(String method) {
+            Method tool = Arrays.stream(ProfileMcpTools.class.getMethods())
+                    .filter(candidate -> candidate.getName().equals(method))
+                    .findFirst()
+                    .orElseThrow();
+            return McpSchemaGenerator.schemaOf(tool.getAnnotation(McpOutputSchema.class).value());
+        }
+
+        private List<McpToolSpec> profilesSpecs() {
+            return CatalogueSpecs.profileScoped(ProfileMcpTools.class, "profiles");
         }
     }
 
@@ -404,7 +640,7 @@ class ProfileMcpToolsTest {
         void buildsALinkToTheNamedView() {
             stubProfile(RecordingEventSource.JDK);
 
-            assertTrue(tools().viewLink("garbage-collection", null)
+            assertTrue(viewLink("garbage-collection", null)
                     .endsWith("/profiles/p-1/garbage-collection"));
         }
 
@@ -412,7 +648,7 @@ class ProfileMcpToolsTest {
         void keepsAMultiSegmentViewIntact() {
             stubProfile(RecordingEventSource.JDK);
 
-            assertTrue(tools().viewLink("heap-dump/leak-suspects", null)
+            assertTrue(viewLink("heap-dump/leak-suspects", null)
                     .endsWith("/profiles/p-1/heap-dump/leak-suspects"));
         }
 
@@ -424,8 +660,66 @@ class ProfileMcpToolsTest {
         void passesAnObjectIdOnlyToTheGcRootPathView() {
             stubProfile(RecordingEventSource.JDK);
 
-            assertTrue(tools().viewLink("heap-dump/gc-root-path", "42").endsWith("?objectId=42"));
-            assertFalse(tools().viewLink("garbage-collection", "42").contains("objectId"));
+            assertTrue(viewLink("heap-dump/gc-root-path", "42").endsWith("?objectId=42"));
+            assertFalse(viewLink("garbage-collection", "42").contains("objectId"));
+        }
+
+        /**
+         * The views are an enumeration in the schema now, not a list in the description, and every one
+         * of them is a route the frontend serves. The router snapshot is the same manifest the IntelliJ
+         * plugin's ProfileRouteManifestTest pins its tiles to; a view that is not in it would be a link
+         * the router's catch-all turns into the recordings list.
+         */
+        @Test
+        void advertisesEveryViewAsAnEnumOfRoutesTheFrontendServes() {
+            Set<String> routes = ProfileRouteManifest.routes();
+
+            List<String> views = viewEnum();
+
+            assertFalse(views.isEmpty());
+            List<String> missing = views.stream().filter(view -> !routes.contains(view)).toList();
+            assertTrue(missing.isEmpty(), "views the frontend does not serve: " + missing);
+        }
+
+        /**
+         * The schema's enum is the literal copy of the views MicroscopeView offers to viewLink, since an
+         * annotation cannot read the enum; the two are held to each other here.
+         */
+        @Test
+        void advertisesExactlyTheViewsTheEnumOffers() {
+            Set<String> offered = Arrays.stream(MicroscopeView.values())
+                    .filter(MicroscopeView::offeredByViewLink)
+                    .map(MicroscopeView::path)
+                    .collect(Collectors.toSet());
+
+            assertEquals(offered, Set.copyOf(viewEnum()));
+        }
+
+        /** The schema enum and the check inside the tool are one list, so neither accepts what the other refuses. */
+        @Test
+        void acceptsEveryViewTheSchemaAdvertises() {
+            stubProfile(RecordingEventSource.JDK);
+
+            for (String view : viewEnum()) {
+                assertTrue(viewLink(view, null).endsWith("/profiles/p-1/" + view), view);
+            }
+        }
+
+        private static List<String> viewEnum() {
+            ProfileScopedToolset<ProfileMcpTools> toolset = McpTestToolsets.unscoped(
+                    ProfileMcpTools.class, "profiles", profileId -> {
+                        throw new UnsupportedOperationException("specs need no target");
+                    });
+            JsonNode values = toolset.specs().stream()
+                    .filter(spec -> spec.name().equals("profiles_viewLink"))
+                    .findFirst()
+                    .orElseThrow()
+                    .inputSchema().path("properties").path("view").path("enum");
+            List<String> views = new ArrayList<>();
+            for (JsonNode value : values) {
+                views.add(value.asString());
+            }
+            return views;
         }
 
         /**
@@ -437,7 +731,7 @@ class ProfileMcpToolsTest {
             stubProfile(RecordingEventSource.JDK);
 
             IllegalArgumentException thrown = assertThrows(
-                    IllegalArgumentException.class, () -> tools().viewLink("gc", null));
+                    IllegalArgumentException.class, () -> viewLink("gc", null));
 
             assertTrue(thrown.getMessage().contains("Unknown view 'gc'"), thrown.getMessage());
             assertTrue(thrown.getMessage().contains("garbage-collection"), thrown.getMessage());

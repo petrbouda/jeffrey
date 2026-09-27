@@ -37,11 +37,13 @@ export default class FullGraphUpdater extends GraphUpdater {
 
     if (!this.timeseriesEnabled) {
       this.flamegraphOnUpdateStartedCallback();
+      this.drawnTimeRange = this.linkedTimeRange();
       this.httpClient
-        .provide(null)
+        .provide(this.drawnTimeRange)
         .then(flamegraph => {
           this.flamegraphOnInitCallback(flamegraph);
           this.flamegraphOnUpdateFinishedCallback();
+          this.applyLinkedSearch();
         })
         .catch(error => this.graphOperationFailed('initialization', error));
       return;
@@ -58,14 +60,17 @@ export default class FullGraphUpdater extends GraphUpdater {
         this.timeseriesOnInitCallback(timeseries);
         this.timeseriesOnUpdateFinishedCallback();
 
-        // Calculate initial time range based on visibleMinutes setting
-        const initialTimeRange = this.calculateInitialTimeRange(timeseries);
+        // A window a link named, otherwise the range the visibleMinutes setting opens on
+        const initialTimeRange =
+          this.linkedTimeRange() ?? this.calculateInitialTimeRange(timeseries);
+        this.drawnTimeRange = initialTimeRange;
 
         // Fetch flamegraph with the calculated range (zoomed or full). Returned so a failure
         // propagates into the single catch below instead of dying unobserved.
         return this.httpClient.provide(initialTimeRange).then(flamegraph => {
           this.flamegraphOnInitCallback(flamegraph);
           this.flamegraphOnUpdateFinishedCallback();
+          this.applyLinkedSearch();
         });
       })
       .catch(error => this.graphOperationFailed('initialization', error));
@@ -114,6 +119,7 @@ export default class FullGraphUpdater extends GraphUpdater {
   public updateWithZoom(timeRange: TimeRange): void {
     this.flamegraphOnUpdateStartedCallback();
     this.timeseriesOnZoomCallback();
+    this.drawnTimeRange = timeRange;
 
     this.httpClient
       .provide(timeRange)
@@ -127,6 +133,7 @@ export default class FullGraphUpdater extends GraphUpdater {
   public resetZoom(): void {
     this.flamegraphOnUpdateStartedCallback();
     this.timeseriesOnResetZoomCallback();
+    this.drawnTimeRange = null;
 
     this.httpClient
       .provide(null)

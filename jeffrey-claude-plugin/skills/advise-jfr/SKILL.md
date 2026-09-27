@@ -1,6 +1,7 @@
 ---
 name: advise-jfr
 description: Turns a Jeffrey profile into concrete code changes in the current repository — maps the hottest CPU, wall-clock, allocation and blocking frames, the slowest traces, the waiting on locks and I/O, and the database and HTTP work to real source, recommends minimal behaviour-preserving edits, applies them on request and verifies with the tests and a re-profile. Use whenever the user asks what to change, optimise or fix based on a profile, JFR recording, flamegraph or trace, why an endpoint is slow and what to do about it, or a hotspot is known and the question is what to do about it.
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Read Grep Glob Bash(git rev-parse *)
 argument-hint: "[profile-id | recording-file] [cpu|wall|alloc|lock|latency|waiting|memory]"
 ---
 
@@ -17,9 +18,7 @@ area (`cpu`, `wall`, `alloc`, `lock`, `latency`, `waiting`, `memory`). Empty mea
 conversation is about (or the most recently modified one in `profiles_list`) and whatever evidence
 it actually carries.
 
-Tool names below omit the prefix your client puts in front of them
-(`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI).
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
 
 Two phases with a stop between them — **recommend**, then **change** — because an edit made
 before the recommendation has been read cannot be reviewed on its own terms. Track progress:
@@ -92,7 +91,7 @@ can act on.
 | `memory` | `memory_allocations` | The types ranked here are the other axis from the allocation flamegraph; take a type back to the `alloc` export to find the site |
 | database | `jdbc_overview` → `jdbc_statementGroup` | The statement text names the query; find where it is issued. `jdbc_pools` is a configuration finding, not a code one — see step 5 |
 | HTTP, gRPC | `http_overview` / `grpc_overview` (`direction`: `SERVER` or `CLIENT`) | An inbound endpoint is your handler; an outbound call is a dependency, and the change is at the call site |
-| when, not where | `timeline_hotWindows` | Not a finding on its own. It gives `startMs`/`endMs` to scope an export to, which is what makes a burst visible that a whole-recording graph averages away |
+| when, not where | `timeline_hotWindows` | Not a finding on its own. It gives `startEpochMs`/`endEpochMs` to scope an export to, which is what makes a burst visible that a whole-recording graph averages away |
 
 Two that shape a recommendation without being one: `profiles_samplerHealth`, because a recording
 that dropped a large share of its samples understates its own hot paths and every percentage below

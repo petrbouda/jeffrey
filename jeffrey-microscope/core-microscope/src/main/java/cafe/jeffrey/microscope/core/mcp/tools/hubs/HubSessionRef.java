@@ -53,7 +53,7 @@ public record HubSessionRef(String hubId, String workspaceId, String projectId, 
      * What a reader is told to do rather than trying to repair the string themselves.
      */
     private static final String RECOVERY =
-            " Pass the session_ref exactly as hubs_sessions printed it, without quotes or truncation.";
+            " Pass the sessionRef exactly as hubs_sessions returned it, without quotes or truncation.";
 
     public HubSessionRef {
         hubId = required(hubId, "hub id");
@@ -91,32 +91,32 @@ public record HubSessionRef(String hubId, String workspaceId, String projectId, 
      */
     public static HubSessionRef decode(String ref) {
         if (ref == null || ref.isBlank()) {
-            throw new IllegalArgumentException("A session_ref is required." + RECOVERY);
+            throw new IllegalArgumentException("A sessionRef is required." + RECOVERY);
         }
 
         String trimmed = ref.trim();
         if (!trimmed.startsWith(PREFIX)) {
-            throw new IllegalArgumentException("Not a session_ref: " + trimmed + "." + RECOVERY);
+            throw new IllegalArgumentException("Not a sessionRef: " + trimmed + "." + RECOVERY);
         }
 
         byte[] decoded;
         try {
             decoded = Base64.getUrlDecoder().decode(trimmed.substring(PREFIX.length()));
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Damaged session_ref: " + trimmed + "." + RECOVERY);
+            throw new IllegalArgumentException("Damaged sessionRef: " + trimmed + "." + RECOVERY);
         }
 
         // Limit COMPONENTS keeps a separator inside the session id, which is the one part that comes
         // from outside Jeffrey and therefore the one part whose contents cannot be relied on.
         String[] parts = new String(decoded, StandardCharsets.UTF_8).split("\\" + SEPARATOR, COMPONENTS);
         if (parts.length != COMPONENTS) {
-            throw new IllegalArgumentException("Incomplete session_ref: " + trimmed + "." + RECOVERY);
+            throw new IllegalArgumentException("Incomplete sessionRef: " + trimmed + "." + RECOVERY);
         }
 
         try {
             return new HubSessionRef(parts[0], parts[1], parts[2], parts[3]);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Incomplete session_ref: " + trimmed + "." + RECOVERY);
+            throw new IllegalArgumentException("Incomplete sessionRef: " + trimmed + "." + RECOVERY);
         }
     }
 

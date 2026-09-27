@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,9 +28,10 @@ import java.util.Set;
  * whether an installation exposes it is a deployment decision made alongside the bind address and the
  * reverse proxy. Turning it off is an application property and takes a restart.
  * <p>
- * The endpoint has no authentication of its own, in common with everything else under
- * {@code /api/internal}. What limits who can reach it is the address Jeffrey binds to and whatever
- * sits in front of it.
+ * Authentication is optional: with no {@code token} the endpoint carries the trust assumption of the
+ * rest of Jeffrey's HTTP API, and what limits who can reach it is the address Jeffrey binds to, the
+ * host allowlist and whatever sits in front of it. With one, every request must present it as a
+ * bearer token.
  *
  * @param enabled     whether the endpoint answers at all; while off it responds {@code 404}
  * @param hubsEnabled whether the {@code hubs_} family is advertised, which lets a client list and
@@ -46,13 +48,21 @@ import java.util.Set;
  *                    for every schema on every turn can be given only the families it uses
  * @param preset      a lowercase preset name: all (default), jfr, heap or hub. Explicit families
  *                    override the preset; the hub and IDE switches remain independent gates
+ * @param trustForwardedHeaders whether the request guard takes the host and scheme a client used from
+ *                    {@code X-Forwarded-Host} and {@code X-Forwarded-Proto}. Only for a Jeffrey that
+ *                    is reachable solely through a proxy that sets both, since anyone who can reach
+ *                    Jeffrey directly can write them
+ * @param token       the shared secret every request must present as {@code Authorization: Bearer};
+ *                    blank (the default) requires none. Kept out of {@link #toString()}
  */
 public record ExternalMcpProperties(
         boolean enabled,
         boolean hubsEnabled,
         boolean ideEnabled,
         Set<String> families,
-        String preset) {
+        String preset,
+        boolean trustForwardedHeaders,
+        String token) {
 
     private static final String DEFAULT_PRESET = "all";
 
@@ -60,12 +70,32 @@ public record ExternalMcpProperties(
             DEFAULT_PRESET, Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
                     "memory", "heap", "hubs", "ide", "operations"),
-            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "operations"),
+            // Everything analyze-jfr routes to: the per-domain families it hands a trace, an HTTP,
+            // JDBC, gRPC, method-tracing, I/O, blocking, timeline or memory question to.
+            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "traces",
+                    "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory",
+                    "operations"),
             "heap", Set.of("profiles", "recordings", "heap", "operations"),
             "hub", Set.of("profiles", "recordings", "hubs", "operations"));
 
+    private static final String OPERATIONS_FAMILY = "operations";
+
+    /**
+     * The families with a tool that is not read-only. Each one either starts work that only
+     * {@code operations_status} can follow and {@code operations_cancel} can stop, or sits beside
+     * those that do, so an explicit list that serves one of them has to serve {@code operations} too.
+     */
+    private static final Set<String> WRITER_FAMILIES = Set.of("recordings", "heap", "hubs", "ide", "jvm");
+
+    private static final String HUBS_FAMILY = "hubs";
+    private static final String RECORDINGS_FAMILY = "recordings";
+
+    private static final String NO_TOKEN = "";
+    private static final String REDACTED = "<redacted>";
+
     public ExternalMcpProperties {
         families = families == null ? Set.of() : Set.copyOf(families);
+        token = token == null ? NO_TOKEN : token.strip();
         preset = preset == null ? DEFAULT_PRESET : preset;
         if (!PRESETS.containsKey(preset)) {
             throw new IllegalArgumentException("Unknown MCP preset '" + preset
@@ -77,6 +107,18 @@ public record ExternalMcpProperties(
                     + families.stream().filter(family -> !knownFamilies.contains(family)).sorted().toList()
                     + ". Family names are lowercase; supported families: "
                     + knownFamilies.stream().sorted().toList());
+        }
+        List<String> writers = families.stream().filter(WRITER_FAMILIES::contains).sorted().toList();
+        if (!writers.isEmpty() && !families.contains(OPERATIONS_FAMILY)) {
+            throw new IllegalArgumentException("MCP families " + writers + " write, and the operations "
+                    + "family must be selected wherever a writer is: add 'operations' to the families list "
+                    + "so their operationIds can be polled with operations_status and stopped with "
+                    + "operations_cancel.");
+        }
+        if (families.contains(HUBS_FAMILY) && !families.contains(RECORDINGS_FAMILY)) {
+            throw new IllegalArgumentException("MCP family 'hubs' downloads recordings, and the recordings "
+                    + "family must be selected wherever hubs is: add 'recordings' to the families list so a "
+                    + "downloaded session can be analysed with recordings_analyzeRecording.");
         }
     }
 
@@ -91,9 +133,21 @@ public record ExternalMcpProperties(
         return PRESETS.get(DEFAULT_PRESET);
     }
 
-    /** Existing callers keep the full tool surface unless they explicitly select families. */
-    public ExternalMcpProperties(boolean enabled, boolean hubsEnabled, boolean ideEnabled, Set<String> families) {
-        this(enabled, hubsEnabled, ideEnabled, families, DEFAULT_PRESET);
+    /** Whether a request has to present {@link #token()} before it is served. */
+    public boolean tokenRequired() {
+        return !token.isEmpty();
+    }
+
+    /** Every component but the token, which would otherwise land in any log that prints the bean. */
+    @Override
+    public String toString() {
+        return "ExternalMcpProperties[enabled=" + enabled
+                + ", hubsEnabled=" + hubsEnabled
+                + ", ideEnabled=" + ideEnabled
+                + ", families=" + families
+                + ", preset=" + preset
+                + ", trustForwardedHeaders=" + trustForwardedHeaders
+                + ", token=" + (tokenRequired() ? REDACTED : NO_TOKEN) + "]";
     }
 
     /**

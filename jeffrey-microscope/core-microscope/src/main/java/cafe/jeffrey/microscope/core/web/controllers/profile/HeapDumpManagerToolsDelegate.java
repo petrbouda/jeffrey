@@ -33,19 +33,40 @@ import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
-import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Adapts a {@link HeapDumpManager} to the {@link HeapDumpToolsDelegate} contract the {@code heap_}
  * MCP tools read through, so those tools depend on the delegate rather than on the manager itself.
  */
 public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements HeapDumpToolsDelegate {
+
+    /** The id is a {@code long}, so formatting it into the statement cannot inject anything. */
+    private static final String OBJECT_EXISTS_SQL = "SELECT 1 FROM instance WHERE instance_id = %d LIMIT 1";
+    private static final String ROOT_KIND_SQL = "SELECT root_kind FROM gc_root WHERE instance_id = %d LIMIT 1";
+    private static final int ONE_ROW = 1;
+
+    @Override
+    public boolean objectExists(long objectId) {
+        return !manager.executeSql(OBJECT_EXISTS_SQL.formatted(objectId), ONE_ROW).rows().isEmpty();
+    }
+
+    @Override
+    public Optional<String> gcRootKind(long objectId) {
+        List<List<String>> rows = manager.executeSql(ROOT_KIND_SQL.formatted(objectId), ONE_ROW).rows();
+        if (rows.isEmpty() || rows.getFirst().getFirst() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(HprofTag.Sub.rootKindName(Integer.parseInt(rows.getFirst().getFirst().trim())));
+    }
 
     @Override
     public HeapSummary getSummary() {
@@ -115,8 +136,8 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
     }
 
     @Override
-    public DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
-        return manager.getDominatorTreeChildren(objectId, 0, limit);
+    public DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit, int offset) {
+        return manager.getDominatorTreeChildren(objectId, offset, limit);
     }
 
     @Override

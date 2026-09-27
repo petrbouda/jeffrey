@@ -46,6 +46,18 @@ public interface RecordingsCoreManager {
 
     String importRecordingFromPath(Path path);
 
+    /**
+     * The recording of a single file with this name and size, which is how a file imported before
+     * is recognised: a rewrite that keeps both the name and the size looks the same, and a
+     * different file with the same name and size is taken for it.
+     *
+     * @param fileName    the file's own name, without any directory
+     * @param sizeInBytes the file's size in bytes now
+     * @return the one-file recording of a file with this name and size — one with a profile before
+     *         one without, the newest first within each — otherwise empty
+     */
+    Optional<Recording> findByFileNameAndSize(String fileName, long sizeInBytes);
+
     String createDownloadedRecording(
             String recordingName,
             List<Path> recordingFiles,

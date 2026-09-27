@@ -40,26 +40,41 @@ class ModuleBoundaryTest {
     private static final Pattern MICROSCOPE_IMPORT = Pattern.compile(
             "^import (static )?cafe\\.jeffrey\\.(microscope|hub\\.client|recordings|storage|profile|shared\\.ui\\.hub|shared\\.notification)\\.");
 
+    /**
+     * MCP belongs to Microscope only: the hub has no MCP endpoint and reads no recording for an agent, so
+     * it has no use for the protocol module either. Already inside {@link #MICROSCOPE_IMPORT}; named on its
+     * own so the failure says which rule was broken.
+     */
+    private static final Pattern MCP_IMPORT = Pattern.compile(
+            "^import (static )?cafe\\.jeffrey\\.microscope\\.mcp\\.");
+
     @Test
     void noHubSourceImportsAMicroscopePackage() throws IOException {
-        List<String> offenders;
+        assertEquals(List.of(), offenders(MICROSCOPE_IMPORT));
+    }
+
+    @Test
+    void noHubSourceImportsTheMcpProtocol() throws IOException {
+        assertEquals(List.of(), offenders(MCP_IMPORT));
+    }
+
+    private static List<String> offenders(Pattern forbidden) throws IOException {
         try (Stream<Path> files = Files.walk(HUB_ROOT)) {
-            offenders = files
+            return files
                     .filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> !path.toString().contains("/target/"))
                     .filter(path -> !path.toString().contains("/pages-hub/"))
-                    .filter(ModuleBoundaryTest::importsMicroscope)
+                    .filter(path -> imports(path, forbidden))
                     .map(HUB_ROOT::relativize)
                     .map(Path::toString)
                     .sorted()
                     .toList();
         }
-        assertEquals(List.of(), offenders);
     }
 
-    private static boolean importsMicroscope(Path file) {
+    private static boolean imports(Path file, Pattern forbidden) {
         try (Stream<String> lines = Files.lines(file)) {
-            return lines.anyMatch(line -> MICROSCOPE_IMPORT.matcher(line).find());
+            return lines.anyMatch(line -> forbidden.matcher(line).find());
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read " + file, e);
         }

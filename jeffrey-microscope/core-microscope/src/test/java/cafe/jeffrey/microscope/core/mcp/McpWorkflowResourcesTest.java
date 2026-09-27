@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.profile.mcp.McpResource;
+import cafe.jeffrey.microscope.mcp.protocol.McpResource;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
@@ -33,12 +33,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class McpWorkflowResourcesTest {
     @Test
     void evidenceUriRoutesDecodedIdentityThroughAdvertisedTool() {
-        var resources = new McpResources(new ReflectiveToolset(new Evidence(), "profiles"));
+        var resources = new McpResources(new ReflectiveToolset(new Evidence(), "profiles"),
+                McpWorkflowResourcesTest::noDocuments, McpTestProperties.of(true, true, true, Set.of()), null, false);
         assertTrue(resources.templates().stream().anyMatch(r -> r.uri().equals("jeffrey://profile/{profileId}/evidence")));
         var contents = resources.read("jeffrey://profile/profile%201/evidence");
         assertEquals("profile 1", Json.readTree(contents.text()).path("profileId").asText());
         assertEquals(McpResource.APPLICATION_JSON, contents.mimeType());
-        assertFalse(new McpResources(new ReflectiveToolset(new Evidence(), "other")).templates().stream()
+        assertFalse(new McpResources(new ReflectiveToolset(new Evidence(), "other"),
+                McpWorkflowResourcesTest::noDocuments, McpTestProperties.of(true, true, true, Set.of()), null, false)
+                .templates().stream()
                 .anyMatch(r -> r.uri().endsWith("/evidence")));
     }
 
@@ -46,12 +49,17 @@ class McpWorkflowResourcesTest {
     void diagnosticsAreLazyAndRecomputedOnRead() {
         AtomicInteger reads = new AtomicInteger();
         var resources = new McpResources(new ReflectiveToolset(new Evidence(), "profiles"),
-                new ExternalMcpProperties(true, false, false, Set.of()),
-                () -> "{\"reads\":" + reads.incrementAndGet() + "}");
+                McpWorkflowResourcesTest::noDocuments, McpTestProperties.of(true, false, false, Set.of()),
+                () -> "{\"reads\":" + reads.incrementAndGet() + "}", false);
         assertTrue(resources.resources().stream().anyMatch(r -> r.uri().equals("jeffrey://diagnostics")));
         assertEquals(0, reads.get());
         assertEquals(1, Json.readTree(resources.read("jeffrey://diagnostics").text()).path("reads").asInt());
         assertEquals(2, Json.readTree(resources.read("jeffrey://diagnostics").text()).path("reads").asInt());
+    }
+
+    /** Neither test reads a profile document, so none is there to read. */
+    private static McpProfileDocuments noDocuments() {
+        throw new AssertionError("no profile document is read here");
     }
 
     public static class Evidence {

@@ -10,7 +10,6 @@ disallowedTools:
   - mcp__plugin_microscope_jeffrey__recordings_analyzeFile
   - mcp__plugin_microscope_jeffrey__recordings_analyzeRecording
   - mcp__plugin_microscope_jeffrey__recordings_delete
-  - mcp__plugin_microscope_jeffrey__recordings_list
   - mcp__plugin_microscope_jeffrey__hubs_list
   - mcp__plugin_microscope_jeffrey__hubs_sessions
   - mcp__plugin_microscope_jeffrey__hubs_download
@@ -22,7 +21,6 @@ disallowedTools:
   - mcp__jeffrey__recordings_analyzeFile
   - mcp__jeffrey__recordings_analyzeRecording
   - mcp__jeffrey__recordings_delete
-  - mcp__jeffrey__recordings_list
   - mcp__jeffrey__hubs_list
   - mcp__jeffrey__hubs_sessions
   - mcp__jeffrey__hubs_download
@@ -90,6 +88,7 @@ For a flamegraph or trace:
 2. …
 
 Notes: filters, threshold, or anything pruned that a reader would want to know about.
+Link: the uiLink of the answer read, for the caller to hand to the user.
 ```
 
 For a heap dump, the same shape with class name, retained bytes and the GC-root path together —

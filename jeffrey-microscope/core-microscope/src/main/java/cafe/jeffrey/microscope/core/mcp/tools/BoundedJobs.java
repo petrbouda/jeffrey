@@ -60,6 +60,14 @@ public class BoundedJobs<K, V> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BoundedJobs.class);
     public static final Duration WAIT_BUDGET = Duration.ofSeconds(45);
+
+    /**
+     * How long a call waits for a client that declared the MCP tasks extension before handing the work
+     * back as a task. Such a client follows the task instead of holding the call open, so there is no
+     * reason to keep it waiting the whole {@link #WAIT_BUDGET}; short enough work is still answered
+     * directly. See {@link OperationAnswers}.
+     */
+    public static final Duration TASK_WAIT_BUDGET = Duration.ofSeconds(5);
     public static final Duration COMPLETED_RETENTION = Duration.ofHours(1);
 
     /** No limit on attempts running together, which is what every instance had before permits existed. */
@@ -68,12 +76,13 @@ public class BoundedJobs<K, V> {
     /**
      * How many finished attempts are kept before the oldest are dropped early.
      *
-     * <p>Retention alone bounds the map only when the keys repeat. They do not always: an import
-     * keys on a fresh UUID per call, and a hub download keys on the session together with the
-     * window or the file ids asked for, so an agent working through a long session a window at a
-     * time makes a new entry every time. Each is small, but nothing removed them before their hour
-     * was up. Running attempts are never dropped — only results someone may still poll for, oldest
-     * first, and a caller that comes back for one that is gone starts the work again.
+     * <p>Retention alone bounds the map only when the keys repeat. They do not always: a forced
+     * import keys on a fresh UUID per call, a file import on each file name and size it is given,
+     * and a hub download keys on the session together with the window or the file ids asked for, so
+     * an agent working through a long session a window at a time makes a new entry every time. Each
+     * is small, but nothing removed them before their hour was up. Running attempts are never
+     * dropped — only results someone may still poll for, oldest first, and a caller that comes back
+     * for one that is gone starts the work again.
      */
     public static final int DEFAULT_MAX_RETAINED = 256;
 
@@ -87,44 +96,15 @@ public class BoundedJobs<K, V> {
     private final Semaphore permits;
 
     /**
-     * Package-private, and both of these are: a default system clock is a convenience for a test that
-     * does not care what time it is, and production wiring has an application {@link Clock} to pass.
-     * Public, they were an easy way for a new caller to opt out of the one the project injects.
+     * @param scheduler     what runs the work: {@link Schedulers#sharedVirtual()} in production, a
+     *                      scheduler of its own for a test that decides what scheduling does
+     * @param maxConcurrent how many attempts may run at once, {@link #UNBOUNDED_CONCURRENCY} for no
+     *                      limit; the ones beyond it wait as {@link OperationState#QUEUED} for a permit
+     *                      rather than being refused
+     * @param maxRetained   how many finished attempts are kept, {@link #DEFAULT_MAX_RETAINED} in
+     *                      production, before the oldest are dropped early
      */
-    BoundedJobs() {
-        this(WAIT_BUDGET);
-    }
-
-    BoundedJobs(Duration budget) {
-        this(budget, COMPLETED_RETENTION, Clock.systemUTC());
-    }
-
-    public BoundedJobs(Duration budget, Duration retention, Clock clock) {
-        this(budget, retention, clock, UNBOUNDED_CONCURRENCY);
-    }
-
-    /**
-     * @param maxConcurrent how many attempts may run at once; the ones beyond it wait as
-     *                      {@link OperationState#QUEUED} for a permit rather than being refused
-     */
-    public BoundedJobs(Duration budget, Duration retention, Clock clock, int maxConcurrent) {
-        this(budget, retention, clock, Schedulers.sharedVirtual(), maxConcurrent);
-    }
-
-    /**
-     * @param scheduler what runs the work. Visible for the tests that need to decide what scheduling
-     *                  does — refuse a job, or run it on the calling thread — rather than wait on a
-     *                  shared executor to behave a particular way.
-     */
-    BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler) {
-        this(budget, retention, clock, scheduler, UNBOUNDED_CONCURRENCY);
-    }
-
-    BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler, int maxConcurrent) {
-        this(budget, retention, clock, scheduler, maxConcurrent, DEFAULT_MAX_RETAINED);
-    }
-
-    BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler,
+    public BoundedJobs(Duration budget, Duration retention, Clock clock, Executor scheduler,
             int maxConcurrent, int maxRetained) {
         validateBudget(budget);
         validateBudget(retention);
@@ -155,40 +135,25 @@ public class BoundedJobs<K, V> {
         return budget;
     }
 
-    public Optional<V> runWithin(K key, Supplier<V> work) {
-        return runWithin(key, budget, work);
-    }
-
-    public Optional<V> runWithin(K key, Duration waitBudget, Supplier<V> work) {
-        return runWithin(key, waitBudget, true, work);
-    }
-
-    public Optional<V> runWithin(K key, Duration waitBudget, boolean retryFailure, Supplier<V> work) {
-        return runWithin(key, waitBudget, retryFailure, value -> false, work);
-    }
-
-    /**
-     * Selects a still-valid completed success atomically with joining or starting work. Downloads use
-     * this when a transfer may finish while another caller is still validating the remote session;
-     * their predicate checks that the local recording still exists. Other callers keep the original
-     * restart-after-success policy through the overloads above.
-     * <p>
-     * {@code reuseSuccess} runs inside the map's own update, holding the bin lock — which is the point,
-     * since deciding outside it is the race this overload exists to close. It must therefore be short
-     * and must not reach back into this instance: a local lookup is what it is for, and a remote call
-     * or anything that blocks belongs before the call, not in the predicate.
-     */
-    public Optional<V> runWithin(
-            K key, Duration waitBudget, boolean retryFailure, Predicate<V> reuseSuccess, Supplier<V> work) {
-        validateBudget(waitBudget);
-        return awaitWithin(startOrJoin(key, retryFailure, reuseSuccess, work), waitBudget);
-    }
-
     public OperationHandle<V> startOrJoin(K key, boolean retryFailure,
             Predicate<V> reuseSuccess, Supplier<V> work) {
         return startOrJoin(key, retryFailure, reuseSuccess, control -> work.get());
     }
 
+    /**
+     * Starts the work under its key, or joins the attempt already there: one still running, a retained
+     * failure unless {@code retryFailure}, or a completed success {@code reuseSuccess} accepts.
+     * <p>
+     * Selecting a still-valid completed success happens atomically with joining or starting work.
+     * Downloads use this when a transfer may finish while another caller is still validating the
+     * remote session; their predicate checks that the local recording still exists. Other callers pass
+     * {@code value -> false} and start fresh work after a success.
+     * <p>
+     * {@code reuseSuccess} runs inside the map's own update, holding the bin lock — which is the point,
+     * since deciding outside it is the race it exists to close. It must therefore be short and must not
+     * reach back into this instance: a local lookup is what it is for, and a remote call or anything
+     * that blocks belongs before the call, not in the predicate.
+     */
     public OperationHandle<V> startOrJoin(K key, boolean retryFailure,
             Predicate<V> reuseSuccess, Function<JobControl, V> work) {
         Objects.requireNonNull(reuseSuccess, "reuseSuccess");
@@ -221,10 +186,6 @@ public class BoundedJobs<K, V> {
             }
         }
         return attempt;
-    }
-
-    public Optional<V> awaitWithin(OperationHandle<V> handle) {
-        return awaitWithin(handle, budget);
     }
 
     public Optional<V> awaitWithin(OperationHandle<V> handle, Duration waitBudget) {
@@ -279,7 +240,7 @@ public class BoundedJobs<K, V> {
             synchronized (completed) {
                 completed.value = value;
                 completed.state = OperationState.COMPLETED;
-                completed.phase = "already_available";
+                completed.phase = OperationPhase.ALREADY_AVAILABLE;
                 completed.finishedAt = clock.instant();
                 completed.result.complete(value);
             }
@@ -354,8 +315,10 @@ public class BoundedJobs<K, V> {
     public interface JobControl {
         void checkCancellation();
         boolean cancellationRequested();
-        void phase(String phase);
-        void progress(Object progress);
+        void phase(OperationPhase phase);
+        void progress(OperationDetails progress);
+        /** Progress read when the operation is observed, not when the worker sets it. */
+        void progressFrom(Supplier<OperationDetails> progress);
         void onCancellation(Runnable callback);
     }
 
@@ -369,7 +332,7 @@ public class BoundedJobs<K, V> {
         private boolean cancellationRequested;
         private Thread worker;
         private Runnable cancellationHook;
-        private String phase = "queued";
+        private OperationPhase phase = OperationPhase.QUEUED;
         private volatile Object progress;
         private V value;
         private RuntimeException failure;
@@ -399,7 +362,7 @@ public class BoundedJobs<K, V> {
                 synchronized (this) {
                     checkCancellation();
                     state = OperationState.RUNNING;
-                    phase = "running";
+                    phase = OperationPhase.RUNNING;
                 }
                 produced = work.apply(this);
                 if (produced == null) {
@@ -457,7 +420,7 @@ public class BoundedJobs<K, V> {
                 value = null;
                 failure = error;
                 state = OperationState.FAILED;
-                phase = "not_started";
+                phase = OperationPhase.NOT_STARTED;
                 finishedAt = clock.instant();
                 result.completeExceptionally(error);
             }
@@ -508,7 +471,7 @@ public class BoundedJobs<K, V> {
 
         private OperationSnapshot<V> snapshotWithProgress(Object details) {
             return new OperationSnapshot<>(operationId, state, startedAt, finishedAt,
-                    cancellationRequested, phase, details, value, failure);
+                    cancellationRequested, phase.code(), details, value, failure);
         }
 
         private static Object resolveProgress(Object source) {
@@ -516,7 +479,7 @@ public class BoundedJobs<K, V> {
                 return source instanceof Supplier<?> supplier ? supplier.get() : source;
             } catch (RuntimeException e) {
                 // Reporting progress must never prevent terminal publication or release of ownership.
-                return Map.of("unavailable", "Progress could not be read");
+                return OperationDetails.unavailable();
             }
         }
 
@@ -546,7 +509,7 @@ public class BoundedJobs<K, V> {
         }
 
         @Override
-        public synchronized void phase(String nextPhase) {
+        public synchronized void phase(OperationPhase nextPhase) {
             phase = nextPhase;
         }
 
@@ -556,7 +519,12 @@ public class BoundedJobs<K, V> {
         }
 
         @Override
-        public synchronized void progress(Object nextProgress) {
+        public synchronized void progress(OperationDetails nextProgress) {
+            progress = nextProgress;
+        }
+
+        @Override
+        public synchronized void progressFrom(Supplier<OperationDetails> nextProgress) {
             progress = nextProgress;
         }
 

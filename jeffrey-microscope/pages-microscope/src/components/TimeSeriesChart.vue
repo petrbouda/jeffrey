@@ -101,6 +101,7 @@ import TimeRange from '@/services/api/model/TimeRange';
 import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverter.ts';
+import { initialVisibleWindow as initialVisibleWindowOf } from '@/services/timeseries/InitialVisibleWindow';
 import TimeseriesDownsampler from '@/services/timeseries/TimeseriesDownsampler.ts';
 import MessageBus from '@/services/MessageBus.ts';
 
@@ -411,15 +412,17 @@ const calculateMaxYValues = (): void => {
  * options change, which strips every formatter function — ApexCharts then rebuilds yaxis as a
  * replacement array, so a duration axis relabels itself with raw nanosecond ticks on the first
  * brush zoom. Zooming is applied imperatively in the brush selection handler instead.
+ * A window a link opened the graph on wins over the visible span, so the brush marks the part of
+ * the recording the flamegraph beside it is drawn from.
  */
-const initialVisibleWindow = computed(() => {
-  const totalRange = dataMaxTime.value - dataMinTime.value;
-  const visibleRange = Math.min(
+const initialVisibleWindow = computed(() =>
+  initialVisibleWindowOf(
+    { min: dataMinTime.value, max: dataMaxTime.value },
     timeConverter.value.getVisibleRangeFromMinutes(props.visibleMinutes || defaultVisibleMinutes),
-    totalRange
-  );
-  return { start: dataMinTime.value, end: dataMinTime.value + visibleRange };
-});
+    props.graphUpdater?.linkedTimeRange() ?? null,
+    timeConverter.value
+  )
+);
 
 // Calculate min/max time values
 const calculateMinMaxTimeValues = (): void => {

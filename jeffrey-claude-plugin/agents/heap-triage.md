@@ -41,7 +41,8 @@ heap dump, say that and stop — `analyze-jfr` is the caller's next move, not yo
    which is the one tool outside your two families you hold, and the only thing it does is read
    progress; an empty retained ranking is a signal to prepare, never a finding that
    nothing retains memory. The same goes for the cached reports — leak suspects, class-loader
-   analysis, top consumers — each of which `heap_prepare` can compute by name.
+   analysis, top consumers — each of which answers `status: NOT_RUN_YET` until `heap_prepare`
+   computes it by name; the answer's `followUp.nextTools` carries that exact call.
 2. **Never report a leak without a GC-root path.** A large class is an observation. The path is the
    reason it is still alive, and it is the only part a reader can act on. Objects reachable only
    through weak or soft references show no path, and that is the answer rather than an error.
@@ -68,6 +69,7 @@ is returned under **Not assessed** rather than as an empty ranking:
 1. `<fully.qualified.ClassName>` — retained <bytes>, <n> instances (shallow <bytes>)
    GC-root path: <root kind> → <field> → … → the object
    What this is, and why it is still reachable, in one line.
+   Link: the uiLink of the answer the path came from, for the caller to hand to the user.
 2. …
 
 Notes: what was computed for this, what is still missing, and anything a reader would want to know

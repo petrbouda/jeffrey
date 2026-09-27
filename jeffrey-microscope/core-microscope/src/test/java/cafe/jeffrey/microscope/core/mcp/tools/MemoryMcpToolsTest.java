@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.memory.AllocationManager;
 import cafe.jeffrey.profile.manager.memory.LeakCandidatesManager;
@@ -24,9 +28,6 @@ import cafe.jeffrey.profile.manager.model.allocation.AllocatedType;
 import cafe.jeffrey.profile.manager.model.allocation.AllocationOverview;
 import cafe.jeffrey.profile.manager.model.leak.LeakCandidate;
 import cafe.jeffrey.profile.manager.model.leak.LeakOverview;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -39,13 +40,16 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -60,9 +64,6 @@ class MemoryMcpToolsTest {
     /** The tools' own caps, which the rendered lists must not exceed however long the manager's are. */
     private static final int MAX_TYPES = 40;
     private static final int MAX_CANDIDATES = 40;
-
-    private static final String TOP_TYPES_FIELD = "topTypes";
-    private static final String CANDIDATES_FIELD = "candidates";
 
     @Mock
     ProfileManager profileManager;
@@ -95,11 +96,22 @@ class MemoryMcpToolsTest {
     }
 
     private MemoryMcpTools tools() {
-        return new MemoryMcpTools(profileManager);
+        return new MemoryMcpTools(profileManager, EVERY_FAMILY);
     }
 
-    private static int arraySize(String json, String field) {
-        return Json.mapper().readTree(json).get(field).size();
+    private static JsonNode answer(String method, McpToolResult result) {
+        return StructuredAnswers.json(MemoryMcpTools.class, method, result);
+    }
+
+    private void allocationsRecorded(boolean sampled) {
+        when(allocationManager.overview())
+                .thenReturn(new AllocationOverview(9_000_000, 7_000_000, 2_000_000, 12, BYTE_ARRAY, sampled));
+        when(allocationManager.topTypes()).thenReturn(List.of(new AllocatedType(BYTE_ARRAY, 6_000_000, 1200)));
+    }
+
+    @Test
+    void everyToolDeclaresAnOutputSchema() {
+        assertEquals(List.of(), StructuredAnswers.unschematised(MemoryMcpTools.class));
     }
 
     @Nested
@@ -108,18 +120,54 @@ class MemoryMcpToolsTest {
         @Test
         void ranksTheAllocatedTypesBesideTheTlabSplit() {
             when(allocationManager.overview())
-                    .thenReturn(new AllocationOverview(9_000_000, 7_000_000, 2_000_000, 12, BYTE_ARRAY, false));
+                    .thenReturn(new AllocationOverview(9_000_000, 7_000_000, 2_000_000, 2, BYTE_ARRAY, false));
             when(allocationManager.topTypes()).thenReturn(List.of(
                     new AllocatedType(BYTE_ARRAY, 6_000_000, 1200),
                     new AllocatedType(SESSION_CLASS, 3_000_000, 400)));
 
-            String out = tools().allocations();
+            JsonNode out = answer("allocations", tools().allocations());
 
-            assertTrue(out.contains("\"totalBytes\":9000000"), out);
-            assertTrue(out.contains("\"outsideTlabBytes\":2000000"), out);
-            assertTrue(out.contains(BYTE_ARRAY), out);
-            assertTrue(out.contains(SESSION_CLASS), out);
-            assertTrue(out.contains("/profiles/" + PROFILE_ID + "/allocations"), out);
+            assertEquals("OK", out.get("status").asString());
+            assertEquals(9_000_000, out.get("overview").get("totalBytes").asLong());
+            assertEquals(2_000_000, out.get("overview").get("outsideTlabBytes").asLong());
+            assertEquals(BYTE_ARRAY, out.get("topTypes").get(0).get("className").asString());
+            assertEquals(SESSION_CLASS, out.get("topTypes").get(1).get("className").asString());
+            assertEquals(0, out.get("omittedTypes").asInt());
+            assertTrue(out.get("uiLink").asString().endsWith("/profiles/" + PROFILE_ID + "/allocations"));
+        }
+
+        @Test
+        void routesToEveryFamilyWhenAllAreAdvertised() {
+            allocationsRecorded(true);
+
+            JsonNode out = answer("allocations", tools().allocations());
+
+            assertEquals(List.of("flamegraph_export", "timeline_hotWindows", "jvm_gc"), StructuredAnswers.nextTools(out));
+            assertEquals("jdk.ObjectAllocationSample",
+                    StructuredAnswers.call(out, "flamegraph_export").get("eventType").asString());
+            assertTrue(StructuredAnswers.call(out, "flamegraph_export").get("useWeight").asBoolean());
+        }
+
+        /** The calls name the event type this recording allocated with, which is not always the sampled one. */
+        @Test
+        void routesATlabRecordingToTheTlabEventType() {
+            allocationsRecorded(false);
+
+            JsonNode out = answer("allocations", tools().allocations());
+
+            assertEquals("jdk.ObjectAllocationInNewTLAB",
+                    StructuredAnswers.call(out, "timeline_hotWindows").get("eventType").asString());
+        }
+
+        /** Each call goes with its family: a trimmed list keeps only the ones still served. */
+        @Test
+        void leavesOutTheCallsToFamiliesThatAreNotAdvertised() {
+            allocationsRecorded(true);
+
+            JsonNode out = answer("allocations", new MemoryMcpTools(profileManager,
+                    new AdvertisedFamilies(Set.of("memory", "jvm"))).allocations());
+
+            assertEquals(List.of("jvm_gc"), StructuredAnswers.nextTools(out));
         }
 
         /**
@@ -127,31 +175,83 @@ class MemoryMcpToolsTest {
          * application allocated nothing" rather than as "nothing was measured".
          */
         @Test
-        void saysNothingWasRecordedRatherThanRenderingZeroBytes() {
+        void saysNothingWasRecordedAsAStatusRatherThanRenderingZeroBytes() {
             when(allocationManager.overview())
                     .thenReturn(new AllocationOverview(0, 0, 0, 0, null, false));
             when(allocationManager.topTypes()).thenReturn(List.of());
 
-            String out = tools().allocations();
+            JsonNode out = answer("allocations", tools().allocations());
 
-            assertTrue(out.contains("recorded no allocation events"), out);
-            assertTrue(out.contains("jdk.ObjectAllocationSample"), out);
-            assertFalse(out.contains("\"totalBytes\""), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("recorded no allocation events"), out.toString());
+            assertTrue(out.get("reason").asString().contains("jdk.ObjectAllocationSample"), out.toString());
+            assertTrue(out.get("overview").isNull());
+            assertTrue(out.get("omittedTypes").isNull());
+            assertEquals(List.of("flamegraph_list"), StructuredAnswers.nextTools(out));
         }
 
         /**
          * The type list has no bound of its own - a recording can hold one row per class the
-         * application ever allocated - so the tool caps it before it is rendered.
+         * application ever allocated - so the tool keeps the head and counts the rest.
          */
         @Test
-        void capsTheTypeListHoweverManyTheManagerReturns() {
+        void capsTheTypeListAndCountsWhatItLeftOut() {
             when(allocationManager.overview())
                     .thenReturn(new AllocationOverview(9_000_000, 7_000_000, 2_000_000, 120, BYTE_ARRAY, false));
-            when(allocationManager.topTypes()).thenReturn(IntStream.range(0, 120)
+            when(allocationManager.topTypes()).thenReturn(IntStream.range(0, 100)
                     .mapToObj(index -> new AllocatedType("com.acme.Type" + index, 1_000 - index, 1))
                     .toList());
 
-            assertEquals(MAX_TYPES, arraySize(tools().allocations(), TOP_TYPES_FIELD));
+            JsonNode out = answer("allocations", tools().allocations());
+
+            assertEquals(MAX_TYPES, out.get("topTypes").size());
+            assertEquals(120 - MAX_TYPES, out.get("omittedTypes").asInt(), "counted from every type allocated");
+        }
+
+        /**
+         * Events that named no class are summed under the manager's unknown bucket, which the overview's
+         * distinctTypes does not count: the omitted count is of named types, and exact either way.
+         */
+        @Test
+        void countsOmittedNamedTypesExactlyBesideTheUnknownBucket() {
+            when(allocationManager.overview())
+                    .thenReturn(new AllocationOverview(9_000_000, 7_000_000, 2_000_000, 2, BYTE_ARRAY, false));
+            when(allocationManager.topTypes()).thenReturn(List.of(
+                    new AllocatedType(BYTE_ARRAY, 6_000_000, 1200),
+                    new AllocatedType(AllocatedType.UNKNOWN_CLASS, 2_000_000, 300),
+                    new AllocatedType(SESSION_CLASS, 1_000_000, 40)));
+
+            JsonNode out = answer("allocations", tools().allocations());
+
+            assertEquals(3, out.get("topTypes").size());
+            assertEquals(0, out.get("omittedTypes").asInt());
+        }
+
+        @Test
+        void countsOmittedNamedTypesWhenTheUnknownBucketIsAmongThoseShown() {
+            when(allocationManager.overview())
+                    .thenReturn(new AllocationOverview(9_000_000, 7_000_000, 2_000_000, 120, BYTE_ARRAY, false));
+            List<AllocatedType> types = new ArrayList<>(IntStream.range(0, 99)
+                    .mapToObj(index -> new AllocatedType("com.acme.Type" + index, 1_000 - index, 1))
+                    .toList());
+            types.add(5, new AllocatedType(AllocatedType.UNKNOWN_CLASS, 999, 1));
+            when(allocationManager.topTypes()).thenReturn(types);
+
+            JsonNode out = answer("allocations", tools().allocations());
+
+            assertEquals(MAX_TYPES, out.get("topTypes").size());
+            assertEquals(120 - (MAX_TYPES - 1), out.get("omittedTypes").asInt());
+        }
+
+        @Test
+        void anOverviewWithNoDominantTypeConformsAsNull() {
+            when(allocationManager.overview())
+                    .thenReturn(new AllocationOverview(9_000_000, 7_000_000, 2_000_000, 0, null, false));
+            when(allocationManager.topTypes()).thenReturn(List.of());
+
+            JsonNode out = answer("allocations", tools().allocations());
+
+            assertTrue(out.get("overview").get("dominantType").isNull());
         }
     }
 
@@ -165,12 +265,13 @@ class MemoryMcpToolsTest {
                     new LeakCandidate(SESSION_CLASS, 4_096, 42_000_000_000L, 0, 512_000_000),
                     new LeakCandidate(BYTE_ARRAY, 2_048, 11_000_000_000L, 2_048, 512_000_000)));
 
-            String out = tools().leakCandidates();
+            JsonNode out = answer("leakCandidates", tools().leakCandidates());
 
-            assertTrue(out.contains(SESSION_CLASS), out);
-            assertTrue(out.contains("\"objectAgeNanos\":42000000000"), out);
-            assertTrue(out.contains("\"candidateCount\":2"), out);
-            assertTrue(out.contains("memory-issues/leak-candidates"), out);
+            assertEquals(SESSION_CLASS, out.get("candidates").get(0).get("className").asString());
+            assertEquals(42_000_000_000L, out.get("candidates").get(0).get("objectAgeNanos").asLong());
+            assertEquals(2, out.get("overview").get("candidateCount").asInt());
+            assertTrue(out.get("uiLink").asString().endsWith("memory-issues/leak-candidates"));
+            assertTrue(StructuredAnswers.guidance(out).contains("Age is the discriminator"), out.toString());
         }
 
         /**
@@ -182,21 +283,37 @@ class MemoryMcpToolsTest {
             when(leakCandidatesManager.overview()).thenReturn(new LeakOverview(0, 0, 0, 0));
             when(leakCandidatesManager.candidates()).thenReturn(List.of());
 
-            String out = tools().leakCandidates();
+            JsonNode out = answer("leakCandidates", tools().leakCandidates());
 
-            assertTrue(out.contains("jdk.OldObjectSample"), out);
-            assertTrue(out.contains("says nothing about whether the application leaks"), out);
-            assertFalse(out.contains("\"candidateCount\""), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("jdk.OldObjectSample"), out.toString());
+            assertTrue(out.get("reason").asString().contains("says nothing about whether the application leaks"),
+                    out.toString());
+            assertTrue(out.get("overview").isNull());
+            assertEquals(List.of("profiles_features"), StructuredAnswers.nextTools(out));
         }
 
         @Test
-        void capsTheCandidateListHoweverManyTheManagerReturns() {
+        void capsTheCandidateListAndCountsWhatItLeftOut() {
             when(leakCandidatesManager.overview()).thenReturn(new LeakOverview(90, 4_096, 6_144, 42L));
             when(leakCandidatesManager.candidates()).thenReturn(IntStream.range(0, 90)
                     .mapToObj(index -> new LeakCandidate("com.acme.Type" + index, 4_096, 42L, 0, 1))
                     .toList());
 
-            assertEquals(MAX_CANDIDATES, arraySize(tools().leakCandidates(), CANDIDATES_FIELD));
+            JsonNode out = answer("leakCandidates", tools().leakCandidates());
+
+            assertEquals(MAX_CANDIDATES, out.get("candidates").size());
+            assertEquals(90 - MAX_CANDIDATES, out.get("omittedCandidates").asInt());
+        }
+
+        @Test
+        void aCandidateWhoseClassWasNotNamedConformsAsNull() {
+            when(leakCandidatesManager.overview()).thenReturn(new LeakOverview(1, 4_096, 4_096, 42L));
+            when(leakCandidatesManager.candidates()).thenReturn(List.of(new LeakCandidate(null, 4_096, 42L, 0, 1)));
+
+            JsonNode out = answer("leakCandidates", tools().leakCandidates());
+
+            assertTrue(out.get("candidates").get(0).get("className").isNull());
         }
     }
 }

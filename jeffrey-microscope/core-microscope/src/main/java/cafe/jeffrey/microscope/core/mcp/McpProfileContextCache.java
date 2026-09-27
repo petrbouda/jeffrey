@@ -20,6 +20,9 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.shared.common.exception.ErrorCode;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +68,13 @@ public final class McpProfileContextCache implements AutoCloseable {
     private static final Duration EVICTION_SWEEP_PERIOD = Duration.ofMinutes(1);
     private static final String EVICTOR_THREAD_NAME = "mcp-profile-context-evictor";
 
+    /**
+     * What an MCP caller is told for an id no profile has: the model sent it, so the answer says where
+     * the ids it can use are listed.
+     */
+    private static final String PROFILE_NOT_FOUND_MESSAGE =
+            "Profile not found: %s. Call profiles_list to see the analysed profiles.";
+
     private final ProfileManagerResolver profileManagerResolver;
     private final DatabaseManagerResolver databaseManagerResolver;
     private final Clock clock;
@@ -74,16 +84,11 @@ public final class McpProfileContextCache implements AutoCloseable {
     private final ScheduledExecutorService evictor;
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    public McpProfileContextCache(
-            ProfileManagerResolver profileManagerResolver,
-            DatabaseManagerResolver databaseManagerResolver,
-            Clock clock) {
-        this(profileManagerResolver, databaseManagerResolver, clock, DEFAULT_IDLE_TIMEOUT, true);
-    }
-
     /**
-     * @param sweeping whether to run the background eviction sweep; a test drives {@link #evictIdle}
-     *                 itself and would otherwise race with it
+     * @param idleTimeout how long a profile stays pinned after the last tool call;
+     *                    {@link #DEFAULT_IDLE_TIMEOUT} in production
+     * @param sweeping    whether to run the background eviction sweep, which production does; a test
+     *                    drives {@link #evictIdle} itself and would otherwise race with it
      */
     public McpProfileContextCache(
             ProfileManagerResolver profileManagerResolver,
@@ -116,6 +121,22 @@ public final class McpProfileContextCache implements AutoCloseable {
     }
 
     /**
+     * The profile behind an id, with the resolver's not-found reworded for an MCP caller. Still
+     * {@link ErrorCode#PROFILE_NOT_FOUND}, so a resource read keeps answering it as a missing resource.
+     */
+    private ProfileManager resolveProfile(String profileId) {
+        try {
+            return profileManagerResolver.resolve(profileId);
+        } catch (JeffreyException e) {
+            if (e.getCode() == ErrorCode.PROFILE_NOT_FOUND) {
+                throw new JeffreyClientException(
+                        ErrorCode.PROFILE_NOT_FOUND, PROFILE_NOT_FOUND_MESSAGE.formatted(profileId), e);
+            }
+            throw e;
+        }
+    }
+
+    /**
      * One scheduled sweep. Nothing may escape it: a task that throws out of
      * {@code scheduleAtFixedRate} is never run again, so one failing release would have silently
      * ended idle eviction for the life of the process, and every later profile would have stayed
@@ -132,7 +153,8 @@ public final class McpProfileContextCache implements AutoCloseable {
     /**
      * The context for one profile, opening it on first use.
      *
-     * @throws cafe.jeffrey.shared.common.exception.JeffreyClientException when no such profile exists
+     * @throws JeffreyClientException when no such profile exists, pointing the caller at
+     *                                 {@code profiles_list}
      */
     public Lease acquire(String profileId) {
         Instant now = clock.instant();
@@ -143,7 +165,7 @@ public final class McpProfileContextCache implements AutoCloseable {
             }
             McpProfileContext context = existing;
             if (context == null) {
-                ProfileManager profileManager = profileManagerResolver.resolve(id);
+                ProfileManager profileManager = resolveProfile(id);
                 LOG.debug("Opening MCP profile context: profile_id={}", id);
                 context = new McpProfileContext(
                         profileManager, databaseManagerResolver.acquire(profileManager.info()), now);

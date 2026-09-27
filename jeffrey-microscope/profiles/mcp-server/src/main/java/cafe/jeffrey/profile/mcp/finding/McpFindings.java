@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
@@ -75,6 +76,19 @@ public final class McpFindings {
         List<McpFinding> merged = new ArrayList<>(byId.values());
         merged.sort(Comparator.comparing(McpFinding::severity));
         return List.copyOf(merged);
+    }
+
+    /**
+     * The findings with every next call a reader could not make left out: a call whose tool
+     * {@code servesTool} refuses is dropped, and the finding itself is kept as it was. Applied where a
+     * list is handed out, by the tool that knows which families this installation serves.
+     */
+    public static List<McpFinding> reachable(List<McpFinding> findings, Predicate<String> servesTool) {
+        return findings.stream()
+                .map(finding -> finding.nextTool() == null || servesTool.test(finding.nextTool().tool())
+                        ? finding
+                        : finding.withoutNextTool())
+                .toList();
     }
 
     private static McpFinding moreSevere(McpFinding existing, McpFinding candidate) {
