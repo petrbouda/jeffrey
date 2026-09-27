@@ -9,10 +9,13 @@
 #
 # The tool restriction is instruction-level rather than enforced, as it is in Codex: a Gemini subagent
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
-# every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off
-# recordings_ (including recordings_delete), the two hubs_ tools that write (hubs_download,
-# hubs_fetchFile), heap_prepare, operations_cancel and the two ide_ tools. To make it a wall, name those tools
-# in excludeTools on the server entry in settings.json.
+# every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off the
+# three recordings_ writers (recordings_analyzeFile, recordings_analyzeRecording, recordings_delete —
+# recordings_list only reads and stays allowed), the two hubs_ tools that write (hubs_download,
+# hubs_fetchFile), heap_prepare, operations_cancel and the two ide_ tools. The other two of the eleven
+# writers, jvm_autoAnalysis with compute and heap_oql with includeRetainedSize, stay allowed: they
+# only fill a cache and are bounded (45 s, then an operationId). To make it a wall, name the nine
+# denied tools in excludeTools on the server entry in settings.json.
 name: profile-analyst
 description: Reads one Jeffrey Microscope export end to end and returns only the findings — the hottest frames with their shares, or the retaining objects with their GC-root paths. Delegate to it whenever a flamegraph, trace or heap report has to be read but the raw document is not wanted in the main conversation, and when several event types or heap questions can be worked at the same time. It reports figures; it never maps them to source, edits anything or creates a profile.
 tools:
@@ -67,6 +70,7 @@ For a flamegraph or trace:
 2. …
 
 Notes: filters, threshold, or anything pruned that a reader would want to know about.
+Link: the uiLink of the answer read, for the caller to hand to the user.
 ```
 
 For a heap dump, the same shape with class name, retained bytes and the GC-root path together —
@@ -91,8 +95,8 @@ under **Not assessed** rather than being left out.
 - **No writing.** Never call `heap_prepare`, even when a loaded skill recommends it for a missing
   report. Report the missing evidence to the caller; the caller or `heap-triage` owns preparation.
   Never call `ide_link` or `ide_open`, which act on the editor beside you rather
-  than on a profile. Never call the `recordings_` or `hubs_` families — one imports a recording file
-  and builds a profile, or deletes one, the other pulls a recording, a window of one or one of its
-  files off a connected hub. Never call `operations_cancel`: the work it stops was started by the caller. All of
+  than on a profile. Never call the `hubs_` family, or any `recordings_` tool but
+  `recordings_list` — the others import a recording file and build a profile, or delete one, and
+  `hubs_` pulls a recording, a window of one or one of its files off a connected hub. Never call `operations_cancel`: the work it stops was started by the caller. All of
   these are the caller's decision, not yours. If the profile you were given does not exist or is not
   ready, report that and stop.

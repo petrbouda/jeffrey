@@ -17,17 +17,20 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
+import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordingFile;
+import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import javax.sql.DataSource;
@@ -35,6 +38,7 @@ import java.sql.SQLException;
 import java.nio.file.Path;
 import java.util.Set;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -52,23 +56,21 @@ class DuckDbMcpToolErrorIntegrationTest {
     @Test
     void databaseFailureCrossesTheReflectiveAdapterAsAnMcpToolError(@TempDir Path directory) throws Exception {
         when(dataSource.getConnection()).thenThrow(new SQLException("database unavailable"));
-        when(assembler.toolset()).thenReturn(new ReflectiveToolset(new DuckDbMcpTools(dataSource), "jfr"));
+        when(assembler.toolset()).thenReturn(new ReflectiveToolset(new DuckDbMcpTools(dataSource, "p-1", EVERY_FAMILY), "jfr"));
         MockMvcTester mvc = mockMvcTesterFor(new ExternalMcpController(
                 assembler,
-                new ExternalMcpProperties(true, true, true, Set.of()),
-                new McpRequestGuard(),
-                new McpPromptRegistry(), mock(McpDiagnostics.class)));
+                McpTestProperties.of(true, true, true, Set.of()),
+                McpTestGuards.loopback(),
+                new McpPromptRegistry(McpSkillCatalogue.fromClasspath()), mock(McpDiagnostics.class), EVERY_FAMILY,
+                McpTaskProvider.NONE, McpSkillProvider.NONE));
 
-        String request = """
-                {"jsonrpc":"2.0","id":1,"method":"tools/call",
-                 "params":{"name":"jfr_listTables","arguments":{}}}""";
+        McpTestRequests.Request request = McpTestRequests.toolCall("jfr_listTables", Json.createObject());
 
         Path recordingPath = directory.resolve("tool-failure.jfr");
         try (Recording recording = new Recording()) {
             recording.enable(TraceSpanEvent.class);
             recording.start();
-            assertThat(mvc.post().uri(ExternalMcpController.PATH)
-                    .contentType(MediaType.APPLICATION_JSON).content(request))
+            assertThat(ExternalMcpControllerTest.post(mvc, ExternalMcpController.PATH, request))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.result.isError").isEqualTo(true);

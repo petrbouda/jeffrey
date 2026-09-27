@@ -131,14 +131,53 @@ class ChunkWindowTest {
 
         /**
          * A running session's newest chunk is the one the profiler still holds open, so the last
-         * chunk a selection can reach is the one before it — and that one has no known end while
-         * the session records, so it reaches as far forward as the window does.
+         * chunk a selection can reach is the one before it — and that one ends where the open one
+         * starts, like every chunk ends where the next begins. A window past it selects nothing
+         * rather than the older chunk, which holds none of the window.
          */
         @Test
-        void theLastClosedChunkOfARunningSessionIsOpenEnded() {
+        void aWindowPastTheLastClosedChunkOfARunningSessionSelectsNothing() {
             ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(session(CHUNKS, null));
 
+            assertTrue(selection.isEmpty(), selection.fileIds().toString());
+        }
+
+        /** c0, c1 and c2 finished, c3 opened at +30 and still being written. */
+        @Test
+        void aWindowInsideTheOpenChunkOfARunningSessionSelectsNothing() {
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(32), minutes(38)).select(session(CHUNKS, null));
+
+            assertTrue(selection.isEmpty(), selection.fileIds().toString());
+        }
+
+        @Test
+        void theLastClosedChunkOfARunningSessionEndsWhereTheOpenOneStarts() {
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(25), minutes(35)).select(session(CHUNKS, null));
+
             assertEquals(List.of("c2"), selection.fileIds());
+            assertEquals(minutes(30), selection.coverageEnd());
+        }
+
+        @Test
+        void anOpenEndOnARunningSessionReachesTheStartOfTheOpenChunk() {
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(15), null).select(session(CHUNKS, null));
+
+            assertEquals(List.of("c1", "c2"), selection.fileIds());
+            assertEquals(minutes(30), selection.coverageEnd());
+        }
+
+        /**
+         * With no finish time and no chunk held open — a session the hub reports finished without
+         * saying when — nothing bounds the last chunk, and its end stays unknown.
+         */
+        @Test
+        void theLastChunkKeepsAnUnknownEndWhenNeitherAFinishNorAnOpenChunkBoundsIt() {
+            RecordingSession finishedWithoutAnEnd = new RecordingSession(
+                    "session", "session", "instance", T0, null, RecordingStatus.FINISHED, null, CHUNKS, false);
+
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(finishedWithoutAnEnd);
+
+            assertEquals(List.of("c3"), selection.fileIds());
             assertNull(selection.coverageEnd());
         }
 

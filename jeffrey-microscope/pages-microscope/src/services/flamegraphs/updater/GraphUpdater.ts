@@ -19,6 +19,7 @@ import FlamegraphData from '@/services/api/model/FlamegraphData';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/api/model/TimeRange';
 import FlamegraphClient from '@/services/api/FlamegraphClient';
+import type { LinkedGraphState } from '@/services/flamegraphs/FlamegraphLinkQuery';
 
 export default abstract class GraphUpdater {
   /**
@@ -80,6 +81,13 @@ export default abstract class GraphUpdater {
   // recordings without a time dimension (e.g. pprof).
   protected timeseriesEnabled: boolean = true;
   protected initialVisibleMinutes: number | null = null;
+  // Where a link opened the graph: a window that replaces the opening zoom, and a search applied
+  // once, after the first drawing. Both null unless a link named them.
+  private linkedState: LinkedGraphState = { timeRange: null, search: null };
+  private linkedSearchPending: boolean = false;
+  // The range the flamegraph was last asked for: the linked window, the opening zoom, a reader's
+  // zoom, or null for the whole recording.
+  protected drawnTimeRange: TimeRange | null = null;
 
   public setTimeseriesSearchEnabled(enabled: boolean): void {
     this.timeseriesSearchEnabled = enabled;
@@ -91,6 +99,45 @@ export default abstract class GraphUpdater {
 
   public setInitialVisibleMinutes(minutes: number): void {
     this.initialVisibleMinutes = minutes;
+  }
+
+  /**
+   * Opens the graph on the state a link named instead of the default view. Called before the
+   * components register, so the first drawing is already the linked one.
+   */
+  public openAt(state: LinkedGraphState): void {
+    this.linkedState = state;
+    this.linkedSearchPending = state.search != null;
+  }
+
+  /** The window a link opened the graph on, as the relative range the requests take; null without one. */
+  public linkedTimeRange(): TimeRange | null {
+    return this.linkedState.timeRange;
+  }
+
+  /**
+   * The range the graph on screen is drawn over, as the relative range the requests take; null for
+   * the whole recording. An export of the graph sends it, so the document describes what is shown.
+   */
+  public currentTimeRange(): TimeRange | null {
+    return this.drawnTimeRange;
+  }
+
+  /** The search a link opened the graph with, for the search box to show; null without one. */
+  public linkedSearch(): string | null {
+    return this.linkedState.search;
+  }
+
+  /**
+   * Runs the linked search the first time the graph is drawn, the way the search box runs one. Only
+   * once: a later re-initialisation (a mode toggle) keeps whatever search the reader has since left.
+   */
+  protected applyLinkedSearch(): void {
+    if (!this.linkedSearchPending || this.linkedState.search == null) {
+      return;
+    }
+    this.linkedSearchPending = false;
+    this.updateWithSearch(this.linkedState.search);
   }
 
   /**

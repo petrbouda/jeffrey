@@ -1,0 +1,170 @@
+{
+  "tools": [
+    {
+      "name": "jfr_query_events",
+      "title": "Query JFR Events",
+      "description": "Runs a read-only DuckDB SQL query over a profile's JFR events table.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "description": "The profile to query."
+          },
+          "eventType": {
+            "type": "string",
+            "description": "JFR event type to filter on.",
+            "enum": ["jdk.ExecutionSample", "jdk.ObjectAllocationInNewTLAB"]
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum rows to return.",
+            "default": 100,
+            "minimum": 1,
+            "maximum": 10000
+          }
+        },
+        "required": ["eventType", "profileId"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "A page of rows.",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "description": "The rows, bounded.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": ["string", "null"],
+                  "description": "A property named description is shape, not prose."
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["SAMPLE", "ALLOCATION"]
+                }
+              },
+              "required": ["kind", "description"],
+              "additionalProperties": false
+            }
+          },
+          "truncation": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Counts for one collection.",
+              "properties": {
+                "omitted": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": ["omitted"],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "description": "Pass unchanged; null at the end."
+          }
+        },
+        "required": ["truncation", "rows", "nextCursor"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "_meta": {
+        "cafe.jeffrey/category": "jfr",
+        "anthropic/maxResultSizeChars": 120000,
+        "jeffrey/cost": "MODERATE",
+        "jeffrey/requires": ["TRACES", "HEAP_DUMP_INDEXED"]
+      }
+    },
+    {
+      "name": "heap_list_classes",
+      "description": "Lists classes in a heap dump's histogram, sorted by the requested field.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "description": "The heap dump profile to inspect."
+          },
+          "classNamePattern": {
+            "type": "string",
+            "description": "Glob pattern over the class name.",
+            "default": "*"
+          },
+          "sortBy": {
+            "type": "string",
+            "description": "Field to sort the histogram by.",
+            "enum": ["retainedSize", "instanceCount"],
+            "default": "retainedSize"
+          },
+          "tags": {
+            "type": "array",
+            "description": "Optional tags to filter classes by.",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["profileId"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "profiles_delete",
+      "title": "Delete Profile",
+      "description": "Deletes a profile and all of its derived data.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "description": "The profile to delete."
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Skip the confirmation check.",
+            "default": false
+          }
+        },
+        "required": ["profileId"],
+        "additionalProperties": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true
+      },
+      "_meta": {
+        "cafe.jeffrey/category": "profiles",
+        "cafe.jeffrey/writer": "true",
+        "anthropic/maxResultSizeChars": 120000,
+        "jeffrey/cost": "CHEAP"
+      }
+    }
+  ],
+  "resultType": "complete",
+  "ttlMs": 3600000,
+  "cacheScope": "public",
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "jeffrey",
+      "version": "1.0.0"
+    }
+  }
+}

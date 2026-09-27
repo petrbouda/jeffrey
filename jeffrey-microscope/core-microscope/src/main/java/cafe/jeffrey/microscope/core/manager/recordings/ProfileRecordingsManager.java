@@ -139,6 +139,11 @@ public class ProfileRecordingsManager implements RecordingsManager {
     }
 
     @Override
+    public Optional<Recording> findByFileNameAndSize(String fileName, long sizeInBytes) {
+        return core.findByFileNameAndSize(fileName, sizeInBytes);
+    }
+
+    @Override
     public String createDownloadedRecording(
             String recordingName,
             List<Path> recordingFiles,

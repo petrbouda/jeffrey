@@ -140,6 +140,7 @@ class StringAnalyzerTest {
             assertEquals(1, r.opportunities().size());
             assertEquals("abc", r.opportunities().get(0).content());
             assertTrue(r.alreadyDeduplicated().isEmpty());
+            assertEquals(10, r.topN(), "the report records the cap its rankings were built with");
         }
     }
 
@@ -155,7 +156,8 @@ class StringAnalyzerTest {
         }
         try (HprofMappedFile file = HprofMappedFile.open(hprof);
              HeapView view = HeapView.open(indexDb, file)) {
-            StringAnalysisReport r = StringAnalyzer.analyze(view);
+            StringAnalysisReport r = StringAnalyzer.analyze(view, 7);
+            assertEquals(7, r.topN(), "an empty report records its cap too");
             assertEquals(0, r.totalStrings());
             assertTrue(r.alreadyDeduplicated().isEmpty());
             assertTrue(r.opportunities().isEmpty());

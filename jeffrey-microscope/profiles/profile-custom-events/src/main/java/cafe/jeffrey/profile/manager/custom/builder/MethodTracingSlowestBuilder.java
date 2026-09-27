@@ -88,7 +88,7 @@ public class MethodTracingSlowestBuilder implements RecordBuilder<GenericRecord,
         durationHistogram.recordValue(duration);
 
         // Track for slowest methods list
-        String threadName = record.thread() != null ? record.thread().name() : "unknown";
+        String threadName = record.thread() != null ? record.thread().name() : SlowestMethodTrace.UNKNOWN_THREAD;
 
         SlowestMethodTrace trace = new SlowestMethodTrace(
                 className,

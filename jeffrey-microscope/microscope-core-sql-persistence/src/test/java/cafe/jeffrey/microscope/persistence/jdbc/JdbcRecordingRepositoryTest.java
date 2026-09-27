@@ -32,6 +32,7 @@ import cafe.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -203,6 +204,126 @@ class JdbcRecordingRepositoryTest {
             Optional<Recording> result = repository.findRecording("new-rec-001");
             assertTrue(result.isPresent());
             assertEquals("New Recording", result.get().recordingName());
+        }
+    }
+
+    /**
+     * A file imported from this machine is recognised again by what the store already keeps of it:
+     * the name it was stored under and its size in bytes.
+     */
+    @Nested
+    class FindByFileNameAndSizeMethod {
+
+        private static final String FILE_NAME = "app.jfr";
+        private static final long SIZE = 2048;
+        private static final String INSERT_PROFILE = "INSERT INTO profiles (profile_id, profile_name, event_source, "
+                + "created_at, recording_id) VALUES (?, 'app', 'JDK', TIMESTAMPTZ '2026-01-15 12:00:00+00', ?)";
+
+        private static Recording recording(String id, Instant createdAt) {
+            return new Recording(id, FILE_NAME, null, RecordingEventSource.JDK, createdAt,
+                    createdAt, createdAt, false, null, null, List.of());
+        }
+
+        private static RecordingFile file(String recordingId, String filename, long size, Instant createdAt) {
+            return new RecordingFile(recordingId + "-" + filename, recordingId, filename,
+                    ManagedFile.of(filename), createdAt, size);
+        }
+
+        private static JdbcRecordingRepository repository(DataSource dataSource) {
+            return new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+        }
+
+        private static void insertSingleFile(JdbcRecordingRepository repository, String id, long size, Instant at) {
+            repository.insertRecording(recording(id, at), file(id, FILE_NAME, size, at));
+        }
+
+        @Test
+        void findsTheRecordingOfAFileWithTheSameNameAndSize(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "imported", SIZE, FIXED_TIME);
+
+            Optional<Recording> result = repository.findByFileNameAndSize(FILE_NAME, SIZE);
+
+            assertTrue(result.isPresent());
+            assertEquals("imported", result.get().id());
+            assertEquals(1, result.get().files().size());
+        }
+
+        @Test
+        void missesWhenTheSizeDiffers(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "imported", SIZE, FIXED_TIME);
+
+            assertTrue(repository.findByFileNameAndSize(FILE_NAME, SIZE + 1).isEmpty());
+        }
+
+        @Test
+        void missesWhenTheNameDiffers(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "imported", SIZE, FIXED_TIME);
+
+            assertTrue(repository.findByFileNameAndSize("other.jfr", SIZE).isEmpty());
+        }
+
+        /**
+         * A downloaded session is several files; one of its chunks matching a local file says
+         * nothing about the recording as a whole, so only a one-file recording can match.
+         */
+        @Test
+        void neverMatchesOneFileOfARecordingMadeOfSeveral(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            repository.insertRecording(recording("session", FIXED_TIME), file("session", FILE_NAME, SIZE, FIXED_TIME));
+            repository.insertRecordingFile(file("session", "chunk-2.jfr", SIZE, FIXED_TIME));
+
+            assertTrue(repository.findByFileNameAndSize(FILE_NAME, SIZE).isEmpty());
+        }
+
+        @Test
+        void prefersTheNewestRecordingWhenNoneHasAProfile(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "older", SIZE, FIXED_TIME);
+            insertSingleFile(repository, "newer", SIZE, FIXED_TIME.plusSeconds(60));
+
+            assertEquals("newer", repository.findByFileNameAndSize(FILE_NAME, SIZE).orElseThrow().id());
+        }
+
+        /**
+         * Handing back a profile that already exists is the point of the lookup, so a recording
+         * with one wins over a newer duplicate that would have to be analysed again.
+         */
+        @Test
+        void prefersARecordingWithAProfileOverANewerOneWithout(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "profiled", SIZE, FIXED_TIME);
+            insertSingleFile(repository, "unprofiled", SIZE, FIXED_TIME.plusSeconds(60));
+            insertProfile(dataSource, "prof-1", "profiled");
+
+            Recording result = repository.findByFileNameAndSize(FILE_NAME, SIZE).orElseThrow();
+
+            assertEquals("profiled", result.id());
+            assertEquals("prof-1", result.profileId());
+        }
+
+        @Test
+        void prefersTheNewestRecordingAmongThoseWithAProfile(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "older", SIZE, FIXED_TIME);
+            insertSingleFile(repository, "newer", SIZE, FIXED_TIME.plusSeconds(60));
+            insertSingleFile(repository, "newest-unprofiled", SIZE, FIXED_TIME.plusSeconds(120));
+            insertProfile(dataSource, "prof-older", "older");
+            insertProfile(dataSource, "prof-newer", "newer");
+
+            assertEquals("newer", repository.findByFileNameAndSize(FILE_NAME, SIZE).orElseThrow().id());
+        }
+
+        private static void insertProfile(DataSource dataSource, String profileId, String recordingId)
+                throws SQLException {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(INSERT_PROFILE)) {
+                statement.setString(1, profileId);
+                statement.setString(2, recordingId);
+                statement.executeUpdate();
+            }
         }
     }
 

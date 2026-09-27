@@ -17,6 +17,12 @@
 
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import tools.jackson.databind.JsonNode;
@@ -33,9 +39,10 @@ import java.util.List;
  * The target is fixed for the lifetime of the toolset. When it has to be chosen per call — one object
  * per profile, say — use {@link ProfileScopedToolset} instead.
  * <p>
- * Tool names are {@code <prefix>_<methodName>}. All {@code @Tool} methods are expected to return a
- * {@link String} or {@link McpToolResult}. Argument names rely on {@code -parameters} being enabled at compile time (it is, in
- * the project's compiler configuration).
+ * Tool names are {@code <prefix>_<methodName>}. A {@code @Tool} method returns a {@link String}, an
+ * {@link McpToolResult} or an {@link McpToolOutcome}, and may declare one {@link McpCallContext}
+ * parameter to learn what the client can do. Argument names rely on {@code -parameters} being enabled at
+ * compile time (it is, in the project's compiler configuration).
  */
 public final class ReflectiveToolset implements McpToolProvider {
 
@@ -62,14 +69,16 @@ public final class ReflectiveToolset implements McpToolProvider {
     }
 
     /**
-     * Invoke a tool by its MCP name with the supplied JSON arguments and return its textual result.
-     * The invocation is recorded as a JFR span named after the tool.
+     * Invoke a tool by its MCP name with the supplied JSON arguments and the caller's context.
+     * The invocation is recorded as a JFR span named after the tool, with the trace context the call
+     * carried, if any, among its attributes.
      *
      * @throws IllegalArgumentException if the tool name is unknown
      */
     @Override
-    public McpToolResult callResult(String toolName, JsonNode arguments) {
+    public McpToolOutcome call(String toolName, JsonNode arguments, McpCallContext context) {
         Method method = index.method(toolName);
-        return ToolInvocation.invoke(toolName, method, target, index.bindArguments(method, arguments));
+        Object[] args = index.bindArguments(method, arguments, context);
+        return ToolInvocation.invoke(toolName, method, target, args, context);
     }
 }

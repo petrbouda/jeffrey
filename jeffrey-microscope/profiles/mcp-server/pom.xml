@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>mcp-server</artifactId>
-    <description>MCP (Model Context Protocol) server machinery: JSON-RPC envelope and @Tool-driven toolsets</description>
+    <description>Jeffrey's MCP adapter over mcp-protocol: the Spring MVC boundary, @Tool reflection, profile scoping, tool hints and findings</description>
 
     <dependencies>
         <!-- Tracer: every MCP tool invocation is recorded as a span -->
@@ -50,23 +50,23 @@
             <artifactId>spring-ai-model</artifactId>
         </dependency>
 
-        <!-- ResponseEntity for the JSON-RPC endpoint base class. spring-web alone: this module owns
-             the protocol, not the mapping, so it needs no servlet container and no MVC. -->
+        <!-- ResponseEntity for the JSON-RPC endpoint base class. spring-web alone: this module adapts
+             the protocol to Spring but leaves the mapping to the controller, so it needs no servlet
+             container and no MVC. -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
         </dependency>
 
         <!-- Jeffrey dependencies -->
+        <!-- The protocol itself: validation, the dispatcher, the SPI and the extensions. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-protocol</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
-        </dependency>
-
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
         </dependency>
 
         <!-- Testing -->
@@ -75,5 +75,41 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- McpTestRequests, McpSchemaConformance and McpTestFeatures: the protocol's generic test helpers. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-protocol</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+              McpNextToolConformance and McpTestToolsets, Jeffrey's own test helpers, ship as a test-jar
+              so core-microscope's tool tests check follow-up calls and build toolsets the same way.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- ToolInvocationTest reads the tool-call span back with a JFR recording; the module itself only emits. -->
+                    <argLine>--add-reads cafe.jeffrey.microscope.profile.mcp=jdk.jfr</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

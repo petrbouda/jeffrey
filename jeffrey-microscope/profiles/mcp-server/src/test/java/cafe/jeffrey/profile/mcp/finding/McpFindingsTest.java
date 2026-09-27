@@ -17,6 +17,9 @@
 
 package cafe.jeffrey.profile.mcp.finding;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.finding.McpFinding.Severity;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
@@ -24,8 +27,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -65,12 +70,16 @@ class McpFindingsTest {
                     .evidence("collections", 17)
                     .evidence("missing", null)
                     .source("jvm_gc")
-                    .nextTool("jvm_gc")
+                    .nextTool(McpNextTool.call("jvm_gc").with("profileId", "p-1").why("shows the pauses"))
                     .build();
 
             assertEquals("gc:pauses", finding.id());
-            assertEquals(List.of("totalPauseMillis", "collections"), List.copyOf(finding.evidence().keySet()));
+            assertEquals(Set.of("totalPauseMillis", "collections"), finding.evidence().value().propertyNames());
+            assertEquals("[\"totalPauseMillis\",\"collections\"]",
+                    Json.toString(List.copyOf(finding.evidence().value().propertyNames())));
             assertEquals(Severity.WARNING, finding.severity());
+            assertEquals("jvm_gc", finding.nextTool().tool());
+            assertEquals("p-1", finding.nextTool().arguments().value().path("profileId").asString());
         }
 
         @Test
@@ -89,6 +98,69 @@ class McpFindingsTest {
             assertTrue(json.contains("\"id\":\"container:cpu-throttling\""), json);
             assertTrue(json.contains("\"severity\":\"CRITICAL\""), json);
             assertTrue(json.contains("\"evidence\":{\"peakRatioPct\":42.5}"), json);
+        }
+
+        /** The one open object a finding carries: the figures differ per source, so the schema cannot list them. */
+        @Test
+        void isDescribedByTheGeneratorWithEvidenceAsAnOpenObject() {
+            McpFinding finding = McpFinding.of("gc", "pauses").title("Long GC pauses")
+                    .evidence("settings", Map.of("period", "10 ms")).build();
+
+            McpSchemaConformance.assertConforms(Json.toTree(finding), McpSchemaGenerator.schemaOf(McpFinding.class));
+            assertEquals("object", McpSchemaGenerator.schemaOf(McpFinding.class)
+                    .path("properties").path("evidence").path("type").asString());
+        }
+    }
+
+    /**
+     * A finding names the call that carries its figures; where that tool's family is not served the
+     * call is dropped rather than handed out, and the rest of the finding stays as it was.
+     */
+    @Nested
+    class Reach {
+
+        private McpFinding routedTo(String tool) {
+            return McpFinding.of("gc", "pauses").severity(Severity.WARNING).title("Long GC pauses")
+                    .evidence("pauses", 3)
+                    .nextTool(McpNextTool.call(tool).with("profileId", "p-1").why("shows the figures"))
+                    .build();
+        }
+
+        @Test
+        void keepsACallToAServedTool() {
+            List<McpFinding> reachable = McpFindings.reachable(List.of(routedTo("jvm_gc")), tool -> true);
+
+            assertEquals("jvm_gc", reachable.getFirst().nextTool().tool());
+        }
+
+        @Test
+        void dropsOnlyTheCallToAToolThatIsNotServed() {
+            McpFinding finding = routedTo("blocking_monitors");
+
+            McpFinding reachable = McpFindings.reachable(List.of(finding), tool -> !tool.startsWith("blocking_"))
+                    .getFirst();
+
+            assertNull(reachable.nextTool());
+            assertEquals(finding.id(), reachable.id());
+            assertEquals(finding.severity(), reachable.severity());
+            assertEquals(finding.title(), reachable.title());
+            assertEquals(finding.evidence(), reachable.evidence());
+        }
+
+        @Test
+        void leavesAFindingWithoutACallAsItIs() {
+            McpFinding finding = McpFinding.of("gc", "pauses").title("Long GC pauses").build();
+
+            assertEquals(List.of(finding), McpFindings.reachable(List.of(finding), tool -> false));
+        }
+
+        @Test
+        void describesTheCallAsANullableNextTool() {
+            McpFinding finding = routedTo("jvm_gc");
+
+            McpSchemaConformance.assertConforms(Json.toTree(finding), McpSchemaGenerator.schemaOf(McpFinding.class));
+            assertEquals("[\"object\",\"null\"]", Json.toString(McpSchemaGenerator.schemaOf(McpFinding.class)
+                    .path("properties").path("nextTool").path("type")));
         }
     }
 

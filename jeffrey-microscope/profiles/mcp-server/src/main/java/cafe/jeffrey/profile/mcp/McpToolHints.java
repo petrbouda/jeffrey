@@ -16,6 +16,7 @@
  */
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

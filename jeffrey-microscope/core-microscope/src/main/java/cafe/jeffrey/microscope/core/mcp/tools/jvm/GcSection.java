@@ -17,6 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.gc.GCEvent;
@@ -24,7 +29,7 @@ import cafe.jeffrey.profile.manager.model.gc.GCGenerationStats;
 import cafe.jeffrey.profile.manager.model.gc.GCHeader;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCPauseBucket;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -40,7 +45,7 @@ import java.util.Set;
  * application ran straight through — it reports pauses that never happened. The builders behind
  * {@link GCOverviewData} have made that distinction since long before any model saw the data.
  */
-public record GcSection(ProfileManager profileManager) implements JvmSection {
+public record GcSection(ProfileManager profileManager) implements JvmSection<GcSection.GcDashboard> {
 
     public static final String ID = "gc";
 
@@ -64,13 +69,13 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
             Type.Z_YOUNG_GARBAGE_COLLECTION,
             Type.Z_OLD_GARBAGE_COLLECTION);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "No event in this section names the code that produced the garbage. For the call paths, "
-                    + "flamegraph_export with eventType jdk.ObjectAllocationSample and useWeight true.",
-            "Pauses that are not collections are in jvm_safepoints. A small budget here does not mean "
-                    + "the application was not being stopped.",
-            "What is retained rather than churned is a heap-dump question; profiles_features says whether "
-                    + "this profile has one.");
+    private static final String ALLOCATION_PATHS_WHY =
+            "names the code that produced the garbage, which no event in this section does";
+    private static final String SAFEPOINTS_WHY =
+            "shows the pauses that are not collections; a small budget here does not mean the "
+                    + "application was not being stopped";
+    private static final String FEATURES_WHY =
+            "says whether this profile has a heap dump, for what is retained rather than churned";
 
     @Override
     public String id() {
@@ -88,12 +93,20 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.GARBAGE_COLLECTION;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, GcDashboard dashboard) {
+        String profileId = profileManager.info().id();
+        SectionCalls.allocationPaths(next, profileManager, ALLOCATION_PATHS_WHY);
+        next.next(SectionCalls.on(SectionCalls.JVM_SAFEPOINTS, profileId).why(SAFEPOINTS_WHY))
+                .next(SectionCalls.on(SectionCalls.PROFILES_FEATURES, profileId).why(FEATURES_WHY));
+    }
+
+    @Override
+    public GcDashboard render() {
         GCOverviewData overview = profileManager.gcManager().overviewData();
         GCHeader header = overview.header();
 
@@ -119,9 +132,9 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
                 millis(header.maxPauseTime()),
                 millis(header.p95PauseTime()),
                 millis(header.p99PauseTime()),
-                header.gcThroughput(),
-                header.gcOverhead(),
-                header.collectionFrequency(),
+                decimal(header.gcThroughput()),
+                decimal(header.gcOverhead()),
+                decimal(header.collectionFrequency()),
                 header.totalMemoryFreed(),
                 header.avgMemoryFreed());
     }
@@ -132,15 +145,15 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
                         stat.generation(),
                         stat.collections(),
                         millis(stat.totalTime()),
-                        stat.avgPauseTime(),
-                        stat.maxPauseTime(),
+                        decimal(stat.avgPauseTime()),
+                        decimal(stat.maxPauseTime()),
                         stat.totalMemoryFreed()))
                 .toList();
     }
 
     private static List<PauseBucket> distribution(List<GCPauseBucket> buckets) {
         return buckets.stream()
-                .map(bucket -> new PauseBucket(bucket.range(), bucket.count(), bucket.percentage()))
+                .map(bucket -> new PauseBucket(bucket.range(), bucket.count(), decimal(bucket.percentage())))
                 .toList();
     }
 
@@ -164,59 +177,104 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
         return nanos / NANOS_IN_MILLI;
     }
 
+    /** A figure the builders compute exactly, as the JSON number the schema declares; null stays null. */
+    private static Double decimal(BigDecimal value) {
+        return value == null ? null : value.doubleValue();
+    }
+
     /**
      * @param collector          the collector Jeffrey detected from the collection events
      * @param pauseBudget        the stop-the-world total this recording paid, and how it was shaped
      * @param systemGcCalls      collections asked for by {@code System.gc()}
      * @param diagnosticGcCalls  collections asked for through a diagnostic command (jcmd)
      */
-    private record GcDashboard(
+    public record GcDashboard(
             String collector,
             PauseBudget pauseBudget,
             int systemGcCalls,
             int diagnosticGcCalls,
             List<Generation> generations,
             List<PauseBucket> pauseDistribution,
+            @McpDescription("The " + LONGEST_PAUSES_LIMIT + " longest collections by sum of pauses")
             List<Collection> longestCollections) {
     }
 
-    private record PauseBudget(
+    public record PauseBudget(
             int collections,
             int youngCollections,
             int oldCollections,
             int fullCollections,
-            double totalPauseMillis,
-            double longestPauseMillis,
-            double p95PauseMillis,
-            double p99PauseMillis,
-            BigDecimal throughputPct,
-            BigDecimal overheadPct,
-            BigDecimal collectionsPerMinute,
+            double totalPauseMs,
+            double longestPauseMs,
+            double p95PauseMs,
+            double p99PauseMs,
+            @McpNullable
+            Double throughputPct,
+            @McpNullable
+            Double overheadPct,
+            @McpNullable
+            Double collectionsPerMinute,
             long totalFreedBytes,
             long avgFreedBytes) {
     }
 
-    private record Generation(
+    public record Generation(
+            @McpNullable
             String generation,
             int collections,
-            double totalPauseMillis,
-            BigDecimal avgPauseMillis,
-            BigDecimal maxPauseMillis,
+            double totalPauseMs,
+            @McpNullable
+            Double avgPauseMs,
+            @McpNullable
+            Double maxPauseMs,
             long freedBytes) {
     }
 
-    private record PauseBucket(String range, long count, BigDecimal percentage) {
+    public record PauseBucket(
+            @McpNullable
+            String range,
+            long count,
+            @McpNullable
+            Double percentage) {
     }
 
-    private record Collection(
+    public record Collection(
             long gcId,
+            @McpNullable
             String collector,
+            @McpNullable
             String cause,
+            @McpNullable
             String generation,
-            double sumOfPausesMillis,
-            double longestPauseMillis,
+            double sumOfPausesMs,
+            double longestPauseMs,
             long heapBeforeBytes,
             long heapAfterBytes,
             long freedBytes) {
+    }
+
+    /**
+     * What {@code jvm_gc} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            GcDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, GcDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

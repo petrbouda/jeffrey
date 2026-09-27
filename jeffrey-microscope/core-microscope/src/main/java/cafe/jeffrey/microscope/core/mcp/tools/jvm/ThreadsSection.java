@@ -17,6 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
@@ -24,10 +29,9 @@ import cafe.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
 import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
-import cafe.jeffrey.microscope.model.Type;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
@@ -45,7 +49,7 @@ import java.util.Set;
  * amount of reading the application's own code makes obvious — and the reason field says which case
  * it was.
  */
-public record ThreadsSection(ProfileManager profileManager) implements JvmSection {
+public record ThreadsSection(ProfileManager profileManager) implements JvmSection<ThreadsSection.ThreadsDashboard> {
 
     public static final String ID = "threads";
 
@@ -63,13 +67,13 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
             Type.VIRTUAL_THREAD_START,
             Type.VIRTUAL_THREAD_PINNED);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "A flamegraph aggregates across threads. For one thread's frames, flamegraph_export with "
-                    + "threadMode true.",
-            "Allocation per thread says who allocated; the allocation flamegraph says where — "
-                    + "jdk.ObjectAllocationSample with useWeight true.",
+    private static final String ONE_THREAD_WHY =
+            "splits the CPU flamegraph by thread, the frames this per-thread attribution cannot show";
+    private static final String ALLOCATION_WHY =
+            "says where the allocating threads allocate; this dashboard says only who";
+    private static final String PINNING_GUIDANCE =
             "A pinning reason names a synchronized block or a native call. Read that code before proposing "
-                    + "the fix.");
+                    + "the fix.";
 
     @Override
     public String id() {
@@ -87,12 +91,26 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.THREAD_STATISTICS;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, ThreadsDashboard dashboard) {
+        String profileId = profileManager.info().id();
+        SectionCalls.onCpu(next, profileManager, eventType -> SectionCalls.on(SectionCalls.FLAMEGRAPH_EXPORT, profileId)
+                .with(SectionCalls.EVENT_TYPE, eventType)
+                .with(SectionCalls.THREAD_MODE, true)
+                .why(ONE_THREAD_WHY));
+        if (!dashboard.topAllocating().isEmpty()) {
+            SectionCalls.allocationPaths(next, profileManager, ALLOCATION_WHY);
+        }
+        next.guidanceWhen(dashboard.virtualThreads() != null && dashboard.virtualThreads().pinningCount() > 0,
+                        PINNING_GUIDANCE);
+    }
+
+    @Override
+    public ThreadsDashboard render() {
         ThreadManager threadManager = profileManager.threadManager();
         ThreadStats stats = threadManager.threadStatistics();
         ThreadCpuLoads cpuLoads = threadManager.threadCpuLoads(THREADS_LIMIT);
@@ -109,7 +127,7 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
 
     private static List<CpuThread> cpuLoad(List<ThreadWithCpuLoad> loads) {
         return loads.stream()
-                .map(load -> new CpuThread(load.threadInfo().name(), load.cpuLoad()))
+                .map(load -> new CpuThread(load.threadInfo().name(), load.cpuLoad() == null ? null : load.cpuLoad().doubleValue()))
                 .toList();
     }
 
@@ -166,13 +184,18 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
      *                            one carrying {@code jdk.ThreadAllocationStatistics}
      * @param virtualThreads      null when the recording carries no virtual-thread events
      */
-    private record ThreadsDashboard(
+    public record ThreadsDashboard(
             Population population,
             BlockingCounts blocking,
+            @McpDescription("The " + THREADS_LIMIT + " threads with the most user CPU")
             List<CpuThread> topUserCpu,
+            @McpDescription("The " + THREADS_LIMIT + " threads with the most system CPU")
             List<CpuThread> topSystemCpu,
+            @McpDescription("The " + THREADS_LIMIT + " threads that allocated the most bytes")
             List<AllocatingThreadRow> topAllocating,
+            @McpNullable
             String allocationEventType,
+            @McpNullable
             VirtualThreads virtualThreads) {
     }
 
@@ -180,16 +203,19 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
      * @param accumulated every thread the recording ever saw, started and finished alike
      * @param peak        the most that were alive at once
      */
-    private record Population(long accumulated, long peak) {
+    public record Population(long accumulated, long peak) {
     }
 
-    private record BlockingCounts(long sleeps, long parks, long monitorBlocks) {
+    public record BlockingCounts(long sleeps, long parks, long monitorBlocks) {
     }
 
-    private record CpuThread(String threadName, BigDecimal cpuLoad) {
+    public record CpuThread(
+            String threadName,
+            @McpNullable
+            Double cpuLoad) {
     }
 
-    private record AllocatingThreadRow(String threadName, long allocatedBytes) {
+    public record AllocatingThreadRow(String threadName, long allocatedBytes) {
     }
 
     /**
@@ -198,23 +224,53 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
      * @param reasons       why the carrier was pinned, which is what says whether the fix is a
      *                      synchronized block or a native call
      */
-    private record VirtualThreads(
+    public record VirtualThreads(
             long startedCount,
             long endedCount,
             long peakLiveCount,
             long pinningCount,
-            double totalPinnedMillis,
-            double maxPinnedMillis,
+            double totalPinnedMs,
+            double maxPinnedMs,
             long submitFailedCount,
+            @McpDescription("The " + THREADS_LIMIT + " virtual threads pinned most often")
             List<PinnedThread> topPinnedThreads,
             List<PinningReason> reasons) {
     }
 
-    private record PinnedThread(
-            String threadName, long count, double totalMillis, double maxMillis) {
+    public record PinnedThread(
+            String threadName, long count, double totalMs, double maxMs) {
     }
 
-    private record PinningReason(
-            String reason, long count, double totalMillis, double maxMillis) {
+    public record PinningReason(
+            @McpNullable
+            String reason,
+            long count,
+            double totalMs,
+            double maxMs) {
+    }
+
+    /**
+     * What {@code jvm_threads} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            ThreadsDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, ThreadsDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

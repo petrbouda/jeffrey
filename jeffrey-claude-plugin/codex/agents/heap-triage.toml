@@ -42,7 +42,8 @@ heap dump, say that and stop.
    until something computes them. When they are missing, `heap_prepare` builds them and `heap_status`
    says when it is done; an empty retained ranking is a signal to prepare, never a finding that
    nothing retains memory. The cached reports — leak suspects, class-loader analysis, top consumers —
-   are the same, and `heap_prepare` can compute one by name.
+   are the same: each answers `status: NOT_RUN_YET` until `heap_prepare` computes it by name, and
+   the answer's `followUp.nextTools` carries that exact call.
 2. **Never report a leak without a GC-root path.** A large class is an observation; the path is the
    reason it is still alive. Objects reachable only through weak or soft references show no path, and
    that is the answer rather than an error.
@@ -64,6 +65,7 @@ Findings only, under roughly forty lines:
 1. `<fully.qualified.ClassName>` — retained <bytes>, <n> instances (shallow <bytes>)
    GC-root path: <root kind> → <field> → … → the object
    What this is, and why it is still reachable, in one line.
+   Link: the uiLink of the answer the path came from, for the caller to hand to the user.
 2. …
 
 Notes: what was computed for this, what is still missing, and anything a reader would want to know

@@ -107,10 +107,12 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships ten skills and <router-link to="/docs/microscope-mcp/agent">three agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The plugin ships ten skills and <router-link to="/docs/microscope-mcp/agent">three agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all ten from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
 
-      <p>The ten are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it may call, and a body:</p>
+      <p>The ten are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
+
+      <p>The front matter only pre-approves those tools for the turn a skill runs in; it does not hide the others. <code>advise-jfr</code> lists Jeffrey's tools with <code>Read</code>, <code>Grep</code>, <code>Glob</code> and <code>git rev-parse</code> &mdash; the reading it does in your checkout &mdash; and leaves an edit or a build to ask as usual. A skill names each tool without the prefix your client puts in front of it, and says in one sentence what the three prefixes are &mdash; <code>mcp__plugin_microscope_jeffrey__</code> in Claude Code with the plugin, <code>mcp__jeffrey__</code> in Codex or wherever the server is registered by hand, <code>mcp_jeffrey_</code> in Gemini CLI. Each skill is self-contained: nothing in one points into another skill&rsquo;s directory, because a client that loads skills from the server reads only the files a skill lists as its own.</p>
 
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
@@ -221,7 +223,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li>The <router-link to="/docs/microscope-mcp/tools#technologies">technology dashboards</router-link> for the edges of the application. &ldquo;This endpoint is slow&rdquo; starts at <code>http_overview</code> and <code>jdbc_overview</code> &mdash; two calls, before a single frame is read. Requests that are slow while every statement is fast are waiting for a connection, which is <code>jdbc_pools</code> and nothing else.</li>
             <li><router-link to="/docs/microscope-mcp/tools#waiting"><code>io_</code> and <code>blocking_</code></router-link> for time spent waiting rather than running. That time produces no samples at all: a blocked thread is not on-CPU, so a flamegraph reports the application as idle.</li>
             <li><router-link to="/docs/microscope-mcp/tools#timeline"><code>timeline_</code></router-link> for <em>when</em>. A flamegraph of a whole recording averages a spike away, so the skill has the model find the window first and export it second.</li>
-            <li>Whatever each answer&rsquo;s own <code>nextSteps</code> list names. Every tool result says what it cannot tell you and which tool can, so the routing survives the many turns between reading a tool description and needing it. Those lines route and never diagnose &mdash; following one is not the same as accepting a verdict.</li>
+            <li>Whatever each answer&rsquo;s own <code>followUp</code> names &mdash; <code>nextTools</code>, calls ready to send with this answer&rsquo;s ids and windows filled in, and <code>guidance</code> for the rest. Every tool result says what it cannot tell you and which tool can, so the routing survives the many turns between reading a tool description and needing it. Those entries route and never diagnose &mdash; following one is not the same as accepting a verdict.</li>
           </ul>
         </section>
 
@@ -281,7 +283,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <section class="skill-block">
           <h4>Entry sequence</h4>
           <ul>
-            <li><code>hubs_sessions</code> with a window &mdash; one call, across every connected hub &mdash; then <code>hubs_download</code> on the row&rsquo;s <code>session_ref</code>, then <code>recordings_analyzeRecording</code> for the <code>profileId</code>.</li>
+            <li><code>hubs_sessions</code> with a window &mdash; one call, across every connected hub &mdash; then <code>hubs_download</code> on the row&rsquo;s <code>sessionRef</code> with the <code>startEpochMs</code>/<code>endEpochMs</code> of the window that matters, then <code>recordings_analyzeRecording</code> for the <code>profileId</code>.</li>
             <li>From there it hands off: <code>analyze-jfr</code> for a recording, <code>analyze-heap</code> for a dump. There is no hub-specific analysis, because a downloaded session is an ordinary profile.</li>
             <li>When the question is about what the JVM <em>wrote</em> &mdash; the application log, the GC log, the crash file &mdash; it takes the other branch: <code>hubs_files</code> to see what the session holds, <code>hubs_fetchFile</code> on the one file that matters, and then the agent&rsquo;s own <code>grep</code> and file reader at the path it returns. Jeffrey hands the file over rather than parsing it.</li>
             <li>No <code>hubs_</code> tool advertised means hub access is off or no hub is connected &mdash; a fact to report, not a path to guess at.</li>
@@ -357,7 +359,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <h4>Entry sequence</h4>
           <ul>
             <li><strong>Name the command and the file before running either.</strong> Profiling costs minutes and a load test may touch things off this machine. The target is looked for in order &mdash; the one the user named, a JMH harness, the test task, an entry point with a <code>main</code> &mdash; and asked for when none is obvious.</li>
-            <li>Record, then <code>recordings_analyzeFile</code> with an absolute path. A large file comes back <code>running</code>: poll <code>recordings_status</code> with the <code>recordingId</code> rather than importing again, which would build a second profile of the same recording.</li>
+            <li>Record, then <code>recordings_analyzeFile</code> with an absolute path. A large file comes back <code>RUNNING</code>: poll <code>recordings_status</code> with the <code>recordingId</code> rather than calling the import again. A second call with a file of the same name and size returns the profile already built from it (<code>reused=true</code>) instead of a second one, and <code>force=true</code> is what imports a same-sized rewrite as a new recording.</li>
             <li><code>profiles_summary</code> first, before any analysis. It reports what the recording actually captured, which is the thing to check after a run you configured yourself.</li>
           </ul>
         </section>
@@ -397,7 +399,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <h4>Entry sequence</h4>
           <ul>
             <li>Pick the pair and a workload <strong>both revisions can run</strong> &mdash; a benchmark that exists only on the candidate measures nothing &mdash; defaulting to the merge base against <code>HEAD</code>, said out loud before the minutes are spent.</li>
-            <li>Record baseline, then candidate, each imported with a <code>name</code> that survives the session. Both may come back <code>running</code>; poll <code>recordings_status</code>.</li>
+            <li>Record baseline, then candidate, each imported with a <code>name</code> that survives the session. Both may come back <code>RUNNING</code>; poll <code>recordings_status</code>.</li>
             <li><code>compare_list</code> before reading any difference, then <code>compare_movements</code> for the ranking and <code>compare_flamegraph</code> for where in the call tree, with <code>useWeight: true</code> when the question is allocation or lock time rather than sample counts.</li>
           </ul>
         </section>
@@ -582,7 +584,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
       <p>So there are agents, and the skills hand them the reading &mdash; <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code> from the Claude Code plugin, or the custom agents a Codex user copies in; a third, <code>microscope:profile-lead</code>, triages an open-ended question and dispatches those two. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 
-      <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>recordings_</code> and no <code>hubs_</code>, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
+      <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>hubs_</code>, and no <code>recordings_</code> tool but the two that list and report status, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
       <p>You do not normally have to. The agent loads the skill whose description matches the question, so plain English is enough:</p>

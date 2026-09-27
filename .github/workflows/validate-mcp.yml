@@ -1,0 +1,234 @@
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Jeffrey Microscope serves a hand-written MCP server at POST /api/mcp (no framework, no
+# session state) that speaks MCP 2026-07-28 only: every request carries its version and client
+# capabilities in params._meta plus the MCP-Protocol-Version and Mcp-Method headers, and there
+# is no initialize handshake. This job boots the packaged jar and then runs two gates against it:
+#
+#  1. tools/list snapshot: diffs the normalised tool list against a checked-in snapshot, so a
+#     change to a tool's parameters (name/required/enum/type/bounds dropped or added) fails CI
+#     instead of surfacing in an agent later. Tool/property *descriptions* are deliberately
+#     excluded: rewording a tool for an agent is not an API change and must not turn into a
+#     "fix the snapshot" chore.
+#  2. The official MCP conformance suite, pinned to one version, run twice against one baseline
+#     (build/mcp/conformance-expected-failures.yml): the active scenarios for 2026-07-28, then
+#     server-stateless, which the 2026-07-28 requirement set requires but --suite active leaves
+#     out (it pins _meta, version and header refusals, 404 for removed methods). The baseline
+#     lists only checks that call the suite's own fixture tools, prompts and resources
+#     (test_*, test://*), which a real server does not carry. Everything else must pass, and a
+#     baselined check that starts passing fails the job too, so the file cannot go stale.
+name: Validate MCP
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  MICROSCOPE_URL: http://localhost:8585/api/mcp
+
+jobs:
+  tools-list:
+    name: MCP tools/list snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # -DskipTests: this job only needs the packaged jar, not the module's own test suite,
+      # which Validate Backend already runs. No -Dexec.skip: the frontend must actually be on
+      # the classpath for the jar to start like the real artifact would.
+      - name: Build the Microscope jar
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -pl build/build-microscope -am package
+          -DskipTests
+
+      # jeffrey.microscope.home.dir isolates this run's DuckDB/config state under $RUNNER_TEMP
+      # instead of the runner's home directory (see application.properties for the property).
+      # --add-modules jdk.incubator.vector matches run-microscope.sh's plain-JVM launch line.
+      - name: Start Microscope
+        run: |
+          mkdir -p "${RUNNER_TEMP}/jeffrey-microscope-home"
+          java --add-modules jdk.incubator.vector \
+            -Djeffrey.microscope.home.dir="${RUNNER_TEMP}/jeffrey-microscope-home" \
+            -Dserver.port=8585 \
+            -jar build/build-microscope/target/microscope.jar \
+            > "${RUNNER_TEMP}/microscope.log" 2>&1 &
+          echo "microscope_pid=$!" >> "${GITHUB_ENV}"
+
+      # No session handshake to wait on -- the server is stateless -- so readiness is just
+      # "server/discover gets a result naming supportedVersions back". server/discover is the
+      # 2026-07-28 probe and never assembles the toolset, so it answers as soon as the endpoint
+      # is up. 60s budget, matching Spring Boot cold start plus DuckDB migrations under CI load;
+      # prints the app log and fails loudly if it never comes up, instead of every later step
+      # failing with a bare "connection refused".
+      #
+      # No --fail: a non-2xx (e.g. 403 from the MCP host/origin guard, 400 -32602/-32022 from a
+      # server that does not speak 2026-07-28) is a real, permanent answer, not "not up yet" -- printed
+      # and failed immediately instead of retried for 60s. Connection refused/timeout
+      # (curl -> "000") is the only case that keeps retrying.
+      - name: Wait for POST /api/mcp to answer server/discover
+        run: |
+          request='{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"validate-mcp-ci","version":"1.0.0"}}}}'
+          response_file="${RUNNER_TEMP}/mcp-discover-response.json"
+          for _ in $(seq 1 60); do
+            if ! kill -0 "${microscope_pid}" 2>/dev/null; then
+              echo "Microscope process exited before answering server/discover:"
+              cat "${RUNNER_TEMP}/microscope.log"
+              exit 1
+            fi
+            http_code=$(curl --silent --show-error --max-time 5 \
+              -o "${response_file}" -w '%{http_code}' \
+              -H 'Content-Type: application/json' \
+              -H 'Accept: application/json, text/event-stream' \
+              -H 'MCP-Protocol-Version: 2026-07-28' \
+              -H 'Mcp-Method: server/discover' \
+              -d "${request}" "${MICROSCOPE_URL}" 2>/dev/null || true)
+            if [ "${http_code}" = "200" ] && grep -q '"supportedVersions"' "${response_file}"; then
+              echo "Microscope answered server/discover."
+              exit 0
+            elif [ "${http_code}" != "000" ]; then
+              echo "Microscope answered HTTP ${http_code} for server/discover without a discover result (not a connection issue -- not retrying):"
+              cat "${response_file}"
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "Microscope never answered server/discover within 60s. Log so far:"
+          cat "${RUNNER_TEMP}/microscope.log"
+          exit 1
+
+      # tools/list snapshot check: the script sends its own 2026-07-28 tools/list POST (_meta +
+      # headers, no Node, no session), checks the result envelope (resultType complete, the
+      # ttlMs/cacheScope cache hint, serverInfo.name jeffrey), normalizes the tools the same way
+      # `--self-test` verifies against the fixture, then diffs them against the committed
+      # snapshot. Regenerate locally with:
+      #   python3 build/scripts/mcp-snapshot.py --url http://localhost:8585/api/mcp \
+      #     > build/mcp/tools-list.snapshot.json
+      - name: Check tools/list snapshot
+        run: python3 build/scripts/mcp-snapshot.py --url "${MICROSCOPE_URL}" --check
+
+      # The skills extension against the packaged jar: skills/list answers every client, declared or
+      # not, with the ten plugin skills copied onto the classpath at build time, and the discover
+      # result the readiness step saved declares io.modelcontextprotocol/skills, which it does exactly
+      # when at least one skill loads. A skill whose SKILL.md frontmatter stops parsing is skipped with a
+      # warning, so this is where a packaging slip shows up as a count of nine.
+      - name: Check the skills extension
+        run: |
+          request='{"jsonrpc":"2.0","id":2,"method":"skills/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"validate-mcp-ci","version":"1.0.0"}}}}'
+          response_file="${RUNNER_TEMP}/mcp-skills-list-response.json"
+          http_code=$(curl --silent --show-error --max-time 30 \
+            -o "${response_file}" -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -H 'MCP-Protocol-Version: 2026-07-28' \
+            -H 'Mcp-Method: skills/list' \
+            -d "${request}" "${MICROSCOPE_URL}")
+          if [ "${http_code}" != "200" ]; then
+            echo "Microscope answered HTTP ${http_code} for skills/list:"
+            cat "${response_file}"
+            exit 1
+          fi
+          python3 - "${RUNNER_TEMP}/mcp-discover-response.json" "${response_file}" <<'EOF'
+          import json
+          import sys
+
+          EXPECTED_SKILLS = 10
+          SKILLS_EXTENSION = "io.modelcontextprotocol/skills"
+
+          with open(sys.argv[1]) as f:
+              discover = json.load(f)
+          with open(sys.argv[2]) as f:
+              skills_list = json.load(f)
+
+          problems = []
+          skills = skills_list.get("result", {}).get("skills")
+          if not isinstance(skills, list) or len(skills) != EXPECTED_SKILLS:
+              count = len(skills) if isinstance(skills, list) else "no"
+              problems.append(f"skills/list returned {count} skills, expected {EXPECTED_SKILLS}")
+          extensions = discover.get("result", {}).get("capabilities", {}).get("extensions", {})
+          if SKILLS_EXTENSION not in extensions:
+              problems.append(f"server/discover does not declare {SKILLS_EXTENSION} under capabilities.extensions")
+
+          if problems:
+              for problem in problems:
+                  print(problem)
+              print("skills/list response:", json.dumps(skills_list))
+              print("server/discover response:", json.dumps(discover))
+              sys.exit(1)
+          names = ", ".join(sorted(skill.get("frontmatter", {}).get("name", "?") for skill in skills))
+          print(f"skills/list serves {len(skills)} skills ({names}); server/discover declares {SKILLS_EXTENSION}.")
+          EOF
+
+      # The conformance suite needs Node 22+ (it imports fs.globSync). Set up only here, after
+      # the build, so the frontend build keeps the Node it always had.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      # Pinned: a new suite version can add scenarios, and a scenario Jeffrey cannot pass must
+      # arrive as a deliberate bump with its baseline entry, not as a red build on an unrelated
+      # PR. Regenerate the baseline by running this command without --expected-failures and
+      # listing each failing check as <scenario>:<check-id> with the reason it cannot pass.
+      - name: Run the MCP conformance suite (2026-07-28)
+        run: >-
+          npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 server
+          --url "${MICROSCOPE_URL}"
+          --spec-version 2026-07-28
+          --suite active
+          --expected-failures build/mcp/conformance-expected-failures.yml
+
+      # Not in --suite active, but required by the 2026-07-28 requirement set: the stateless
+      # lifecycle itself. Same pin, same baseline (its entries for other scenarios are ignored
+      # here). --requirements 2026-07-28 would run it too, but also the input-required-result-*
+      # scenarios, whose every server-exercising check calls a suite fixture tool or prompt
+      # (test_input_required_result_*) -- they would only add baseline entries; Jeffrey's own
+      # input requests (recordings_delete, hubs_download) are pinned by unit tests. The tasks
+      # scenarios are not in that set: they are extension scenarios the suite skips at 2026-07-28.
+      - name: Run the MCP conformance server-stateless scenario (2026-07-28)
+        run: >-
+          npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 server
+          --url "${MICROSCOPE_URL}"
+          --spec-version 2026-07-28
+          --scenario server-stateless
+          --expected-failures build/mcp/conformance-expected-failures.yml
+
+      - name: Stop Microscope
+        if: always()
+        run: kill "${microscope_pid}" 2>/dev/null || true
+
+      - name: Upload the Microscope log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: microscope-log
+          path: ${{ runner.temp }}/microscope.log
+          if-no-files-found: ignore

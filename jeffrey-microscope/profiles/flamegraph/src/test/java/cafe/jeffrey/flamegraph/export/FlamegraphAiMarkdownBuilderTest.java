@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -187,6 +188,119 @@ class FlamegraphAiMarkdownBuilderTest {
             assertTrue(out.contains("- [root] — 101 (100%, +pruned 1)"),
                     "root carries +pruned annotation for the dropped 1 sample");
             assertTrue(out.contains("prune_threshold_pct: 5.0"));
+        }
+    }
+
+    /**
+     * The search argument used to be read by nothing on the export path: an agent asked for the frames
+     * matching a pattern and got the unfiltered tree with nothing to say the pattern was ignored.
+     */
+    @Nested
+    @DisplayName("Search pattern")
+    class SearchPattern {
+
+        /**
+         * root(100) -> Big(95) -> Leaf(95), and root -> Caller(5) -> Matching(5). At 10% the Caller
+         * branch is below the threshold, but it leads to the match, so it has to stay.
+         */
+        private Frame treeWithASmallMatch() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 100, false);
+            Frame big = addChild(root, "com.app.Big#run");
+            big.increment(FrameType.JIT_COMPILED, 0, 95, false);
+            Frame leaf = addChild(big, "com.app.Big#leaf");
+            leaf.increment(FrameType.JIT_COMPILED, 0, 95, true);
+            Frame caller = addChild(root, "com.app.Caller#call");
+            caller.increment(FrameType.JIT_COMPILED, 0, 5, false);
+            Frame matching = addChild(caller, "com.app.Repository$Query#execute");
+            matching.increment(FrameType.JIT_COMPILED, 0, 5, true);
+            return root;
+        }
+
+        @Test
+        @DisplayName("marks a matching frame and says how many samples matched")
+        void marksMatchesAndCountsThem() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(10.0))
+                    .withSearchPattern("Repository$Query")
+                    .build(treeWithASmallMatch());
+
+            assertTrue(out.contains("search_pattern: Repository$Query"), out);
+            assertTrue(out.contains("search_matches: 5 (5.0%)"), out);
+            assertTrue(out.contains("- com.app.Repository$Query#execute [C2] — 5 (5.0%, self 5) «match»"), out);
+            assertFalse(out.contains("com.app.Big#run [C2] — 95 (95.0%, self 0) «match»"), out);
+        }
+
+        @Test
+        @DisplayName("keeps the path to a match even below the prune threshold")
+        void keepsThePathToAMatch() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(10.0))
+                    .withSearchPattern("Repository")
+                    .build(treeWithASmallMatch());
+
+            assertTrue(out.contains("  - com.app.Caller#call [C2] — 5 (5.0%, self 0)"), out);
+            assertTrue(out.contains("    - com.app.Repository$Query#execute [C2]"), out);
+            assertTrue(out.contains("- [root] — 100 (100%)"),
+                    "the kept branch is no longer counted as pruned: " + out);
+        }
+
+        @Test
+        @DisplayName("a regular expression matches the way the UI search does")
+        void matchesARegex() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(10.0))
+                    .withSearchPattern("Big#(run|leaf)")
+                    .build(treeWithASmallMatch());
+
+            // Big#run matches, and its subtree is counted once, not again for Big#leaf.
+            assertTrue(out.contains("search_matches: 95 (95.0%)"), out);
+        }
+
+        @Test
+        @DisplayName("says so when nothing matched")
+        void reportsNoMatch() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(10.0))
+                    .withSearchPattern("NoSuchFrame")
+                    .build(treeWithASmallMatch());
+
+            assertTrue(out.contains("search_matches: 0 (0.0%)"), out);
+            assertFalse(out.contains("com.app.Caller#call"), "an unmatched small branch is still pruned");
+            assertFalse(out.substring(out.indexOf("## Call tree")).contains("«match»"), out);
+        }
+
+        @Test
+        @DisplayName("without a pattern the header carries no search lines")
+        void noPatternNoHeader() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(10.0))
+                    .withSearchPattern("  ")
+                    .build(treeWithASmallMatch());
+
+            assertFalse(out.contains("search_matches:"), out);
+            assertFalse(out.contains("search_pattern:"), out);
+        }
+
+        /**
+         * The pattern comes from a model and is compiled here. A frame-name search has no use for a
+         * long one, and a bound keeps a pathological pattern from running against every frame.
+         */
+        @Test
+        @DisplayName("refuses a pattern longer than 200 characters and names the limit")
+        void refusesAnOverlongPattern() {
+            FlamegraphAiMarkdownBuilder builder =
+                    new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(10.0))
+                            .withSearchPattern("a".repeat(201));
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> builder.build(treeWithASmallMatch()));
+            assertTrue(e.getMessage().contains("200"), e.getMessage());
+        }
+
+        @Test
+        @DisplayName("accepts a pattern of exactly 200 characters")
+        void acceptsAPatternAtTheLimit() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(10.0))
+                    .withSearchPattern("a".repeat(200))
+                    .build(treeWithASmallMatch());
+
+            assertTrue(out.contains("search_matches: 0 (0.0%)"), out);
         }
     }
 
@@ -595,6 +709,163 @@ class FlamegraphAiMarkdownBuilderTest {
             Frame leaf = addChild(root, "X");
             leaf.increment(FrameType.JIT_COMPILED, 0, 1, true);
             return new FlamegraphAiMarkdownBuilder(eventType, DEFAULT_CONFIG).build(root);
+        }
+    }
+
+    /**
+     * The summary answers "where does the time go" in a few kilobytes: the methods that burn it, by
+     * self, wherever they were called from, and the handful of complete stacks that account for most of
+     * it. No tree, no threshold, and a short preamble — it is the first look, not the whole profile.
+     */
+    @Nested
+    @DisplayName("Summary view")
+    class SummaryView {
+
+        private static final AiExportConfig SUMMARY = AiExportConfig.summary();
+
+        @Test
+        void aConfigBuiltFromAThresholdIsATree() {
+            assertEquals(AiExportView.TREE, new AiExportConfig(2.0).view());
+            assertEquals(AiExportView.SUMMARY, SUMMARY.view());
+        }
+
+        @Test
+        void sumsAMethodsSelfAcrossEveryPathItWasCalledFrom() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 100, false);
+            Frame a = addChild(root, "A");
+            a.increment(FrameType.JIT_COMPILED, 0, 60, false);
+            addChild(a, "hash").increment(FrameType.JIT_COMPILED, 0, 60, true);
+            Frame b = addChild(root, "B");
+            b.increment(FrameType.JIT_COMPILED, 0, 40, false);
+            addChild(b, "hash").increment(FrameType.JIT_COMPILED, 0, 30, true);
+            addChild(b, "other").increment(FrameType.JIT_COMPILED, 0, 10, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, SUMMARY).build(root);
+
+            assertTrue(out.contains("## Top frames by self"), out);
+            assertTrue(out.contains("1. hash [C2] — self 90 (90.0%)"), out);
+            assertTrue(out.contains("2. other [C2] — self 10 (10.0%)"), out);
+            assertTrue(out.contains("detail: summary"), out);
+        }
+
+        @Test
+        void writesEachTopPathLeafFirstWithItsOwnSelf() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 100, false);
+            Frame a = addChild(root, "A");
+            a.increment(FrameType.JIT_COMPILED, 0, 100, false);
+            Frame b = addChild(a, "B");
+            b.increment(FrameType.JIT_COMPILED, 0, 70, false);
+            addChild(b, "C").increment(FrameType.JIT_COMPILED, 0, 70, true);
+            addChild(a, "D").increment(FrameType.JIT_COMPILED, 0, 30, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, SUMMARY).build(root);
+
+            String paths = out.substring(out.indexOf("## Top paths by self"));
+            assertTrue(paths.contains("1. self 70 (70.0%)\n   - C [C2]\n   - B [C2]\n   - A [C2]\n"), paths);
+            assertTrue(paths.contains("2. self 30 (30.0%)\n   - D [C2]\n   - A [C2]\n"), paths);
+        }
+
+        @Test
+        void hasNoCallTreeNoThresholdAndNoLongPreamble() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, SUMMARY).build(wideTree(10, 10));
+
+            assertFalse(out.contains("## Call tree"), "a summary is not a tree");
+            assertFalse(out.contains("prune_threshold_pct"), "nothing was pruned by a threshold");
+            assertFalse(out.contains("# How to read this profile"), "the tree's preamble is not the summary's");
+            assertTrue(out.contains("# How to read this summary"), out);
+        }
+
+        @Test
+        void listsAtMostTwentyFiveFramesAndTenPaths() {
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, SUMMARY).build(wideTree(40, 3));
+
+            String frames = out.substring(out.indexOf("## Top frames by self"), out.indexOf("## Top paths by self"));
+            String paths = out.substring(out.indexOf("## Top paths by self"));
+            assertTrue(frames.contains("\n25. "), frames);
+            assertFalse(frames.contains("\n26. "), frames);
+            assertTrue(paths.contains("\n10. "), paths);
+            assertFalse(paths.contains("\n11. "), paths);
+        }
+
+        @Test
+        void cutsADeepPathAndSaysHowManyCallersAreLeftOut() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 10, false);
+            Frame current = root;
+            for (int depth = 0; depth < 40; depth++) {
+                current = addChild(current, "f" + depth);
+                current.increment(FrameType.JIT_COMPILED, 0, 10, depth == 39);
+            }
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, SUMMARY).build(root);
+
+            String paths = out.substring(out.indexOf("## Top paths by self"));
+            assertTrue(paths.contains("   - f39 [C2]\n"), paths);
+            assertTrue(paths.contains("   - … 25 more callers\n"), paths);
+            assertFalse(paths.contains("- f0 "), paths);
+        }
+
+        @Test
+        void ordersAWeightedProfileByWeight() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 200 * WeightedLines.MIB, 101, false);
+            addChild(root, "manySmall").increment(FrameType.JIT_COMPILED, 30 * WeightedLines.MIB, 100, true);
+            addChild(root, "hugeArray").increment(FrameType.JIT_COMPILED, 170 * WeightedLines.MIB, 1, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.OBJECT_ALLOCATION_SAMPLE, SUMMARY).build(root);
+
+            assertTrue(out.contains("1. hugeArray [C2] — self 1 (1.0%) · self 170.0 MiB (85.0%)"), out);
+        }
+
+        @Test
+        void marksTheFramesASearchMatches() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 10, false);
+            addChild(root, "com.app.OrderService#save").increment(FrameType.JIT_COMPILED, 0, 10, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, SUMMARY)
+                    .withSearchPattern("OrderService")
+                    .build(root);
+
+            assertTrue(out.contains("search_pattern: OrderService"), out);
+            assertTrue(out.contains("1. com.app.OrderService#save [C2] — self 10 (100.0%) «match»"), out);
+        }
+
+        /** The point of the view: a profile whose tree runs to hundreds of kilobytes summarises in a few. */
+        @Test
+        void staysSmallOnATreeWhoseFullExportIsLarge() {
+            Frame root = wideTree(300, 8);
+            String tree = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, new AiExportConfig(0.001)).build(root);
+            String summary = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, SUMMARY).build(root);
+
+            System.out.printf("synthetic tree export=%d chars, summary=%d chars%n", tree.length(), summary.length());
+            assertTrue(tree.length() > 100_000, "the fixture is meant to be large: " + tree.length());
+            assertTrue(summary.length() < 15_000, "summary chars: " + summary.length());
+        }
+
+        /**
+         * {@code width} callers at the top, each a chain of {@code depth} frames ending in a leaf that
+         * holds all the chain's samples, with weights falling off so the order is stable.
+         */
+        private Frame wideTree(int width, int depth) {
+            Frame root = Frame.emptyFrame();
+            for (int branch = 0; branch < width; branch++) {
+                long samples = 1000L - branch;
+                root.increment(FrameType.NATIVE, 0, samples, false);
+                Frame current = root;
+                for (int level = 0; level < depth; level++) {
+                    String name = "com.example.service.Branch" + branch + ".level" + level;
+                    Frame next = current.get(name);
+                    if (next == null) {
+                        next = addChild(current, name);
+                    }
+                    next.increment(FrameType.JIT_COMPILED, 0, samples, level == depth - 1);
+                    current = next;
+                }
+            }
+            return root;
         }
     }
 

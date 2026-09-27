@@ -17,7 +17,7 @@ Paths below are relative to `jeffrey-pages/src/views/docs/`.
 | tracing instrumentation (`utilities/`) | `docs/tracing/`, `docs/tracing/tracer-api/` (one page per Tracer API method) |
 | `jeffrey-provisioner/` | `docs/provisioner/` |
 | Jib build | `docs/jib/` |
-| MCP server + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling, every client, Claude Code / Codex / Gemini, tool reference, skills, agents, recipes |
+| MCP server (`jeffrey-microscope/mcp-protocol`, `jeffrey-microscope/profiles/mcp-server`, `core-microscope/**/mcp/**`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling, every client, Claude Code / Codex / Gemini, tool reference, skills, agents, recipes |
 | IntelliJ plugin | `docs/intellij-plugin/` |
 | Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
 | Install/onboarding | `docs/getting-started/` |

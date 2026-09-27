@@ -44,7 +44,8 @@ const emit = defineEmits<{
   (e: 'modeChange', useThreadMode: boolean, useWeight: boolean): void;
 }>();
 
-const searchValue = ref<string | null>(null);
+// A search a link opened the graph with shows in the box, as if the reader had typed it.
+const searchValue = ref<string | null>(props.graphUpdater?.linkedSearch() ?? null);
 const searchMatched = ref<string | null>(null);
 const isLoading = ref(false);
 

@@ -28,7 +28,7 @@ const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Hear
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
-const mcpComponents = ['102 read-only tools', 'Claude Code, Codex & Gemini', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
+const mcpComponents = ['100 read-only tools', 'MCP 2026-07-28', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
 const tracingComponents = ['Tracer API', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
 
 onMounted(() => {
@@ -110,7 +110,7 @@ onMounted(() => {
           to="/docs/microscope-mcp"
           title="Microscope MCP"
           role="Server · Coding agents"
-          description="The MCP server inside Microscope. Connect an interactive coding agent — Claude Code, Codex, Gemini CLI, anything that speaks MCP — in your own repository and let it read every profile you have analysed: flamegraphs, traces, heap dumps and the DuckDB tables behind them, alongside your source code."
+          description="The MCP server inside Microscope. Connect an interactive coding agent that speaks MCP 2026-07-28 — Claude Code on its v2 MCP runtime, Codex v0.147.0+ with its global mcp_2026_07_28 feature flag on — in your own repository and let it read every profile you have analysed: flamegraphs, traces, heap dumps and the DuckDB tables behind them, alongside your source code."
           icon="bi bi-plugin"
           :components="mcpComponents"
           cta-text="Open Microscope MCP docs"

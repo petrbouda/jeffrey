@@ -17,6 +17,9 @@
 
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.protocol.UnknownToolException;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,7 +41,7 @@ class ProfileScopedToolsetTest {
 
     private final List<String> resolvedProfileIds = new ArrayList<>();
 
-    private final ProfileScopedToolset<SampleTools> toolset = new ProfileScopedToolset<>(
+    private final ProfileScopedToolset<SampleTools> toolset = McpTestToolsets.unscoped(
             SampleTools.class,
             "sample",
             profileId -> {
@@ -129,7 +132,8 @@ class ProfileScopedToolsetTest {
         void rejectsAMissingProfileId() {
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                     () -> toolset.call("sample_describe", Json.createObject().put("suffix", "!")));
-            assertTrue(e.getMessage().contains(ProfileScopedToolset.PROFILE_ID_ARGUMENT));
+            assertEquals("Missing required argument 'profileId'. Expected: "
+                    + "Id of the profile to work on, as listed by profiles_list.", e.getMessage());
         }
 
         @Test
@@ -151,7 +155,7 @@ class ProfileScopedToolsetTest {
 
         @Test
         void rejectsAnUnknownTool() {
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(UnknownToolException.class,
                     () -> toolset.call("sample_missing", arguments("profile-1")));
         }
 

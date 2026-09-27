@@ -62,17 +62,48 @@ class UiLinksTest {
         }
 
         @Test
+        void theBaseIsTheServedContextWithoutTheApiPath() {
+            assertEquals("http://localhost:8585", UiLinks.base());
+        }
+
+        /**
+         * A base read while the request was bound builds the same link later, where none is: an answer
+         * rendered off the request thread must not depend on one.
+         */
+        @Test
+        void aProfileLinkFromACapturedBaseNeedsNoRequest() {
+            String base = UiLinks.base();
+            String bound = UiLinks.profile(PROFILE_ID);
+            RequestContextHolder.resetRequestAttributes();
+
+            assertEquals(bound, UiLinks.profile(base, PROFILE_ID));
+        }
+
+        @Test
         void viewReplacesTheServedApiPathRatherThanAppendingToIt() {
             assertEquals(
                     "http://localhost:8585/profiles/p-1/garbage-collection",
-                    UiLinks.view(PROFILE_ID, "garbage-collection"));
+                    UiLinks.view(PROFILE_ID, MicroscopeView.GARBAGE_COLLECTION));
         }
 
         @Test
         void aMultiSegmentViewKeepsItsSlashes() {
             assertEquals(
                     "http://localhost:8585/profiles/p-1/heap-dump/leak-suspects",
-                    UiLinks.view(PROFILE_ID, "heap-dump/leak-suspects"));
+                    UiLinks.view(PROFILE_ID, MicroscopeView.HEAP_DUMP_LEAK_SUSPECTS));
+        }
+
+        @Test
+        void aGlobalPageReplacesTheServedPath() {
+            assertEquals("http://localhost:8585/recordings", UiLinks.page(MicroscopePage.RECORDINGS));
+        }
+
+        @Test
+        void aGlobalPageFromACapturedBaseNeedsNoRequest() {
+            String base = UiLinks.base();
+            RequestContextHolder.resetRequestAttributes();
+
+            assertEquals("http://localhost:8585/recordings", UiLinks.page(base, MicroscopePage.RECORDINGS));
         }
     }
 
@@ -86,7 +117,7 @@ class UiLinksTest {
             query.put("uri", null);
             query.put("service", "  ");
 
-            String url = UiLinks.view(PROFILE_ID, "technologies/http/overview", query);
+            String url = UiLinks.view(PROFILE_ID, MicroscopeView.HTTP_OVERVIEW, query);
 
             assertEquals("http://localhost:8585/profiles/p-1/technologies/http/overview?mode=server", url);
         }
@@ -96,7 +127,7 @@ class UiLinksTest {
             Map<String, String> query = UiLinks.query();
             query.put("uri", "/api/orders list");
 
-            String url = UiLinks.view(PROFILE_ID, "technologies/http/endpoints", query);
+            String url = UiLinks.view(PROFILE_ID, MicroscopeView.HTTP_ENDPOINTS, query);
 
             assertTrue(url.endsWith("?uri=%2Fapi%2Forders%20list"), url);
         }
@@ -111,7 +142,7 @@ class UiLinksTest {
             Map<String, String> query = UiLinks.query();
             query.put("uri", "/api/internal/profiles/{profileId}/gc");
 
-            String url = UiLinks.view(PROFILE_ID, "technologies/http/endpoints", query);
+            String url = UiLinks.view(PROFILE_ID, MicroscopeView.HTTP_ENDPOINTS, query);
 
             assertFalse(url.contains("{"), url);
             assertTrue(url.contains("%7BprofileId%7D"), url);
@@ -122,7 +153,7 @@ class UiLinksTest {
             Map<String, String> query = UiLinks.query();
             query.put("uri", "/api/{oops");
 
-            assertDoesNotThrow(() -> UiLinks.view(PROFILE_ID, "technologies/http/endpoints", query));
+            assertDoesNotThrow(() -> UiLinks.view(PROFILE_ID, MicroscopeView.HTTP_ENDPOINTS, query));
         }
 
         @Test
@@ -130,7 +161,7 @@ class UiLinksTest {
             Map<String, String> query = UiLinks.query();
             query.put("eventType", "jdk.ExecutionSample");
 
-            assertTrue(UiLinks.view(PROFILE_ID, "flamegraph-view", query)
+            assertTrue(UiLinks.view(PROFILE_ID, MicroscopeView.FLAMEGRAPH_VIEW, query)
                     .contains("eventType=jdk.ExecutionSample"));
         }
 
@@ -141,7 +172,7 @@ class UiLinksTest {
             query.put("kind", "SERVER");
             query.put("eventType", "jeffrey.HttpServerExchange");
 
-            String url = UiLinks.view(PROFILE_ID, "traces/operations", query);
+            String url = UiLinks.view(PROFILE_ID, MicroscopeView.TRACES_OPERATIONS, query);
 
             assertTrue(url.indexOf("operation=") < url.indexOf("kind="), url);
             assertTrue(url.indexOf("kind=") < url.indexOf("eventType="), url);
@@ -165,7 +196,7 @@ class UiLinksTest {
             query.put("useWeight", UiLinks.flag(true));
             query.put("useThreadMode", UiLinks.flag(false));
 
-            String url = UiLinks.view(PROFILE_ID, "flamegraph-view", query);
+            String url = UiLinks.view(PROFILE_ID, MicroscopeView.FLAMEGRAPH_VIEW, query);
 
             assertTrue(url.contains("useWeight=true"), url);
             assertFalse(url.contains("useThreadMode"), url);

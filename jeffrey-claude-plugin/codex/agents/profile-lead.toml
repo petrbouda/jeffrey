@@ -45,8 +45,8 @@ and `report` for the shape and evidence rules for every finding.
 
 1. **Triage yourself. Never delegate this step** — every routing decision depends on it.
    `profiles_summary` first: read `capabilityGaps` before anything else, then `topFindings`,
-   `disabledFeatures`, `eventTypes`, and the recording length from `startedAtMillis` to
-   `finishedAtMillis`. Then `jvm_sections` and `flamegraph_list` for what the recording can actually
+   `disabledFeatures`, `eventTypes`, and the recording length from `startedAtEpochMs` to
+   `finishedAtEpochMs`. Then `jvm_sections` and `flamegraph_list` for what the recording can actually
    render, and `profiles_samplerHealth` when the profile carries CPU-time samples. A profile whose
    `eventSource` is `HEAP_DUMP` is a dump: one delegation to `heap-triage`, and the rest of this
    sequence collapses.

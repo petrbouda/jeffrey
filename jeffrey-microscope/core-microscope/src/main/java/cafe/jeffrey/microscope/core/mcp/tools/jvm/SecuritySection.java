@@ -14,11 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.model.security.SecurityData;
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.model.io.IoKind;
+import cafe.jeffrey.profile.manager.model.security.SecurityData;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
 
 import java.util.List;
 import java.util.Set;
@@ -34,7 +41,7 @@ import java.util.Set;
  * The performance reading is real too: a handshake is expensive, and an application making thousands
  * of them is one that is not reusing connections.
  */
-public record SecuritySection(ProfileManager profileManager) implements JvmSection {
+public record SecuritySection(ProfileManager profileManager) implements JvmSection<SecuritySection.SecurityDashboard> {
 
     public static final String ID = "security";
 
@@ -50,14 +57,16 @@ public record SecuritySection(ProfileManager profileManager) implements JvmSecti
             Type.SECURITY_PROVIDER_SERVICE,
             Type.SERIALIZATION_MISDECLARATION);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "Many handshakes for few peers means connections are not being reused. The socket side of "
-                    + "that is io_endpoints with kind SOCKET, which names what is being reconnected to.",
+    private static final String RECONNECTS_WHY =
+            "names what is being connected to; many handshakes for few peers means connections are not "
+                    + "being reused";
+    private static final String OFF_CPU_WHY =
+            "shows the socket waiting a handshake belongs to, which is off-CPU and in no execution "
+                    + "flamegraph frame";
+    private static final String CERTIFICATE_GUIDANCE =
             "A flagged certificate is a finding about the deployment rather than the code, and this "
-                    + "recording is evidence of what the JVM actually presented rather than what a "
-                    + "manifest says it should.",
-            "Handshake time is off-CPU: it belongs to the waiting in blocking_ and io_, not to any "
-                    + "frame an execution flamegraph will show.");
+                    + "recording is evidence of what the JVM actually presented rather than what a manifest "
+                    + "says it should.";
 
     @Override
     public String id() {
@@ -75,12 +84,24 @@ public record SecuritySection(ProfileManager profileManager) implements JvmSecti
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.SECURITY;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, SecurityDashboard dashboard) {
+        String profileId = profileManager.info().id();
+        next.nextWhen(dashboard.tlsHandshakes() > 0, SectionCalls.on(SectionCalls.IO_ENDPOINTS, profileId)
+                        .with(SectionCalls.KIND, IoKind.SOCKET)
+                        .why(RECONNECTS_WHY))
+                .nextWhen(dashboard.tlsHandshakes() > 0, SectionCalls.on(SectionCalls.IO_OVERVIEW, profileId)
+                        .with(SectionCalls.KIND, IoKind.SOCKET)
+                        .why(OFF_CPU_WHY))
+                .guidanceWhen(dashboard.flaggedCertificates() > 0, CERTIFICATE_GUIDANCE);
+    }
+
+    @Override
+    public SecurityDashboard render() {
         SecurityData data = profileManager.securityManager().securityData();
         SecurityData.SecurityHeader header = data.header();
 
@@ -120,7 +141,7 @@ public record SecuritySection(ProfileManager profileManager) implements JvmSecti
                         certificate.keyType(),
                         certificate.keyLength(),
                         certificate.signatureAlgorithm(),
-                        certificate.validUntil(),
+                        certificate.validUntil() > 0 ? certificate.validUntil() : null,
                         certificate.weakKey(),
                         certificate.weakSignature(),
                         certificate.expired(),
@@ -141,36 +162,83 @@ public record SecuritySection(ProfileManager profileManager) implements JvmSecti
      *                            certificate list below carries only those, since a healthy one says
      *                            nothing a reader needs
      */
-    private record SecurityDashboard(
+    public record SecurityDashboard(
             long tlsHandshakes,
             long distinctPeers,
             long certificates,
             long flaggedCertificates,
             long deserializationEvents,
             long deserializationRejected,
+            @McpDescription("The " + ROWS_LIMIT + " protocols negotiated most often")
             List<NamedCount> protocols,
+            @McpDescription("The " + ROWS_LIMIT + " cipher suites negotiated most often")
             List<NamedCount> ciphers,
+            @McpDescription("The " + ROWS_LIMIT + " peers handshaken with most often, out of distinctPeers")
             List<NamedCount> peers,
+            @McpDescription("The first " + ROWS_LIMIT + " flagged certificates, out of flaggedCertificates")
             List<Certificate> flagged,
+            @McpDescription("The " + ROWS_LIMIT + " types deserialized most often")
             List<DeserializedType> deserializationTypes) {
     }
 
-    private record NamedCount(String name, long count) {
+    public record NamedCount(
+            @McpNullable
+            String name,
+            long count) {
     }
 
-    private record Certificate(
+    /**
+     * @param validUntilEpochMs when the certificate expires, as UTC epoch milliseconds; null when the
+     *                          recording did not say
+     */
+    public record Certificate(
+            @McpNullable
             String subject,
+            @McpNullable
             String issuer,
+            @McpNullable
             String keyType,
             int keyLength,
+            @McpNullable
             String signatureAlgorithm,
-            long validUntil,
+            @McpNullable
+            Long validUntilEpochMs,
             boolean weakKey,
             boolean weakSignature,
             boolean expired,
             boolean expiringSoon) {
     }
 
-    private record DeserializedType(String type, long count, long totalBytes, long maxBytes) {
+    public record DeserializedType(
+            @McpNullable
+            String type,
+            long count,
+            long totalBytes,
+            long maxBytes) {
+    }
+
+    /**
+     * What {@code jvm_security} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            SecurityDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, SecurityDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

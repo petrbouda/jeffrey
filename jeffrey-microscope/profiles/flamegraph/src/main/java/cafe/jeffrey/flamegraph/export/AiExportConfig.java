@@ -17,12 +17,39 @@
 
 package cafe.jeffrey.flamegraph.export;
 
-public record AiExportConfig(double minFrameThresholdPct) {
+/**
+ * How the Markdown export of one flamegraph is cut down for a reader.
+ *
+ * @param minFrameThresholdPct the share of the profile below which a subtree is pruned from the tree,
+ *                             exclusive range 0-100
+ * @param view                 a tree or a summary; the summary lists frames by self and prunes nothing,
+ *                             so it does not read the threshold
+ */
+public record AiExportConfig(double minFrameThresholdPct, AiExportView view) {
+
+    /**
+     * The threshold a summary carries only because the record requires one. Never read: a summary has
+     * no tree to prune.
+     */
+    private static final double SUMMARY_THRESHOLD_PCT = 1.0;
 
     public AiExportConfig {
         if (!(minFrameThresholdPct > 0.0 && minFrameThresholdPct < 100.0)) {
             throw new IllegalArgumentException(
                     "minFrameThresholdPct must be in (0, 100): " + minFrameThresholdPct);
         }
+        if (view == null) {
+            throw new IllegalArgumentException("view must not be null");
+        }
+    }
+
+    /** The call tree, pruned at this threshold. */
+    public AiExportConfig(double minFrameThresholdPct) {
+        this(minFrameThresholdPct, AiExportView.TREE);
+    }
+
+    /** The summary: top frames by self and the heaviest paths, no tree. */
+    public static AiExportConfig summary() {
+        return new AiExportConfig(SUMMARY_THRESHOLD_PCT, AiExportView.SUMMARY);
     }
 }

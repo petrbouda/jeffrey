@@ -18,17 +18,18 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.flamegraph.export.WeightContext;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.WeightUnit;
-import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 
-import java.math.BigInteger;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -38,20 +39,26 @@ final class ProfileEvidence {
     static final String SETTINGS_SCOPE = "Merged recording settings snapshot; setting changes over time are not preserved";
     static final String WHOLE_RECORDING = "whole-recording";
 
+    private static final String SAMPLES = "samples";
+    private static final String DENOMINATOR_DEFINITION = "capturedSamples + lostSamples";
+    private static final String NO_LOSS_EVIDENCE =
+            "No CPU-time sample-loss evidence; this does not establish zero loss for other samplers";
+    private static final String REPORTED_LOSS_ONLY =
+            "Reported CPU-time losses only; zero reported loss is not proof of complete recording coverage";
+    private static final double PERCENT = 100.0;
+
     private ProfileEvidence() {
     }
 
-    static ObjectNode identity(ProfileInfo info, String commit) {
-        ObjectNode result = Json.createObject().put("profileId", info.id())
-                .put("recordingId", info.recordingId()).put("projectId", info.projectId())
-                .put("workspaceId", info.workspaceId()).put("name", info.name())
-                .put("eventSource", info.eventSource().name()).put("recordingCommit", commit)
-                .put("modified", info.modified()).put("enabled", info.enabled());
-        result.set("createdAt", Json.toTree(info.createdAt()));
-        result.set("startedAt", Json.toTree(info.profilingStartedAt()));
-        result.set("finishedAt", Json.toTree(info.profilingFinishedAt()));
-        result.set("durationMs", Json.toTree(durationMillis(info)));
-        return result;
+    static Identity identity(ProfileInfo info, String commit) {
+        return new Identity(info.id(), info.recordingId(), info.projectId(), info.workspaceId(), info.name(),
+                info.eventSource().name(), commit, info.modified(), info.enabled(),
+                epochMillis(info.createdAt()), epochMillis(info.profilingStartedAt()),
+                epochMillis(info.profilingFinishedAt()), durationMillis(info));
+    }
+
+    private static Long epochMillis(Instant instant) {
+        return instant == null ? null : instant.toEpochMilli();
     }
 
     static Long durationMillis(ProfileInfo info) {
@@ -81,27 +88,24 @@ final class ProfileEvidence {
             Type type = Type.fromCode(summary.code());
             weightUnit = type == Type.CPU_TIME_SAMPLE ? "nanoseconds" : WeightContext.of(type).weightUnit();
         }
-        return new EventEvidence(summary.code(), summary.label(), single.source(), single.samples(), "samples",
+        return new EventEvidence(summary.code(), summary.label(), single.source(), single.samples(), SAMPLES,
                 weightUnit == null ? null : single.weight(), weightUnit, single.calculated(),
                 "All recorded events of this type; not a filtered call-tree denominator",
                 single.settings(), extras);
     }
 
-    static ObjectNode samplerHealth(ProfileManager manager) {
+    static SamplerHealth samplerHealth(ProfileManager manager) {
         CpuTimeSampleLoss loss = manager.samplerHealthManager().cpuTimeSampleLoss();
-        ObjectNode result = Json.createObject().put("eventType", Type.CPU_TIME_SAMPLE.code())
-                .put("scope", WHOLE_RECORDING).put("unit", "samples");
         if (loss == null || (loss.capturedSamples() == 0 && loss.lostSamples() == 0)) {
-            return result.put("status", "unavailable")
-                    .put("limitation", "No CPU-time sample-loss evidence; this does not establish zero loss for other samplers");
+            return new SamplerHealth(Type.CPU_TIME_SAMPLE.code(), WHOLE_RECORDING, SAMPLES,
+                    SamplerStatus.UNAVAILABLE, null, null, null, null, null, null, NO_LOSS_EVIDENCE);
         }
-        BigInteger denominator = BigInteger.valueOf(loss.capturedSamples()).add(BigInteger.valueOf(loss.lostSamples()));
-        result.put("status", "reported").put("capturedSamples", loss.capturedSamples())
-                .put("lostSamples", loss.lostSamples()).put("lossEvents", loss.lossEvents());
-        result.set("denominator", Json.toTree(denominator));
-        return result.put("denominatorDefinition", "capturedSamples + lostSamples")
-                .put("lostSharePct", 100.0 * loss.lostSamples() / denominator.doubleValue())
-                .put("limitation", "Reported CPU-time losses only; zero reported loss is not proof of complete recording coverage");
+        // Both counts are nonnegative longs; their sum overflowing would take more samples than a
+        // recording can hold, and addExact says so rather than reporting a negative denominator.
+        long denominator = Math.addExact(loss.capturedSamples(), loss.lostSamples());
+        return new SamplerHealth(Type.CPU_TIME_SAMPLE.code(), WHOLE_RECORDING, SAMPLES, SamplerStatus.REPORTED,
+                loss.capturedSamples(), loss.lostSamples(), loss.lossEvents(), denominator,
+                DENOMINATOR_DEFINITION, PERCENT * loss.lostSamples() / denominator, REPORTED_LOSS_ONLY);
     }
 
     static List<WorkloadEvents> workload(List<EventEvidence> events) {
@@ -113,11 +117,96 @@ final class ProfileEvidence {
                 .toList();
     }
 
-    record EventEvidence(String eventType, String label, String source, long samples, String unit,
-                         Long weight, String weightUnit, boolean calculated, String denominatorDefinition,
-                         Map<String, String> settings, Map<String, String> extras) {
+    /** Whether the recording reported CPU-time sample loss at all. */
+    enum SamplerStatus {
+        /** No loss evidence: this does not establish zero loss. */
+        UNAVAILABLE,
+        /** The sampler reported what it captured and what it lost. */
+        REPORTED
     }
 
-    record WorkloadEvents(String eventType, long count, String unit, String scope, String limitation) {
+    /** Who and what a profile is, with its instants as UTC epoch milliseconds. */
+    record Identity(
+            String profileId,
+            @McpNullable
+            String recordingId,
+            @McpNullable
+            String projectId,
+            @McpNullable
+            String workspaceId,
+            @McpNullable
+            String name,
+            String eventSource,
+            @McpNullable
+            @McpDescription("The source commit the profiled build came from; null when unknown")
+            String recordingCommit,
+            boolean modified,
+            boolean enabled,
+            @McpNullable
+            Long createdAtEpochMs,
+            @McpNullable
+            Long startedAtEpochMs,
+            @McpNullable
+            Long finishedAtEpochMs,
+            @McpNullable
+            @McpMinimum(0)
+            Long durationMs) {
+    }
+
+    /**
+     * CPU-time sample loss over the whole recording. The counts, the denominator and the share are null
+     * when {@code status} is {@link SamplerStatus#UNAVAILABLE}.
+     */
+    record SamplerHealth(
+            String eventType,
+            String scope,
+            String unit,
+            SamplerStatus status,
+            @McpNullable
+            @McpMinimum(0)
+            Long capturedSamples,
+            @McpNullable
+            @McpMinimum(0)
+            Long lostSamples,
+            @McpNullable
+            @McpMinimum(0)
+            Long lossEvents,
+            @McpNullable
+            @McpMinimum(0)
+            Long denominator,
+            @McpNullable
+            String denominatorDefinition,
+            @McpNullable
+            @McpMinimum(0)
+            Double lostSharePct,
+            String limitation) {
+    }
+
+    record EventEvidence(
+            String eventType,
+            @McpNullable
+            String label,
+            @McpNullable
+            String source,
+            @McpMinimum(0)
+            long samples,
+            String unit,
+            @McpNullable
+            Long weight,
+            @McpNullable
+            String weightUnit,
+            boolean calculated,
+            String denominatorDefinition,
+            Map<String, String> settings,
+            Map<String, String> extras) {
+    }
+
+    record WorkloadEvents(
+            String eventType,
+            @McpMinimum(0)
+            long count,
+            String unit,
+            String scope,
+            String limitation) {
     }
 }

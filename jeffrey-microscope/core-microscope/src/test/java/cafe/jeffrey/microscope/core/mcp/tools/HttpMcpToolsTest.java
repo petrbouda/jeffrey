@@ -17,7 +17,16 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureType;
+import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -30,11 +39,8 @@ import cafe.jeffrey.profile.manager.custom.model.http.HttpSlowRequest;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpUriInfo;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.profile.mcp.ToolDispatchException;
-import cafe.jeffrey.profile.mcp.ToolExecutionException;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -47,11 +53,17 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,6 +73,11 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class HttpMcpToolsTest {
+
+    private static final String ORDERS = "/api/orders";
+    private static final long SLOW_REQUEST_AT = 1_772_366_400_123L;
+    private static final int MORE_ENDPOINTS_THAN_THE_CAP = 45;
+    private static final int ENDPOINT_CAP = 40;
 
     @Mock
     ProfileManager profileManager;
@@ -74,6 +91,9 @@ class HttpMcpToolsTest {
     @Mock
     HttpManager httpManager;
 
+    @Mock
+    FlamegraphManager flamegraphManager;
+
     @BeforeEach
     void setUp() {
         RequestContextHolder.setRequestAttributes(
@@ -86,6 +106,16 @@ class HttpMcpToolsTest {
         when(profileManager.featuresManager()).thenReturn(featuresManager);
         when(customManager.httpManager(any())).thenReturn(httpManager);
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
+        when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+        recorded(Type.EXECUTION_SAMPLE.code());
+    }
+
+    /** The event types this profile recorded samples of, as the cheap event-types read reports them. */
+    private void recorded(String... eventTypes) {
+        when(flamegraphManager.eventSummaries()).thenReturn(Arrays.stream(eventTypes)
+                .map(code -> new EventSummaryResult(new EventSummary(
+                        code, code, null, null, 1, 0, true, false, List.of(), null, null)))
+                .toList());
     }
 
     @AfterEach
@@ -94,22 +124,39 @@ class HttpMcpToolsTest {
     }
 
     private HttpMcpTools tools() {
-        return new HttpMcpTools(profileManager);
+        return new HttpMcpTools(profileManager, EVERY_FAMILY);
+    }
+
+    private static JsonNode overview(McpToolResult result) {
+        return StructuredAnswers.json(HttpMcpTools.class, "overview", result);
+    }
+
+    private static JsonNode endpoint(McpToolResult result) {
+        return StructuredAnswers.json(HttpMcpTools.class, "endpoint", result);
     }
 
     private static HttpOverviewData data(List<HttpUriInfo> uris) {
+        return withStatuses(uris, 11, 3);
+    }
+
+    private static HttpOverviewData withStatuses(List<HttpUriInfo> uris, int count4xx, int count5xx) {
         return new HttpOverviewData(
-                new HttpHeader(1200, 4200, 3900, 2100, new BigDecimal("99.1"), 3, 11, 900, 400, 500),
+                new HttpHeader(1200, 4200, 3900, 2100, new BigDecimal("0.9910"), count5xx, count4xx, 900, 400, 500),
                 uris,
                 List.of(new HttpStatusStats(200, 1186), new HttpStatusStats(500, 3)),
                 List.of(new HttpMethodStats("GET", 1200)),
-                List.of(new HttpSlowRequest("/api/orders", "GET", 4200, 200, 10, 20, "host", 8080, 1)),
+                List.of(new HttpSlowRequest(ORDERS, "GET", 4200, 200, -1, 20, "", -1, SLOW_REQUEST_AT)),
                 null,
                 null);
     }
 
     private static HttpUriInfo uri(String path) {
-        return new HttpUriInfo(path, 600, 4200, 3900, 2100, new BigDecimal("99.1"), 5, 1, 900, 400, 500);
+        return new HttpUriInfo(path, 600, 4200, 3900, 2100, new BigDecimal("0.9910"), 5, 1, -1, -1, -1);
+    }
+
+    @Test
+    void everyToolDeclaresAnOutputSchema() {
+        assertEquals(List.of(), StructuredAnswers.unschematised(HttpMcpTools.class));
     }
 
     @Nested
@@ -117,13 +164,19 @@ class HttpMcpToolsTest {
 
         @Test
         void carriesTheHeaderTotalsAndTheEndpoints() {
-            when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
 
-            String out = tools().overview(null);
+            JsonNode out = overview(tools().overview(null));
 
-            assertTrue(out.contains("\"requestCount\":1200"), out);
-            assertTrue(out.contains("/api/orders"), out);
-            assertTrue(out.contains("\"count5xx\":3"), out);
+            assertEquals("OK", out.get("status").asString());
+            assertTrue(out.get("reason").isNull());
+            assertEquals("SERVER", out.get("direction").asString());
+            assertEquals(1200, out.get("header").get("requestCount").asLong());
+            assertEquals(4200, out.get("header").get("maxResponseTimeNanos").asLong());
+            assertEquals(0.991, out.get("header").get("successRate").asDouble(), 1e-9);
+            assertEquals(3, out.get("header").get("count5xx").asLong());
+            assertEquals(ORDERS, out.get("endpoints").get(0).get("uri").asString());
+            assertEquals(0, out.get("omittedEndpoints").asInt());
         }
 
         /**
@@ -132,21 +185,75 @@ class HttpMcpToolsTest {
          */
         @Test
         void leavesTheChartSeriesOut() {
-            when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
 
-            String out = tools().overview(null);
+            String out = tools().overview(null).text();
 
             assertFalse(out.contains("responseTimeSerie"), out);
             assertFalse(out.contains("requestCountSerie"), out);
         }
 
         @Test
-        void endsWithALinkToTheServerDashboard() {
-            when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
+        void linksTheDashboardOfTheDirectionAsked() {
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
 
-            assertTrue(
-                    tools().overview(null).contains("/profiles/p-1/technologies/http/overview?mode=server"),
-                    tools().overview(null));
+            JsonNode out = overview(tools().overview(null));
+
+            assertTrue(out.get("uiLink").asString().endsWith("/profiles/p-1/technologies/http/overview?mode=server"),
+                    out.get("uiLink").asString());
+        }
+
+        /** A slow request carries an instant on the UTC epoch clock and no sentinel for what was not recorded. */
+        @Test
+        void placesASlowRequestOnTheEpochClockAndLeavesUnknownSizesNull() {
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
+
+            JsonNode request = overview(tools().overview(null)).get("slowRequests").get(0);
+
+            assertEquals(SLOW_REQUEST_AT, request.get("atEpochMs").asLong());
+            assertEquals(4200, request.get("responseTimeNanos").asLong());
+            assertTrue(request.get("requestSizeBytes").isNull(), request.toString());
+            assertEquals(20, request.get("responseSizeBytes").asLong());
+            assertTrue(request.get("host").isNull(), request.toString());
+            assertTrue(request.get("port").isNull(), request.toString());
+        }
+
+        /** The builder writes an empty method for a request that named none; that is not a method. */
+        @Test
+        void aRequestWithoutAMethodConformsAsNull() {
+            HttpOverviewData recorded = data(List.of(uri(ORDERS)));
+            when(httpManager.overviewData()).thenReturn(new HttpOverviewData(recorded.header(), recorded.uris(),
+                    recorded.statusCodes(), recorded.methods(),
+                    List.of(new HttpSlowRequest(ORDERS, "", 4200, 200, 10, 20, "host", 8080, SLOW_REQUEST_AT)),
+                    null, null));
+
+            JsonNode request = overview(tools().overview(null)).get("slowRequests").get(0);
+
+            assertTrue(request.get("method").isNull(), request.toString());
+        }
+
+        @Test
+        void countsWhatAnUnknownByteTotalIsRatherThanWritingMinusOne() {
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
+
+            JsonNode endpoint = overview(tools().overview(null)).get("endpoints").get(0);
+
+            assertTrue(endpoint.get("totalBytesTransferred").isNull(), endpoint.toString());
+        }
+
+        @Test
+        void keepsTheBusiestEndpointsAndCountsTheRest() {
+            List<HttpUriInfo> uris = new ArrayList<>();
+            for (int i = 0; i < MORE_ENDPOINTS_THAN_THE_CAP; i++) {
+                uris.add(uri("/api/e" + i));
+            }
+            when(httpManager.overviewData()).thenReturn(data(uris));
+
+            JsonNode out = overview(tools().overview(null));
+
+            assertEquals(ENDPOINT_CAP, out.get("endpoints").size());
+            assertEquals("/api/e0", out.get("endpoints").get(0).get("uri").asString());
+            assertEquals(MORE_ENDPOINTS_THAN_THE_CAP - ENDPOINT_CAP, out.get("omittedEndpoints").asInt());
         }
 
         /**
@@ -154,14 +261,38 @@ class HttpMcpToolsTest {
          * healthy" rather than "nothing was measured".
          */
         @Test
-        void reportsMissingDataAsAProfilerFindingRatherThanAnEmptyDashboard() {
+        void reportsMissingDataAsAStatusRatherThanAnEmptyDashboard() {
             when(featuresManager.getDisabledFeatures())
                     .thenReturn(List.of(FeatureType.HTTP_SERVER_DASHBOARD));
 
-            String out = tools().overview(null);
+            JsonNode out = overview(tools().overview(null));
 
-            assertTrue(out.contains("no server-side HTTP data"), out);
-            assertFalse(out.contains("requestCount"), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("no server-side HTTP data"), out.toString());
+            assertTrue(out.get("header").isNull());
+            assertEquals(0, out.get("endpoints").size());
+            assertTrue(out.get("omittedEndpoints").isNull(), "nothing was ranked, so nothing was left out");
+            assertTrue(out.get("uiLink").asString().contains("mode=server"));
+        }
+
+        @Test
+        void aDirectionNotRecordedOffersTheOtherOneWhenItWas() {
+            when(featuresManager.getDisabledFeatures())
+                    .thenReturn(List.of(FeatureType.HTTP_SERVER_DASHBOARD));
+
+            JsonNode out = overview(tools().overview(null));
+
+            assertEquals("CLIENT", StructuredAnswers.call(out, "http_overview").get("direction").asString());
+        }
+
+        @Test
+        void offersNeitherSideWhenNeitherWasRecorded() {
+            when(featuresManager.getDisabledFeatures())
+                    .thenReturn(List.of(FeatureType.HTTP_SERVER_DASHBOARD, FeatureType.HTTP_CLIENT_DASHBOARD));
+
+            JsonNode out = overview(tools().overview(null));
+
+            assertFalse(StructuredAnswers.nextTools(out).contains("http_overview"), out.toString());
         }
     }
 
@@ -170,17 +301,19 @@ class HttpMcpToolsTest {
 
         @Test
         void narrowsToTheRequestedUriAndLinksToItsDetail() {
-            when(httpManager.overviewData("/api/orders")).thenReturn(data(List.of(uri("/api/orders"))));
+            when(httpManager.overviewData(ORDERS)).thenReturn(data(List.of(uri(ORDERS))));
 
-            String out = tools().endpoint("/api/orders", null);
+            JsonNode out = endpoint(tools().endpoint(ORDERS, null));
 
-            assertTrue(out.contains("\"endpoint\""), out);
-            assertTrue(out.contains("uri=%2Fapi%2Forders"), out);
+            assertEquals("OK", out.get("status").asString());
+            assertEquals(ORDERS, out.get("uri").asString());
+            assertEquals(ORDERS, out.get("endpoint").get("uri").asString());
+            assertTrue(out.get("uiLink").asString().contains("uri=%2Fapi%2Forders"), out.get("uiLink").asString());
         }
 
         /**
          * The manager filters while streaming, so an unmatched URI yields an empty list rather than an
-         * error - and the controller's equivalent would throw on getFirst().
+         * error - reported as the caller's mistake, with the tool that lists real ones.
          */
         @Test
         void reportsAnUnknownUriAsAToolError() {
@@ -193,11 +326,6 @@ class HttpMcpToolsTest {
             assertTrue(error.getMessage().contains("No requests were recorded for '/nope'"), error.getMessage());
         }
 
-        /**
-         * The manager reads a null uri as "no filter", so an omitted one used to produce the whole
-         * dashboard and this tool handed back its busiest endpoint as though it were the one asked
-         * for - an answer to a different question, with nothing in it saying so.
-         */
         @Test
         void refusesAMissingUriRatherThanReportingTheBusiestEndpoint() {
             IllegalArgumentException thrown = assertThrows(
@@ -214,63 +342,117 @@ class HttpMcpToolsTest {
 
         @Test
         void trimsTheUriBeforeMatching() {
-            when(httpManager.overviewData("/api/orders")).thenReturn(data(List.of(uri("/api/orders"))));
+            when(httpManager.overviewData(ORDERS)).thenReturn(data(List.of(uri(ORDERS))));
 
-            assertTrue(tools().endpoint("  /api/orders  ", null).contains("\"endpoint\""));
+            assertEquals(ORDERS, endpoint(tools().endpoint("  /api/orders  ", null)).get("uri").asString());
+        }
+
+        @Test
+        void aDirectionNotRecordedIsAStatusWithTheEndpointPage() {
+            when(featuresManager.getDisabledFeatures())
+                    .thenReturn(List.of(FeatureType.HTTP_CLIENT_DASHBOARD));
+
+            JsonNode out = endpoint(tools().endpoint(ORDERS, ExchangeDirection.CLIENT));
+
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("endpoint").isNull());
+            assertTrue(out.get("uiLink").asString().contains("mode=client"), out.get("uiLink").asString());
+        }
+
+        @Test
+        void routesToTheOperationThatServedTheEndpoint() {
+            when(httpManager.overviewData(ORDERS)).thenReturn(data(List.of(uri(ORDERS))));
+
+            JsonNode out = endpoint(tools().endpoint(ORDERS, null));
+
+            assertEquals(ORDERS, StructuredAnswers.call(out, "traces_operations").get("search").asString());
         }
     }
 
     /**
-     * The gate is "it happened", never "it is bad". A pointer that appeared regardless would be noise
-     * on a healthy profile; one that judged the number would be a verdict the tool is not entitled to.
+     * The gate is "it happened", never "it is bad". A call offered regardless would be noise on a
+     * healthy profile; one that judged the number would be a verdict the tool is not entitled to.
      */
     @Nested
     class GatedRouting {
 
-        private static HttpOverviewData withStatuses(int count4xx, int count5xx) {
-            return new HttpOverviewData(
-                    new HttpHeader(1200, 4200, 3900, 2100, new BigDecimal("99.1"),
-                            count5xx, count4xx, 900, 400, 500),
-                    List.of(uri("/api/orders")),
-                    List.of(new HttpStatusStats(200, 1186)),
-                    List.of(new HttpMethodStats("GET", 1200)),
-                    List.of(),
-                    null,
-                    null);
-        }
-
         @Test
-        void alwaysRoutesToTheEndpointDetail() {
-            when(httpManager.overviewData()).thenReturn(withStatuses(0, 0));
+        void alwaysRoutesToTheBusiestEndpointsDetail() {
+            when(httpManager.overviewData()).thenReturn(withStatuses(List.of(uri(ORDERS)), 0, 0));
 
-            assertTrue(tools().overview(null).contains("http_endpoint"));
+            JsonNode call = StructuredAnswers.call(overview(tools().overview(null)), "http_endpoint");
+
+            assertEquals(ORDERS, call.get("uri").asString());
+            assertEquals("SERVER", call.get("direction").asString());
+            assertEquals("p-1", call.get("profileId").asString());
         }
 
         @Test
         void namesTheFailureTrailOnlyWhenSomethingActuallyFailed() {
-            when(httpManager.overviewData()).thenReturn(withStatuses(0, 0));
-            assertFalse(tools().overview(null).contains("traces_notifications"));
+            when(httpManager.overviewData()).thenReturn(withStatuses(List.of(uri(ORDERS)), 0, 0));
+            assertFalse(StructuredAnswers.nextTools(overview(tools().overview(null))).contains("traces_notifications"));
 
-            when(httpManager.overviewData()).thenReturn(withStatuses(0, 3));
-            assertTrue(tools().overview(null).contains("traces_notifications"));
+            when(httpManager.overviewData()).thenReturn(withStatuses(List.of(uri(ORDERS)), 0, 3));
+            assertTrue(StructuredAnswers.nextTools(overview(tools().overview(null))).contains("traces_notifications"));
         }
 
         @Test
         void aClientErrorCountsAsSomethingHavingHappenedToo() {
-            when(httpManager.overviewData()).thenReturn(withStatuses(11, 0));
+            when(httpManager.overviewData()).thenReturn(withStatuses(List.of(uri(ORDERS)), 11, 0));
 
-            assertTrue(tools().overview(null).contains("traces_notifications"));
+            assertTrue(StructuredAnswers.nextTools(overview(tools().overview(null))).contains("traces_notifications"));
+        }
+
+        @Test
+        void routesTheFramesQuestionToTheCpuFlamegraph() {
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
+
+            JsonNode call = StructuredAnswers.call(overview(tools().overview(null)), "flamegraph_export");
+
+            assertEquals("jdk.ExecutionSample", call.get("eventType").asString());
+        }
+
+        @Test
+        void graphsTheOnCpuTypeThisProfileRecorded() {
+            recorded(Type.CPU_TIME_SAMPLE.code());
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
+
+            JsonNode call = StructuredAnswers.call(overview(tools().overview(null)), "flamegraph_export");
+
+            assertEquals(Type.CPU_TIME_SAMPLE.code(), call.get("eventType").asString());
+        }
+
+        @Test
+        void aProfileWithoutAnOnCpuTypeGetsNoGraphButWhereTheTypesAre() {
+            recorded("jdk.ObjectAllocationSample");
+            when(httpManager.overviewData(ORDERS)).thenReturn(data(List.of(uri(ORDERS))));
+
+            JsonNode out = endpoint(tools().endpoint(ORDERS, null));
+
+            assertFalse(StructuredAnswers.nextTools(out).contains("flamegraph_export"), out.get("followUp").toString());
+            assertTrue(StructuredAnswers.guidance(out).contains("flamegraph_list"), StructuredAnswers.guidance(out));
+        }
+
+        @Test
+        void leavesOutTheCallsToFamiliesThisInstallationWithholds() {
+            when(httpManager.overviewData()).thenReturn(withStatuses(List.of(uri(ORDERS)), 0, 3));
+            HttpMcpTools httpOnly = new HttpMcpTools(profileManager, new AdvertisedFamilies(Set.of("http")));
+
+            JsonNode out = overview(httpOnly.overview(null));
+
+            assertTrue(StructuredAnswers.nextTools(out).stream().allMatch(tool -> tool.startsWith("http_")),
+                    StructuredAnswers.nextTools(out).toString());
         }
 
         /**
-         * The line reports that requests failed and where the account of them lives. It must not say
-         * the rate is high, or the tool has made a judgement it cannot support.
+         * The routing reports that requests failed and where the account of them lives. It must not
+         * say the rate is high, or the tool has made a judgement it cannot support.
          */
         @Test
-        void theGatedLineRoutesRatherThanJudging() {
-            when(httpManager.overviewData()).thenReturn(withStatuses(0, 3));
+        void theFollowUpRoutesRatherThanJudging() {
+            when(httpManager.overviewData()).thenReturn(withStatuses(List.of(uri(ORDERS)), 0, 3));
 
-            String out = tools().overview(null).toLowerCase();
+            String out = overview(tools().overview(null)).get("followUp").toString().toLowerCase();
 
             assertFalse(out.contains("too many"), out);
             assertFalse(out.contains("unacceptable"), out);
@@ -290,38 +472,26 @@ class HttpMcpToolsTest {
         void readsTheClientSideWhenAskedFor() {
             when(httpManager.overviewData()).thenReturn(data(List.of(uri("https://payments/charge"))));
 
-            String out = tools().overview(ExchangeDirection.CLIENT);
+            JsonNode out = overview(tools().overview(ExchangeDirection.CLIENT));
 
-            assertTrue(out.contains("payments/charge"), out);
-            assertTrue(out.contains("mode=client"), out);
+            assertEquals("https://payments/charge", out.get("endpoints").get(0).get("uri").asString());
+            assertEquals("CLIENT", out.get("direction").asString());
+            assertTrue(out.get("uiLink").asString().contains("mode=client"));
         }
 
-        @Test
-        void defaultsToTheServerSide() {
-            when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
-
-            assertTrue(tools().overview(null).contains("mode=server"));
-        }
-
-        /**
-         * The two halves are gated separately: a recording with inbound traffic and no outbound calls
-         * must answer the client question with "not recorded", not with the inbound figures.
-         */
         @Test
         void gatesEachDirectionOnItsOwnFeature() {
             when(featuresManager.getDisabledFeatures())
                     .thenReturn(List.of(FeatureType.HTTP_CLIENT_DASHBOARD));
-            when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri(ORDERS))));
 
-            assertTrue(tools().overview(ExchangeDirection.CLIENT).contains("no client-side HTTP data"));
-            assertTrue(tools().overview(ExchangeDirection.SERVER).contains("requestCount"));
+            JsonNode client = overview(tools().overview(ExchangeDirection.CLIENT));
+            assertEquals("NOT_RECORDED", client.get("status").asString());
+            assertTrue(client.get("reason").asString().contains("no client-side HTTP data"), client.toString());
+            assertTrue(client.get("reason").asString().contains("jeffrey.HttpClientExchange"), client.toString());
+            assertEquals("OK", overview(tools().overview(ExchangeDirection.SERVER)).get("status").asString());
         }
 
-        /**
-         * The refusal moved to the schema when the argument became a real {@code enum}: the binder
-         * knows the constants, so it names them without the tool having to. Exercised through a
-         * toolset rather than a direct call, because a direct call can no longer express the mistake.
-         */
         @Test
         void refusesAnUnknownDirectionByName() {
             ReflectiveToolset toolset = new ReflectiveToolset(tools(), "http");

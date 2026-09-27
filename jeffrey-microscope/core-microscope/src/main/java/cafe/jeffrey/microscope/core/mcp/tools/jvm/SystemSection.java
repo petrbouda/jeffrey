@@ -14,13 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.core.mcp.tools.RecordingSpan;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.system.SystemOverview;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -35,7 +43,7 @@ import java.util.Set;
  * CPU values arrive as basis points and are reported here as percentages, because a reader comparing
  * them against a container limit is thinking in percent.
  */
-public record SystemSection(ProfileManager profileManager) implements JvmSection {
+public record SystemSection(ProfileManager profileManager) implements JvmSection<SystemSection.SystemDashboard> {
 
     public static final String ID = "system";
 
@@ -53,13 +61,15 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
             Type.PROCESS_START,
             Type.SWAP_SPACE);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "otherCpuPercent is the machine minus this JVM — a noisy neighbour, not this application. "
-                    + "When it is large, the flamegraphs describe a process that was being starved.",
-            "A cgroup limit below what the machine offers is the more common cap in a container: "
-                    + "jvm_container reports the limits and whether the scheduler throttled the process.",
-            "A high context-switch rate with modest CPU usually means threads contending rather than "
-                    + "working — blocking_monitors names the locks they are queuing on.");
+    private static final String NEIGHBOUR_GUIDANCE =
+            "otherCpuPercent is the machine minus this JVM - a noisy neighbour, not this application. "
+                    + "When it is large, the flamegraphs describe a process that was being starved.";
+    private static final String CGROUP_WHY =
+            "reports the cgroup limits and whether the scheduler throttled the process, the more common "
+                    + "cap in a container";
+    private static final String CONTEXT_SWITCHES_WHY =
+            "names the locks threads queue on, which is what a high context-switch rate with modest CPU "
+                    + "usually is";
 
     @Override
     public String id() {
@@ -77,12 +87,20 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.SYSTEM;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, SystemDashboard dashboard) {
+        String profileId = profileManager.info().id();
+        next.next(SectionCalls.on(SectionCalls.JVM_CONTAINER, profileId).why(CGROUP_WHY))
+                .next(SectionCalls.on(SectionCalls.BLOCKING_MONITORS, profileId).why(CONTEXT_SWITCHES_WHY))
+                .guidance(NEIGHBOUR_GUIDANCE);
+    }
+
+    @Override
+    public SystemDashboard render() {
         SystemOverview overview = profileManager.systemResourcesManager().overview();
         return new SystemDashboard(
                 percent(overview.avgMachineCpuBp()),
@@ -105,10 +123,14 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
     }
 
     private List<LaunchedProcess> launchedProcesses() {
+        Optional<RecordingSpan> span = RecordingSpan.of(profileManager.info());
         return profileManager.systemResourcesManager().launchedProcesses().stream()
                 .limit(LAUNCHED_LIMIT)
                 .map(process -> new LaunchedProcess(
-                        process.timeOffsetMillis(), process.pid(), process.command(), process.thread()))
+                        span.map(recording -> recording.epochAt(process.timeOffsetMillis())).orElse(null),
+                        process.pid(),
+                        process.command(),
+                        process.thread()))
                 .toList();
     }
 
@@ -119,7 +141,7 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
     /**
      * @param otherCpuPercent the machine's CPU minus this JVM's — everything else on the box
      */
-    private record SystemDashboard(
+    public record SystemDashboard(
             double avgMachineCpuPercent,
             double maxMachineCpuPercent,
             double avgJvmCpuPercent,
@@ -128,17 +150,58 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
             int processCount,
             int networkInterfaceCount,
             List<String> networkInterfaces,
+            @McpDescription("The first " + PROCESSES_LIMIT + " processes on the machine, out of processCount")
             List<Process> processes,
+            @McpDescription("The first " + LAUNCHED_LIMIT + " processes this JVM started")
             List<LaunchedProcess> launchedProcesses) {
     }
 
-    private record Process(String pid, String commandLine) {
+    public record Process(
+            @McpNullable
+            String pid,
+            @McpNullable
+            String commandLine) {
     }
 
     /**
      * A process this JVM started. Rare, and worth seeing when it happens: forking from a server is
      * expensive and often unintended.
+     *
+     * @param startedAtEpochMs when it was started, as UTC epoch milliseconds; null when the profile
+     *                         carries no recording span to place it on
      */
-    private record LaunchedProcess(long timeOffsetMillis, long pid, String command, String thread) {
+    public record LaunchedProcess(
+            @McpNullable
+            Long startedAtEpochMs,
+            long pid,
+            @McpNullable
+            String command,
+            @McpNullable
+            String thread) {
+    }
+
+    /**
+     * What {@code jvm_system} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            SystemDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, SystemDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

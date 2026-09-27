@@ -71,4 +71,6 @@ jobs:
     # validator does not look inside skills, and one missing its front matter loads as
     # an unnamed no-op.
     - name: Validate the Agent Plugins manifest
-      run: python3 build/scripts/validate-agent-plugin.py .
+      run: |
+        sudo apt-get update -qq && sudo apt-get install -y -qq python3-yaml
+        python3 build/scripts/validate-agent-plugin.py .

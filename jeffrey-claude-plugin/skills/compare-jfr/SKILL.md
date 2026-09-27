@@ -10,11 +10,7 @@ Two recordings of the same application — one from before a change, one from af
 frame by frame. The **primary** is the run under examination and the **baseline** is what it is
 measured against; a positive delta always means the primary spends *more*.
 
-Tool names below omit the prefix your client puts in front of them —
-`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
-The part after it is exact and camelCase:
-`compare_movements`, not `compare_movements_list`.
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `compare_movements`, not `compare_movements_list`.
 
 ## The one thing that makes this analysis worthless
 
@@ -34,9 +30,10 @@ of its samples on one side.
 `profiles_list` shows every analysed profile with its name, recording time and duration. Pick the
 **baseline** (before) and the **primary** (after) from it.
 
-**The user named two files** (`before.jfr` and `after.jfr`) — check `profiles_list` for them first,
-then `recordings_analyzeFile` with the **absolute** path for each one that is missing. Every call
-imports the file again and creates another profile, so never re-analyse one that is already there.
+**The user named two files** (`before.jfr` and `after.jfr`) — call `recordings_analyzeFile` with the
+**absolute** path for each; `recordings_analyzeFile` returns the existing profile for a file with
+the same name and size as one already imported; after re-recording to the same path, pass
+`force=true`.
 Jeffrey opens those paths itself, so both files must be on the machine Jeffrey runs on. If no
 `recordings_` tool is advertised, this Jeffrey has ingestion switched off — upload both in the UI
 first.
@@ -46,8 +43,9 @@ as `baselineProfileId`. Backwards, every regression reads as an improvement.
 
 ## 2. Establish comparability — always first
 
-`compare_list` reports both recordings' length, the event types they have in common with each
-side's totals, and the types only one of them recorded.
+`compare_list` reports both recordings' span and length (`durationMs`, null for a side that
+carries no span), the event types they have in common with each side's totals, and the types only
+one of them recorded. Its `uiLink` opens the pair's differential grid in Microscope, for the user.
 
 Read its `notes`, and stop to think when:
 
@@ -58,14 +56,14 @@ Read its `notes`, and stop to think when:
 - **An event type appears on one side only.** That may reflect instrumentation or observed
   activity; presence alone cannot distinguish them. Report the evidence gap rather than claiming
   that the work appeared or vanished.
-- **`comparable` is empty.** There is nothing to compare — different formats, one is a heap dump,
-  or wholly different profiler settings. Say so and stop.
+- **`comparable` is empty (`status: EMPTY`).** There is nothing to compare — different formats,
+  one is a heap dump, or wholly different profiler settings. Say so and stop.
 
 Then call `compare_quality` with the same two ids before quoting a delta. It returns evidence,
 not a single comparability verdict. Assess the question using these fields:
 
-- `samplingConfiguration` and `findings`: matching snapshots support comparison of that event type;
-  `mismatch` or `unknown` means its event volumes need qualification. Check each side's
+- `samplingConfiguration` and `findings`: a `MATCHING_SNAPSHOT` supports comparison of that event
+  type; `MISMATCH` or `UNKNOWN` means its event volumes need qualification. Check each side's
   `samplerHealth` for sample loss too. A matching snapshot does not prove unchanged settings
   throughout either recording.
 - `commonEventTypes`, `onlyInPrimary` and `onlyInBaseline`: compare shared evidence. A type absent
@@ -103,6 +101,11 @@ tree is the second.
 
 The document opens with its own comparability section and an explanation of every column. Follow
 that preamble; it is written against the code that produced the numbers.
+
+A window narrows both sides: `startEpochMs`/`endEpochMs` are instants on the **primary's** clock,
+applied at the same offset into the baseline, and the answer's `window` reports where it landed on
+each recording. The `uiLink` opens the differential flamegraph with the same event type, filters,
+window and baseline; its `uiLinkNote` says what the page shows differently from the ranking.
 
 ## 4. Drill into one method
 

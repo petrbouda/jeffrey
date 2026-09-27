@@ -1,6 +1,6 @@
 ---
 name: analyze-jfr
-description: Analyses a JVM profile held by a running Jeffrey Microscope — CPU, wall-clock, allocation, lock contention, trace latency, and the machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container and the JVM's configuration. Starts from the catalogue or from a .jfr file Jeffrey has not seen yet. Use whenever the user asks why something is slow, where the time goes, what is allocating, why GC pauses are long, what is pausing the JVM, what the JIT compiler or deoptimisation is doing, which threads are burning CPU, why memory grows outside the heap, whether the container is throttling, what a JFR recording or flamegraph shows, or mentions a Jeffrey profile, a .jfr file or async-profiler output. For a heap dump or .hprof file, analyze-heap applies instead.
+description: "Analyses a JVM profile held by a running Jeffrey Microscope — CPU, wall-clock, allocation, lock contention, trace latency, and the machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container and the JVM's configuration. Starts from the catalogue or from a .jfr file Jeffrey has not seen yet. Use whenever the user asks why something is slow, where the time goes, what is allocating, why GC pauses are long, what is pausing the JVM, what the JIT compiler or deoptimisation is doing, which threads are burning CPU, why memory grows outside the heap, whether the container is throttling, what a JFR recording or flamegraph shows, or mentions a Jeffrey profile, a .jfr file or async-profiler output. For a heap dump or .hprof file, analyze-heap applies instead."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
@@ -12,11 +12,7 @@ work that was started — `recordings_` turns a recording *file* into a profile,
 `operations_cancel` stops an import that was a mistake — and none of them changes an analysed
 profile.
 
-Tool names below omit the prefix your client puts in front of them —
-`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
-The part after it is exact and camelCase:
-`jfr_listTables`, not `jfr_list_tables`.
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `jfr_listTables`, not `jfr_list_tables`.
 
 ## 1. Get a `profileId`
 
@@ -26,16 +22,16 @@ call, with `nextCursor` and `hasMore` in the answer, so a catalogue past that si
 call carrying the cursor before "it is not there" is true.
 
 **The user named a file** (`target/app.jfr`, anything with a recording extension) — it may not be
-in Jeffrey yet. Check `recordings_list` or `profiles_list` for it first, because every
-`recordings_analyzeFile` call imports the file again and creates another profile. If it is absent,
-call `recordings_analyzeFile` with the **absolute** path. The Jeffrey process opens that path, so
+in Jeffrey yet. Call `recordings_analyzeFile` with the **absolute** path;
+`recordings_analyzeFile` returns the existing profile for a file with the same name and size as one
+already imported; after re-recording to the same path, pass `force=true`. The Jeffrey process opens
+that path, so
 the file has to be on the machine Jeffrey runs on — a container or a remote Jeffrey cannot see your
 working directory. A small recording is analysed inside the call and comes back with its
-`profileId`. A large one comes back with a status of `running` and an `operationId` — and no
+`profileId`. A large one comes back with a status of `RUNNING` and an `operationId` — and no
 `recordingId`, because the copy may not have finished — and `operations_status(operationId)`
-follows the copy and the analysis until the `profileId` appears. Poll that, and never call
-`recordings_analyzeFile` a second time to see whether it is done: every call imports the file again
-and builds a second profile of it. `operations_cancel(operationId)` stops an import started by
+follows the copy and the analysis until the `profileId` appears. Poll that rather than calling
+`recordings_analyzeFile` a second time to see whether it is done. `operations_cancel(operationId)` stops an import started by
 mistake. Operation ids live for an hour in Jeffrey's memory and do not survive a restart.
 
 **The recording is on a hub** — the user asked about an environment rather than a file
@@ -62,7 +58,7 @@ graph of a five-minute average hides a thirty-second spike. So the first export 
 | What the summary shows | Go to |
 |---|---|
 | `capabilityGaps` names something the question needs | Say so first; a question the recording cannot answer is reported as **not assessed**, never as a negative result — the `report` skill has the shape |
-| `topFindings` carries a rule that fired | The `jvm_` section the finding's `nextTool` names, for the figures behind the rule — a fired rule is a lead, not a diagnosis |
+| `topFindings` carries a rule that fired | The finding's `nextTool` — a ready call, `{tool, arguments, why}` — for the figures behind the rule; a fired rule is a lead, not a diagnosis |
 | The question is "this endpoint is slow" and `TRACES` is not in `disabledFeatures` | `traces_` — *Latency: work the traces first* below; `http_overview` and `jdbc_overview` when it is |
 | Execution or CPU-time samples dominate `eventTypes` | `flamegraph_export` of that type, after `timeline_hotWindows` when the shape over time matters |
 | Threads spent the time waiting rather than running | `blocking_` and `io_` — the waiting a CPU graph cannot see |
@@ -119,6 +115,21 @@ specific path.
 
 ## 4. Read the export the way it tells you to
 
+Every answer is a typed record in `structuredContent` (the text beside it is the same record as
+JSON, or the Markdown document with a footer), and every one reads the same way:
+
+- **Times** are UTC epoch milliseconds (`…EpochMs`) — a window from one answer is passed to the next
+  tool unchanged as `startEpochMs`/`endEpochMs`; durations carry their unit (`…Ms`, `…Nanos`).
+- **`status`** says when there is nothing to show — `NOT_RECORDED`, `NOT_COMPUTED`, `NO_TRACES`,
+  `EMPTY` — with a `reason`; that is an answer to report, not an error to retry. An id Jeffrey does
+  not know comes back as a tool error naming it.
+- **`followUp.nextTools`** are the next calls with this answer's ids, windows and cursors filled
+  in — send them as they are; **`followUp.guidance`** is advice that is not a call.
+- **`hasMore` + `nextCursor`** continue a list: pass `nextCursor` back as `cursor` with the same
+  arguments. Enum values are upper case (`SUMMARY`, `SERVER`), in answers and arguments alike.
+- **`uiLink`** opens the same view in Microscope — hand it to the user with the finding; never fetch
+  it or read it back. Nothing is exported to a file.
+
 `flamegraph_export`, `traces_traceExport` and `traces_operationExport` return Markdown documents
 that open with their own reading instructions — what `self` versus `total` means, what the frame
 tags mean, what was pruned, and how to analyse that event type. Follow that preamble rather than
@@ -150,12 +161,14 @@ not offer them. They have their own family, and each tool renders the dashboard 
 renders — the same tested builders, one call instead of six invented SQL queries.
 
 `jvm_sections` first: a recording holds only what the profiler was told to capture, and each
-section reports whether this one carries its events. A section asked for anyway is refused with the
-events it needed, so an absence never arrives as a page of zeroes.
+section reports whether this one carries its events. A section asked for anyway answers
+`status: NOT_RECORDED` with a `reason` naming the events it needed, so an absence never arrives as a
+page of zeroes.
 
-Every result carries a `nextSteps` list beside the figures, saying what that dashboard cannot
-answer and which tool answers it — the same idea as the reading instructions an export opens with.
-Follow it: the figures are one half of an answer, and the other half is usually in another family.
+Every result carries a `followUp` beside the figures, saying what that dashboard cannot answer and
+which tool answers it — `nextTools` as ready calls, `guidance` for the rest — the same idea as the
+reading instructions an export opens with. Follow it: the figures are one half of an answer, and the
+other half is usually in another family.
 
 | Tool | The question it answers |
 |---|---|
@@ -166,11 +179,11 @@ Follow it: the figures are one half of an answer, and the other half is usually 
 | `jvm_threads` | Population and peak, top CPU and allocating threads, virtual-thread pinning |
 | `jvm_nativeMemory` | RSS and its growth, direct buffers, NMT categories — memory outside the Java heap |
 | `jvm_container` | cgroup limits and whether the scheduler throttled the process |
-| `jvm_configuration` | What the JVM was started with, in the UI's own tabs; one section at a time |
+| `jvm_configuration` | What the JVM was started with, in the UI's own tabs; one `section` at a time (`JVM_INFORMATION` … `VIRTUALIZATION_INFORMATION`) |
 | `jvm_flags` | The flag list with each value's **origin** — default, command line, or the JVM's own ergonomics |
-| `jvm_threadDumps` | The dumps together: deadlocks, monitors threads queued on, threads stuck across dumps |
+| `jvm_threadDumps` | The dumps together: recurring deadlocks, monitors threads queued on, threads stuck across dumps; a cut keeps the latest dumps and counts the rest in `omittedRows` |
 | `jvm_threadDump` | One dump in full, every thread with its state and stack |
-| `jvm_gcDetail` | The GC pages beneath the overview, one at a time: tenuring, IHOP, G1 regions and evacuation failures, ZGC stalls, string tables, finalizers, reference processing, phases, PLAB |
+| `jvm_gcDetail` | The GC pages beneath the overview, one `page` at a time: `TENURING`, `IHOP`, `G1` (regions, evacuation failures), `ZGC` (stalls), `STRING_TABLES`, `FINALIZERS`, `REFERENCES`, `PHASES`, `PLAB`, `CONFIGURATION` |
 | `jvm_classLoading` | What was loaded and who loaded it: metaspace, the loaders ranked, the slowest loads, agent redefinitions |
 | `jvm_exceptions` | What the application threw, and what kinds — constructing one walks the stack, so a type thrown in a loop is a cost no frame names |
 | `jvm_system` | The machine underneath: machine CPU against this JVM's own, and what the difference leaves for everything else on the box |
@@ -202,9 +215,11 @@ Four things the tools know and a hand-written query does not:
   blocked on one lock produces no samples worth graphing; it produces threads sitting still, which
   only the dumps show.
 
-`jvm_autoAnalysis` reads a cache. When nothing has computed it, pass `compute: true` to run the rule
-set now — it reads the whole recording through the JMC toolkit, so it is slow and asked for rather
-than assumed. The other sections answer either way. For anything these do not shape — a distribution over
+`jvm_autoAnalysis` reads a cache: `status` is `COMPUTED`, `NOT_COMPUTED` or `CANNOT_COMPUTE` (the
+recording is gone, or the profile is not a JFR recording). On `NOT_COMPUTED` its `followUp` offers
+`compute: true`, which runs the rule set now — it reads the whole recording through the JMC
+toolkit, so it is slow and asked for rather than assumed; past its wait it answers with an
+`operationId` for `operations_status`. The other sections answer either way. For anything these do not shape — a distribution over
 time, a correlation between two event types — the `jfr-sql` skill has the schema and the queries.
 
 ## The edges of the application: `http_`, `jdbc_`, `grpc_`, `methodtracing_`
@@ -241,20 +256,22 @@ Three things worth knowing before reading them:
   dashboard is broken. The per-second chart series are left out on purpose — the percentiles carry
   the same information, and the shape over time is what `timeline_` and the `uiLink` are for.
 
-An event type the recording never captured is reported in words rather than as a zeroed dashboard:
-"no HTTP server data" is a finding about the profiler's configuration, not a healthy service.
+An event type the recording never captured is reported as `status: NOT_RECORDED` with a `reason`
+rather than as a zeroed dashboard: "no HTTP server data" is a finding about the profiler's
+configuration, not a healthy service.
 
 ## When, not where: the `timeline_` family
 
 A flamegraph of a whole recording flattens a thirty-second spike into a five-minute average, and the
-spike stops being visible. `flamegraph_export`, `compare_flamegraph` and the trace exports all take
-`startMs` and `endMs`, and nothing else in the surface helps you choose them.
+spike stops being visible. `flamegraph_export`, `compare_movements` and `compare_flamegraph` take
+`startEpochMs` and `endEpochMs`, and nothing else in the surface helps you choose them.
 
 1. `timeline_hotWindows` with the event type — the recording bucketed, the busiest windows ranked,
    and a one-line shape so a steady load, a ramp and a single burst are told apart. Pass `useWeight`
    for bytes or nanoseconds rather than sample counts.
-2. `flamegraph_export` with the `startMs` and `endMs` of the window it named. That graph shows what
-   the whole-recording one averaged away.
+2. `flamegraph_export` with the `startEpochMs` and `endEpochMs` of the window it named — the call for
+   the busiest one is already in its `followUp.nextTools`. That graph shows what the
+   whole-recording one averaged away.
 3. `timeline_zoom` when a second is too coarse — a startup, or the inside of one spike. It is the
    only view that resolves below a second.
 
@@ -291,7 +308,7 @@ locate.
    error count. A value whose p95 stands apart from the rest names the population. Trace counts do
    not sum to the profile's total: a trace whose spans recorded two values counts under both.
 3. `traces_attributeSearch` — the individual traces carrying one value, whose ids go to
-   `traces_traceExport`.
+   `traces_traceExport`. More than one page: `hasMore` and `nextCursor`, passed back as `cursor`.
 
 An attribute says *which* population was slow and never *why*. The span tree of one of its traces
 says why.
@@ -303,8 +320,8 @@ says why.
 the top read very differently from a domain class. `memory_leakCandidates` reads
 `jdk.OldObjectSample`: objects the JVM watched survive collections, which is leak evidence from a
 plain recording when nobody captured a dump and the process has gone. Its absence is not a clean
-bill of health — that sampler is off in most profiles, and the tool says so rather than reporting
-zero candidates.
+bill of health — that sampler is off in most profiles, and the tool answers `NOT_RECORDED` rather
+than reporting zero candidates.
 
 ## Hand the reading to the analyst
 
@@ -368,7 +385,7 @@ than passing as a clean result. Follow it for anything the user reads.
   endpoint**; in Codex, the `[mcp_servers.jeffrey]` block in `~/.codex/config.toml`. The URL is
   `/api/mcp` on the address you open Jeffrey's UI on.
 - The server answers 404 → it was started with `jeffrey.microscope.mcp.enabled=false` (it is on
-  by default), or it predates the move to `/api/mcp` and serves only the older `/api/internal/mcp`.
+  by default), or the configured URL does not end in `/api/mcp`, the one path it serves.
 
 Related skills: `analyze-heap` for a heap dump, `compare-jfr` when there is a before and an after
 to weigh against each other, `jfr-sql` for raw SQL against the profile, `advise-jfr` to go from a

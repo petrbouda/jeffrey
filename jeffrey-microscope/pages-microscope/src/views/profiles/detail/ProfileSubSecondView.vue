@@ -32,7 +32,6 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import router from '@/router';
-import GraphType from '@/services/flamegraphs/GraphType';
 import SubSecondComponent from '@/components/SubSecondComponent.vue';
 import { useRoute } from 'vue-router';
 
@@ -49,6 +48,8 @@ import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlame
 import TimeRange from '@/services/api/model/TimeRange';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import GenericModal from '@shared/components/GenericModal.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import { flamegraphViewOpening } from '@/services/flamegraphs/FlamegraphViewOpening';
 
 const route = useRoute();
 
@@ -61,6 +62,8 @@ const timeseriesSecondaryData = ref<number[][] | undefined>(undefined);
 const eventType = ref<string>('');
 const useWeight = ref(false);
 const isDifferential = ref(false);
+// A differential view with no baseline to subtract - drawn as its own state, as the flamegraph view does.
+const missingBaseline = ref(false);
 
 let graphUpdater: GraphUpdater;
 let flamegraphTooltip: FlamegraphTooltip;
@@ -82,8 +85,11 @@ onBeforeMount(() => {
 
   const eventTypeValue = queryParams.eventType as string | undefined;
   const useWeightValue = queryParams.useWeight === 'true';
-  const isPrimaryValue = queryParams.graphMode === GraphType.PRIMARY;
-  const isDifferentialValue = queryParams.graphMode === GraphType.DIFFERENTIAL;
+  // The flamegraph view's rule: only graphMode DIFFERENTIAL needs a baseline, and a link without a
+  // graphMode opens the primary view.
+  const opening = flamegraphViewOpening(queryParams.graphMode, SecondaryProfileService.id());
+  const isPrimaryValue = opening.kind === 'PRIMARY';
+  const isDifferentialValue = !isPrimaryValue;
 
   // Validate required query parameter
   if (!eventTypeValue) {
@@ -97,6 +103,11 @@ onBeforeMount(() => {
   useWeight.value = useWeightValue;
   isDifferential.value = isDifferentialValue;
 
+  if (opening.kind === 'MISSING_BASELINE') {
+    missingBaseline.value = true;
+    return;
+  }
+
   // Scroll the workspace-content container to top
   const workspaceContent = document.querySelector('.workspace-content');
   if (workspaceContent) {
@@ -109,16 +120,16 @@ onBeforeMount(() => {
     useWeightValue
   );
 
-  if (isDifferentialValue) {
+  if (opening.kind === 'DIFFERENTIAL') {
     secondarySubSecondDataProvider = new SubSecondDataProviderImpl(
-      SecondaryProfileService.id() as string,
+      opening.baselineId,
       eventTypeValue,
       useWeightValue
     );
   }
 
   let flamegraphClient: FlamegraphClient;
-  if (isPrimaryValue) {
+  if (opening.kind === 'PRIMARY') {
     flamegraphClient = new PrimaryFlamegraphClient(
       route.params.profileId as string,
       eventTypeValue,
@@ -133,7 +144,7 @@ onBeforeMount(() => {
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
       route.params.profileId as string,
-      SecondaryProfileService.id() as string,
+      opening.baselineId,
       eventTypeValue,
       useWeightValue,
       false,
@@ -204,7 +215,13 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
 </script>
 
 <template>
-  <div>
+  <EmptyState
+    v-if="missingBaseline"
+    icon="bi-file-diff"
+    title="No Baseline Profile"
+    description="This differential view needs a baseline. Select a secondary profile to compare against."
+  />
+  <div v-else>
     <div style="padding-left: 5px; padding-right: 5px">
       <TimeSeriesChart
         v-if="timeseriesData"

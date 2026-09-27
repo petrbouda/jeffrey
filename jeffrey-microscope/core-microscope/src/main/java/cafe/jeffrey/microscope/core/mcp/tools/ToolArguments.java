@@ -18,7 +18,6 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -59,6 +58,10 @@ final class ToolArguments {
     /**
      * A row cap the caller may lower but not raise: a model asking for everything is asking for its
      * own context to be spent on one answer.
+     * <p>
+     * The one clamp convention every tool follows, and the one its schema's
+     * {@code @ToolParamBounds(defaultValue, min = 1, max)} describes: omitted, zero or negative means
+     * the default, anything above the maximum means the maximum.
      *
      * @param fallback what an omitted or nonsensical limit means
      * @param max      the most this tool will return however large the request
@@ -69,24 +72,6 @@ final class ToolArguments {
         }
         return Math.min(limit, max);
     }
-
-    /**
-     * A list argument, which the tool contract carries as one comma-separated string because a
-     * {@code @Tool} parameter is a scalar. Blank entries are dropped; a value that is all blanks is
-     * no list, and reads as {@code null} so the caller's "omitted" branch covers it.
-     */
-    static List<String> commaSeparated(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        List<String> values = Arrays.stream(value.split(LIST_SEPARATOR))
-                .map(String::trim)
-                .filter(entry -> !entry.isEmpty())
-                .toList();
-        return values.isEmpty() ? null : values;
-    }
-
-    private static final String LIST_SEPARATOR = ",";
 
     /**
      * The head of a list that has no bound of its own — endpoint and class counts are unbounded in

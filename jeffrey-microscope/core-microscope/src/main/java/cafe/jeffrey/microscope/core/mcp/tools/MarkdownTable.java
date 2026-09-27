@@ -32,15 +32,18 @@ import java.util.List;
  * recording someone named {@code checkout | before} silently shifts every column after it and the ids
  * in that row stop being the ids the download tool takes.
  * <p>
- * Escaping is therefore not left to the caller. It happens on the way into a cell, once, here.
+ * Escaping is therefore not left to the caller. It happens on the way into a cell, once, here. Only
+ * the pipe is escaped, as {@code \|}, so a reader restores the original bytes by unescaping {@code \|}
+ * and nothing else.
  */
 final class MarkdownTable {
 
     private static final String CELL_SEPARATOR = " | ";
     private static final String ROW_PREFIX = "| ";
     private static final String ROW_SUFFIX = " |";
-    private static final char PIPE = '|';
-    private static final char PIPE_REPLACEMENT = '/';
+    private static final String PIPE = "|";
+    /** GitHub-flavoured Markdown's escape for a pipe inside a table cell. */
+    private static final String ESCAPED_PIPE = "\\|";
     private static final char SPACE = ' ';
     private static final String HEADER_RULE_CELL = "---";
 
@@ -91,6 +94,10 @@ final class MarkdownTable {
      * to guess about.
      */
     MarkdownTable note(String note) {
+        if (note.isEmpty()) {
+            // A hint to a family this installation does not advertise comes back empty.
+            return this;
+        }
         out.append(LINE_BREAK).append(note);
         if (!note.endsWith(LINE_BREAK)) {
             out.append(LINE_BREAK);
@@ -103,6 +110,14 @@ final class MarkdownTable {
      */
     String render() {
         return McpToolOutput.capped(out.toString());
+    }
+
+    /**
+     * How many characters the table holds so far, for a caller that stops adding rows at a size budget
+     * of its own rather than letting the output cap cut a row in half.
+     */
+    int length() {
+        return out.length();
     }
 
     /** Full table for callers that size complete pages before publishing them. */
@@ -118,15 +133,18 @@ final class MarkdownTable {
     }
 
     /**
-     * Keeps a value inside the cell it belongs to. A pipe would split the row; a newline or a carriage
-     * return would end the table where it stands and leave the remaining rows as prose.
+     * Keeps a value inside the cell it belongs to. A pipe would split the row, so it is escaped the
+     * way GitHub-flavoured Markdown escapes it - {@code \\|} - rather than rewritten: a pipe inside a
+     * JSON value, a URL or a regular expression is data, and a reader that knows the convention gets
+     * the original bytes back. A newline or a carriage return would end the table where it stands and
+     * leave the remaining rows as prose.
      */
     private static String cell(Object value) {
         if (value == null) {
             return "";
         }
         String text = String.valueOf(value);
-        return text.replace(PIPE, PIPE_REPLACEMENT)
+        return text.replace(PIPE, ESCAPED_PIPE)
                 .replace('\n', SPACE)
                 .replace('\r', SPACE);
     }

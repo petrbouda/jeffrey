@@ -97,6 +97,52 @@ class PathToGCRootAnalyzerTest {
         }
     }
 
+    /**
+     * Topology:
+     *   ROOT (rootInst, ROOT_JAVA_FRAME) → targetInst, where targetInst is a Java-frame root itself.
+     *
+     * The target is not its own path: the search walks past it to the root that also holds it, and a
+     * target that is a root with nothing referencing it has no path at all.
+     */
+    @Test
+    void doesNotAnswerATargetThatIsARootWithItself(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long rootInst = 0x1001L;
+        long targetInst = 0x1003L;
+        long lonelyRoot = 0x1004L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRootJavaFrame(rootInst, 7, 13)
+                        .gcRootJavaFrame(targetInst, 7, 14)
+                        .gcRootJavaFrame(lonelyRoot, 7, 15)
+                        .instanceDump(rootInst, classId, idBytes(targetInst, idSize))
+                        .instanceDump(targetInst, classId, idBytes(0L, idSize))
+                        .instanceDump(lonelyRoot, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "self-root.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            List<GCRootPath> paths = PathToGCRootAnalyzer.findPaths(view, targetInst, false, 5);
+            assertEquals(1, paths.size());
+            assertEquals(rootInst, paths.get(0).rootObjectId(), "the path starts at the other root, not the target");
+            assertEquals(2, paths.get(0).steps().size());
+
+            assertEquals(0, PathToGCRootAnalyzer.findPaths(view, lonelyRoot, false, 5).size(),
+                    "a root nothing references has no path, not a path to itself");
+        }
+    }
+
     @Test
     void returnsEmptyForUnreachableInstance(@TempDir Path tmp) throws IOException, SQLException {
         int idSize = 8;

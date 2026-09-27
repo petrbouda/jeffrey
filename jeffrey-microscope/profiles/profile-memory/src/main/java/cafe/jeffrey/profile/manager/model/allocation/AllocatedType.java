@@ -25,4 +25,7 @@ package cafe.jeffrey.profile.manager.model.allocation;
  * @param count     number of allocation events for this class
  */
 public record AllocatedType(String className, long bytes, long count) {
+
+    /** The class name of the one row that sums the allocations whose event named no class. */
+    public static final String UNKNOWN_CLASS = "<unknown>";
 }

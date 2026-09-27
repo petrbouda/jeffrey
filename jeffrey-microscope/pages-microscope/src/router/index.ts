@@ -18,6 +18,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import AppLayout from '@/layout/AppLayout.vue';
 import { profileChildRoutes } from '@/router/profileChildRoutes';
+import { globalChildRoutes } from '@/router/globalRoutes';
 
 export { profileChildRoutes };
 
@@ -50,23 +51,7 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/views/Index.vue'),
-      children: [
-        {
-          path: 'recordings',
-          name: 'recordings',
-          component: () => import('@/views/global/RecordingsView.vue')
-        },
-        {
-          path: 'hubs',
-          name: 'hubs',
-          component: () => import('@/views/hubs/HubsView.vue')
-        },
-        {
-          path: 'profiler-builder',
-          name: 'profiler-builder',
-          component: () => import('@/views/global/ProfilerBuilderView.vue')
-        }
-      ]
+      children: globalChildRoutes
     },
     // Simplified profile routes - /profiles/:profileId/...
     {

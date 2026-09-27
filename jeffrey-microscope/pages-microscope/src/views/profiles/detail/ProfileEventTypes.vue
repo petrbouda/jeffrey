@@ -274,6 +274,7 @@ import StatsTable from '@shared/components/table/StatsTable.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
+import { SAVED_EVENT_TYPE_KEY } from '@/services/events/EventLinkQuery';
 import '@shared/styles/shared-components.css';
 
 // Props definition
@@ -499,7 +500,7 @@ const viewEventDetails = (node: EventType) => {
     };
 
     // Store the event type in localStorage for the Events page to pick up
-    localStorage.setItem('selectedEventType', JSON.stringify(eventTypeParam));
+    localStorage.setItem(SAVED_EVENT_TYPE_KEY, JSON.stringify(eventTypeParam));
 
     // Navigate to the events page
     router.push(`/profiles/${profileId}/events`);

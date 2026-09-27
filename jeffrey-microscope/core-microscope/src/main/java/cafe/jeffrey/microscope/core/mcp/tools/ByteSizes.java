@@ -24,7 +24,7 @@ import java.util.Locale;
  * megabytes, one decimal from gigabytes, because that is the precision a reader deciding whether to
  * transfer a file needs and no more.
  */
-final class ByteSizes {
+public final class ByteSizes {
 
     private static final long KIB = 1024;
     private static final long MIB = KIB * 1024;
@@ -33,7 +33,7 @@ final class ByteSizes {
     private ByteSizes() {
     }
 
-    static String format(Long bytes) {
+    public static String format(Long bytes) {
         if (bytes == null) {
             return "";
         }

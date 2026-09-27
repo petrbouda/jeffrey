@@ -87,7 +87,7 @@ const productTabs: ProductTab[] = [
       { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
       { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
       { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
-      { icon: 'bi-stars', title: 'Microscope MCP', desc: 'Analyse profiles from Claude Code, Codex or Gemini CLI in your own repository.' },
+      { icon: 'bi-stars', title: 'Microscope MCP', desc: 'Analyse profiles in your own repository from an agent that speaks MCP 2026-07-28: Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its mcp_2026_07_28 flag on.' },
       { icon: 'bi-plug', title: 'Connect to Hub', desc: 'Pull recordings, artifacts & application\'s lifecycle directly via gRPC.' },
       { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' }
     ],

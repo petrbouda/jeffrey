@@ -20,6 +20,11 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.hub.client.DiscoveryClient;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
+import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.hub.HubSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.McpToolMetrics;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
@@ -27,10 +32,6 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorType;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.hub.HubAddress;
-import cafe.jeffrey.microscope.model.hub.HubInfo;
-import cafe.jeffrey.microscope.model.hub.HubSource;
 import io.grpc.Status;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
@@ -59,8 +60,9 @@ class McpDiagnosticsTest {
         when(repositories.findAllProfiles()).thenReturn(List.of(ready, building));
         when(hubs.findAll()).thenThrow(new AssertionError("Hub access is disabled"));
         var diagnostics = new McpDiagnostics(repositories, hubs,
-                new ExternalMcpProperties(true, false, false, Set.of(), "jfr"), Clock.systemUTC(), Duration.ofSeconds(1));
-        String text = diagnostics.json(tools, List.of(new McpToolMetrics.Sample("profiles_read", 2, 1, 40, 30, 60, 40)));
+                McpTestProperties.of(true, false, false, Set.of(), "jfr"),
+                Clock.systemUTC(), Duration.ofSeconds(1), McpSkillProvider.NONE);
+        String text = diagnostics.json(tools, List.of(new McpToolMetrics.Sample("profiles_read", 2, 1, 40, 30, 60, 40)), 0);
         var result = Json.readTree(text);
         assertEquals(2, result.path("profileReadiness").path("total").asInt());
         assertEquals(1, result.path("profileReadiness").path("ready").asInt());
@@ -82,8 +84,9 @@ class McpDiagnosticsTest {
         when(timeout.infoOrThrow()).thenThrow(Status.DEADLINE_EXCEEDED.withDescription("credential-secret").asRuntimeException());
         when(hubs.findAll()).thenReturn(List.of(ready, unavailable, timeout));
         var diagnostics = new McpDiagnostics(repositories, hubs,
-                new ExternalMcpProperties(true, true, false, Set.of()), Clock.systemUTC(), Duration.ofSeconds(1));
-        String text = diagnostics.json(tools, List.of());
+                McpTestProperties.of(true, true, false, Set.of()),
+                Clock.systemUTC(), Duration.ofSeconds(1), McpSkillProvider.NONE);
+        String text = diagnostics.json(tools, List.of(), 0);
         var result = Json.readTree(text).path("hubs");
         assertEquals(1, result.path("reachable").asInt());
         assertEquals(1, result.path("unreachable").asInt());
@@ -107,9 +110,10 @@ class McpDiagnosticsTest {
         when(broken.infoOrThrow()).thenThrow(new IllegalStateException("unreachable"));
         when(hubs.findAll()).thenReturn(List.of(unavailable, broken));
         var diagnostics = new McpDiagnostics(repositories, hubs,
-                new ExternalMcpProperties(true, true, false, Set.of()), Clock.systemUTC(), Duration.ofSeconds(1));
+                McpTestProperties.of(true, true, false, Set.of()),
+                Clock.systemUTC(), Duration.ofSeconds(1), McpSkillProvider.NONE);
 
-        var result = Json.readTree(diagnostics.json(tools, List.of())).path("hubs");
+        var result = Json.readTree(diagnostics.json(tools, List.of(), 0)).path("hubs");
 
         assertEquals(0, result.path("reachable").asInt());
         assertEquals(1, result.path("unreachable").asInt());

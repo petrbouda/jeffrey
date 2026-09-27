@@ -16,21 +16,23 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolHints;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.profile.mcp.McpToolMeta;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.function.Predicate;
 
-/** Status and best-effort cancellation for one exact import, download or heap attempt. */
+/**
+ * Status and best-effort cancellation for one exact attempt: a recording import or analysis, a Hub
+ * download or file fetch, a heap preparation, a retained-size OQL query or an Auto Analysis run.
+ */
 public final class OperationsMcpTools {
     private final McpOperationRegistry operations;
     private final Predicate<OperationKind> allowedKind;
-
-    public OperationsMcpTools(McpOperationRegistry operations) {
-        this(operations, kind -> true);
-    }
 
     public OperationsMcpTools(McpOperationRegistry operations, Predicate<OperationKind> allowedKind) {
         this.operations = operations;
@@ -38,14 +40,26 @@ public final class OperationsMcpTools {
     }
 
     @McpToolHints(openWorld = true)
-    @Tool(description = "Read the status, progress, result and explicit retry instructions for one operationId returned by recording import, Hub download, Hub activity scan or heap preparation. Polling never starts work. IDs identify exact attempts and survive for one hour after completion in this process only; a server restart forgets them. Unobserved Hub activity handles also expire after one hour without a poll.")
-    public String status(@ToolParam(required = true, description = "Exact operationId returned by the starting tool") String operationId) {
-        return McpToolOutput.json(operations.status(operationId, allowedKind));
+    @Tool(description = "Reports the status, phase and progress, result and next call of one operationId "
+            + "returned by recordings_analyzeFile, recordings_analyzeRecording, hubs_download, "
+            + "hubs_fetchFile, heap_prepare, heap_oql with includeRetainedSize or jvm_autoAnalysis "
+            + "with compute. Times are UTC epoch milliseconds. Polling starts no work. An id "
+            + "identifies one exact attempt and lives for one hour after completion, in this process "
+            + "only; a server restart forgets it.")
+    @McpOutputSchema(McpOperationRegistry.Snapshot.class)
+    @McpToolMeta(cost = McpToolCost.CHEAP)
+    public McpToolResult status(@ToolParam(required = true, description = "Exact operationId returned by the starting tool") String operationId) {
+        return McpToolResult.of(operations.status(operationId, allowedKind));
     }
 
     @McpToolHints(readOnly = false, openWorld = true)
-    @Tool(description = "Request cancellation of one exact operationId. This is best effort: cancel_requested remains nonterminal while the worker or its cleanup is active, and prevents overlapping retries. Cancellation never rolls back files, profiles or cached reports already written. Repeating this request is safe; an old ID never cancels a newer attempt.")
-    public String cancel(@ToolParam(required = true, description = "Exact operationId to cancel") String operationId) {
-        return McpToolOutput.json(operations.cancel(operationId, allowedKind));
+    @Tool(description = "Requests cancellation of one exact operationId and answers with its snapshot. "
+            + "Best effort: CANCEL_REQUESTED stays nonterminal while the worker or its cleanup is "
+            + "active, and prevents an overlapping retry. Files, profiles and cached reports already "
+            + "written are not rolled back. Safe to repeat; an old id cannot cancel a newer attempt.")
+    @McpOutputSchema(McpOperationRegistry.Snapshot.class)
+    @McpToolMeta(cost = McpToolCost.CHEAP)
+    public McpToolResult cancel(@ToolParam(required = true, description = "Exact operationId to cancel") String operationId) {
+        return McpToolResult.of(operations.cancel(operationId, allowedKind));
     }
 }

@@ -17,12 +17,19 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
+import cafe.jeffrey.profile.mcp.McpNextToolConformance;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.JsonNode;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -37,10 +44,12 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,7 +104,7 @@ class HeapDiffMcpToolsTest {
     }
 
     private HeapDiffMcpTools tools() {
-        return new HeapDiffMcpTools(profileManager, baselineResolver);
+        return new HeapDiffMcpTools(profileManager, baselineResolver, EVERY_FAMILY);
     }
 
     private static HeapSummary summary(long totalBytes, long totalInstances) {
@@ -122,6 +131,31 @@ class HeapDiffMcpToolsTest {
                 entry(CACHE_CLASS, 10, 10_000));
     }
 
+    /** The answer, checked against the schema the tool advertises, its link and its next calls. */
+    private static JsonNode conforming(McpToolResult result) {
+        JsonNode structured = result.structuredContent();
+        Class<? extends Record> schema = Arrays.stream(HeapDiffMcpTools.class.getMethods())
+                .filter(method -> method.getName().equals("diff"))
+                .findFirst()
+                .orElseThrow()
+                .getAnnotation(McpOutputSchema.class)
+                .value();
+        McpSchemaConformance.assertConforms(structured, McpSchemaGenerator.schemaOf(schema));
+        UiLinkRoutes.assertResolves(structured.get("uiLink").asString());
+        assertEquals(Json.toString(structured), result.text(), "the text is the record's own JSON");
+        McpNextToolConformance.assertFollowable(structured, HeapDumpMcpToolsTest.reachable());
+        return structured;
+    }
+
+    private static JsonNode call(JsonNode structured, String tool) {
+        for (JsonNode call : structured.get("followUp").get("nextTools")) {
+            if (call.get("tool").asString().equals(tool)) {
+                return call.get("arguments");
+            }
+        }
+        throw new AssertionError("no call to " + tool + " in " + structured);
+    }
+
     @Nested
     class Diff {
 
@@ -129,24 +163,39 @@ class HeapDiffMcpToolsTest {
         void ranksTheClassesThatGrewWithBothSidesOfTheirCounts() {
             twoIndexedDumps();
 
-            String out = tools().diff(BASELINE_ID, null);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
 
-            assertTrue(out.contains(SESSION_CLASS), out);
-            assertTrue(out.contains("\"countDelta\":400"), out);
-            assertTrue(out.contains("\"bytesDelta\":40000"), out);
-            assertTrue(out.contains("\"primaryCount\":500"), out);
-            assertTrue(out.contains("\"baselineCount\":100"), out);
+            assertEquals("OK", out.get("status").asString());
+            JsonNode first = out.get("classes").get(0);
+            assertEquals(SESSION_CLASS, first.get("className").asString());
+            assertEquals(400, first.get("countDelta").asLong());
+            assertEquals(40_000, first.get("bytesDelta").asLong());
+            assertEquals(500, first.get("primaryCount").asLong());
+            assertEquals(100, first.get("baselineCount").asLong());
+            assertEquals(SESSION_CLASS, call(out, "heap_browseClassInstances").get("className").asString());
         }
 
         @Test
         void carriesTheWholeDumpTotalsBesideThePerClassRows() {
             twoIndexedDumps();
 
-            String out = tools().diff(BASELINE_ID, null);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
 
-            assertTrue(out.contains("\"instanceCountDelta\":400"), out);
-            assertTrue(out.contains("\"shallowBytesDelta\":40000"), out);
-            assertTrue(out.contains("heap-dump/diff"), out);
+            assertEquals(400, out.get("instanceCountDelta").asLong());
+            assertEquals(40_000, out.get("shallowBytesDelta").asLong());
+            assertEquals(60_000, out.get("primaryDump").get("totalBytes").asLong());
+            assertEquals(0, out.get("primaryDump").get("takenAtEpochMs").asLong());
+        }
+
+        /** The diff page reads its baseline from the link, so the link opens this very comparison. */
+        @Test
+        void linksTheDiffPageWithTheBaseline() {
+            twoIndexedDumps();
+
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
+
+            assertTrue(out.get("uiLink").asString().endsWith("/profiles/" + PROFILE_ID + "/heap-dump/diff?baseline="
+                    + BASELINE_ID), out.toString());
         }
 
         /**
@@ -157,24 +206,25 @@ class HeapDiffMcpToolsTest {
         void keepsOnlyTheBiggestMoversWhenATopIsGiven() {
             twoIndexedDumps();
 
-            String out = tools().diff(BASELINE_ID, 1);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, 1));
 
-            assertTrue(out.contains(SESSION_CLASS), out);
-            assertFalse(out.contains(CACHE_CLASS), out);
+            assertEquals(1, out.get("classes").size());
+            assertEquals(SESSION_CLASS, out.get("classes").get(0).get("className").asString());
+            assertTrue(out.get("omittedClasses").isNull(), "a list at its cap cannot say what it left out");
         }
 
         /**
-         * Math.clamp refuses a lower bound above the value, so a zero has to become one rather than
-         * reaching HeapDumpDiffService, whose own check would turn it into a failure.
+         * One clamp convention across every tool: zero or below means the default rather than one
+         * class, and never reaches HeapDumpDiffService, whose own check would turn it into a failure.
          */
         @Test
-        void readsANonPositiveTopAsOne() {
+        void readsANonPositiveTopAsTheDefault() {
             twoIndexedDumps();
 
-            String out = tools().diff(BASELINE_ID, 0);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, 0));
 
-            assertTrue(out.contains(SESSION_CLASS), out);
-            assertFalse(out.contains(CACHE_CLASS), out);
+            assertEquals(2, out.get("classes").size());
+            assertEquals(0, out.get("omittedClasses").asInt());
         }
 
         @Test
@@ -221,10 +271,14 @@ class HeapDiffMcpToolsTest {
         void saysWhichProfilesAreHeapDumpsWhenThisOneIsNot() {
             when(primaryDump.heapDumpExists()).thenReturn(false);
 
-            String out = tools().diff(BASELINE_ID, null);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
 
-            assertTrue(out.contains("no heap dump to compare"), out);
-            assertTrue(out.contains("profiles_list"), out);
+            assertEquals("NO_HEAP_DUMP", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("no heap dump to compare"), out.toString());
+            assertTrue(out.get("primaryDump").isNull());
+            assertTrue(out.get("classes").isEmpty());
+            assertTrue(out.get("omittedClasses").isNull(), "nothing was compared, so nothing was left out");
+            call(out, "profiles_list");
             verify(baselineResolver, never()).apply(any());
         }
 
@@ -237,10 +291,11 @@ class HeapDiffMcpToolsTest {
             when(primaryDump.heapDumpExists()).thenReturn(true);
             when(primaryDump.isCacheReady()).thenReturn(false);
 
-            String out = tools().diff(BASELINE_ID, null);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
 
-            assertTrue(out.contains("still being indexed"), out);
-            assertFalse(out.contains("no heap dump to compare"), out);
+            assertEquals("NOT_INDEXED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("still being indexed"), out.toString());
+            assertEquals(PROFILE_ID, call(out, "heap_prepare").get("profileId").asString());
         }
 
         @Test
@@ -248,9 +303,11 @@ class HeapDiffMcpToolsTest {
             indexedDump(primaryDump, summary(60_000, 700), entry(SESSION_CLASS, 500, 50_000));
             when(baselineDump.heapDumpExists()).thenReturn(false);
 
-            String out = tools().diff(BASELINE_ID, null);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
 
-            assertTrue(out.contains("baseline profile '" + BASELINE_ID + "' has no heap dump"), out);
+            assertEquals("BASELINE_NO_HEAP_DUMP", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("baseline profile '" + BASELINE_ID + "' has no heap dump"),
+                    out.toString());
         }
 
         @Test
@@ -259,10 +316,12 @@ class HeapDiffMcpToolsTest {
             when(baselineDump.heapDumpExists()).thenReturn(true);
             when(baselineDump.isCacheReady()).thenReturn(false);
 
-            String out = tools().diff(BASELINE_ID, null);
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
 
-            assertTrue(out.contains("baseline profile " + BASELINE_ID), out);
-            assertTrue(out.contains("still being indexed"), out);
+            assertEquals("BASELINE_NOT_INDEXED", out.get("status").asString());
+            assertTrue(out.get("omittedClasses").isNull());
+            assertTrue(out.get("reason").asString().contains("baseline profile " + BASELINE_ID), out.toString());
+            assertEquals(BASELINE_ID, call(out, "heap_prepare").get("profileId").asString());
         }
     }
 }

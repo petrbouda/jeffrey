@@ -36,9 +36,12 @@ import static org.junit.Assert.assertTrue;
  */
 public class AgentRowTest {
 
-    private static final AgentCli CLAUDE = new AgentCli("Claude", "claude", AgentCli.PromptStyle.POSITIONAL);
-    private static final AgentCli CODEX = new AgentCli("Codex", "codex", AgentCli.PromptStyle.POSITIONAL);
-    private static final AgentCli GEMINI = new AgentCli("Gemini", "gemini", AgentCli.PromptStyle.INTERACTIVE_OPTION);
+    private static final AgentCli CLAUDE = new AgentCli(
+            "Claude", "claude", AgentCli.PromptStyle.POSITIONAL, AgentCli.EndpointStyle.MCP_CONFIG_OPTION);
+    private static final AgentCli CODEX = new AgentCli(
+            "Codex", "codex", AgentCli.PromptStyle.POSITIONAL, AgentCli.EndpointStyle.CONFIG_OVERRIDE_OPTION);
+    private static final AgentCli GEMINI = new AgentCli(
+            "Gemini", "gemini", AgentCli.PromptStyle.INTERACTIVE_OPTION, AgentCli.EndpointStyle.ENVIRONMENT_VARIABLE);
 
     @Test
     public void thePreferredAgentWinsWhenItIsInstalled() {

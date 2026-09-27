@@ -148,7 +148,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
         // Track slow requests up to the limit
         JdbcSlowStatement slowRequest = new JdbcSlowStatement(
-                startTime, sql, group, name, record.typeLabel(),
+                startTime, sql, name, group, record.typeLabel(),
                 executionTime, processedRows, params, isSuccess, isBatch, isLob);
 
         if (slowRequests.size() < slowRequestLimit) {

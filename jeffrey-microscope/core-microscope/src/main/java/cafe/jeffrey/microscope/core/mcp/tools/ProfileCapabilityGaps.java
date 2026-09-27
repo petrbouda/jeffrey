@@ -18,13 +18,14 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.Type;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,9 +54,14 @@ final class ProfileCapabilityGaps {
     /**
      * @param subject what is missing, as a short handle — a feature, a flamegraph group, a jvm_ section
      * @param gap     what the recording lacks and which tools that leaves empty
-     * @param remedy  what would close the gap in the next recording, or how to read around it
+     * @param remedy  what would close the gap in the next recording, or how to read around it; null
+     *                when there is nothing to suggest
      */
-    record CapabilityGap(String subject, String gap, String remedy) {
+    record CapabilityGap(
+            String subject,
+            String gap,
+            @McpNullable
+            String remedy) {
     }
 
     private record FeatureGap(String gap, String remedy) {
@@ -65,7 +71,6 @@ final class ProfileCapabilityGaps {
     private static final String SUBJECT_HEAP_DUMP = "heapDump";
     private static final String SUBJECT_SAMPLER = "sampler";
     private static final String SUBJECT_AUTO_ANALYSIS = "autoAnalysis";
-    private static final String JVM_TOOL_PREFIX = "jvm_";
     private static final String EVENT_TYPE_SEPARATOR = ", ";
 
     private static final String REMEDY_INSTRUMENT =
@@ -116,8 +121,13 @@ final class ProfileCapabilityGaps {
                     + "usable, so this is a run that failed.";
     private static final String AUTO_ANALYSIS_MISSING_REMEDY =
             "jvm_autoAnalysis with compute true runs it now; it reads the whole recording, which takes a while.";
+    /**
+     * {@code canGenerate()} is false for any profile without a JFR file to read: one whose file was
+     * removed, and one that never had one -- a pprof or OTLP import, or a profile with no recording.
+     */
     private static final String AUTO_ANALYSIS_IMPOSSIBLE_REMEDY =
-            "The recording file is no longer available to Jeffrey, so the rules cannot be run for this profile.";
+            "The rules cannot be run: no JFR recording file is available for this profile: it was removed, "
+                    + "or the profile was not imported from a JFR recording.";
 
     private static final double PERCENT = 100.0;
 
@@ -271,7 +281,7 @@ final class ProfileCapabilityGaps {
             if (section.available() || !reported.add(section.eventTypes())) {
                 continue;
             }
-            String tool = JVM_TOOL_PREFIX + section.id();
+            String tool = section.tool();
             gaps.add(new CapabilityGap(
                     tool,
                     JVM_SECTION_GAP.formatted(

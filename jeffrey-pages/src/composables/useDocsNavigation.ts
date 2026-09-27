@@ -243,7 +243,7 @@ export const microscopeNavigation: DocSection[] = [
 
 export const microscopeMcpNavigation: DocSection[] = [
   // Standalone product section for the MCP integration — the server that lets an outside coding
-  // agent (Claude Code, Codex, anything that speaks MCP) read the profiles this Microscope has
+  // agent (anything that speaks MCP 2026-07-28) read the profiles this Microscope has
   // analysed. Single-page entries use synthetic `_` paths with absolute `to:` children; groups
   // render as collapsible sections.
   {

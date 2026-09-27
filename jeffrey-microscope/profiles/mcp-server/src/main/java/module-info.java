@@ -15,14 +15,18 @@
  * limitations under the License.
  */
 
+/**
+ * Jeffrey's MCP adapter over the protocol module: the Spring MVC boundary, {@code @Tool} reflection,
+ * profile scoping, the tool hints and the finding convention.
+ */
 module cafe.jeffrey.microscope.profile.mcp {
+    requires transitive cafe.jeffrey.microscope.mcp.protocol;
     requires cafe.jeffrey.shared.common;
     requires cafe.jeffrey.jfr.events;
 
     requires spring.ai.model;
     requires spring.web;
     requires tools.jackson.databind;
-    requires org.slf4j;
 
     exports cafe.jeffrey.profile.mcp;
     exports cafe.jeffrey.profile.mcp.finding;

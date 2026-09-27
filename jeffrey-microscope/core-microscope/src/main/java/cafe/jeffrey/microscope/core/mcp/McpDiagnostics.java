@@ -18,14 +18,14 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.McpToolMetrics;
-import cafe.jeffrey.profile.mcp.McpToolProvider;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -48,8 +48,16 @@ public final class McpDiagnostics {
     private final ExternalMcpProperties properties;
     private final Clock clock;
     private final HubSessionScan scan;
+    private final boolean servesSkills;
+
+    /**
+     * @param skills the skills the endpoint serves; the server block reports the extension when it
+     *               holds at least one, as {@code server/discover} declares it
+     */
     public McpDiagnostics(MicroscopeCoreRepositories repositories, HubsManager hubs,
-                          ExternalMcpProperties properties, Clock clock, Duration probeBudget) {
+                          ExternalMcpProperties properties, Clock clock, Duration probeBudget,
+                          McpSkillProvider skills) {
+        this.servesSkills = skills.servesAny();
         this.repositories = repositories;
         this.hubs = hubs;
         this.properties = properties;
@@ -57,13 +65,9 @@ public final class McpDiagnostics {
         this.scan = new HubSessionScan(hubs, probeBudget);
     }
 
-    public String json(McpToolProvider tools, List<McpToolMetrics.Sample> metrics) {
-        return json(tools, metrics, 0);
-    }
-
     public String json(McpToolProvider tools, List<McpToolMetrics.Sample> metrics, long omittedMetricCalls) {
         ObjectNode result = Json.createObject().put("schemaVersion", 1).put("observedAt", clock.instant().toString());
-        result.set("server", Json.readTree(new McpServerInfo(properties, tools).json()));
+        result.set("server", Json.readTree(new McpServerInfo(properties, tools, servesSkills).json()));
         List<ProfileInfo> profiles = repositories.findAllProfiles();
         long ready = profiles.stream().filter(ProfileInfo::enabled).count();
         result.putObject("profileReadiness").put("total", profiles.size()).put("ready", ready)
@@ -85,7 +89,9 @@ public final class McpDiagnostics {
         result.set("toolMetrics", Json.toTree(metrics));
         result.put("metricsCapped", omittedMetricCalls > 0).put("omittedMetricCalls", omittedMetricCalls);
         result.put("metricsScope", "This endpoint process; completed dispatched calls only, aggregated per advertised tool. Duration is nanoseconds; output size is UTF-8 bytes of the MCP result envelope. At most 256 tool names are retained.");
-        return McpToolOutput.json(result);
+        // Bounded by construction - counts, and at most 256 tool metrics, with metricsCapped and
+        // omittedMetricCalls declaring the cut - so it is written whole, like every structured answer.
+        return Json.toString(result);
     }
 
     /** How many probes failed the given way, classified by the scan itself rather than by its wording. */

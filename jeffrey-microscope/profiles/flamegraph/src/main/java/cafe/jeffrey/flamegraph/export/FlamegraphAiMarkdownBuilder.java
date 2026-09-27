@@ -23,6 +23,7 @@ import cafe.jeffrey.microscope.model.Type;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -173,6 +174,11 @@ public final class FlamegraphAiMarkdownBuilder {
               checkout in front of you.
             - The list is plain CommonMark — every line is `- <stuff>` at
               some indentation. Render it as a tree.
+            - When the header carries `search_pattern`, every frame whose
+              name matches it ends with `«match»`, `search_matches` gives
+              the samples under the outermost matching frames and their
+              share of the total, and every frame on a path to a match is
+              kept even when it is below the prune threshold.
 
             ## What you can do with this
 
@@ -194,7 +200,58 @@ public final class FlamegraphAiMarkdownBuilder {
             ---
             """;
 
+    private static final String SUMMARY_PREAMBLE = """
+            # How to read this summary
+
+            This document is a **summary** of one flamegraph exported by Jeffrey
+            (a JVM performance analyst): the first look, not the whole call tree.
+            Ask for `detail: standard` (the pruned tree) or `detail: full` (a
+            finer one) when a path needs walking.
+
+            - **Header (YAML-ish)** — event type, unit, totals and filters.
+            - **Top frames by self** — the methods where the samples (or, on a
+              weighted event type, the bytes or nanoseconds) stopped, summed
+              across every path the method was called from, heaviest first:
+
+                  N. <method> [<type-tag>] — self <selfSamples> (<self%>)[ · self <selfWeight> (<weight%>)]
+
+            - **Top paths by self** — the complete stacks that ended in the most
+              self, each written leaf first: the first bullet is where the time
+              was spent, every next one called the bullet above it. A long stack
+              is cut after its leaf-most frames and says how many callers it
+              left out.
+
+            The type tag is the tree export's: `[C2]`, `[C1]`, `[INT]`, `[INL]`,
+            a mixed `[C1: …, C2: …]`, `[NATIVE]`, `[CPP]`, `[KERNEL]`,
+            `[UNKNOWN]` or `[SYNTHETIC]`. On a weighted event type order and read by
+            the weight clause. A frame that matched `search_pattern` ends with
+            `«match»`. A method absent here had little self; it may still hold a
+            large total through its callees, which only the tree shows.
+
+            ---
+            """;
+
     private static final String ANALYSIS_HEADING = "## How to analyze this profile";
+    private static final String TOP_FRAMES_HEADING = "## Top frames by self";
+    private static final String TOP_PATHS_HEADING = "## Top paths by self";
+    private static final String NO_SELF_NOTE = "(no samples)";
+    private static final String DETAIL_HEADER = "detail";
+    private static final String PRUNE_THRESHOLD_HEADER = "prune_threshold_pct";
+    private static final String DETAIL_SUMMARY = "summary";
+    private static final String PATH_INDENT = "   ";
+    private static final String MORE_CALLERS = "… %d more callers";
+
+    /** How many methods the summary lists by self. */
+    private static final int SUMMARY_TOP_FRAMES = 25;
+
+    /** How many complete stacks the summary lists. */
+    private static final int SUMMARY_TOP_PATHS = 10;
+
+    /**
+     * How many frames of one summary path are written, leaf first. The leaf-most frames say where the
+     * time went; a framework's outer fifty say only that a request was being served.
+     */
+    private static final int SUMMARY_PATH_FRAMES = 15;
     private static final String TREE_HEADING = "## Call tree";
     private static final String ROOT_LABEL = "[root]";
     private static final String EMPTY_TREE_NOTE = "(empty tree — no samples above the prune threshold)";
@@ -219,11 +276,17 @@ public final class FlamegraphAiMarkdownBuilder {
 
     private static final String WEIGHT_SEPARATOR = " · ";
 
+    private static final String SEARCH_PATTERN_HEADER = "search_pattern";
+    private static final String SEARCH_MATCHES_HEADER = "search_matches";
+    private static final String MATCH_MARKER = " «match»";
+
     private final Type eventType;
     private final AiExportConfig config;
     private final WeightContext ctx;
     private final AnalysisCategory category;
     private final List<HeaderField> extraHeaderFields = new ArrayList<>();
+    private String searchPattern;
+    private FrameSearch search;
 
     public FlamegraphAiMarkdownBuilder(Type eventType, AiExportConfig config) {
         this.eventType = eventType;
@@ -253,7 +316,22 @@ public final class FlamegraphAiMarkdownBuilder {
         return this;
     }
 
+    /**
+     * Marks the frames matching this pattern — a regular expression as the UI's flamegraph search
+     * reads it, or a literal substring — and keeps every frame on a path to one, however small. Blank
+     * means no search.
+     */
+    public FlamegraphAiMarkdownBuilder withSearchPattern(String searchPattern) {
+        this.searchPattern = searchPattern;
+        return this;
+    }
+
     public String build(Frame root) {
+        this.search = FrameSearch.of(searchPattern, root);
+        return config.view() == AiExportView.SUMMARY ? buildSummary(root) : buildTree(root);
+    }
+
+    private String buildTree(Frame root) {
         long totalSamples = root.totalSamples();
         long totalWeight = root.totalWeight();
         // The threshold is a share of what the profile measures: weight when the event carries
@@ -263,10 +341,126 @@ public final class FlamegraphAiMarkdownBuilder {
         StringBuilder out = new StringBuilder(8192);
         out.append(AI_PREAMBLE).append('\n');
         renderHeader(out, totalSamples, totalWeight);
+        out.append(PRUNE_THRESHOLD_HEADER).append(": ").append(config.minFrameThresholdPct());
+        renderSearchHeader(out, totalSamples);
         out.append('\n').append('\n');
         renderAnalysisInstruction(out);
         renderTree(out, root, totalSamples, minMeasure);
         return out.toString();
+    }
+
+    private String buildSummary(Frame root) {
+        long totalSamples = root.totalSamples();
+        long totalWeight = root.totalWeight();
+
+        StringBuilder out = new StringBuilder(4096);
+        out.append(SUMMARY_PREAMBLE).append('\n');
+        renderHeader(out, totalSamples, totalWeight);
+        out.append(DETAIL_HEADER).append(": ").append(DETAIL_SUMMARY);
+        renderSearchHeader(out, totalSamples);
+        out.append('\n').append('\n');
+        renderAnalysisInstruction(out);
+
+        List<Frame> nodes = new ArrayList<>();
+        collectSelfNodes(root, nodes);
+        renderTopFrames(out, nodes, root);
+        out.append('\n');
+        renderTopPaths(out, nodes, root);
+        return out.toString();
+    }
+
+    /** Every frame below the root that some sample ended in. */
+    private void collectSelfNodes(Frame frame, List<Frame> nodes) {
+        for (Frame child : frame.values()) {
+            if (selfMeasure(child) > 0 || child.selfSamples() > 0) {
+                nodes.add(child);
+            }
+            collectSelfNodes(child, nodes);
+        }
+    }
+
+    private void renderTopFrames(StringBuilder out, List<Frame> nodes, Frame root) {
+        out.append(TOP_FRAMES_HEADING).append('\n').append('\n');
+        Map<String, SelfTotal> byMethod = new LinkedHashMap<>();
+        for (Frame node : nodes) {
+            byMethod.computeIfAbsent(node.methodName(), SelfTotal::new).add(node, selfMeasure(node));
+        }
+        List<SelfTotal> ranked = new ArrayList<>(byMethod.values());
+        ranked.sort(Comparator.comparingLong(SelfTotal::measure)
+                .thenComparingLong(SelfTotal::samples)
+                .reversed()
+                .thenComparing(SelfTotal::name));
+        if (ranked.isEmpty()) {
+            out.append(NO_SELF_NOTE).append('\n');
+            return;
+        }
+        int rank = 0;
+        for (SelfTotal total : ranked.subList(0, Math.min(SUMMARY_TOP_FRAMES, ranked.size()))) {
+            rank++;
+            out.append(rank).append(". ").append(sanitizeFrame(total.name()));
+            out.append(" [").append(resolveTypeTag(total.heaviest())).append(']');
+            out.append(DASH_SEPARATOR).append("self ").append(total.samples());
+            out.append(" (").append(formatPercent(total.samples(), root.totalSamples())).append(')');
+            if (ctx.weighted()) {
+                out.append(WEIGHT_SEPARATOR).append("self ").append(ctx.valueFormatter().apply(total.weight()));
+                out.append(" (").append(formatPercent(total.weight(), root.totalWeight())).append(')');
+            }
+            if (search.matches(total.name())) {
+                out.append(MATCH_MARKER);
+            }
+            out.append('\n');
+        }
+    }
+
+    private void renderTopPaths(StringBuilder out, List<Frame> nodes, Frame root) {
+        out.append(TOP_PATHS_HEADING).append('\n').append('\n');
+        List<Frame> ranked = new ArrayList<>(nodes);
+        ranked.sort(Comparator.<Frame>comparingLong(this::selfMeasure)
+                .thenComparingLong(Frame::selfSamples)
+                .reversed());
+        if (ranked.isEmpty()) {
+            out.append(NO_SELF_NOTE).append('\n');
+            return;
+        }
+        int rank = 0;
+        for (Frame leaf : ranked.subList(0, Math.min(SUMMARY_TOP_PATHS, ranked.size()))) {
+            rank++;
+            out.append(rank).append(". self ").append(leaf.selfSamples());
+            out.append(" (").append(formatPercent(leaf.selfSamples(), root.totalSamples())).append(')');
+            if (ctx.weighted()) {
+                out.append(WEIGHT_SEPARATOR).append(ctx.valueFormatter().apply(leaf.selfWeight()));
+                out.append(" (").append(formatPercent(leaf.selfWeight(), root.totalWeight())).append(')');
+            }
+            out.append('\n');
+            renderPathLeafFirst(out, leaf);
+        }
+    }
+
+    private void renderPathLeafFirst(StringBuilder out, Frame leaf) {
+        int written = 0;
+        int omitted = 0;
+        for (Frame frame = leaf; frame.parent() != null; frame = frame.parent()) {
+            if (written == SUMMARY_PATH_FRAMES) {
+                omitted++;
+                continue;
+            }
+            out.append(PATH_INDENT).append(BULLET_PREFIX).append(sanitizeFrame(frame.methodName()));
+            appendSourceLine(out, frame);
+            out.append(" [").append(resolveTypeTag(frame)).append(']');
+            if (search.matches(frame.methodName())) {
+                out.append(MATCH_MARKER);
+            }
+            out.append('\n');
+            written++;
+        }
+        if (omitted > 0) {
+            out.append(PATH_INDENT).append(BULLET_PREFIX).append(MORE_CALLERS.formatted(omitted)).append('\n');
+        }
+    }
+
+    /** What a frame's own share is measured by: its self weight on a weighted profile. */
+    private long selfMeasure(Frame frame) {
+        return ctx.weighted() ? frame.selfWeight() : frame.selfSamples();
     }
 
     /** What a frame is measured by for pruning and ordering: its weight on a weighted profile. */
@@ -295,7 +489,15 @@ public final class FlamegraphAiMarkdownBuilder {
         for (HeaderField field : extraHeaderFields) {
             out.append(field.key()).append(": ").append(field.value()).append('\n');
         }
-        out.append("prune_threshold_pct: ").append(config.minFrameThresholdPct());
+    }
+
+    private void renderSearchHeader(StringBuilder out, long totalSamples) {
+        if (!search.active()) {
+            return;
+        }
+        out.append('\n').append(SEARCH_PATTERN_HEADER).append(": ").append(search.pattern());
+        out.append('\n').append(SEARCH_MATCHES_HEADER).append(": ").append(search.matchedSamples())
+                .append(" (").append(formatPercent(search.matchedSamples(), totalSamples)).append(')');
     }
 
     private void renderTree(StringBuilder out, Frame root, long totalSamples, long minMeasure) {
@@ -358,6 +560,9 @@ public final class FlamegraphAiMarkdownBuilder {
         if (ctx.weighted()) {
             renderWeightClause(out, frame, root, minMeasure);
         }
+        if (search.matches(name)) {
+            out.append(MATCH_MARKER);
+        }
         out.append('\n');
 
         for (Map.Entry<String, Frame> entry : survivingChildrenSorted(frame, minMeasure)) {
@@ -384,7 +589,7 @@ public final class FlamegraphAiMarkdownBuilder {
     private List<Map.Entry<String, Frame>> survivingChildrenSorted(Frame frame, long minMeasure) {
         List<Map.Entry<String, Frame>> survivors = new ArrayList<>();
         for (Map.Entry<String, Frame> entry : frame.entrySet()) {
-            if (measure(entry.getValue()) >= minMeasure) {
+            if (survives(entry.getValue(), minMeasure)) {
                 survivors.add(entry);
             }
         }
@@ -394,10 +599,15 @@ public final class FlamegraphAiMarkdownBuilder {
         return survivors;
     }
 
+    /** A frame is kept when it is heavy enough, or when it leads to a search match. */
+    private boolean survives(Frame frame, long minMeasure) {
+        return measure(frame) >= minMeasure || search.leadsToMatch(frame);
+    }
+
     private long prunedTailSamples(Frame frame, long minMeasure) {
         long pruned = 0;
         for (Frame child : frame.values()) {
-            if (measure(child) < minMeasure) {
+            if (!survives(child, minMeasure)) {
                 pruned += child.totalSamples();
             }
         }
@@ -407,7 +617,7 @@ public final class FlamegraphAiMarkdownBuilder {
     private long prunedTailWeight(Frame frame, long minMeasure) {
         long pruned = 0;
         for (Frame child : frame.values()) {
-            if (measure(child) < minMeasure) {
+            if (!survives(child, minMeasure)) {
                 pruned += child.totalWeight();
             }
         }
@@ -519,6 +729,53 @@ public final class FlamegraphAiMarkdownBuilder {
     }
 
     private record HeaderField(String key, String value) {
+    }
+
+    /**
+     * One method's self, summed over every node it appears at, and the node holding the most of it —
+     * whose tier tag stands for the method, since a tag is a property of one node's samples.
+     */
+    private static final class SelfTotal {
+        private final String name;
+        private long measure;
+        private long samples;
+        private long weight;
+        private Frame heaviest;
+        private long heaviestMeasure = -1;
+
+        private SelfTotal(String name) {
+            this.name = name;
+        }
+
+        private void add(Frame node, long nodeMeasure) {
+            measure += nodeMeasure;
+            samples += node.selfSamples();
+            weight += node.selfWeight();
+            if (nodeMeasure > heaviestMeasure) {
+                heaviest = node;
+                heaviestMeasure = nodeMeasure;
+            }
+        }
+
+        String name() {
+            return name;
+        }
+
+        long measure() {
+            return measure;
+        }
+
+        long samples() {
+            return samples;
+        }
+
+        long weight() {
+            return weight;
+        }
+
+        Frame heaviest() {
+            return heaviest;
+        }
     }
 
 }

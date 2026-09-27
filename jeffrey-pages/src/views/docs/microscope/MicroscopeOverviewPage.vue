@@ -74,7 +74,7 @@ onMounted(() => {
         <div class="value-tile tile-mcp">
           <div class="value-icon"><i class="bi bi-plug"></i></div>
           <h3>Microscope MCP</h3>
-          <p>Analyse every profile from a Claude Code, Codex or Gemini CLI session in your own repository — the agent reads the profile and the source side by side.</p>
+          <p>Analyse every profile from a coding agent in your own repository that speaks MCP 2026-07-28 — Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its <code>mcp_2026_07_28</code> flag on. The agent reads the profile and the source side by side.</p>
         </div>
       </section>
 

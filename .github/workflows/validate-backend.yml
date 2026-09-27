@@ -92,7 +92,9 @@ jobs:
 
       - name: Check plugin contracts against backend defaults
         if: matrix.component == 'Microscope'
-        run: python3 build/scripts/validate-agent-plugin.py .
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq python3-yaml
+          python3 build/scripts/validate-agent-plugin.py .
 
       - name: Upload test reports
         if: always()

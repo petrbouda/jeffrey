@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
+import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.classloading.ClassLoadActivity;
 import cafe.jeffrey.profile.manager.model.classloading.ClassLoaderStat;
 import cafe.jeffrey.profile.manager.model.classloading.ClassLoadingOverview;
 import cafe.jeffrey.profile.manager.model.classloading.RedefinitionData;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
 
 import java.util.List;
 import java.util.Set;
@@ -38,7 +44,7 @@ import java.util.Set;
  * The slowest individual loads come from {@code jdk.ClassLoad}, which is off by default because it
  * fires per class; its absence is reported rather than shown as no slow loads.
  */
-public record ClassLoadingSection(ProfileManager profileManager) implements JvmSection {
+public record ClassLoadingSection(ProfileManager profileManager) implements JvmSection<ClassLoadingSection.ClassLoadingDashboard> {
 
     public static final String ID = "classLoading";
 
@@ -58,14 +64,15 @@ public record ClassLoadingSection(ProfileManager profileManager) implements JvmS
             Type.CLASS_REDEFINITION,
             Type.RETRANSFORM_CLASSES);
 
-    private static final List<String> NEXT_STEPS = List.of(
-            "Metaspace held by loaders that should have gone away is a heap-dump question: "
-                    + "heap_getClassLoaderLeakChains names the loader and the GC-root path keeping it "
-                    + "alive, on a profile that has a dump.",
-            "Loading dominates start-up rather than steady state, so compare a window against the whole "
-                    + "recording with timeline_hotWindows before concluding it matters.",
+    private static final String LOADER_LEAK_WHY =
+            "names a class loader that should have gone away and the GC-root path keeping it, on a "
+                    + "profile that has an indexed heap dump";
+    private static final String START_UP_WHY =
+            "shows whether the CPU concentrates in the start-up window, where loading happens, before "
+                    + "concluding that loading matters";
+    private static final String AGENT_GUIDANCE =
             "Redefinitions and retransforms come from an agent. Their count climbing during a run means "
-                    + "something is instrumenting continuously, which costs both time and metaspace.");
+                    + "something is instrumenting continuously, which costs both time and metaspace.";
 
     @Override
     public String id() {
@@ -83,15 +90,26 @@ public record ClassLoadingSection(ProfileManager profileManager) implements JvmS
     }
 
     @Override
-    public List<String> nextSteps() {
-        return NEXT_STEPS;
+    public MicroscopeView view() {
+        return MicroscopeView.CLASS_LOADING;
     }
 
     @Override
-    public Object render() {
+    public void followUp(NextSteps.Builder next, ClassLoadingDashboard dashboard) {
+        String profileId = profileManager.info().id();
+        next.next(SectionCalls.on(SectionCalls.HEAP_CLASS_LOADER_LEAK_CHAINS, profileId).why(LOADER_LEAK_WHY));
+        SectionCalls.onCpu(next, profileManager, eventType -> SectionCalls.on(SectionCalls.TIMELINE_HOT_WINDOWS, profileId)
+                .with(SectionCalls.EVENT_TYPE, eventType)
+                .why(START_UP_WHY));
+        next.guidanceWhen(!dashboard.redefinitions().isEmpty(), AGENT_GUIDANCE);
+    }
+
+    @Override
+    public ClassLoadingDashboard render() {
         ClassLoadingOverview overview = profileManager.classLoadingManager().overview();
         ClassLoadActivity activity = profileManager.classLoadingManager().classLoadActivity();
         RedefinitionData redefinitions = profileManager.classLoadingManager().redefinitions();
+        List<ClassLoaderStat> loaders = profileManager.classLoadingManager().classLoaders();
 
         return new ClassLoadingDashboard(
                 overview.currentlyLoaded(),
@@ -101,14 +119,15 @@ public record ClassLoadingSection(ProfileManager profileManager) implements JvmS
                 overview.metaspaceUsedBytes(),
                 overview.hiddenClassCount(),
                 overview.hasClassLoadEvents(),
-                loaders(),
+                loaders(loaders),
+                Math.max(0, loaders.size() - LOADERS_LIMIT),
                 activity.totalCount(),
                 slowestLoads(activity),
                 redefinitions(redefinitions));
     }
 
-    private List<Loader> loaders() {
-        return profileManager.classLoadingManager().classLoaders().stream()
+    private static List<Loader> loaders(List<ClassLoaderStat> loaders) {
+        return loaders.stream()
                 .limit(LOADERS_LIMIT)
                 .map(ClassLoadingSection::loader)
                 .toList();
@@ -144,7 +163,7 @@ public record ClassLoadingSection(ProfileManager profileManager) implements JvmS
      * @param slowLoadsRecorded false when jdk.ClassLoad was not captured, which is the usual case and
      *                          is why an empty slowestLoads list is not evidence that loading was fast
      */
-    private record ClassLoadingDashboard(
+    public record ClassLoadingDashboard(
             long currentlyLoaded,
             long totalLoaded,
             long totalUnloaded,
@@ -152,19 +171,60 @@ public record ClassLoadingSection(ProfileManager profileManager) implements JvmS
             long metaspaceUsedBytes,
             long hiddenClassCount,
             boolean slowLoadsRecorded,
+            @McpDescription("The " + LOADERS_LIMIT + " class loaders holding the most classes")
             List<Loader> loaders,
+            @McpDescription("How many further class loaders the list leaves out")
+            int omittedLoaders,
             long classLoadEvents,
+            @McpDescription("The " + SLOWEST_LOADS_LIMIT + " slowest class loads, out of classLoadEvents")
             List<SlowLoad> slowestLoads,
+            @McpDescription("The first " + REDEFINITIONS_LIMIT + " redefined classes")
             List<Redefinition> redefinitions) {
     }
 
-    private record Loader(
-            String name, String parentName, long classCount, long metaspaceBytes, long hiddenClassCount) {
+    public record Loader(
+            @McpNullable
+            String name,
+            @McpNullable
+            String parentName, long classCount, long metaspaceBytes, long hiddenClassCount) {
     }
 
-    private record SlowLoad(String className, double durationMillis, String definingClassLoader) {
+    public record SlowLoad(
+            @McpNullable
+            String className,
+            double durationMs,
+            @McpNullable
+            String definingClassLoader) {
     }
 
-    private record Redefinition(String className, int modificationCount) {
+    public record Redefinition(
+            @McpNullable
+            String className,
+            int modificationCount) {
+    }
+
+    /**
+     * What {@code jvm_classLoading} answers: the envelope every section shares, around this section's dashboard.
+     */
+    public record Answer(
+            SectionStatus status,
+            @McpNullable
+            @McpDescription(SectionHeader.REASON)
+            String reason,
+            String profileId,
+            @McpDescription(SectionHeader.SECTION)
+            String section,
+            String title,
+            @McpNullable
+            @McpDescription(SectionHeader.DASHBOARD)
+            ClassLoadingDashboard dashboard,
+            McpFollowUp followUp,
+            @McpDescription(SectionHeader.UI_LINK)
+            String uiLink) {
+
+        public static Answer of(SectionHeader header, ClassLoadingDashboard dashboard) {
+            return new Answer(header.status(), header.reason(), header.profileId(), header.section(),
+                    header.title(), dashboard, header.followUp(), header.uiLink());
+        }
     }
 }

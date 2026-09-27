@@ -36,6 +36,12 @@ import java.util.function.Function;
  */
 public interface BlockingManager {
 
+    /**
+     * How many of the longest pinning incidents {@link #pinnedThreads()} keeps. A caller that shows
+     * fewer can count what it left out only while the list is shorter than this.
+     */
+    int PINNED_THREADS_KEPT = 100;
+
     @FunctionalInterface
     interface Factory extends Function<ProfileInfo, BlockingManager> {
     }
@@ -62,7 +68,7 @@ public interface BlockingManager {
     List<ContentionStat> threadParks();
 
     /**
-     * Longest virtual-thread pinning incidents.
+     * Longest virtual-thread pinning incidents, at most {@link #PINNED_THREADS_KEPT} of them.
      */
     List<PinnedThreadEntry> pinnedThreads();
 

@@ -255,7 +255,7 @@ onMounted(() => {
             <td><code>true</code></td>
             <td>
               Serves the MCP endpoint at <code>/api/mcp</code>, which an external coding-agent
-              session &mdash; Claude Code, Codex, Gemini CLI, anything that speaks MCP &mdash; reads profiles through. Set to <code>false</code> to make it answer
+              session that speaks MCP <code>2026-07-28</code> &mdash; Claude Code on its v2 MCP runtime, Codex v0.147.0+ with its <code>mcp_2026_07_28</code> flag on, any other client once it supports that revision &mdash; reads profiles through. Set to <code>false</code> to make it answer
               <code>404</code>. Read at startup, so a change takes a restart. See
               <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
             </td>
@@ -272,11 +272,33 @@ onMounted(() => {
               replaces the default rather than adding to it, so keep the loopback names any client still
               uses. It has to be widened whenever a client dials anything but loopback: an agent in a
               devcontainer reaching the host as <code>host.docker.internal</code>, or a machine on the LAN
-              dialling this one by name. Behind a reverse proxy, name the hostname clients dial and set Spring Boot's
-              <code>server.forward-headers-strategy</code> so the request carries the public scheme, host
-              and port &mdash; the check reads the servlet request, never <code>X-Forwarded-*</code>
-              directly. Read at startup. See
+              dialling this one by name. Behind a reverse proxy, name the hostname clients dial and either
+              turn on <code>jeffrey.microscope.mcp.trust-forwarded-headers</code> or set Spring Boot's
+              <code>server.forward-headers-strategy</code>. Read at startup. See
               <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.trust-forwarded-headers</code></td>
+            <td><code>false</code></td>
+            <td>
+              Takes the host from the first <code>X-Forwarded-Host</code> value and the scheme from
+              <code>X-Forwarded-Proto</code> for the allowed-hosts check and the <code>Origin</code>
+              comparison alike. Only for a Jeffrey reachable solely through a proxy that sets both &mdash;
+              anyone who reaches Jeffrey directly can write them. Read at startup. See
+              <router-link to="/docs/microscope-mcp/enabling#behind-a-reverse-proxy">Behind a Reverse Proxy</router-link>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.token</code></td>
+            <td><em>empty</em></td>
+            <td>
+              Optional bearer token for the MCP endpoint. When set, a request without
+              <code>Authorization: Bearer &lt;token&gt;</code>, or with another token, gets <code>401</code>
+              with <code>WWW-Authenticate: Bearer</code>; empty requires nothing and ignores the header.
+              Claude Code sends the plugin&rsquo;s <em>Jeffrey MCP token</em> setting; Codex, Gemini and
+              other clients send <code>JEFFREY_MCP_TOKEN</code>. Read at
+              startup. See <router-link to="/docs/microscope-mcp/enabling#bearer-token">Bearer Token</router-link>.
             </td>
           </tr>
           <tr>
@@ -326,11 +348,34 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.mcp.hubs.ask-window-over-duration</code></td>
+            <td><code>PT1H</code></td>
+            <td>
+              When a client that declared MCP form elicitation asks <code>hubs_download</code> for a
+              whole session running longer than this &mdash; to its finish, or to now while it is still
+              recording &mdash; the user is first asked which part to bring: the last hour, the last N
+              minutes, a window of their own, or all of it. A smaller session is downloaded whole
+              without a question, and so is every session for a client that cannot show a form; a call
+              that already names a window or <code>fileIds</code> is never asked. An ISO-8601 duration;
+              <code>PT0S</code> means always ask. Read at startup. See
+              <router-link to="/docs/microscope-mcp/tools#window-question">Which Part of a Large Session</router-link>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.hubs.ask-window-over-size</code></td>
+            <td><code>1GB</code></td>
+            <td>
+              The size half of the rule above: a session holding more than this is asked about
+              whatever its length. A data size such as <code>500MB</code> or <code>2GB</code>, where
+              <code>1GB</code> is 1024<sup>3</sup> bytes; <code>0B</code> means always ask. Read at startup.
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.mcp.recordings.max-concurrent-imports</code></td>
             <td><code>2</code></td>
             <td>
               How many <code>recordings_analyzeFile</code> imports run at once. A call beyond that
-              number is not refused: it is reported as <code>queued</code> by
+              number is not refused: it is reported as <code>QUEUED</code> by
               <code>operations_status</code> and starts when a slot frees, and
               <code>operations_cancel</code> on a queued attempt means it never starts. A positive
               integer. Read at startup.
@@ -380,8 +425,11 @@ onMounted(() => {
               <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
               <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
               <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>. Keep
-              <code>operations</code> in any list that keeps <code>recordings</code>, <code>heap</code> or
-              <code>hubs</code>: it is how a client follows and cancels the work those start. Worth setting
+              <code>operations</code> in any list that keeps <code>recordings</code>, <code>heap</code>,
+              <code>hubs</code>, <code>ide</code> or <code>jvm</code> &mdash; startup fails otherwise &mdash;
+              since it is how a client follows and cancels the work those start; and keep
+              <code>recordings</code> in any list that keeps <code>hubs</code>, since a downloaded
+              session is analysed with <code>recordings_analyzeRecording</code>. Worth setting
               only for a
               client that pays for the whole tool list on every turn &mdash; Codex loads every schema
               each time, where Claude Code fetches them on demand. A family named here but not built

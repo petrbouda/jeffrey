@@ -23,12 +23,22 @@
       "title": "Jeffrey MCP endpoint",
       "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel — it is the address Microscope serves on, with /api/mcp appended.",
       "default": "http://localhost:8585/api/mcp"
+    },
+    "token": {
+      "type": "string",
+      "title": "Jeffrey MCP token",
+      "description": "Bearer token for a Jeffrey that sets jeffrey.microscope.mcp.token. Leave empty for a Jeffrey without one — it ignores the header. Sent as Authorization: Bearer on every request, and by the session-start check.",
+      "sensitive": true,
+      "default": ""
     }
   },
   "mcpServers": {
     "jeffrey": {
       "type": "http",
-      "url": "${user_config.endpoint_url}"
+      "url": "${user_config.endpoint_url}",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
     }
   },
   "hooks": "./hooks/hooks.json"

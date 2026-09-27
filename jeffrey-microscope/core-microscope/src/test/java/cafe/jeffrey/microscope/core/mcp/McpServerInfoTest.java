@@ -16,9 +16,9 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.profile.mcp.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.profile.mcp.McpToolProvider;
 import cafe.jeffrey.shared.common.JeffreyVersion;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpServerInfoTest {
@@ -42,7 +43,7 @@ class McpServerInfoTest {
                 new ReflectiveToolset(new ProfileDiscoveryFixture(), "profiles"),
                 new ReflectiveToolset(new DiagnosticFixture(), "heap")));
         McpServerInfo info = new McpServerInfo(
-                new ExternalMcpProperties(true, false, false, Set.of(), "heap"), tools);
+                McpTestProperties.of(true, false, false, Set.of(), "heap"), tools, true);
 
         JsonNode json = Json.readTree(info.json());
 
@@ -53,22 +54,74 @@ class McpServerInfoTest {
         assertEquals("heap", json.path("preset").asString());
         assertEquals(Json.readTree("[\"heap\",\"profiles\"]"), json.path("effectiveFamilies"));
         assertEquals(2, json.path("toolCount").asInt());
-        assertTrue(json.path("supportedProtocolVersions").isArray());
-        assertTrue(json.path("supportedProtocolVersions").size() > 0);
+        assertEquals(Json.readTree("[\"2026-07-28\"]"), json.path("supportedProtocolVersions"));
         assertEquals(Json.readTree("""
                 {"tools":true,"resources":true,"prompts":true,
                  "resourceSubscriptions":false,"listChangedNotifications":false,
-                 "structuredToolResults":true,"structuredToolResultsFromProtocol":"2025-06-18",
-                 "completions":true,"instructions":true,"resourceLinks":true,
+                 "structuredToolResults":true,
+                 "completions":true,"instructions":true,"resourceLinks":true,"tasks":true,"skills":true,
                  "streaming":false,"sessions":false,"progressNotifications":false,
                  "paginatedTools":["profiles_list"]}
                 """), json.path("capabilities"));
     }
+
+    /**
+     * Tasks follow the operations a served family starts; an installation that serves no such family
+     * follows none, and says so here as {@code server/discover} does by leaving the extension out.
+     */
+    @Test
+    void reportsNoTasksWhenNoServedFamilyStartsAnOperation() {
+        McpServerInfo info = new McpServerInfo(
+                McpTestProperties.of(true, true, true, Set.of("profiles")),
+                new ReflectiveToolset(new ProfileDiscoveryFixture(), "profiles"), false);
+
+        assertFalse(Json.readTree(info.json()).path("capabilities").path("tasks").asBoolean(true));
+    }
+
+    /**
+     * Completions fill profile ids out of {@code profiles_list}, so they are offered exactly when the
+     * profiles family is served, as {@code server/discover} declares them; an installation that does not
+     * serve it says so here too.
+     */
+    @Test
+    void reportsNoCompletionsWhenTheProfilesFamilyIsNotServed() {
+        McpServerInfo info = new McpServerInfo(
+                McpTestProperties.of(true, false, false, Set.of("heap", "operations")),
+                new ReflectiveToolset(new DiagnosticFixture(), "heap"), false);
+
+        assertFalse(Json.readTree(info.json()).path("capabilities").path("completions").asBoolean(true));
+    }
+
+    /** One served family that starts operations is enough. */
+    @Test
+    void reportsTasksWhileAnyServedFamilyStartsAnOperation() {
+        McpServerInfo info = new McpServerInfo(
+                McpTestProperties.of(true, false, false, Set.of("recordings", "operations")),
+                new ReflectiveToolset(new ProfileDiscoveryFixture(), "profiles"), false);
+
+        assertTrue(Json.readTree(info.json()).path("capabilities").path("tasks").asBoolean(false));
+    }
+
+    /**
+     * Skills are declared exactly when {@code server/discover} declares the extension: when the
+     * catalogue serves at least one.
+     */
+    @Test
+    void reportsSkillsOnlyWhenTheCatalogueServesAny() {
+        McpToolProvider tools = new ReflectiveToolset(new ProfileDiscoveryFixture(), "profiles");
+        ExternalMcpProperties properties = McpTestProperties.of(true, true, true, Set.of("profiles"));
+
+        assertTrue(Json.readTree(new McpServerInfo(properties, tools, true).json())
+                .path("capabilities").path("skills").asBoolean(false));
+        assertFalse(Json.readTree(new McpServerInfo(properties, tools, false).json())
+                .path("capabilities").path("skills").asBoolean(true));
+    }
+
     @Test
     void advertisesPaginationOnlyForExposedDiscoveryTools() {
         McpServerInfo info = new McpServerInfo(
-                new ExternalMcpProperties(true, false, false, Set.of("heap")),
-                new ReflectiveToolset(new DiagnosticFixture(), "heap"));
+                McpTestProperties.of(true, false, false, Set.of("heap", "operations")),
+                new ReflectiveToolset(new DiagnosticFixture(), "heap"), false);
 
         assertEquals(Json.readTree("[]"),
                 Json.readTree(info.json()).path("capabilities").path("paginatedTools"));
@@ -86,7 +139,7 @@ class McpServerInfoTest {
                 new ReflectiveToolset(new PagedFixture(), "events")));
 
         JsonNode paginated = Json.readTree(new McpServerInfo(
-                new ExternalMcpProperties(true, false, false, Set.of()), tools).json())
+                McpTestProperties.of(true, false, false, Set.of()), tools, false).json())
                 .path("capabilities").path("paginatedTools");
 
         assertEquals(Json.readTree("[\"events_scan\",\"profiles_list\"]"), paginated);

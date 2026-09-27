@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.model;
 
 import cafe.jeffrey.microscope.model.EventSummary;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public record EventSummaryResult(
@@ -45,7 +46,22 @@ public record EventSummaryResult(
             Map<String, String> settings) {
 
         public SingleResult {
-            settings = settings == null ? Map.of() : Map.copyOf(settings);
+            settings = settings == null ? Map.of() : withValues(settings);
+        }
+
+        /**
+         * The settings that carry a value. A recording can list a setting with no value (async-profiler
+         * JFRs do), and {@link Map#copyOf} refuses a null value, so such a setting is dropped: it has
+         * nothing to report.
+         */
+        private static Map<String, String> withValues(Map<String, String> settings) {
+            Map<String, String> valued = new HashMap<>();
+            settings.forEach((name, value) -> {
+                if (name != null && value != null) {
+                    valued.put(name, value);
+                }
+            });
+            return Map.copyOf(valued);
         }
 
         public SingleResult(String code, String label, String source, String subtype, long samples,

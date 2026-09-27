@@ -14,7 +14,7 @@ Requested scope: `$ARGUMENTS` — the baseline, the candidate, and what to run. 
 base against `HEAD`, and whatever benchmark the repository makes obvious. Say which you picked before
 spending the minutes.
 
-Tool names below omit the prefix your client puts in front of them.
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
 
 ## The shape of it
 
@@ -22,8 +22,8 @@ Tool names below omit the prefix your client puts in front of them.
 1. Pick the pair, and the workload both can run
 2. Record the baseline          → recordings_analyzeFile → profileId B
 3. Record the candidate         → recordings_analyzeFile → profileId C
-4. compare_list(C, baseline=B)  → are these two even comparable
-   compare_quality(C, baseline=B) → sampling, duration and workload evidence
+4. compare_list(C, baselineProfileId=B)    → are these two even comparable
+   compare_quality(C, baselineProfileId=B) → sampling, duration and workload evidence
 5. compare_movements            → what moved, ranked
 6. compare_flamegraph           → where it moved, in the call tree
 ```
@@ -64,12 +64,17 @@ must differ in exactly one thing.
 Name them so the pair survives the session:
 
 ```
-recordings_analyzeFile(path="/abs/base.jfr", name="baseline <short-sha>")
-recordings_analyzeFile(path="/abs/head.jfr", name="candidate <short-sha>")
+recordings_analyzeFile(path="/abs/base.jfr", name="baseline <short-sha>", force=true)
+recordings_analyzeFile(path="/abs/head.jfr", name="candidate <short-sha>", force=true)
 ```
 
-Both may come back with a status of `running` and an `operationId`; poll `operations_status` with
-it rather than importing again, and `operations_cancel` it if the wrong build was recorded.
+`force=true` on both, because both files were just recorded: a re-run to the same path can match an
+earlier import by name and size, and then the call returns that old profile — and ignores `name`.
+
+Both may come back with a status of `RUNNING` and an `operationId`; poll `operations_status` with
+it, and `operations_cancel` it if the wrong build was recorded. `recordings_analyzeFile` returns the
+existing profile for a file with the same name and size as one already imported; after re-recording
+to the same path, pass `force=true`.
 
 ## 4. Ask whether they are comparable before reading the difference
 

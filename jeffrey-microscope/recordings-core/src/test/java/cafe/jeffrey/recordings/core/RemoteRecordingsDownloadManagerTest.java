@@ -533,6 +533,41 @@ class RemoteRecordingsDownloadManagerTest {
             verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
         }
 
+        /**
+         * On a live session the newest chunk is held open; a window inside it is covered by no
+         * finished chunk, and is refused rather than answered with the older chunk before it.
+         */
+        @Test
+        void aWindowInsideTheOpenChunkOfALiveSessionIsRefused() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(liveSession(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20)),
+                    file("f-3", "profile-3.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(40))));
+
+            assertThrows(IllegalArgumentException.class, () -> manager.downloadWindow(SESSION_ID,
+                    new ChunkWindow(CREATED_AT.plusSeconds(45), CREATED_AT.plusSeconds(55))));
+            verify(streamClient, never()).streamFile(any(), any(), any());
+            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+        }
+
+        /** The last finished chunk of a live session ends where the open one starts, and is tagged so. */
+        @Test
+        void aWindowOnALiveSessionIsTaggedUpToTheOpenChunk() {
+            when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(liveSession(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20)),
+                    file("f-3", "profile-3.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(40))));
+            servesEveryFile();
+
+            manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), CREATED_AT.plusSeconds(45)));
+
+            Map<String, String> expectedTags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
+            expectedTags.put(OriginContext.TAG_WINDOW,
+                    CREATED_AT.plusSeconds(20).toEpochMilli() + "-" + CREATED_AT.plusSeconds(40).toEpochMilli());
+            verify(recordingsManager).createDownloadedRecording(any(), anyList(), anyList(), eq(expectedTags));
+            verify(streamClient, never()).streamFile(eq(SESSION_ID), eq("f-3"), any());
+        }
+
         @Test
         void aWholeSessionIsNamedAfterTheProjectAndTheSessionStart() {
             when(repositoryClient.recordingSession(SESSION_ID)).thenReturn(threeChunks());

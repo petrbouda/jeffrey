@@ -190,6 +190,7 @@ import EventTypeDescription from '@/services/api/model/EventTypeDescription';
 import EventFieldDescription from '@/services/api/model/EventFieldDescription';
 import FormattingService from '@shared/services/FormattingService';
 import { useRoute } from 'vue-router';
+import { EVENT_TYPE_QUERY_PARAM, openingEventType } from '@/services/events/EventLinkQuery';
 
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import Badge from '@shared/components/Badge.vue';
@@ -417,32 +418,16 @@ onMounted(async () => {
     // Sort by name as default
     eventTypes.value.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Check if an event type was selected from the event types view
-    const savedEventTypeJson = localStorage.getItem('selectedEventType');
-    if (savedEventTypeJson) {
-      try {
-        const savedEventType = JSON.parse(savedEventTypeJson);
-
-        // Find the matching event type in our loaded list to ensure it exists
-        const matchingEventType = eventTypes.value.find(et => et.code === savedEventType.code);
-
-        if (matchingEventType) {
-          // Select this event type
-          await selectEventType(matchingEventType);
-          showEventTypeList.value = false;
-
-          // Clear the localStorage entry to prevent it from being used again on refresh
-          localStorage.removeItem('selectedEventType');
-        } else {
-          // Fallback to default - no selection
-          selectedEventType.value = null;
-          showEventTypeList.value = true;
-        }
-      } catch (e) {
-        console.error('Error parsing saved event type:', e);
-        selectedEventType.value = null;
-        showEventTypeList.value = true;
-      }
+    // A link names the event type to open (an MCP answer about one); it wins over a pick carried
+    // over from the event types view, which is consumed once a link or the pick decides the opening.
+    const opening = openingEventType(
+      route.query[EVENT_TYPE_QUERY_PARAM],
+      eventTypes.value,
+      localStorage
+    );
+    if (opening) {
+      await selectEventType(opening);
+      showEventTypeList.value = false;
     } else {
       // Default behavior - no selection
       selectedEventType.value = null;

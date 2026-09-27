@@ -10,23 +10,19 @@ A parsed heap dump is a profile like any other, but it answers a different quest
 recording: a recording says where the time went, a dump says what was alive at one instant and
 what kept it alive. Every tool here reads; none changes the dump.
 
-Tool names below omit the prefix your client puts in front of them —
-`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
-hand-registered server, `mcp_jeffrey_` in Gemini CLI, which spells it with single underscores.
-The part after it is exact and camelCase:
-`heap_getLeakSuspects`, not `heap_get_leak_suspects`.
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `heap_getLeakSuspects`, not `heap_get_leak_suspects`.
 
 ## 1. Get a `profileId`
 
-**The user named a file** (`heap.hprof`, `dump.hprof.gz`) — check `recordings_list` or
-`profiles_list` for it first, because every `recordings_analyzeFile` call imports the file again
-and creates another profile. If absent, call `recordings_analyzeFile` with the **absolute** path.
+**The user named a file** (`heap.hprof`, `dump.hprof.gz`) — call `recordings_analyzeFile` with the
+**absolute** path; `recordings_analyzeFile` returns the existing profile for a file with the same
+name and size as one already imported; after re-recording to the same path, pass `force=true`.
 The Jeffrey process opens that path, so the file has to be on the machine Jeffrey runs on. A
 small dump is parsed inside the call and comes back with its `profileId`. A large one comes back
-with a status of `running` and an `operationId` — and no `recordingId`, because the copy may not
+with a status of `RUNNING` and an `operationId` — and no `recordingId`, because the copy may not
 have finished — and `operations_status(operationId)` follows the copy and the parse until the
-`profileId` appears. Poll that rather than calling `recordings_analyzeFile` again: every call
-imports the file again and builds a second profile of the same dump. `operations_cancel(operationId)`
+`profileId` appears. Poll that rather than calling `recordings_analyzeFile` again.
+`operations_cancel(operationId)`
 stops an import started by mistake; the ids live for an hour in Jeffrey's memory.
 
 **The dump is on a hub** — the user asked about a deployed application rather than a file. Switch to
@@ -39,8 +35,8 @@ profile has no dump or its index is not ready yet.
 
 ## 2. Orient before analysing
 
-- `heap_getDumpMetadata` — HPROF version, id size, compressed-oops flag, record count and
-  `warning_count`. A non-zero `warning_count` means the parser skipped or truncated records, so
+- `heap_getDumpMetadata` — under `metadata`: HPROF version, id size, compressed-oops flag, record
+  count and `warningCount`. A non-zero `warningCount` means the parser skipped or truncated records, so
   every total below is a lower bound; read the `parse_warning` table (the `heap-sql` skill)
   before concluding anything from odd numbers.
 - `heap_getHeapSummary` — live bytes and instances, class count, GC-root count.
@@ -61,34 +57,44 @@ answers a different one — what there is a lot of, not who is responsible for i
 `heap_getThreads`, `heap_getGCRootSummary`, and the SQL tools.
 
 Retained sizes and the dominator tree are built lazily by **`heap_getDominatorTreeRoots`**, or
-explicitly by `heap_prepare` with report `dominator`. Until one of them has run, the `dominator` and
+explicitly by `heap_prepare` with report `DOMINATOR`. Until one of them has run, the `dominator` and
 `retained_size` tables are empty and every retained figure is *missing*, not zero. Do it once, early,
 before anything that ranks by retained size — skipping it is the usual reason a heap session stalls
 on empty results.
 
 **Cached reports, which the caller or heap-triage can build.** These are computed once and stored.
-Until something computes one it answers `… has not been run for this heap dump yet`, and the fix is
-`heap_prepare`. If you are `profile-analyst`, report the missing report to the caller and stop that
+Until something computes one it answers `status: NOT_RUN_YET`, and its `followUp.nextTools` carries
+the `heap_prepare` call that computes it. If you are `profile-analyst`, report the missing report to the caller and stop that
 part of the analysis; never call `heap_prepare`. For a caller or `heap-triage`, use this mapping:
 
 | Tool | `heap_prepare` report |
 |---|---|
-| `heap_getLeakSuspects` | `leaks` |
-| `heap_getBiggestObjects` | `biggest` |
-| `heap_getClassLoaderLeakChains` | `classloaders` |
-| `heap_getTopConsumers` | `consumers` |
-| `heap_getStringAnalysis` | `strings` |
-| `heap_getCollectionAnalysis` | `collections` |
+| `heap_getLeakSuspects` | `LEAKS` |
+| `heap_getBiggestObjects` | `BIGGEST` |
+| `heap_getClassLoaderLeakChains` | `CLASSLOADERS` |
+| `heap_getTopConsumers` | `CONSUMERS` |
+| `heap_getStringAnalysis` | `STRINGS` |
+| `heap_getCollectionAnalysis` | `COLLECTIONS` |
 
 `heap_prepare` with no argument builds everything — the index, the dominator tree and all of the
 above — which is the right call for a dump nobody has opened yet. Pass one report name to compute
 just that one on a dump that is already indexed. It returns immediately with an `operationId`;
-`heap_status` reports the stages as they complete, `operations_status(operationId)` reports the same
+`heap_status` reports a `state` (`IDLE`, `RUNNING`, `COMPLETED`, `FAILED`) and the stages, each with
+the `report` it computes, as they complete, `operations_status(operationId)` reports the same
 attempt with its result and retry instructions, and each answer becomes readable as its stage
 finishes rather than at the end. A dominator build over a multi-gigabyte heap takes minutes, so do
 something else meanwhile rather than polling tightly. A build that failed or was cancelled stays
 that way until `heap_prepare` is called with `retry=true`; without it the tool reports the retained
-outcome rather than starting again.
+outcome rather than starting again. A finished build is never offered for rebuilding as a next call.
+
+**Reading the answers.** An `objectId` is a decimal **string** (`"27908898928"`) — HPROF ids are
+64-bit addresses — in every answer and every argument; pass it back as it came. An id the dump does
+not hold is a tool error naming it. The paged tools (`heap_browseClassInstances`,
+`heap_getDominatorTreeChildren`, `heap_getReferrers`, `heap_oql`) return `hasMore` and `nextCursor`;
+pass `nextCursor` back as `cursor`. A ranked report keeps its largest rows and counts the rest in an
+`omitted…` field — null when it cannot know. `heap_getPathToGCRoot` answers `IS_GC_ROOT` (with
+`targetRootKind`) when the object is itself a root and `NO_PATH` when no chain was found within its
+depth. Every answer carries a `uiLink` to the same page in Microscope: give it to the user.
 
 ## 5. Pick the route
 
@@ -146,12 +152,14 @@ A dump shows a state, not a trend. One dump cannot distinguish a leak from a lar
 ## When something fails
 
 - `Profile … has no heap dump` → it is a JFR recording; the `analyze-jfr` skill applies.
-- `… is still being indexed` → check `heap_status` for the named profile. If indexing has not
-  started, call `heap_prepare`; retry once ready. For `heap_diff`, both profiles must be ready.
+- `The heap dump of profile … is not indexed yet` → check `heap_status` for the named profile. If
+  indexing has not started, call `heap_prepare`; retry once ready. `heap_diff` answers the same as a
+  status — `NOT_INDEXED` or `BASELINE_NOT_INDEXED` (and `NO_HEAP_DUMP` / `BASELINE_NO_HEAP_DUMP`) —
+  naming which side; both profiles must be ready.
 - Retained sizes come back empty → the dominator tree has not been built; `heap_prepare` with report
-  `dominator`, or step 4.
-- `… has not been run for this heap dump yet` → a cached report; `heap_prepare` with the report name
-  from the table in step 4.
+  `DOMINATOR`, or step 4.
+- `status: NOT_RUN_YET` → a cached report; `heap_prepare` with the report name from the table in
+  step 4 — the answer's `followUp` already names it.
 - No `recordings_` tool advertised → the installation trimmed the tool list with
   `jeffrey.microscope.mcp.families`; upload the dump in the UI and work from `profiles_list`.
 - Every call fails to connect → Jeffrey is not running at the configured address. Point the client

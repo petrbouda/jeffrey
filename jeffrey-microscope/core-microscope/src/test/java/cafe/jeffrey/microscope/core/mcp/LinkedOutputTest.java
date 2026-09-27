@@ -16,6 +16,8 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,89 +25,115 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LinkedOutputTest {
 
     private static final String URL = "http://localhost:8585/profiles/p-1";
 
-    @Test
-    void putsTheLinkUnderTheAnswer() {
-        String out = LinkedOutput.of("the answer", URL);
-
-        assertTrue(out.startsWith("the answer"), out);
-        assertTrue(out.endsWith("Open in Jeffrey: " + URL), out);
-    }
-
-    @Test
-    void saysWhatTheLinkCannotReproduce() {
-        String out = LinkedOutput.of("the answer", URL, "full recording");
-
-        assertTrue(out.contains("Open in Jeffrey (full recording): " + URL), out);
-    }
-
-    @Test
-    void writesTheNextStepsAsAList() {
-        String out = LinkedOutput.of("the answer", List.of("first", "second"), URL);
-
-        assertTrue(out.contains("Where to go next:"), out);
-        assertTrue(out.contains("- first"), out);
-        assertTrue(out.contains("- second"), out);
-        assertTrue(out.indexOf("- first") < out.indexOf("Open in Jeffrey"), out);
-    }
-
-    @Test
-    void leavesTheHeadingOutWhenThereIsNowhereToGo() {
-        assertEquals(
-                LinkedOutput.of("the answer", URL),
-                LinkedOutput.of("the answer", List.of(), URL));
-    }
-
     /**
-     * The reason this exists as a type rather than as string concatenation at each call site. The cap
-     * truncates at its limit, so a link appended before the cap is cut off exactly the oversized
-     * answers whose reader most needs the interactive view — and the routing below it goes with it.
+     * The footer a Markdown answer ends with, rendered from the same record as its structured content,
+     * so a host that hands the model only the text still gives it the link and the next calls.
      */
     @Nested
-    class OversizedAnswers {
+    class Footer {
 
-        private final String oversized = "x".repeat(McpToolOutput.MAX_CHARS + 5_000);
+        private final McpFollowUp followUp = new McpFollowUp(
+                List.of(McpNextTool.call("timeline_hotWindows").with("profileId", "p-1")
+                                .with("eventType", "jdk.ExecutionSample").why("finds when"),
+                        McpNextTool.call("jvm_threads").with("profileId", "p-1").why("names the threads")),
+                List.of("A short piece of advice.", "x".repeat(1_000)));
 
         @Test
-        void keepsTheLinkOnAnAnswerThatHadToBeCut() {
-            String out = LinkedOutput.of(oversized, URL);
+        void followsTheBodyWithTheLinkItsNoteAndTheNextCalls() {
+            LinkedOutput.Footed footed = LinkedOutput.footed("the answer", followUp, URL, "full recording");
 
-            assertTrue(out.contains("TRUNCATED"), "the cut is announced");
-            assertTrue(out.endsWith("Open in Jeffrey: " + URL), "and the link survives it");
+            String text = footed.text();
+            assertTrue(text.startsWith("the answer"), text);
+            assertTrue(text.indexOf("Open in Microscope: " + URL) > text.indexOf("the answer"), text);
+            assertTrue(text.contains("Link note: full recording"), text);
+            assertFalse(footed.truncated());
+        }
+
+        /** One line per next call, the tool and its arguments as compact JSON, in the record's order. */
+        @Test
+        void listsExactlyTheNextCallsOfTheRecord() {
+            String text = LinkedOutput.footed("the answer", followUp, URL, null).text();
+
+            assertEquals(List.of(
+                            "- timeline_hotWindows {\"profileId\":\"p-1\",\"eventType\":\"jdk.ExecutionSample\"}",
+                            "- jvm_threads {\"profileId\":\"p-1\"}"),
+                    linesAfter(text, "Next:"));
+            assertFalse(text.contains("Link note"), text);
+        }
+
+        /** A short guidance line travels in the footer; a long one stays in the record only. */
+        @Test
+        void carriesOnlyTheShortGuidance() {
+            String text = LinkedOutput.footed("the answer", followUp, URL, null).text();
+
+            assertTrue(text.contains("- A short piece of advice."), text);
+            assertFalse(text.contains("x".repeat(1_000)), "the long line is left to the record");
         }
 
         @Test
-        void keepsTheNextStepsOnAnAnswerThatHadToBeCut() {
-            String out = LinkedOutput.of(oversized, List.of("go here next"), URL);
+        void leavesOutTheNextHeadingWhenThereIsNowhereToGo() {
+            String text = LinkedOutput.footed("the answer", new McpFollowUp(List.of(), List.of()), URL, null).text();
 
-            assertTrue(out.contains("TRUNCATED"), out.substring(out.length() - 400));
-            assertTrue(out.contains("- go here next"), out.substring(out.length() - 400));
-            assertTrue(out.endsWith("Open in Jeffrey: " + URL), out.substring(out.length() - 400));
+            assertFalse(text.contains("Next:"), text);
+            assertTrue(text.endsWith("Open in Microscope: " + URL), text);
+        }
+
+        /**
+         * The envelope caps the whole text at the limit again, so the body is cut with the footer's
+         * length reserved: a body exactly at the limit is cut, and the footer survives whole.
+         */
+        @Test
+        void survivesABodyAtTheCap() {
+            LinkedOutput.Footed footed = LinkedOutput.footed(
+                    "x".repeat(McpToolOutput.MAX_CHARS), followUp, URL, "full recording");
+
+            String text = footed.text();
+            assertTrue(footed.truncated());
+            assertTrue(text.length() <= McpToolOutput.MAX_CHARS, "length " + text.length());
+            assertEquals(text, McpToolOutput.capped(text), "the envelope's own cap leaves it as it is");
+            assertTrue(text.contains("TRUNCATED"), "the cut is announced");
+            assertEquals(2, linesAfter(text, "Next:").size(), text.substring(text.length() - 600));
         }
 
         @Test
-        void keepsTheNoteOnAnAnswerThatHadToBeCut() {
-            String out = LinkedOutput.of(oversized, List.of("go here next"), URL, "full recording");
+        void footerRendersAloneForAnAnswerWhoseBodyIsNeverCut() {
+            String footer = LinkedOutput.footer(followUp, URL, null);
 
-            assertTrue(out.endsWith("Open in Jeffrey (full recording): " + URL), out.substring(
-                    out.length() - 400));
+            assertTrue(LinkedOutput.footed("the answer", followUp, URL, null).text().endsWith(footer));
         }
-    }
 
-    /**
-     * A JSON answer carries its link as a field of the value instead, because appending it as text
-     * would leave the result no longer parseable.
-     */
-    @Test
-    void rendersAJsonAnswerWithoutAppendingAnything() {
-        assertEquals("{\"uiLink\":\"" + URL + "\"}", LinkedOutput.json(new Linked(URL)));
-    }
+        /** A tool whose subject has no page still ends with its next calls, and names no link. */
+        @Test
+        void aFooterWithoutAPageCarriesTheNextCallsAlone() {
+            String text = LinkedOutput.footed("the answer", followUp, null, null).text();
 
-    private record Linked(String uiLink) {
+            assertFalse(text.contains("Open in Microscope"), text);
+            assertEquals(2, linesAfter(text, "Next:").size(), text);
+            assertTrue(text.startsWith("the answer\n\n---\nNext:"), text);
+        }
+
+        /** No page and nowhere to go: nothing is appended at all. */
+        @Test
+        void aFooterWithNothingToSayIsEmpty() {
+            assertEquals("", LinkedOutput.footer(new McpFollowUp(List.of(), List.of()), null, null));
+        }
+
+        /** The text still in use must not name the retired link line. */
+        @Test
+        void noAnswerIsFootedWithTheRetiredLinkLine() {
+            assertFalse(LinkedOutput.footed("the answer", followUp, URL, "note").text().contains("Open in Jeffrey"));
+        }
+
+        private List<String> linesAfter(String text, String heading) {
+            List<String> lines = List.of(text.substring(text.indexOf(heading) + heading.length()).strip().split("\n"));
+            return lines.stream().takeWhile(line -> line.startsWith("- ") && line.contains(" {")).toList();
+        }
     }
 }

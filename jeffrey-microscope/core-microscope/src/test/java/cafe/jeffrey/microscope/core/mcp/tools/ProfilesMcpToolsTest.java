@@ -17,12 +17,23 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.McpToolResult;
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.McpTestProperties;
+import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
+import cafe.jeffrey.profile.mcp.McpNextToolConformance;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,12 +42,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,6 +62,9 @@ class ProfilesMcpToolsTest {
 
     private static final Instant START = Instant.parse("2026-01-01T10:00:00Z");
 
+    private static final JsonNode SCHEMA = McpSchemaGenerator.schemaOf(ProfilesMcpTools.ProfilePage.class);
+    private static final String START_AGAIN = "omit cursor to start again";
+
     @Mock
     MicroscopeCoreRepositories coreRepositories;
 
@@ -55,7 +72,14 @@ class ProfilesMcpToolsTest {
 
     @BeforeEach
     void setUp() {
-        tools = new ProfilesMcpTools(coreRepositories);
+        tools = new ProfilesMcpTools(coreRepositories, EVERY_FAMILY);
+        // The page links the recordings page, built off the request being served.
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+    }
+
+    @AfterEach
+    void unbindRequest() {
+        RequestContextHolder.resetRequestAttributes();
     }
 
     private static ProfileInfo profile(String id, String name, String projectId) {
@@ -88,11 +112,26 @@ class ProfilesMcpToolsTest {
             when(coreRepositories.findAllProfiles())
                     .thenReturn(List.of(profile("p-1", true), profile("p-2", false)));
 
-            String result = tools.list(null, null);
+            String result = tools.list(null, null, null).text();
 
             assertTrue(result.contains("| yes |"), result);
             assertTrue(result.contains("| building |"), result);
             assertTrue(result.contains("still being parsed"));
+            assertTrue(result.contains("recordings_status"), result);
+        }
+
+        /** The building note routes to recordings_status, so it goes when that family is withheld. */
+        @Test
+        void leavesOutTheBuildingNoteWhenTheRecordingsFamilyIsWithheld() {
+            when(coreRepositories.findAllProfiles())
+                    .thenReturn(List.of(profile("p-1", true), profile("p-2", false)));
+            ProfilesMcpTools trimmed = new ProfilesMcpTools(coreRepositories, AdvertisedFamilies.of(
+                    McpTestProperties.of(true, true, true, Set.of("profiles", "flamegraph"))));
+
+            String result = trimmed.list(null, null, null).text();
+
+            assertTrue(result.contains("| building |"), result);
+            assertFalse(result.contains("recordings_status"), result);
         }
 
         @Test
@@ -100,10 +139,166 @@ class ProfilesMcpToolsTest {
             when(coreRepositories.findAllProfiles())
                     .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
 
-            String result = tools.list(null, null);
+            String result = tools.list(null, null, null).text();
 
             assertTrue(result.contains("p-1"));
             assertTrue(result.contains("Checkout run"));
+        }
+
+        /**
+         * The table's ISO strings are for reading; the structured row carries the same instants as
+         * UTC epoch milliseconds and the span in milliseconds, so a caller never parses a date.
+         */
+        @Test
+        void carriesTimeAsEpochMillisecondsAndLeavesTheIsoStringsToTheText() {
+            when(coreRepositories.findAllProfiles())
+                    .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+
+            Page page = page(null, null, null);
+            JsonNode row = page.data().path("profiles").get(0);
+
+            assertEquals(120_000, row.path("durationMs").asLong());
+            assertEquals(START.toEpochMilli(), row.path("recordedEpochMs").asLong());
+            assertFalse(row.has("duration"), row.toString());
+            assertFalse(row.has("recorded"), row.toString());
+            assertTrue(page.text().contains("PT2M"), page.text());
+            assertTrue(page.text().contains(START.toString()), page.text());
+        }
+
+        @Test
+        void saysWhetherEachProfileIsReadyAsAnEnum() {
+            when(coreRepositories.findAllProfiles())
+                    .thenReturn(List.of(profile("p-2", false), profile("p-1", true)));
+
+            JsonNode rows = page(null, null, null).data().path("profiles");
+
+            assertEquals("BUILDING", rows.get(0).path("ready").asString());
+            assertEquals("YES", rows.get(1).path("ready").asString());
+        }
+
+        /** Every shape the page takes is one the advertised schema admits, nulls included. */
+        @Test
+        void everyPageConformsToTheGeneratedSchema() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    new ProfileInfo("p-3", null, null, null, RecordingEventSource.JDK,
+                            null, null, START, false, false, null),
+                    profile("p-2", "N".repeat(4_000), null),
+                    profile("p-1", "Checkout run", "proj-1")));
+
+            for (Integer limit : List.of(1, 3)) {
+                McpSchemaConformance.assertConforms(page(null, limit, null).data(), SCHEMA);
+            }
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of());
+            McpSchemaConformance.assertConforms(page(null, null, null).data(), SCHEMA);
+        }
+
+        /** An empty catalogue, or a search nothing matches, is a status with its reason. */
+        @Test
+        void saysEmptyWithAReasonWhenNothingIsListed() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of());
+
+            JsonNode empty = page(null, null, null).data();
+
+            McpSchemaConformance.assertConforms(empty, SCHEMA);
+            assertEquals("EMPTY", empty.path("status").asString());
+            assertTrue(empty.path("reason").asString().contains("No profiles have been analysed yet"), empty.toString());
+
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+            JsonNode unmatched = page("nothing like it", null, null).data();
+
+            assertEquals("EMPTY", unmatched.path("status").asString());
+            assertEquals("No profile matches the search.", unmatched.path("reason").asString());
+        }
+
+        @Test
+        void saysOkWithoutAReasonWhenProfilesAreListed() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+
+            JsonNode data = page(null, null, null).data();
+
+            assertEquals("OK", data.path("status").asString());
+            assertTrue(data.path("reason").isNull());
+        }
+
+        /**
+         * The text is a Markdown table, so it ends with the footer rendered from the same record: a host
+         * that hands the model only the text still gives it the link and the next page's call.
+         */
+        @Test
+        void theTableEndsWithTheFooterOfItsRecord() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-1", "Checkout run", "proj-1"), profile("p-2", "Search run", "proj-1")));
+
+            Page page = page(null, 1, null);
+
+            assertEquals(1, page.data().path("followUp").path("nextTools").size());
+            MarkdownFooters.assertRenderedFrom(page.text(), page.data());
+        }
+
+        @Test
+        void anEmptyCatalogueEndsWithTheFooterToo() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of());
+
+            Page page = page(null, null, null);
+
+            MarkdownFooters.assertRenderedFrom(page.text(), page.data());
+        }
+
+        /** The catalogue's page for the user is the recordings list, which shows every profile. */
+        @Test
+        void linksTheRecordingsPage() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+
+            String uiLink = page(null, null, null).data().path("uiLink").asString();
+
+            UiLinkRoutes.assertResolves(uiLink);
+            assertTrue(uiLink.endsWith("/recordings"), uiLink);
+        }
+
+        /**
+         * The next page is a call ready to pass on: the same search and limit, and the cursor this page
+         * returned. A profile still being built names the call that follows its build.
+         */
+        @Test
+        void handsBackTheNextPageAndTheBuildToFollowAsCalls() {
+            when(coreRepositories.findAllProfiles())
+                    .thenReturn(List.of(profile("p-1", true), profile("p-2", false), profile("p-3", true)));
+
+            JsonNode data = page(" Profile ", 2, null).data();
+
+            JsonNode next = data.path("followUp").path("nextTools");
+            assertEquals("profiles_list", next.get(0).path("tool").asString());
+            assertEquals(" Profile ", next.get(0).path("arguments").path("search").asString());
+            assertEquals(2, next.get(0).path("arguments").path("limit").asInt());
+            assertEquals(data.path("nextCursor").asString(), next.get(0).path("arguments").path("cursor").asString());
+            assertEquals("recordings_status", next.get(1).path("tool").asString());
+            assertEquals("rec-p-2", next.get(1).path("arguments").path("recordingId").asString());
+            assertEquals(2, McpNextToolConformance.assertFollowable(data, CatalogueSpecs.of(
+                    CatalogueSpecs.served(tools, "profiles"),
+                    CatalogueSpecs.served(RecordingsMcpToolsFixture.of(null, null, new McpOperationRegistry(Clock.systemUTC()),
+                            Clock.systemUTC()).build(),
+                            "recordings"))));
+        }
+
+        @Test
+        void theLastPageHandsBackNoNextPage() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", true)));
+
+            JsonNode data = page(null, null, null).data();
+
+            assertEquals(0, data.path("followUp").path("nextTools").size());
+        }
+
+        /** Where the recordings family is withheld, the build is not followed with a call it cannot make. */
+        @Test
+        void dropsTheBuildCallWhenTheRecordingsFamilyIsWithheld() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-2", false)));
+            ProfilesMcpTools trimmed = new ProfilesMcpTools(coreRepositories, AdvertisedFamilies.of(
+                    McpTestProperties.of(true, true, true, Set.of("profiles", "flamegraph"))));
+
+            JsonNode data = trimmed.list(null, null, null).structuredContent();
+
+            assertEquals(0, data.path("followUp").path("nextTools").size());
         }
 
         /**
@@ -115,7 +310,7 @@ class ProfilesMcpToolsTest {
             when(coreRepositories.findAllProfiles())
                     .thenReturn(List.of(profile("p-2", "Local dump", null)));
 
-            assertTrue(tools.list(null, null).contains("quick analysis"));
+            assertTrue(tools.list(null, null, null).text().contains("quick analysis"));
         }
 
         @Test
@@ -124,7 +319,7 @@ class ProfilesMcpToolsTest {
                     profile("p-1", "Checkout run", "proj-1"),
                     profile("p-2", "Search run", "proj-1")));
 
-            String result = tools.list("CHECKOUT", null);
+            String result = tools.list("CHECKOUT", null, null).text();
 
             assertTrue(result.contains("p-1"));
             assertFalse(result.contains("p-2"));
@@ -136,13 +331,16 @@ class ProfilesMcpToolsTest {
                     profile("p-1", "One", "proj-1"),
                     profile("p-2", "Two", "proj-1")));
 
-            String result = tools.list(null, 1);
+            String result = tools.list(null, 1, null).text();
 
             // Newest first, so the single row is p-2.
             assertTrue(result.contains("p-2"));
             assertFalse(result.contains("p-1"));
             assertTrue(result.contains("Returned 1 of 2 matching profiles."), result);
-            assertTrue(result.contains("nextCursor"), result);
+            // The next page is named once, by the footer's Next: line, never again in prose.
+            assertTrue(result.contains("- profiles_list {"), result);
+            assertFalse(result.contains("Call profiles_list with the same search"), result);
+            assertFalse(result.contains("Continuation resource"), result);
         }
 
         @Test
@@ -151,7 +349,7 @@ class ProfilesMcpToolsTest {
                     profile("p-1", "One", "proj-1"),
                     profile("p-2", "Two", "proj-1")));
 
-            String result = tools.list(null, 2);
+            String result = tools.list(null, 2, null).text();
 
             assertTrue(result.contains("Returned 2 of 2 matching profiles."), result);
             assertFalse(result.contains("narrow `search`"), result);
@@ -164,7 +362,7 @@ class ProfilesMcpToolsTest {
                     profile("p-2", "Unrelated", "proj-1"),
                     profile("p-3", "Checkout after", "proj-1")));
 
-            String result = tools.list("checkout", 1);
+            String result = tools.list("checkout", 1, null).text();
 
             assertTrue(result.contains("Returned 1 of 2 matching profiles."), result);
         }
@@ -176,10 +374,11 @@ class ProfilesMcpToolsTest {
                     .toList();
             when(coreRepositories.findAllProfiles()).thenReturn(profiles);
 
-            String result = tools.list(null, null);
+            String result = tools.list(null, null, null).text();
 
             assertTrue(result.contains("Returned 100 of 101 matching profiles."), result);
-            assertTrue(result.contains("nextCursor"), result);
+            assertTrue(result.contains("More profiles are available (hasMore=true)."), result);
+            assertTrue(result.contains("- profiles_list {"), result);
         }
 
         /**
@@ -190,7 +389,7 @@ class ProfilesMcpToolsTest {
         void explainsAnEmptyInstallation() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of());
 
-            String result = tools.list(null, null);
+            String result = tools.list(null, null, null).text();
 
             assertTrue(result.contains("No profiles"), result);
             assertTrue(result.contains("Returned 0 of 0 matching profiles."), result);
@@ -201,7 +400,7 @@ class ProfilesMcpToolsTest {
             when(coreRepositories.findAllProfiles())
                     .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
 
-            assertTrue(tools.list("nothing-like-this", null).contains("No profile matches"));
+            assertTrue(tools.list("nothing-like-this", null, null).text().contains("No profile matches"));
         }
 
         /**
@@ -213,13 +412,13 @@ class ProfilesMcpToolsTest {
             when(coreRepositories.findAllProfiles())
                     .thenReturn(List.of(profile("p-1", "before|after", "proj-1")));
 
-            String row = tools.list(null, null).lines()
+            String row = tools.list(null, null, null).text().lines()
                     .filter(line -> line.contains("p-1"))
                     .findFirst()
                     .orElseThrow();
 
             assertFalse(row.contains("before|after"));
-            assertTrue(row.contains("before/after"));
+            assertTrue(row.contains("before\\|after"));
         }
     }
 
@@ -236,6 +435,7 @@ class ProfilesMcpToolsTest {
             String cursor = null;
             do {
                 Page page = page(null, 1000, cursor);
+                McpSchemaConformance.assertConforms(page.data(), SCHEMA);
                 assertEquals(1103, page.data().path("total").asInt());
                 assertTrue(page.data().path("complete").asBoolean());
                 assertEquals(page.data().path("profiles").size(), page.data().path("returned").asInt());
@@ -287,11 +487,47 @@ class ProfilesMcpToolsTest {
             }
         }
 
+        /** Every refusal tells the caller the way out: the same call without a cursor. */
+        @Test
+        void aRefusedCursorSaysToStartAgainWithoutOne() {
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(
+                    profile("p-1", "Checkout before", null), profile("p-2", "Checkout after", null)));
+            String cursor = nextCursor(page("checkout", 1, null));
+
+            for (String refused : List.of("not-a-cursor", cursor)) {
+                IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                        () -> page("different", 1, refused));
+                assertTrue(error.getMessage().contains(START_AGAIN), error.getMessage());
+            }
+        }
+
+        /** Another paged tool's cursor is bound to that tool, even where its filters look the same. */
+        @Test
+        void refusesACursorAnotherToolHandedOut() {
+            String foreign = JeffreyMcpServer.CURSOR.encode(McpCursor.Filters.of("hubs_sessions", ""),
+                    new McpCursor.Keyset(List.of("p-1")));
+
+            assertThrows(IllegalArgumentException.class, () -> page(null, 1, foreign));
+        }
+
+        /** A position this tool cannot read as a single profile id is refused, not skipped over. */
+        @Test
+        void refusesAKeysetThatIsNotOneProfileId() {
+            McpCursor.Filters filters = McpCursor.Filters.of("profiles_list", "");
+
+            for (McpCursor.Position position : List.<McpCursor.Position>of(new McpCursor.Keyset(List.of("p-1", "p-2")),
+                    new McpCursor.Keyset(List.of("")), new McpCursor.Offset(1))) {
+                String cursor = JeffreyMcpServer.CURSOR.encode(filters, position);
+                assertThrows(IllegalArgumentException.class, () -> page(null, 1, cursor), position.toString());
+            }
+        }
+
         @Test
         void boundsLongNamesWithoutLosingIdentifiers() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
                     profile("p-2", "\"\n".repeat(120_001), null), profile("p-1", true)));
             Page first = page(null, 1, null);
+            McpSchemaConformance.assertConforms(first.data(), SCHEMA);
             JsonNode row = first.data().path("profiles").get(0);
             assertEquals("p-2", row.path("profileId").asString());
             assertEquals("rec-p-2", row.path("recordingId").asString());

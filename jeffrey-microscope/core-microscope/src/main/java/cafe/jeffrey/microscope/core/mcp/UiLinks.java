@@ -41,6 +41,7 @@ public final class UiLinks {
 
     private static final String PROFILE_PATH = "/profiles/%s";
     private static final String PROFILE_VIEW_PATH = "/profiles/%s/%s";
+    private static final String PAGE_PATH = "/%s";
 
     /**
      * How the frontend spells a true flag. The views compare against the literal string, and the
@@ -56,16 +57,48 @@ public final class UiLinks {
      * The profile's landing page.
      */
     public static String profile(String profileId) {
-        return builder()
+        return profile(base(), profileId);
+    }
+
+    /**
+     * The profile's landing page under a base read earlier by {@link #base()}, for an answer rendered
+     * where no request is bound -- a task's result, frozen by whichever call first sees it finished.
+     */
+    public static String profile(String base, String profileId) {
+        return UriComponentsBuilder.fromUriString(base)
                 .replacePath(PROFILE_PATH.formatted(profileId))
                 .toUriString();
     }
 
     /**
+     * A top-level page of the application, outside any profile, such as the recordings list.
+     */
+    public static String page(MicroscopePage page) {
+        return page(base(), page);
+    }
+
+    /**
+     * A top-level page under a base read earlier by {@link #base()}; see {@link #profile(String, String)}.
+     */
+    public static String page(String base, MicroscopePage page) {
+        return UriComponentsBuilder.fromUriString(base)
+                .replacePath(PAGE_PATH.formatted(page.path()))
+                .toUriString();
+    }
+
+    /**
+     * The scheme, host and port of the request being served, which every link is built on. Read while
+     * the request is bound; see {@link #profile(String, String)}.
+     */
+    public static String base() {
+        return builder().toUriString();
+    }
+
+    /**
      * A view inside a profile, with no query of its own.
      */
-    public static String view(String profileId, String subPath) {
-        return view(profileId, subPath, Map.of());
+    public static String view(String profileId, MicroscopeView view) {
+        return view(profileId, view, Map.of());
     }
 
     /**
@@ -73,9 +106,9 @@ public final class UiLinks {
      * can pass an optional argument straight through without branching; values are URL-encoded, which
      * matters for the paths and SQL fragments that travel in these links.
      */
-    public static String view(String profileId, String subPath, Map<String, String> query) {
+    public static String view(String profileId, MicroscopeView view, Map<String, String> query) {
         UriComponentsBuilder builder = builder()
-                .replacePath(PROFILE_VIEW_PATH.formatted(profileId, subPath));
+                .replacePath(PROFILE_VIEW_PATH.formatted(profileId, view.path()));
 
         for (Map.Entry<String, String> entry : query.entrySet()) {
             String value = entry.getValue();

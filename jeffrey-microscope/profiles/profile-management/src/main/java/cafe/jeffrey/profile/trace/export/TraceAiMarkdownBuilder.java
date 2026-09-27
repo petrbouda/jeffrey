@@ -291,10 +291,12 @@ public final class TraceAiMarkdownBuilder {
     private static final String ESCAPED_MARKER = " !escaped";
 
     /**
-     * How many spans take a line of their own before the tree is cut short. A trace of a few
-     * hundred spans is ordinary; one of several thousand is a pathological instrumentation case,
-     * and pasting it into a chat window helps nobody. The budget is spent by {@link TraceTreePlan}
-     * on recorded spans first: a promoted leaf never costs a recorded span its line.
+     * How many spans take a line of their own before the tree is cut short — and, by the same
+     * reasoning, how many fold lines the tree carries and how many spans the waits section lists.
+     * A trace of a few hundred spans is ordinary; one of several thousand is a pathological
+     * instrumentation case, and pasting it into a chat window helps nobody. The budget is spent by
+     * {@link TraceTreePlan} on recorded spans first: a promoted leaf never costs a recorded span its
+     * line.
      */
     private static final int MAX_SPANS = 400;
 
@@ -395,6 +397,7 @@ public final class TraceAiMarkdownBuilder {
             switch (row) {
                 case TraceTreePlan.SpanLine line -> renderSpan(out, line.span(), traceNanos);
                 case TraceTreePlan.FoldLine line -> renderFold(out, line, traceNanos);
+                case TraceTreePlan.CollapsedFolds line -> renderCollapsedFolds(out, line);
             }
         }
 
@@ -418,6 +421,18 @@ public final class TraceAiMarkdownBuilder {
                     .append(" in the trace)")
                     .append('\n');
         }
+    }
+
+    /** The fold groups past the budget, on the one line that stands for all of them. */
+    private static void renderCollapsedFolds(StringBuilder out, TraceTreePlan.CollapsedFolds collapsed) {
+        out.append(BULLET_PREFIX)
+                .append("(+")
+                .append(TraceAiFormat.count(collapsed.groups(), "more folded group"))
+                .append(": ")
+                .append(TraceAiFormat.count(collapsed.count(), "promoted leaf span"))
+                .append(" past the export's span budget;")
+                .append(" the I/O operations section counts each of them)")
+                .append('\n');
     }
 
     private void renderFold(StringBuilder out, TraceTreePlan.FoldLine fold, long traceNanos) {
@@ -478,28 +493,52 @@ public final class TraceAiMarkdownBuilder {
         }
 
         if (hasWaits) {
-            out.append("Thread-scoped — what each span's own thread was waiting on:")
-                    .append('\n').append('\n');
-            for (TraceSpanRow span : detail.spans()) {
-                List<TraceContextSlice> waits = context.spanWaits().get(span.spanId());
-                if (waits == null || waits.isEmpty()) {
-                    continue;
-                }
-                out.append(BULLET_PREFIX).append(span.name()).append(DASH_SEPARATOR);
-                for (int i = 0; i < waits.size(); i++) {
-                    if (i > 0) {
-                        out.append(", ");
-                    }
-                    TraceContextSlice wait = waits.get(i);
-                    out.append(wait.category())
-                            .append(' ')
-                            .append(TraceAiFormat.duration(wait.totalNanos()));
-                    if (wait.occurrences() > 1) {
-                        out.append(" over ").append(TraceAiFormat.count(wait.occurrences(), "event"));
-                    }
-                }
-                out.append('\n');
+            renderSpanWaits(out);
+        }
+    }
+
+    /**
+     * What each span's own thread waited on, in the tree's order, for as many spans as the tree
+     * itself has lines for. The per-span waits are not an aggregation the way the I/O and throw
+     * sections are, so a wait-heavy trace of a few thousand spans would otherwise put a line per
+     * span here after the tree had already stopped at its budget; the cut is stated, like the tree's.
+     */
+    private void renderSpanWaits(StringBuilder out) {
+        out.append("Thread-scoped — what each span's own thread was waiting on:")
+                .append('\n').append('\n');
+        int waiting = 0;
+        for (TraceSpanRow span : detail.spans()) {
+            List<TraceContextSlice> waits = context.spanWaits().get(span.spanId());
+            if (waits == null || waits.isEmpty()) {
+                continue;
             }
+            waiting++;
+            if (waiting > MAX_SPANS) {
+                continue;
+            }
+            out.append(BULLET_PREFIX).append(span.name()).append(DASH_SEPARATOR);
+            for (int i = 0; i < waits.size(); i++) {
+                if (i > 0) {
+                    out.append(", ");
+                }
+                TraceContextSlice wait = waits.get(i);
+                out.append(wait.category())
+                        .append(' ')
+                        .append(TraceAiFormat.duration(wait.totalNanos()));
+                if (wait.occurrences() > 1) {
+                    out.append(" over ").append(TraceAiFormat.count(wait.occurrences(), "event"));
+                }
+            }
+            out.append('\n');
+        }
+        if (waiting > MAX_SPANS) {
+            out.append(BULLET_PREFIX)
+                    .append("(truncated: ")
+                    .append(waiting - MAX_SPANS)
+                    .append(" further spans with waits omitted from this section, out of ")
+                    .append(waiting)
+                    .append(" in the trace)")
+                    .append('\n');
         }
     }
 

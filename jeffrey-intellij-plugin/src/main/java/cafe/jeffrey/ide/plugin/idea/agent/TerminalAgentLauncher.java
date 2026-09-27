@@ -18,7 +18,9 @@
 package cafe.jeffrey.ide.plugin.idea.agent;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.SystemInfo;
 import com.intellij.terminal.ui.TerminalWidget;
+import org.jetbrains.plugins.terminal.TerminalProjectOptionsProvider;
 import org.jetbrains.plugins.terminal.TerminalToolWindowManager;
 
 import java.nio.file.Path;
@@ -43,5 +45,12 @@ final class TerminalAgentLauncher implements AgentLauncher {
         TerminalWidget widget = TerminalToolWindowManager.getInstance(project)
                 .createShellWidget(workingDirectory.toString(), TAB_NAME, true, true);
         widget.sendCommandToExecute(command);
+    }
+
+    /** The shell the project's terminal is configured to run — PowerShell, cmd.exe or a POSIX one. */
+    @Override
+    public ShellQuoting shellQuoting(Project project) {
+        String shellPath = TerminalProjectOptionsProvider.getInstance(project).getShellPath();
+        return ShellQuoting.forShell(shellPath, SystemInfo.isWindows);
     }
 }

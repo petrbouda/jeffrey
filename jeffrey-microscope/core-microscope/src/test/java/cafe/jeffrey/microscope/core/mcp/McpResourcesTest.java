@@ -16,21 +16,36 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.profile.mcp.CompositeToolset;
-import cafe.jeffrey.profile.mcp.McpResource;
-import cafe.jeffrey.profile.mcp.McpResourceLink;
-import cafe.jeffrey.profile.mcp.McpResourceNotFoundException;
-import cafe.jeffrey.profile.mcp.McpResourceProvider;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileDocumentFixtures;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileFindings;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileSchema;
+import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.protocol.McpCacheHint;
+import cafe.jeffrey.microscope.mcp.protocol.McpResource;
+import cafe.jeffrey.microscope.mcp.protocol.McpResourceLink;
+import cafe.jeffrey.microscope.mcp.protocol.McpResourceNotFoundException;
+import cafe.jeffrey.microscope.mcp.protocol.McpResourceProvider;
+import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,15 +56,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class McpResourcesTest {
 
+    private static final String SCHEMA_TEMPLATE = "jeffrey://profile/{profileId}/schema";
+    private static final String FINDINGS_TEMPLATE = "jeffrey://profile/{profileId}/findings";
+
     private final RecordingProfileTools profileTools = new RecordingProfileTools();
     private final RecordingFlamegraphTools flamegraphTools = new RecordingFlamegraphTools();
 
     /**
      * The real toolset over stub tool classes, so a read goes through the dispatch a live call would.
      */
+    private final RecordingDocuments documents = new RecordingDocuments();
+
     private final McpResources resources = new McpResources(new CompositeToolset(List.of(
             new ReflectiveToolset(profileTools, "profiles"),
-            new ReflectiveToolset(flamegraphTools, "flamegraph"))));
+            new ReflectiveToolset(flamegraphTools, "flamegraph"))),
+            documents::documents, McpTestProperties.of(true, true, true, Set.of()), null, false);
 
     @Nested
     class Catalogue {
@@ -89,7 +110,8 @@ class McpResourcesTest {
 
     @Test
     void offersServerDiagnosticsEvenWithoutProfileTools() {
-        McpResources limited = new McpResources(new ReflectiveToolset(flamegraphTools, "flamegraph"));
+        McpResources limited = new McpResources(new ReflectiveToolset(flamegraphTools, "flamegraph"),
+                documents::documents, McpTestProperties.of(true, true, true, Set.of()), null, false);
         assertEquals(List.of("jeffrey://server"), limited.resources().stream().map(McpResource::uri).toList());
         McpResourceProvider.Contents info = limited.read("jeffrey://server");
         assertEquals(McpResource.APPLICATION_JSON, info.mimeType());
@@ -146,9 +168,8 @@ class McpResourcesTest {
      * Guessing which resource a near-miss meant would answer a question nobody asked, so every shape
      * this server does not serve is refused with the ones it does.
      * <p>
-     * A URI that is not served is a <em>missing subject</em>, which the envelope answers with
-     * {@code -32002}, not the {@code -32602} an unparseable argument gets. A client can then tell a URI
-     * it should stop asking for from one it merely spelled wrong.
+     * A URI that is not served is a <em>missing subject</em> ({@link McpResourceNotFoundException}),
+     * which the envelope answers with {@code -32602} and the sentence naming what is served.
      */
     @Nested
     class Refusals {
@@ -224,6 +245,39 @@ class McpResourcesTest {
                     .put("thresholdPct", 5)).isEmpty());
         }
 
+        /** A window, given on the recording's epoch-millisecond clock, narrows the tree like any filter. */
+        @ParameterizedTest
+        @ValueSource(strings = {"startEpochMs", "endEpochMs"})
+        void doesNotLinkAWindowedFlamegraph(String bound) {
+            assertTrue(resources.linksFor("flamegraph_export", Json.createObject()
+                    .put("profileId", "p-1")
+                    .put("eventType", "jdk.ExecutionSample")
+                    .put(bound, 1_772_366_400_000L)).isEmpty());
+        }
+
+        /**
+         * A summary is not a call tree and a full export is a deeper one than the template returns, so
+         * neither may be offered as "the same call tree"; the standard tree, asked for by name, is.
+         */
+        @ParameterizedTest
+        @ValueSource(strings = {"summary", "full", "FULL"})
+        void doesNotLinkAFlamegraphAtAnotherDetail(String detail) {
+            assertTrue(resources.linksFor("flamegraph_export", Json.createObject()
+                    .put("profileId", "p-1")
+                    .put("eventType", "jdk.ExecutionSample")
+                    .put("detail", detail)).isEmpty());
+        }
+
+        @Test
+        void linksAFlamegraphAskedForAtStandardDetail() {
+            List<McpResourceLink> links = resources.linksFor("flamegraph_export", Json.createObject()
+                    .put("profileId", "p-1")
+                    .put("eventType", "jdk.ExecutionSample")
+                    .put("detail", "standard"));
+
+            assertEquals("jeffrey://profile/p-1/flamegraph/jdk.ExecutionSample", links.getFirst().uri());
+        }
+
         @Test
         void encodesASegmentSoTheLinkCanBeReadBack() {
             List<McpResourceLink> links = resources.linksFor(
@@ -239,6 +293,238 @@ class McpResourcesTest {
             assertTrue(resources.linksFor("jvm_gc", Json.createObject().put("profileId", "p-1")).isEmpty());
             assertTrue(resources.linksFor("profiles_summary", null).isEmpty());
             assertTrue(resources.linksFor("profiles_summary", Json.createObject()).isEmpty());
+        }
+    }
+
+    /**
+     * The two resources that are not one tool's answer: the profile database's schema, and the findings
+     * the profile already holds. Each is offered only where the family whose tools read the same data
+     * is served, answers JSON that fits its record's generated schema, and is read through the
+     * profile's documents rather than by running a tool.
+     */
+    @Nested
+    class ProfileDocuments {
+
+        private final McpResources served = resourcesFor(
+                new ReflectiveToolset(new SummaryTools(), "profiles"),
+                new ReflectiveToolset(new SqlTools(), "jfr"),
+                new ReflectiveToolset(new JvmTools(), "jvm"));
+
+        @Test
+        void advertisesTheSchemaOnlyWhereTheJfrFamilyIs() {
+            assertTrue(templateUris(served).contains(SCHEMA_TEMPLATE));
+            assertFalse(templateUris(resourcesFor(new ReflectiveToolset(new JvmTools(), "jvm")))
+                    .contains(SCHEMA_TEMPLATE));
+        }
+
+        @Test
+        void advertisesTheFindingsOnlyWhereTheJvmFamilyIs() {
+            assertTrue(templateUris(served).contains(FINDINGS_TEMPLATE));
+            assertFalse(templateUris(resourcesFor(new ReflectiveToolset(new SqlTools(), "jfr")))
+                    .contains(FINDINGS_TEMPLATE));
+        }
+
+        @Test
+        void describesBothAsJson() {
+            for (McpResource template : served.templates()) {
+                if (Set.of(SCHEMA_TEMPLATE, FINDINGS_TEMPLATE).contains(template.uri())) {
+                    assertEquals(McpResource.APPLICATION_JSON, template.mimeType(), template.uri());
+                }
+            }
+        }
+
+        @Test
+        void readsTheSchemaAsJsonThatFitsItsRecord() {
+            McpResourceProvider.Contents contents = served.read("jeffrey://profile/p%201/schema");
+
+            assertEquals(List.of("p 1"), documents.schemaReads);
+            assertEquals(McpResource.APPLICATION_JSON, contents.mimeType());
+            assertEquals(McpCacheHint.DYNAMIC, contents.cacheHint());
+            JsonNode schema = Json.readTree(contents.text());
+            McpSchemaConformance.assertConforms(schema, McpSchemaGenerator.schemaOf(ProfileSchema.class));
+            assertEquals("p 1", schema.get("profileId").asString());
+        }
+
+        @Test
+        void readsTheFindingsAsJsonThatFitsItsRecord() {
+            McpResourceProvider.Contents contents = served.read("jeffrey://profile/p-1/findings");
+
+            assertEquals(List.of("p-1"), documents.findingsReads);
+            assertEquals(McpResource.APPLICATION_JSON, contents.mimeType());
+            assertEquals(McpCacheHint.DYNAMIC, contents.cacheHint());
+            JsonNode findings = Json.readTree(contents.text());
+            McpSchemaConformance.assertConforms(findings, McpSchemaGenerator.schemaOf(ProfileFindings.class));
+            assertEquals("NOT_COMPUTED", findings.get("status").asString());
+        }
+
+        /**
+         * Listing is one half of the gate; a URI a client builds by hand must be refused the same way,
+         * and the refusal must not offer the resource it is refusing.
+         */
+        @Test
+        void refusesADocumentWhoseFamilyIsNotServed() {
+            McpResources jvmOnly = resourcesFor(new ReflectiveToolset(new JvmTools(), "jvm"));
+            McpResources jfrOnly = resourcesFor(new ReflectiveToolset(new SqlTools(), "jfr"));
+
+            McpResourceNotFoundException schema = assertThrows(McpResourceNotFoundException.class,
+                    () -> jvmOnly.read("jeffrey://profile/p-1/schema"));
+            McpResourceNotFoundException findings = assertThrows(McpResourceNotFoundException.class,
+                    () -> jfrOnly.read("jeffrey://profile/p-1/findings"));
+
+            assertFalse(schema.getMessage().contains(SCHEMA_TEMPLATE), schema.getMessage());
+            assertTrue(schema.getMessage().contains(FINDINGS_TEMPLATE), schema.getMessage());
+            assertFalse(findings.getMessage().contains(FINDINGS_TEMPLATE), findings.getMessage());
+            assertTrue(findings.getMessage().contains(SCHEMA_TEMPLATE), findings.getMessage());
+            assertTrue(documents.schemaReads.isEmpty());
+            assertTrue(documents.findingsReads.isEmpty());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"jeffrey://profile//schema", "jeffrey://profile/p-1/schema/events",
+                "jeffrey://profile/p-1/findings/jvm", "jeffrey://profile/%20/findings", "jeffrey://profile/schema"})
+        void refusesAMalformedDocumentUri(String uri) {
+            McpResourceNotFoundException refused =
+                    assertThrows(McpResourceNotFoundException.class, () -> served.read(uri));
+
+            assertTrue(refused.getMessage().contains(SCHEMA_TEMPLATE), refused.getMessage());
+            assertTrue(documents.schemaReads.isEmpty());
+            assertTrue(documents.findingsReads.isEmpty());
+        }
+
+        /** A segment that is not valid percent-encoding is an argument the caller can fix: -32602 all the same. */
+        @Test
+        void refusesABadlyEncodedProfileId() {
+            assertThrows(IllegalArgumentException.class, () -> served.read("jeffrey://profile/%ZZ/schema"));
+        }
+
+        /**
+         * The refusal names every served URI as one list, whichever of the two documents are served:
+         * commas between, "and" before the last, never a comma left behind by one that is not.
+         */
+        @Test
+        void refusesWithAWellFormedListOfWhatIsServed() {
+            String flamegraph = "jeffrey://profile/{profileId}/flamegraph/{eventType}";
+            String summary = "jeffrey://profile/{profileId}/summary";
+            Map<McpResources, String> expectedTails = Map.of(
+                    served, summary + ", " + SCHEMA_TEMPLATE + ", " + FINDINGS_TEMPLATE + " and " + flamegraph + ".",
+                    resourcesFor(new ReflectiveToolset(new SqlTools(), "jfr")),
+                    summary + ", " + SCHEMA_TEMPLATE + " and " + flamegraph + ".",
+                    resourcesFor(new ReflectiveToolset(new JvmTools(), "jvm")),
+                    summary + ", " + FINDINGS_TEMPLATE + " and " + flamegraph + ".",
+                    resourcesFor(new ReflectiveToolset(new SummaryTools(), "profiles")),
+                    summary + " and " + flamegraph + ".");
+
+            expectedTails.forEach((resources, tail) -> {
+                String message = assertThrows(McpResourceNotFoundException.class,
+                        () -> resources.read("jeffrey://nonsense")).getMessage();
+                assertTrue(message.endsWith(tail), message);
+                assertFalse(message.contains(", and"), message);
+                assertFalse(message.contains(", ,"), message);
+            });
+        }
+
+        @Test
+        void linksTheSummaryAndTheEvidenceToTheFindings() {
+            List<String> summary = linkUris(served.linksFor("profiles_summary", profile("p-1")));
+            List<String> evidence = linkUris(served.linksFor("profiles_evidence", profile("p-1")));
+
+            assertEquals(List.of("jeffrey://profile/p-1/summary", "jeffrey://profile/p-1/findings"), summary);
+            assertEquals(List.of("jeffrey://profile/p-1/evidence", "jeffrey://profile/p-1/findings"), evidence);
+            served.read(summary.get(1));
+        }
+
+        @Test
+        void linksTheSqlCatalogueToTheSchema() {
+            List<String> tables = linkUris(served.linksFor("jfr_listTables", profile("p/1")));
+            List<String> describe = linkUris(served.linksFor("jfr_describeTable",
+                    profile("p-1").put("tableName", "events")));
+
+            assertEquals(List.of("jeffrey://profile/p%2F1/schema"), tables);
+            assertEquals(List.of("jeffrey://profile/p-1/schema"), describe);
+            served.read(tables.getFirst());
+            assertEquals(List.of("p/1"), documents.schemaReads);
+        }
+
+        @Test
+        void linksNoFindingsWhereTheJvmFamilyIsNotServed() {
+            McpResources withoutJvm = resourcesFor(
+                    new ReflectiveToolset(new SummaryTools(), "profiles"),
+                    new ReflectiveToolset(new SqlTools(), "jfr"));
+
+            assertEquals(List.of("jeffrey://profile/p-1/summary"),
+                    linkUris(withoutJvm.linksFor("profiles_summary", profile("p-1"))));
+        }
+
+        private McpResources resourcesFor(McpToolProvider... families) {
+            return new McpResources(new CompositeToolset(List.of(families)), documents::documents,
+                    McpTestProperties.of(true, true, true, Set.of()), null, false);
+        }
+
+        private static List<String> templateUris(McpResources resources) {
+            return resources.templates().stream().map(McpResource::uri).toList();
+        }
+
+        private static List<String> linkUris(List<McpResourceLink> links) {
+            return links.stream().map(McpResourceLink::uri).toList();
+        }
+
+        private static ObjectNode profile(String profileId) {
+            return Json.createObject().put("profileId", profileId);
+        }
+    }
+
+    /** Hands out filled-in documents and records which profiles they were read for. */
+    static final class RecordingDocuments {
+
+        private final List<String> schemaReads = new ArrayList<>();
+        private final List<String> findingsReads = new ArrayList<>();
+
+        McpProfileDocuments documents() {
+            return new McpProfileDocuments(
+                    profileId -> {
+                        schemaReads.add(profileId);
+                        return ProfileDocumentFixtures.schema(profileId);
+                    },
+                    profileId -> {
+                        findingsReads.add(profileId);
+                        return ProfileDocumentFixtures.findings(profileId);
+                    });
+        }
+    }
+
+    public static class SummaryTools {
+
+        @Tool(description = "One profile in summary")
+        public String summary(@ToolParam(required = true, description = "which profile") String profileId) {
+            return "{}";
+        }
+
+        @Tool(description = "One profile's evidence")
+        public String evidence(@ToolParam(required = true, description = "which profile") String profileId) {
+            return "{}";
+        }
+    }
+
+    public static class SqlTools {
+
+        @Tool(description = "The tables")
+        public String listTables(@ToolParam(required = true, description = "which profile") String profileId) {
+            return "- events (view)";
+        }
+
+        @Tool(description = "One table")
+        public String describeTable(
+                @ToolParam(required = true, description = "which profile") String profileId,
+                @ToolParam(required = true, description = "which table") String tableName) {
+            return "| column |";
+        }
+    }
+
+    public static class JvmTools {
+
+        @Tool(description = "The rule set")
+        public String autoAnalysis(@ToolParam(required = true, description = "which profile") String profileId) {
+            return "{}";
         }
     }
 

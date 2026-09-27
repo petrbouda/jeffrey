@@ -16,12 +16,20 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.common.treetable.EventViewerData;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.common.treetable.EventViewerData;
+import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.profile.mcp.McpToolCost;
+import cafe.jeffrey.profile.mcp.McpToolMeta;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -43,31 +51,39 @@ import java.util.Map;
  */
 public class EventTypeMcpTools {
 
-    private static final String EVENTS_VIEW = "events";
+    private static final MicroscopeView EVENTS_VIEW = MicroscopeView.EVENTS;
     private static final String EVENT_TYPE_PARAM = "eventType";
 
     private static final String NO_SUCH_EVENT_TYPE =
             "This profile recorded no event type called '%s'. jfr_listEventTypes names the ones it has, "
                     + "with their counts.";
 
-    private static final String STEP_QUERY =
-            "jfr_queryEvents with this eventType returns rows; the field names above are the keys inside "
-                    + "each row's JSON 'fields' column.";
-    private static final String STEP_SQL =
-            "In SQL, read one field with fields->>'name'. jfr_executeQuery runs it.";
+    private static final String QUERY_EVENTS = "jfr_queryEvents";
+    private static final String PROFILE_ID = "profileId";
+    private static final String EVENT_TYPE = "eventType";
+    private static final String LIMIT = "limit";
+    private static final int SAMPLE_EVENTS = 10;
+    private static final String QUERY_WHY =
+            "reads the latest events of this type; the field names are the keys inside each row's JSON fields column";
+    private static final String SQL_GUIDANCE =
+            "In SQL, read one field with fields->>'name'; jfr_executeQuery runs it.";
 
     private final ProfileManager profileManager;
+    private final AdvertisedFamilies advertised;
 
-    public EventTypeMcpTools(ProfileManager profileManager) {
+    public EventTypeMcpTools(ProfileManager profileManager, AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
+        this.advertised = advertised;
     }
 
-    @Tool(description = "The fields of one JFR event type, with their labels and types — what is "
-            + "actually inside the JSON 'fields' column of the events table for that type. Call it "
-            + "before writing a query against an event type you have not queried before: field names "
-            + "are JFR's rather than Jeffrey's, and guessing them is how a query comes back empty for "
-            + "a recording that holds the data. jfr_listEventTypes names the types this profile has.")
-    public String describeEventType(
+    @Tool(description = "Describes the fields of one JFR event type, with their labels and types - what "
+            + "the JSON 'fields' column of the events table actually holds for that type. Field "
+            + "names are JFR's rather than Jeffrey's, so a query with a guessed name comes back "
+            + "empty for a recording that holds the data. jfr_listEventTypes names the types this "
+            + "profile has; a type it did not record is an error naming it.")
+    @McpOutputSchema(EventTypeDetail.class)
+    @McpToolMeta(cost = McpToolCost.CHEAP)
+    public McpToolResult describeEventType(
             @ToolParam(required = true, description = "The event type, e.g. 'jdk.ObjectAllocationSample' "
                     + "or 'jdk.GarbageCollection', as jfr_listEventTypes reports it")
             String eventType) {
@@ -82,7 +98,7 @@ public class EventTypeMcpTools {
                 .findFirst()
                 .orElse(null);
         if (recorded == null) {
-            return McpToolOutput.error(NO_SUCH_EVENT_TYPE.formatted(code));
+            throw new IllegalArgumentException(NO_SUCH_EVENT_TYPE.formatted(code));
         }
 
         List<Field> fields = profileManager.eventViewerManager()
@@ -90,33 +106,50 @@ public class EventTypeMcpTools {
                 .map(field -> new Field(field.field(), field.header(), field.type(), field.description()))
                 .toList();
 
-        return LinkedOutput.json(new EventTypeDetail(
+        String profileId = profileManager.info().id();
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .nextWhen(recorded.count() > 0, McpNextTool.call(QUERY_EVENTS).with(PROFILE_ID, profileId)
+                        .with(EVENT_TYPE, code).with(LIMIT, SAMPLE_EVENTS).why(QUERY_WHY))
+                .guidance(SQL_GUIDANCE)
+                .followUp();
+        return McpToolResult.of(new EventTypeDetail(
                 recorded.code(),
                 recorded.name(),
                 recorded.categories(),
                 recorded.count(),
                 recorded.withStackTrace(),
                 fields,
-                List.of(STEP_QUERY, STEP_SQL),
-                UiLinks.view(profileManager.info().id(), EVENTS_VIEW,
-                        Map.of(EVENT_TYPE_PARAM, code))));
+                followUp,
+                UiLinks.view(profileId, EVENTS_VIEW, Map.of(EVENT_TYPE_PARAM, code))));
     }
 
     /**
      * @param withStackTrace whether events of this type carry a stack, which decides whether it can be
      *                       drawn as a flamegraph at all
      */
-    private record EventTypeDetail(
+    record EventTypeDetail(
             String eventType,
             String label,
             List<String> categories,
+            @McpDescription("How many events of this type the profile holds")
             long count,
             boolean withStackTrace,
             List<Field> fields,
-            List<String> nextSteps,
+            McpFollowUp followUp,
+            @McpDescription("The event viewer on this event type in the Microscope UI, for the user")
             String uiLink) {
     }
 
-    private record Field(String name, String label, String type, String description) {
+    record Field(
+            @McpDescription("The key inside the events view's JSON fields column")
+            String name,
+            @McpNullable
+            @McpDescription("The field's label; null when the recording declared none")
+            String label,
+            @McpNullable
+            @McpDescription("The field's JFR type; null when the recording declared none")
+            String type,
+            @McpNullable
+            String description) {
     }
 }

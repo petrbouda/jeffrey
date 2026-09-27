@@ -28,17 +28,18 @@ import java.time.ZoneOffset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpOperationRegistryIsolationTest {
     @Test
     void unrelatedSlowProgressCannotBlockRegistrationStatusCancellationOrRecordingLookup() throws Exception {
-        McpOperationRegistry registry = new McpOperationRegistry();
-        BoundedJobs<String, String> jobs = new BoundedJobs<>();
+        McpOperationRegistry registry = new McpOperationRegistry(Clock.systemUTC());
+        BoundedJobs<String, String> jobs = ToolFixtures.jobs(BoundedJobs.WAIT_BUDGET);
         CountDownLatch install = new CountDownLatch(1);
         CountDownLatch installed = new CountDownLatch(1);
         CountDownLatch releaseProgress = new CountDownLatch(1);
@@ -46,25 +47,25 @@ class McpOperationRegistryIsolationTest {
         AtomicInteger progressReads = new AtomicInteger();
         var first = jobs.startOrJoin("first", false, value -> true, control -> {
             waitFor(install);
-            control.progress((Supplier<Object>) () -> {
+            control.progressFrom(() -> {
                 progressReads.incrementAndGet();
                 waitFor(releaseProgress);
-                return "progress";
+                return OperationDetails.NONE;
             });
             installed.countDown();
             waitFor(releaseWorker);
             return "first-result";
         });
         try {
-            registry.register(OperationKind.RECORDING_ANALYSIS, first, value -> value, () -> "recording-a");
+            registry.register(OperationKind.RECORDING_ANALYSIS, first, OperationResults.Value::new, () -> "recording-a");
             install.countDown();
             assertTrue(installed.await(5, TimeUnit.SECONDS));
             var second = jobs.startOrJoin("second", false, value -> true, () -> "second-result");
             jobs.awaitWithin(second, Duration.ofSeconds(5));
             assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
-                String id = registry.register(OperationKind.RECORDING_ANALYSIS, second, value -> value, () -> "recording-b");
-                assertEquals("completed", registry.status(id).status());
-                assertEquals("completed", registry.cancel(id, kind -> true).status());
+                String id = registry.register(OperationKind.RECORDING_ANALYSIS, second, OperationResults.Value::new, () -> "recording-b");
+                assertEquals(OperationState.COMPLETED, registry.status(id).status());
+                assertEquals(OperationState.COMPLETED, registry.cancel(id, kind -> true).status());
                 assertEquals(id, registry.latestForRecording("recording-b").orElseThrow());
             });
             assertEquals(0, progressReads.get(), "Unrelated operation controls must not evaluate progress");
@@ -80,11 +81,29 @@ class McpOperationRegistryIsolationTest {
     void latestRecordingAttemptUsesRegistrationOrderWhenTimestampsMatch() {
         Instant now = Instant.parse("2026-09-12T12:00:00Z");
         McpOperationRegistry registry = new McpOperationRegistry(Clock.fixed(now, ZoneOffset.UTC));
-        registry.register(OperationKind.RECORDING_ANALYSIS, completed("a", now), value -> value, () -> "recording");
-        registry.register(OperationKind.RECORDING_ANALYSIS, completed("b", now), value -> value, () -> "recording");
+        registry.register(OperationKind.RECORDING_ANALYSIS, completed("a", now), OperationResults.Value::new, () -> "recording");
+        registry.register(OperationKind.RECORDING_ANALYSIS, completed("b", now), OperationResults.Value::new, () -> "recording");
         assertEquals("b", registry.latestForRecording("recording").orElseThrow());
-        registry.register(OperationKind.RECORDING_ANALYSIS, completed("a", now), value -> value, () -> "recording");
+        registry.register(OperationKind.RECORDING_ANALYSIS, completed("a", now), OperationResults.Value::new, () -> "recording");
         assertEquals("b", registry.latestForRecording("recording").orElseThrow());
+    }
+
+    /**
+     * A task is the same entry as an operation, so the gate that keeps a withheld family's operation
+     * out of {@code operations_status} keeps it out of {@code tasks/get} too.
+     */
+    @Test
+    void theTaskViewAppliesTheSameGateAsTheOperationsView() {
+        Instant now = Instant.parse("2026-09-12T12:00:00Z");
+        McpOperationRegistry registry = new McpOperationRegistry(Clock.fixed(now, ZoneOffset.UTC));
+        registry.register(OperationKind.HUB_DOWNLOAD, completed("hub", now), OperationResults.Value::new);
+        registry.register(OperationKind.HEAP_OQL, completed("heap", now), OperationResults.Value::new);
+        Predicate<OperationKind> withoutHubs = kind -> !kind.reachesHub();
+
+        assertThrows(IllegalArgumentException.class, () -> registry.status("hub", withoutHubs));
+        assertThrows(IllegalArgumentException.class, () -> registry.task("hub", withoutHubs));
+        assertEquals("heap", registry.task("heap", withoutHubs).taskId());
+        assertEquals("hub", registry.task("hub", kind -> true).taskId());
     }
 
     private static OperationHandle<String> completed(String id, Instant now) {
@@ -92,7 +111,7 @@ class McpOperationRegistryIsolationTest {
             @Override
             public OperationSnapshot<String> snapshot() {
                 return new OperationSnapshot<>(id, OperationState.COMPLETED, now, now,
-                        false, "completed", null, "result", null);
+                        false, "running", null, "result", null);
             }
 
             @Override

@@ -50,7 +50,8 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
  */
 public final class ConsumerReportAnalyzer {
 
-    private static final int DEFAULT_TOP_N = 100;
+    /** How many consumers the stored report keeps, the ones with the largest shallow size. */
+    public static final int DEFAULT_TOP_N = 100;
     private static final String DEFAULT_PACKAGE = "<default>";
     private static final String BOOTSTRAP_LOADER = "<bootstrap>";
 

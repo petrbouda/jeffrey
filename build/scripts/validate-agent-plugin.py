@@ -30,14 +30,25 @@ an install, plus the version agreement across the four manifests that only exist
 this repository.
 
 Usage: validate-agent-plugin.py <repo-root>
+       validate-agent-plugin.py --self-test
 
-Also checks analyst preparation restrictions and the session-page default copied from Java.
+Also checks analyst preparation restrictions and the session-page default copied from Java, that
+every SKILL.md front matter is strict YAML (PyYAML, required), and that no relative reference in a
+skill's Markdown leaves its skill directory or points at a file that does not exist. `--self-test`
+runs those skill checks over broken skills built in a temporary directory.
 """
 
 import json
+import os
 import re
 import sys
+import tempfile
 from pathlib import Path
+
+try:
+    import yaml
+except ImportError:  # reported per skill by skill_frontmatter, never skipped silently
+    yaml = None
 
 SPEC_VERSION = "1.0.0"
 PLUGIN_SCHEMA_ID = f"https://agent-plugins.org/schemas/{SPEC_VERSION}/plugin.schema.json"
@@ -57,6 +68,16 @@ REMOTE_FIELDS = {"type", "url", "headers"}
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
 
 PLUGIN_DIR = "jeffrey-claude-plugin"
+SELF_TEST_FLAG = "--self-test"
+FRONTMATTER_DELIMITER = "---"
+
+# What a host resolves against the skill: a backtick-quoted relative file path (a directory and a file
+# of a text type, as in `references/guide.md`) or the target of a Markdown link. A command line in
+# backticks is not a reference. Same pattern as McpSkillCatalogueTest.RELATIVE_REFERENCE.
+RELATIVE_REFERENCE = re.compile(
+    r"`((?:\.{1,2}/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_./-]*\.(?:md|txt|json|ya?ml|py|sh))`"
+    r"|\]\(([^)\s#]+)\)")
+URI_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 
 failures: list[str] = []
 
@@ -118,26 +139,80 @@ def check_mcp(config: dict, where: str) -> None:
                 fail(at, f"plain HTTP is only allowed on loopback, not {host!r}")
 
 
+class StrictLoader(yaml.SafeLoader if yaml else object):
+    """PyYAML's safe loader, minus its one leniency: a repeated key replaces the earlier value."""
+
+    def construct_mapping(self, node, deep=False):
+        keys = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in keys:
+                raise yaml.constructor.ConstructorError(
+                    None, None, f"duplicate key {key!r}", key_node.start_mark)
+            keys.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def skill_frontmatter(skill: Path) -> dict | None:
+    """The front matter parsed as strict YAML, the way the MCP server's catalogue reads it, or None."""
+    lines = skill.read_text().split("\n")
+    if lines[0].rstrip() != FRONTMATTER_DELIMITER:
+        fail(str(skill), "does not start with YAML front matter")
+        return None
+    closing = next((i for i, line in enumerate(lines[1:], 1) if line.rstrip() == FRONTMATTER_DELIMITER), None)
+    if closing is None:
+        fail(str(skill), "front matter has no closing --- line")
+        return None
+    if yaml is None:
+        fail(str(skill), "PyYAML is required to parse the front matter — pip install pyyaml")
+        return None
+    try:
+        document = yaml.load("\n".join(lines[1:closing]), Loader=StrictLoader)
+    except yaml.YAMLError as e:
+        fail(str(skill), f"front matter is not valid YAML — {' '.join(str(e).split())}")
+        return None
+    if not isinstance(document, dict):
+        fail(str(skill), "front matter must be a YAML mapping")
+        return None
+    return document
+
+
 def check_skills(plugin_root: Path) -> None:
     """Section 7.1: each immediate child of skills/ holding a SKILL.md is one skill."""
     skills = sorted(plugin_root.glob("skills/*/SKILL.md"))
     if not skills:
         fail(str(plugin_root / "skills"), "no skills discovered")
     for skill in skills:
-        text = skill.read_text()
-        if not text.startswith("---\n"):
-            fail(str(skill), "does not start with YAML front matter")
+        frontmatter = skill_frontmatter(skill)
+        if frontmatter is None:
             continue
-        frontmatter = text.split("---", 2)[1]
-        name = re.search(r"^name:\s*(.+)$", frontmatter, re.M)
-        description = re.search(r"^description:\s*(.+)$", frontmatter, re.M)
-        if not name or not description:
-            fail(str(skill), "front matter must carry both name and description")
+        name = frontmatter.get("name")
+        description = frontmatter.get("description")
+        if not isinstance(name, str) or not isinstance(description, str):
+            fail(str(skill), "front matter must carry both name and description as text")
             continue
-        if name.group(1).strip() != skill.parent.name:
-            fail(str(skill), f"name {name.group(1).strip()!r} must match its directory")
-        if len(description.group(1).strip()) > 1024:
+        if name.strip() != skill.parent.name:
+            fail(str(skill), f"name {name.strip()!r} must match its directory")
+        if len(description.strip()) > 1024:
             fail(str(skill), "description exceeds the 1024-character limit")
+
+
+def check_skill_links(plugin_root: Path) -> None:
+    """A host resolves a relative reference against the skill's own directory and reads only files
+    inside it, so no reference in a skill's Markdown may leave that directory, and each must exist."""
+    for skill in sorted(plugin_root.glob("skills/*/SKILL.md")):
+        skill_dir = skill.parent.resolve()
+        for document in sorted(skill.parent.rglob("*.md")):
+            for match in RELATIVE_REFERENCE.finditer(document.read_text()):
+                reference = match.group(1) or match.group(2)
+                if URI_SCHEME.match(reference) or reference.startswith("/"):
+                    continue
+                target = Path(os.path.normpath(document.parent.resolve() / reference))
+                if not target.is_relative_to(skill_dir):
+                    fail(str(document), f"{reference!r} leaves its skill directory — "
+                                        "spell the content out in the skill instead")
+                elif not target.is_file():
+                    fail(str(document), f"{reference!r} does not exist")
 
 
 def check_versions(root: Path) -> None:
@@ -183,7 +258,104 @@ def check_agent_contracts(root: Path) -> None:
         fail(str(skill), "hubs_sessions documented default must match HubsMcpTools.DEFAULT_LIMIT")
 
 
+GOOD_SKILL = """---
+name: {name}
+description: "A skill that loads: \\"quoted\\" words and a colon, all inside one quoted value."
+---
+
+# {name}
+
+See `references/guide.md` and [the guide](references/guide.md#top); `mvn -q test` is a command.
+"""
+
+# Each case: the files of one broken skill beside a good one, and what the failure must say.
+SELF_TEST_CASES = {
+    "an unquoted colon in a value": (
+        {"bad/SKILL.md": "---\nname: bad\ndescription: the machine underneath: garbage collection\n---\nBody.\n"},
+        "front matter is not valid YAML",
+    ),
+    "a duplicate key": (
+        {"bad/SKILL.md": "---\nname: bad\ndescription: one\ndescription: two\n---\nBody.\n"},
+        "front matter is not valid YAML",
+    ),
+    "front matter that is not a mapping": (
+        {"bad/SKILL.md": "---\n- name: bad\n---\nBody.\n"},
+        "front matter must be a YAML mapping",
+    ),
+    "an unterminated front matter": (
+        {"bad/SKILL.md": "---\nname: bad\ndescription: d\n"},
+        "front matter has no closing --- line",
+    ),
+    "a backtick path into another skill": (
+        {"bad/SKILL.md": "---\nname: bad\ndescription: d\n---\nSee `../good/references/guide.md`.\n"},
+        "leaves its skill directory",
+    ),
+    "a Markdown link into another skill": (
+        {"bad/SKILL.md": "---\nname: bad\ndescription: d\n---\nSee [it](../good/SKILL.md).\n"},
+        "leaves its skill directory",
+    ),
+    "a link out of a supporting file": (
+        {"bad/SKILL.md": "---\nname: bad\ndescription: d\n---\nBody.\n",
+         "bad/references/notes.md": "See `../../good/SKILL.md`.\n"},
+        "leaves its skill directory",
+    ),
+    "a link to a file that does not exist": (
+        {"bad/SKILL.md": "---\nname: bad\ndescription: d\n---\nSee `references/missing.md`.\n"},
+        "does not exist",
+    ),
+}
+
+
+def write_skills(plugin_root: Path, files: dict[str, str]) -> None:
+    for relative, text in files.items():
+        path = plugin_root / "skills" / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+
+def skill_problems(plugin_root: Path) -> list[str]:
+    failures.clear()
+    check_skills(plugin_root)
+    check_skill_links(plugin_root)
+    found = list(failures)
+    failures.clear()
+    return found
+
+
+def located_in(problem: str, skill: str) -> bool:
+    """Whether a failure is reported against a file of that skill, rather than merely naming it."""
+    return f"/skills/{skill}/" in problem.split(": ", 1)[0]
+
+
+def self_test() -> int:
+    """Runs the skill checks over small plugins built in a temporary directory, one broken skill each."""
+    problems = []
+    good = {"good/SKILL.md": GOOD_SKILL.format(name="good"), "good/references/guide.md": "# Guide\n"}
+    with tempfile.TemporaryDirectory() as directory:
+        plugin_root = Path(directory) / "clean"
+        write_skills(plugin_root, good)
+        found = skill_problems(plugin_root)
+        if found:
+            problems.append(f"the good skill alone must pass, got {found}")
+        for case, (files, expected) in SELF_TEST_CASES.items():
+            plugin_root = Path(directory) / re.sub(r"\W+", "-", case)
+            write_skills(plugin_root, {**good, **files})
+            found = skill_problems(plugin_root)
+            if not any(expected in problem and located_in(problem, "bad") for problem in found):
+                problems.append(f"{case}: expected a failure saying {expected!r} on the bad skill, got {found}")
+            if any(located_in(problem, "good") for problem in found):
+                problems.append(f"{case}: the good skill beside it must pass, got {found}")
+    for problem in problems:
+        print(f"FAIL: self-test — {problem}", file=sys.stderr)
+    if problems:
+        return 1
+    print(f"OK: self-test — a good skill passes and {len(SELF_TEST_CASES)} broken ones are each caught.")
+    return 0
+
+
 def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == SELF_TEST_FLAG:
+        return self_test()
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     plugin_root = root / PLUGIN_DIR
 
@@ -206,6 +378,7 @@ def main() -> int:
              "keep the single mcp.json")
 
     check_skills(plugin_root)
+    check_skill_links(plugin_root)
     check_versions(root)
     check_agent_contracts(root)
 
@@ -214,7 +387,7 @@ def main() -> int:
             print(f"::error::{failure}")
         print(f"\n{len(failures)} problem(s) found.")
         return 1
-    print("Agent Plugins manifest, MCP configuration, skills, versions and agent contracts all valid.")
+    print("Agent Plugins manifest, MCP configuration, skills, skill links, versions and agent contracts all valid.")
     return 0
 
 

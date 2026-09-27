@@ -18,6 +18,7 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.model.Type;
 
 /**
  * A {@link FlamegraphManager} over a <em>pair</em> of profiles.
@@ -42,4 +43,14 @@ public interface DifferentialFlamegraphManager extends FlamegraphManager {
      * @return Markdown suitable for handing to a model
      */
     String rankedMovements(GraphParameters graphParameters, int limit);
+
+    /**
+     * Whether a comparison of this event type is weighed by bytes and nanoseconds when the caller did
+     * not say: for allocation, blocking and method-trace events, the way the single-profile path
+     * settles it. The one statement of the rule, so every place that has to know which weighting a
+     * comparison ran with - its link into the UI among them - reads the same answer.
+     */
+    static boolean weightedByDefault(Type eventType) {
+        return eventType.isAllocationEvent() || eventType.isBlockingEvent() || eventType.isMethodTraceEvent();
+    }
 }

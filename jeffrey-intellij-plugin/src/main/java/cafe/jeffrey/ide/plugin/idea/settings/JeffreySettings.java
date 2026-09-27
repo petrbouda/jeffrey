@@ -31,9 +31,10 @@ import org.jetbrains.annotations.NotNull;
  * endpoint returns {@code 404}, so a disabled IDE is invisible to Microscope's port scan rather than
  * visible and refusing.
  *
- * <p>{@code microscopeUrl} is only used in the other direction, by the action that sends a recording
- * to Microscope. Nothing discovers it: Microscope finds the IDE, not the reverse, so this is the one
- * address the plugin cannot work out for itself.
+ * <p>{@code microscopeUrl} is only used in the other direction: by the action that sends a recording
+ * to Microscope, and to point a launched coding agent at the same Microscope's MCP endpoint. Nothing
+ * discovers it: Microscope finds the IDE, not the reverse, so this is the one address the plugin
+ * cannot work out for itself.
  */
 @State(name = "JeffreySettings", storages = @Storage("jeffrey.xml"))
 @Service(Service.Level.APP)

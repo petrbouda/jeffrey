@@ -18,6 +18,7 @@
 import axios from 'axios';
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import GraphComponents from '@/services/api/model/GraphComponents';
+import type TimeRange from '@/services/api/model/TimeRange';
 
 const MARKDOWN_ACCEPT_HEADERS = {
   headers: {
@@ -35,6 +36,8 @@ export interface AiExportRequestParams {
   excludeNonJavaSamples: boolean;
   excludeIdleSamples: boolean;
   onlyUnsafeAllocationSamples: boolean;
+  /** The range the graph on screen is drawn over; null for the whole recording. */
+  timeRange: TimeRange | null;
 }
 
 export default class FlamegraphAiExportClient extends BaseProfileClient {
@@ -46,7 +49,7 @@ export default class FlamegraphAiExportClient extends BaseProfileClient {
     const body = {
       flamegraphName: null,
       eventType: params.eventType,
-      timeRange: null,
+      timeRange: params.timeRange,
       search: params.search,
       useThreadMode: params.useThreadMode,
       useWeight: params.useWeight,

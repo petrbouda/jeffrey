@@ -48,4 +48,10 @@ final class ClipboardAgentLauncher implements AgentLauncher {
                 .createNotification(TITLE, BODY + "\n" + command, NotificationType.INFORMATION)
                 .notify(project);
     }
+
+    /** No terminal to ask, so the platform's usual shell decides. */
+    @Override
+    public ShellQuoting shellQuoting(Project project) {
+        return ShellQuoting.forPlatform();
+    }
 }

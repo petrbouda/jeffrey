@@ -18,12 +18,15 @@
 package cafe.jeffrey.ide.plugin.idea.recording;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
+import cafe.jeffrey.ide.plugin.idea.agent.AgentLauncher;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentLaunchers;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentTask;
 import cafe.jeffrey.ide.plugin.idea.recording.web.CefPanelRenderer;
 import cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.ide.ui.LafManagerListener;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -69,6 +72,9 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     private static final Logger LOG = Logger.getInstance(RecordingPanel.class);
 
     private static final String SETTINGS_DISPLAY_NAME = "Jeffrey Plugin";
+
+    private static final String NOTIFICATION_GROUP = "Jeffrey Microscope";
+    private static final String UNQUOTABLE_TITLE = "Agent not started";
 
     /** How often the panel asks about a running pipeline. Stages take seconds to minutes. */
     private static final long BUILD_POLL_SECONDS = 2;
@@ -580,10 +586,13 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      *
      * <p>Launching also remembers the agent, which is what the split button's primary half runs next
      * time. Without it that choice would fall to whichever entry {@code AgentCli.ALL} declares first.
+     * The agent is pointed at the Microscope address in the settings, the one this panel reads from.
      */
     @Override
     public void launchAgent(AgentCli agent) {
-        JeffreySettings.getInstance().setPreferredAgent(agent.executable());
+        JeffreySettings settings = JeffreySettings.getInstance();
+        settings.setPreferredAgent(agent.executable());
+        String microscopeUrl = settings.microscopeUrl();
 
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = client.state(file);
@@ -591,10 +600,23 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 LOG.info("Ignoring an agent launch for a recording with no profile: file=" + file);
                 return;
             }
-            String command = agent.command(taskFor(state));
+            AgentLauncher launcher = AgentLaunchers.current();
+            String command;
+            try {
+                command = agent.command(taskFor(state), microscopeUrl, launcher.shellQuoting(project));
+            } catch (IllegalArgumentException e) {
+                // The terminal's shell cannot carry the configured URL inertly; typing it anyway
+                // would run part of it as a command.
+                LOG.warn("Refusing an agent command the shell cannot quote: agent=" + agent.executable(), e);
+                ApplicationManager.getApplication().invokeLater(() -> NotificationGroupManager.getInstance()
+                        .getNotificationGroup(NOTIFICATION_GROUP)
+                        .createNotification(UNQUOTABLE_TITLE, e.getMessage(), NotificationType.WARNING)
+                        .notify(project));
+                return;
+            }
             ApplicationManager.getApplication().invokeLater(() -> {
                 try {
-                    AgentLaunchers.current().launch(project, workingDirectory(), command);
+                    launcher.launch(project, workingDirectory(), command);
                 } catch (Exception e) {
                     LOG.warn("Could not start an agent: agent=" + agent.executable() + " file=" + file, e);
                 }

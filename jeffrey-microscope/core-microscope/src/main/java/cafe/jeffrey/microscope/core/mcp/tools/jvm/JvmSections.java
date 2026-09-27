@@ -40,10 +40,10 @@ import java.util.stream.Collectors;
  */
 public class JvmSections {
 
-    private final Map<String, JvmSection> sections;
+    private final Map<String, JvmSection<?>> sections;
     private final Supplier<Set<String>> recordedEventTypes;
 
-    public JvmSections(ProfileManager profileManager, List<JvmSection> sections) {
+    public JvmSections(ProfileManager profileManager, List<JvmSection<?>> sections) {
         this.sections = index(sections);
 
         this.recordedEventTypes = memoize(() -> profileManager.flamegraphManager().allEventSummaries()
@@ -58,7 +58,7 @@ public class JvmSections {
      * the same sections and cannot disagree about what the recording is missing.
      */
     public static JvmSections standard(ProfileManager profileManager) {
-        return new JvmSections(profileManager, List.of(
+        return new JvmSections(profileManager, List.<JvmSection<?>>of(
                 new AutoAnalysisSection(profileManager),
                 new GcSection(profileManager),
                 new GcDetailSection(profileManager),
@@ -83,6 +83,7 @@ public class JvmSections {
                 .map(section -> new SectionAvailability(
                         section.id(),
                         section.title(),
+                        section.tool(),
                         isAvailable(section),
                         section.eventTypes().stream().map(Type::code).sorted().toList()))
                 .toList();
@@ -93,7 +94,7 @@ public class JvmSections {
      * mistake rather than something about this profile. Whether the profile can <em>answer</em> the
      * section is a separate question, and {@link #isAvailable} is the one that asks it.
      */
-    public JvmSection get(String id) {
+    public JvmSection<?> get(String id) {
         return sections.get(id);
     }
 
@@ -101,8 +102,8 @@ public class JvmSections {
      * The section registered under an id, as its own type — for the few that answer more than
      * "render me" and are called by their own methods.
      */
-    public <T extends JvmSection> T get(String id, Class<T> type) {
-        JvmSection section = sections.get(id);
+    public <T extends JvmSection<?>> T get(String id, Class<T> type) {
+        JvmSection<?> section = sections.get(id);
         if (!type.isInstance(section)) {
             throw new IllegalArgumentException(
                     "No section of type " + type.getSimpleName() + " registered under id '" + id + "'");
@@ -114,7 +115,7 @@ public class JvmSections {
      * Whether the recording carries any of the events the section is built from. A section that
      * declares no event types does not depend on the recording's contents and is always available.
      */
-    public boolean isAvailable(JvmSection section) {
+    public boolean isAvailable(JvmSection<?> section) {
         if (section.eventTypes().isEmpty()) {
             return true;
         }
@@ -122,11 +123,11 @@ public class JvmSections {
         return section.eventTypes().stream().anyMatch(type -> recorded.contains(type.code()));
     }
 
-    private static Map<String, JvmSection> index(List<JvmSection> sections) {
+    private static Map<String, JvmSection<?>> index(List<JvmSection<?>> sections) {
         // LinkedHashMap rather than Map.copyOf: jvm_sections reports them in the order a reader
         // works through them, and an immutable map would scramble that.
-        Map<String, JvmSection> indexed = new LinkedHashMap<>();
-        for (JvmSection section : sections) {
+        Map<String, JvmSection<?>> indexed = new LinkedHashMap<>();
+        for (JvmSection<?> section : sections) {
             indexed.put(section.id(), section);
         }
         return Collections.unmodifiableMap(indexed);
@@ -151,6 +152,7 @@ public class JvmSections {
     }
 
     /**
+     * @param tool       the tool that renders the section, which takes only the profile
      * @param available  whether the recording carries any of {@code eventTypes}
      * @param eventTypes the events this section is built from, so a reader can tell the profiler what
      *                   to capture next time
@@ -158,6 +160,7 @@ public class JvmSections {
     public record SectionAvailability(
             String id,
             String title,
+            String tool,
             boolean available,
             List<String> eventTypes) {
     }

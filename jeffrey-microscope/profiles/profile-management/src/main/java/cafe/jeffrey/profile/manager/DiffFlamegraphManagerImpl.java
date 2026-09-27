@@ -122,10 +122,8 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
         if (parameters.useWeight() != null) {
             return parameters;
         }
-        Type eventType = parameters.eventType();
         return parameters.toBuilder()
-                .withUseWeight(eventType.isAllocationEvent() || eventType.isBlockingEvent()
-                        || eventType.isMethodTraceEvent())
+                .withUseWeight(DifferentialFlamegraphManager.weightedByDefault(parameters.eventType()))
                 .build();
     }
 

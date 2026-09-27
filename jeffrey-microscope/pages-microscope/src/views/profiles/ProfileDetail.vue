@@ -296,6 +296,7 @@ import ProfileInfo from '@/services/api/model/ProfileInfo.ts';
 import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource.ts';
 import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
 import { BASELINE_QUERY_PARAM, baselineIdFromQuery } from '@/services/BaselineQuery.ts';
+import { adoptLinkedBaseline } from '@/services/LinkedBaseline';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
 import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus.ts';
@@ -462,39 +463,6 @@ watch(
   }
 );
 
-/**
- * Adopts the baseline a URL named, so a link can open a comparison and not merely a profile.
- *
- * A baseline that cannot be loaded is reported rather than swallowed: the link asked for a
- * comparison, and silently showing the primary alone would look like the comparison ran and found
- * nothing. The page still opens — the guard below sends a differential path back to its primary.
- */
-const adoptLinkedBaseline = async (baselineId: string) => {
-  try {
-    const linked = (await directProfileClient.getById(baselineId)) as ProfileWithContext;
-    const profileInfo: ProfileInfo = {
-      id: linked.id,
-      projectId: linked.projectId,
-      name: linked.name,
-      createdAt: linked.createdAt,
-      profilingStartedAt: linked.profilingStartedAt ?? null,
-      profilingFinishedAt: linked.profilingFinishedAt ?? null,
-      enabled: linked.enabled
-    };
-    SecondaryProfileService.update(profileInfo, profileId);
-  } catch (error) {
-    // Whatever the session was holding for this profile is dropped too. Restoring it would render a
-    // full comparison against a file the link did not name, beside a toast saying the baseline was
-    // unavailable — the one case where a reader cannot tell they are looking at the wrong pair.
-    console.error('Failed to load the baseline profile named by the URL:', error);
-    SecondaryProfileService.remove();
-    ToastService.warn(
-      'Baseline not available',
-      'The profile this link names as the baseline could not be loaded'
-    );
-  }
-};
-
 // Disabled features (includes heap dump status); a failure leaves every feature enabled.
 const loadDisabledFeatures = async (): Promise<FeatureType[]> => {
   try {
@@ -520,8 +488,17 @@ onMounted(async () => {
   // for a later one. Adopting afterwards leaves the page on the differential route with the
   // comparison bar populated and the graph empty — a comparison that looks set up and is not.
   const linkedBaselineId = baselineIdFromQuery(route.query[BASELINE_QUERY_PARAM], profileId);
-  if (linkedBaselineId) {
-    await adoptLinkedBaseline(linkedBaselineId);
+  // A baseline that cannot be loaded is reported rather than swallowed: the link asked for a
+  // comparison, and silently showing the primary alone would look like the comparison ran and found
+  // nothing. The page still opens — the guard below sends a differential path back to its primary.
+  if (
+    linkedBaselineId &&
+    !(await adoptLinkedBaseline(linkedBaselineId, profileId, id => directProfileClient.getById(id)))
+  ) {
+    ToastService.warn(
+      'Baseline not available',
+      'The profile this link names as the baseline could not be loaded'
+    );
   }
 
   // IDE integration config + cached target status (cache-only read, no port scan).

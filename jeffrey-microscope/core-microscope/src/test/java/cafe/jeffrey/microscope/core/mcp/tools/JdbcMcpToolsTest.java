@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
@@ -25,15 +29,14 @@ import cafe.jeffrey.profile.manager.custom.JdbcPoolManager;
 import cafe.jeffrey.profile.manager.custom.JdbcStatementManager;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.PoolConfiguration;
+import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.PoolEventStatistics;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.PoolStatistics;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcGroup;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcHeader;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOperationStats;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
-import cafe.jeffrey.profile.mcp.ToolExecutionException;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcStatementNameStats;
 import cafe.jeffrey.timeseries.SingleSerie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,11 +50,14 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -117,7 +123,7 @@ class JdbcMcpToolsTest {
     }
 
     private JdbcMcpTools tools() {
-        return new JdbcMcpTools(profileManager);
+        return new JdbcMcpTools(profileManager, EVERY_FAMILY);
     }
 
     private static JdbcOverviewData overview(long errorCount, String sql) {
@@ -162,6 +168,24 @@ class JdbcMcpToolsTest {
                 List.of());
     }
 
+    private static JsonNode answer(String method, McpToolResult result) {
+        return StructuredAnswers.json(JdbcMcpTools.class, method, result);
+    }
+
+    private static JdbcPoolData poolWithEvents() {
+        return new JdbcPoolData(
+                POOL_NAME,
+                new PoolConfiguration(20, 5),
+                new PoolStatistics(18, 16, new BigDecimal("11.40"), 0, new BigDecimal("3.20"), 0, BigDecimal.ZERO),
+                List.of(new PoolEventStatistics("Acquiring Connection", "jeffrey.AcquiringPooledJdbcConnection",
+                        120, 1_000, 9_000_000, 40_000)));
+    }
+
+    @Test
+    void everyToolDeclaresAnOutputSchema() {
+        assertEquals(List.of(), StructuredAnswers.unschematised(JdbcMcpTools.class));
+    }
+
     @Nested
     class Overview {
 
@@ -169,12 +193,38 @@ class JdbcMcpToolsTest {
         void carriesTheHeaderTheOperationMixAndTheGroups() {
             when(statementManager.overviewData()).thenReturn(overview(0, SHORT_SQL));
 
-            String out = tools().overview();
+            JsonNode out = answer("overview", tools().overview());
 
-            assertTrue(out.contains("\"statementCount\":9400"), out);
-            assertTrue(out.contains("\"label\":\"SELECT\""), out);
-            assertTrue(out.contains("\"group\":\"" + GROUP + "\""), out);
-            assertTrue(out.contains(STATEMENTS_VIEW_LINK), out);
+            assertEquals("OK", out.get("status").asString());
+            assertEquals(9_400, out.get("header").get("statementCount").asLong());
+            assertEquals(820_000_000L, out.get("header").get("maxExecutionTimeNanos").asLong());
+            assertEquals("SELECT", out.get("operations").get(0).get("label").asString());
+            assertEquals(GROUP, out.get("groups").get(0).get("group").asString());
+            assertEquals(44_000_000_000L, out.get("groups").get(0).get("totalExecutionTimeNanos").asLong());
+            assertEquals(0, out.get("omittedGroups").asInt());
+            assertTrue(out.get("group").isNull(), "the overview is not narrowed to a group");
+            assertTrue(out.get("uiLink").asString().endsWith(STATEMENTS_VIEW_LINK), out.get("uiLink").asString());
+        }
+
+        @Test
+        void placesASlowStatementOnTheEpochClockWithItsDurationInNanos() {
+            when(statementManager.overviewData()).thenReturn(overview(0, SHORT_SQL));
+
+            JsonNode statement = answer("overview", tools().overview()).get("slowStatements").get(0);
+
+            assertEquals(1_000L, statement.get("atEpochMs").asLong());
+            assertEquals(820_000_000L, statement.get("executionTimeNanos").asLong());
+            assertEquals(SHORT_SQL, statement.get("sql").asString());
+        }
+
+        /** The builder reads SQL and parameters with no default, so a statement may carry neither. */
+        @Test
+        void aStatementWithoutSqlOrParametersConformsWithNulls() {
+            when(statementManager.overviewData()).thenReturn(overview(0, null));
+
+            JsonNode statement = answer("overview", tools().overview()).get("slowStatements").get(0);
+
+            assertTrue(statement.get("sql").isNull(), statement.toString());
         }
 
         /**
@@ -182,14 +232,18 @@ class JdbcMcpToolsTest {
          * fine" rather than "nothing was measured".
          */
         @Test
-        void reportsMissingDataAsAProfilerFindingRatherThanAnEmptyDashboard() {
+        void reportsMissingDataAsAStatusRatherThanAnEmptyDashboard() {
             when(featuresManager.getDisabledFeatures())
                     .thenReturn(List.of(FeatureType.JDBC_STATEMENTS_DASHBOARD));
 
-            String out = tools().overview();
+            JsonNode out = answer("overview", tools().overview());
 
-            assertTrue(out.contains("holds no JDBC statement data"), out);
-            assertFalse(out.contains("statementCount"), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("holds no JDBC statement data"), out.toString());
+            assertTrue(out.get("header").isNull());
+            assertTrue(out.get("omittedGroups").isNull());
+            assertTrue(out.get("uiLink").asString().endsWith(STATEMENTS_VIEW_LINK));
+            assertEquals(List.of("jdbc_pools"), StructuredAnswers.nextTools(out));
         }
 
         /**
@@ -200,20 +254,38 @@ class JdbcMcpToolsTest {
         void shortensTheSqlOfAStatementThatCarriesAGeneratedInList() {
             when(statementManager.overviewData()).thenReturn(overview(0, oversizedSql()));
 
-            String out = tools().overview();
+            String sql = answer("overview", tools().overview()).get("slowStatements").get(0).get("sql").asString();
 
-            assertTrue(out.contains(TRUNCATION_SUFFIX), out);
-            assertFalse(out.contains(SQL_TAIL_MARKER), out);
+            assertTrue(sql.endsWith(TRUNCATION_SUFFIX), sql);
+            assertFalse(sql.contains(SQL_TAIL_MARKER), sql);
         }
 
         @Test
         void leavesTheChartSeriesOut() {
             when(statementManager.overviewData()).thenReturn(overview(0, SHORT_SQL));
 
-            String out = tools().overview();
+            String out = tools().overview().text();
 
             assertFalse(out.contains("executionTimeSerie"), out);
             assertFalse(out.contains("statementCountSerie"), out);
+        }
+
+        @Test
+        void routesToTheCostliestGroupAndToThePools() {
+            when(statementManager.overviewData()).thenReturn(overview(0, SHORT_SQL));
+
+            JsonNode out = answer("overview", tools().overview());
+
+            assertEquals(GROUP, StructuredAnswers.call(out, "jdbc_statementGroup").get("group").asString());
+            assertTrue(StructuredAnswers.nextTools(out).contains("jdbc_pools"));
+        }
+
+        @Test
+        void leavesThePoolsOutWhenThePoolWasNotRecorded() {
+            when(featuresManager.getDisabledFeatures()).thenReturn(List.of(FeatureType.JDBC_POOL_DASHBOARD));
+            when(statementManager.overviewData()).thenReturn(overview(0, SHORT_SQL));
+
+            assertFalse(StructuredAnswers.nextTools(answer("overview", tools().overview())).contains("jdbc_pools"));
         }
 
         /**
@@ -222,10 +294,12 @@ class JdbcMcpToolsTest {
         @Test
         void namesTheFailureTrailOnlyWhenAStatementActuallyFailed() {
             when(statementManager.overviewData()).thenReturn(overview(0, SHORT_SQL));
-            assertFalse(tools().overview().contains("traces_notifications"));
+            assertFalse(StructuredAnswers.nextTools(answer("overview", tools().overview()))
+                    .contains("traces_notifications"));
 
             when(statementManager.overviewData()).thenReturn(overview(7, SHORT_SQL));
-            assertTrue(tools().overview().contains("traces_notifications"));
+            assertTrue(StructuredAnswers.nextTools(answer("overview", tools().overview()))
+                    .contains("traces_notifications"));
         }
     }
 
@@ -236,11 +310,25 @@ class JdbcMcpToolsTest {
         void narrowsToTheRequestedGroupAndLinksItsPage() {
             when(statementManager.overviewData(GROUP)).thenReturn(overview(0, SHORT_SQL));
 
-            String out = tools().statementGroup(GROUP);
+            JsonNode out = answer("statementGroup", tools().statementGroup(GROUP));
 
-            assertTrue(out.contains("\"group\":\"" + GROUP + "\""), out);
-            assertTrue(out.contains(STATEMENT_GROUPS_VIEW_LINK), out);
-            assertTrue(out.contains("group=" + GROUP), out);
+            assertEquals(GROUP, out.get("group").asString());
+            assertEquals(GROUP, out.get("groups").get(0).get("group").asString());
+            assertTrue(out.get("uiLink").asString().contains(STATEMENT_GROUPS_VIEW_LINK), out.get("uiLink").asString());
+            assertTrue(out.get("uiLink").asString().contains("group=" + GROUP), out.get("uiLink").asString());
+            assertFalse(StructuredAnswers.nextTools(out).contains("jdbc_statementGroup"),
+                    "a group does not route to itself");
+        }
+
+        @Test
+        void aProfileWithoutStatementsIsAStatusOnTheGroupsPage() {
+            when(featuresManager.getDisabledFeatures())
+                    .thenReturn(List.of(FeatureType.JDBC_STATEMENTS_DASHBOARD));
+
+            JsonNode out = answer("statementGroup", tools().statementGroup(GROUP));
+
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("uiLink").asString().contains(STATEMENT_GROUPS_VIEW_LINK));
         }
 
         /**
@@ -272,6 +360,22 @@ class JdbcMcpToolsTest {
             assertTrue(error.getMessage().contains("No statements were recorded for group '" + UNKNOWN_GROUP + "'"),
                     error.getMessage());
         }
+
+        @Test
+        void carriesEachStatementNameWithItsOwnPercentile() {
+            JdbcOverviewData data = overview(0, SHORT_SQL);
+            JdbcGroup named = new JdbcGroup(GROUP, 4_100, 12_000, 44_000_000_000L, 820_000_000L,
+                    410_000_000L, 120_000_000L, 0, List.of(new JdbcStatementNameStats(STATEMENT_NAME, 900, 400_000L)));
+            when(statementManager.overviewData(GROUP)).thenReturn(new JdbcOverviewData(
+                    data.header(), data.operations(), List.of(named), data.slowStatements(), null, null));
+
+            JsonNode name = answer("statementGroup", tools().statementGroup(GROUP))
+                    .get("groups").get(0).get("statementNames").get(0);
+
+            assertEquals(STATEMENT_NAME, name.get("name").asString());
+            assertEquals(900, name.get("count").asLong());
+            assertEquals(400_000L, name.get("p99ExecutionTimeNanos").asLong());
+        }
     }
 
     @Nested
@@ -281,12 +385,33 @@ class JdbcMcpToolsTest {
         void carriesTheConfiguredSizesAgainstWhatWasActuallyUsed() {
             when(poolManager.allPoolsData()).thenReturn(List.of(pool(0, 0)));
 
-            String out = tools().pools();
+            JsonNode out = answer("pools", tools().pools());
+            JsonNode pool = out.get("pools").get(0);
 
-            assertTrue(out.contains("\"poolName\":\"" + POOL_NAME + "\""), out);
-            assertTrue(out.contains("\"maxConnectionCount\":20"), out);
-            assertTrue(out.contains("\"peakActiveConnectionCount\":16"), out);
-            assertTrue(out.contains(POOL_VIEW_LINK), out);
+            assertEquals("OK", out.get("status").asString());
+            assertEquals(POOL_NAME, pool.get("poolName").asString());
+            assertEquals(20, pool.get("configuration").get("maxConnectionCount").asInt());
+            assertEquals(16, pool.get("statistics").get("peakActiveConnectionCount").asInt());
+            assertEquals(11.4, pool.get("statistics").get("avgActiveConnectionCount").asDouble(), 1e-9);
+            assertTrue(out.get("uiLink").asString().endsWith(POOL_VIEW_LINK), out.get("uiLink").asString());
+        }
+
+        @Test
+        void carriesEachPoolEventWithItsDurationsInNanos() {
+            when(poolManager.allPoolsData()).thenReturn(List.of(poolWithEvents()));
+
+            JsonNode event = answer("pools", tools().pools()).get("pools").get(0).get("events").get(0);
+
+            assertEquals("jeffrey.AcquiringPooledJdbcConnection", event.get("eventType").asString());
+            assertEquals(9_000_000L, event.get("maxNanos").asLong());
+            assertEquals(40_000L, event.get("avgNanos").asLong());
+        }
+
+        /** Every pool event type the manager reads has a name in its table, so the name is never null. */
+        @Test
+        void aPoolEventsNameIsNeverNull() {
+            assertEquals("string", StructuredAnswers.schemaTypeOf(
+                    JdbcMcpTools.class, "pools", "pools", "events", "eventName").asString());
         }
 
         @Test
@@ -294,10 +419,11 @@ class JdbcMcpToolsTest {
             when(featuresManager.getDisabledFeatures())
                     .thenReturn(List.of(FeatureType.JDBC_POOL_DASHBOARD));
 
-            String out = tools().pools();
+            JsonNode out = answer("pools", tools().pools());
 
-            assertTrue(out.contains("holds no JDBC connection-pool data"), out);
-            assertTrue(out.contains("jdbc_overview"), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("holds no JDBC connection-pool data"), out.toString());
+            assertEquals(List.of("jdbc_overview"), StructuredAnswers.nextTools(out));
         }
 
         /**
@@ -307,13 +433,13 @@ class JdbcMcpToolsTest {
         @Test
         void explainsPoolContentionOnlyWhenAThreadActuallyWaitedOrWasRefused() {
             when(poolManager.allPoolsData()).thenReturn(List.of(pool(0, 0)));
-            assertFalse(tools().pools().contains("traces_operations"));
+            assertFalse(StructuredAnswers.nextTools(answer("pools", tools().pools())).contains("traces_operations"));
 
             when(poolManager.allPoolsData()).thenReturn(List.of(pool(3, 0)));
-            assertTrue(tools().pools().contains("traces_operations"));
+            assertTrue(StructuredAnswers.nextTools(answer("pools", tools().pools())).contains("traces_operations"));
 
             when(poolManager.allPoolsData()).thenReturn(List.of(pool(0, 2)));
-            assertTrue(tools().pools().contains("traces_operations"));
+            assertTrue(StructuredAnswers.nextTools(answer("pools", tools().pools())).contains("traces_notifications"));
         }
     }
 }

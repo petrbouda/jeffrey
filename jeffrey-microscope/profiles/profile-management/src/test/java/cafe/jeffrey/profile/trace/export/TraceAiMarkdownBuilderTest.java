@@ -30,9 +30,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -233,6 +235,34 @@ class TraceAiMarkdownBuilderTest {
         @DisplayName("attributes thread-scoped waiting to the span it happened in")
         void rendersSpanWaits() {
             assertTrue(build().contains("reserveInventory — MONITOR_BLOCKED 4ms"));
+        }
+
+        /*
+         * The waits section walked every span of the trace, capped by nothing: a wait-heavy trace
+         * of a few thousand spans put a line per span here after the tree had stopped at its budget.
+         */
+        @Test
+        @DisplayName("stops listing waits at the span budget, and says how many it left out")
+        void capsWaitLinesAtTheSpanBudget() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            Map<String, List<TraceContextSlice>> waits = new HashMap<>();
+            for (int i = 0; i < 450; i++) {
+                spans.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
+                waits.put("s" + i, List.of(new TraceContextSlice("DEOPTIMIZATION", 2 * MS, 2)));
+            }
+            TraceDetail detail = new TraceDetail(detail().trace(), spans, List.of(), List.of(), Map.of());
+            TraceContext waiting = new TraceContext(List.of(), List.of(), waits, List.of());
+
+            String out = new TraceAiMarkdownBuilder(detail, waiting).build();
+
+            assertEquals(400, out.lines().filter(line -> line.contains(" — DEOPTIMIZATION ")).count());
+            assertTrue(lineWith(out, " — DEOPTIMIZATION ").startsWith("- span-0 — "),
+                    "the waits keep the trace's order, so the first spans are the ones listed");
+            assertTrue(out.contains("- span-399 — DEOPTIMIZATION"), out);
+            assertFalse(out.contains("- span-400 — DEOPTIMIZATION"), out);
+            assertTrue(out.contains(
+                    "- (truncated: 50 further spans with waits omitted from this section, out of 450 in the trace)"),
+                    out);
         }
 
         @Test
@@ -506,6 +536,55 @@ class TraceAiMarkdownBuilderTest {
             String line = lineWith(buildWith(spans, List.of()), "File read ×2");
 
             assertFalse(line.contains("!class-loading"), line);
+        }
+
+        /*
+         * Tier three folded every small promoted leaf into one line per parent and name, and the
+         * number of those lines was capped by nothing: a trace with a thousand differently named
+         * leaves rendered a thousand fold lines after the recorded spans had stopped at the budget.
+         */
+        @Test
+        @DisplayName("collapses fold groups past the span budget into one line")
+        void collapsesFoldGroupsPastTheBudget() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            for (int i = 0; i < 450; i++) {
+                spans.add(ioSpan("f" + i, "File read " + i, "jdk.FileRead",
+                        "{\"path\":\"/a\",\"bytesRead\":1}", 2 * MICRO));
+            }
+
+            String out = buildWith(spans, List.of());
+
+            assertEquals(400, out.lines().filter(line -> line.endsWith("!folded")).count());
+            assertTrue(out.contains("  - File read 399 ×1 [INTERNAL]"), out);
+            assertFalse(out.contains("File read 400 ×1"), out);
+            assertTrue(out.contains("- (+50 more folded groups: 50 promoted leaf spans past the export's "
+                    + "span budget; the I/O operations section counts each of them)"), out);
+            assertTrue(out.contains("folded: 400 promoted leaf spans into 400 lines"), out);
+        }
+
+        /*
+         * The two caps above bind only past the budget. A trace inside it renders exactly as it did
+         * before either existed: every wait line, every fold line, and no note about either.
+         */
+        @Test
+        @DisplayName("renders an ordinary trace's waits and folds in full, with no cap notes")
+        void leavesAnOrdinaryTraceUntouched() {
+            List<TraceSpanRow> spans = new ArrayList<>(detail().spans());
+            for (int i = 0; i < 30; i++) {
+                spans.add(ioSpan("g" + i, "Socket read " + i, "jdk.SocketRead",
+                        "{\"host\":\"db\",\"port\":5432,\"bytesRead\":64}", 3 * MICRO));
+            }
+
+            String out = buildWith(spans, List.of());
+
+            assertEquals(30, out.lines().filter(line -> line.endsWith("!folded")).count());
+            assertTrue(out.contains("\n  - Socket read 29 ×1 [INTERNAL] — 3us summed (<0.1%), longest 3us !folded\n"),
+                    out);
+            assertTrue(out.contains("\n- reserveInventory — MONITOR_BLOCKED 4ms\n"), out);
+            assertFalse(out.contains("more folded groups"), out);
+            assertFalse(out.contains("spans with waits omitted"), out);
+            assertFalse(out.contains("truncated:"), out);
         }
 
         @Test

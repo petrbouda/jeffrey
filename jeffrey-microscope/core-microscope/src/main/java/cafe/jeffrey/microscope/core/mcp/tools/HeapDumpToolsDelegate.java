@@ -21,6 +21,7 @@ import cafe.jeffrey.profile.heapdump.model.*;
 import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Delegate interface for heap dump operations used by AI MCP tools.
@@ -48,9 +49,20 @@ public interface HeapDumpToolsDelegate {
 
     InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize);
 
+    /**
+     * Whether an object with this id is in the dump: the one check every tool that takes an object id
+     * makes before it reads, so an id the dump does not hold is refused rather than answered as empty.
+     */
+    boolean objectExists(long objectId);
+
+    /**
+     * The kind of GC root the object is, as the HPROF dump names it, or empty when it is no root.
+     */
+    Optional<String> gcRootKind(long objectId);
+
     DominatorTreeResponse getDominatorTreeRoots(int limit);
 
-    DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit);
+    DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit, int offset);
 
     List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths);
 

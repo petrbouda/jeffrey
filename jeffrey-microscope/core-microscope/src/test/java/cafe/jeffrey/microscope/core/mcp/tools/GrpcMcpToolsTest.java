@@ -17,6 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
@@ -34,11 +39,7 @@ import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcSlowCall;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.profile.mcp.ToolDispatchException;
-import cafe.jeffrey.profile.mcp.ToolExecutionException;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.timeseries.SingleSerie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,12 +53,15 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -118,7 +122,7 @@ class GrpcMcpToolsTest {
     }
 
     private GrpcMcpTools tools() {
-        return new GrpcMcpTools(profileManager);
+        return new GrpcMcpTools(profileManager, EVERY_FAMILY);
     }
 
     private static GrpcHeader header(long errorCount) {
@@ -172,6 +176,16 @@ class GrpcMcpToolsTest {
         return services;
     }
 
+
+    private static JsonNode answer(String method, McpToolResult result) {
+        return StructuredAnswers.json(GrpcMcpTools.class, method, result);
+    }
+
+    @Test
+    void everyToolDeclaresAnOutputSchema() {
+        assertEquals(List.of(), StructuredAnswers.unschematised(GrpcMcpTools.class));
+    }
+
     @Nested
     class Overview {
 
@@ -179,12 +193,42 @@ class GrpcMcpToolsTest {
         void carriesTheHeaderTheServicesAndTheStatusBreakdown() {
             when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
 
-            String out = tools().overview(null);
+            JsonNode out = answer("overview", tools().overview(null));
 
-            assertTrue(out.contains("\"callCount\":4200"), out);
-            assertTrue(out.contains(SERVICE), out);
-            assertTrue(out.contains("DEADLINE_EXCEEDED"), out);
-            assertTrue(out.contains(OVERVIEW_VIEW_LINK), out);
+            assertEquals("OK", out.get("status").asString());
+            assertEquals(4_200, out.get("header").get("callCount").asLong());
+            assertEquals(980_000_000L, out.get("header").get("maxResponseTimeNanos").asLong());
+            assertEquals(SERVICE, out.get("services").get(0).get("service").asString());
+            assertEquals("DEADLINE_EXCEEDED", out.get("statusCodes").get(1).get("status").asString());
+            assertTrue(out.get("uiLink").asString().contains(OVERVIEW_VIEW_LINK), out.get("uiLink").asString());
+        }
+
+        @Test
+        void placesASlowCallOnTheEpochClock() {
+            when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
+
+            JsonNode call = answer("overview", tools().overview(null)).get("slowCalls").get(0);
+
+            assertEquals(1L, call.get("atEpochMs").asLong());
+            assertEquals(980_000_000L, call.get("responseTimeNanos").asLong());
+            assertEquals(1_900L, call.get("requestSizeBytes").asLong());
+            assertEquals(8080, call.get("port").asInt());
+        }
+
+        /** What the event did not carry comes back null, never as the builder's -1 or empty host. */
+        @Test
+        void aSlowCallWithNothingRecordedButItsTimingConformsWithNulls() {
+            GrpcOverviewData recorded = overview(0, List.of(service(SERVICE)));
+            when(grpcManager.overviewData()).thenReturn(new GrpcOverviewData(recorded.header(), recorded.services(),
+                    recorded.statusCodes(),
+                    List.of(new GrpcSlowCall(SERVICE, METHOD, 980_000_000L, "OK", -1, -1, "", -1, 1)),
+                    null, null));
+
+            JsonNode call = answer("overview", tools().overview(null)).get("slowCalls").get(0);
+
+            for (String component : List.of("requestSizeBytes", "responseSizeBytes", "host", "port")) {
+                assertTrue(call.get(component).isNull(), component + " in " + call);
+            }
         }
 
         /**
@@ -195,20 +239,31 @@ class GrpcMcpToolsTest {
         void leavesTheChartSeriesOut() {
             when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
 
-            String out = tools().overview(null);
+            String out = tools().overview(null).text();
 
             assertFalse(out.contains("responseTimeSerie"), out);
             assertFalse(out.contains("callCountSerie"), out);
         }
 
         @Test
-        void rendersOnlyTheHeadOfALongServiceRanking() {
+        void keepsTheHeadOfALongServiceRankingAndCountsTheRest() {
             when(grpcManager.overviewData()).thenReturn(overview(0, manyServices()));
 
-            String out = tools().overview(null);
+            JsonNode out = answer("overview", tools().overview(null));
 
-            assertTrue(out.contains("\"service\":\"Service-39\""), out);
-            assertFalse(out.contains("\"service\":\"Service-40\""), out);
+            assertEquals(40, out.get("services").size());
+            assertEquals("Service-39", out.get("services").get(39).get("service").asString());
+            assertEquals(MORE_SERVICES_THAN_THE_CAP - 40, out.get("omittedServices").asInt());
+        }
+
+        @Test
+        void routesToTheBusiestServiceAndToTheSizes() {
+            when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
+
+            JsonNode out = answer("overview", tools().overview(null));
+
+            assertEquals(SERVICE, StructuredAnswers.call(out, "grpc_service").get("service").asString());
+            assertEquals("SERVER", StructuredAnswers.call(out, "grpc_traffic").get("direction").asString());
         }
 
         /**
@@ -219,10 +274,12 @@ class GrpcMcpToolsTest {
         @Test
         void namesTheFailureTrailOnlyWhenSomethingActuallyFailed() {
             when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
-            assertFalse(tools().overview(null).contains("traces_notifications"));
+            assertFalse(StructuredAnswers.nextTools(answer("overview", tools().overview(null)))
+                    .contains("traces_notifications"));
 
             when(grpcManager.overviewData()).thenReturn(overview(20, List.of(service(SERVICE))));
-            assertTrue(tools().overview(null).contains("traces_notifications"));
+            assertTrue(StructuredAnswers.nextTools(answer("overview", tools().overview(null)))
+                    .contains("traces_notifications"));
         }
     }
 
@@ -233,13 +290,16 @@ class GrpcMcpToolsTest {
         void breaksTheServiceDownByMethodAndLinksItsDetail() {
             when(grpcManager.serviceDetailData(SERVICE)).thenReturn(serviceDetail(List.of(
                     new GrpcMethodInfo(METHOD, 1_200, 980_000_000L, 640_000_000L, 310_000_000L,
-                            new BigDecimal("99.4"), 1_900L, 2_850L))));
+                            new BigDecimal("0.994"), 1_900L, 2_850L))));
 
-            String out = tools().service(SERVICE, null);
+            JsonNode out = answer("service", tools().service(SERVICE, null));
 
-            assertTrue(out.contains("\"method\":\"" + METHOD + "\""), out);
-            assertTrue(out.contains(SERVICES_VIEW_LINK), out);
-            assertTrue(out.contains("service=cafe.jeffrey.hub.api.v1.ProjectService"), out);
+            assertEquals(SERVICE, out.get("service").asString());
+            assertEquals(METHOD, out.get("methods").get(0).get("method").asString());
+            assertEquals(0.994, out.get("methods").get(0).get("successRate").asDouble(), 1e-9);
+            assertTrue(out.get("uiLink").asString().contains(SERVICES_VIEW_LINK), out.get("uiLink").asString());
+            assertTrue(out.get("uiLink").asString().contains("service=cafe.jeffrey.hub.api.v1.ProjectService"),
+                    out.get("uiLink").asString());
         }
 
         /**
@@ -272,6 +332,17 @@ class GrpcMcpToolsTest {
             assertTrue(error.getMessage().contains("No calls were recorded for service '" + UNKNOWN_SERVICE + "'"),
                     error.getMessage());
         }
+
+        @Test
+        void aDirectionNotRecordedIsAStatusOnTheServicesPage() {
+            when(featuresManager.getDisabledFeatures()).thenReturn(List.of(FeatureType.GRPC_SERVER_DASHBOARD));
+
+            JsonNode out = answer("service", tools().service(SERVICE, null));
+
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertEquals(0, out.get("methods").size());
+            assertTrue(out.get("uiLink").asString().contains(SERVICES_VIEW_LINK));
+        }
     }
 
     @Nested
@@ -281,19 +352,22 @@ class GrpcMcpToolsTest {
         void reportsSizesRatherThanTimings() {
             when(grpcManager.trafficData()).thenReturn(traffic());
 
-            String out = tools().traffic(null);
+            JsonNode out = answer("traffic", tools().traffic(null));
 
-            assertTrue(out.contains("\"totalBytesSent\":8000000"), out);
-            assertTrue(out.contains("1-4 KB"), out);
-            assertTrue(out.contains("\"totalSize\":576000"), out);
-            assertTrue(out.contains(TRAFFIC_VIEW_LINK), out);
+            assertEquals(8_000_000L, out.get("header").get("totalBytesSent").asLong());
+            assertEquals("1-4 KB", out.get("sizeBuckets").get(0).get("label").asString());
+            assertEquals(576_000L, out.get("largestCalls").get(0).get("totalSizeBytes").asLong());
+            assertEquals(1L, out.get("largestCalls").get(0).get("atEpochMs").asLong());
+            assertTrue(out.get("uiLink").asString().contains(TRAFFIC_VIEW_LINK), out.get("uiLink").asString());
         }
 
         @Test
         void sendsTheReaderBackToTheTimingsTheseSizesDoNotShow() {
             when(grpcManager.trafficData()).thenReturn(traffic());
 
-            assertTrue(tools().traffic(null).contains("grpc_overview"));
+            JsonNode out = answer("traffic", tools().traffic(null));
+
+            assertEquals("SERVER", StructuredAnswers.call(out, "grpc_overview").get("direction").asString());
         }
     }
 
@@ -309,14 +383,17 @@ class GrpcMcpToolsTest {
         void defaultsToTheServerSide() {
             when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
 
-            assertTrue(tools().overview(null).contains("mode=server"));
+            assertTrue(answer("overview", tools().overview(null)).get("uiLink").asString().contains("mode=server"));
         }
 
         @Test
         void readsTheClientSideWhenAskedFor() {
             when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
 
-            assertTrue(tools().overview(ExchangeDirection.CLIENT).contains("mode=client"));
+            JsonNode out = answer("overview", tools().overview(ExchangeDirection.CLIENT));
+
+            assertTrue(out.get("uiLink").asString().contains("mode=client"));
+            assertEquals("CLIENT", out.get("direction").asString());
         }
 
         @Test
@@ -325,8 +402,11 @@ class GrpcMcpToolsTest {
                     .thenReturn(List.of(FeatureType.GRPC_CLIENT_DASHBOARD));
             when(grpcManager.overviewData()).thenReturn(overview(0, List.of(service(SERVICE))));
 
-            assertTrue(tools().overview(ExchangeDirection.CLIENT).contains("no client-side gRPC data"));
-            assertTrue(tools().overview(ExchangeDirection.SERVER).contains("\"callCount\":4200"));
+            JsonNode client = answer("overview", tools().overview(ExchangeDirection.CLIENT));
+            assertEquals("NOT_RECORDED", client.get("status").asString());
+            assertTrue(client.get("reason").asString().contains("no client-side gRPC data"), client.toString());
+            assertEquals("SERVER", StructuredAnswers.call(client, "grpc_overview").get("direction").asString());
+            assertEquals("OK", answer("overview", tools().overview(ExchangeDirection.SERVER)).get("status").asString());
         }
 
         /**
@@ -338,17 +418,14 @@ class GrpcMcpToolsTest {
             when(featuresManager.getDisabledFeatures())
                     .thenReturn(List.of(FeatureType.GRPC_SERVER_DASHBOARD));
 
-            String out = tools().traffic(ExchangeDirection.SERVER);
+            JsonNode out = answer("traffic", tools().traffic(ExchangeDirection.SERVER));
 
-            assertTrue(out.contains("jeffrey.GrpcServerExchange"), out);
-            assertTrue(out.contains("profiler-configuration finding"), out);
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("jeffrey.GrpcServerExchange"), out.toString());
+            assertTrue(out.get("reason").asString().contains("profiler-configuration finding"), out.toString());
+            assertTrue(out.get("header").isNull());
         }
 
-        /**
-         * The refusal lives in the schema now that the argument is a real {@code enum}: the binder
-         * holds the constants and names them. Exercised through a toolset, because a direct call can
-         * no longer express the mistake.
-         */
         @Test
         void refusesAnUnknownDirectionByName() {
             ReflectiveToolset toolset = new ReflectiveToolset(tools(), GRPC_PREFIX);

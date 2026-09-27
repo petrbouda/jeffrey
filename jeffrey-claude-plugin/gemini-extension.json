@@ -12,6 +12,9 @@
   "mcpServers": {
     "jeffrey": {
       "httpUrl": "${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${JEFFREY_MCP_TOKEN:-}"
+      },
       "timeout": 900000
     }
   }

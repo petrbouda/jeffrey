@@ -60,7 +60,8 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
 public final class ClassLoaderLeakChainAnalyzer {
 
     private static final long LARGE_LOADER_BYTES = 50L * 1024 * 1024;
-    private static final int MAX_LOADERS_TO_CHECK = 20;
+    /** How many suspicious loaders the report traces, the ones retaining the most. */
+    public static final int MAX_LOADERS_TO_CHECK = 20;
 
     private ClassLoaderLeakChainAnalyzer() {
     }

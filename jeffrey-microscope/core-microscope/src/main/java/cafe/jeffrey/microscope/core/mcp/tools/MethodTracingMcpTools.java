@@ -17,15 +17,27 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodStats;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingData;
+import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingStat;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingHeader;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
+import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestHeader;
+import cafe.jeffrey.profile.manager.custom.model.method.SlowestMethodTrace;
+import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.profile.mcp.McpToolCost;
+import cafe.jeffrey.profile.mcp.McpToolMeta;
 import org.springframework.ai.tool.annotation.Tool;
 
 import java.util.List;
@@ -42,9 +54,12 @@ import java.util.List;
  */
 public class MethodTracingMcpTools {
 
-    private static final String TIMESERIES_VIEW = "technologies/method-tracing/timeseries";
-    private static final String SLOWEST_VIEW = "technologies/method-tracing/slowest";
-    private static final String TIMING_VIEW = "technologies/method-tracing/timing";
+    private static final MicroscopeView TIMESERIES_VIEW = MicroscopeView.METHOD_TRACING_TIMESERIES;
+    private static final MicroscopeView SLOWEST_VIEW = MicroscopeView.METHOD_TRACING_SLOWEST;
+    private static final MicroscopeView TIMING_VIEW = MicroscopeView.METHOD_TRACING_TIMING;
+
+    /** The JVM's own tally has no bound of its own, so the most-invoked methods are kept. */
+    private static final int MAX_TIMED_METHODS = 100;
 
     private static final String NO_METHOD_TRACING_DATA =
             "This profile holds no method-tracing data: the recording captured neither jdk.MethodTrace "
@@ -66,104 +81,271 @@ public class MethodTracingMcpTools {
             "Method tracing aggregated no jdk.MethodTiming statistics for this profile. "
                     + "Per-invocation data, if the recording has any, is in methodtracing_overview.";
 
-    private static final String STEP_SLOWEST =
-            "Whether a method's cost is spread evenly or concentrated in a few pathological calls is "
-                    + "methodtracing_slowest.";
-    private static final String STEP_TIMING =
-            "The JVM's own per-method aggregates - count with min, average and max - are in "
-                    + "methodtracing_timing, and survive when per-invocation traces were not recorded.";
-    private static final String STEP_CALLERS =
+    private static final String SLOWEST_WHY =
+            "whether a method's cost is spread evenly or concentrated in a few pathological calls";
+    private static final String TIMING_WHY =
+            "the JVM's own per-method aggregates, which survive when per-invocation traces were not recorded";
+    private static final String CALLERS_WHY = "who called the instrumented methods";
+    private static final String OVERVIEW_WHY = "the methods ranked by invocation count and by total time";
+    private static final String CALLERS_GUIDANCE =
             "These are the instrumented methods themselves, not who called them. For the callers, "
-                    + "flamegraph_export with eventType jdk.MethodTrace.";
-    private static final String STEP_OVERVIEW =
-            "The ranked view of the same data - by invocation count and by total time - is in "
-                    + "methodtracing_overview.";
+                    + "flamegraph_export with eventType jdk.MethodTrace, when the recording carries it.";
 
     private final ProfileManager profileManager;
+    private final AdvertisedFamilies advertised;
 
-    public MethodTracingMcpTools(ProfileManager profileManager) {
+    public MethodTracingMcpTools(ProfileManager profileManager, AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
+        this.advertised = advertised;
     }
 
-    @Tool(description = "The method-tracing dashboard: total invocations, duration percentiles and the "
-            + "number of distinct methods, plus the methods ranked by invocation count and by total "
-            + "time. Use it to see which instrumented method dominates - the by-duration and by-count "
-            + "rankings disagreeing is the usual sign of a cheap method called far too often.")
-    public String overview() {
-        if (DashboardFeature.missing(profileManager, FeatureType.METHOD_TRACING_DASHBOARD)) {
-            return NO_METHOD_TRACING_DATA;
+    @Tool(description = "Returns the method-tracing dashboard: total invocations, duration percentiles "
+            + "in nanoseconds and the number of distinct methods, plus the methods ranked by "
+            + "invocation count and by total time - which instrumented method dominates. The "
+            + "by-duration and by-count rankings disagreeing is the usual sign of a cheap method "
+            + "called far too often. status NOT_RECORDED: no method-tracing event was recorded, or "
+            + "no per-invocation jdk.MethodTrace data was aggregated; reason says which.")
+    @McpOutputSchema(MethodTracingDashboard.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    public McpToolResult overview() {
+        String uiLink = UiLinks.view(profileId(), TIMESERIES_VIEW);
+        if (nothingRecorded()) {
+            return McpToolResult.of(new MethodTracingDashboard(DashboardStatus.NOT_RECORDED, NO_METHOD_TRACING_DATA,
+                    profileId(), null, List.of(), List.of(), noFollowUp(), uiLink));
         }
 
         MethodTracingOverviewData data = profileManager.custom().methodTracingManager().overview();
         if (data.header().totalInvocations() == 0) {
-            return NO_TRACE_INVOCATIONS;
+            return McpToolResult.of(new MethodTracingDashboard(DashboardStatus.NOT_RECORDED, NO_TRACE_INVOCATIONS,
+                    profileId(), null, List.of(), List.of(), timingOnly(), uiLink));
         }
 
-        return LinkedOutput.json(new MethodTracingDashboard(
-                data.header(),
-                data.topMethodsByCount(),
-                data.topMethodsByDuration(),
-                NextSteps.builder().add(STEP_SLOWEST).add(STEP_TIMING).add(STEP_CALLERS).build(),
-                UiLinks.view(profileId(), TIMESERIES_VIEW)));
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .next(call(FollowUpCalls.METHOD_TRACING_SLOWEST).why(SLOWEST_WHY))
+                .next(call(FollowUpCalls.METHOD_TRACING_TIMING).why(TIMING_WHY))
+                .next(callers())
+                .followUp();
+        return McpToolResult.of(new MethodTracingDashboard(DashboardStatus.OK, null, profileId(),
+                Totals.of(data.header()),
+                data.topMethodsByCount().stream().map(MethodRow::of).toList(),
+                data.topMethodsByDuration().stream().map(MethodRow::of).toList(),
+                followUp,
+                uiLink));
     }
 
-    @Tool(description = "The slowest individual method invocations, each with the thread it ran on. "
-            + "Use it after methodtracing_overview to see whether a method's cost is spread evenly or "
-            + "concentrated in a few pathological calls.")
-    public String slowest() {
-        if (DashboardFeature.missing(profileManager, FeatureType.METHOD_TRACING_DASHBOARD)) {
-            return NO_METHOD_TRACING_DATA;
+    @Tool(description = "Returns the slowest individual method invocations, slowest first, each with "
+            + "its duration in nanoseconds and the thread it ran on - whether a method's cost is "
+            + "spread evenly or concentrated in a few pathological calls. status NOT_RECORDED: no "
+            + "method-tracing event was recorded, or no per-invocation data was aggregated.")
+    @McpOutputSchema(SlowestInvocations.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    public McpToolResult slowest() {
+        String uiLink = UiLinks.view(profileId(), SLOWEST_VIEW);
+        if (nothingRecorded()) {
+            return McpToolResult.of(new SlowestInvocations(DashboardStatus.NOT_RECORDED, NO_METHOD_TRACING_DATA,
+                    profileId(), null, List.of(), noFollowUp(), uiLink));
         }
 
         MethodTracingSlowestData data = profileManager.custom().methodTracingManager().slowest();
         if (data.slowestTraces().isEmpty()) {
-            return NO_TRACE_INVOCATIONS;
+            return McpToolResult.of(new SlowestInvocations(DashboardStatus.NOT_RECORDED, NO_TRACE_INVOCATIONS,
+                    profileId(), null, List.of(), timingOnly(), uiLink));
         }
 
-        return LinkedOutput.json(new SlowestResult(
-                data,
-                NextSteps.builder().add(STEP_OVERVIEW).add(STEP_CALLERS).build(),
-                UiLinks.view(profileId(), SLOWEST_VIEW)));
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .next(call(FollowUpCalls.METHOD_TRACING_OVERVIEW).why(OVERVIEW_WHY))
+                .next(callers())
+                .followUp();
+        return McpToolResult.of(new SlowestInvocations(DashboardStatus.OK, null, profileId(),
+                SlowestSummary.of(data.header()),
+                data.slowestTraces().stream().map(Invocation::of).toList(),
+                followUp,
+                uiLink));
     }
 
-    @Tool(description = "Per-method timing statistics as the JVM aggregated them: invocation count with "
-            + "minimum, average and maximum duration for each method. This is the jdk.MethodTiming "
-            + "half of method tracing and can be present when no per-invocation traces were recorded.")
-    public String timing() {
-        if (DashboardFeature.missing(profileManager, FeatureType.METHOD_TRACING_DASHBOARD)) {
-            return NO_METHOD_TRACING_DATA;
+    @Tool(description = "Returns per-method timing statistics as the JVM aggregated them: invocation "
+            + "count with minimum, average and maximum duration in nanoseconds for each method, the "
+            + "most invoked 100 kept and omittedMethods counting the rest. This is the "
+            + "jdk.MethodTiming half of method tracing and can be present when no per-invocation "
+            + "traces were recorded. status NOT_RECORDED: no method-tracing event was recorded, or "
+            + "no jdk.MethodTiming statistics were aggregated.")
+    @McpOutputSchema(MethodTiming.class)
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    public McpToolResult timing() {
+        String uiLink = UiLinks.view(profileId(), TIMING_VIEW);
+        if (nothingRecorded()) {
+            return McpToolResult.of(new MethodTiming(DashboardStatus.NOT_RECORDED, NO_METHOD_TRACING_DATA,
+                    profileId(), null, List.of(), null, noFollowUp(), uiLink));
         }
 
         MethodTimingData data = profileManager.custom().methodTracingManager().methodTiming();
         if (data.methods().isEmpty()) {
-            return NO_TIMING_STATISTICS;
+            McpFollowUp followUp = NextSteps.builder(advertised)
+                    .next(call(FollowUpCalls.METHOD_TRACING_OVERVIEW).why(OVERVIEW_WHY))
+                    .followUp();
+            return McpToolResult.of(new MethodTiming(DashboardStatus.NOT_RECORDED, NO_TIMING_STATISTICS,
+                    profileId(), null, List.of(), null, followUp, uiLink));
         }
 
-        return LinkedOutput.json(new TimingResult(
-                data,
-                NextSteps.builder().add(STEP_OVERVIEW).add(STEP_CALLERS).build(),
-                UiLinks.view(profileId(), TIMING_VIEW)));
+        List<MethodTimingStat> shown = ToolArguments.firstOf(data.methods(), MAX_TIMED_METHODS);
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .next(call(FollowUpCalls.METHOD_TRACING_OVERVIEW).why(OVERVIEW_WHY))
+                .guidance(advertised.hint(AdvertisedFamilies.FLAMEGRAPH, CALLERS_GUIDANCE))
+                .followUp();
+        return McpToolResult.of(new MethodTiming(DashboardStatus.OK, null, profileId(), data.totalInvocations(),
+                shown.stream().map(TimedMethod::of).toList(), data.methods().size() - shown.size(), followUp, uiLink));
+    }
+
+    private boolean nothingRecorded() {
+        return DashboardFeature.missing(profileManager, FeatureType.METHOD_TRACING_DASHBOARD);
+    }
+
+    /** Neither half was recorded, so there is no call that would find more; the reason says what to record. */
+    private McpFollowUp noFollowUp() {
+        return NextSteps.builder(advertised).followUp();
+    }
+
+    /** The per-invocation half is empty; the aggregated half may not be. */
+    private McpFollowUp timingOnly() {
+        return NextSteps.builder(advertised)
+                .next(call(FollowUpCalls.METHOD_TRACING_TIMING).why(TIMING_WHY))
+                .followUp();
+    }
+
+    private McpNextTool callers() {
+        return call(FollowUpCalls.FLAMEGRAPH_EXPORT)
+                .with(FollowUpCalls.EVENT_TYPE, FollowUpCalls.METHOD_TRACE_EVENT)
+                .why(CALLERS_WHY);
+    }
+
+    private McpNextTool.Call call(String tool) {
+        return McpNextTool.call(tool).with(FollowUpCalls.PROFILE_ID, profileId());
     }
 
     private String profileId() {
         return profileManager.info().id();
     }
 
-    /**
-     * The overview minus its two chart series.
-     */
-    private record MethodTracingDashboard(
-            MethodTracingHeader header,
-            List<MethodStats> topMethodsByCount,
-            List<MethodStats> topMethodsByDuration,
-            List<String> nextSteps,
+    /** Every invocation's totals, with every duration in nanoseconds. */
+    record Totals(
+            long totalInvocations,
+            long totalDurationNanos,
+            long maxDurationNanos,
+            long p99DurationNanos,
+            long p95DurationNanos,
+            long avgDurationNanos,
+            long uniqueMethodCount) {
+
+        static Totals of(MethodTracingHeader header) {
+            return new Totals(header.totalInvocations(), header.totalDuration(), header.maxDuration(),
+                    header.p99Duration(), header.p95Duration(), header.avgDuration(), header.uniqueMethodCount());
+        }
+    }
+
+    /** One method in a ranking; its method name is null when the event did not carry one. */
+    record MethodRow(
+            String className,
+            @McpNullable
+            String methodName,
+            long invocationCount,
+            long totalDurationNanos,
+            long avgDurationNanos,
+            long maxDurationNanos,
+            @McpDescription("This method's share of all traced time, in percent")
+            double percentOfTotal) {
+
+        static MethodRow of(MethodStats stats) {
+            return new MethodRow(stats.className(), Figures.name(stats.methodName()), stats.invocationCount(),
+                    stats.totalDuration(), stats.avgDuration(), stats.maxDuration(), stats.percentOfTotal());
+        }
+    }
+
+    record SlowestSummary(long p99DurationNanos, long p95DurationNanos, long uniqueMethodCount) {
+
+        static SlowestSummary of(MethodTracingSlowestHeader header) {
+            return new SlowestSummary(header.p99Duration(), header.p95Duration(), header.uniqueMethodCount());
+        }
+    }
+
+    /** One invocation; its method and thread are null when the event did not name them. */
+    record Invocation(
+            String className,
+            @McpNullable
+            String methodName,
+            long durationNanos,
+            @McpNullable
+            String threadName) {
+
+        static Invocation of(SlowestMethodTrace trace) {
+            String thread = SlowestMethodTrace.UNKNOWN_THREAD.equals(trace.threadName()) ? null : trace.threadName();
+            return new Invocation(trace.className(), Figures.name(trace.methodName()), trace.duration(), thread);
+        }
+    }
+
+    /** One method's aggregate as the JVM recorded it; the builder labels a method without a class. */
+    record TimedMethod(
+            String className,
+            String methodName,
+            long invocations,
+            long minNanos,
+            long avgNanos,
+            long maxNanos) {
+
+        static TimedMethod of(MethodTimingStat stat) {
+            return new TimedMethod(stat.className(), stat.methodName(), stat.invocations(), stat.minNanos(),
+                    stat.avgNanos(), stat.maxNanos());
+        }
+    }
+
+    /** The overview minus its two chart series. */
+    record MethodTracingDashboard(
+            DashboardStatus status,
+            @McpNullable
+            @McpDescription("Why there is no dashboard, and which half is missing; null when status is OK")
+            String reason,
+            String profileId,
+            @McpNullable
+            @McpDescription("Every invocation's totals; null when status is NOT_RECORDED")
+            Totals header,
+            List<MethodRow> topMethodsByCount,
+            List<MethodRow> topMethodsByDuration,
+            McpFollowUp followUp,
+            @McpDescription("The method-tracing time series in the Microscope UI, for the user")
             String uiLink) {
     }
 
-    private record SlowestResult(
-            MethodTracingSlowestData slowest, List<String> nextSteps, String uiLink) {
+    record SlowestInvocations(
+            DashboardStatus status,
+            @McpNullable
+            @McpDescription("Why there are no invocations, and which half is missing; null when status is OK")
+            String reason,
+            String profileId,
+            @McpNullable
+            @McpDescription("The percentiles the ranking sits in; null when status is NOT_RECORDED")
+            SlowestSummary header,
+            @McpDescription("The slowest invocations, slowest first, as many as the profile keeps")
+            List<Invocation> invocations,
+            McpFollowUp followUp,
+            @McpDescription("The slowest-invocations page in the Microscope UI, for the user")
+            String uiLink) {
     }
 
-    private record TimingResult(MethodTimingData timing, List<String> nextSteps, String uiLink) {
+    record MethodTiming(
+            DashboardStatus status,
+            @McpNullable
+            @McpDescription("Why there are no statistics, and which half is missing; null when status is OK")
+            String reason,
+            String profileId,
+            @McpNullable
+            @McpDescription("Invocations the JVM counted across every method; null when status is NOT_RECORDED")
+            Long totalInvocations,
+            @McpDescription("The most invoked methods, most first, at most 100")
+            List<TimedMethod> methods,
+            @McpNullable
+            @McpDescription("Methods left out of methods by its cap of 100; null when status is NOT_RECORDED")
+            Integer omittedMethods,
+            McpFollowUp followUp,
+            @McpDescription("The method-timing page in the Microscope UI, for the user")
+            String uiLink) {
     }
 }

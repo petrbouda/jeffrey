@@ -154,7 +154,8 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
                 .provideFrame();
         AiExportConfig effectiveConfig = config == null ? aiExportConfig : config;
         FlamegraphAiMarkdownBuilder builder = new FlamegraphAiMarkdownBuilder(params.eventType(), effectiveConfig)
-                .withThreadMode(params.threadMode());
+                .withThreadMode(params.threadMode())
+                .withSearchPattern(params.searchPattern());
         describeScope(builder, params.spanScope());
         String markdown = builder.build(root);
         return new AiExport(markdown, root);

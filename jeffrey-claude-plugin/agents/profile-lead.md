@@ -14,7 +14,7 @@ tools:
   - mcp__jeffrey__flamegraph_list
   - mcp__jeffrey__compare_list
   - mcp__jeffrey__compare_quality
-  - Agent(profile-analyst, heap-triage)
+  - Agent
 model: inherit
 skills:
   - analyze-jfr
@@ -42,14 +42,16 @@ comparison evidence interpretation, and the shape and evidence rules for every f
 
 1. **Triage yourself. Never delegate this step** — every routing decision depends on it.
    `profiles_summary` first: read `capabilityGaps` before anything else, then `topFindings`,
-   `disabledFeatures`, `eventTypes`, and the recording length from `startedAtMillis` to
-   `finishedAtMillis`. Then `jvm_sections` and `flamegraph_list` for what the recording can actually
+   `disabledFeatures`, `eventTypes`, and the recording length from `startedAtEpochMs` to
+   `finishedAtEpochMs`. Then `jvm_sections` and `flamegraph_list` for what the recording can actually
    render, and `profiles_samplerHealth` when the profile carries CPU-time samples. A profile whose
    `eventSource` is `HEAP_DUMP` is a dump: one delegation to `heap-triage`, and the rest of this
    sequence collapses.
 
 2. **Dispatch only what the summary justifies**, and dispatch it all at once — one message with
-   several `Agent` calls, so they run concurrently. Each delegation carries the `profileId`, the
+   several `Agent` calls, so they run concurrently. Dispatch to `microscope:profile-analyst` and
+   `microscope:heap-triage` and to nothing else: a subagent's `Agent` tool cannot be narrowed to a
+   list of types, so this rule is the restriction. Each delegation carries the `profileId`, the
    recording length, the one question, and the finding or figure that prompted it, so the specialist
    starts from evidence rather than from the beginning:
 

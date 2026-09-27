@@ -45,7 +45,9 @@ import java.util.Set;
  *       operation individually regardless.</li>
  * </ol>
  * A span past the budget in tier one is omitted, and the plan says how many; a leaf whose parent
- * was omitted is omitted with it, since a fold has nothing to hang under.
+ * was omitted is omitted with it, since a fold has nothing to hang under. The fold lines have the
+ * same budget: past it, the remaining groups collapse into one closing {@link CollapsedFolds} line
+ * rather than each taking a line of its own.
  */
 final class TraceTreePlan {
 
@@ -58,8 +60,8 @@ final class TraceTreePlan {
     /** The origin the derivation stamps on a read the class loader asked for. */
     private static final String CLASS_LOADING_ORIGIN = "CLASS_LOADING";
 
-    /** One line of the tree: a span on its own, or a fold of promoted leaves. */
-    sealed interface Row permits SpanLine, FoldLine {
+    /** One line of the tree: a span, a fold of promoted leaves, or the folds past the budget. */
+    sealed interface Row permits SpanLine, FoldLine, CollapsedFolds {
     }
 
     /** A span rendered individually. */
@@ -80,6 +82,16 @@ final class TraceTreePlan {
     record FoldLine(
             String name, String kind, int depth, int count, long totalNanos, long maxNanos,
             boolean classLoading) implements Row {
+    }
+
+    /**
+     * The fold groups past the budget, counted on one line at the end of the tree rather than each
+     * given a line of its own.
+     *
+     * @param groups how many fold groups the line stands for
+     * @param count  how many promoted leaves those groups hold
+     */
+    record CollapsedFolds(int groups, int count) implements Row {
     }
 
     /** What makes two leaves fold together: the same parent and the same name. */
@@ -177,10 +189,13 @@ final class TraceTreePlan {
             foldOf.put(span.spanId(), key);
         }
 
-        // Lines in tree order: a fold takes the place of the first leaf it swallowed.
-        List<Row> rows = new ArrayList<>(rendered.size() + folds.size());
+        // Lines in tree order: a fold takes the place of the first leaf it swallowed, while the
+        // budget for fold lines lasts; the groups past it are counted on one closing line.
+        List<Row> rows = new ArrayList<>(rendered.size() + Math.min(folds.size(), maxLines) + 1);
         Set<FoldKey> emitted = new HashSet<>();
         int folded = 0;
+        int collapsedGroups = 0;
+        int collapsedLeaves = 0;
         for (TraceSpanRow span : spans) {
             if (rendered.contains(span.spanId())) {
                 rows.add(new SpanLine(span));
@@ -189,9 +204,17 @@ final class TraceTreePlan {
             FoldKey key = foldOf.get(span.spanId());
             if (key != null && emitted.add(key)) {
                 FoldLine line = folds.get(key).freeze();
-                folded += line.count();
-                rows.add(line);
+                if (emitted.size() <= maxLines) {
+                    folded += line.count();
+                    rows.add(line);
+                } else {
+                    collapsedGroups++;
+                    collapsedLeaves += line.count();
+                }
             }
+        }
+        if (collapsedGroups > 0) {
+            rows.add(new CollapsedFolds(collapsedGroups, collapsedLeaves));
         }
         return new TraceTreePlan(List.copyOf(rows), folded, omitted);
     }
@@ -206,7 +229,7 @@ final class TraceTreePlan {
         return rows;
     }
 
-    /** How many promoted leaves were folded into {@link FoldLine}s. */
+    /** How many promoted leaves were folded into {@link FoldLine}s, not counting collapsed ones. */
     int folded() {
         return folded;
     }

@@ -16,11 +16,13 @@
  */
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestFeatures;
+import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 
@@ -70,9 +72,9 @@ class McpToolMetricsTest {
     }
 
     private static JsonNode call(MetricsController controller, McpToolProvider tools, String name) {
-        ObjectNode request = Json.createObject().put("jsonrpc", "2.0").put("id", 1).put("method", "tools/call");
-        request.set("params", Json.createObject().put("name", name));
-        return controller.dispatch(request, "2025-06-18", new McpServerFeatures(() -> tools, () -> null, () -> null)).getBody();
+        McpTestRequests.Request request = McpTestRequests.toolCall(name, null);
+        return controller.dispatch(request.body(), request.headers(),
+                McpTestFeatures.of(() -> tools, () -> null, () -> null)).getBody();
     }
 
     static class MetricsController extends AbstractMcpStreamableHttpController {
