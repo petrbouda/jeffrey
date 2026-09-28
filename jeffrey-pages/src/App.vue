@@ -19,6 +19,7 @@
 import { ref } from 'vue';
 
 const isMenuOpen = ref(false);
+const currentYear = new Date().getFullYear();
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
@@ -75,9 +76,9 @@ const closeMenu = () => {
     <!-- Footer -->
     <footer class="bg-dark text-white py-4">
       <div class="container-wide">
-        <div class="row">
+        <div class="row g-0">
           <div class="col-md-6">
-            <p>&copy; 2025 Jeffrey - Performance Analyst</p>
+            <p>&copy; {{ currentYear }} Jeffrey - Performance Analyst</p>
           </div>
           <div class="col-md-6 text-end">
             <a href="https://github.com/petrbouda/jeffrey" class="text-white me-3" target="_blank">
