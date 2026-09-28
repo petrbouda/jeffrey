@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeffrey — Variant C · Dual Hero with AI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* same structure as the current HomeView dual hero */
+  .dual-hero { position: relative; display: grid; grid-template-columns: 1fr 1fr; min-height: 640px; overflow: hidden; }
+  .hero-half { position: relative; display: flex; padding: 5rem 3.5rem 7.5rem; overflow: hidden; }
+  .hero-half .hero-content { max-width: 540px; display: flex; flex-direction: column; }
+  .hero-half--left .hero-content { margin-left: auto; }
+  .hero-half--right .hero-content { margin-right: auto; }
+  .hero-half .bullet-list { margin-top: auto; }
+  .hero-seam { position: absolute; left: 0; right: 0; bottom: 2.4rem; display: flex; justify-content: center; z-index: 3; pointer-events: none; }
+  .seam-link { display: flex; align-items: center; }
+  .seam-cable { width: 180px; height: 2px; position: relative; }
+  .seam-cable--l { background: linear-gradient(90deg, transparent, var(--ms-a)); }
+  .seam-cable--r { background: linear-gradient(90deg, var(--ai-a), transparent); }
+  .seam-pill { width: 44px; height: 44px; border-radius: 50%; background: #0b1120; border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; color: #fff; box-shadow: 0 0 0 6px rgba(255,255,255,.04); }
+  .mini-term { margin: 0 0 1.6rem; }
+  .ai-agents { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.6rem; }
+  .ai-agents span { font-size: .76rem; font-weight: 600; color: rgba(255,255,255,.86); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 7px; padding: .22rem .6rem; }
+
+  .eco-card--hub.feature { background: linear-gradient(135deg, #faf5ff, #fff 70%); border-color: rgba(168,85,247,.35); }
+  .eco-card .flag { font-size: .62rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #fff; background: linear-gradient(135deg, var(--hub-a), var(--hub-b)); padding: .1rem .45rem; border-radius: 5px; margin-left: .4rem; vertical-align: 2px; }
+  @media (max-width: 1000px) {
+    .dual-hero { grid-template-columns: 1fr; }
+    .hero-half { padding: 3.5rem 1.25rem 4rem; }
+    .hero-half .hero-content { margin: 0; max-width: none; }
+    .hero-seam { display: none; }
+  }
+</style>
+</head>
+<body>
+<nav class="navbar"><div class="navbar-container">
+  <a href="#" class="navbar-brand"><img src="../../public/images/jeffrey-icon.svg" alt="">Jeffrey</a>
+  <ul class="nav-menu">
+    <li><a class="nav-link" href="#">Launch It!</a></li>
+    <li><a class="nav-link" href="#">Documentation</a></li>
+    <li><a class="nav-link" href="#">Release Notes</a></li>
+    <li><a class="nav-link" href="#">Blog</a></li>
+    <li><a class="nav-link" href="#">Contact</a></li>
+  </ul>
+</div></nav>
+
+<section class="dual-hero">
+  <div class="hero-half hero-half--left hero-dark hero-dark--ms">
+    <div class="bg-grid"></div><div class="bg-glow bg-glow--ms" style="bottom:10%;left:-120px"></div>
+    <div class="hero-content">
+      <div class="product-eyebrow eyebrow--ms">
+        <span class="eyebrow-icon"><i class="bi bi-search-heart-fill"></i></span>
+        <span class="eyebrow-text"><strong class="eyebrow-name">Jeffrey Microscope</strong><span class="eyebrow-tag">for you</span></span>
+      </div>
+      <h1 class="product-title">Analyze recordings<br><span class="title-accent title-accent--ms">on your desk.</span></h1>
+      <p class="product-subtitle">A deep analyzer for JFR recordings and heap dumps. Upload a file, or connect to a Jeffrey Hub and pull recordings directly.</p>
+      <ul class="bullet-list bullet-list--ms">
+        <li><i class="bi bi-fire"></i><span>Interactive flamegraphs or specialized dashboards</span></li>
+        <li><i class="bi bi-arrows-collapse"></i><span>Differential flamegraphs across profiles</span></li>
+        <li><i class="bi bi-droplet-half"></i><span>JFR and heap dumps — one analyzer</span></li>
+        <li><i class="bi bi-plug"></i><span>Pull from a Hub, or analyze a JFR file standalone</span></li>
+      </ul>
+      <div class="cta-row">
+        <a class="cta cta--ms" href="#">Explore Microscope <i class="bi bi-arrow-right"></i></a>
+        <a class="cta cta--ghost" href="#"><i class="bi bi-download"></i> Download JAR</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-half hero-half--right hero-dark hero-dark--ai">
+    <div class="bg-grid"></div><div class="bg-glow bg-glow--ai" style="top:10%;right:-120px"></div>
+    <div class="hero-content">
+      <div class="product-eyebrow eyebrow--ai">
+        <span class="eyebrow-icon"><i class="bi bi-stars"></i></span>
+        <span class="eyebrow-text"><strong class="eyebrow-name">Microscope MCP</strong><span class="eyebrow-tag">for your coding agent</span></span>
+      </div>
+      <h1 class="product-title">Let your agent<br><span class="title-accent title-accent--ai">read the profile.</span></h1>
+      <p class="product-subtitle">The same analysis, served over MCP to Claude Code, Codex and any MCP client — so hot frames land next to your source code.</p>
+      <div class="term mini-term">
+        <div class="term-bar"><i class="c"></i><i class="c"></i><i class="c"></i><span class="t">claude</span><span class="ok">● /api/mcp</span></div>
+        <div class="term-body">
+          <div class="u">Why is checkout slow? perf/checkout.jfr</div>
+          <div class="tool">⏺ <b>flamegraph_export</b> → <b>ide_resolve</b></div>
+          <div class="res"><b>38%</b> CPU in PriceCalculator.applyRules:87 — <span class="good">fix ready</span></div>
+        </div>
+      </div>
+      <div class="ai-agents"><span>Claude Code</span><span>Codex</span><span>Gemini CLI · soon</span><span>any MCP client</span></div>
+      <div class="cta-row">
+        <a class="cta cta--ai" href="#">Connect your agent <i class="bi bi-arrow-right"></i></a>
+        <a class="cta cta--ghost" href="#"><i class="bi bi-book"></i> MCP docs</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-seam"><div class="seam-link"><span class="seam-cable seam-cable--l"></span><span class="seam-pill"><i class="bi bi-arrow-left-right"></i></span><span class="seam-cable seam-cable--r"></span></div></div>
+</section>
+
+<section class="ecosystem"><div class="container-wide">
+  <div class="eco-head"><span class="eco-rule"></span><span class="pill-eyebrow"><i class="bi bi-grid-1x2-fill"></i> The Jeffrey ecosystem</span><span class="eco-rule eco-rule--r"></span></div>
+  <div class="eco-grid">
+    <a class="eco-card eco-card--hub feature" href="#"><div class="eco-ic"><i class="bi bi-cloud-fill"></i></div><div class="eco-body"><div class="eco-title">Jeffrey Hub <span class="flag">Production</span></div><div class="eco-role">Kubernetes · Collector</div><p class="eco-desc">Collects JFR recordings, heap dumps and logs from running services via shared volume, and serves them over gRPC — to Microscope, to your agent's <code>analyze-hub</code> skill, or to your own consumer.</p><div class="eco-chips"><span class="eco-chip">Kubernetes</span><span class="eco-chip">Shared volume</span><span class="eco-chip">gRPC</span><span class="eco-chip">Lifecycle events</span></div></div></a>
+    <a class="eco-card eco-card--plugin" href="#"><div class="eco-ic"><i class="bi bi-window-stack"></i></div><div class="eco-body"><div class="eco-title">IntelliJ Plugin</div><div class="eco-role">IDE · Companion</div><p class="eco-desc">Jump from any Microscope flame-graph frame straight to the source line in your open IntelliJ — Java and Kotlin — or pull inline source back into the profile.</p><div class="eco-chips"><span class="eco-chip">Open in IDE</span><span class="eco-chip">Inline source</span><span class="eco-chip">Multi-IDE</span><span class="eco-chip">Marketplace</span></div></div></a>
+    <a class="eco-card eco-card--provisioner" href="#"><div class="eco-ic"><i class="bi bi-terminal"></i></div><div class="eco-body"><div class="eco-title">Provisioner</div><div class="eco-role">Standalone · Session bootstrap</div><p class="eco-desc">One HOCON file lays out your workspace, project and session tree, registers sessions with the Hub, and generates the JVM argfile that starts your app under the profiler.</p><div class="eco-chips"><span class="eco-chip">HOCON config</span><span class="eco-chip">JVM argfile</span><span class="eco-chip">Native binary</span></div></div></a>
+    <a class="eco-card eco-card--jib" href="#"><div class="eco-ic"><i class="bi bi-box-seam"></i></div><div class="eco-body"><div class="eco-title">Jeffrey JIB</div><div class="eco-role">Standalone · Build-time</div><p class="eco-desc">A Jib extension that wraps your container entrypoint so profiling starts before your app does — the provisioner and async-profiler ride along in their own layer.</p><div class="eco-chips"><span class="eco-chip">Gradle/Maven</span><span class="eco-chip">Entrypoint wrapper</span><span class="eco-chip">Kill switch</span></div></div></a>
+  </div>
+</div></section>
+
+<section class="tab-showcase" data-tabs><div class="container-wide">
+  <div class="tab-bar" style="--tabs:4">
+    <button class="tab-btn tab-btn--ms active" data-tab="ms"><i class="bi bi-search-heart-fill"></i> Microscope</button>
+    <button class="tab-btn tab-btn--ai" data-tab="ai"><i class="bi bi-stars"></i> Microscope MCP</button>
+    <button class="tab-btn tab-btn--plugin" data-tab="plugin"><i class="bi bi-window-stack"></i> IDE Plugin</button>
+    <button class="tab-btn tab-btn--hub" data-tab="hub"><i class="bi bi-cloud-fill"></i> Jeffrey Hub</button>
+  </div>
+  <div class="tab-panel active" data-panel="ms">
+    <div class="tab-panel-header"><h2>Deep analyzer for JFR recordings and heap dumps.</h2><p>Open a JFR file or connect to a Hub. Read flamegraphs that finally render fast.</p></div>
+    <div class="tab-panel-body">
+      <div class="tab-feature-grid">
+        <article class="tab-feature"><div class="tab-feature-icon fi--ms"><i class="bi bi-fire"></i></div><h4>Flamegraphs and Differential Flamegraphs</h4><p>For all JFR events providing the stacktraces.</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--ms"><i class="bi bi-grid-3x3-gap-fill"></i></div><h4>JVM and Tech-specific Dashboards</h4><p>GC, threads, JIT, HTTP, JDBC and more.</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--ms"><i class="bi bi-droplet-half"></i></div><h4>Heap dump inspection</h4><p>Dominator trees, leak suspects, OOM root cause.</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--ms"><i class="bi bi-graph-up"></i></div><h4>Sub-second timelines</h4><p>Zoom into the millisecond your service stalled.</p></article>
+      </div>
+      <aside class="tab-deployment"><span class="dep-eyebrow">Deployment</span><h4>Runs as a JAR or container</h4><p>No Hub required. Drop it on your laptop, drop in a JFR file, browse.</p><div class="dep-cmd">docker run -it --network host \
+  petrbouda/microscope-examples</div><a class="dep-cta cta--ms" href="#">Read Microscope docs <i class="bi bi-arrow-right"></i></a></aside>
+    </div>
+  </div>
+  <div class="tab-panel" data-panel="ai">
+    <div class="tab-panel-header"><h2>The profiler your coding agent can call.</h2><p>111 MCP tools, 10 skills and 3 sub-agents — for Claude Code, Codex and any MCP 2026-07-28 client.</p></div>
+    <div class="tab-panel-body">
+      <div class="tab-feature-grid">
+        <article class="tab-feature"><div class="tab-feature-icon fi--ai"><i class="bi bi-plug-fill"></i></div><h4>111 tools, 100 read-only</h4><p>Profiles, flamegraphs, JVM, heap, traces and DuckDB SQL.</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--ai"><i class="bi bi-magic"></i></div><h4>Skills that know the method</h4><p>analyze-jfr, analyze-heap, advise-jfr, regression-check…</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--ai"><i class="bi bi-people"></i></div><h4>Sub-agents</h4><p>profile-lead dispatches analyst and heap-triage; findings only.</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--ai"><i class="bi bi-shield-lock"></i></div><h4>No model inside</h4><p>Jeffrey never calls a model provider. Your agent calls in.</p></article>
+      </div>
+      <aside class="tab-deployment"><span class="dep-eyebrow dep-eyebrow--ai">Install</span><h4>Claude Code</h4><p>The server is on by default at <code>/api/mcp</code>.</p><div class="dep-cmd">/plugin marketplace add petrbouda/jeffrey
+/plugin install microscope@jeffrey</div><a class="dep-cta cta--ai" href="#">Read MCP docs <i class="bi bi-arrow-right"></i></a></aside>
+    </div>
+  </div>
+  <div class="tab-panel" data-panel="plugin">
+    <div class="tab-panel-header"><h2>IntelliJ bridge — from a flame-graph frame to the source line.</h2><p>Click any frame in Microscope and land on the exact method in your already-open IntelliJ.</p></div>
+    <div class="tab-panel-body">
+      <div class="tab-feature-grid">
+        <article class="tab-feature"><div class="tab-feature-icon fi--plugin"><i class="bi bi-arrow-right-circle-fill"></i></div><h4>Frame-to-source navigation</h4><p>PSI-based jump to file, line and column.</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--plugin"><i class="bi bi-file-earmark-code"></i></div><h4>Inline source view</h4><p>Source rendered next to the profile.</p></article>
+      </div>
+      <aside class="tab-deployment"><span class="dep-eyebrow dep-eyebrow--plugin">Install</span><h4>JetBrains Marketplace</h4><p>Search for "Jeffrey Microscope". IDEA 2025.1+.</p></aside>
+    </div>
+  </div>
+  <div class="tab-panel" data-panel="hub">
+    <div class="tab-panel-header"><h2>Collector for application data and lifecycle events.</h2><p>Runs in Kubernetes. Captures recordings, artifacts and lifecycle events via shared volume. Streams over gRPC.</p></div>
+    <div class="tab-panel-body">
+      <div class="tab-feature-grid">
+        <article class="tab-feature"><div class="tab-feature-icon fi--hub"><i class="bi bi-cloud-arrow-down"></i></div><h4>Collecting Recordings and Artifacts</h4><p>JFR recordings, heap dumps and logs.</p></article>
+        <article class="tab-feature"><div class="tab-feature-icon fi--hub"><i class="bi bi-cloud-arrow-up"></i></div><h4>Serving over gRPC</h4><p>A whole session, or the hour that matters.</p></article>
+      </div>
+      <aside class="tab-deployment"><span class="dep-eyebrow dep-eyebrow--hub">Deployment</span><h4>Deploys to Kubernetes</h4><p>Shared-volume integration and gRPC exposure.</p><a class="dep-cta cta--hub" href="#">Read deployment guide <i class="bi bi-arrow-right"></i></a></aside>
+    </div>
+  </div>
+</div></section>
+
+<section class="connect"><div class="connect-inner">
+  <span class="pill-eyebrow"><i class="bi bi-link-45deg"></i> How they connect</span>
+  <h2>One JFR pipeline. Every half works alone.</h2>
+  <p>Microscope can pull recordings from a Hub over gRPC — or work with a JFR file you drop in. You read it in the browser; your agent reads it over MCP.</p>
+  <div class="connect-flow">
+    <div class="cf-node cf-node--apps"><i class="bi bi-app-indicator"></i> Your services</div>
+    <div class="cf-arrow"><span>collect</span></div>
+    <div class="cf-node cf-node--hub"><i class="bi bi-cloud-fill"></i> Jeffrey Hub</div>
+    <div class="cf-arrow"><span>gRPC</span></div>
+    <div class="cf-node cf-node--ms"><i class="bi bi-search-heart-fill"></i> Microscope</div>
+    <div class="cf-arrow cf-arrow--ai"><span>MCP</span></div>
+    <div class="cf-node cf-node--ai"><i class="bi bi-stars"></i> Coding agent</div>
+  </div>
+</div></section>
+
+<footer class="site"><div class="container-wide"><p>&copy; 2026 Jeffrey - Performance Analyst</p><span class="mock-tag">Variant C · Dual Hero with AI</span><span class="icons"><i class="bi bi-github"></i><i class="bi bi-linkedin"></i></span></div></footer>
+<script src="tabs.js"></script>
+</body>
+</html>

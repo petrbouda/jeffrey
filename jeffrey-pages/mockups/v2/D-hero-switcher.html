@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeffrey — Variant D · Hero Switcher</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="base.css">
+<style>
+  .hero { padding: 4.5rem 0 5rem; }
+  .hero .grid { display: grid; grid-template-columns: .95fr 1.2fr; gap: 3.5rem; align-items: center; }
+  .switch { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); border-radius: 18px; padding: .6rem; backdrop-filter: blur(8px); }
+  .switch .tab-bar { background: rgba(2,6,23,.4); border-color: rgba(255,255,255,.1); box-shadow: none; margin: 0 0 .6rem; max-width: none; }
+  .switch .tab-btn { color: rgba(255,255,255,.65); font-size: .85rem; padding: .7rem .5rem; }
+  .switch .tab-btn:hover { color: #fff; }
+  .stage { height: 380px; border-radius: 12px; overflow: hidden; position: relative; }
+  .stage .tab-panel { height: 100%; }
+  .stage .shot { height: 100%; border-radius: 12px; }
+  .stage .term { height: 100%; border-radius: 12px; }
+  .stage .caption { position: absolute; left: 12px; bottom: 12px; right: 12px; background: rgba(2,6,23,.8); color: #e2e8f0; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: .6rem .8rem; font-size: .82rem; }
+  .stage .caption b { color: #fff; }
+  .code-view { height: 100%; background: #0b1220; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; font-family: ui-monospace, Menlo, monospace; font-size: .8rem; line-height: 1.8; color: #cbd5e1; padding: 1rem 0; }
+  .code-view .l { display: block; padding: 0 1rem; }
+  .code-view .n { color: #475569; display: inline-block; width: 2rem; }
+  .code-view .hl { background: rgba(251,146,60,.18); border-left: 3px solid var(--ide-a); }
+  .code-view .k { color: #fdba74; }
+  .code-view .hd { display: flex; justify-content: space-between; padding: 0 1rem .6rem; margin-bottom: .6rem; border-bottom: 1px solid rgba(255,255,255,.08); font-family: 'Roboto', system-ui, sans-serif; font-size: .78rem; color: #94a3b8; }
+  .code-view .hd b { color: var(--ide-a); }
+  .prod-view { height: 100%; background: var(--hub-bg); border-radius: 12px; border: 1px solid rgba(255,255,255,.14); display: flex; flex-direction: column; justify-content: center; gap: .7rem; padding: 1.5rem 2rem; }
+  .prod-view .row { display: flex; align-items: center; gap: .8rem; padding: .8rem 1rem; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); color: #fff; font-weight: 600; font-size: .92rem; }
+  .prod-view .row i { color: var(--hub-tag); font-size: 1.1rem; }
+  .prod-view .row.ms { border-color: rgba(56,189,248,.5); } .prod-view .row.ms i { color: var(--ms-tag); }
+  .prod-view .row.ai { border-color: rgba(52,211,153,.5); } .prod-view .row.ai i { color: var(--ai-tag); }
+  .prod-view .arr { text-align: center; color: rgba(255,255,255,.45); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
+
+  .stats { background: #fff; border-bottom: 1px solid var(--line); }
+  .stats .container-wide { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .stat { padding: 1.6rem 1.4rem; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: 0; }
+  .stat b { display: block; font-size: 1.9rem; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
+  .stat span { font-size: .88rem; color: var(--ink-2); }
+  .stat.ai b { color: var(--ai-b); }
+
+  .pillars { padding: 4.5rem 0; background: var(--band); }
+  .pillar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+  .pillar { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 1.6rem; }
+  .pillar h3 { font-size: 1.15rem; font-weight: 800; margin: .9rem 0 .5rem; color: var(--ink); }
+  .pillar p { font-size: .9rem; color: var(--ink-2); line-height: 1.55; margin: 0 0 1rem; }
+  .pillar ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; font-size: .88rem; color: var(--ink-2); }
+  .pillar li i { margin-right: .45rem; }
+  .pillar--ms li i { color: var(--ms-b); } .pillar--ai li i { color: var(--ai-b); } .pillar--ide li i { color: var(--ide-b); }
+  .pillar--ai { border-color: rgba(52,211,153,.45); background: linear-gradient(180deg, #ecfdf5, #fff 45%); }
+
+  @media (max-width: 1100px) { .hero .grid, .pillar-grid { grid-template-columns: 1fr; } .stats .container-wide { grid-template-columns: 1fr 1fr; } .stat:nth-child(2) { border-right: 0; } }
+  @media (max-width: 860px) { .stage { height: 340px; } .switch .tab-bar { grid-template-columns: 1fr 1fr; } .stats .container-wide { grid-template-columns: 1fr; } .stat { border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<nav class="navbar"><div class="navbar-container">
+  <a href="#" class="navbar-brand"><img src="../../public/images/jeffrey-icon.svg" alt="">Jeffrey</a>
+  <ul class="nav-menu">
+    <li><a class="nav-link" href="#">Launch It!</a></li>
+    <li><a class="nav-link" href="#">Documentation</a></li>
+    <li><a class="nav-link" href="#">Release Notes</a></li>
+    <li><a class="nav-link" href="#">Blog</a></li>
+    <li><a class="nav-link" href="#">Contact</a></li>
+  </ul>
+</div></nav>
+
+<section class="hero hero-dark hero-dark--ms">
+  <div class="bg-grid"></div><div class="bg-glow bg-glow--ms" style="bottom:0;left:-120px"></div><div class="bg-glow bg-glow--ai" style="top:-200px;right:-100px;opacity:.25"></div>
+  <div class="container-wide hero-content grid">
+    <div>
+      <div class="product-eyebrow eyebrow--ms">
+        <span class="eyebrow-icon"><i class="bi bi-search-heart-fill"></i></span>
+        <span class="eyebrow-text"><strong class="eyebrow-name">Jeffrey Microscope</strong><span class="eyebrow-tag">JVM performance analyst</span></span>
+      </div>
+      <h1 class="product-title product-title--xl">One analyzer.<br><span class="title-accent title-accent--ms">For you,</span> <span class="title-accent title-accent--ai">and your agent.</span></h1>
+      <p class="product-subtitle">Flamegraphs, heap dumps and JVM dashboards from your JFR recordings — in the browser, in your IDE, and in Claude Code or Codex over MCP.</p>
+      <ul class="bullet-list bullet-list--ms">
+        <li><i class="bi bi-fire"></i><span>Flamegraphs, differential flamegraphs and sub-second timelines</span></li>
+        <li><i class="bi bi-droplet-half"></i><span>Heap dumps: dominators, leak suspects, OQL</span></li>
+        <li><i class="bi bi-stars"></i><span>Built-in MCP server — 111 tools for coding agents</span></li>
+      </ul>
+      <div class="cta-row">
+        <a class="cta cta--ms" href="#">Explore Microscope <i class="bi bi-arrow-right"></i></a>
+        <a class="cta cta--ghost" href="#"><i class="bi bi-download"></i> Download JAR</a>
+      </div>
+    </div>
+
+    <div class="switch" data-tabs>
+      <div class="tab-bar" style="--tabs:4">
+        <button class="tab-btn tab-btn--ms active" data-tab="a"><i class="bi bi-fire"></i> Analyze</button>
+        <button class="tab-btn tab-btn--ai" data-tab="b"><i class="bi bi-stars"></i> Ask your agent</button>
+        <button class="tab-btn tab-btn--plugin" data-tab="c"><i class="bi bi-window-stack"></i> Open in IDE</button>
+        <button class="tab-btn tab-btn--hub" data-tab="d"><i class="bi bi-cloud-fill"></i> Production</button>
+      </div>
+      <div class="stage">
+        <div class="tab-panel active" data-panel="a"><div class="shot" style="background-image:url(../../public/images/feature-screenshots/profile_flamegraph_2.png)"></div><div class="caption"><b>Flamegraphs that render fast</b> — for every JFR event with a stack trace.</div></div>
+        <div class="tab-panel" data-panel="b">
+          <div class="term">
+            <div class="term-bar"><i class="c"></i><i class="c"></i><i class="c"></i><span class="t">~/checkout-service — claude</span><span class="ok">● /api/mcp</span></div>
+            <div class="term-body">
+              <div class="u">Why did checkout get slower after yesterday's merge? perf/checkout.jfr</div>
+              <div class="tool">⏺ microscope · <b>recordings_analyzeFile</b>(perf/checkout.jfr)</div>
+              <div class="res">profile ready · 14 event types · 3m 12s</div>
+              <div class="tool">⏺ microscope · <b>profiles_summary</b> → <b>flamegraph_export</b></div>
+              <div class="res"><b>38.4%</b> CPU in <b>PriceCalculator.applyRules</b> → Pattern.compile</div>
+              <div class="tool">⏺ skill · <b>advise-jfr</b> → cache the compiled Pattern on Rule</div>
+              <div class="tool">⏺ skill · <b>regression-check</b> main..HEAD</div>
+              <div class="res"><span class="good">▼ 41%</span> CPU on the checkout path · confidence <b>high</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" data-panel="c">
+          <div class="code-view">
+            <div class="hd"><span>PriceCalculator.java — IntelliJ IDEA</span><b>opened from Microscope</b></div>
+            <span class="l"><span class="n">84</span>BigDecimal total(Order order) {</span>
+            <span class="l"><span class="n">85</span>  <span class="k">for</span> (Rule rule : rules) {</span>
+            <span class="l hl"><span class="n">86</span>    <span class="k">var</span> p = Pattern.compile(rule.regex());</span>
+            <span class="l"><span class="n">87</span>    <span class="k">if</span> (p.matcher(sku).matches()) {</span>
+            <span class="l"><span class="n">88</span>      price = rule.apply(price);</span>
+            <span class="l"><span class="n">89</span>    }</span>
+            <span class="l"><span class="n">90</span>  }</span>
+          </div>
+          <div class="caption"><b>Frame → source line</b> in the IntelliJ you already have open. Java &amp; Kotlin.</div>
+        </div>
+        <div class="tab-panel" data-panel="d">
+          <div class="prod-view">
+            <div class="row"><i class="bi bi-app-indicator"></i> Your services in Kubernetes</div>
+            <div class="arr">shared volume</div>
+            <div class="row"><i class="bi bi-cloud-fill"></i> Jeffrey Hub — collects recordings, dumps &amp; logs</div>
+            <div class="arr">gRPC · the hour that matters</div>
+            <div class="row ms"><i class="bi bi-search-heart-fill"></i> Microscope</div>
+            <div class="row ai"><i class="bi bi-stars"></i> "Why was prod slow this morning?" — analyze-hub</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats"><div class="container-wide">
+  <div class="stat"><b>JFR · HPROF</b><span>plus pprof and OTLP</span></div>
+  <div class="stat"><b>JVM</b><span>dashboards: GC, JIT, threads, I/O, JDBC…</span></div>
+  <div class="stat ai"><b>111</b><span>MCP tools for your coding agent</span></div>
+  <div class="stat"><b>0</b><span>model calls — your data stays local</span></div>
+</div></section>
+
+<section class="pillars"><div class="container-wide">
+  <div class="section-head"><span class="pill-eyebrow"><i class="bi bi-search-heart"></i> Jeffrey Microscope</span><h2>Three ways to read the same profile.</h2><p>Open it yourself, hand it to your agent, or jump straight into the code.</p></div>
+  <div class="pillar-grid">
+    <div class="pillar pillar--ms"><div class="tab-feature-icon fi--ms"><i class="bi bi-display"></i></div><h3>In the browser</h3><p>A fast UI for deep analysis on your laptop.</p><ul><li><i class="bi bi-check2"></i>Flamegraphs &amp; differential flamegraphs</li><li><i class="bi bi-check2"></i>Sub-second timelines</li><li><i class="bi bi-check2"></i>Heap dump analysis</li><li><i class="bi bi-check2"></i>JVM &amp; tech dashboards, traces</li></ul></div>
+    <div class="pillar pillar--ai"><div class="tab-feature-icon fi--ai"><i class="bi bi-stars"></i></div><h3>With your coding agent</h3><p>MCP 2026-07-28 server + the Microscope plugin.</p><ul><li><i class="bi bi-check2"></i>Claude Code, Codex, any MCP client</li><li><i class="bi bi-check2"></i>10 skills · 3 sub-agents</li><li><i class="bi bi-check2"></i>100 of 111 tools strictly read-only</li><li><i class="bi bi-check2"></i>No model inside Jeffrey</li></ul></div>
+    <div class="pillar pillar--ide"><div class="tab-feature-icon fi--plugin"><i class="bi bi-window-stack"></i></div><h3>In your IDE</h3><p>The IntelliJ plugin links profile and code.</p><ul><li><i class="bi bi-check2"></i>Frame → exact source line</li><li><i class="bi bi-check2"></i>Inline source in Microscope</li><li><i class="bi bi-check2"></i>Multi-IDE awareness</li><li><i class="bi bi-check2"></i>JetBrains Marketplace</li></ul></div>
+  </div>
+</div></section>
+
+<section class="ecosystem"><div class="container-wide">
+  <div class="eco-head"><span class="eco-rule"></span><span class="pill-eyebrow"><i class="bi bi-grid-1x2-fill"></i> The Jeffrey ecosystem</span><span class="eco-rule eco-rule--r"></span></div>
+  <div class="eco-grid">
+    <a class="eco-card eco-card--hub" href="#"><div class="eco-ic"><i class="bi bi-cloud-fill"></i></div><div class="eco-body"><div class="eco-title">Jeffrey Hub</div><div class="eco-role">In production · Collector</div><p class="eco-desc">A containerised collector for Kubernetes. Captures JFR recordings, artifacts and session data from running services and serves it over gRPC.</p><div class="eco-chips"><span class="eco-chip">Kubernetes</span><span class="eco-chip">Shared volume</span><span class="eco-chip">gRPC</span></div></div></a>
+    <a class="eco-card eco-card--plugin" href="#"><div class="eco-ic"><i class="bi bi-window-stack"></i></div><div class="eco-body"><div class="eco-title">IntelliJ Plugin</div><div class="eco-role">IDE · Companion</div><p class="eco-desc">Jump from any flame-graph frame straight to the source line in your open IntelliJ.</p><div class="eco-chips"><span class="eco-chip">Open in IDE</span><span class="eco-chip">Inline source</span><span class="eco-chip">Marketplace</span></div></div></a>
+    <a class="eco-card eco-card--provisioner" href="#"><div class="eco-ic"><i class="bi bi-terminal"></i></div><div class="eco-body"><div class="eco-title">Provisioner</div><div class="eco-role">Standalone · Session bootstrap</div><p class="eco-desc">One HOCON file lays out sessions, registers them with the Hub, and generates the JVM argfile.</p><div class="eco-chips"><span class="eco-chip">HOCON</span><span class="eco-chip">Native binary</span></div></div></a>
+    <a class="eco-card eco-card--jib" href="#"><div class="eco-ic"><i class="bi bi-box-seam"></i></div><div class="eco-body"><div class="eco-title">Jeffrey JIB</div><div class="eco-role">Standalone · Build-time</div><p class="eco-desc">Wraps your container entrypoint so profiling starts before your app does.</p><div class="eco-chips"><span class="eco-chip">Gradle/Maven</span><span class="eco-chip">Kill switch</span></div></div></a>
+  </div>
+</div></section>
+
+<section class="connect" style="background:var(--band)"><div class="connect-inner">
+  <span class="pill-eyebrow"><i class="bi bi-link-45deg"></i> How they connect</span>
+  <h2>One JFR pipeline. Start with just a file.</h2>
+  <p>Microscope stands alone. Add a Hub for production, the IDE plugin for code, and your agent for everything in between.</p>
+  <div class="connect-flow">
+    <div class="cf-node cf-node--hub cf-node--optional"><i class="bi bi-cloud-fill"></i><span>Jeffrey Hub<small>or a .jfr file</small></span></div>
+    <div class="cf-arrow"><span>gRPC</span></div>
+    <div class="cf-node cf-node--ms"><i class="bi bi-search-heart-fill"></i> Microscope</div>
+    <div class="cf-arrow cf-arrow--ai"><span>MCP</span></div>
+    <div class="cf-node cf-node--ai"><i class="bi bi-stars"></i> Coding agent</div>
+    <div class="cf-arrow"><span>open</span></div>
+    <div class="cf-node cf-node--ide"><i class="bi bi-window-stack"></i> IntelliJ</div>
+  </div>
+</div></section>
+
+<footer class="site"><div class="container-wide"><p>&copy; 2026 Jeffrey - Performance Analyst</p><span class="mock-tag">Variant D · Hero Switcher</span><span class="icons"><i class="bi bi-github"></i><i class="bi bi-linkedin"></i></span></div></footer>
+<script src="tabs.js"></script>
+</body>
+</html>
