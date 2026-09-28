@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeffrey — Mockup 1 · Agent Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  :root {
+    --bg: #07070d;
+    --bg-2: #0e0e18;
+    --panel: #12121f;
+    --line: rgba(255,255,255,.08);
+    --line-2: rgba(255,255,255,.14);
+    --text: #ececf4;
+    --muted: #9a9ab3;
+    --dim: #6b6b85;
+    --violet: #8b5cf6;
+    --violet-2: #a78bfa;
+    --cyan: #22d3ee;
+    --amber: #fbbf24;
+    --green: #34d399;
+    --red: #f87171;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); background: rgba(7,7,13,.7); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
+  .brand img { width: 26px; height: 26px; }
+  .brand small { font-weight: 500; color: var(--dim); font-size: 12px; padding: 2px 8px; border: 1px solid var(--line-2); border-radius: 99px; }
+  .links { display: flex; gap: 22px; font-size: 14px; color: var(--muted); margin-left: auto; }
+  .links a:hover { color: var(--text); }
+  .nav-cta { font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 10px; background: var(--text); color: var(--bg); }
+
+  /* hero */
+  .hero { position: relative; padding: 88px 0 72px; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 720px; background:
+      radial-gradient(40% 50% at 25% 30%, rgba(139,92,246,.28), transparent 70%),
+      radial-gradient(35% 45% at 80% 20%, rgba(34,211,238,.18), transparent 70%); pointer-events: none; }
+  .hero::after { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(60% 55% at 50% 30%, #000 20%, transparent 75%); opacity: .5; pointer-events: none; }
+  .hero .wrap { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1.1fr; gap: 56px; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--violet-2); background: rgba(139,92,246,.1); border: 1px solid rgba(139,92,246,.35); padding: 6px 12px; border-radius: 99px; }
+  .pill b { color: var(--text); font-weight: 600; }
+  h1 { font-size: clamp(40px, 5.4vw, 66px); line-height: 1.02; letter-spacing: -.035em; margin: 22px 0 20px; font-weight: 800; }
+  h1 .grad { background: linear-gradient(90deg, var(--violet-2), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: 18px; line-height: 1.6; color: var(--muted); max-width: 520px; }
+  .ctas { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 20px; border-radius: 12px; font-weight: 600; font-size: 15px; border: 1px solid var(--line-2); }
+  .btn-primary { background: linear-gradient(135deg, var(--violet), #6d28d9); border-color: transparent; box-shadow: 0 10px 40px -10px rgba(139,92,246,.7); }
+  .btn:hover { transform: translateY(-1px); }
+  .agents { display: flex; align-items: center; gap: 14px; margin-top: 34px; color: var(--dim); font-size: 13px; flex-wrap: wrap; }
+  .agents span.a { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+  /* terminal */
+  .term { background: linear-gradient(180deg, #13131f, #0c0c16); border: 1px solid var(--line-2); border-radius: 16px; box-shadow: 0 40px 120px -30px rgba(139,92,246,.45), 0 0 0 1px rgba(255,255,255,.02) inset; overflow: hidden; }
+  .term-bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--dim); }
+  .term-bar i.c { width: 11px; height: 11px; border-radius: 50%; background: #2a2a3a; display: inline-block; }
+  .term-bar .title { margin-left: 10px; font-family: 'JetBrains Mono', monospace; }
+  .term-bar .badge { margin-left: auto; font-family: 'JetBrains Mono', monospace; color: var(--green); background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.3); padding: 2px 8px; border-radius: 6px; }
+  .term-body { padding: 18px 18px 22px; font-family: 'JetBrains Mono', monospace; font-size: 12.8px; line-height: 1.7; min-height: 430px; }
+  .ln { opacity: 0; transform: translateY(4px); animation: in .35s ease forwards; white-space: pre-wrap; }
+  @keyframes in { to { opacity: 1; transform: none; } }
+  .u { color: var(--text); } .u::before { content: "› "; color: var(--violet-2); }
+  .tool { color: var(--cyan); } .tool .n { color: var(--amber); }
+  .res { color: var(--dim); padding-left: 16px; border-left: 2px solid var(--line-2); margin: 2px 0 6px 4px; }
+  .res b { color: var(--text); font-weight: 500; }
+  .ok { color: var(--green); } .bad { color: var(--red); }
+  .diff { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 6px 0; }
+  .diff .m { color: var(--red); } .diff .p { color: var(--green); }
+  .caret { display: inline-block; width: 8px; height: 15px; background: var(--violet-2); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* logos strip */
+  .strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+  .strip .wrap { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .stat { padding: 28px 20px; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: 0; }
+  .stat b { display: block; font-size: 34px; letter-spacing: -.03em; font-weight: 800; }
+  .stat span { color: var(--muted); font-size: 14px; }
+
+  section.s { padding: 110px 0; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--violet-2); }
+  h2 { font-size: clamp(30px, 3.6vw, 46px); letter-spacing: -.03em; line-height: 1.08; margin: 14px 0 16px; font-weight: 800; }
+  .sub { color: var(--muted); font-size: 17px; line-height: 1.6; max-width: 640px; }
+
+  /* flow */
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 52px; counter-reset: step; }
+  .step { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+  .step::before { counter-increment: step; content: "0" counter(step); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--dim); }
+  .step h3 { margin: 12px 0 8px; font-size: 18px; }
+  .step p { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0 0 14px; }
+  .step code { font-size: 12px; color: var(--cyan); background: rgba(34,211,238,.07); border: 1px solid rgba(34,211,238,.2); padding: 3px 7px; border-radius: 6px; }
+
+  /* install tabs */
+  .install { display: grid; grid-template-columns: 1fr 1.2fr; gap: 48px; align-items: center; }
+  .tabs { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .tabs input { display: none; }
+  .tabs .heads { display: flex; border-bottom: 1px solid var(--line); }
+  .tabs label { flex: 1; text-align: center; padding: 14px 8px; font-size: 14px; color: var(--muted); cursor: pointer; border-right: 1px solid var(--line); }
+  .tabs label:last-of-type { border-right: 0; }
+  .tabs .pane { display: none; padding: 22px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8; }
+  .tabs .pane .c { color: var(--dim); }
+  .tabs .pane .k { color: var(--cyan); }
+  #t1:checked ~ .heads label[for=t1], #t2:checked ~ .heads label[for=t2], #t3:checked ~ .heads label[for=t3], #t4:checked ~ .heads label[for=t4] { color: var(--text); background: rgba(139,92,246,.1); box-shadow: inset 0 -2px 0 var(--violet); }
+  #t1:checked ~ .p1, #t2:checked ~ .p2, #t3:checked ~ .p3, #t4:checked ~ .p4 { display: block; }
+  .note { font-family: Inter, sans-serif; font-size: 13px; color: var(--dim); margin-top: 10px; line-height: 1.5; }
+
+  /* features */
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .card .img { aspect-ratio: 16/9; background: #0a0a12 center/cover no-repeat; border-bottom: 1px solid var(--line); }
+  .card .t { padding: 20px 22px 24px; }
+  .card h3 { margin: 0 0 8px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .chip { font-size: 12px; color: var(--muted); border: 1px solid var(--line-2); padding: 3px 9px; border-radius: 99px; }
+
+  /* trust */
+  .trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+  .trust div { padding: 22px; border: 1px dashed var(--line-2); border-radius: var(--radius); }
+  .trust i { font-size: 22px; color: var(--green); }
+  .trust h4 { margin: 12px 0 6px; font-size: 16px; }
+  .trust p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+  /* hub / eco */
+  .eco { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 16px; margin-top: 44px; }
+  .eco a { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); transition: border-color .2s; }
+  .eco a:hover { border-color: var(--violet); }
+  .eco a.hub { background: linear-gradient(135deg, rgba(34,211,238,.08), rgba(139,92,246,.06)); }
+  .eco i { font-size: 22px; color: var(--violet-2); }
+  .eco h4 { margin: 12px 0 6px; font-size: 16px; }
+  .eco p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.55; }
+  .eco .tag { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--cyan); letter-spacing: .08em; text-transform: uppercase; }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0; color: var(--dim); font-size: 13px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 960px) {
+    .hero .wrap, .install { grid-template-columns: 1fr; }
+    .flow, .grid3, .trust { grid-template-columns: 1fr 1fr; }
+    .eco { grid-template-columns: 1fr 1fr; }
+    .strip .wrap { grid-template-columns: 1fr 1fr; }
+    .links { display: none; }
+    .nav-cta { margin-left: auto; }
+  }
+  @media (max-width: 600px) {
+    .flow, .grid3, .trust, .eco, .strip .wrap { grid-template-columns: 1fr; }
+    .stat { border-right: 0; border-bottom: 1px solid var(--line); }
+    .wrap { padding: 0 16px; }
+    .term-body { font-size: 11.5px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="../public/images/jeffrey-icon.svg" alt=""> Jeffrey <small>Microscope</small></a>
+    <div class="links">
+      <a href="#agents">For coding agents</a>
+      <a href="#analyze">Analysis</a>
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="#">Docs</a>
+      <a href="#">Release notes</a>
+      <a href="#"><i class="bi bi-github"></i> GitHub</a>
+    </div>
+    <a class="nav-cta" href="#install">Install plugin</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="pill"><i class="bi bi-stars"></i> <b>Microscope MCP</b> · speaks MCP 2026-07-28</span>
+      <h1>Your coding agent<br>can finally <span class="grad">read a profile.</span></h1>
+      <p class="lede">Jeffrey Microscope turns JFR recordings and heap dumps into flamegraphs, timeseries and JVM dashboards — and serves the same analysis to Claude Code, Codex and any MCP client, right next to your source code.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="#install"><i class="bi bi-terminal"></i> Add to Claude Code</a>
+        <a class="btn" href="#"><i class="bi bi-download"></i> Download microscope.jar</a>
+      </div>
+      <div class="agents">Works with
+        <span class="a"><span class="dot" style="background:#d97757"></span>Claude Code</span>
+        <span class="a"><span class="dot" style="background:#e5e7eb"></span>Codex</span>
+        <span class="a"><span class="dot" style="background:#60a5fa"></span>Gemini CLI <em style="color:var(--dim);font-style:normal">(soon)</em></span>
+        <span class="a"><i class="bi bi-plug"></i>any MCP client</span>
+      </div>
+    </div>
+
+    <div class="term" aria-label="Example agent session">
+      <div class="term-bar"><i class="c"></i><i class="c"></i><i class="c"></i><span class="title">~/checkout-service — claude</span><span class="badge">● jeffrey /api/mcp</span></div>
+      <div class="term-body">
+        <div class="ln u" style="animation-delay:.2s">Why did checkout get slower after yesterday's merge? Here's the recording: perf/checkout.jfr</div>
+        <div class="ln tool" style="animation-delay:.9s">⏺ microscope · <span class="n">recordings_analyzeFile</span>(perf/checkout.jfr)</div>
+        <div class="ln res" style="animation-delay:1.3s">profile <b>checkout-2026-09-27</b> ready · 14 event types · 3m 12s</div>
+        <div class="ln tool" style="animation-delay:1.8s">⏺ microscope · <span class="n">profiles_summary</span> → <span class="n">flamegraph_export</span>(jdk.ExecutionSample)</div>
+        <div class="ln res" style="animation-delay:2.4s"><b>38.4%</b> of CPU in <b>PriceCalculator.applyRules</b> → Pattern.compile<br><b>12.1%</b> in <b>JacksonMapper.readValue</b> (new ObjectMapper per call)</div>
+        <div class="ln tool" style="animation-delay:3.0s">⏺ microscope · <span class="n">ide_resolve</span> → src/main/java/…/PriceCalculator.java:87</div>
+        <div class="ln" style="animation-delay:3.6s"><div class="diff"><span class="m">-  if (Pattern.compile(rule.regex()).matcher(sku).matches()) {</span>
+<span class="p">+  if (rule.pattern().matcher(sku).matches()) {   // compiled once in Rule</span></div></div>
+        <div class="ln tool" style="animation-delay:4.2s">⏺ skill · <span class="n">regression-check</span> main..HEAD</div>
+        <div class="ln res" style="animation-delay:4.8s"><span class="ok">▼ 41%</span> CPU samples in checkout · <span class="ok">▼ 63%</span> allocation in PriceCalculator · confidence <b>high</b></div>
+        <div class="ln u" style="animation-delay:5.4s"><span class="caret"></span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="strip">
+  <div class="wrap">
+    <div class="stat"><b>111</b><span>MCP tools · 100 strictly read-only</span></div>
+    <div class="stat"><b>10</b><span>agent skills, from profile-run to report</span></div>
+    <div class="stat"><b>3</b><span>sub-agents that return findings, not dumps</span></div>
+    <div class="stat"><b>0</b><span>model calls from Jeffrey — your agent, your model</span></div>
+  </div>
+</div>
+
+<section class="s" id="agents">
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>From "why is it slow?" to a verified fix —<br>without leaving the terminal.</h2>
+    <p class="sub">The Microscope plugin gives your agent skills that know how to read JVM evidence, and an MCP server that hands it the numbers. The profile and the source code end up in front of the same reader.</p>
+    <div class="flow">
+      <div class="step"><h3>Record</h3><p>Profile a benchmark, a test or the app itself with JFR or async-profiler.</p><code>profile-run</code></div>
+      <div class="step"><h3>Analyze</h3><p>CPU, wall-clock, allocation, locks, GC, JIT, heap — the agent reads the flamegraph, not a screenshot.</p><code>analyze-jfr</code> <code>analyze-heap</code></div>
+      <div class="step"><h3>Change</h3><p>Hot frames are mapped to real source lines and turned into minimal, behaviour-preserving edits.</p><code>advise-jfr</code></div>
+      <div class="step"><h3>Prove</h3><p>Both revisions profiled the same way, weighed with differential flamegraphs.</p><code>regression-check</code></div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="install" style="padding-top:0">
+  <div class="wrap install">
+    <div>
+      <div class="eyebrow">Two commands</div>
+      <h2>Already running Microscope?<br>The MCP server is already on.</h2>
+      <p class="sub">It answers at <code>/api/mcp</code> on the port you reach Jeffrey on. Install the plugin to get the skills and agents on top.</p>
+    </div>
+    <div class="tabs">
+      <input type="radio" name="t" id="t1" checked><input type="radio" name="t" id="t2"><input type="radio" name="t" id="t3"><input type="radio" name="t" id="t4">
+      <div class="heads"><label for="t1">Claude Code</label><label for="t2">Codex</label><label for="t3">Gemini CLI</label><label for="t4">Other</label></div>
+      <div class="pane p1"><span class="c"># on the v2 MCP runtime</span><br><span class="k">/plugin</span> marketplace add petrbouda/jeffrey<br><span class="k">/plugin</span> install microscope@jeffrey<div class="note">Where v2 is not the default, start with <code>MCP_SDK_GENERATION=v2 claude</code>.</div></div>
+      <div class="pane p2"><span class="c"># ~/.codex/config.toml → [features] mcp_2026_07_28 = true</span><br><span class="k">codex</span> plugin marketplace add petrbouda/jeffrey<div class="note">Codex v0.147.0 or later, then <code>/plugins</code>.</div></div>
+      <div class="pane p3"><span class="k">gemini</span> extensions install ./jeffrey/jeffrey-claude-plugin<div class="note">Installs today; connects once Gemini CLI speaks MCP 2026-07-28.</div></div>
+      <div class="pane p4"><span class="c"># Cursor, VS Code, Kiro, … Streamable HTTP</span><br>url: <span class="k">http://localhost:8585/api/mcp</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="analyze" style="background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="eyebrow">Also a great UI for humans</div>
+    <h2>Everything the agent sees, you can see too.</h2>
+    <p class="sub">Microscope runs on your laptop as a JAR or a container. Drop in a JFR file, a heap dump, pprof or OTLP — open the same profile your agent is reading.</p>
+    <div class="grid3">
+      <div class="card"><div class="img" style="background-image:url(../public/images/feature-screenshots/profile_flamegraph.png)"></div><div class="t"><h3>Flamegraphs that render fast</h3><p>For every JFR event that carries a stack trace — CPU, wall-clock, allocation, locks, native memory.</p></div></div>
+      <div class="card"><div class="img" style="background-image:url(../public/images/feature-screenshots/profile_diffgraph.png)"></div><div class="t"><h3>Differential flamegraphs</h3><p>Before vs. after, branch vs. main. See exactly which frames grew and which shrank.</p></div></div>
+      <div class="card"><div class="img" style="background-image:url(../public/images/feature-screenshots/profile_subsecond.png)"></div><div class="t"><h3>Sub-second timelines</h3><p>Zoom into the millisecond your service stalled and pull a flamegraph for just that window.</p></div></div>
+      <div class="card"><div class="img" style="background-image:url(../public/images/feature-screenshots/profile_heap_memory.png)"></div><div class="t"><h3>Heap dump analysis</h3><p>Dominator trees, leak suspects, class-loader leaks, OQL and SQL over the heap index.</p></div></div>
+      <div class="card"><div class="img" style="background-image:url(../public/images/feature-screenshots/profile_gc.png)"></div><div class="t"><h3>JVM dashboards</h3><p>GC, safepoints, JIT, threads, native memory, container limits and configuration.</p></div></div>
+      <div class="card"><div class="img" style="background-image:url(../public/images/feature-screenshots/profile_guardian.png)"></div><div class="t"><h3>Auto Analysis</h3><p>Rules that flag the usual suspects before you — or your agent — start digging.</p></div></div>
+    </div>
+    <div class="trust">
+      <div><i class="bi bi-shield-check"></i><h4>Read-only by declaration</h4><p>100 of 111 tools only read, and every tool says so in its MCP annotations. The eleven that write declare it.</p></div>
+      <div><i class="bi bi-hdd"></i><h4>Your data stays local</h4><p>Jeffrey never calls a model provider. The only AI is the agent you already run, calling in.</p></div>
+      <div><i class="bi bi-toggles"></i><h4>Switches for reaching out</h4><p>Hub and IDE tool families each have their own off-switch in configuration.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="ecosystem">
+  <div class="wrap">
+    <div class="eyebrow">When you outgrow a laptop</div>
+    <h2>The rest of the ecosystem.</h2>
+    <p class="sub">Microscope stands alone. Add these when you need recordings from production, a jump to source, or profiling baked into your images.</p>
+    <div class="eco">
+      <a class="hub" href="#"><span class="tag">Production fleets</span><h4><i class="bi bi-cloud-fill"></i>&nbsp; Jeffrey Hub</h4><p>A Kubernetes collector for JFR recordings, heap dumps and logs. Your agent asks "why was prod slow this morning?" and <code>analyze-hub</code> pulls just that hour over gRPC.</p></a>
+      <a href="#"><i class="bi bi-window-stack"></i><h4>IntelliJ plugin</h4><p>From a flamegraph frame to the exact line in your open IDE.</p></a>
+      <a href="#"><i class="bi bi-terminal"></i><h4>Provisioner</h4><p>One HOCON file bootstraps sessions and the JVM argfile.</p></a>
+      <a href="#"><i class="bi bi-box-seam"></i><h4>Jeffrey JIB</h4><p>Profiling that starts before your app does, baked into the image.</p></a>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap"><span>© 2026 Jeffrey — Performance Analyst · Apache-2.0</span><span>Mockup 1 of 5 · Agent Terminal</span></div></footer>
+</body>
+</html>

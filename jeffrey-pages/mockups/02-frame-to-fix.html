@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeffrey — Mockup 2 · Frame to Fix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  :root {
+    --paper: #f7f5f0;
+    --paper-2: #efece4;
+    --ink: #16140f;
+    --ink-2: #4a463d;
+    --ink-3: #8a8577;
+    --rule: #dcd7cb;
+    --fire-1: #f97316;
+    --fire-2: #fb923c;
+    --fire-3: #fdba74;
+    --fire-4: #fed7aa;
+    --hot: #dc2626;
+    --accent: #1d4ed8;
+    --ok: #15803d;
+    --code-bg: #1b1a17;
+    --r: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+  .serif { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  nav .wrap { display: flex; align-items: center; height: 72px; gap: 32px; border-bottom: 1px solid var(--rule); }
+  .brand { display: flex; gap: 10px; align-items: center; font-weight: 700; font-size: 18px; }
+  .brand img { width: 24px; }
+  nav .links { display: flex; gap: 26px; font-size: 14px; color: var(--ink-2); margin-left: auto; }
+  nav .cta { padding: 9px 16px; background: var(--ink); color: var(--paper); border-radius: 99px; font-size: 14px; font-weight: 600; }
+
+  .hero { padding: 72px 0 40px; }
+  .kicker { font-size: 13px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-3); display: flex; gap: 14px; align-items: center; }
+  .kicker::before { content: ""; width: 36px; height: 1px; background: var(--ink-3); }
+  h1 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(52px, 8vw, 116px); line-height: .92; letter-spacing: -.02em; margin: 22px 0 0; }
+  h1 em { color: var(--fire-1); }
+  .hero-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; margin-top: 34px; align-items: end; }
+  .hero-row p { font-size: 19px; line-height: 1.55; color: var(--ink-2); margin: 0; max-width: 560px; }
+  .hero-row .actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+  .b { padding: 14px 22px; border-radius: 99px; font-weight: 600; font-size: 15px; border: 1px solid var(--ink); display: inline-flex; gap: 10px; align-items: center; }
+  .b.fill { background: var(--ink); color: var(--paper); }
+
+  /* the showpiece */
+  .show { margin-top: 56px; display: grid; grid-template-columns: 1.15fr 64px 1fr; align-items: stretch; }
+  .panel { background: #fff; border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; box-shadow: 0 30px 60px -40px rgba(22,20,15,.35); }
+  .panel-h { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--rule); font-size: 12.5px; color: var(--ink-3); }
+  .panel-h b { color: var(--ink); font-weight: 600; }
+  .fg { padding: 18px 16px 22px; display: flex; flex-direction: column-reverse; gap: 3px; }
+  .row { display: flex; gap: 3px; height: 26px; }
+  .f { border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #3b1d06; display: flex; align-items: center; padding: 0 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--fire-4); }
+  .f.l2 { background: var(--fire-3); } .f.l3 { background: var(--fire-2); } .f.l4 { background: var(--fire-1); color: #fff; }
+  .f.sel { background: var(--hot); color: #fff; outline: 2px solid var(--ink); outline-offset: 1px; position: relative; }
+  .f.gap { background: transparent; }
+  .fg-foot { display: flex; gap: 18px; padding: 0 16px 16px; font-size: 12.5px; color: var(--ink-2); }
+  .fg-foot b { color: var(--hot); }
+
+  .bridge { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .bridge .line { flex: 1; width: 2px; background: repeating-linear-gradient(var(--ink) 0 6px, transparent 6px 12px); }
+  .bridge .node { width: 52px; height: 52px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; font-size: 22px; box-shadow: 0 0 0 8px var(--paper), 0 0 0 9px var(--rule); }
+  .bridge small { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3); writing-mode: vertical-rl; }
+
+  .code { background: var(--code-bg); border-color: #2c2a25; color: #e7e3d8; }
+  .code .panel-h { border-color: #2c2a25; color: #9b9585; }
+  .code .panel-h b { color: #e7e3d8; }
+  pre { margin: 0; padding: 16px 0; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; }
+  pre span.l { display: block; padding: 0 16px; }
+  pre .n { color: #6b665a; display: inline-block; width: 28px; }
+  pre .k { color: #f0a868; } pre .s { color: #a3c585; } pre .c { color: #6b665a; font-style: italic; }
+  pre .del { background: rgba(220,38,38,.18); } pre .add { background: rgba(21,128,61,.25); }
+  .agent-note { margin: 0 16px 16px; padding: 12px 14px; border-radius: 8px; background: rgba(255,255,255,.05); border: 1px solid #2c2a25; font-size: 12.5px; line-height: 1.55; color: #cfc9ba; }
+  .agent-note b { color: #fff; }
+
+  /* sections */
+  .sec { padding: 120px 0; border-top: 1px solid var(--rule); }
+  .sec-head { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; align-items: end; }
+  .sec h2 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(40px, 5vw, 72px); line-height: .98; margin: 0; letter-spacing: -.015em; }
+  .sec-head p { font-size: 18px; line-height: 1.6; color: var(--ink-2); margin: 0; }
+
+  .skills { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 56px; border-top: 1px solid var(--ink); }
+  .skill { padding: 22px 18px 26px 0; border-right: 1px solid var(--rule); padding-left: 18px; }
+  .skill:first-child { padding-left: 0; }
+  .skill:last-child { border-right: 0; }
+  .skill .num { font-family: 'Instrument Serif', serif; font-size: 44px; color: var(--fire-1); line-height: 1; }
+  .skill h4 { margin: 14px 0 6px; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+  .skill p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+
+  .agents-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+  .agent { background: #fff; border: 1px solid var(--rule); border-radius: var(--r); padding: 22px; }
+  .agent .top { display: flex; justify-content: space-between; align-items: center; }
+  .agent h4 { margin: 0; font-size: 17px; }
+  .agent .st { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: #dcfce7; color: var(--ok); font-weight: 600; }
+  .agent .st.soon { background: var(--paper-2); color: var(--ink-3); }
+  .agent code { display: block; margin-top: 16px; font-size: 12px; background: var(--paper); border: 1px solid var(--rule); padding: 10px; border-radius: 8px; color: var(--ink-2); line-height: 1.6; }
+
+  .caps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 56px; border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; background: #fff; }
+  .cap { padding: 28px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .cap:nth-child(3n) { border-right: 0; }
+  .cap:nth-last-child(-n+3) { border-bottom: 0; }
+  .cap i { font-size: 22px; color: var(--fire-1); }
+  .cap h4 { margin: 14px 0 6px; font-size: 17px; }
+  .cap p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+
+  .hub { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; background: var(--ink); color: var(--paper); border-radius: 24px; padding: 56px; margin-top: 0; }
+  .hub h3 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 48px; margin: 10px 0 14px; line-height: 1; }
+  .hub p { color: #bdb8ab; font-size: 16px; line-height: 1.6; margin: 0 0 22px; }
+  .hub .kicker { color: #8a8577; }
+  .hub .kicker::before { background: #8a8577; }
+  .hub .b { border-color: var(--paper); }
+  .pipe { display: flex; flex-direction: column; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+  .pipe div { padding: 14px 16px; border: 1px solid #3a372f; border-radius: 10px; display: flex; gap: 12px; align-items: center; }
+  .pipe div.me { border-color: var(--fire-1); color: #fff; }
+  .pipe span.arrow { text-align: center; color: #6b665a; padding: 0; border: 0; justify-content: center; }
+
+  footer { padding: 40px 0 60px; color: var(--ink-3); font-size: 13px; }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  @media (max-width: 980px) {
+    .hero-row, .sec-head, .hub { grid-template-columns: 1fr; }
+    .hero-row .actions { justify-content: flex-start; }
+    .show { grid-template-columns: 1fr; }
+    .bridge { flex-direction: row; height: 64px; }
+    .bridge .line { height: 2px; width: auto; background: repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 12px); }
+    .bridge small { writing-mode: horizontal-tb; }
+    .skills { grid-template-columns: 1fr 1fr; }
+    .skill { border-right: 0; padding-left: 0; border-bottom: 1px solid var(--rule); }
+    .agents-row, .caps { grid-template-columns: 1fr 1fr; }
+    .cap { border-right: 0 !important; border-bottom: 1px solid var(--rule) !important; }
+    nav .links { display: none; }
+    nav .cta { margin-left: auto; }
+    .hub { padding: 32px; }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 0 16px; }
+    .skills, .agents-row, .caps { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="brand" href="#"><img src="../public/images/jeffrey-icon.svg" alt=""> Jeffrey</a>
+  <div class="links"><a href="#">Microscope</a><a href="#">MCP &amp; agents</a><a href="#">Docs</a><a href="#">Release notes</a><a href="#">Blog</a></div>
+  <a class="cta" href="#">GitHub <i class="bi bi-arrow-up-right"></i></a>
+</div></nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Jeffrey Microscope · JVM performance analyst</div>
+    <h1>From the <em>hottest frame</em><br>to the <span style="font-style:italic">pull request.</span></h1>
+    <div class="hero-row">
+      <p>Microscope reads your JFR recordings and heap dumps. Its MCP server lets your coding agent read them too — so the flamegraph and the source code finally sit in front of the same reader.</p>
+      <div class="actions">
+        <a class="b fill" href="#"><i class="bi bi-plug"></i> Connect your agent</a>
+        <a class="b" href="#">Try the examples</a>
+      </div>
+    </div>
+
+    <div class="show">
+      <div class="panel">
+        <div class="panel-h"><span><b>jdk.ExecutionSample</b> · checkout-service</span><span class="mono">flamegraph_export</span></div>
+        <div class="fg">
+          <div class="row"><div class="f" style="flex:1">all · 100%</div></div>
+          <div class="row"><div class="f" style="flex:.78">Thread.run</div><div class="f" style="flex:.22">GC Thread</div></div>
+          <div class="row"><div class="f l2" style="flex:.7">DispatcherServlet.doDispatch</div><div class="f gap" style="flex:.08"></div><div class="f l2" style="flex:.22">G1ParScanThreadState</div></div>
+          <div class="row"><div class="f l2" style="flex:.66">CheckoutController.checkout</div><div class="f gap" style="flex:.34"></div></div>
+          <div class="row"><div class="f l3" style="flex:.46">PriceCalculator.total</div><div class="f l3" style="flex:.2">OrderRepository.save</div><div class="f gap" style="flex:.34"></div></div>
+          <div class="row"><div class="f sel" style="flex:.38">PriceCalculator.applyRules</div><div class="f l3" style="flex:.08">…</div><div class="f l4" style="flex:.12">JDBC</div><div class="f gap" style="flex:.42"></div></div>
+          <div class="row"><div class="f l4" style="flex:.36">Pattern.compile</div><div class="f gap" style="flex:.64"></div></div>
+        </div>
+        <div class="fg-foot"><span>selected <b>38.4%</b> of samples</span><span>self 2.1% · total 38.4%</span></div>
+      </div>
+
+      <div class="bridge"><span class="line"></span><span class="node"><i class="bi bi-stars"></i></span><small>MCP · ide_resolve</small><span class="line"></span></div>
+
+      <div class="panel code">
+        <div class="panel-h"><span><b>PriceCalculator.java</b> · line 87</span><span class="mono">advise-jfr</span></div>
+<pre><span class="l"><span class="n">85</span><span class="k">for</span> (Rule rule : rules) {</span><span class="l del"><span class="n">86</span>  <span class="k">var</span> p = Pattern.<span class="k">compile</span>(rule.regex());</span><span class="l add"><span class="n">86</span>  <span class="k">var</span> p = rule.pattern(); <span class="c">// compiled once</span></span><span class="l"><span class="n">87</span>  <span class="k">if</span> (p.matcher(sku).matches()) {</span><span class="l"><span class="n">88</span>    price = rule.apply(price);</span><span class="l"><span class="n">89</span>  }</span><span class="l"><span class="n">90</span>}</span></pre>
+        <div class="agent-note"><b>Finding · high confidence.</b> 36% of CPU samples compile the same 42 regexes on every request. Caching the compiled pattern on <span class="mono">Rule</span> removes it; <span class="mono">regression-check</span> confirms <b style="color:#86efac">−41% CPU</b> on the checkout path.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Ten skills that know<br><em>how</em> to read a JVM.</h2>
+      <p>The Microscope plugin is one package for Claude Code, Codex and Gemini CLI. Skills carry the method; three sub-agents do the heavy reading and hand back findings, never raw dumps.</p>
+    </div>
+    <div class="skills">
+      <div class="skill"><div class="num">i.</div><h4>profile-run</h4><p>Record a benchmark, a test or the app — then analyze what comes out.</p></div>
+      <div class="skill"><div class="num">ii.</div><h4>analyze-jfr</h4><p>CPU, wall-clock, allocation, locks, GC, JIT, threads, native memory.</p></div>
+      <div class="skill"><div class="num">iii.</div><h4>analyze-heap</h4><p>What holds the memory, what leaks, which class loader survived.</p></div>
+      <div class="skill"><div class="num">iv.</div><h4>advise-jfr</h4><p>Hot frames mapped to source, minimal edits applied on request.</p></div>
+      <div class="skill"><div class="num">v.</div><h4>regression-check</h4><p>Two revisions profiled the same way, weighed against each other.</p></div>
+    </div>
+    <p style="margin-top:20px;color:var(--ink-3);font-size:14px">Plus <span class="mono">compare-jfr</span>, <span class="mono">analyze-hub</span>, <span class="mono">jfr-sql</span>, <span class="mono">heap-sql</span>, <span class="mono">report</span> — and agents <span class="mono">profile-lead</span>, <span class="mono">profile-analyst</span>, <span class="mono">heap-triage</span>.</p>
+
+    <div class="agents-row">
+      <div class="agent"><div class="top"><h4>Claude Code</h4><span class="st">Ready</span></div><code>/plugin marketplace add petrbouda/jeffrey<br>/plugin install microscope@jeffrey</code></div>
+      <div class="agent"><div class="top"><h4>Codex</h4><span class="st">v0.147.0+</span></div><code>codex plugin marketplace add petrbouda/jeffrey</code></div>
+      <div class="agent"><div class="top"><h4>Gemini CLI</h4><span class="st soon">Soon</span></div><code>gemini extensions install ./jeffrey-claude-plugin</code></div>
+      <div class="agent"><div class="top"><h4>Any MCP client</h4><span class="st">2026-07-28</span></div><code>http://localhost:8585/api/mcp</code></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>And a microscope<br>for the rest of us.</h2>
+      <p>Everything an agent can ask for, a human can open. Run Microscope as a JAR or a container on your laptop, drop in a file, browse.</p>
+    </div>
+    <div class="caps">
+      <div class="cap"><i class="bi bi-fire"></i><h4>Flamegraphs &amp; diffs</h4><p>Every JFR event with a stack trace, and differential views across profiles.</p></div>
+      <div class="cap"><i class="bi bi-graph-up"></i><h4>Sub-second timelines</h4><p>Find the millisecond the service stalled, then flamegraph just that window.</p></div>
+      <div class="cap"><i class="bi bi-droplet-half"></i><h4>Heap dumps</h4><p>Dominator tree, leak suspects, GC-root paths, OQL and SQL.</p></div>
+      <div class="cap"><i class="bi bi-cpu"></i><h4>JVM dashboards</h4><p>GC, safepoints, JIT, threads, NMT, container and flags.</p></div>
+      <div class="cap"><i class="bi bi-diagram-3"></i><h4>Traces</h4><p>Slowest traces, span flamegraphs and attribute search from Jeffrey tracing.</p></div>
+      <div class="cap"><i class="bi bi-window-stack"></i><h4>IntelliJ bridge</h4><p>Click a frame, land on the line in the IDE you already have open.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="border-top:0;padding-top:0">
+  <div class="wrap">
+    <div class="hub">
+      <div>
+        <div class="kicker">For production · optional</div>
+        <h3>Recordings from the fleet, on demand.</h3>
+        <p>Jeffrey Hub is a small Kubernetes collector. It keeps what your services record and hands Microscope — or your agent via <span class="mono">analyze-hub</span> — exactly the hour that matters.</p>
+        <a class="b" href="#">Hub documentation <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="pipe">
+        <div><i class="bi bi-app-indicator"></i> your services + provisioner</div>
+        <span class="arrow">↓ shared volume</span>
+        <div><i class="bi bi-cloud"></i> Jeffrey Hub</div>
+        <span class="arrow">↓ gRPC · one chunk run</span>
+        <div class="me"><i class="bi bi-search-heart"></i> Microscope ⇄ your agent</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap"><span>© 2026 Jeffrey · Apache-2.0</span><span>Mockup 2 of 5 · Frame to Fix</span></div></footer>
+</body>
+</html>
