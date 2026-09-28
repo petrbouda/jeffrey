@@ -230,7 +230,7 @@ const dependency = `<dependency>
     />
 
     <div class="docs-content">
-      <p><strong>Jeffrey Events</strong> is a small, zero-dependency library of JFR event definitions for application-level facts — requests, calls, statements, pool activity, spans and notifications. They are written into the same recording as the JVM's own events, so one file carries both what the application did and what the JVM did underneath it.</p>
+      <p><strong>Jeffrey Events</strong> is a small library, free of third-party dependencies, of JFR event definitions for application-level facts — requests, calls, statements, pool activity, spans and notifications. They are written into the same recording as the JVM's own events, so one file carries both what the application did and what the JVM did underneath it.</p>
 
       <DocsCallout type="info">
         <strong>Open source:</strong> the library lives at <a href="https://github.com/petrbouda/jeffrey/tree/master/utilities/jeffrey-events" target="_blank" rel="noopener">github.com/petrbouda/jeffrey</a> under <code>utilities/jeffrey-events</code>. How these events become traces — nesting, naming, failure — is the <router-link to="/docs/tracing">Jeffrey Tracing guide</router-link>.

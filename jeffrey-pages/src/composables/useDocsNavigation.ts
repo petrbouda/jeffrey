@@ -97,7 +97,7 @@ const JIB_SEGMENTS = new Set(['jib']);
 const INTELLIJ_PLUGIN_SEGMENTS = new Set(['intellij-plugin']);
 // Jeffrey Tracing is its own product (previously spread across Microscope's
 // events/profiles pages).
-const TRACING_SEGMENTS = new Set(['tracing', 'agent']);
+const TRACING_SEGMENTS = new Set(['tracing']);
 
 export const microscopeNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Microscope" group
@@ -507,7 +507,6 @@ export const tracingNavigation: DocSection[] = [
           { title: 'propagating', to: '/docs/tracing/tracer-api/propagating' }
         ]
       },
-      { title: 'Heartbeat Library', to: '/docs/agent/heartbeat-library' },
       { title: 'JFR Method Tracing', to: '/docs/tracing/method-tracing' },
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },
       { title: 'gRPC Events', to: '/docs/tracing/grpc-events' },
@@ -550,6 +549,14 @@ export const tracingNavigation: DocSection[] = [
     path: '_tracing-events',
     icon: 'bi-activity',
     children: [{ title: 'Event catalog', to: '/docs/tracing/events' }]
+  },
+  {
+    // The Heartbeat Library lives in the Hub docs ('agent' segment); Tracing keeps just a link.
+    title: 'Heartbeat Library',
+    path: '_tracing-heartbeat-link',
+    icon: 'bi-heart-pulse',
+    crossLink: true,
+    children: [{ title: 'Heartbeat Library docs', to: '/docs/agent/heartbeat-library' }]
   }
 ];
 

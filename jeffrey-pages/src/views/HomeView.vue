@@ -23,21 +23,33 @@ interface HeroBullet {
   text: string;
 }
 
-const serverHeroBullets: HeroBullet[] = [
-  { icon: 'bi-box-seam', text: 'Runs as a container in Kubernetes' },
-  { icon: 'bi-hdd-stack', text: 'Collects via shared volume — zero agent overhead' },
-  { icon: 'bi-cloud-download', text: 'Serves every file a session holds, chunk by chunk' },
-  { icon: 'bi-plug', text: 'Connect Microscope or your own custom consumer' }
-];
-
 const microscopeHeroBullets: HeroBullet[] = [
   { icon: 'bi-fire', text: 'Interactive flamegraphs or specialized dashboards' },
   { icon: 'bi-arrows-collapse', text: 'Differential flamegraphs across profiles' },
-  { icon: 'bi-droplet-half', text: 'Heap dumps, logs, JFR — one analyzer' },
+  { icon: 'bi-droplet-half', text: 'JFR and heap dumps — one analyzer' },
   { icon: 'bi-plug', text: 'Pull from a Hub, or analyze a JFR file standalone' }
 ];
 
-type Tab = 'server' | 'microscope' | 'plugin';
+type AgentLineKind = 'prompt' | 'tool' | 'result';
+
+interface AgentLine {
+  kind: AgentLineKind;
+  text: string;
+  highlight?: string;
+  suffix?: string;
+}
+
+// A short, illustrative agent session shown in the right hero half.
+const agentSession: AgentLine[] = [
+  { kind: 'prompt', text: 'Why is checkout slow? perf/checkout.jfr' },
+  { kind: 'tool', text: '', highlight: 'recordings_analyzeFile → flamegraph_export' },
+  { kind: 'result', text: '38% of CPU in PriceCalculator.applyRules', suffix: ' — Pattern.compile per request' },
+  { kind: 'tool', text: '', highlight: 'ide_resolve → PriceCalculator.java:87' }
+];
+
+const agentClients: string[] = ['Claude Code', 'Codex', 'Gemini CLI · soon', 'any MCP client'];
+
+type Tab = 'microscope' | 'mcp' | 'plugin' | 'server';
 
 interface TopologyNode {
   kind: 'apps' | 'volume' | 'server' | 'grpc';
@@ -64,6 +76,7 @@ interface ProductTab {
   oneLiner: string;
   features: { icon: string; title: string; desc: string }[];
   deployment: {
+    eyebrow: string;
     title: string;
     desc: string;
     cmd?: string;
@@ -79,19 +92,20 @@ const activeTab = ref<Tab>('microscope');
 const productTabs: ProductTab[] = [
   {
     id: 'microscope',
-    name: 'Jeffrey Microscope',
+    name: 'Microscope',
     icon: 'bi-search-heart-fill',
-    tagline: 'Deep analyzer for JFR, heap dumps and logs.',
+    tagline: 'Deep analyzer for JFR recordings and heap dumps.',
     oneLiner: 'Open a JFR file or connect to a Hub. Read flamegraphs that finally render fast.',
     features: [
       { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
       { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
       { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
-      { icon: 'bi-stars', title: 'Microscope MCP', desc: 'Analyse profiles in your own repository from an agent that speaks MCP 2026-07-28: Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its mcp_2026_07_28 flag on.' },
-      { icon: 'bi-plug', title: 'Connect to Hub', desc: 'Pull recordings, artifacts & application\'s lifecycle directly via gRPC.' },
-      { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' }
+      { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' },
+      { icon: 'bi-diagram-3', title: 'Traces', desc: 'Span waterfalls correlated with I/O, locks and GC pauses — from the same JFR file.' },
+      { icon: 'bi-plug', title: 'Connect to Hub', desc: 'Pull recordings, artifacts & application\'s lifecycle directly via gRPC.' }
     ],
     deployment: {
+      eyebrow: 'Deployment',
       title: 'Runs as a JAR or container',
       desc: 'No Hub required. Drop it on your laptop, drop in a JFR file, browse.',
       cmd: 'docker run -it --network host petrbouda/microscope-examples'
@@ -100,8 +114,29 @@ const productTabs: ProductTab[] = [
     cta: 'Read Microscope docs'
   },
   {
+    id: 'mcp',
+    name: 'Microscope MCP',
+    icon: 'bi-stars',
+    tagline: 'The profiler your coding agent can call.',
+    oneLiner: 'The same analysis you see in the UI, served over MCP 2026-07-28 to Claude Code, Codex and any MCP client — next to your source code.',
+    features: [
+      { icon: 'bi-plug-fill', title: '111 tools, 100 read-only', desc: 'Profiles, flamegraphs, JVM dashboards, heap dumps, traces and DuckDB SQL. Every tool declares whether it writes.' },
+      { icon: 'bi-magic', title: 'Skills that know the method', desc: 'profile-run, analyze-jfr, analyze-heap, advise-jfr, regression-check and five more.' },
+      { icon: 'bi-people', title: 'Sub-agents', desc: 'profile-lead dispatches profile-analyst and heap-triage, and gets back findings rather than raw exports.' },
+      { icon: 'bi-shield-lock', title: 'No model inside', desc: 'Jeffrey never calls a model provider. Your agent calls in; your profiles stay local.' }
+    ],
+    deployment: {
+      eyebrow: 'Install',
+      title: 'On by default at /api/mcp',
+      desc: 'A running Microscope already serves MCP. Add the plugin to Claude Code for the skills and agents.',
+      cmd: '/plugin marketplace add petrbouda/jeffrey\n/plugin install microscope@jeffrey'
+    },
+    docsRoute: '/docs/microscope-mcp',
+    cta: 'Read MCP docs'
+  },
+  {
     id: 'plugin',
-    name: 'Microscope IDE Plugin',
+    name: 'IDE Plugin',
     icon: 'bi-window-stack',
     tagline: 'IntelliJ bridge — from a flame-graph frame to the source line.',
     oneLiner: 'Click any frame in Microscope and land on the exact method in your already-open IntelliJ — or pull the source back into Microscope inline.',
@@ -113,6 +148,7 @@ const productTabs: ProductTab[] = [
       { icon: 'bi-shield-lock', title: 'Headless & localhost-only', desc: 'Uses IntelliJ\'s built-in server. No port to configure, no token to share, no file written.' }
     ],
     deployment: {
+      eyebrow: 'Deployment',
       title: 'Install from the JetBrains Marketplace',
       desc: 'Open Settings → Plugins → Marketplace and search for Jeffrey Microscope, or install directly from the page below.',
       marketplace: {
@@ -144,6 +180,7 @@ const productTabs: ProductTab[] = [
       { icon: 'bi-puzzle', title: 'Custom consumers', desc: 'Microscope is one client — build your own.' }
     ],
     deployment: {
+      eyebrow: 'Deployment',
       title: 'Deploys to Kubernetes',
       desc: 'Hub runs alongside your services with shared-volume integration and gRPC exposure.',
       topology: [
@@ -165,19 +202,21 @@ interface EcoProduct {
   icon: string;
   chips: string[];
   to: string;
+  flag?: string;
 }
 
 // The rest of the Jeffrey ecosystem — companion products shown under the
-// Microscope + Hub hero.
+// Microscope + Microscope MCP hero. The Hub leads: it is where production recordings come from.
 const ecosystem: EcoProduct[] = [
   {
-    id: 'provisioner',
-    name: 'Provisioner',
-    role: 'Standalone · Session bootstrap',
-    icon: 'bi-terminal',
-    desc: 'One HOCON file lays out your workspace, project and session tree, registers sessions with the Hub, and generates the JVM argfile that starts your app under the profiler.',
-    chips: ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'],
-    to: '/docs/provisioner'
+    id: 'hub',
+    name: 'Jeffrey Hub',
+    role: 'Kubernetes · Collector',
+    icon: 'bi-cloud-fill',
+    desc: 'Collects JFR recordings, heap dumps and logs from running services via a shared volume, and serves them over gRPC — to Microscope, to your agent\'s analyze-hub skill, or to your own consumer.',
+    chips: ['Kubernetes', 'Shared volume', 'gRPC', 'Lifecycle events'],
+    to: '/docs/hub/overview',
+    flag: 'Production'
   },
   {
     id: 'plugin',
@@ -187,6 +226,15 @@ const ecosystem: EcoProduct[] = [
     desc: 'Jump from any Microscope flame-graph frame straight to the source line in your open IntelliJ — Java and Kotlin — or pull inline source back into the profile.',
     chips: ['Open in IDE', 'Inline source', 'Multi-IDE', 'Marketplace'],
     to: '/docs/intellij-plugin'
+  },
+  {
+    id: 'provisioner',
+    name: 'Provisioner',
+    role: 'Standalone · Session bootstrap',
+    icon: 'bi-terminal',
+    desc: 'One HOCON file lays out your workspace, project and session tree, registers sessions with the Hub, and generates the JVM argfile that starts your app under the profiler.',
+    chips: ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'],
+    to: '/docs/provisioner'
   },
   {
     id: 'jib',
@@ -209,7 +257,7 @@ function copyCmd(): void {
 </script>
 
 <template>
-  <!-- Dual Hero -->
+  <!-- Dual Hero: Microscope for you, Microscope MCP for your coding agent -->
   <section class="dual-hero">
     <div class="hero-half hero-microscope">
       <div class="hero-half-bg">
@@ -221,7 +269,7 @@ function copyCmd(): void {
           <span class="eyebrow-icon"><i class="bi bi-search-heart-fill"></i></span>
           <span class="eyebrow-text">
             <strong class="eyebrow-name">Jeffrey Microscope</strong>
-            <span class="eyebrow-tag">at the desk</span>
+            <span class="eyebrow-tag">for you</span>
           </span>
         </div>
         <h1 class="product-title">
@@ -229,8 +277,8 @@ function copyCmd(): void {
           <span class="title-accent title-accent--microscope">on your desk.</span>
         </h1>
         <p class="product-subtitle">
-          A deep analyzer for JFR recordings, heap dumps and logs. Upload a file, or connect
-          to a Jeffrey Hub and pull artifacts directly.
+          A deep analyzer for JFR recordings and heap dumps. Upload a file, or connect
+          to a Jeffrey Hub and pull recordings directly.
         </p>
         <ul class="bullet-list">
           <li v-for="(b, i) in microscopeHeroBullets" :key="i">
@@ -251,43 +299,55 @@ function copyCmd(): void {
       </div>
     </div>
 
-    <div class="hero-half hero-server">
+    <div class="hero-half hero-ai">
       <div class="hero-half-bg">
         <div class="bg-grid"></div>
-        <div class="bg-glow bg-glow--server"></div>
+        <div class="bg-glow bg-glow--ai"></div>
       </div>
       <div class="hero-half-content">
-        <div class="product-eyebrow eyebrow--server">
-          <span class="eyebrow-icon"><i class="bi bi-cloud-fill"></i></span>
+        <div class="product-eyebrow eyebrow--ai">
+          <span class="eyebrow-icon"><i class="bi bi-stars"></i></span>
           <span class="eyebrow-text">
-            <strong class="eyebrow-name">Jeffrey Hub</strong>
-            <span class="eyebrow-tag">in production</span>
+            <strong class="eyebrow-name">Microscope MCP</strong>
+            <span class="eyebrow-tag">for your coding agent</span>
           </span>
         </div>
         <h1 class="product-title">
-          Collect runtime data<br/>
-          <span class="title-accent title-accent--server">from running services.</span>
+          Let your agent<br/>
+          <span class="title-accent title-accent--ai">read the profile.</span>
         </h1>
         <p class="product-subtitle">
-          A containerised collector for Kubernetes. Captures JFR recordings, artifacts and
-          session data from your running services — and serves it over gRPC to Microscope,
-          your dashboards, or anything else.
+          The same analysis, served over MCP to Claude Code, Codex and any MCP client —
+          so hot frames land next to your source code.
         </p>
-        <ul class="bullet-list">
-          <li v-for="(b, i) in serverHeroBullets" :key="i">
-            <i class="bi" :class="b.icon"></i>
-            <span>{{ b.text }}</span>
-          </li>
-        </ul>
+        <div class="agent-term" aria-label="Example coding-agent session">
+          <div class="agent-term-bar">
+            <span class="agent-term-dot"></span>
+            <span class="agent-term-dot"></span>
+            <span class="agent-term-dot"></span>
+            <span class="agent-term-title">claude</span>
+            <span class="agent-term-endpoint">● /api/mcp</span>
+          </div>
+          <div class="agent-term-body">
+            <div v-for="(line, i) in agentSession" :key="i" class="agent-line" :class="`agent-line--${line.kind}`">
+              <template v-if="line.kind === 'tool'">⏺ <b>{{ line.highlight }}</b></template>
+              <template v-else-if="line.kind === 'result'"><b>{{ line.text }}</b>{{ line.suffix }}</template>
+              <template v-else>{{ line.text }}</template>
+            </div>
+          </div>
+        </div>
+        <div class="agent-clients">
+          <span v-for="c in agentClients" :key="c" class="agent-client">{{ c }}</span>
+        </div>
         <div class="cta-row">
-          <router-link to="/docs/hub/overview" class="cta cta--primary cta--server">
-            <span>Explore Jeffrey Hub</span>
+          <router-link to="/docs/microscope-mcp/claude-code" class="cta cta--primary cta--ai">
+            <span>Connect your agent</span>
             <i class="bi bi-arrow-right"></i>
           </router-link>
-          <a href="https://github.com/petrbouda/jeffrey" class="cta cta--ghost" target="_blank">
-            <i class="bi bi-github"></i>
-            <span>GitHub</span>
-          </a>
+          <router-link to="/docs/microscope-mcp" class="cta cta--ghost">
+            <i class="bi bi-book"></i>
+            <span>MCP docs</span>
+          </router-link>
         </div>
       </div>
     </div>
@@ -300,8 +360,8 @@ function copyCmd(): void {
         <div class="seam-pill">
           <i class="bi bi-arrow-left-right seam-arrow"></i>
         </div>
-        <span class="seam-cable seam-cable--server">
-          <span class="seam-dot seam-dot--server"></span>
+        <span class="seam-cable seam-cable--ai">
+          <span class="seam-dot seam-dot--ai"></span>
         </span>
       </div>
     </div>
@@ -327,6 +387,7 @@ function copyCmd(): void {
           <div class="eco-body">
             <div class="eco-title">
               <span>{{ p.name }}</span>
+              <span v-if="p.flag" class="eco-flag">{{ p.flag }}</span>
             </div>
             <div class="eco-role">{{ p.role }}</div>
             <p class="eco-desc">{{ p.desc }}</p>
@@ -373,7 +434,7 @@ function copyCmd(): void {
           </div>
 
           <aside class="tab-deployment" :class="`tab-deployment--${activeTab}`">
-            <span class="dep-eyebrow">Deployment</span>
+            <span class="dep-eyebrow">{{ active.deployment.eyebrow }}</span>
             <h4>{{ active.deployment.title }}</h4>
             <p>{{ active.deployment.desc }}</p>
             <div class="dep-topology" v-if="active.deployment.topology">
@@ -441,10 +502,10 @@ function copyCmd(): void {
     <div class="container-wide">
       <div class="connect-inner">
         <span class="connect-eyebrow"><i class="bi bi-link-45deg"></i> How they connect</span>
-        <h2>One JFR pipeline. Two halves that work alone.</h2>
+        <h2>One JFR pipeline. Every half works alone.</h2>
         <p>
-          Microscope can pull recordings from a Hub over gRPC — or work
-          with a JFR file you drop in. Hub can serve Microscope, your own gRPC client, or both at once.
+          Microscope can pull recordings from a Hub over gRPC — or work with a JFR file you
+          drop in. You read it in the browser; your coding agent reads it over MCP.
         </p>
         <div class="connect-flow">
           <div class="cf-node cf-node-apps">
@@ -464,6 +525,13 @@ function copyCmd(): void {
           <div class="cf-node cf-node-microscope">
             <i class="bi bi-search-heart-fill"></i>
             <span>Microscope</span>
+          </div>
+          <div class="cf-arrow cf-arrow-mcp">
+            <span>MCP</span>
+          </div>
+          <div class="cf-node cf-node-ai">
+            <i class="bi bi-stars"></i>
+            <span>Coding agent</span>
           </div>
         </div>
       </div>
@@ -490,8 +558,8 @@ function copyCmd(): void {
   overflow: hidden;
 }
 
-.hero-server {
-  background: linear-gradient(135deg, #1a0b2e 0%, #2d1657 50%, #4c1d95 100%);
+.hero-ai {
+  background: linear-gradient(135deg, #03140f 0%, #072e25 50%, #065f46 100%);
   color: #fff;
 }
 
@@ -523,10 +591,10 @@ function copyCmd(): void {
   opacity: 0.55;
 }
 
-.bg-glow--server {
+.bg-glow--ai {
   width: 460px;
   height: 460px;
-  background: radial-gradient(circle, #a855f7 0%, transparent 70%);
+  background: radial-gradient(circle, #34d399 0%, transparent 70%);
   top: 10%;
   right: -120px;
 }
@@ -548,7 +616,7 @@ function copyCmd(): void {
   flex-direction: column;
 }
 
-.hero-server .hero-half-content {
+.hero-ai .hero-half-content {
   margin-left: 0;
   margin-right: auto;      /* RIGHT half: left-aligned so content sits toward the seam */
 }
@@ -599,19 +667,19 @@ function copyCmd(): void {
   text-transform: uppercase;
 }
 
-.eyebrow--server {
-  background: rgba(168, 85, 247, 0.12);
-  border: 1px solid rgba(168, 85, 247, 0.45);
-  box-shadow: 0 6px 24px rgba(168, 85, 247, 0.22);
+.eyebrow--ai {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  box-shadow: 0 6px 24px rgba(52, 211, 153, 0.22);
 }
 
-.eyebrow--server .eyebrow-icon {
-  background: linear-gradient(135deg, #a855f7, #7c3aed);
-  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.5);
+.eyebrow--ai .eyebrow-icon {
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 4px 14px rgba(52, 211, 153, 0.5);
 }
 
-.eyebrow--server .eyebrow-tag {
-  color: #d8b4fe;
+.eyebrow--ai .eyebrow-tag {
+  color: #6ee7b7;
 }
 
 .eyebrow--microscope {
@@ -643,8 +711,8 @@ function copyCmd(): void {
   -webkit-text-fill-color: transparent;
 }
 
-.title-accent--server {
-  background-image: linear-gradient(135deg, #c084fc 0%, #f0abfc 50%, #fb7185 100%);
+.title-accent--ai {
+  background-image: linear-gradient(135deg, #a7f3d0 0%, #34d399 50%, #22d3ee 100%);
 }
 
 .title-accent--microscope {
@@ -690,7 +758,7 @@ function copyCmd(): void {
   font-size: 0.95rem;
 }
 
-.hero-server .bullet-list i { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+
 .hero-microscope .bullet-list i { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
 
 .cta-row {
@@ -715,15 +783,89 @@ function copyCmd(): void {
   color: #fff;
 }
 
-.cta--server {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-  box-shadow: 0 6px 24px rgba(168, 85, 247, 0.4);
+.cta--ai {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  box-shadow: 0 6px 24px rgba(52, 211, 153, 0.4);
 }
 
-.cta--server:hover {
+.cta--ai:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(168, 85, 247, 0.5);
+  box-shadow: 0 10px 30px rgba(52, 211, 153, 0.5);
   color: #fff;
+}
+
+/* Example coding-agent session in the right hero half */
+.agent-term {
+  background: rgba(2, 6, 23, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  margin-bottom: 1.1rem;
+}
+
+.agent-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.agent-term-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.agent-term-title {
+  margin-left: 0.4rem;
+}
+
+.agent-term-endpoint {
+  margin-left: auto;
+  color: #34d399;
+}
+
+.agent-term-body {
+  padding: 0.75rem 0.95rem 0.85rem;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+  line-height: 1.7;
+  color: #cbd5e1;
+}
+
+.agent-line--prompt { color: #fff; }
+.agent-line--prompt::before { content: '› '; color: #34d399; }
+.agent-line--tool { color: #7dd3fc; }
+.agent-line--tool b { color: #fcd34d; font-weight: 500; }
+.agent-line--result {
+  color: #94a3b8;
+  padding-left: 0.7rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.12);
+  margin: 0.1rem 0 0.3rem 0.2rem;
+}
+.agent-line--result b { color: #fff; font-weight: 500; }
+
+.agent-clients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.6rem;
+}
+
+.agent-client {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  padding: 0.2rem 0.6rem;
 }
 
 .cta--microscope {
@@ -778,16 +920,16 @@ function copyCmd(): void {
   border-radius: 2px;
 }
 
-/* After the dual-hero swap, Microscope sits on the LEFT and Server on the RIGHT —
+/* Microscope sits on the LEFT and Microscope MCP on the RIGHT —
    the seam cables flip so each gradient still leans into its adjacent half. */
 .seam-cable--microscope {
   background: linear-gradient(90deg, rgba(125, 211, 252, 0) 0%, rgba(125, 211, 252, 0.55) 100%);
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
 }
 
-.seam-cable--server {
-  background: linear-gradient(90deg, rgba(216, 180, 254, 0.55) 0%, rgba(216, 180, 254, 0) 100%);
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+.seam-cable--ai {
+  background: linear-gradient(90deg, rgba(110, 231, 183, 0.55) 0%, rgba(110, 231, 183, 0) 100%);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
 }
 
 .seam-dot {
@@ -800,10 +942,10 @@ function copyCmd(): void {
   animation: seamDotPulse 2.6s ease-in-out infinite;
 }
 
-.seam-dot--server {
+.seam-dot--ai {
   left: 0;
-  background: #d8b4fe;
-  box-shadow: 0 0 0 2px rgba(216, 180, 254, 0.18), 0 0 14px rgba(168, 85, 247, 0.7);
+  background: #6ee7b7;
+  box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.18), 0 0 14px rgba(52, 211, 153, 0.7);
 }
 
 .seam-dot--microscope {
@@ -836,7 +978,7 @@ function copyCmd(): void {
 
 .seam-arrow {
   font-size: 1rem;
-  background: linear-gradient(90deg, #d8b4fe 0%, #7dd3fc 100%);
+  background: linear-gradient(90deg, #7dd3fc 0%, #6ee7b7 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -908,6 +1050,23 @@ function copyCmd(): void {
 .eco-card--provisioner { --eco-a: #f43f5e; --eco-b: #e11d48; }
 .eco-card--plugin { --eco-a: #fb923c; --eco-b: #ea580c; }
 .eco-card--jib { --eco-a: #6366f1; --eco-b: #4f46e5; }
+.eco-card--hub {
+  --eco-a: #a855f7;
+  --eco-b: #7c3aed;
+  background: linear-gradient(135deg, #faf5ff 0%, #fff 70%);
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.eco-flag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--eco-a), var(--eco-b));
+  padding: 0.12rem 0.45rem;
+  border-radius: 5px;
+}
 
 .eco-ic {
   flex-shrink: 0;
@@ -976,12 +1135,12 @@ function copyCmd(): void {
 
 .tab-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
   background: #fff;
   border-radius: 14px;
   padding: 0.5rem;
-  max-width: 780px;
+  max-width: 900px;
   margin: 0 auto 3rem;
   box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
   border: 1px solid #e2e8f0;
@@ -1018,6 +1177,12 @@ function copyCmd(): void {
   background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
   color: #fff;
   box-shadow: 0 6px 18px rgba(56, 189, 248, 0.35);
+}
+
+.tab-btn--mcp.active {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(52, 211, 153, 0.35);
 }
 
 .tab-btn--plugin.active {
@@ -1057,7 +1222,7 @@ function copyCmd(): void {
 
 .tab-panel-body {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 2rem;
   align-items: start;
 }
@@ -1097,6 +1262,7 @@ function copyCmd(): void {
 .tab-feature-icon--server { background: linear-gradient(135deg, #a855f7, #7c3aed); }
 .tab-feature-icon--microscope { background: linear-gradient(135deg, #38bdf8, #2563eb); }
 .tab-feature-icon--plugin { background: linear-gradient(135deg, #fb923c, #ea580c); }
+.tab-feature-icon--mcp { background: linear-gradient(135deg, #34d399, #059669); }
 
 .tab-feature h4 {
   font-size: 1rem;
@@ -1194,6 +1360,11 @@ function copyCmd(): void {
   border: 1px solid #bae6fd;
 }
 
+.tab-deployment--mcp {
+  background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
+  border: 1px solid #a7f3d0;
+}
+
 .tab-deployment--plugin {
   background: linear-gradient(180deg, #fff7ed 0%, #fff 100%);
   border: 1px solid #fed7aa;
@@ -1211,6 +1382,7 @@ function copyCmd(): void {
 .tab-deployment--server .dep-eyebrow { color: #7c3aed; }
 .tab-deployment--microscope .dep-eyebrow { color: #0284c7; }
 .tab-deployment--plugin .dep-eyebrow { color: #c2410c; }
+.tab-deployment--mcp .dep-eyebrow { color: #047857; }
 
 .tab-deployment h4 {
   font-size: 1.1rem;
@@ -1243,8 +1415,10 @@ function copyCmd(): void {
   flex: 1;
   background: transparent;
   color: inherit;
+  min-width: 0;
   user-select: all;
   overflow: auto;
+  white-space: pre;
 }
 
 .dep-copy {
@@ -1383,6 +1557,7 @@ function copyCmd(): void {
 .dep-cta--server { background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); }
 .dep-cta--microscope { background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); }
 .dep-cta--plugin { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
+.dep-cta--mcp { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
 
 .dep-cta:hover { transform: translateY(-1px); color: #fff; }
 
@@ -1394,7 +1569,7 @@ function copyCmd(): void {
 
 .connect-inner {
   text-align: center;
-  max-width: 880px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
@@ -1430,10 +1605,10 @@ function copyCmd(): void {
 
 .connect-flow {
   display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
   align-items: center;
-  gap: 2rem;
-  max-width: 920px;
+  gap: 1.5rem;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
@@ -1459,6 +1634,12 @@ function copyCmd(): void {
 .cf-node-apps i { color: #475569; }
 .cf-node-server i { color: #a855f7; }
 .cf-node-microscope i { color: #38bdf8; }
+.cf-node-ai i { color: #059669; }
+
+.cf-node-ai {
+  background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
+  border-color: #a7f3d0;
+}
 
 .cf-node-server {
   background: linear-gradient(180deg, #faf5ff 0%, #fff 100%);
@@ -1474,7 +1655,7 @@ function copyCmd(): void {
   position: relative;
   height: 2px;
   background: linear-gradient(90deg, #cbd5e1, #94a3b8);
-  min-width: 140px;
+  min-width: 90px;
 }
 
 .cf-arrow::after {
@@ -1508,11 +1689,16 @@ function copyCmd(): void {
   background: #f0f9ff;
 }
 
+.cf-arrow-mcp span {
+  color: #047857;
+  background: #ecfdf5;
+}
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1100px) {
   .product-title { font-size: 2.5rem; }
   .hero-half { padding: 4rem 2.5rem 6.5rem; }
-  .tab-panel-body { grid-template-columns: 1fr; }
+  .tab-panel-body { grid-template-columns: minmax(0, 1fr); }
   .tab-deployment { position: static; }
   .tab-feature-grid { grid-template-columns: 1fr; }
   .connect-flow { grid-template-columns: 1fr; gap: 1rem; }
@@ -1524,7 +1710,7 @@ function copyCmd(): void {
   .hero-half { padding: 4rem 2rem; }
   .hero-half-content { max-width: none; }
   .hero-microscope .hero-half-content { margin: 0; }
-  .hero-server .hero-half-content { margin: 0; }
+  .hero-ai .hero-half-content { margin: 0; }
   .hero-seam {
     bottom: auto;
     top: 50%;
@@ -1533,6 +1719,10 @@ function copyCmd(): void {
   .product-title { font-size: 2.1rem; }
   .tab-panel-header h2 { font-size: 1.7rem; }
   .eco-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 960px) {
+  .tab-bar { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 760px) {
