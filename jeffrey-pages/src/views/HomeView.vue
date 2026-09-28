@@ -33,7 +33,7 @@ const serverHeroBullets: HeroBullet[] = [
 const microscopeHeroBullets: HeroBullet[] = [
   { icon: 'bi-fire', text: 'Interactive flamegraphs or specialized dashboards' },
   { icon: 'bi-arrows-collapse', text: 'Differential flamegraphs across profiles' },
-  { icon: 'bi-droplet-half', text: 'Heap dumps, logs, JFR — one analyzer' },
+  { icon: 'bi-droplet-half', text: 'JFR and heap dumps — one analyzer' },
   { icon: 'bi-plug', text: 'Pull from a Hub, or analyze a JFR file standalone' }
 ];
 
@@ -81,7 +81,7 @@ const productTabs: ProductTab[] = [
     id: 'microscope',
     name: 'Jeffrey Microscope',
     icon: 'bi-search-heart-fill',
-    tagline: 'Deep analyzer for JFR, heap dumps and logs.',
+    tagline: 'Deep analyzer for JFR recordings and heap dumps.',
     oneLiner: 'Open a JFR file or connect to a Hub. Read flamegraphs that finally render fast.',
     features: [
       { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
@@ -229,7 +229,7 @@ function copyCmd(): void {
           <span class="title-accent title-accent--microscope">on your desk.</span>
         </h1>
         <p class="product-subtitle">
-          A deep analyzer for JFR recordings, heap dumps and logs. Upload a file, or connect
+          A deep analyzer for JFR recordings and heap dumps. Upload a file, or connect
           to a Jeffrey Hub and pull artifacts directly.
         </p>
         <ul class="bullet-list">

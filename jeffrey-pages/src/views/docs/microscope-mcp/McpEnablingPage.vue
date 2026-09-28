@@ -91,13 +91,17 @@ const tunnel = `ssh -N -L 8585:localhost:8585 you@the-host-running-jeffrey`;
 
 const serverProbe = `curl -s -X POST http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
-# a tool list means it is serving; 404 means it was turned off`;
+  -H 'MCP-Protocol-Version: 2026-07-28' \\
+  -H 'Mcp-Method: server/discover' \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}'
+# a supportedVersions result means it is serving; 404 means it was turned off`;
 
 const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
   -X POST http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+  -H 'MCP-Protocol-Version: 2026-07-28' \\
+  -H 'Mcp-Method: server/discover' \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}'
 # 404 while disabled, 200 once enabled`;
 </script>
 

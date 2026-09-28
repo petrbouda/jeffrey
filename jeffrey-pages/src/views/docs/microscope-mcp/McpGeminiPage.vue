@@ -92,7 +92,7 @@ const excludeWriters = `{
       "httpUrl": "http://localhost:8585/api/mcp",
       "excludeTools": [
         "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete",
-        "hubs_download", "hubs_fetchFile",
+        "hubs_download", "hubs_fetchFile", "heap_prepare",
         "operations_cancel", "ide_link", "ide_open"
       ]
     }
@@ -182,7 +182,7 @@ const update = `gemini extensions update microscope`;
 
       <p>There is <strong>no <code>profile-lead</code> for Gemini at all</strong>, and that is a property of the client rather than an omission: <strong>a Gemini subagent may not dispatch another subagent</strong>, and dispatching the other two is the whole of what the lead does. Ask an open-ended question in the main conversation instead; <code>analyze-jfr</code> carries the same triage order, and the two specialists work beneath it.</p>
 
-      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off the <code>recordings_</code> writers, <code>hubs_download</code> and the two <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep those tools away from the whole session instead:</p>
+      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off the <code>recordings_</code> writers, <code>hubs_download</code>, <code>hubs_fetchFile</code>, <code>heap_prepare</code>, <code>operations_cancel</code> and the two <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep those tools away from the whole session instead:</p>
       <DocsCodeBlock :code="excludeWriters" language="json" />
 
       <h2 id="tool-names">Tool Names Are Spelled Differently</h2>
@@ -195,7 +195,7 @@ const update = `gemini extensions update microscope`;
       <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Only <router-link to="/docs/microscope-mcp/clients#what-writes">eleven tools write</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
       <DocsCodeBlock :code="trustServer" language="json" />
 
-      <p><code>trust</code> covers every tool on the server, the three <code>hubs_</code> writers, <code>operations_cancel</code> and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
+      <p><code>trust</code> covers every tool on the server, the two <code>hubs_</code> writers, <code>operations_cancel</code> and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
 
       <h2 id="timeouts">Timeouts on Long Calls</h2>
       <p>Gemini abandons a tool call after ten minutes by default; the extension asks for <strong>fifteen</strong> (<code>timeout</code> is milliseconds), which the <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> never need, since they hand back <code>RUNNING</code> and an <code>operationId</code> well inside a minute.</p>

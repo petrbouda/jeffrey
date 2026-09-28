@@ -72,7 +72,7 @@ const tasteSpans = [
 
       <p>A tracing tool normally tells you that a span took 400&nbsp;ms and stops there. The next question — <em>doing what?</em> — needs a profiler and a second, correlated data source. Jeffrey has both in one file: spans are JFR events written into the same flight recording that carries the profiler's samples, so a span selected in the waterfall becomes a flamegraph query, a socket read becomes a child bar, and a GC pause becomes a lane drawn across the whole trace.</p>
 
-      <p>There is no collector, no exporter, no separate "send data" step. You instrument with the zero-dependency <code>cafe.jeffrey-analyst:jeffrey-events</code> library, record with whatever starts a JFR recording, and open the <code>.jfr</code> file in Jeffrey Microscope. Everything else — trace assembly, JDK-event correlation, visualization — happens at analysis time.</p>
+      <p>There is no collector, no exporter, no separate "send data" step. You instrument with the <code>cafe.jeffrey-analyst:jeffrey-events</code> library (no third-party dependencies), record with whatever starts a JFR recording, and open the <code>.jfr</code> file in Jeffrey Microscope. Everything else — trace assembly, JDK-event correlation, visualization — happens at analysis time.</p>
 
       <DocsCodeBlock :code="taste" language="java" />
       <DocsSpanTree trace="5f3a90c2…" :spans="tasteSpans" />
@@ -86,7 +86,7 @@ const tasteSpans = [
       <ul>
         <li><strong>A span is an event that carries trace identity.</strong> Every traced event extends <code>AbstractTracedEvent</code>, which declares <code>traceId</code>, <code>spanId</code> and <code>parentSpanId</code> (64-bit longs, <code>0</code> = absent) plus <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code>. The trace tree is rebuilt from the three ids alone.</li>
         <li><strong>Span discovery is structural.</strong> Jeffrey treats an event type as a span when the recording's own metadata says it declares a <code>spanId</code> field — no event-type list, no configuration. Your own custom event types take part in traces the moment they extend <code>AbstractTracedEvent</code>.</li>
-        <li><strong>Context is bound to the thread.</strong> The span in progress is bound on the thread for the duration of each body — in a <code>ScopedValue</code> on Java&nbsp;25+, a <code>ThreadLocal</code> on Java&nbsp;21–24. A nested span, a JDBC statement or a notification discovers its parent by itself; nothing is threaded through method signatures, and the binding cannot leak because it is bounded by a lambda.</li>
+        <li><strong>Context is bound to the thread.</strong> The span in progress is bound on the thread for the duration of each body — in a <code>ScopedValue</code> with <code>jeffrey-tracing-scoped-value</code> (Java&nbsp;25+), a <code>ThreadLocal</code> with <code>jeffrey-tracing-thread-local</code>. A nested span, a JDBC statement or a notification discovers its parent by itself; nothing is threaded through method signatures, and the binding cannot leak because it is bounded by a lambda.</li>
       </ul>
 
       <p>After a recording is parsed into a profile, Jeffrey derives the trace tables once: spans are assembled into trees, JDK blocking events (socket and file I/O, lock waits, parking) are <em>promoted</em> into synthesized leaf spans under the span that was waiting, exceptions are attributed to the span that threw them, and GC pauses and safepoints are matched against every trace window they overlap.</p>
@@ -110,7 +110,17 @@ const tasteSpans = [
           <tr>
             <td><strong>Events library</strong></td>
             <td><code>cafe.jeffrey-analyst:jeffrey-events</code></td>
-            <td>The whole developer-facing API: <router-link to="/docs/tracing/instrumentation">Tracer</router-link>, <code>AbstractTracedEvent</code>, and every <code>jeffrey.*</code> event type. Zero dependencies (only <code>jdk.jfr</code>); safe to leave in production — every emit path checks <code>isEnabled()</code> first.</td>
+            <td>Every <code>jeffrey.*</code> event type, re-exporting the tracing API below. No third-party dependencies (only <code>jdk.jfr</code> and Jeffrey's own <code>jeffrey-tracing-api</code>); safe to leave in production — every emit path checks <code>isEnabled()</code> first.</td>
+          </tr>
+          <tr>
+            <td><strong>Tracing API</strong></td>
+            <td><code>jeffrey-tracing-api</code></td>
+            <td>The developer-facing API: <router-link to="/docs/tracing/instrumentation">Tracer</router-link>, <code>AbstractTracedEvent</code> and <code>EventAttributes</code>. Brought in by <code>jeffrey-events</code>; runs on Java&nbsp;21.</td>
+          </tr>
+          <tr>
+            <td><strong>Span storage</strong></td>
+            <td><code>jeffrey-tracing-thread-local</code> / <code>jeffrey-tracing-scoped-value</code></td>
+            <td>Where the span in progress is bound, picked by <code>ServiceLoader</code> from whichever artifact is on the path. One is required: <code>thread-local</code> (Java&nbsp;21, the starter's default) or the opt-in <code>scoped-value</code> (Java&nbsp;25).</td>
           </tr>
           <tr>
             <td><strong>Framework glue</strong></td>
