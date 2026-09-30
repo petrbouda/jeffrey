@@ -202,6 +202,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <ul>
             <li><code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question. The middle call is the cheap one: it rules out a whole family before it is tried, and a tool list nowhere says to make it.</li>
             <li>Start instead from <code>recordings_analyzeFile</code> when the user named a file Jeffrey has never seen.</li>
+            <li><strong>It asks before it spends.</strong> A question that names an area goes straight there. An open one &mdash; &ldquo;analyse this&rdquo;, &ldquo;review this recording&rdquo; &mdash; gets only the two cheap orientation calls, <code>profiles_summary</code> and <code>flamegraph_list</code>, and then a menu of what this profile can answer: one line per area, tagged <em>light</em>, <em>medium</em> or <em>heavy</em> by how much it costs to call and how much text it brings back, the area the summary points at marked as suggested, and anything the recording did not capture named as dropped. Nothing else runs until you pick. After each answer it offers at most two follow-ups, with their tags, rather than running them.</li>
             <li>Every scoped tool takes a <code>profileId</code>, and it is required. A <code>404</code> means the server was switched off, not that something is broken.</li>
           </ul>
         </section>
@@ -442,6 +443,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li>An optional argument &mdash; a profile id or a recording file, then one of <code>cpu</code>, <code>wall</code>, <code>alloc</code>, <code>lock</code>, <code>latency</code>, <code>waiting</code> or <code>memory</code> &mdash; narrows the analysis to one area.</li>
             <li><code>profiles_get</code> first, for the commit the profiled build came from, compared against <code>HEAD</code> before a single frame is mapped. The skill says so out loud when they differ or the commit is unknown: a profile of another commit describes code that may no longer exist.</li>
             <li><code>profiles_features</code> next, so only what the profile actually carries gets analysed. Working every family unconditionally costs a dozen calls and buries the two findings that matter.</li>
+            <li>With no area named, it <strong>asks which to work</strong> &mdash; the areas this profile carries, each tagged by cost, the one the profile points at marked as suggested &mdash; and exports nothing until you pick. One picked flamegraph group is exported in your session; several go to parallel <code>profile-analyst</code> delegations. A group nobody picked is neither exported nor delegated.</li>
           </ul>
         </section>
 

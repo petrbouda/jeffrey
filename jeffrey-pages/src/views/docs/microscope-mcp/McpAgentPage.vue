@@ -43,8 +43,8 @@ onMounted(() => {
 const delegate = `read the CPU flamegraph of profile 019f885e-8e69-7d65-8ac7-32a70b92cb94
 and tell me the top frames with their shares`;
 
-const parallel = `# four questions, one message - they run at once, and none of the
-# four documents lands in this conversation
+const parallel = `# the groups you picked, one message - they run at once, and none of
+# the documents lands in this conversation
 CPU:        jdk.ExecutionSample
 wall-clock: profiler.WallClockSample
 allocation: jdk.ObjectAllocationSample, useWeight
@@ -118,7 +118,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <h2 id="the-lead">The Lead, for the Open-Ended Question</h2>
       <p>The analyst and the heap specialist each take one question. &ldquo;Why is this service slow&rdquo; and &ldquo;review this recording&rdquo; are not one question, and running every family in your session to find out which one it is fills the conversation with the orientation calls before anything has been read. <code>profile-lead</code> is that orientation, moved out of your session.</p>
 
-      <p>It works in a fixed order. <strong>It triages itself, and never delegates that step</strong> &mdash; <code>profiles_summary</code> with its <code>capabilityGaps</code> read before anything else, then <code>jvm_sections</code>, <code>flamegraph_list</code> and <code>profiles_samplerHealth</code> &mdash; because every routing decision depends on it. <strong>It dispatches only what the summary justifies</strong>, all at once, each delegation carrying the profile id, the recording length, the one question and the figure that prompted it, so a specialist starts from evidence rather than from the beginning. A dimension the summary does not point at is not investigated; it goes under <em>Not assessed</em> with the gap that explains why. <strong>It merges</strong> &mdash; the tools&rsquo; findings carry a stable id, so the same condition reported by a rule and by a dashboard collapses into one, the more severe kept &mdash; and ranks by share of wall clock, of samples or of the heap, never by how confident a specialist sounded. Where two specialists disagree, the more direct measurement wins and the report says the question was contested.</p>
+      <p>It works in a fixed order. <strong>It triages itself, and never delegates that step</strong> &mdash; <code>profiles_summary</code> with its <code>capabilityGaps</code> read before anything else, then <code>jvm_sections</code>, <code>flamegraph_list</code> and <code>profiles_samplerHealth</code> &mdash; because every routing decision depends on it. <strong>Without chosen areas it dispatches nothing</strong>: it hands back a menu built from the triage alone &mdash; each area the profile carries, tagged <em>light</em>, <em>medium</em> or <em>heavy</em>, the one or two the summary points at marked as suggested with the figure behind them, and the areas the recording cannot answer with their gaps &mdash; so your session can put it to you. <strong>With chosen areas it dispatches those and nothing else</strong>, all at once, each delegation carrying the profile id, the recording length, the one question and the figure that prompted it, so a specialist starts from evidence rather than from the beginning. An area nobody chose is not investigated; it goes under <em>Not assessed</em> only if the question needed it. <strong>It merges</strong> &mdash; the tools&rsquo; findings carry a stable id, so the same condition reported by a rule and by a dashboard collapses into one, the more severe kept &mdash; and ranks by share of wall clock, of samples or of the heap, never by how confident a specialist sounded. Where two specialists disagree, the more direct measurement wins and the report says the question was contested.</p>
 
       <p>What it holds is as deliberate as what it does: the orientation tools, <code>compare_list</code> and <code>compare_quality</code>, and the two specialists &mdash; and no export tool of its own, so it cannot drift into reading a flamegraph in the middle of coordinating. Its <code>Agent</code> tool is the plain one: Claude Code ignores a list of agent types on a subagent's <code>Agent</code> tool, so that it dispatches to the two specialists and nothing else is a rule in its instructions. Like the other two it has no file tools and makes no recommendations; the one writer it keeps, <code>jvm_autoAnalysis</code> with <code>compute</code>, only fills the Auto Analysis cache. It writes to the <router-link to="/docs/microscope-mcp/skills#report"><code>report</code></router-link> skill&rsquo;s shape, and its model is inherited from the session rather than pinned.</p>
 
@@ -126,7 +126,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <p>Usually you do not: the skills delegate on your behalf when more than one export is in play. To do it yourself, give it the id and the one question.</p>
       <DocsCodeBlock :code="delegate" language="bash" />
 
-      <p>Independent questions go out in a single message so they run at once. This is how <code>advise-jfr</code> uses it hardest &mdash; four groups, four parallel delegations, four documents that never enter your context:</p>
+      <p>Independent questions go out in a single message so they run at once. This is how <code>advise-jfr</code> uses it when you pick several flamegraph groups &mdash; one parallel delegation per group, and documents that never enter your context. A group nobody picked is not delegated:</p>
       <DocsCodeBlock :code="parallel" language="text" />
 
       <h2 id="when-not-to">When Not To</h2>

@@ -72,6 +72,19 @@ public interface TraceRepository {
     List<TraceSummaryRecord> tracesOfOperation(TraceOperationId operation, int limit);
 
     /**
+     * Lists the slowest traces of one type, longest first, ranked over every trace of the type.
+     * <p>
+     * A separate query from {@link #tracesOfOperation} because a chronological page cannot be
+     * ranked into the slowest traces: for an operation with more traces than the page holds it is
+     * only the slowest of the recording's first few seconds. Equal durations are ordered by trace
+     * id, so the cut at {@code limit} is stable.
+     *
+     * @param operation the trace type, as listed by {@link #operations(int)}
+     * @param limit     maximum number of traces to return
+     */
+    List<TraceSummaryRecord> slowestTracesOfOperation(TraceOperationId operation, int limit);
+
+    /**
      * Returns one trace's header — the same row the lists show, so a trace's duration reads the same
      * in the list it was opened from and in the detail it opens into.
      *

@@ -104,11 +104,23 @@ export default class ProfileTracesClient extends BaseProfileClient {
   }
 
   /**
-   * The traces of one type, chronologically. Feeds the slowest list and the summary's histogram —
-   * both of which want a chronological slice, and both of which say out loud that it is one.
+   * The traces of one type, chronologically. Feeds the summary's histogram, which wants a
+   * chronological slice and says out loud that it is one. Not a source of "slowest": for an
+   * operation past the limit this is the recording's first traces, not its worst.
    */
   public getOperationTraces(operation: TraceOperationId, limit?: number): Promise<TraceRow[]> {
     return this.get<TraceRow[]>('/operation/traces', {
+      ...operationParams(operation),
+      ...(limit === undefined ? {} : { limit })
+    });
+  }
+
+  /**
+   * The slowest traces of one type, longest first, ranked by the server over every trace of the type
+   * — the same ranking the MCP `traces_slowestTraces` tool answers with.
+   */
+  public getOperationSlowestTraces(operation: TraceOperationId, limit?: number): Promise<TraceRow[]> {
+    return this.get<TraceRow[]>('/operation/slowest-traces', {
       ...operationParams(operation),
       ...(limit === undefined ? {} : { limit })
     });

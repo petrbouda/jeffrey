@@ -124,6 +124,13 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
+    public List<TraceRow> slowestTracesOfOperation(TraceOperationId operation, int limit) {
+        return traceRepository.slowestTracesOfOperation(operation, limit).stream()
+                .map(TraceManagerImpl::toRow)
+                .toList();
+    }
+
+    @Override
     public TraceOverview overview() {
         TraceOverviewRecord overview = traceRepository.overview();
         return new TraceOverview(

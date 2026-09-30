@@ -39,6 +39,7 @@
           :operation="operation"
           :totals="totals"
           :traces="traces"
+          :slowest="slowest"
           :truncated="truncated"
           :overview="overview"
           @open-trace="openTrace"
@@ -71,21 +72,20 @@
 
       <div v-show="activeTab === 'slowest'">
         <!--
-          The rows are ranked here, not by the server: the fetch is ordered by start time on
-          purpose, because the histogram, the timeline and the truncated percentiles all need a
-          chronological slice rather than a duration-biased one. The list draws them exactly as
-          given, so this ranking is the one on screen.
+          Ranked by the server over every trace of the operation, not sliced out of the chronological
+          fetch the histogram uses: that one is the recording's first traces, and ranking it named
+          a 17 ms trace the slowest of an operation whose worst took 425 ms.
 
-          The denominator is the operation's real call count, not the capped sample, so
-          "Showing X / Total Y" tells the truth for operations past the cap. The tint reads against
-          the operation's own percentiles for the same reason — the capped page has its own.
+          The denominator is the operation's real call count, so "Showing X / Total Y" tells the
+          truth for operations past the cap. The tint reads against the operation's own percentiles
+          for the same reason.
         -->
         <TraceCardList
-          :items="rankedByDuration"
+          :items="slowest"
           :trace="(trace: TraceRow) => trace"
           :p50-nanos="totals?.p50Nanos"
           :p95-nanos="totals?.p95Nanos"
-          :total="totals?.count ?? traces.length"
+          :total="totals?.count ?? slowest.length"
           :note="capNote"
           :max-displayed="slowestShown"
           empty-description="No traces for this filter."
@@ -96,9 +96,9 @@
           page. Without it the tab fetched up to a thousand traces and silently drew fifty.
         -->
         <LoadMoreFooter
-          v-if="rankedByDuration.length > 0"
-          :shown="Math.min(slowestShown, rankedByDuration.length)"
-          :total="rankedByDuration.length"
+          v-if="slowest.length > 0"
+          :shown="Math.min(slowestShown, slowest.length)"
+          :total="slowest.length"
           noun="traces"
           @load-more="slowestShown += SLOWEST_PAGE"
         />
@@ -138,7 +138,6 @@ import TraceOperationFlamegraphs from '@/components/trace/TraceOperationFlamegra
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import TraceAiExportClient from '@/services/api/TraceAiExportClient';
-import { slowestFirst } from '@/services/trace/traceOperationStats';
 import type { AiExportSource } from '@/composables/useAiExport';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type {
@@ -177,6 +176,8 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const traces = ref<TraceRow[]>([]);
 const truncated = ref(false);
+const slowest = ref<TraceRow[]>([]);
+const slowestTruncated = ref(false);
 const timeline = ref<TraceTimelineBucket[]>([]);
 
 const TAB_IDS = new Set(['summary', 'flames', 'timeline', 'slowest']);
@@ -245,13 +246,16 @@ watch(spansShow, open => {
  * trace beyond the fetched page, in which case no row is found here — the modal fetches everything
  * it draws from the id alone, so it still opens, just without the row's own header values.
  */
-watch([() => route.query.trace, traces], ([traceId]) => {
+watch([() => route.query.trace, traces, slowest], ([traceId]) => {
   if (!traceId) {
     spansShow.value = false;
     return;
   }
   const id = traceId as string;
-  selectedTrace.value = traces.value.find(trace => trace.traceId === id) ?? null;
+  selectedTrace.value =
+    traces.value.find(trace => trace.traceId === id) ??
+    slowest.value.find(trace => trace.traceId === id) ??
+    null;
   spansShow.value = true;
 });
 
@@ -261,9 +265,6 @@ watch([() => route.query.trace, traces], ([traceId]) => {
  * its virtual threads has nothing to draw — the tab stays and explains that, rather than vanishing.
  */
 const samplesAreReachable = computed(() => traces.value.some(trace => trace.hasPlatformSpan));
-
-/** The ranking the Slowest Traces tab is named after; `traces` itself arrives in start order. */
-const rankedByDuration = computed(() => slowestFirst(traces.value));
 
 const slowestShown = ref(SLOWEST_PAGE);
 
@@ -294,10 +295,10 @@ const secondaryData = computed<number[][]>(() =>
 
 // Silence about a cap reads as "this is all of them", which it would not be.
 const capNote = computed<string | undefined>(() => {
-  if (!truncated.value) {
+  if (!slowestTruncated.value) {
     return undefined;
   }
-  return `First ${TRACE_LIMIT} traces of this operation`;
+  return `Slowest ${TRACE_LIMIT} traces of this operation`;
 });
 
 /**
@@ -327,12 +328,13 @@ async function load(): Promise<void> {
   error.value = null;
   try {
     const client = new ProfileTracesClient(props.profileId);
-    // Together: the sample the tabs read from, and the aggregate the timeline needs precisely
-    // because that sample is one.
+    // Together: the chronological sample the summary reads from, the ranking the slowest views read
+    // from, and the aggregate the timeline needs precisely because the sample is one.
     // One past the cap, so a full page can be told apart from a page that merely filled it: an
     // operation with exactly TRACE_LIMIT traces must not claim it was truncated.
-    const [operationTraces, operationTimeline] = await Promise.all([
+    const [operationTraces, operationSlowest, operationTimeline] = await Promise.all([
       client.getOperationTraces(props.operation, TRACE_LIMIT + 1),
+      client.getOperationSlowestTraces(props.operation, TRACE_LIMIT + 1),
       client.getOperationTimeline(props.operation, TIMELINE_BUCKETS)
     ]);
     if (generation !== loadGeneration) {
@@ -340,6 +342,8 @@ async function load(): Promise<void> {
     }
     truncated.value = operationTraces.length > TRACE_LIMIT;
     traces.value = truncated.value ? operationTraces.slice(0, TRACE_LIMIT) : operationTraces;
+    slowestTruncated.value = operationSlowest.length > TRACE_LIMIT;
+    slowest.value = slowestTruncated.value ? operationSlowest.slice(0, TRACE_LIMIT) : operationSlowest;
     timeline.value = operationTimeline;
   } catch (e: unknown) {
     if (generation !== loadGeneration) {
@@ -349,6 +353,8 @@ async function load(): Promise<void> {
     error.value = 'Failed to load this operation.';
     traces.value = [];
     truncated.value = false;
+    slowest.value = [];
+    slowestTruncated.value = false;
     timeline.value = [];
   } finally {
     if (generation === loadGeneration) {

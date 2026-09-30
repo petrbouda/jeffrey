@@ -1078,6 +1078,58 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("the slowest traces are ranked over the whole operation, not over its first ones")
+        void ranksTheSlowestOverEveryTraceOfTheOperation(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-ranked-traces.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            TraceOperationId ranked = operation("GET /ranked", "SERVER", HTTP_SERVER_EXCHANGE);
+
+            assertEquals(List.of(8001L, 8002L),
+                    repository.tracesOfOperation(ranked, 2).stream().map(TraceSummaryRecord::traceId).toList(),
+                    "the chronological page is the traces that ran first");
+            List<TraceSummaryRecord> slowest = repository.slowestTracesOfOperation(ranked, 2);
+
+            assertEquals(List.of(8003L, 8002L), slowest.stream().map(TraceSummaryRecord::traceId).toList(),
+                    "the 50 ms trace started last and is still the slowest");
+            assertEquals(50 * MS, slowest.getFirst().durationNanos());
+            assertEquals(List.of(8003L, 8002L, 8001L),
+                    repository.slowestTracesOfOperation(ranked, 10).stream()
+                            .map(TraceSummaryRecord::traceId).toList(),
+                    "longest first");
+        }
+
+        @Test
+        @DisplayName("equal durations are ordered by trace id so the cut at the limit is stable")
+        void breaksDurationTiesOnTraceId(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-tied-duration-traces.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            TraceOperationId tied = operation("GET /tied", "SERVER", HTTP_SERVER_EXCHANGE);
+
+            for (int request = 0; request < 3; request++) {
+                assertEquals(List.of(7001L),
+                        repository.slowestTracesOfOperation(tied, 1).stream()
+                                .map(TraceSummaryRecord::traceId).toList(),
+                        "the same trace sits at the boundary on every request");
+            }
+        }
+
+        @Test
+        @DisplayName("the slowest traces exclude other types and honour the limit")
+        void slowestTracesAreScopedToOneOperation(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            assertEquals(List.of(SLOW_TRACE),
+                    repository.slowestTracesOfOperation(FLAMEGRAPH_OPERATION, 10).stream()
+                            .map(TraceSummaryRecord::traceId).toList());
+            assertTrue(repository.slowestTracesOfOperation(HEALTH_OPERATION, 0).isEmpty(),
+                    "a zero limit returns nothing rather than everything");
+        }
+
+        @Test
         @DisplayName("the overview totals the whole profile, counting failed traces and spans apart")
         void summarisesTheProfile(DataSource dataSource) throws SQLException {
             TraceOverviewRecord overview = derived(dataSource).overview();

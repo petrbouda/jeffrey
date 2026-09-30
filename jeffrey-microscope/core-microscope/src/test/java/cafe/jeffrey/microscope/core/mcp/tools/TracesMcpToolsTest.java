@@ -83,6 +83,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -194,7 +195,7 @@ class TracesMcpToolsTest {
         when(traceManager.operationSummary(any(), anyInt()))
                 .thenReturn(new TraceOperationSummary(List.of(), new TraceOperationThreads(1, 0, 0, 0)));
         when(traceManager.notifications(any())).thenReturn(List.of());
-        when(traceManager.tracesOfOperation(any(), anyInt())).thenReturn(List.of(trace(TRACE_ID)));
+        when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of(trace(TRACE_ID)));
     }
 
     private TraceOperationListQuery lastOperationsQuery() {
@@ -506,7 +507,7 @@ class TracesMcpToolsTest {
 
         @Test
         void listsTheTracesWithOneInstantOnTheEpochClock() {
-            when(traceManager.tracesOfOperation(any(), anyInt())).thenReturn(List.of(trace(TRACE_ID)));
+            when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of(trace(TRACE_ID)));
 
             JsonNode out = json("slowestTraces", tools().slowestTraces(NAME, KIND, EVENT_TYPE, null));
             JsonNode trace = out.get("traces").get(0);
@@ -517,6 +518,20 @@ class TracesMcpToolsTest {
             assertFalse(trace.has("startMillisFromBeginning"));
             assertFalse(trace.has("startEpochMillis"));
             assertTrue(out.get("uiLink").asString().contains("tab=slowest"), out.get("uiLink").asString());
+        }
+
+        /**
+         * The chronological page is the recording's first traces; ranking it named a 17 ms trace the
+         * slowest of an operation whose worst took 425 ms, so the tool must ask for the ranking.
+         */
+        @Test
+        void asksForTheRankingAndNeverForTheChronologicalPage() {
+            when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of(trace(TRACE_ID)));
+
+            tools().slowestTraces(NAME, KIND, EVENT_TYPE, 7);
+
+            verify(traceManager).slowestTracesOfOperation(any(), eq(7));
+            verify(traceManager, never()).tracesOfOperation(any(), anyInt());
         }
 
         /** The root's name, kind and event type are NOT NULL columns, so the schema promises them. */
@@ -530,7 +545,7 @@ class TracesMcpToolsTest {
 
         @Test
         void routesToTheSlowestTraceAndToTheWholeOperation() {
-            when(traceManager.tracesOfOperation(any(), anyInt())).thenReturn(List.of(trace(TRACE_ID)));
+            when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of(trace(TRACE_ID)));
 
             JsonNode out = json("slowestTraces", tools().slowestTraces(NAME, KIND, EVENT_TYPE, null));
 
@@ -540,7 +555,7 @@ class TracesMcpToolsTest {
 
         @Test
         void aListThatReachedItsLimitCannotSayWhatItLeftOut() {
-            when(traceManager.tracesOfOperation(any(), anyInt())).thenReturn(List.of(trace("a"), trace("b")));
+            when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of(trace("a"), trace("b")));
 
             JsonNode out = json("slowestTraces", tools().slowestTraces(NAME, KIND, EVENT_TYPE, 2));
 
@@ -549,7 +564,7 @@ class TracesMcpToolsTest {
 
         @Test
         void aListShorterThanItsLimitLeftNothingOut() {
-            when(traceManager.tracesOfOperation(any(), anyInt())).thenReturn(List.of(trace("a")));
+            when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of(trace("a")));
 
             JsonNode out = json("slowestTraces", tools().slowestTraces(NAME, KIND, EVENT_TYPE, 5));
 
@@ -559,7 +574,7 @@ class TracesMcpToolsTest {
         /** An operation that has no traces is not an operation of this profile: the caller named it wrongly. */
         @Test
         void refusesAnOperationThisProfileDoesNotHold() {
-            when(traceManager.tracesOfOperation(any(), anyInt())).thenReturn(List.of());
+            when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of());
 
             ToolExecutionException error = assertThrows(ToolExecutionException.class,
                     () -> tools().slowestTraces("GET /nope", KIND, EVENT_TYPE, null));

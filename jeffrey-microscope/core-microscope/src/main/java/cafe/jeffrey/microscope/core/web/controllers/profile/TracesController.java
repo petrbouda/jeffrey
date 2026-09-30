@@ -143,8 +143,9 @@ public class TracesController {
     }
 
     /**
-     * The traces of one type. Feeds the slowest list of the operation drill-down, which is why it is
-     * ordered by time rather than by duration — the summary's histogram wants a chronological slice.
+     * The traces of one type, ordered by time rather than by duration — the summary's histogram
+     * wants a chronological slice. The slowest list is {@link #operationSlowestTraces}: ranking this
+     * page would only rank the recording's first few seconds.
      * <p>
      * The name travels as a query parameter, not a path segment: operation names contain slashes
      * and braces ({@code GET /api/internal/profiles/{profileId}/heap/instances}).
@@ -160,6 +161,24 @@ public class TracesController {
                 profileId, name, kind, eventType, limit);
         return resolver.resolve(profileId).traceManager()
                 .tracesOfOperation(new TraceOperationId(name, kind, eventType), boundedLimit(limit));
+    }
+
+    /**
+     * The slowest traces of one type, longest first, chosen from every trace of the type. Feeds the
+     * Slowest Traces tab of the operation drill-down, and is the same ranking the MCP
+     * {@code traces_slowestTraces} tool answers with, so the two can never name different traces.
+     */
+    @GetMapping("/operation/slowest-traces")
+    public List<TraceRow> operationSlowestTraces(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("name") String name,
+            @RequestParam("kind") String kind,
+            @RequestParam("eventType") String eventType,
+            @RequestParam(value = "limit", defaultValue = DEFAULT_OPERATION_TRACES_LIMIT) int limit) {
+        LOG.debug("Listing the slowest traces of an operation: profile_id={} name={} kind={} event_type={} limit={}",
+                profileId, name, kind, eventType, limit);
+        return resolver.resolve(profileId).traceManager()
+                .slowestTracesOfOperation(new TraceOperationId(name, kind, eventType), boundedLimit(limit));
     }
 
     /**
@@ -229,7 +248,7 @@ public class TracesController {
                 traceManager.operationSummary(operationId, AI_EXPORT_SPANS_LIMIT),
                 traceManager.notifications(
                         TraceNotificationListQuery.ofOperation(operationId, AI_EXPORT_NOTIFICATION_KINDS_LIMIT)),
-                traceManager.tracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT))
+                traceManager.slowestTracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT))
                 .build();
     }
 

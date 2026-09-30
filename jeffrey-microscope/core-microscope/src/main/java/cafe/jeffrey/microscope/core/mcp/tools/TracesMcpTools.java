@@ -296,7 +296,7 @@ public class TracesMcpTools {
         TraceOperationId operationId = operationId(name, kind, eventType);
         TraceManager traceManager = traceManager();
         TraceOperationRow operation = requireOperation(operationId);
-        List<TraceRow> exemplars = traceManager.tracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT);
+        List<TraceRow> exemplars = traceManager.slowestTracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT);
 
         String export = new TraceOperationAiMarkdownBuilder(
                 operation,
@@ -424,7 +424,7 @@ public class TracesMcpTools {
 
         TraceOperationId operation = operationId(name, kind, eventType);
         int rows = ToolArguments.boundedLimit(limit, DEFAULT_TRACES_LIMIT, MAX_LIMIT);
-        List<TraceRow> traces = traceManager().tracesOfOperation(operation, rows);
+        List<TraceRow> traces = traceManager().slowestTracesOfOperation(operation, rows);
         // An operation exists only through its traces, so an empty list means the triple names no
         // operation of this profile - a caller mistake to correct, not an empty answer.
         if (traces.isEmpty()) {
