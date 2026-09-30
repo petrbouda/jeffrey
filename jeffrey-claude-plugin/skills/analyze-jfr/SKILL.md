@@ -49,11 +49,71 @@ auto-analysis findings when they have been computed.
 A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch to the
 `analyze-heap` skill, because flamegraphs and traces do not apply to it.
 
+## Ask before you analyse — the user picks what to spend on
+
+Orientation is cheap; analysis is not. `profiles_summary` and `flamegraph_list` are two compact
+calls, while one flamegraph or trace export runs to tens of thousands of characters and a sweep of
+every family costs a dozen calls whose findings mostly go unread. So the user decides what is worth
+that, not habit:
+
+- **The question names an area** — "why is `/orders` slow", "what is allocating", "are the GC
+  pauses long" — go straight to that area through the routing table below. Do only that area, and
+  do not show the menu.
+- **The question is open** — "analyse this", "what is wrong", "review this recording" — make the
+  two orientation calls, then show the menu below and **stop**. Wait for the user's choice before
+  any other call. A fired rule in `topFindings` and a `capabilityGaps` entry the question needs are
+  worth one line each above the menu, because they are already paid for; neither is a reason to
+  start work unasked.
+
+### The menu
+
+Offer only what this profile carries: drop a line whose events `disabledFeatures`, `eventTypes` or
+`flamegraph_list`'s `notRecorded` rule out, and name what was dropped in one line beneath the menu,
+with the async-profiler option that would capture it next time (`event=ctimer`, `wall=10ms`,
+`alloc=512k`, `lock=10ms`). Mark the line the summary points at as *suggested* — the dominant event
+type, a fired rule — and keep the order below otherwise. One line per area, its tag, and what it
+answers:
+
+| Area | Tag | Answers | Calls it makes |
+|---|---|---|---|
+| Rule findings | light | Jeffrey's own rules over the whole recording | `topFindings` is already in the summary; `jvm_autoAnalysis` with `compute: true` only if they have not run — slow, it reads the whole recording |
+| CPU hotspots | heavy | Which code burned the CPU | `flamegraph_export` of the CPU type |
+| Wall-clock | heavy | Where time went, running or waiting | `flamegraph_export` of `profiler.WallClockSample` |
+| Allocation | medium · heavy | Which types, then which call sites | `memory_allocations`; the allocation flamegraph for the sites |
+| Lock contention | medium | Which locks threads queued on | `blocking_overview` → `blocking_monitors` |
+| Slow endpoints | medium · heavy | Which operations took the time, then one request span by span | `traces_overview` → `traces_operations`; exports for one exemplar. `http_overview`/`jdbc_overview` without traces |
+| Database | medium | Which statements, and whether the pool made requests wait | `jdbc_overview`, `jdbc_pools` |
+| I/O waiting | medium | What it talked to and how long it waited | `io_overview` → `io_endpoints` |
+| GC and pauses | medium | Whether collections and safepoints hurt | `jvm_gc`, `jvm_safepoints` |
+| JIT | medium | Slow compilations, deoptimisation loops | `jvm_jit` |
+| Threads | medium | Busiest threads, pinning | `jvm_threads` |
+| Native memory | medium | Memory outside the Java heap | `jvm_nativeMemory` |
+| Container and flags | light | Throttling, and what the JVM really ran with | `jvm_container`, `jvm_flags` |
+| When it happened | medium | Steady, ramp or spike — and the window to export | `timeline_hotWindows` |
+| Leak candidates | medium | Objects that survived collections | `memory_leakCandidates` |
+
+The tags count what the answer puts into this conversation as well as what Jeffrey spends to
+compute it — the `jeffrey/cost` hint on each tool is the latter only. **light**: one or two calls,
+compact records. **medium**: a short chain of dashboard calls. **heavy**: a Markdown export, tens of
+thousands of characters — delegated to the analyst when the client has one. A line tagged
+`medium · heavy` starts medium and turns heavy only if the user asks to go down to frames.
+
+The user may pick several; take them in the order they gave. A pick you cannot serve after all —
+the dashboard answers `NOT_RECORDED` — is reported as not assessed, and the next pick goes on.
+
+### After every answer, offer — do not run
+
+Close each answer with at most two follow-ups taken from its `followUp.nextTools` or from the
+routing table below, each with its tag and the one question it would answer, and wait. A follow-up
+the user did not ask for is not run, however well the evidence points at it: "the allocation
+flamegraph would name the call sites (heavy)" is the sentence, not the export.
+
 ## Route from the summary — never open with a flamegraph
 
 A flamegraph of a recording that spent its time waiting reports the application as idle, and a
 graph of a five-minute average hides a thirty-second spike. So the first export is decided by what
-`profiles_summary` says, not by habit. Read three things from it and route:
+`profiles_summary` says, not by habit. When the question names an area, or once the user has picked
+from the menu, read three things from it and route:
 
 | What the summary shows | Go to |
 |---|---|
@@ -67,7 +127,8 @@ graph of a five-minute average hides a thirty-second spike. So the first export 
 | Two profiles of the same workload | `compare-jfr` |
 | `topFindings` is empty and `capabilityGaps` names `autoAnalysis` | The rules did not run, so their silence is a gap and not a clean result. `jvm_autoAnalysis` with `compute: true` runs them; the other families answer either way. Empty with no such gap means the rules ran and cleared the recording |
 
-Run more than one route when the summary points at more than one. They are independent.
+When the summary points at more than one route and the user asked about only one, run that one and
+offer the others as follow-ups — they are independent, so nothing is lost by waiting.
 
 ## 2. Pick the family that matches the question
 
@@ -332,9 +393,10 @@ ships it as `microscope:profile-analyst`; in Codex it is the custom agent from
 `codex/agents/profile-analyst.toml`. If your client has no such agent, read the exports here and
 keep the sequence short.
 
-Delegate when more than one export is in play — several event types, a whole trace operation, a
-deep chase down one path — and give it the `profileId` and the one question. Independent questions
-go out in a single message so they run at once.
+Delegate when more than one export is in play — several areas the user picked, a whole trace
+operation, a deep chase down one path — and give it the `profileId` and the one question. Delegate
+only what the user chose: independent picks go out in a single message so they run at once, and an
+area nobody picked is not sent to an analyst to be safe.
 
 Read an export here, in this conversation, when there is exactly one and its result will be
 discussed turn by turn. The analyst returns a report; it cannot answer a follow-up about a document

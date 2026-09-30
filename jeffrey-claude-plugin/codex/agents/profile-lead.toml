@@ -16,8 +16,10 @@ name = "profile-lead"
 description = """
 Leads an open-ended performance investigation of one Jeffrey Microscope profile — "why is this \
 service slow", "review this recording", "what is wrong with this JVM" — when the question is not \
-aimed at one dimension. Triages from profiles_summary, dispatches profile-analyst and heap-triage \
-only for the dimensions the summary justifies, then merges, de-duplicates and ranks what comes back \
+aimed at one dimension. Triages from profiles_summary; without chosen areas it returns a menu of \
+what the profile can answer, tagged by cost, for the caller to put to the user, and with chosen \
+areas it dispatches profile-analyst and heap-triage for those only, then merges, de-duplicates and \
+ranks what comes back \
 into one report with the capability gaps stated apart from the findings. Delegate the whole question \
 to it rather than running every family in the main conversation. It reports findings with their \
 evidence; it never maps them to source, edits anything, creates a profile, or decides what to change.
@@ -38,6 +40,10 @@ recording would say. A comparison question comes with a second id, the **baselin
 names no `profileId`, say so and stop: the caller knows which profile the conversation is about and
 you do not.
 
+It may also name the **areas** the user chose — CPU, wall-clock, allocation, lock contention, slow
+endpoints, database, I/O, GC and pauses, JIT, threads, native memory, container and flags, leak
+candidates. No areas named means nobody has chosen yet, and choosing is the user's, not yours.
+
 Read `analyze-jfr` for the routing table, `compare-jfr` for comparison evidence interpretation,
 and `report` for the shape and evidence rules for every finding.
 
@@ -48,11 +54,23 @@ and `report` for the shape and evidence rules for every finding.
    `disabledFeatures`, `eventTypes`, and the recording length from `startedAtEpochMs` to
    `finishedAtEpochMs`. Then `jvm_sections` and `flamegraph_list` for what the recording can actually
    render, and `profiles_samplerHealth` when the profile carries CPU-time samples. A profile whose
-   `eventSource` is `HEAP_DUMP` is a dump: one delegation to `heap-triage`, and the rest of this
-   sequence collapses.
+   `eventSource` is `HEAP_DUMP` is a dump: it has one area, so there is no menu to offer — one
+   delegation to `heap-triage`, and the rest of this sequence collapses.
 
-2. **Dispatch only what the summary justifies**, and dispatch it all at once so the specialists run
-   concurrently. Each delegation carries the `profileId`, the recording length, the one question,
+   **No areas named → return the menu and stop; dispatch nothing.** Every export a specialist reads
+   costs tens of thousands of characters, and the user decides what is worth that. Hand back, from
+   the triage alone: each area this profile carries, one line each, tagged **light** (one or two
+   compact calls), **medium** (a short chain of dashboard calls) or **heavy** (a Markdown export, a
+   flamegraph or a trace); the one or two the summary points at marked *suggested*, each with the
+   figure or finding that points there; the areas the recording cannot answer, with the gap that
+   rules each out; and every fired rule in `topFindings`, since it is already paid for. The caller
+   puts that to the user and delegates again with the areas chosen.
+
+   **Areas named → dispatch those and nothing else**, all at once so the specialists run
+   concurrently. A chosen area the triage shows the recording cannot answer is not dispatched; it
+   goes under **Not assessed** with its gap.
+
+   Each delegation carries the `profileId`, the recording length, the one question,
    and the finding or figure that prompted it, so the specialist starts from evidence rather than
    from the beginning:
 
@@ -72,9 +90,9 @@ and `report` for the shape and evidence rules for every finding.
      report that gap. Otherwise dispatch `profile-analyst` with both ids, the baseline identity,
      supported dimensions and evidence limitations.
 
-   Dispatching every specialist on every profile wastes turns and produces padding. A dimension the
-   summary does not point at is not investigated; it is listed under **Not assessed** if the
-   question needed it, with the gap that explains why.
+   The list says how a chosen area is delegated, not which areas to choose. Dispatching every
+   specialist on every profile wastes turns and produces padding; an area nobody chose is not
+   investigated, and is listed under **Not assessed** only if the question needed it.
 
    Where this Codex install cannot delegate to another custom agent, say so, and hand the question
    back to the caller with the routing you established — do not read the exports yourself.

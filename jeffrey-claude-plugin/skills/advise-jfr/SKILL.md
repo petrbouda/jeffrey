@@ -25,7 +25,7 @@ before the recommendation has been read cannot be reviewed on its own terms. Tra
 
 ```
 - [ ] 1. Profile resolved, commit compared with HEAD
-- [ ] 2. Evidence chosen from what the profile carries — not everything, what it has
+- [ ] 2. Evidence chosen by the user from what the profile carries — asked, not assumed
 - [ ] 3. Each source read the way its own document says
 - [ ] 4. Every code finding tied to a frame and to source that was actually read
 - [ ] 5. Recommendation written, code and configuration findings kept apart — STOP
@@ -56,11 +56,25 @@ looking at.
 which families can answer at all — its `disabledFeatures` rules out a whole family, its
 `eventTypes` names what was captured — and `flamegraph_list` splits the graphable types into
 `available` and `notRecorded`. Analysing every family unconditionally is a fishing expedition: it
-costs a dozen calls and buries the two findings that matter under twelve that do not. Pick what the
-profile has and the question needs, and say what you skipped.
+costs a dozen calls and buries the two findings that matter under twelve that do not.
 
-If the user named an area, do that one. Otherwise start with the flamegraph groups, and add the
-others when the profile carries them.
+**If the user named an area** — in the scope argument or in the request — do that one and skip the
+menu. **Otherwise ask.** Show the areas below that this profile carries, one line each with its tag
+and what it would lead to in the code, mark the one the profile points at (the dominant event type,
+a fired rule in `topFindings`) as *suggested*, name what was dropped as not recorded, and **stop**
+until the user picks. Do not export anything first to make the menu look better informed.
+
+The tags count what an area puts into this conversation as well as what Jeffrey spends on it.
+**medium**: a short chain of dashboard calls with compact answers. **heavy**: a Markdown export of
+tens of thousands of characters per group, which is also what makes step 4 slower. A pick is worked
+in the order given; an area nobody picked is not analysed, and belongs under **not assessed** only if
+the user's question needed it.
+
+| Area | Tag |
+|---|---|
+| `cpu`, `wall`, `alloc`, `lock` — the flamegraph groups below, each its own pick | heavy |
+| `latency` | medium, heavy once one trace is exported |
+| `waiting` (locks, I/O), `memory`, database, HTTP/gRPC | medium |
 
 ### The flamegraph groups — where the time was spent
 
@@ -100,17 +114,21 @@ against the values the JVM really ran with.
 
 ## 3. Read each source the way it asks to be read
 
-One export per flamegraph group, whole recording, default threshold. Every export opens with its own reading
-instructions and an analysis section written for that event type — what counts as a hotspot, what
-the frame tags mean, what to skip. That document governs, not generic flamegraph lore. Lower
-`thresholdPct` only to chase one specific path deeper.
+One export per flamegraph group the user picked, whole recording, default threshold. Every export
+opens with its own reading instructions and an analysis section written for that event type — what
+counts as a hotspot, what the frame tags mean, what to skip. That document governs, not generic
+flamegraph lore. Lower `thresholdPct` only to chase one specific path deeper.
 
-Send the groups to a **`profile-analyst`** agent — `microscope:profile-analyst` from the Claude
-Code plugin, or the Codex custom agent from `codex/agents/profile-analyst.toml` — one delegation per
-group and all of them in a single message so they run at once. Each returns the hot frames with
-their shares; four raw exports would otherwise crowd out the source reading that step 4 depends on.
-Call `flamegraph_export` here only when you are working a single group and want the document in
-front of you, or when your client has no agent to delegate to.
+One picked group: call `flamegraph_export` here, so the document is in front of you for step 4 and
+for the user's follow-up questions. Several picked groups: send each to a **`profile-analyst`**
+agent — `microscope:profile-analyst` from the Claude Code plugin, or the Codex custom agent from
+`codex/agents/profile-analyst.toml` — one delegation per group, all in a single message so they run
+at once. Each returns the hot frames with their shares; several raw exports would otherwise crowd
+out the source reading that step 4 depends on. Without an agent, export the picked groups here one
+after another. A group the user did not pick is not exported, and is not delegated either.
+
+When the recommendation is written, offer at most two further areas the evidence points at — each
+with its tag — rather than analysing them.
 
 ## 4. Ground every finding in source
 
