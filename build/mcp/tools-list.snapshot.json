@@ -23927,6 +23927,9 @@
                     },
                     "traceId": {
                       "type": "string"
+                    },
+                    "uiLink": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -23938,7 +23941,8 @@
                     "rootName",
                     "spanCount",
                     "startEpochMs",
-                    "traceId"
+                    "traceId",
+                    "uiLink"
                   ],
                   "type": "object"
                 }
@@ -24423,9 +24427,22 @@
                 "count": {
                   "type": "integer"
                 },
-                "exemplarTraceIds": {
+                "exemplarTraces": {
                   "items": {
-                    "type": "string"
+                    "additionalProperties": false,
+                    "properties": {
+                      "traceId": {
+                        "type": "string"
+                      },
+                      "uiLink": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "traceId",
+                      "uiLink"
+                    ],
+                    "type": "object"
                   },
                   "type": "array"
                 },
@@ -24472,7 +24489,7 @@
               "required": [
                 "category",
                 "count",
-                "exemplarTraceIds",
+                "exemplarTraces",
                 "firstEpochMs",
                 "lastEpochMs",
                 "message",
@@ -24949,6 +24966,9 @@
                 "totalNanos": {
                   "type": "integer"
                 },
+                "uiLink": {
+                  "type": "string"
+                },
                 "urgentNotificationCount": {
                   "type": "integer"
                 }
@@ -24966,6 +24986,7 @@
                 "p99Nanos",
                 "spanCount",
                 "totalNanos",
+                "uiLink",
                 "urgentNotificationCount"
               ],
               "type": "object"
@@ -25306,6 +25327,9 @@
                 },
                 "traceId": {
                   "type": "string"
+                },
+                "uiLink": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -25317,7 +25341,8 @@
                 "rootName",
                 "spanCount",
                 "startEpochMs",
-                "traceId"
+                "traceId",
+                "uiLink"
               ],
               "type": "object"
             },

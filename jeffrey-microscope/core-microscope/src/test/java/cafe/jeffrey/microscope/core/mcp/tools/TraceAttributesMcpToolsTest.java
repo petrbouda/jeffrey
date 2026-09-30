@@ -359,6 +359,9 @@ class TraceAttributesMcpToolsTest {
 
             assertEquals("OK", out.get("status").asString());
             assertEquals(TRACE_ID, match.get("trace").get("traceId").asString());
+            assertTrue(match.get("trace").get("uiLink").asString().contains("trace=" + TRACE_ID),
+                    "a matched trace links its own waterfall");
+            UiLinkRoutes.assertResolves(match.get("trace").get("uiLink").asString());
             assertEquals(TRACE_START_EPOCH_MS, match.get("trace").get("startEpochMs").asLong());
             assertFalse(match.get("trace").has("startMillisFromBeginning"), "one instant, on the epoch clock");
             assertEquals("a1b2", match.get("hits").get(0).get("spanId").asString());

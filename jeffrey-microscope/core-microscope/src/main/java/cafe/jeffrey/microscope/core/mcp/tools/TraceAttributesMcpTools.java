@@ -29,6 +29,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAttributeAnswers.Searc
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAttributeAnswers.Value;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAttributeAnswers.Values;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAttributeAnswers.ValuesStatus;
+import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceLinks;
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
@@ -287,7 +288,9 @@ public class TraceAttributesMcpTools {
                     followUp, uiLink));
         }
 
-        List<Match> all = result.matches().stream().map(Match::of).toList();
+        List<Match> all = result.matches().stream()
+                .map(match -> Match.of(match, TraceLinks.trace(profileId(), match.trace().traceId())))
+                .toList();
         // A total that drifted below the rows actually returned is raised to them.
         int total = Math.toIntExact(Math.max(result.totalMatching(), (long) start + all.size()));
         Search answer = FittingPage.largest(all.size(), shown -> {

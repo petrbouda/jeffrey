@@ -86,6 +86,12 @@ under **Not assessed** rather than being left out.
 - **Say what is missing.** A group the profiler never recorded, a report that requires preparation,
   an empty result — name it plainly. A gap reported is useful; a gap papered over sends the caller down a path that has no data under it.
 
+**Link everything you name.** Every trace, operation, flamegraph, class, endpoint or page a finding
+names carries its link beside it, exactly as a tool returned it: a row's own `uiLink` when the answer
+gave the row one (a trace, an operation, an exemplar), otherwise the `uiLink` of the answer the row
+came from. The caller shows them to the user, who opens what you found in one click. Never build or
+edit a URL, and never fetch one.
+
 ## What you never do
 
 - **No source.** Name the frame, never a file or a line: mapping frames onto the checkout is the

@@ -21,10 +21,12 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.ExemplarTrace;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.NotificationGroup;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.Notifications;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.NotificationsStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.OperationExport;
+import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.Operation;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.OperationFlamegraph;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.Operations;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.OperationsStatus;
@@ -35,6 +37,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.SpanFlamegraph
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.SpanFlamegraphStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.Trace;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAnswers.TraceExport;
+import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceLinks;
 import cafe.jeffrey.microscope.core.web.controllers.profile.SpanScopedGraphParameters;
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
@@ -74,7 +77,6 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -90,12 +92,6 @@ import java.util.Optional;
 public class TracesMcpTools {
 
     private static final MicroscopeView OPERATIONS_VIEW = MicroscopeView.TRACES_OPERATIONS;
-    private static final MicroscopeView ATTRIBUTE_SEARCH_VIEW = MicroscopeView.TRACES_ATTRIBUTE_SEARCH;
-    private static final String OPERATION_PARAM = "operation";
-    private static final String KIND_PARAM = "kind";
-    private static final String EVENT_TYPE_PARAM = "eventType";
-    private static final String TAB_PARAM = "tab";
-    private static final String TRACE_PARAM = "trace";
     private static final String FLAMES_TAB = "flames";
     private static final String SLOWEST_TAB = "slowest";
 
@@ -270,7 +266,10 @@ public class TracesMcpTools {
                     .with(FollowUpCalls.LIMIT, rows)
                     .with(FollowUpCalls.CURSOR, next.nextCursor())
                     .why(NEXT_PAGE_WHY));
-            return new Operations(OperationsStatus.OK, null, profileId(), List.copyOf(rowsShown), total,
+            List<Operation> operations = rowsShown.stream()
+                    .map(row -> Operation.of(row, operationUrl(row.name(), row.kind(), row.eventType(), null)))
+                    .toList();
+            return new Operations(OperationsStatus.OK, null, profileId(), operations, total,
                     next.hasMore(), next.nextCursor(), steps.followUp(), uiLink);
         }, FittingPage::fits).orElseThrow(() -> new ToolExecutionException(ROW_TOO_LARGE));
         return McpToolResult.of(answer);
@@ -393,7 +392,8 @@ public class TracesMcpTools {
             List<NotificationGroup> groupsShown = List.copyOf(all.subList(0, shown));
             NextSteps.Builder steps = NextSteps.builder(advertised);
             groupsShown.stream()
-                    .flatMap(group -> group.exemplarTraceIds().stream())
+                    .flatMap(group -> group.exemplarTraces().stream())
+                    .map(ExemplarTrace::traceId)
                     .findFirst()
                     .ifPresent(traceId -> steps.next(call(FollowUpCalls.TRACES_TRACE_EXPORT)
                             .with(FollowUpCalls.TRACE_ID, traceId)
@@ -432,7 +432,7 @@ public class TracesMcpTools {
         }
 
         String uiLink = operationUrl(operation.name(), operation.kind(), operation.eventType(), SLOWEST_TAB);
-        List<Trace> all = traces.stream().map(Trace::of).toList();
+        List<Trace> all = traces.stream().map(row -> Trace.of(row, traceUrl(row.traceId()))).toList();
         SlowestTraces answer = FittingPage.largest(all.size(), shown -> {
             List<Trace> tracesShown = List.copyOf(all.subList(0, shown));
             NextSteps.Builder steps = NextSteps.builder(advertised);
@@ -639,13 +639,18 @@ public class TracesMcpTools {
         return NO_SUCH_OPERATION.formatted(operation.name(), operation.kind(), operation.eventType());
     }
 
-    /** One notification kind, its offsets from the recording start placed on the epoch clock. */
-    private static NotificationGroup group(TraceNotificationGroupRow row, Optional<RecordingSpan> span) {
+    /**
+     * One notification kind, its offsets from the recording start placed on the epoch clock and each
+     * exemplar trace linked to its waterfall.
+     */
+    private NotificationGroup group(TraceNotificationGroupRow row, Optional<RecordingSpan> span) {
         return new NotificationGroup(row.type(), row.severity(), row.category(), row.source(), row.message(),
                 row.count(), row.traceCount(),
                 span.map(recording -> recording.epochAt(row.firstMillisFromBeginning())).orElse(null),
                 span.map(recording -> recording.epochAt(row.lastMillisFromBeginning())).orElse(null),
-                row.exemplarTraceIds());
+                row.exemplarTraceIds().stream()
+                        .map(traceId -> new ExemplarTrace(traceId, traceUrl(traceId)))
+                        .toList());
     }
 
     /**
@@ -686,29 +691,12 @@ public class TracesMcpTools {
         return McpNextTool.call(tool).with(FollowUpCalls.PROFILE_ID, profileId());
     }
 
-    /**
-     * The operations page showing one operation, optionally on one of its tabs. All three parts of the
-     * identity travel: a link carrying only the name would resolve to whichever of an inbound and an
-     * outbound call of that name came first.
-     */
     private String operationUrl(String name, String kind, String eventType, String tab) {
-        Map<String, String> query = UiLinks.query();
-        query.put(OPERATION_PARAM, name);
-        query.put(KIND_PARAM, kind);
-        query.put(EVENT_TYPE_PARAM, eventType);
-        query.put(TAB_PARAM, tab);
-        return UiLinks.view(profileId(), OPERATIONS_VIEW, query);
+        return TraceLinks.operation(profileId(), name, kind, eventType, tab);
     }
 
-    /**
-     * One trace's span waterfall. Addressed through the attribute-search page because that view opens
-     * the waterfall from the id alone - the operations page resolves a trace against the rows it has
-     * loaded, which a bare id cannot assume.
-     */
     private String traceUrl(String traceId) {
-        Map<String, String> query = UiLinks.query();
-        query.put(TRACE_PARAM, traceId);
-        return UiLinks.view(profileId(), ATTRIBUTE_SEARCH_VIEW, query);
+        return TraceLinks.trace(profileId(), traceId);
     }
 
     private String profileId() {

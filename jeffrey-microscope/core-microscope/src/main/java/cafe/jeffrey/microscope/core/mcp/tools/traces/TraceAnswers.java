@@ -36,6 +36,7 @@ public final class TraceAnswers {
 
     private static final String REASON = "Why there is nothing to list; null when status is OK";
     private static final String MARKDOWN_CHARS = "Characters of the Markdown export, before the text cap";
+    private static final String TRACE_LINK = "This trace's span waterfall in the Microscope UI, for the user";
     private static final String TRUNCATED = "Whether the Markdown was cut to fit the text cap with its footer";
 
     private TraceAnswers() {
@@ -89,13 +90,52 @@ public final class TraceAnswers {
             int spanCount,
             int errorCount,
             @McpDescription("Whether a span of this trace was synthesised from a platform event, such as a socket read")
-            boolean hasPlatformSpan) {
+            boolean hasPlatformSpan,
+            @McpDescription(TRACE_LINK)
+            String uiLink) {
 
-        public static Trace of(TraceRow row) {
+        public static Trace of(TraceRow row, String uiLink) {
             return new Trace(row.traceId(), row.rootName(), row.rootKind(), row.rootEventType(),
                     row.startEpochMillis(), row.durationNanos(), row.spanCount(), row.errorCount(),
-                    row.hasPlatformSpan());
+                    row.hasPlatformSpan(), uiLink);
         }
+    }
+
+    /**
+     * One traced operation's latency across the profile, durations in nanoseconds, with the page that
+     * shows it. The domain row carries no link, so the answer is its own record rather than the row.
+     */
+    public record Operation(
+            String name,
+            String kind,
+            String eventType,
+            long count,
+            long errorCount,
+            long notificationCount,
+            @McpDescription("How many of this operation's notifications were CRITICAL or HIGH")
+            long urgentNotificationCount,
+            long spanCount,
+            long totalNanos,
+            long p50Nanos,
+            long p95Nanos,
+            long p99Nanos,
+            long maxNanos,
+            @McpDescription("This operation in the Microscope UI, for the user")
+            String uiLink) {
+
+        public static Operation of(TraceOperationRow row, String uiLink) {
+            return new Operation(row.name(), row.kind(), row.eventType(), row.count(), row.errorCount(),
+                    row.notificationCount(), row.urgentNotificationCount(), row.spanCount(), row.totalNanos(),
+                    row.p50Nanos(), row.p95Nanos(), row.p99Nanos(), row.maxNanos(), uiLink);
+        }
+    }
+
+    /** A trace named as an example, with the page that opens it. */
+    public record ExemplarTrace(
+            @McpDescription("The trace id as a hex string, the one traces_traceExport takes")
+            String traceId,
+            @McpDescription(TRACE_LINK)
+            String uiLink) {
     }
 
     public record Overview(
@@ -119,7 +159,7 @@ public final class TraceAnswers {
             String reason,
             String profileId,
             @McpDescription("This page of operations, durations in nanoseconds")
-            List<TraceOperationRow> operations,
+            List<Operation> operations,
             @McpDescription("Operations matching the filters, across every page")
             long totalMatching,
             boolean hasMore,
@@ -134,7 +174,7 @@ public final class TraceAnswers {
     /**
      * One kind of notification, the instants on the epoch clock.
      *
-     * @param exemplarTraceIds a few traces that raised it, slowest first, for traces_traceExport
+     * @param exemplarTraces a few traces that raised it, slowest first, for traces_traceExport
      */
     public record NotificationGroup(
             @McpNullable
@@ -157,7 +197,8 @@ public final class TraceAnswers {
             @McpNullable
             @McpDescription("When it was last raised, as UTC epoch milliseconds; null when the profile has no recording span")
             Long lastEpochMs,
-            List<String> exemplarTraceIds) {
+            @McpDescription("A few traces that raised it, slowest first")
+            List<ExemplarTrace> exemplarTraces) {
     }
 
     public record Notifications(

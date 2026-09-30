@@ -75,6 +75,12 @@ about how these numbers were obtained.
 - **Every number comes from a tool result.** Never estimate or round a figure you did not see.
 - **Say what is missing.** A report never computed, a path that does not exist — name it.
 
+**Link everything you name.** Every trace, operation, flamegraph, class, endpoint or page a finding
+names carries its link beside it, exactly as a tool returned it: a row's own `uiLink` when the answer
+gave the row one (a trace, an operation, an exemplar), otherwise the `uiLink` of the answer the row
+came from. The caller shows them to the user, who opens what you found in one click. Never build or
+edit a URL, and never fetch one.
+
 ## What you never do
 
 - **No source.** Name the class and the field, never a file or a line.
