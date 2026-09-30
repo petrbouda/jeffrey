@@ -1116,6 +1116,14 @@ public class JdbcTraceRepository implements TraceRepository {
                 ORDER BY start_timestamp, trace_id
                 LIMIT :limit""".formatted(OPERATION_PREDICATE));
 
+    // Ranked over every trace of the type, not over the chronological page above. The trace_id
+    // tie-break serves the same purpose as there: durations tie, and a tied row at the LIMIT
+    // boundary would otherwise come and go between two identical requests.
+    private static final String SLOWEST_TRACES_OF_OPERATION = TRACE_SUMMARIES.formatted("""
+            WHERE %s
+                ORDER BY duration DESC, trace_id
+                LIMIT :limit""".formatted(OPERATION_PREDICATE));
+
     private static final String TRACE_BY_ID = TRACE_SUMMARIES.formatted("WHERE trace_id = :trace_id");
 
     /*
@@ -1944,6 +1952,17 @@ public class JdbcTraceRepository implements TraceRepository {
         return databaseClient.query(
                 StatementLabel.TRACE_OPERATION_TRACES,
                 TRACES_OF_OPERATION,
+                params,
+                traceSummaryMapper());
+    }
+
+    @Override
+    public List<TraceSummaryRecord> slowestTracesOfOperation(TraceOperationId operation, int limit) {
+        MapSqlParameterSource params = operationParams(operation).addValue("limit", limit);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_OPERATION_SLOWEST_TRACES,
+                SLOWEST_TRACES_OF_OPERATION,
                 params,
                 traceSummaryMapper());
     }

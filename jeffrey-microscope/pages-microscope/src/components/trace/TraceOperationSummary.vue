@@ -178,12 +178,12 @@
           <template #actions>
             <span v-if="sampleNote" class="card-note">{{ sampleNote }}</span>
             <button
-              v-if="traces.length > SLOWEST_SHOWN"
+              v-if="slowest.length > SLOWEST_SHOWN"
               type="button"
               class="see-all"
               @click="emit('showAllTraces')"
             >
-              All {{ traces.length }} <i class="bi bi-arrow-right"></i>
+              All {{ slowest.length }} <i class="bi bi-arrow-right"></i>
             </button>
           </template>
         </MainCardHeader>
@@ -216,8 +216,7 @@ import TraceCardList from '@/components/trace/TraceCardList.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import {
   latencyHistogram,
-  quantileNanos,
-  slowestFirst
+  quantileNanos
 } from '@/services/trace/traceOperationStats';
 import type {
   TraceOperationId,
@@ -266,6 +265,8 @@ const props = defineProps<{
   totals: TraceOperationRow | null;
   /** Already fetched by the drill-down; summarised here rather than fetched a second time. */
   traces: TraceRow[];
+  /** The operation's slowest traces, longest first, ranked by the server over every trace of the type. */
+  slowest: TraceRow[];
   /** Whether `traces` is a truncated sample rather than every trace of the operation. */
   truncated: boolean;
   /** Profile-wide totals, for the share this operation accounts for. */
@@ -279,10 +280,8 @@ const error = ref<string | null>(null);
 const spans = ref<TraceOperationSpanRow[]>([]);
 const threadsSummary = ref<TraceOperationThreads | null>(null);
 
-/*
- * Sorted here rather than left to the list: handing it a pre-cut page means cutting the right one.
- */
-const slowestTraces = computed(() => slowestFirst(props.traces).slice(0, SLOWEST_SHOWN));
+/* Already ranked by the server; `traces` is a chronological page and must never be ranked here. */
+const slowestTraces = computed(() => props.slowest.slice(0, SLOWEST_SHOWN));
 
 const durationsNanos = computed(() => props.traces.map(trace => trace.durationNanos));
 

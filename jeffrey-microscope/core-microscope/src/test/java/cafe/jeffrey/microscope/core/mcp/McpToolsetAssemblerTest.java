@@ -1345,7 +1345,7 @@ class McpToolsetAssemblerTest {
                     .thenAnswer(invocation -> operationSummary(invocation.getArgument(1)));
             lenient().when(traceManager.notifications(any())).thenAnswer(invocation ->
                     notificationKinds(invocation.<TraceNotificationListQuery>getArgument(0).limit()));
-            lenient().when(traceManager.tracesOfOperation(any(), anyInt()))
+            lenient().when(traceManager.slowestTracesOfOperation(any(), anyInt()))
                     .thenAnswer(invocation -> tracesOfOperation(invocation.getArgument(1)));
         }
 

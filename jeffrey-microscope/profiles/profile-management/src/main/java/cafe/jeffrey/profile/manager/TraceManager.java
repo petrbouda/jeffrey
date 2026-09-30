@@ -68,6 +68,14 @@ public interface TraceManager {
     List<TraceRow> tracesOfOperation(TraceOperationId operation, int limit);
 
     /**
+     * @param operation the trace type to list
+     * @param limit     maximum number of traces to return
+     * @return the slowest traces of one type, longest first, chosen from every trace of the type
+     *         rather than from the chronological page {@link #tracesOfOperation} returns
+     */
+    List<TraceRow> slowestTracesOfOperation(TraceOperationId operation, int limit);
+
+    /**
      * @return profile-wide trace totals and latency percentiles, describing the whole recording
      *         rather than the capped list {@link #tracesOfOperation(TraceOperationId, int)} returns
      */
