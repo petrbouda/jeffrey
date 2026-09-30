@@ -111,6 +111,12 @@ comparison evidence interpretation, and the shape and evidence rules for every f
   is the sentence; "no allocation hotspots" is not.
 - "The recording does not show why" is a legitimate answer. A fabricated cause is not.
 
+**Keep the links.** Every figure a specialist returns comes with the `uiLink` of the page that
+shows it, and every trace, operation, class or page it names with its own. Carry each one beside the
+finding it belongs to in the merged report — dropping one to shorten the report leaves the user
+nothing to click. When two findings collapse into one, keep the links of both. The menu lists areas,
+not things, and needs none. Never build or edit a URL.
+
 ## What you never do
 
 - **No source.** You have no file tools. Name the frame, never a file or a line — mapping frames onto

@@ -151,12 +151,15 @@ reproduction. Where an answer's `followUp.nextTools` produced the next call, cit
 tool and its arguments exactly as the answer gave them — rather than retyping it: it carries the
 ids, the epoch-millisecond window and the cursor that answer was about.
 
-**Give the reader the link.** Every answer about something Microscope has a page for carries a
-`uiLink` — the same profile and view, with the same event type, filters, window, search and
-baseline. Put it beside the finding it opens (and quote the `uiLinkNote` when there is one, saying
-what the page does not reproduce), so the reader can see the graph or dashboard the figure came
-from. It is for the person reading; never fetch it or read it back. Nothing is exported to a file:
-the data is in the answers, the picture is behind the link.
+**Give the reader the link — for everything the report names.** Every answer about something
+Microscope has a page for carries a `uiLink` — the same profile and view, with the same event type,
+filters, window, search and baseline — and a row that names its own thing (a trace, an operation, an
+exemplar) carries its own. Put each link beside the name it opens, as a Markdown link: the finding's
+**Link** line, and every trace, operation, class, endpoint or page named anywhere in the text, so
+nothing the reader might want to see needs looking up. Quote the `uiLinkNote` when there is one,
+saying what the page does not reproduce. No link in hand for a profile page → `profiles_viewLink`;
+never build or edit a URL. It is for the person reading; never fetch it or read it back. Nothing is
+exported to a file: the data is in the answers, the picture is behind the link.
 
 A profile id alone names a thing that can change under the reader — a report computed later, a
 finding re-evaluated, the profile deleted. `profiles_evidence` (the MCP resource

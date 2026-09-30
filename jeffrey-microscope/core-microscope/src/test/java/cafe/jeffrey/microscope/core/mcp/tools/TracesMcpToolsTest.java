@@ -74,6 +74,7 @@ import java.util.stream.IntStream;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -304,6 +305,24 @@ class TracesMcpToolsTest {
             assertEquals(2, next.get("limit").asInt());
         }
 
+        /** A row names an operation the user can open, so it carries that operation's page, not the list's. */
+        @Test
+        void linksEveryOperationToItsOwnPage() {
+            when(traceManager.operations(any())).thenReturn(new TraceOperationsPage(
+                    List.of(operation("GET /a"), operation("GET /b")), 2));
+
+            JsonNode out = json("operations", tools().operations(null, null, null, 2, null));
+
+            for (JsonNode row : out.get("operations")) {
+                String uiLink = row.get("uiLink").asString();
+                assertTrue(uiLink.contains("operation=GET"), uiLink);
+                assertTrue(uiLink.contains("kind=" + KIND), uiLink);
+                UiLinkRoutes.assertResolves(uiLink);
+            }
+            assertNotEquals(out.get("operations").get(0).get("uiLink").asString(),
+                    out.get("operations").get(1).get("uiLink").asString(), "each row links its own operation");
+        }
+
         @Test
         void continuesFromTheCursorItHandedOut() {
             when(traceManager.operations(any())).thenReturn(new TraceOperationsPage(
@@ -403,7 +422,10 @@ class TracesMcpToolsTest {
 
             assertEquals("OK", out.get("status").asString());
             assertEquals("POOL_PRESSURE", group.get("type").asString());
-            assertEquals("7f3a91", group.get("exemplarTraceIds").get(0).asString());
+            JsonNode exemplar = group.get("exemplarTraces").get(0);
+            assertEquals("7f3a91", exemplar.get("traceId").asString());
+            assertTrue(exemplar.get("uiLink").asString().contains("trace=7f3a91"), exemplar.get("uiLink").asString());
+            UiLinkRoutes.assertResolves(exemplar.get("uiLink").asString());
             assertEquals(RECORDING_START_MS + 60_012, group.get("firstEpochMs").asLong());
             assertEquals(RECORDING_START_MS + 61_200, group.get("lastEpochMs").asLong());
             assertFalse(out.get("uiLinkNote").isNull(), "no page lists notifications, and the answer says so");
@@ -540,6 +562,23 @@ class TracesMcpToolsTest {
             for (String component : List.of("rootName", "rootKind", "rootEventType")) {
                 assertEquals("string", StructuredAnswers.schemaTypeOf(
                         TracesMcpTools.class, "slowestTraces", "traces", component).asString(), component);
+            }
+        }
+
+        /**
+         * The agent names a trace from this list to the user; without a link of its own that trace could
+         * only be opened after an expensive export.
+         */
+        @Test
+        void linksEveryTraceToItsWaterfall() {
+            when(traceManager.slowestTracesOfOperation(any(), anyInt())).thenReturn(List.of(trace("a1"), trace("b2")));
+
+            JsonNode out = json("slowestTraces", tools().slowestTraces(NAME, KIND, EVENT_TYPE, null));
+
+            for (JsonNode trace : out.get("traces")) {
+                String uiLink = trace.get("uiLink").asString();
+                assertTrue(uiLink.contains("trace=" + trace.get("traceId").asString()), uiLink);
+                UiLinkRoutes.assertResolves(uiLink);
             }
         }
 

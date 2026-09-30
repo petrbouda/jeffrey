@@ -166,8 +166,12 @@ public final class TraceAttributeAnswers {
     /** One matched trace, with the carriers that matched it, capped by the engine. */
     public record Match(TraceAnswers.Trace trace, List<Hit> hits) {
 
-        public static Match of(TraceAttributeSearchResult.Match match) {
-            return new Match(TraceAnswers.Trace.of(match.trace()), match.hits().stream().map(Hit::of).toList());
+        /**
+         * @param traceUiLink the matched trace's span waterfall in Microscope
+         */
+        public static Match of(TraceAttributeSearchResult.Match match, String traceUiLink) {
+            return new Match(TraceAnswers.Trace.of(match.trace(), traceUiLink),
+                    match.hits().stream().map(Hit::of).toList());
         }
     }
 
