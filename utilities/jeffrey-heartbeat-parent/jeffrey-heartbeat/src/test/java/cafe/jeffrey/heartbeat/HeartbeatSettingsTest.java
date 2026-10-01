@@ -89,7 +89,7 @@ class HeartbeatSettingsTest {
         }
 
         @Test
-        void isOffWhenTheProvisionerSaysTheAgentIsBeating() {
+        void isOffWhenTheApplicationSwitchesItOff() {
             HeartbeatSettings settings = resolve(Map.of(), Map.of(
                     HeartbeatSettings.ENABLED_ENV, "false",
                     HeartbeatSettings.DIRECTORY_ENV, "/sessions/s-1/.heartbeat"));

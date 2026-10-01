@@ -28,20 +28,19 @@ import java.time.Duration;
  * {@link HeartbeatSettings} the library consumes.
  *
  * <p><b>Every value is optional, and that is the point.</b> A provisioned application configures
- * itself: the Provisioner passes {@code -Djeffrey.heartbeat.dir} and
- * {@code -Djeffrey.heartbeat.enabled} in the argfile the JVM starts with, which Spring reads as
- * ordinary properties, and exports the matching {@code JEFFREY_HEARTBEAT_*} variables for a
- * deployment that sources the generated {@code .env} instead. These properties exist so a
- * deployment can override one of them in {@code application.yaml} without editing a generated file
- * — not because an application is expected to fill them in.</p>
+ * itself: the Provisioner passes {@code -Djeffrey.heartbeat.dir} in the argfile the JVM starts
+ * with, which Spring reads as an ordinary property, and exports {@code JEFFREY_HEARTBEAT_DIR} for a
+ * deployment that sources the generated {@code .env} instead. Reporting is on by default;
+ * {@code enabled} is the application's own way to switch it off, and the other two exist so a
+ * deployment can override them without editing a generated file.</p>
  *
  * <p>An unset value is left unset rather than defaulted here, so that
  * {@link HeartbeatSettings#fromEnvironment()} still gets its turn: the library's own resolution
  * knows about {@code JEFFREY_CURRENT_SESSION}, the older variable that names the session directory
  * rather than the heartbeat folder inside it, and defaulting here would shadow it.</p>
  *
- * @param enabled  whether liveness is reported at all; the Provisioner sets it from what the
- *                 session declared through {@code heartbeat.enabled}
+ * @param enabled  whether liveness is reported at all; on unless the application sets it to
+ *                 {@code false}
  * @param dir      where the liveness files go, when something other than the session directory
  * @param interval how often the heartbeat is rewritten
  */

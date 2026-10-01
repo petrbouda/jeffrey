@@ -218,7 +218,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           </tr>
           <tr>
             <td>The session never ends</td>
-            <td>No heartbeat file — the application does not carry the heartbeat library, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere</td>
+            <td>No heartbeat file — the application does not carry the heartbeat library, switched it off with <code>jeffrey.heartbeat.enabled=false</code>, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere. Such a session is closed when the instance's next session appears</td>
             <td>The Provisioner sets <code>heartbeat.dir</code>; a hand-set <code>jeffrey.heartbeat.dir</code> has to match the session path</td>
           </tr>
         </tbody>

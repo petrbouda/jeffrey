@@ -101,8 +101,7 @@ public abstract class HubMappers {
                     HubMappers.instant(rs, "origin_created_at"),
                     HubMappers.instant(rs, "created_at"),
                     HubMappers.instant(rs, "finished_at"),
-                    rs.getBoolean("retained"),
-                    rs.getObject("heartbeat_expected", Boolean.class)
+                    rs.getBoolean("retained")
             );
         };
     }

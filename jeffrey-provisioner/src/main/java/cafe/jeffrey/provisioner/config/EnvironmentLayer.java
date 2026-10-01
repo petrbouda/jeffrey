@@ -54,7 +54,6 @@ public abstract class EnvironmentLayer {
             new EnvBinding.Value("JEFFREY_WORKSPACES_DIR", ConfigPaths.WORKSPACES_DIR),
             new EnvBinding.Value("JEFFREY_PROFILER_PATH", ConfigPaths.PROFILER_PATH),
             new EnvBinding.Value("JEFFREY_PROFILER_COMMAND", ConfigPaths.PROFILER_COMMAND),
-            new EnvBinding.Flag("JEFFREY_HEARTBEAT_ENABLED", ConfigPaths.HEARTBEAT_ENABLED),
             new EnvBinding.Value("JEFFREY_REPOSITORY_TYPE", ConfigPaths.REPOSITORY_TYPE),
             new EnvBinding.Value("JEFFREY_ARG_FILE", ConfigPaths.ARG_FILE),
             new EnvBinding.Value("JEFFREY_ENV_FILE", ConfigPaths.ENV_FILE),

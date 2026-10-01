@@ -113,7 +113,7 @@ const moduleClient = `<plugin>
         that, when launched in a pod with <code>JEFFREY_ENABLED=true</code> and a populated
         <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
         the JVM starts and boots with the right async-profiler flags and
-        <code>-Djeffrey.heartbeat.*</code> properties. There is no Dockerfile and no shell script to
+        <code>-Djeffrey.heartbeat.dir</code> property. There is no Dockerfile and no shell script to
         maintain; the provisioner and async-profiler are installed by the extension under
         <code>/opt/jeffrey</code>.
       </p>

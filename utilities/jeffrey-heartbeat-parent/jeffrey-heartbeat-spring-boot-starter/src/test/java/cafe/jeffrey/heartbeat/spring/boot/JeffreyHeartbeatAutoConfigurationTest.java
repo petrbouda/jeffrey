@@ -34,19 +34,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JeffreyHeartbeatAutoConfigurationTest {
 
-    private static final String JEFFREY_ENABLED = JeffreyHeartbeatAutoConfiguration.JEFFREY_ENABLED_PROPERTY;
-
-    /** A jeffrey-jib pod that opted in: JEFFREY_ENABLED=true, which Spring binds to jeffrey.enabled. */
+    /** An application carrying the starter, configured by nothing but the dependency. */
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(JeffreyHeartbeatAutoConfiguration.class))
-            .withPropertyValues(JEFFREY_ENABLED + "=true");
-
-    /** The same jar in a container that never set the master switch. */
-    private final ApplicationContextRunner runnerWithoutSwitch = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(JeffreyHeartbeatAutoConfiguration.class));
 
     @Nested
     class Wiring {
+
+        @Test
+        void reportsWithNoSwitchSetAnywhere(@TempDir Path tempDir) {
+            // Carrying the dependency is the opt-in: no master switch, no Provisioner declaration
+            Path directory = tempDir.resolve(HeartbeatFiles.DIRECTORY);
+
+            runner.withPropertyValues("jeffrey.heartbeat.dir=" + directory)
+                    .run(context -> assertTrue(context.getBean(JeffreyHeartbeat.class).running()));
+        }
 
         @Test
         void beatsIntoTheConfiguredDirectory(@TempDir Path tempDir) {
@@ -89,28 +91,11 @@ class JeffreyHeartbeatAutoConfigurationTest {
     class SwitchedOff {
 
         @Test
-        void contributesNothingWhenDisabled(@TempDir Path tempDir) {
-            // What the Provisioner exports for a deployment that opted out of liveness reporting:
-            // the library must not write a heartbeat the hub was told not to expect
+        void contributesNothingWhenTheApplicationDisablesIt(@TempDir Path tempDir) {
+            // The application's own opt-out, and the only one: a provisioned directory does not
+            // override it
             runner.withPropertyValues(
                             "jeffrey.heartbeat.enabled=false",
-                            "jeffrey.heartbeat.dir=" + tempDir)
-                    .run(context -> assertFalse(context.containsBean("jeffreyHeartbeat")));
-        }
-
-        @Test
-        void contributesNothingWithoutTheMasterSwitch(@TempDir Path tempDir) {
-            // JEFFREY_ENABLED unset: no bean at all, even with a directory to write to
-            runnerWithoutSwitch.withPropertyValues("jeffrey.heartbeat.dir=" + tempDir)
-                    .run(context -> assertFalse(context.containsBean("jeffreyHeartbeat")));
-        }
-
-        @Test
-        void contributesNothingWhenTheMasterSwitchIsOff(@TempDir Path tempDir) {
-            // JEFFREY_ENABLED=false: the jeffrey-jib entrypoint bypassed the Provisioner, and the
-            // starter must not report for a session that was never created
-            runnerWithoutSwitch.withPropertyValues(
-                            JEFFREY_ENABLED + "=false",
                             "jeffrey.heartbeat.dir=" + tempDir)
                     .run(context -> assertFalse(context.containsBean("jeffreyHeartbeat")));
         }

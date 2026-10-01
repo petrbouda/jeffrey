@@ -76,8 +76,8 @@ class FileHeartbeatReaderTest {
     }
 
     /**
-     * Absence is evidence — it is what lets the finisher conclude a declared producer never
-     * reported. Every one of these must read as {@code Absent} and not as a failed read.
+     * Absence is evidence — it is what tells the finisher nothing in the session reports
+     * liveness. Every one of these must read as {@code Absent} and not as a failed read.
      */
     @Nested
     class NothingWritten {

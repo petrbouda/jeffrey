@@ -24,24 +24,11 @@ package cafe.jeffrey.shared.common.model.repository;
  * session of the instance. The project and workspace are not repeated here; the
  * directory the file sits in, and the project's own marker, already say them.
  * Files written by older provisioners carry more fields, which are ignored.
- *
- * <p>{@code heartbeatExpected} declares whether anything in this run will report
- * liveness — the {@code jeffrey-heartbeat} library, which is an ordinary
- * dependency of the application. The provisioner cannot detect that on its own:
- * whether the library is on the class path is a build-time fact, invisible to the
- * tool that writes the JVM arguments. So it is <em>declared</em>, from
- * {@code heartbeat.enabled} in the provisioner's configuration.
- *
- * <p>It is {@code null} in files written by older provisioners, and null means
- * <em>unknown</em> rather than false: the hub never applies the heartbeat deadline
- * to a session that did not promise to report, because failing to report liveness
- * it never promised is not evidence that it ended.</p>
  */
 public record RemoteProjectInstanceSession(
         String sessionId,
         String instanceId,
         long createdAt,
         int order,
-        String relativeSessionPath,
-        Boolean heartbeatExpected) {
+        String relativeSessionPath) {
 }

@@ -40,7 +40,6 @@ public class EnvFileBuilder {
     private static final String JEFFREY_PROJECT_PROP = "JEFFREY_CURRENT_PROJECT";
     private static final String JEFFREY_FILE_PATTERN_PROP = "JEFFREY_FILE_PATTERN";
     private static final String JEFFREY_HEARTBEAT_DIR_PROP = "JEFFREY_HEARTBEAT_DIR";
-    private static final String JEFFREY_HEARTBEAT_ENABLED_PROP = "JEFFREY_HEARTBEAT_ENABLED";
     private static final String JDK_JAVA_OPTIONS_PROP = "JDK_JAVA_OPTIONS";
 
     private static final String EXPORT_PREFIX = "export ";
@@ -50,16 +49,11 @@ public class EnvFileBuilder {
     /**
      * @param exportJdkJavaOptions also export the profiler command as {@code JDK_JAVA_OPTIONS},
      *                             which the JVM picks up without an argfile
-     * @param heartbeatEnabled     whether this session expects the {@code jeffrey-heartbeat}
-     *                             library to report liveness. Exported so the library reads it,
-     *                             and recorded in the session marker so the hub knows whether to
-     *                             hold the session to its heartbeat deadline
      */
     public record Context(
             SessionLayout layout,
             String profilerSettings,
-            boolean exportJdkJavaOptions,
-            boolean heartbeatEnabled
+            boolean exportJdkJavaOptions
     ) {}
 
     /**
@@ -86,7 +80,6 @@ public class EnvFileBuilder {
         // library still falls back to deriving it, for a session provisioned before this export.
         exports.add(export(JEFFREY_HEARTBEAT_DIR_PROP,
                 layout.session().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
-        exports.add(export(JEFFREY_HEARTBEAT_ENABLED_PROP, Boolean.toString(context.heartbeatEnabled())));
 
         // The flags reach the JVM through the argfile, or through JDK_JAVA_OPTIONS when that is
         // asked for. The .env file carries the layout, not a second copy of the command.

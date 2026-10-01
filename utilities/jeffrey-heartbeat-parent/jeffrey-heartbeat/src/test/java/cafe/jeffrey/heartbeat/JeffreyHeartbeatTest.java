@@ -130,7 +130,7 @@ class JeffreyHeartbeatTest {
         }
 
         @Test
-        void whenTheProvisionerSaidTheAgentIsBeating(@TempDir Path tempDir) {
+        void whenTheApplicationSwitchedItOff(@TempDir Path tempDir) {
             Path directory = tempDir.resolve(HeartbeatFiles.DIRECTORY);
 
             JeffreyHeartbeat heartbeat =

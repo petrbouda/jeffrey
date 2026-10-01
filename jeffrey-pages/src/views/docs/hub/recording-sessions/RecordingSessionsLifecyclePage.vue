@@ -132,7 +132,7 @@ onMounted(() => {
         </ul>
 
         <h3 id="finish-detection-logic">Finish Detection Logic</h3>
-        <p>A scheduled job periodically evaluates each active session and applies the following rules. They apply only to sessions that declared they would report liveness — see <a href="#sessions-without-the-agent">Sessions That Report Nothing</a> for the rest.</p>
+        <p>A scheduled job periodically evaluates each active session and applies the following rules. A session is held to the heartbeat deadline only once it has written a liveness file — a heartbeat or the clean-exit marker; see <a href="#sessions-without-the-agent">Sessions That Report Nothing</a> for the rest.</p>
 
         <div class="detection-cases">
           <div class="detection-case finished-case">
@@ -156,40 +156,32 @@ onMounted(() => {
               <p>The last heartbeat timestamp is older than the staleness threshold. The session is marked as <strong>Finished</strong> using that timestamp.</p>
             </div>
           </div>
-          <div class="detection-case skip-case">
-            <div class="case-indicator"><i class="bi bi-hourglass-split"></i></div>
-            <div class="case-content">
-              <h4>No heartbeat, session is young</h4>
-              <p>No heartbeat has been recorded yet, but the session was created recently. The check is <strong>skipped</strong> because the application may not have started the heartbeat yet. The age is measured against the Hub's own clock, so it does not depend on the producing host's clock agreeing with the Hub's.</p>
-            </div>
-          </div>
           <div class="detection-case recovery-case">
             <div class="case-indicator"><i class="bi bi-question-circle"></i></div>
             <div class="case-content">
               <h4>A liveness file cannot be read</h4>
-              <p>A file is there — or the mount will not say — and the Hub cannot make sense of it: a permission error, a stale handle on a network mount, a truncated read, content that is not a timestamp. That says nothing about whether the JVM is running, so the detector <strong>leaves the session alone</strong> and reads again on its next sweep. Only a file that is genuinely absent counts as evidence, because a guessed timestamp here would be permanent.</p>
+              <p>A file is there — or the mount will not say — and the Hub cannot make sense of it: a permission error, a stale handle on a network mount, a truncated read, content that is not a timestamp. That says nothing about whether the JVM is running, so the detector <strong>leaves the session alone</strong> with a warning and reads again on its next sweep. Only a file that is genuinely absent counts as evidence, because a guessed timestamp here would be permanent.</p>
             </div>
           </div>
-          <div class="detection-case recovery-case">
-            <div class="case-indicator"><i class="bi bi-arrow-repeat"></i></div>
+          <div class="detection-case skip-case">
+            <div class="case-indicator"><i class="bi bi-hourglass-split"></i></div>
             <div class="case-content">
-              <h4>Nothing written at all, session is old</h4>
-              <p>The session promised to report, the <code>.heartbeat/</code> files are genuinely absent, and the session is older than the threshold — a JVM that crashed during startup, or a mount it could not write to. The detector marks it as <strong>Finished</strong> using the session's own start time, which is a timestamp the session really has, rather than the moment the sweep happened to run.</p>
+              <h4>No liveness file at all</h4>
+              <p>Neither <code>.heartbeat/heartbeat</code> nor <code>.heartbeat/finished</code> exists. The JVM may still be starting, or nothing in it reports — no library, or an application that switched it off — and the two look the same from the Hub. The session is <strong>left alone</strong>, however old it is, because finishing it would end a session the profiler may still be writing. There is no startup deadline.</p>
             </div>
           </div>
         </div>
 
         <h3 id="sessions-without-the-agent">Sessions That Report Nothing</h3>
-        <p>Liveness comes from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, which is an ordinary dependency of the application. Whether it is on the class path is a build-time fact the Provisioner cannot detect, so it is <strong>declared</strong> — and declared <em>off</em> unless a deployment says otherwise, since a session wrongly claiming to report is finished at its own start timestamp seconds after it begins. Set <code>heartbeat.enabled = true</code> once the dependency is there.</p>
-        <p>Such a session writes no <code>.heartbeat/</code> files at all, so there is no signal to go stale, and the detector leaves it alone rather than finishing it for failing to report liveness it never promised. Those sessions are finished instead when the instance's <strong>next session appears</strong> on shared storage: materializing a new session closes any unfinished predecessor of the same instance.</p>
+        <p>Liveness comes from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, which is an ordinary dependency of the application. It reports whenever it is on the class path, and only the application can switch it off, with <code>jeffrey.heartbeat.enabled=false</code>. Nothing tells the Hub in advance whether a session will report: the Provisioner has no heartbeat setting, and the Hub learns it from the first liveness file that appears.</p>
+        <p>A session without the library, or with it switched off, writes no <code>.heartbeat/</code> files at all, so there is no signal to go stale, and the detector leaves it alone. Those sessions are finished instead when the instance's <strong>next session appears</strong> on shared storage: materializing a new session closes any unfinished predecessor of the same instance, at the clean-exit or last-heartbeat timestamp when one exists, otherwise at the next session's start.</p>
         <p>The consequence is that the last session of an instance that never restarts stays Active until something else ends it, which is the honest answer — with nothing reporting, nothing on disk distinguishes a JVM that stopped from one that is simply quiet.</p>
-        <p>Sessions declared by a Provisioner older than this field are treated as <em>unknown</em> rather than as reporting nothing, so an existing long-running session is never finished prematurely by an upgrade.</p>
 
         <h3 id="jvm-crash-logs">JVM Crash Logs</h3>
         <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>, or <code>hs-jvm-err.log</code> when the Provisioner named it) is left in the session directory. The Hub classifies it as a <em>HotSpot Error Log</em> and lists it beside the session's other files, where it can be downloaded or fetched by a coding agent. The Hub does not read the file and raises no event for it: the detector finishes the session on the heartbeat evidence alone, and whether a crashed session is worth keeping is a decision left to whoever investigates it — see <a href="#retained-sessions">Retained Sessions</a>.</p>
 
         <h3 id="heartbeat-recovery">Hub Restart</h3>
-        <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts. The detector reads those files again when it resumes, using the clean-exit timestamp first and the last heartbeat timestamp when stale. If neither file exists, the normal age check applies; if one exists but cannot be read, the session is left for the next sweep.</p>
+        <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts. The detector reads those files again when it resumes, using the clean-exit timestamp first and the last heartbeat timestamp when stale. If neither file exists, the session is left alone until the instance's next session appears; if one exists but cannot be read, the session is left for the next sweep.</p>
 
         <DocsCallout type="info">
           <strong>Scheduler job:</strong> The Session Finished Detector job runs every 30 seconds by default on Jeffrey Hub to evaluate heartbeat staleness and detect finished sessions.

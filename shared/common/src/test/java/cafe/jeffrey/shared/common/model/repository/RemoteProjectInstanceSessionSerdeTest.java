@@ -50,44 +50,13 @@ class RemoteProjectInstanceSessionSerdeTest {
         RemoteProjectInstanceSession session = Json.read(olderFormat, RemoteProjectInstanceSession.class);
 
         assertEquals(new RemoteProjectInstanceSession(
-                "session-001", "inst-001", 1700000000000L, 1, "inst-001/session-001", true), session);
-    }
-
-    @Test
-    void sessionInfo_withoutHeartbeatDeclaration_isUnknownRatherThanFalse() {
-        String withoutHeartbeatField = """
-                {
-                    "sessionId": "session-001",
-                    "instanceId": "inst-001",
-                    "createdAt": 1700000000000,
-                    "order": 1,
-                    "relativeSessionPath": "inst-001/session-001"
-                }
-                """;
-
-        RemoteProjectInstanceSession session =
-                Json.read(withoutHeartbeatField, RemoteProjectInstanceSession.class);
-
-        // Not merely absent: null is what tells the hub this session never declared whether
-        // anything would report liveness, so it must not be finished for failing to report it
-        assertNull(session.heartbeatExpected());
-    }
-
-    @Test
-    void sessionInfo_declaringNoHeartbeat_roundTripsAsFalse() {
-        RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
-                "session-001", "inst-001", 1700000000000L, 1, "inst-001/session-001", false);
-
-        RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
-
-        assertEquals(Boolean.FALSE, read.heartbeatExpected());
-        assertEquals(session, read);
+                "session-001", "inst-001", 1700000000000L, 1, "inst-001/session-001"), session);
     }
 
     @Test
     void currentSessionInfo_roundTrips() {
         RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
-                "session-001", "inst-001", 1700000000000L, 2, "inst-001/session-001", true);
+                "session-001", "inst-001", 1700000000000L, 2, "inst-001/session-001");
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 

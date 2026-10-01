@@ -55,7 +55,7 @@ class FileSystemRepositoryTest {
 
     /** What the hub reads to materialize a session, plus the order the provisioner reads back. */
     private static final Set<String> SESSION_INFO_FIELDS = Set.of(
-            "sessionId", "instanceId", "createdAt", "order", "relativeSessionPath", "heartbeatExpected");
+            "sessionId", "instanceId", "createdAt", "order", "relativeSessionPath");
 
     private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {
     };
@@ -121,7 +121,7 @@ class FileSystemRepositoryTest {
                     workspacePath.resolve(PROJECT_NAME).resolve(INSTANCE_ID).resolve(SESSION_ID));
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
-            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath, true);
+            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath);
 
             Map<String, Object> written = Json.read(
                     Files.readString(sessionPath.resolve(JeffreyLayout.SESSION_INFO_FILE)), JSON_OBJECT);
@@ -135,7 +135,7 @@ class FileSystemRepositoryTest {
                     workspacePath.resolve(PROJECT_NAME).resolve(INSTANCE_ID).resolve(SESSION_ID));
             var repository = new FileSystemRepository(FIXED_CLOCK, workspacePath);
 
-            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath, true);
+            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath);
 
             List<Path> entries = pendingEntries(workspacePath);
             assertEquals(1, entries.size());
@@ -154,7 +154,7 @@ class FileSystemRepositoryTest {
             repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
                     "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
             repository.addInstance(INSTANCE_ID, PROJECT_ID, WORKSPACE_REF_ID, instancePath);
-            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath, true);
+            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath);
 
             assertEquals(3, pendingEntries(workspacePath).size());
         }

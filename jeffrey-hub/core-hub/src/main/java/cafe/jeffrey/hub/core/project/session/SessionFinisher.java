@@ -89,10 +89,10 @@ public class SessionFinisher {
      * or the provided fallback if no heartbeat is available. No staleness check is performed.
      * Used when closing previous sessions before creating a new one.
      *
-     * <p>This is the only way a session that never promised to report liveness is finished: it
-     * writes no liveness files, so there is nothing for {@link #tryFinishFromHeartbeat} to
-     * read, and the arrival of the instance's next session is the only evidence the hub has
-     * that the previous one ended.</p>
+     * <p>This is the only way a session that never reported liveness is finished: it wrote no
+     * liveness files, so there is nothing for {@link #tryFinishFromHeartbeat} to read, and the
+     * arrival of the instance's next session is the only evidence the hub has that the previous
+     * one ended.</p>
      */
     public void forceFinish(SessionRef ref, Instant fallbackFinishedAt) {
         Instant finishedAt = fileHeartbeatReader.readFinishedMarker(ref.path()).timestamp()
@@ -105,14 +105,15 @@ public class SessionFinisher {
      * Applies the heartbeat deadline to one unfinished session and marks it finished when it
      * has stopped reporting. Used by the polling detector.
      *
-     * <p>Only a session that promised to report liveness is held to this deadline. The writer is
-     * the {@code jeffrey-heartbeat} library, an ordinary dependency of the profiled application,
-     * so whether anything will report is a build-time fact the provisioner cannot detect — it is
-     * declared, through {@code heartbeat.enabled}. A session that never made that promise must not
-     * be finished for failing to keep it; those are closed instead when the instance's next
-     * session appears, by {@link #forceFinish}.</p>
+     * <p>A session is held to this deadline only once it has shown that it reports liveness, by
+     * writing a liveness file. The writer is the {@code jeffrey-heartbeat} library, an ordinary
+     * dependency of the profiled application that is on unless the application switches it off,
+     * so nothing outside the application declares whether it will report. A session that never
+     * wrote a liveness file — no library, or one the application disabled — is not finished for
+     * staying silent; it is closed when the instance's next session appears, by
+     * {@link #forceFinish}.</p>
      *
-     * <p>Four outcomes for a session that did declare one:</p>
+     * <p>Four outcomes:</p>
      * <ol>
      *   <li>the clean-exit marker is present — finished at the timestamp it carries. Checked
      *   first and by presence alone, so it is immune to clock skew between the producing host
@@ -121,37 +122,23 @@ public class SessionFinisher {
      *   <li>the heartbeat has gone stale — finished at the last heartbeat, which is when the
      *   JVM was last known alive. This is the crash path, where nothing closed the library;</li>
      *   <li>a liveness file could not be read — left alone. A file that is there and unreadable
-     *   says nothing about whether the JVM is running, and the timestamp below would be a
-     *   fabrication rather than a reading. The next sweep looks again, and an instance whose
-     *   volume never recovers is closed by its next session instead;</li>
-     *   <li>no liveness file at all past the deadline — the library never got as far as writing
-     *   one (a crash during startup, or a mount the JVM could not write to). Finished at
-     *   {@code originCreatedAt}: a real timestamp the session actually has, rather than the
-     *   moment this sweep happened to notice.</li>
+     *   says nothing about whether the JVM is running, and any timestamp would be a fabrication
+     *   rather than a reading. The next sweep looks again, and an instance whose volume never
+     *   recovers is closed by its next session instead;</li>
+     *   <li>no liveness file at all — left alone. Either the JVM is still starting up, or nothing
+     *   in it reports; the two look the same from here, and finishing the second kind would end
+     *   a session the profiler is still writing.</li>
      * </ol>
      *
-     * <p>The order of 3 and 4 is the whole point of {@link LivenessRead} having three states.
-     * Read as one, a mount that answers an ordinary {@code IOException} looks exactly like a
-     * session that never reported, and every declared session on that volume is finished at its
-     * own start timestamp — irreversibly, since only unfinished sessions are ever revisited.</p>
-     *
-     * <p>The deadline in case 4 is measured against {@code createdAt} — the hub's own clock at
-     * materialization — and not against {@code originCreatedAt}, which the producer wrote. The
-     * comparison is then skew-free even though the timestamp it records is not; case 2 keeps
-     * the skew sensitivity the heartbeat file inherently has, and a hub-side freshness tracker
-     * that remembers when each heartbeat value was first observed would remove it there too.</p>
+     * <p>The order of 3 and 4 matters even though both leave the session alone: a mount that
+     * answers an ordinary {@code IOException} is worth a warning, an application without the
+     * library is not.</p>
      *
      * @return true if session was marked finished
      */
     public boolean tryFinishFromHeartbeat(SessionRef ref, Duration heartbeatThreshold) {
         ProjectInstanceSessionInfo sessionInfo = ref.session();
         Path sessionPath = ref.path();
-
-        if (!sessionInfo.expectsHeartbeat()) {
-            LOG.trace("Session promised no liveness, no heartbeat deadline applies: session_id={}",
-                    sessionInfo.sessionId());
-            return false;
-        }
 
         // Case 1: clean-exit marker, written when the application shut down cleanly
         LivenessRead finishedMarker = fileHeartbeatReader.readFinishedMarker(sessionPath);
@@ -161,11 +148,10 @@ public class SessionFinisher {
             return true;
         }
 
-        Instant deadline = clock.instant().minus(heartbeatThreshold);
-
         // Case 2: the JVM stopped beating without writing the clean-exit marker
         LivenessRead lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
         if (lastHeartbeat instanceof LivenessRead.Reported(Instant heartbeatAt)) {
+            Instant deadline = clock.instant().minus(heartbeatThreshold);
             if (heartbeatAt.isBefore(deadline)) {
                 LOG.trace("Stale heartbeat, marking finished: session_id={} last_heartbeat={}",
                         sessionInfo.sessionId(), heartbeatAt);
@@ -185,17 +171,10 @@ public class SessionFinisher {
             return false;
         }
 
-        // Case 4: liveness was promised and nothing was ever written. Inside the deadline that is
-        // a JVM still starting up; past it, one that never got far enough to report.
-        if (sessionInfo.createdAt().isAfter(deadline)) {
-            LOG.trace("No heartbeat yet, still within startup deadline: session_id={} created_at={}",
-                    sessionInfo.sessionId(), sessionInfo.createdAt());
-            return false;
-        }
-
-        LOG.trace("Promised liveness never arrived, marking finished at session start: session_id={}",
+        // Case 4: nothing reports liveness for this session, at least not yet. It is closed by
+        // the instance's next session instead.
+        LOG.trace("No liveness reported, no heartbeat deadline applies: session_id={}",
                 sessionInfo.sessionId());
-        markFinished(ref, sessionInfo.originCreatedAt());
-        return true;
+        return false;
     }
 }

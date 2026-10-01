@@ -133,8 +133,7 @@ public class FileSystemRepository {
             String sessionId,
             String instanceId,
             int order,
-            Path sessionPath,
-            boolean heartbeatExpected) {
+            Path sessionPath) {
         LOG.debug("Adding session to filesystem repository: sessionId={} instanceId={} sessionPath={}", sessionId, instanceId, sessionPath);
         try {
             // Build relative session path: instanceId/sessionId (instance is always required)
@@ -145,8 +144,7 @@ public class FileSystemRepository {
                     instanceId,
                     clock.instant().toEpochMilli(),
                     order,
-                    relativeSessionPath,
-                    heartbeatExpected);
+                    relativeSessionPath);
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             writeAtomically(sessionInfoFile, Json.toString(session));
