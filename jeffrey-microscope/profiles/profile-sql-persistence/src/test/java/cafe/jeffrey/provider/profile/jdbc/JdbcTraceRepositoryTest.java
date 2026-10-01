@@ -47,7 +47,11 @@ import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
+import cafe.jeffrey.provider.profile.api.TracePromotedGroupRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanRunRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanShape;
+import cafe.jeffrey.provider.profile.api.TraceWindowRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceThrottleWindowRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
@@ -64,6 +68,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +101,8 @@ class JdbcTraceRepositoryTest {
     private static final long EPOCH_10_00_00 = 1736935200000L;
 
     private static final String HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange";
+    /** A run length no sibling group reaches, so every read returns every span on its own. */
+    private static final int NO_FOLDING = Integer.MAX_VALUE;
 
     private static final TraceOperationId FLAMEGRAPH_OPERATION = operation(
             "POST /api/internal/profiles/{profileId}/flamegraph", "SERVER", HTTP_SERVER_EXCHANGE);
@@ -293,12 +302,12 @@ class JdbcTraceRepositoryTest {
             // A re-import used to double every span and then fail on the traces primary key, leaving
             // spans behind that no trace header accounted for.
             JdbcTraceRepository repository = derived(dataSource);
-            List<TraceSpanRecord> once = repository.spansOf(SLOW_TRACE);
+            List<TraceSpanRecord> once = repository.spansOf(SLOW_TRACE, NO_FOLDING);
             TraceOverviewRecord overviewOnce = repository.overview();
 
             repository.derive();
 
-            assertEquals(once, repository.spansOf(SLOW_TRACE));
+            assertEquals(once, repository.spansOf(SLOW_TRACE, NO_FOLDING));
             assertEquals(overviewOnce, repository.overview());
         }
 
@@ -349,7 +358,7 @@ class JdbcTraceRepositoryTest {
         void derivesOnlyTracedEvents(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
+            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE, NO_FOLDING);
 
             // The HTTP exchange, the two JDBC queries and the hand-written span -- but neither the
             // untraced JDBC row nor the execution sample.
@@ -363,7 +372,7 @@ class JdbcTraceRepositoryTest {
         void keepsRecordedIdentity(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
+            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE, NO_FOLDING);
             Map<String, TraceSpanRecord> byName = spans.stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
@@ -382,7 +391,7 @@ class JdbcTraceRepositoryTest {
         void reportsVirtualThreads(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             // Samples are attributed to the carrier, so this is what decides whether a span can have
@@ -400,7 +409,7 @@ class JdbcTraceRepositoryTest {
         void preservesIdBoundaries(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
+            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE, NO_FOLDING);
 
             assertTrue(spans.stream().allMatch(span -> span.traceId() == Long.MAX_VALUE));
             assertTrue(spans.stream().anyMatch(span -> span.spanId() == NEGATIVE_SPAN_ID),
@@ -414,7 +423,7 @@ class JdbcTraceRepositoryTest {
         void normalisesTheRootParent(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             TraceSpanRecord root = byName.get("POST /api/internal/profiles/{profileId}/flamegraph");
@@ -428,7 +437,7 @@ class JdbcTraceRepositoryTest {
         void readsNameAndKindFromTheEvent(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             // Three event types, one uniform shape: an exchange is the inbound side by construction,
@@ -443,7 +452,7 @@ class JdbcTraceRepositoryTest {
         void unwrapsHandWrittenAttributes(DataSource dataSource) throws SQLException {
             // TraceSpanEvent.attributes is itself a JSON object encoded as a string, so it is taken
             // out whole rather than merged with the event's own columns.
-            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             assertEquals("{\"eventType\":\"jdk.ExecutionSample\",\"depth\":7}",
@@ -455,7 +464,7 @@ class JdbcTraceRepositoryTest {
         void derivesEventFieldsFromTheEvent(DataSource dataSource) throws SQLException {
             // A statement attaches no attribute map; what makes it worth reading is the SQL and the
             // row count, which are declared fields of the event itself.
-            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             String attributes = byName.get("listSpans").eventFields();
@@ -470,7 +479,7 @@ class JdbcTraceRepositoryTest {
         void stripsPlumbingFromEventFields(DataSource dataSource) throws SQLException {
             // Ids, JFR's own columns and the name the span already carries are not detail about the
             // operation, and repeating them would bury the two or three keys that are.
-            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             String attributes = byName.get("listSpans").eventFields();
@@ -494,7 +503,7 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
             repository.derive();
 
-            TraceSpanRecord failed = repository.spansOf(502L).getFirst();
+            TraceSpanRecord failed = repository.spansOf(502L, NO_FOLDING).getFirst();
 
             assertEquals("ERROR", failed.status(), "the span is still judged by the code");
             assertTrue(failed.eventFields().contains("\"status\":500"), failed.eventFields());
@@ -505,7 +514,7 @@ class JdbcTraceRepositoryTest {
         void keepsExchangeDetailInEventFields(DataSource dataSource) throws SQLException {
             // The span's name is built from method and URI, but both stay in the attributes: the
             // name is for scanning the waterfall, the attributes for reading one span closely.
-            TraceSpanRecord exchange = derived(dataSource).spansOf(FAST_TRACE).getFirst();
+            TraceSpanRecord exchange = derived(dataSource).spansOf(FAST_TRACE, NO_FOLDING).getFirst();
 
             assertTrue(exchange.eventFields().contains("\"statusCode\":500"), exchange.eventFields());
             assertTrue(exchange.eventFields().contains("\"method\":\"GET\""), exchange.eventFields());
@@ -519,7 +528,7 @@ class JdbcTraceRepositoryTest {
             // They are different kinds of thing and no event carries both: an attribute map is what
             // a hand-written span attached to itself, event fields are its event type's schema.
             // Merging them into one column is what made a statement's `sql` look hand-attached.
-            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             TraceSpanRecord handWritten = byName.get("flamegraph.generate");
@@ -538,7 +547,7 @@ class JdbcTraceRepositoryTest {
         void countsRecordedFailures(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
+            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
             TraceSpanRecord failed = byName.get("flamegraph.generate");
@@ -561,7 +570,7 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
             repository.derive();
 
-            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
+            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE, NO_FOLDING);
 
             assertEquals(spans.size(), spans.stream().map(TraceSpanRecord::spanId).distinct().count(),
                     "a span id has to identify exactly one span");
@@ -584,7 +593,7 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
             repository.derive();
 
-            TraceSpanRecord bare = repository.spansOf(SLOW_TRACE).stream()
+            TraceSpanRecord bare = repository.spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .filter(span -> span.spanId() == BARE_SPAN_ID)
                     .findFirst()
                     .orElseThrow();
@@ -624,7 +633,7 @@ class JdbcTraceRepositoryTest {
         }
 
         private Map<Long, TraceSpanRecord> spansById(JdbcTraceRepository repository, long traceId) {
-            return repository.spansOf(traceId).stream()
+            return repository.spansOf(traceId, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::spanId, Function.identity()));
         }
 
@@ -991,7 +1000,7 @@ class JdbcTraceRepositoryTest {
         void spansAreOrdered(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
+            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE, NO_FOLDING);
 
             assertEquals(List.of(0L, 10L, 20L, 60L),
                     spans.stream().map(TraceSpanRecord::startMillisFromBeginning).toList());
@@ -1007,7 +1016,7 @@ class JdbcTraceRepositoryTest {
             // the same instant, and the waterfall then draws sequential work as if it overlapped.
             JdbcTraceRepository repository = derived(dataSource);
 
-            TraceSpanRecord forked = repository.spansOf(SLOW_TRACE).stream()
+            TraceSpanRecord forked = repository.spansOf(SLOW_TRACE, NO_FOLDING).stream()
                     .filter(span -> "flamegraph.generate".equals(span.name()))
                     .findFirst()
                     .orElseThrow();
@@ -1237,7 +1246,7 @@ class JdbcTraceRepositoryTest {
         @Test
         @DisplayName("an unknown trace id yields no spans rather than failing")
         void unknownTraceIsEmpty(DataSource dataSource) throws SQLException {
-            assertTrue(derived(dataSource).spansOf(42L).isEmpty());
+            assertTrue(derived(dataSource).spansOf(42L, NO_FOLDING).isEmpty());
         }
 
         @Test
@@ -1289,7 +1298,7 @@ class JdbcTraceRepositoryTest {
 
             return java.util.stream.LongStream.rangeClosed(8001, 8005)
                     .boxed()
-                    .flatMap(traceId -> repository.spansOf(traceId).stream())
+                    .flatMap(traceId -> repository.spansOf(traceId, NO_FOLDING).stream())
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
         }
 
@@ -1621,7 +1630,7 @@ class JdbcTraceRepositoryTest {
         }
 
         private static List<TraceSpanRecord> promotedOf(JdbcTraceRepository repository) {
-            return repository.spansOf(CONTEXT_TRACE).stream()
+            return repository.spansOf(CONTEXT_TRACE, NO_FOLDING).stream()
                     .filter(TraceSpanRecord::synthesized)
                     .toList();
         }
@@ -1714,7 +1723,7 @@ class JdbcTraceRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/events/insert-pooled-field-events.sql");
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
             repository.derive();
-            return repository.spansOf(POOLED_TRACE);
+            return repository.spansOf(POOLED_TRACE, NO_FOLDING);
         }
 
         @Test
@@ -1915,9 +1924,9 @@ class JdbcTraceRepositoryTest {
             // structural, and a notification named the other way would be built into a nameless,
             // durationless span under everything that ever said anything.
             assertTrue(
-                    repository.spansOf(SLOW_TRACE).stream()
+                    repository.spansOf(SLOW_TRACE, NO_FOLDING).stream()
                             .noneMatch(span -> EventTypeName.NOTIFICATION.equals(span.eventType())),
-                    "notifications must not become spans: " + repository.spansOf(SLOW_TRACE));
+                    "notifications must not become spans: " + repository.spansOf(SLOW_TRACE, NO_FOLDING));
         }
 
         @Test
@@ -2218,7 +2227,7 @@ class JdbcTraceRepositoryTest {
         }
 
         private static List<TraceSpanRecord> promotedOf(JdbcTraceRepository repository) {
-            return repository.spansOf(BLOCKING_TRACE).stream()
+            return repository.spansOf(BLOCKING_TRACE, NO_FOLDING).stream()
                     .filter(TraceSpanRecord::synthesized)
                     .toList();
         }
@@ -2244,7 +2253,7 @@ class JdbcTraceRepositoryTest {
         }
 
         private static TraceSpanRecord spanOf(JdbcTraceRepository repository, long spanId) {
-            return repository.spansOf(BLOCKING_TRACE).stream()
+            return repository.spansOf(BLOCKING_TRACE, NO_FOLDING).stream()
                     .filter(span -> span.spanId() == spanId)
                     .findFirst()
                     .orElseThrow();
@@ -2755,7 +2764,7 @@ class JdbcTraceRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/events/insert-trace-method-traces.sql");
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
             repository.derive();
-            return repository.spansOf(METHOD_TRACE).stream()
+            return repository.spansOf(METHOD_TRACE, NO_FOLDING).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity(), (first, _) -> first));
         }
 
@@ -2938,6 +2947,162 @@ class JdbcTraceRepositoryTest {
             assertEquals(174_000_000L, inner.durationNanos());
             assertEquals(33_000_000L, inner.selfDurationNanos(),
                     "the adopted span's stretch is no more inner's own work than the socket read's");
+        }
+    }
+
+    @Nested
+    @DisplayName("Run folding")
+    class RunFolding {
+
+        private static final long RUN_TRACE = 9300L;
+        private static final long THREAD = 900L;
+        private static final long BASE_MICROS = EPOCH_10_00_00 * US_PER_MS;
+        private static final DateTimeFormatter TIMESTAMP =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").withZone(ZoneOffset.UTC);
+
+        /**
+         * root 1 (0..100ms) with: a recorded span 2 that has a child 3, so it is no leaf; four
+         * writes 10-13 (1, 4, 4 and 2ms) and a failed write 14; two class-loading reads 20-21 and two
+         * ordinary reads 22-23. Writes 10-12 and 14 share one payload, 13 has its own.
+         */
+        private JdbcTraceRepository repository(DataSource dataSource) throws SQLException {
+            try (Connection connection = dataSource.getConnection();
+                 Statement statement = connection.createStatement()) {
+                statement.execute("INSERT INTO threads (thread_hash, name, is_virtual) VALUES (900, 'worker', FALSE)");
+                statement.execute("INSERT INTO trace_span_payloads VALUES "
+                        + "(1, '{\"path\":\"/tmp/a\",\"bytesWritten\":10}'), "
+                        + "(2, '{\"path\":\"/tmp/b\",\"bytesWritten\":20}')");
+                statement.execute(("INSERT INTO traces VALUES (%d, 'root', 'INTERNAL', 'jeffrey.TraceSpan', 1, "
+                        + "'%s', 0, %d, 12, 1, TRUE)").formatted(RUN_TRACE, timestamp(0), 100 * MS));
+                insert(statement, 1, null, "root", "jeffrey.TraceSpan", "UNSET", 0, 100_000, null, false, null);
+                insert(statement, 2, 1L, "A", "jeffrey.TraceSpan", "UNSET", 10_000, 5_000, null, false, null);
+                insert(statement, 3, 2L, "A-inner", "jeffrey.TraceSpan", "UNSET", 11_000, 1_000, null, false, null);
+                insert(statement, 10, 1L, "File write", "jdk.FileWrite", "UNSET", 20_000, 1_000, null, true, 1L);
+                insert(statement, 11, 1L, "File write", "jdk.FileWrite", "UNSET", 30_000, 4_000, null, true, 1L);
+                insert(statement, 12, 1L, "File write", "jdk.FileWrite", "UNSET", 40_000, 4_000, null, true, 1L);
+                insert(statement, 13, 1L, "File write", "jdk.FileWrite", "UNSET", 50_000, 2_000, null, true, 2L);
+                insert(statement, 14, 1L, "File write", "jdk.FileWrite", "ERROR", 60_000, 1_000, null, true, 1L);
+                insert(statement, 20, 1L, "File read", "jdk.FileRead", "UNSET", 70_000, 100, "CLASS_LOADING", true, null);
+                insert(statement, 21, 1L, "File read", "jdk.FileRead", "UNSET", 71_000, 100, "CLASS_LOADING", true, null);
+                insert(statement, 22, 1L, "File read", "jdk.FileRead", "UNSET", 72_000, 100, null, true, null);
+                insert(statement, 23, 1L, "File read", "jdk.FileRead", "UNSET", 73_000, 100, null, true, null);
+            }
+            return new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+        }
+
+        private static void insert(
+                Statement statement, long spanId, Long parentSpanId, String name, String eventType, String status,
+                long startMicros, long durationMicros, String ioOrigin, boolean synthesized, Long payloadRef)
+                throws SQLException {
+
+            statement.execute(("INSERT INTO trace_spans (trace_id, span_id, parent_span_id, name, kind, status, "
+                    + "start_timestamp, start_timestamp_from_beginning, duration, self_duration, thread_hash, "
+                    + "event_type, event_fields_ref, synthesized, io_origin) VALUES "
+                    + "(%d, %d, %s, '%s', 'INTERNAL', '%s', '%s', %d, %d, %d, %d, '%s', %s, %s, %s)").formatted(
+                    RUN_TRACE, spanId, parentSpanId, name, status, timestamp(startMicros), startMicros / US_PER_MS,
+                    durationMicros * 1_000, durationMicros * 1_000, THREAD, eventType, payloadRef, synthesized,
+                    ioOrigin == null ? "NULL" : "'" + ioOrigin + "'"));
+        }
+
+        private static String timestamp(long offsetMicros) {
+            long micros = BASE_MICROS + offsetMicros;
+            return TIMESTAMP.format(Instant.ofEpochSecond(micros / 1_000_000, (micros % 1_000_000) * 1_000)) + "+00";
+        }
+
+        private static List<Long> ids(List<TraceSpanRecord> spans) {
+            return spans.stream().map(TraceSpanRecord::spanId).toList();
+        }
+
+        @Test
+        @DisplayName("folds leaf siblings sharing parent, name, event type and I/O origin, named by the lowest id")
+        void foldsSiblingRuns(DataSource dataSource) throws SQLException {
+            Map<Long, TraceSpanRunRecord> runs = repository(dataSource).runsOf(RUN_TRACE, 2).stream()
+                    .collect(Collectors.toMap(TraceSpanRunRecord::runId, Function.identity()));
+
+            assertEquals(Set.of(10L, 20L, 22L), runs.keySet(),
+                    "the writes, and the reads split by origin; the recorded spans are not leaf siblings");
+            TraceSpanRunRecord writes = runs.get(10L);
+            assertEquals(1L, writes.parentSpanId());
+            assertEquals("jdk.FileWrite", writes.eventType());
+            assertNull(writes.ioOrigin());
+            assertTrue(writes.synthesized());
+            assertEquals("worker", writes.firstThreadName());
+            assertEquals("CLASS_LOADING", runs.get(20L).ioOrigin());
+        }
+
+        @Test
+        @DisplayName("folds a group only once it reaches the minimum length")
+        void foldsAtTheThreshold(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = repository(dataSource);
+
+            assertEquals(List.of(10L), repository.runsOf(RUN_TRACE, 4).stream().map(TraceSpanRunRecord::runId).toList());
+            assertTrue(repository.runsOf(RUN_TRACE, 5).isEmpty());
+        }
+
+        @Test
+        @DisplayName("draws on their own the failed member, the non-leaves, and everything when nothing folds")
+        void spansLeaveOutOnlyMembers(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = repository(dataSource);
+
+            assertEquals(List.of(1L, 2L, 3L, 14L), ids(repository.spansOf(RUN_TRACE, 2)));
+            assertEquals(12, repository.spansOf(RUN_TRACE, NO_FOLDING).size());
+        }
+
+        @Test
+        @DisplayName("tags exactly the members in the shapes, which cover every span")
+        void shapesTagMembers(DataSource dataSource) throws SQLException {
+            List<TraceSpanShape> shapes = repository(dataSource).shapesOf(RUN_TRACE, 2);
+            Map<Long, Long> runOf = shapes.stream()
+                    .filter(shape -> shape.runId() != null)
+                    .collect(Collectors.toMap(TraceSpanShape::spanId, TraceSpanShape::runId));
+
+            assertEquals(Map.of(10L, 10L, 11L, 10L, 12L, 10L, 13L, 10L, 20L, 20L, 21L, 20L, 22L, 22L, 23L, 22L), runOf);
+            assertEquals(12, shapes.size());
+        }
+
+        @Test
+        @DisplayName("pages a run's members slowest first, ties by span id")
+        void pagesMembersSlowestFirst(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = repository(dataSource);
+
+            assertEquals(List.of(11L, 12L, 13L), ids(repository.runMembers(RUN_TRACE, 10, 2, 0, 3)));
+            assertEquals(List.of(10L), ids(repository.runMembers(RUN_TRACE, 10, 2, 3, 3)));
+        }
+
+        @Test
+        @DisplayName("reads one span by id, folded or not")
+        void readsOneSpan(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = repository(dataSource);
+
+            assertEquals("File write", repository.spanOf(RUN_TRACE, 12).orElseThrow().name());
+            assertEquals("{\"path\":\"/tmp/a\",\"bytesWritten\":10}", repository.spanOf(RUN_TRACE, 12).orElseThrow().eventFields());
+            assertTrue(repository.spanOf(RUN_TRACE, 999).isEmpty());
+        }
+
+        @Test
+        @DisplayName("takes the window from the trace header")
+        void windowFromHeader(DataSource dataSource) throws SQLException {
+            TraceWindowRecord window = repository(dataSource).windowOf(RUN_TRACE).orElseThrow();
+
+            assertEquals(BASE_MICROS, window.fromEpochMicros());
+            assertEquals(BASE_MICROS + 100_000, window.toEpochMicros());
+        }
+
+        @Test
+        @DisplayName("totals the synthesized spans per event type and payload")
+        void totalsPromotedGroups(DataSource dataSource) throws SQLException {
+            Map<String, TracePromotedGroupRecord> groups = repository(dataSource).promotedGroupsOf(RUN_TRACE).stream()
+                    .collect(Collectors.toMap(
+                            group -> group.eventType() + "|" + group.eventFields(), Function.identity()));
+
+            TracePromotedGroupRecord sharedPayload =
+                    groups.get("jdk.FileWrite|{\"path\":\"/tmp/a\",\"bytesWritten\":10}");
+            assertEquals(4, sharedPayload.count(), "10, 11, 12 and the failed 14");
+            assertEquals(10 * MS, sharedPayload.totalNanos());
+            assertEquals(4 * MS, sharedPayload.maxNanos());
+            assertEquals(1, groups.get("jdk.FileWrite|{\"path\":\"/tmp/b\",\"bytesWritten\":20}").count());
+            assertEquals(4, groups.get("jdk.FileRead|null").count());
+            assertEquals(3, groups.size(), "the recorded spans are not promoted");
         }
     }
 }

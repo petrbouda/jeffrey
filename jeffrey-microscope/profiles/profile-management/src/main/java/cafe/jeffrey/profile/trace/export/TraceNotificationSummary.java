@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.trace.export;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -67,23 +66,17 @@ record TraceNotificationSummary(List<TraceNotificationGroup> groups, long total,
 
     /**
      * @param notifications the trace's notifications, oldest first
-     * @param spans         the trace's spans, so a notification can be reported against a name rather
-     *                      than against a hex id no reader can resolve
+     * @param spanNames     the trace's span names by span id, so a notification can be reported
+     *                      against a name rather than against a hex id no reader can resolve
      * @param traceStartMs  when the trace started, in milliseconds from the recording's beginning, so
      *                      an occurrence can be placed relative to the trace rather than the recording
      */
     static TraceNotificationSummary of(
-            List<TraceNotificationRow> notifications, List<TraceSpanRow> spans, long traceStartMs) {
+            List<TraceNotificationRow> notifications, Map<String, String> spanNames, long traceStartMs) {
 
         if (notifications.isEmpty()) {
             return EMPTY;
         }
-
-        Map<String, String> spanNames = spans.stream()
-                .collect(Collectors.toMap(
-                        TraceSpanRow::spanId,
-                        TraceSpanRow::name,
-                        (first, duplicate) -> first));
 
         Map<Key, List<TraceNotificationRow>> grouped = notifications.stream()
                 .collect(Collectors.groupingBy(

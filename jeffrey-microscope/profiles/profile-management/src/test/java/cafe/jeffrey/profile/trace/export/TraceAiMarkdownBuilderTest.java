@@ -22,8 +22,13 @@ import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
+import cafe.jeffrey.profile.manager.model.trace.TracePromotedGroup;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceWindow;
 import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceRunDurations;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -58,7 +63,35 @@ class TraceAiMarkdownBuilderTest {
                 span("03", "02", "select inventory", "CLIENT", 105, 35, 35, 0, 2),
                 span("04", "02", "update inventory", "CLIENT", 250, 70, 70, 0, 2));
 
-        return new TraceDetail(trace, spans, List.of(), List.of(), Map.of());
+        return detailOf(trace, spans, List.of(), List.of());
+    }
+
+    /** A trace as the manager sends it, with nothing folded into runs. */
+    private static TraceDetail detailOf(
+            TraceRow trace, List<TraceSpanRow> spans,
+            List<TraceNotificationRow> notifications, List<TraceExceptionRow> exceptions) {
+        return detailOf(trace, spans, List.of(), notifications, exceptions);
+    }
+
+    private static TraceDetail detailOf(
+            TraceRow trace, List<TraceSpanRow> spans, List<TraceSpanRunRow> runs,
+            List<TraceNotificationRow> notifications, List<TraceExceptionRow> exceptions) {
+        return new TraceDetail(
+                trace, new TraceWindow(0, trace.durationNanos() / 1_000L), spans, runs, 1,
+                notifications, exceptions, Map.of());
+    }
+
+    /**
+     * A builder over {@code detail}, with the promoted groups the repository would total from its
+     * synthesized spans — one group per span, since no two fixture spans share a payload.
+     */
+    private static TraceAiMarkdownBuilder builderOf(TraceDetail detail, TraceContext context) {
+        List<TracePromotedGroup> promoted = detail.spans().stream()
+                .filter(TraceSpanRow::synthesized)
+                .map(span -> new TracePromotedGroup(
+                        span.eventType(), span.eventFields(), 1, span.durationNanos(), span.durationNanos()))
+                .toList();
+        return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context, promoted));
     }
 
     private static TraceSpanRow span(
@@ -85,7 +118,7 @@ class TraceAiMarkdownBuilderTest {
     }
 
     private static String build() {
-        return new TraceAiMarkdownBuilder(detail(), context()).build();
+        return builderOf(detail(), context()).build();
     }
 
     @Nested
@@ -193,10 +226,9 @@ class TraceAiMarkdownBuilderTest {
                     "05", "01", "chargePayment", "CLIENT", "ERROR", "TimeoutException",
                     335, 335_000L, 65 * MS, 65 * MS, 0, 1, "3001", "http-1", false,
                     "jeffrey.TraceSpan", null, null, false, null);
-            TraceDetail withError = new TraceDetail(
-                    detail().trace(), List.of(failing), List.of(), List.of(), Map.of());
+            TraceDetail withError = detailOf(detail().trace(), List.of(failing), List.of(), List.of());
 
-            String out = new TraceAiMarkdownBuilder(withError, context()).build();
+            String out = builderOf(withError, context()).build();
 
             assertTrue(out.contains("!error (TimeoutException)"));
         }
@@ -208,9 +240,14 @@ class TraceAiMarkdownBuilderTest {
             for (int i = 0; i < 500; i++) {
                 many.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
             }
-            TraceDetail huge = new TraceDetail(detail().trace(), many, List.of(), List.of(), Map.of());
+            TraceRow fixture = detail().trace();
+            TraceRow fiveHundred = new TraceRow(
+                    fixture.traceId(), fixture.rootName(), fixture.rootKind(), fixture.rootEventType(),
+                    fixture.startMillisFromBeginning(), fixture.startEpochMillis(), fixture.durationNanos(),
+                    500, 0, true);
+            TraceDetail huge = detailOf(fiveHundred, many, List.of(), List.of());
 
-            String out = new TraceAiMarkdownBuilder(huge, context()).build();
+            String out = builderOf(huge, context()).build();
 
             // A bundle that quietly stops reads as a complete trace, and a model will conclude the
             // missing spans do not exist.
@@ -250,10 +287,10 @@ class TraceAiMarkdownBuilderTest {
                 spans.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
                 waits.put("s" + i, List.of(new TraceContextSlice("DEOPTIMIZATION", 2 * MS, 2)));
             }
-            TraceDetail detail = new TraceDetail(detail().trace(), spans, List.of(), List.of(), Map.of());
+            TraceDetail detail = detailOf(detail().trace(), spans, List.of(), List.of());
             TraceContext waiting = new TraceContext(List.of(), List.of(), waits, List.of());
 
-            String out = new TraceAiMarkdownBuilder(detail, waiting).build();
+            String out = builderOf(detail, waiting).build();
 
             assertEquals(400, out.lines().filter(line -> line.contains(" — DEOPTIMIZATION ")).count());
             assertTrue(lineWith(out, " — DEOPTIMIZATION ").startsWith("- span-0 — "),
@@ -277,7 +314,7 @@ class TraceAiMarkdownBuilderTest {
         @Test
         @DisplayName("a trace the JVM never interrupted still renders")
         void survivesEmptyContext() {
-            String out = new TraceAiMarkdownBuilder(detail(), TraceContext.EMPTY).build();
+            String out = builderOf(detail(), TraceContext.EMPTY).build();
 
             assertTrue(out.contains("no GC pauses, safepoints or blocking events"));
             assertTrue(out.contains("reserveInventory"), "the tree is still the point");
@@ -286,9 +323,9 @@ class TraceAiMarkdownBuilderTest {
         @Test
         @DisplayName("a trace with no spans does not produce a broken document")
         void survivesEmptyTrace() {
-            TraceDetail empty = new TraceDetail(detail().trace(), List.of(), List.of(), List.of(), Map.of());
+            TraceDetail empty = detailOf(detail().trace(), List.of(), List.of(), List.of());
 
-            assertTrue(new TraceAiMarkdownBuilder(empty, TraceContext.EMPTY).build()
+            assertTrue(builderOf(empty, TraceContext.EMPTY).build()
                     .contains("this trace has no spans"));
         }
     }
@@ -322,8 +359,8 @@ class TraceAiMarkdownBuilderTest {
     }
 
     private static String buildWith(List<TraceSpanRow> spans, List<TraceExceptionRow> exceptions) {
-        TraceDetail detail = new TraceDetail(detail().trace(), spans, List.of(), exceptions, Map.of());
-        return new TraceAiMarkdownBuilder(detail, context()).build();
+        TraceDetail detail = detailOf(detail().trace(), spans, List.of(), exceptions);
+        return builderOf(detail, context()).build();
     }
 
     /**
@@ -340,9 +377,8 @@ class TraceAiMarkdownBuilderTest {
     }
 
     private static String buildWithNotifications(List<TraceNotificationRow> notifications) {
-        TraceDetail detail = new TraceDetail(
-                detail().trace(), detail().spans(), notifications, List.of(), Map.of());
-        return new TraceAiMarkdownBuilder(detail, context()).build();
+        TraceDetail detail = detailOf(detail().trace(), detail().spans(), notifications, List.of());
+        return builderOf(detail, context()).build();
     }
 
     @Nested
@@ -475,7 +511,7 @@ class TraceAiMarkdownBuilderTest {
             assertTrue(out.contains("  - File read ×450 [INTERNAL]"),
                     "the leaves fold into one line under their parent, at their depth");
             assertFalse(out.contains("truncated:"), "nothing was dropped, so nothing is truncated");
-            assertTrue(out.contains("folded: 450 promoted leaf spans into 1 line"));
+            assertTrue(out.contains("folded: 450 leaf spans into 1 line"));
         }
 
         @Test
@@ -558,9 +594,9 @@ class TraceAiMarkdownBuilderTest {
             assertEquals(400, out.lines().filter(line -> line.endsWith("!folded")).count());
             assertTrue(out.contains("  - File read 399 ×1 [INTERNAL]"), out);
             assertFalse(out.contains("File read 400 ×1"), out);
-            assertTrue(out.contains("- (+50 more folded groups: 50 promoted leaf spans past the export's "
+            assertTrue(out.contains("- (+50 more folded groups: 50 leaf spans past the export's "
                     + "span budget; the I/O operations section counts each of them)"), out);
-            assertTrue(out.contains("folded: 400 promoted leaf spans into 400 lines"), out);
+            assertTrue(out.contains("folded: 400 leaf spans into 400 lines"), out);
         }
 
         /*
@@ -798,6 +834,66 @@ class TraceAiMarkdownBuilderTest {
             assertTrue(out.contains("!escaped"), "the marker the rule is about must travel with it");
             assertTrue(out.contains("control flow"),
                     "the exceptions-as-control-flow reading is the one a count is for");
+        }
+    }
+
+    @Nested
+    @DisplayName("Runs folded on the server")
+    class ServerRuns {
+
+        private static final String UPLOAD =
+                "{\"path\":\"/tmp/upload.tmp\",\"bytesWritten\":1578}";
+
+        /** The root and, under it, 903,029 writes that never left the database. */
+        private TraceDetail uploadTrace(String ioOrigin, List<TraceExceptionRow> exceptions) {
+            TraceSpanRow root = span("01", null, "POST /api/internal/recordings", "SERVER", 0, 420, 300, 420, 0);
+            TraceSpanRunRow writes = new TraceSpanRunRow(
+                    "0a", "01", 1, 1, "File write", "INTERNAL", "jdk.FileWrite", ioOrigin, true,
+                    "3001", "http-1", 1,
+                    TraceRunDurations.of(new long[]{3_000, 4_000, 9 * MS}, 12),
+                    90 * MS, 1_000L, 400_000L, List.of(), List.of("0b"));
+            return detailOf(detail().trace(), List.of(root), List.of(writes), List.of(), exceptions);
+        }
+
+        private String build(TraceDetail detail, List<TracePromotedGroup> promoted) {
+            return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context(), promoted)).build();
+        }
+
+        @Test
+        @DisplayName("renders a run as one fold line under its parent")
+        void rendersRunAsFold() {
+            String line = lineWith(build(uploadTrace(null, List.of()), List.of()), "File write ×");
+
+            assertTrue(line.startsWith("  - File write ×3 [INTERNAL]"), line);
+            assertTrue(line.endsWith("!folded"), line);
+        }
+
+        @Test
+        @DisplayName("marks a run of class-loading reads as such")
+        void marksClassLoadingRun() {
+            String line = lineWith(build(uploadTrace("CLASS_LOADING", List.of()), List.of()), "File write ×");
+
+            assertTrue(line.endsWith("!folded !class-loading"), line);
+        }
+
+        @Test
+        @DisplayName("counts every operation of a payload group, not one per group")
+        void countsGroupedOperations() {
+            String out = build(uploadTrace(null, List.of()), List.of(
+                    new TracePromotedGroup("jdk.FileWrite", UPLOAD, 903_029, 3_318 * MS, 9 * MS)));
+
+            String row = lineWith(out, "File write /tmp/upload.tmp");
+            assertTrue(row.contains("— 903029 ops"), row);
+            assertTrue(row.contains("(" + 1578L * 903_029 + " B)"), row);
+        }
+
+        @Test
+        @DisplayName("names a throw inside a folded member after its run")
+        void namesThrowOnFoldedMember() {
+            String out = build(uploadTrace(null, List.of(thrown("0b", "e1", "java.io.IOException", "disk full", false))),
+                    List.of());
+
+            assertTrue(out.contains("thrown in: File write ×1"), out);
         }
     }
 }

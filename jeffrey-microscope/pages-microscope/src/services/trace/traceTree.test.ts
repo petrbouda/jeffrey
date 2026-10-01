@@ -22,7 +22,12 @@ import {
   spansWithChildren,
   visibleSpans
 } from '@/services/trace/traceTree';
-import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import {
+  mergeEntries,
+  type RunMembersState,
+  type WaterfallEntry
+} from '@/services/trace/traceRuns';
+import type { TraceSpanRow, TraceSpanRunRow } from '@/services/api/model/trace/TraceModels';
 
 /** A row carrying only what the tree helpers read: its id and its depth. */
 function row(spanId: string, depth: number): TraceSpanRow {
@@ -57,9 +62,14 @@ function row(spanId: string, depth: number): TraceSpanRow {
  *       a2
  *     b
  */
-const TREE = [row('root', 0), row('a', 1), row('a1', 2), row('a2', 2), row('b', 1)];
+const TREE = entriesOf([row('root', 0), row('a', 1), row('a1', 2), row('a2', 2), row('b', 1)]);
 
-const idsOf = (spans: TraceSpanRow[]) => spans.map(span => span.spanId);
+/** The spans as the waterfall walks them: entries, with no runs folded in. */
+function entriesOf(spans: TraceSpanRow[]): WaterfallEntry[] {
+  return mergeEntries(spans, []);
+}
+
+const idsOf = (entries: WaterfallEntry[]) => entries.map(entry => entry.key);
 
 describe('spansWithChildren', () => {
   it('marks every span the next row sits deeper than', () => {
@@ -67,7 +77,7 @@ describe('spansWithChildren', () => {
   });
 
   it('marks nothing in a flat list', () => {
-    expect(spansWithChildren([row('one', 0), row('two', 0)]).size).toBe(0);
+    expect(spansWithChildren(entriesOf([row('one', 0), row('two', 0)])).size).toBe(0);
   });
 
   it('handles an empty list', () => {
@@ -118,7 +128,7 @@ describe('descendantCounts', () => {
   });
 
   it('counts each root separately in a forest', () => {
-    const forest = [row('one', 0), row('one-child', 1), row('two', 0)];
+    const forest = entriesOf([row('one', 0), row('one-child', 1), row('two', 0)]);
 
     const counts = descendantCounts(forest);
 
@@ -149,16 +159,16 @@ describe('drawnSpans', () => {
    *         read   (a promoted wait, inside the method)
    *     sibling
    */
-  const NESTED = [
+  const NESTED = entriesOf([
     row('recorded', 0),
     promoted('outer', 'recorded', 1),
     promoted('inner', 'outer', 2),
     promoted('read', 'inner', 3),
     child('sibling', 'recorded', 1)
-  ];
+  ]);
 
   it('keeps everything when the filter keeps everything', () => {
-    expect(drawnSpans(NESTED, () => true).map(span => span.spanId)).toEqual([
+    expect(drawnSpans(NESTED, () => true).map(entry => entry.key)).toEqual([
       'recorded',
       'outer',
       'inner',
@@ -170,29 +180,29 @@ describe('drawnSpans', () => {
   it('takes the subtree with a hidden row', () => {
     // The reason this exists: hiding `outer` row-by-row would leave inner and read indented under a
     // parent that is no longer drawn.
-    const drawn = drawnSpans(NESTED, span => span.spanId !== 'outer');
+    const drawn = drawnSpans(NESTED, entry => entry.key !== 'outer');
 
-    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'sibling']);
+    expect(drawn.map(entry => entry.key)).toEqual(['recorded', 'sibling']);
   });
 
   it('hides only what hangs under the hidden row', () => {
-    const drawn = drawnSpans(NESTED, span => span.spanId !== 'inner');
+    const drawn = drawnSpans(NESTED, entry => entry.key !== 'inner');
 
-    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'outer', 'sibling']);
+    expect(drawn.map(entry => entry.key)).toEqual(['recorded', 'outer', 'sibling']);
   });
 
   it('still drops a leaf on its own', () => {
-    const drawn = drawnSpans(NESTED, span => span.spanId !== 'read');
+    const drawn = drawnSpans(NESTED, entry => entry.key !== 'read');
 
-    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'outer', 'inner', 'sibling']);
+    expect(drawn.map(entry => entry.key)).toEqual(['recorded', 'outer', 'inner', 'sibling']);
   });
 
   it('takes only the promoted subtree down when a root goes', () => {
     // A recorded span is never taken down by someone else's filter: instrumentation put it there,
     // and only its own removal — which no toggle performs — could hide it.
-    const drawn = drawnSpans(NESTED, span => span.spanId !== 'recorded');
+    const drawn = drawnSpans(NESTED, entry => entry.key !== 'recorded');
 
-    expect(drawn.map(span => span.spanId)).toEqual(['sibling']);
+    expect(drawn.map(entry => entry.key)).toEqual(['sibling']);
   });
 
   it('resurfaces a recorded span the hidden method had adopted', () => {
@@ -202,17 +212,91 @@ describe('drawnSpans', () => {
      *       adopted         (a recorded span the derivation re-hung under the method)
      *       write           (a promoted wait, the method's own)
      */
-    const adopted = [
+    const adopted = entriesOf([
       row('recorded', 0),
       promoted('method', 'recorded', 1),
       child('adopted', 'method', 2),
       promoted('write', 'method', 2)
-    ];
+    ]);
 
-    const drawn = drawnSpans(adopted, span => span.spanId !== 'method');
+    const drawn = drawnSpans(adopted, entry => entry.key !== 'method');
 
     // Switching Methods off must not take the request's recorded spans with it — before adoption
     // they drew as the recorded root's children, and hiding the method restores that view.
-    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'adopted']);
+    expect(drawn.map(entry => entry.key)).toEqual(['recorded', 'adopted']);
+  });
+});
+
+describe('the tree helpers over folded runs', () => {
+  /** A run of `count` members folded under `root`, positioned after its one recorded child. */
+  function run(count: number): TraceSpanRunRow {
+    return {
+      runId: 'w1',
+      parentSpanId: 'root',
+      position: 2,
+      depth: 1,
+      name: 'File write',
+      kind: 'INTERNAL',
+      eventType: 'jdk.FileWrite',
+      ioOrigin: null,
+      synthesized: true,
+      threadHash: '900',
+      threadName: 'worker',
+      threadCount: 1,
+      durations: {
+        count,
+        totalNanos: 0,
+        minNanos: 0,
+        p50Nanos: 0,
+        p95Nanos: 0,
+        p99Nanos: 0,
+        maxNanos: 0,
+        buckets: []
+      },
+      criticalPathNanos: 0,
+      firstStartEpochMicros: 0,
+      lastEndEpochMicros: 0,
+      coverage: [],
+      entrySpanIds: []
+    };
+  }
+
+  const members: RunMembersState = {
+    members: [promoted('w1', 'root', 1), promoted('w2', 'root', 1)],
+    fetched: 2,
+    pinnedIds: [],
+    total: 903_029,
+    hasMore: true,
+    loading: false,
+    error: null
+  };
+
+  /*
+   *   root
+   *     a
+   *     File write ×903,029   (expanded: w1, w2, more)
+   *   next
+   */
+  const spans = [row('root', 0), child('a', 'root', 1), row('next', 0)];
+  const expanded = mergeEntries(spans, [run(903_029)], new Set(['w1']), new Map([['w1', members]]));
+
+  it("counts a fold's runs by their members", () => {
+    const counts = descendantCounts(mergeEntries(spans, [run(903_029)]));
+
+    expect(counts.get('root')).toBe(903_030);
+  });
+
+  it('folds a parent with its runs, their members and the more row', () => {
+    expect(idsOf(visibleSpans(expanded, new Set(['root'])))).toEqual(['root', 'next']);
+  });
+
+  it("takes a run's members and more row down with the run when a switch hides it", () => {
+    const drawn = drawnSpans(expanded, entry => entry.kind !== 'run');
+
+    expect(idsOf(drawn)).toEqual(['root', 'a', 'next']);
+  });
+
+  it('never draws a twistie on a member or the run', () => {
+    expect(spansWithChildren(expanded)).toEqual(new Set(['root']));
   });
 });

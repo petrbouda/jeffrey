@@ -62,7 +62,7 @@
       <ErrorState v-else-if="error" :message="error" @retry="load" />
 
       <EmptyState
-        v-else-if="!detail || detail.spans.length === 0"
+        v-else-if="!detail || (detail.spans.length === 0 && detail.runs.length === 0)"
         title="No spans"
         description="This trace has no spans left to draw."
         icon="bi-inboxes"
@@ -165,7 +165,10 @@
           <div class="waterfall-pane">
             <TraceWaterfall
               :profile-id="profileId"
+              :trace-id="traceId"
               :spans="detail.spans"
+              :window="detail.window"
+              :runs="detail.runs"
               :selected-span-id="selected?.spanId ?? null"
               :event-fields="detail.eventFields ?? {}"
               :context="context"
@@ -320,10 +323,14 @@ const chips = computed<MetaChip[]>(() => {
     return [];
   }
   const trace = detail.value.trace;
-  const threads = new Set(detail.value.spans.map(span => span.threadHash));
-  const threadName = detail.value.spans[0]?.threadName;
+  // Counted by the server over every span: the ones in hand leave out the folded members, which
+  // can be all the threads a hand-off went to.
+  const threads = detail.value.threadCount;
+  const root = detail.value.spans.find(span => span.depth === 0) ?? detail.value.spans[0];
 
-  const result: MetaChip[] = [{ text: `${trace.spanCount} spans`, tone: 'strong' }];
+  const result: MetaChip[] = [
+    { text: `${trace.spanCount.toLocaleString()} spans`, tone: 'strong' }
+  ];
   if (trace.errorCount > 0) {
     result.push({
       icon: 'exclamation-triangle',
@@ -334,7 +341,11 @@ const chips = computed<MetaChip[]>(() => {
   result.push({ icon: 'clock', text: FormattingService.formatDuration2Units(trace.durationNanos) });
   result.push({
     icon: 'cpu',
-    text: threads.size === 1 ? (threadName ?? 'unknown') : `${threads.size} threads`
+    // A trace whose roots were all folded carries no root span, but its runs know their thread.
+    text:
+      threads === 1
+        ? (root?.threadName ?? detail.value.runs[0]?.threadName ?? 'unknown')
+        : `${threads} threads`
   });
   result.push({ icon: 'diagram-2', text: trace.rootKind });
 
@@ -366,7 +377,7 @@ const chips = computed<MetaChip[]>(() => {
   if (leader !== null) {
     result.push({
       icon: 'signpost-split',
-      text: `${leader.name} · ${percentOfTrace(leader.criticalPathNanos, trace.durationNanos)}`
+      text: `${leader.label} · ${percentOfTrace(leader.criticalPathNanos, trace.durationNanos)}`
     });
   }
 
@@ -374,22 +385,40 @@ const chips = computed<MetaChip[]>(() => {
   return result;
 });
 
+/** What the header names as the trace's critical-path leader: a span, or a folded run as a whole. */
+interface CriticalLeader {
+  label: string;
+  criticalPathNanos: number;
+}
+
 /**
  * The single largest contributor to the critical path, or none when the trace is one span (where
  * naming the root as its own bottleneck says nothing) or nothing was attributed.
+ *
+ * A folded run competes as one contributor with its members' credit summed, the way its row shows
+ * it: 903,029 writes that each held the path for four microseconds are the trace's bottleneck, and
+ * no single one of them is.
  */
-const topCriticalSpan = computed<TraceSpanRow | null>(() => {
+const topCriticalSpan = computed<CriticalLeader | null>(() => {
   const spans = detail.value?.spans ?? [];
-  if (spans.length < 2) {
+  const runs = detail.value?.runs ?? [];
+  if (spans.length + runs.length < 2) {
     return null;
   }
-  let leader: TraceSpanRow | null = null;
-  for (const span of spans) {
+  const candidates: CriticalLeader[] = [
+    ...spans.map(span => ({ label: span.name, criticalPathNanos: span.criticalPathNanos })),
+    ...runs.map(run => ({
+      label: `${run.name} ×${run.durations.count.toLocaleString()}`,
+      criticalPathNanos: run.criticalPathNanos
+    }))
+  ];
+  let leader: CriticalLeader | null = null;
+  for (const candidate of candidates) {
     if (
-      span.criticalPathNanos > 0 &&
-      (leader === null || span.criticalPathNanos > leader.criticalPathNanos)
+      candidate.criticalPathNanos > 0 &&
+      (leader === null || candidate.criticalPathNanos > leader.criticalPathNanos)
     ) {
-      leader = span;
+      leader = candidate;
     }
   }
   return leader;
@@ -646,9 +675,12 @@ async function load(): Promise<void> {
   const client = new ProfileTracesClient(props.profileId);
   try {
     detail.value = await client.getTrace(props.traceId);
-  } catch {
+  } catch (cause) {
     detail.value = null;
-    error.value = 'Failed to load this trace.';
+    // The reason travels with the lead: "failed" alone cannot tell a server error from a response
+    // too large for the browser to read, and the two call for different things.
+    const reason = cause instanceof Error && cause.message ? ` ${cause.message}.` : '';
+    error.value = `Failed to load this trace.${reason}`;
     return;
   } finally {
     loading.value = false;

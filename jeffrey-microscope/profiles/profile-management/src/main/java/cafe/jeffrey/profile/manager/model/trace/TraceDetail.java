@@ -22,10 +22,20 @@ import java.util.Map;
 
 /**
  * A whole trace: its summary, its spans in draw order, and the instants that happened inside it.
+ * <p>
+ * Big runs of identical sibling leaves are not in {@code spans}: each arrives as one summed row in
+ * {@code runs}, and its members are read a page at a time when the reader unfolds it. A trace that
+ * streams a request body makes a million writes, and sending each one is what made such a trace
+ * impossible to open.
  *
  * @param trace         the trace's own row, so the detail view can render a header without a second
  *                      request
- * @param spans         every span, pre-ordered depth-first with {@code depth} set
+ * @param window        the stretch the whole trace occupied, folded members included — the axis
+ *                      to draw against, since the spans sent are not all of them
+ * @param spans         every span not folded into a run, pre-ordered depth-first with {@code depth}
+ *                      set
+ * @param runs          the folded runs, each placed by its {@code position} among {@code spans}
+ * @param threadCount   how many distinct threads the trace's spans ran on, folded members included
  * @param notifications what the application said while the trace ran, oldest first. Sent with the
  *                      trace rather than fetched separately: a trace carries few of them, and both
  *                      readings the UI needs — a flat rail and a per-span grouping — come off the
@@ -40,7 +50,10 @@ import java.util.Map;
  */
 public record TraceDetail(
         TraceRow trace,
+        TraceWindow window,
         List<TraceSpanRow> spans,
+        List<TraceSpanRunRow> runs,
+        int threadCount,
         List<TraceNotificationRow> notifications,
         List<TraceExceptionRow> exceptions,
         Map<String, List<EventFieldRow>> eventFields) {

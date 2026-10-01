@@ -17,7 +17,11 @@
 
 import { NANOS_PER_MICRO } from '@/services/trace/timeUnits';
 
-import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type {
+  TraceSpanRow,
+  TraceSpanRunRow,
+  TraceWindowRow
+} from '@/services/api/model/trace/TraceModels';
 
 /** A solid stretch of a bar, in percentages of that bar's own width. */
 export interface BarSegment {
@@ -70,27 +74,13 @@ export interface TraceWindow {
 }
 
 /**
- * The window every bar is positioned against. Derived from the spans rather than the trace's own
- * duration so a child that outlives its parent -- which happens whenever work is handed to another
- * thread -- still fits inside the track instead of overflowing it.
+ * The window every bar is positioned against, as the server measured it over every span — folded
+ * run members included. It used to be derived here from the rows, which stopped being the trace
+ * once the server began folding runs: a run's last write can outlast every span the browser holds,
+ * and an axis cut short of it would push the run's lane off the track.
  */
-export function traceWindow(spans: TraceSpanRow[]): TraceWindow {
-  if (spans.length === 0) {
-    return { startMicros: 0, endMicros: 0 };
-  }
-  let start = Number.POSITIVE_INFINITY;
-  let end = Number.NEGATIVE_INFINITY;
-  for (const span of spans) {
-    const spanStart = span.startEpochMicros;
-    const spanEnd = endMicrosOf(span);
-    if (spanStart < start) {
-      start = spanStart;
-    }
-    if (spanEnd > end) {
-      end = spanEnd;
-    }
-  }
-  return { startMicros: start, endMicros: end };
+export function windowOf(row: TraceWindowRow): TraceWindow {
+  return { startMicros: row.startEpochMicros, endMicros: row.endEpochMicros };
 }
 
 /**
@@ -98,28 +88,48 @@ export function traceWindow(spans: TraceSpanRow[]): TraceWindow {
  *
  * Built for the whole trace at once because a bar's solid stretches depend on the span's children,
  * which the flat row list only implies. Grouping them once here keeps the component a lookup rather
- * than a per-row scan of every other row.
+ * than a per-row scan of every other row. The runs take part as children: a span whose time went to
+ * a folded run of writes must not draw that time as its own.
  */
-export function waterfallBars(spans: TraceSpanRow[]): Map<string, SpanBar> {
-  const window = traceWindow(spans);
-  const childrenByParent = new Map<string, TraceSpanRow[]>();
-  for (const span of spans) {
-    if (span.parentSpanId === null) {
-      continue;
-    }
-    const siblings = childrenByParent.get(span.parentSpanId);
-    if (siblings) {
-      siblings.push(span);
-    } else {
-      childrenByParent.set(span.parentSpanId, [span]);
-    }
-  }
+export function waterfallBars(
+  spans: readonly TraceSpanRow[],
+  window: TraceWindow,
+  runs: readonly TraceSpanRunRow[] = []
+): Map<string, SpanBar> {
+  const childrenByParent = groupByParent(spans);
+  const runsByParent = groupByParent(runs);
 
   const bars = new Map<string, SpanBar>();
   for (const span of spans) {
-    bars.set(span.spanId, spanBar(span, childrenByParent.get(span.spanId) ?? [], window));
+    bars.set(
+      span.spanId,
+      spanBar(
+        span,
+        childrenByParent.get(span.spanId) ?? [],
+        window,
+        runsByParent.get(span.spanId) ?? []
+      )
+    );
   }
   return bars;
+}
+
+function groupByParent<T extends { parentSpanId: string | null }>(
+  items: readonly T[]
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const item of items) {
+    if (item.parentSpanId === null) {
+      continue;
+    }
+    const siblings = grouped.get(item.parentSpanId);
+    if (siblings) {
+      siblings.push(item);
+    } else {
+      grouped.set(item.parentSpanId, [item]);
+    }
+  }
+  return grouped;
 }
 
 /**
@@ -131,8 +141,9 @@ export function waterfallBars(spans: TraceSpanRow[]): Map<string, SpanBar> {
  */
 export function spanBar(
   span: TraceSpanRow,
-  children: TraceSpanRow[],
-  window: TraceWindow
+  children: readonly TraceSpanRow[],
+  window: TraceWindow,
+  runs: readonly TraceSpanRunRow[] = []
 ): SpanBar {
   const total = window.endMicros - window.startMicros;
   if (total <= 0) {
@@ -148,7 +159,11 @@ export function spanBar(
   // inside the track rather than being clipped.
   const leftPercent = clamp(rawLeft, 0, 100 - widthPercent);
 
-  return { leftPercent, widthPercent, selfSegments: selfSegments(span, children) };
+  return {
+    leftPercent,
+    widthPercent,
+    selfSegments: selfSegments(span, coveredWindows(span, children, runs, window))
+  };
 }
 
 /**
@@ -159,7 +174,7 @@ export function spanBar(
  * so concurrent children are not cut out twice and a child recorded as outliving its parent only
  * takes the stretch the two shared. This mirrors the self time the backend reports for the span.
  */
-function selfSegments(span: TraceSpanRow, children: TraceSpanRow[]): BarSegment[] {
+function selfSegments(span: TraceSpanRow, covered: number[][]): BarSegment[] {
   const from = span.startEpochMicros;
   const to = endMicrosOf(span);
   const total = to - from;
@@ -170,7 +185,7 @@ function selfSegments(span: TraceSpanRow, children: TraceSpanRow[]): BarSegment[
 
   const segments: BarSegment[] = [];
   let cursor = from;
-  for (const [childFrom, childTo] of coveredWindows(span, children)) {
+  for (const [childFrom, childTo] of covered) {
     if (childFrom > cursor) {
       segments.push(segment(cursor - from, childFrom - cursor, total));
     }
@@ -185,15 +200,30 @@ function selfSegments(span: TraceSpanRow, children: TraceSpanRow[]): BarSegment[
 /**
  * The span's same-thread children as non-overlapping `[from, to]` microsecond windows clipped to the
  * span's own bounds, ordered by start.
+ *
+ * A folded run covers its parent through its coverage slices, since its members are not here to be
+ * measured one by one: slice `i` is taken as covered from its own start for the fraction the members
+ * filled. That packs each slice's busy time to its left edge -- the true layout inside a slice is
+ * unknown -- which is the right total at a 240th of the trace's resolution. Only a run whose members
+ * all ran on the parent's thread counts, for the same reason a child on another thread does not.
  */
-function coveredWindows(span: TraceSpanRow, children: TraceSpanRow[]): number[][] {
+function coveredWindows(
+  span: TraceSpanRow,
+  children: readonly TraceSpanRow[],
+  runs: readonly TraceSpanRunRow[],
+  window: TraceWindow
+): number[][] {
   const from = span.startEpochMicros;
   const to = endMicrosOf(span);
 
-  const windows = children
+  const childWindows = children
     .filter(child => child.threadHash === span.threadHash)
-    .map(child => [clamp(child.startEpochMicros, from, to), clamp(endMicrosOf(child), from, to)])
-    .sort((left, right) => left[0] - right[0]);
+    .map(child => [clamp(child.startEpochMicros, from, to), clamp(endMicrosOf(child), from, to)]);
+  const runWindows = runs
+    .filter(run => run.threadCount === 1 && run.threadHash === span.threadHash)
+    .flatMap(run => coverageWindows(run, window))
+    .map(([binFrom, binTo]) => [clamp(binFrom, from, to), clamp(binTo, from, to)]);
+  const windows = [...childWindows, ...runWindows].sort((left, right) => left[0] - right[0]);
 
   const merged: number[][] = [];
   for (const window of windows) {
@@ -205,6 +235,60 @@ function coveredWindows(span: TraceSpanRow, children: TraceSpanRow[]): number[][
     }
   }
   return merged;
+}
+
+/** A run's covered slices as `[from, to]` microsecond windows, each packed to its slice's start. */
+function coverageWindows(run: TraceSpanRunRow, window: TraceWindow): number[][] {
+  const slices = run.coverage.length;
+  const total = window.endMicros - window.startMicros;
+  if (slices === 0 || total <= 0) {
+    return [];
+  }
+  const sliceMicros = total / slices;
+  const windows: number[][] = [];
+  run.coverage.forEach((covered, index) => {
+    if (covered > 0) {
+      const sliceStart = window.startMicros + index * sliceMicros;
+      windows.push([sliceStart, sliceStart + Math.min(1, covered) * sliceMicros]);
+    }
+  });
+  return windows;
+}
+
+/**
+ * How a folded run is drawn on its lane: the trace window's slices, each shaded by how busy the
+ * members kept it, and a faint outline from the first member's start to the last one's end.
+ */
+export interface RunLane {
+  /** One opacity per slice, 0..1; zero where no member ran, so the track shows through. */
+  cellOpacities: number[];
+  outline: { leftPercent: number; widthPercent: number };
+}
+
+/*
+ * The faintest a covered slice is drawn. Normalising to the run's busiest slice puts a slice that
+ * one write grazed at well under a percent, which would draw it as empty -- and "a member ran here"
+ * is the one thing a slice must never hide.
+ */
+const MIN_CELL_OPACITY = 0.12;
+
+/**
+ * A run's lane: its density per slice, normalised to its own busiest slice. Density rather than a
+ * tick per member, because a run is folded exactly when its members are too many to draw one by
+ * one -- 903,029 ticks are a solid bar that says nothing about when the run was holding the thread.
+ */
+export function runLane(run: TraceSpanRunRow, window: TraceWindow): RunLane {
+  const peak = Math.max(0, ...run.coverage);
+  const cellOpacities = run.coverage.map(covered =>
+    covered > 0 && peak > 0 ? MIN_CELL_OPACITY + (1 - MIN_CELL_OPACITY) * (covered / peak) : 0
+  );
+  const total = window.endMicros - window.startMicros;
+  if (total <= 0) {
+    return { cellOpacities, outline: { leftPercent: 0, widthPercent: 100 } };
+  }
+  const left = clamp(((run.firstStartEpochMicros - window.startMicros) / total) * 100, 0, 100);
+  const right = clamp(((run.lastEndEpochMicros - window.startMicros) / total) * 100, left, 100);
+  return { cellOpacities, outline: { leftPercent: left, widthPercent: right - left } };
 }
 
 function segment(offsetMicros: number, lengthMicros: number, totalMicros: number): BarSegment {

@@ -602,35 +602,41 @@
           <span></span>
         </div>
 
-        <template v-for="{ run, span } in displayRows" :key="run ? run.key : span!.spanId">
+        <template v-for="row in displayRows" :key="row.key">
           <!--
           A run of same-named leaf siblings drawn as one synthesized row: the count says how many,
           the sigma says what they cost together, and the lane keeps a tick per occurrence so the
           rhythm of the run survives the merge. 462 file writes are one question, not 462 rows.
         -->
-          <template v-if="run">
+          <template v-if="row.kind === 'clientRun'">
             <button
               type="button"
               class="wf-row wf-run-row"
-              :class="{ 'detail-open': openRunDetail === run.key }"
+              :class="{ 'detail-open': openRunDetail === row.key }"
               tabindex="-1"
-              :title="isRunExpanded(run) ? 'Collapse the run' : `Expand ${run.spans.length} spans`"
-              @click="toggleRun(run.key)"
+              :title="
+                isRunExpanded(row.run)
+                  ? 'Collapse the run'
+                  : `Expand ${row.run.entries.length} spans`
+              "
+              @click="toggleRun(row.key)"
             >
               <span class="wf-name">
                 <span
                   class="wf-indent"
-                  :style="{ width: indentRem(run.spans[0].depth) + 'rem' }"
+                  :style="{ width: indentRem(row.run.entries[0].depth) + 'rem' }"
                 ></span>
                 <span class="wf-twist" role="presentation">
                   <i
-                    :class="isRunExpanded(run) ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'"
+                    :class="
+                      isRunExpanded(row.run) ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'
+                    "
                   ></i>
                 </span>
-                <span class="wf-kind" :style="spanColorStyle(run.spans[0])"></span>
-                <span class="wf-label">{{ run.spans[0].name }}</span>
-                <span class="wf-run-count" :style="spanColorStyle(run.spans[0])"
-                  >×{{ run.spans.length }}</span
+                <span class="wf-kind" :style="spanColorStyle(row.run.entries[0].span)"></span>
+                <span class="wf-label">{{ row.run.entries[0].span.name }}</span>
+                <span class="wf-run-count" :style="spanColorStyle(row.run.entries[0].span)"
+                  >×{{ row.run.entries.length.toLocaleString() }}</span
                 >
                 <!--
                 A span rather than a nested button, for the same reason the twistie is one. Clicks
@@ -638,14 +644,10 @@
               -->
                 <span
                   class="wf-run-stats-toggle"
-                  :class="{ open: openRunDetail === run.key }"
+                  :class="{ open: openRunDetail === row.key }"
                   role="button"
-                  :title="
-                    openRunDetail === run.key
-                      ? 'Hide the run statistics'
-                      : 'Show the run statistics'
-                  "
-                  @click.stop="toggleRunDetail(run.key)"
+                  :title="runDetailToggleTitle(row.key)"
+                  @click.stop="toggleRunDetail(row.key)"
                 >
                   <span class="wf-run-stats-glyph" aria-hidden="true">
                     <i style="height: 3px"></i><i style="height: 8px"></i><i style="height: 5px"></i
@@ -657,109 +659,255 @@
 
               <span class="wf-track">
                 <span
-                  v-for="tick in run.spans"
-                  :key="tick.spanId"
+                  v-for="tick in row.run.entries"
+                  :key="tick.key"
                   class="wf-bar wf-run-tick"
-                  :class="barClass(tick)"
-                  :style="barStyle(tick)"
+                  :class="barClass(tick.span)"
+                  :style="barStyle(tick.span)"
                 ></span>
               </span>
 
               <span class="wf-duration">
-                Σ {{ FormattingService.formatDuration2Units(run.totalNanos) }}
+                Σ {{ FormattingService.formatDuration2Units(row.run.facts.totalNanos) }}
               </span>
             </button>
 
-            <!--
-            The run's facts, shown while the stats chip is pressed: labeled figures with room to be
-            read, and the durations as a small histogram — the shape of 462 writes, which no single
-            number carries. The row itself only folds and unfolds the individuals.
-          -->
-            <div v-if="openRunDetail === run.key" class="wf-run-detail-row">
-              <div class="wf-run-detail" :style="{ marginLeft: runDetailIndent(run) }">
-                <span class="wf-run-stat">
-                  <span class="wf-run-stat-label">Spans</span>
-                  <span class="wf-run-stat-value">{{ run.spans.length }}</span>
-                </span>
-                <span class="wf-run-stat">
-                  <span class="wf-run-stat-label">Total</span>
-                  <span class="wf-run-stat-value">{{
-                    FormattingService.formatDuration2Units(run.totalNanos)
-                  }}</span>
-                </span>
-                <span class="wf-run-stat">
-                  <span class="wf-run-stat-label">Median</span>
-                  <span class="wf-run-stat-value">{{
-                    FormattingService.formatDuration2Units(run.medianNanos)
-                  }}</span>
-                </span>
-                <span class="wf-run-stat">
-                  <span class="wf-run-stat-label">P95</span>
-                  <span class="wf-run-stat-value">{{
-                    FormattingService.formatDuration2Units(run.p95Nanos)
-                  }}</span>
-                </span>
-                <span class="wf-run-stat">
-                  <span class="wf-run-stat-label">Max</span>
-                  <span class="wf-run-stat-value">{{
-                    FormattingService.formatDuration2Units(run.maxNanos)
-                  }}</span>
-                </span>
-                <span
-                  class="wf-run-histogram"
-                  title="How the run's durations are distributed, fastest on the left, slowest on the right"
-                >
-                  <i
-                    v-for="(bucket, index) in runHistogram(run)"
-                    :key="index"
-                    :class="{ hot: bucket.height === 1 }"
-                    :style="{
-                      height: 4 + bucket.height * 26 + 'px',
-                      ...spanColorStyle(run.spans[0])
-                    }"
-                    :title="bucketTitle(bucket)"
-                  ></i>
-                </span>
-              </div>
+            <div v-if="openRunDetail === row.key" class="wf-run-detail-row">
+              <TraceRunStats
+                :facts="row.run.facts"
+                :color="spanEventColor(row.run.entries[0].span.eventType)"
+                :indent="runDetailIndent(row.run.entries[0].depth)"
+              />
             </div>
           </template>
 
-          <template v-else-if="span">
+          <!--
+          A run the server folded, because its members were too many to send: the same row as the
+          browser's own rollup, but its lane cannot hold a tick per member -- there may be a million
+          of them, and the browser has none. It draws how busy the members kept each slice of the
+          trace instead, with a faint outline from the first member's start to the last one's end.
+          Expanding it pages the members in, slowest first.
+        -->
+          <template v-else-if="row.kind === 'serverRun'">
+            <button
+              type="button"
+              class="wf-row wf-run-row"
+              :class="{
+                'detail-open': openRunDetail === row.key,
+                critical: row.entry.run.criticalPathNanos > 0
+              }"
+              tabindex="-1"
+              :title="serverRunTitle(row.entry.run)"
+              @click="runMembers.toggle(row.entry.run)"
+            >
+              <span class="wf-name">
+                <span
+                  class="wf-indent"
+                  :style="{ width: indentRem(row.entry.depth) + 'rem' }"
+                ></span>
+                <span class="wf-twist" role="presentation">
+                  <i
+                    :class="
+                      isServerRunExpanded(row.entry.run)
+                        ? 'bi bi-caret-down-fill'
+                        : 'bi bi-caret-right-fill'
+                    "
+                  ></i>
+                </span>
+                <span class="wf-kind" :style="spanColorStyle(row.entry.run)"></span>
+                <span class="wf-label" :title="row.entry.run.name">{{ row.entry.run.name }}</span>
+                <span class="wf-run-count" :style="spanColorStyle(row.entry.run)"
+                  >×{{ row.entry.run.durations.count.toLocaleString() }}</span
+                >
+                <span
+                  class="wf-run-stats-toggle"
+                  :class="{ open: openRunDetail === row.key }"
+                  role="button"
+                  :title="runDetailToggleTitle(row.key)"
+                  @click.stop="toggleRunDetail(row.key)"
+                >
+                  <span class="wf-run-stats-glyph" aria-hidden="true">
+                    <i style="height: 3px"></i><i style="height: 8px"></i><i style="height: 5px"></i
+                    ><i style="height: 2px"></i>
+                  </span>
+                  stats
+                </span>
+                <!--
+                What the folded members carry, hollow like a span's fold: the run is a fold of its own,
+                and until it is opened the rail is the only other place these show.
+              -->
+                <span
+                  v-if="
+                    showNotifications &&
+                    !isServerRunExpanded(row.entry.run) &&
+                    (foldedNotificationCounts.get(row.key) ?? 0) > 0
+                  "
+                  class="wf-count ntf folded"
+                  :title="`${foldedNotificationCounts.get(row.key)} notifications are inside this run`"
+                >
+                  {{ foldedNotificationCounts.get(row.key) }}
+                </span>
+                <span
+                  v-if="
+                    showExceptions &&
+                    !isServerRunExpanded(row.entry.run) &&
+                    (foldedExceptionCounts.get(row.key) ?? 0) > 0
+                  "
+                  class="wf-count exc folded"
+                  :title="`${foldedExceptionCounts.get(row.key)} throws are inside this run`"
+                >
+                  {{ foldedExceptionCounts.get(row.key) }}
+                </span>
+              </span>
+
+              <span class="wf-track" :style="spanColorStyle(row.entry.run)">
+                <span class="wf-density" aria-hidden="true">
+                  <i
+                    v-for="(opacity, index) in laneOf(row.entry.run).cellOpacities"
+                    :key="index"
+                    :style="{ opacity }"
+                  ></i>
+                </span>
+                <span
+                  class="wf-density-outline"
+                  :style="{
+                    left: laneOf(row.entry.run).outline.leftPercent + '%',
+                    width: laneOf(row.entry.run).outline.widthPercent + '%'
+                  }"
+                ></span>
+              </span>
+
+              <span class="wf-duration">
+                Σ {{ FormattingService.formatDuration2Units(row.entry.run.durations.totalNanos) }}
+              </span>
+            </button>
+
+            <div v-if="openRunDetail === row.key" class="wf-run-detail-row">
+              <TraceRunStats
+                :facts="serverRunFacts(row.entry.run)"
+                :color="spanEventColor(row.entry.run.eventType)"
+                :indent="runDetailIndent(row.entry.depth)"
+              />
+            </div>
+          </template>
+
+          <!--
+          The row closing an expanded server run: how much of it is on screen, and the way to the
+          next page. It replaces itself as pages land, and turns into the failure and its retry when
+          one does not -- a run that silently stopped growing would read as a run that had ended.
+        -->
+          <div v-else-if="row.kind === 'more'" class="wf-more-row">
+            <span class="wf-more">
+              <span class="wf-indent" :style="{ width: indentRem(row.entry.depth) + 'rem' }"></span>
+              <span class="wf-twist is-leaf"></span>
+              <span v-if="row.entry.state?.error" class="wf-more-error">
+                <i class="bi bi-exclamation-triangle"></i> {{ row.entry.state.error }}
+              </span>
+              <span
+                v-else-if="row.entry.state === null || row.entry.state.members.length === 0"
+                class="wf-more-text"
+              >
+                <span class="spinner-border spinner-border-sm wf-more-spinner" role="status"></span>
+                Loading the slowest members&hellip;
+              </span>
+              <span v-else class="wf-more-text">
+                Showing <b>{{ row.entry.state.members.length.toLocaleString() }}</b> of
+                <b>{{ row.entry.run.durations.count.toLocaleString() }}</b
+                >, slowest first
+              </span>
+            </span>
+            <span>
+              <button
+                v-if="row.entry.state?.error"
+                type="button"
+                class="wf-more-btn"
+                @click="runMembers.loadMore(row.entry.run)"
+              >
+                <i class="bi bi-arrow-clockwise"></i> Retry
+              </button>
+              <button
+                v-else-if="
+                  row.entry.state !== null &&
+                  row.entry.state.hasMore &&
+                  row.entry.state.members.length > 0
+                "
+                type="button"
+                class="wf-more-btn"
+                :disabled="row.entry.state.loading"
+                @click="runMembers.loadMore(row.entry.run)"
+              >
+                <span
+                  v-if="row.entry.state.loading"
+                  class="spinner-border spinner-border-sm wf-more-spinner"
+                  role="status"
+                ></span>
+                <i v-else class="bi bi-chevron-double-down"></i>
+                Load {{ nextPageSize(row.entry.run, row.entry.state) }} more
+              </button>
+            </span>
+            <span></span>
+          </div>
+
+          <template v-else>
             <button
               type="button"
               class="wf-row"
-              :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
-              :aria-expanded="span.spanId === selectedSpanId"
-              :data-span-id="span.spanId"
+              :class="{
+                selected: row.entry.span.spanId === selectedSpanId,
+                critical: isCritical(row.entry.span)
+              }"
+              :aria-expanded="row.entry.span.spanId === selectedSpanId"
+              :data-span-id="row.entry.span.spanId"
               tabindex="-1"
-              @click="$emit('select', span)"
+              @click="$emit('select', row.entry.span)"
             >
               <span class="wf-name">
-                <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
+                <span
+                  class="wf-indent"
+                  :style="{ width: indentRem(row.entry.depth) + 'rem' }"
+                ></span>
                 <!--
             The twistie is a span, not a nested button: the row itself is the button, and nesting one
             inside another is invalid markup that browsers resolve by dropping it. Clicks are stopped
             here so folding a subtree does not also select the row.
           -->
                 <span
-                  v-if="parents.has(span.spanId)"
+                  v-if="parents.has(row.entry.span.spanId)"
                   class="wf-twist"
                   role="presentation"
-                  :title="twistTitle(span)"
-                  @click.stop="toggleCollapsed(span.spanId)"
+                  :title="twistTitle(row.entry.span)"
+                  @click.stop="toggleCollapsed(row.entry.span.spanId)"
                 >
                   <i
                     :class="
-                      collapsed.has(span.spanId)
+                      collapsed.has(row.entry.span.spanId)
                         ? 'bi bi-caret-right-fill'
                         : 'bi bi-caret-down-fill'
                     "
                   ></i>
                 </span>
                 <span v-else class="wf-twist is-leaf"></span>
-                <span class="wf-kind" :style="spanColorStyle(span)"></span>
-                <span class="wf-label" :title="span.name">{{ span.name }}</span>
-                <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
+                <!--
+                A member's place among its run, slowest first. Muted, because it is an order rather
+                than a fact about the span -- but it has to be there: the rows are not in time order,
+                and without it the bars jumping about the axis read as a broken layout.
+              -->
+                <span v-if="row.entry.memberOf !== null" class="wf-rank">
+                  <template v-if="row.entry.rank !== null">#{{ row.entry.rank }}</template>
+                  <i
+                    v-else
+                    class="bi bi-pin-angle"
+                    title="Opened from a notification or a throw, so its rank in the run is not known"
+                  ></i>
+                </span>
+                <span class="wf-kind" :style="spanColorStyle(row.entry.span)"></span>
+                <span class="wf-label" :title="row.entry.span.name">{{ row.entry.span.name }}</span>
+                <Badge
+                  v-if="row.entry.span.status === 'ERROR'"
+                  variant="danger"
+                  size="xs"
+                  value="error"
+                />
                 <!--
               What this span itself carries, coloured by the worst of it. Its own entries stay
               pinned to its bar whether or not it is folded -- folding hides a span's children, not
@@ -767,38 +915,44 @@
             -->
                 <span
                   v-if="
-                    showNotifications && (notificationsBySpan.get(span.spanId)?.length ?? 0) > 0
+                    showNotifications &&
+                    (notificationsBySpan.get(row.entry.span.spanId)?.length ?? 0) > 0
                   "
                   class="wf-count ntf"
                   :style="{
                     '--mark': severityColor(
-                      worstSeverity(notificationsBySpan.get(span.spanId) ?? [])
+                      worstSeverity(notificationsBySpan.get(row.entry.span.spanId) ?? [])
                     )
                   }"
-                  :title="notificationCountTitle(span)"
+                  :title="notificationCountTitle(row.entry.span)"
                 >
-                  {{ notificationsBySpan.get(span.spanId)!.length }}
+                  {{ notificationsBySpan.get(row.entry.span.spanId)!.length }}
                 </span>
                 <span
-                  v-if="showExceptions && (exceptionsBySpan.get(span.spanId)?.length ?? 0) > 0"
+                  v-if="
+                    showExceptions && (exceptionsBySpan.get(row.entry.span.spanId)?.length ?? 0) > 0
+                  "
                   class="wf-count exc"
                   :style="{
-                    '--mark': exceptionColor(anyEscaped(exceptionsBySpan.get(span.spanId) ?? []))
+                    '--mark': exceptionColor(
+                      anyEscaped(exceptionsBySpan.get(row.entry.span.spanId) ?? [])
+                    )
                   }"
-                  :title="exceptionCountTitle(span)"
+                  :title="exceptionCountTitle(row.entry.span)"
                 >
-                  {{ exceptionsBySpan.get(span.spanId)!.length }}
+                  {{ exceptionsBySpan.get(row.entry.span.spanId)!.length }}
                 </span>
-                <span v-if="collapsed.has(span.spanId)" class="wf-folded">
-                  +{{ foldedCounts.get(span.spanId) ?? 0 }}
+                <span v-if="collapsed.has(row.entry.span.spanId)" class="wf-folded">
+                  +{{ (foldedCounts.get(row.entry.span.spanId) ?? 0).toLocaleString() }}
                 </span>
                 <!-- A fold that swallows a failure must not look like a fold that swallows routine. -->
                 <i
                   v-if="
-                    collapsed.has(span.spanId) && (errorDescendantCounts.get(span.spanId) ?? 0) > 0
+                    collapsed.has(row.entry.span.spanId) &&
+                    (errorDescendantCounts.get(row.entry.span.spanId) ?? 0) > 0
                   "
                   class="wf-folded-error"
-                  :title="hiddenErrorTitle(span)"
+                  :title="hiddenErrorTitle(row.entry.span)"
                 ></i>
                 <!--
               And a fold that swallows instants has to say so too, for the same reason: their pins
@@ -808,36 +962,36 @@
                 <span
                   v-if="
                     showNotifications &&
-                    collapsed.has(span.spanId) &&
-                    (foldedNotificationCounts.get(span.spanId) ?? 0) > 0
+                    collapsed.has(row.entry.span.spanId) &&
+                    (foldedNotificationCounts.get(row.entry.span.spanId) ?? 0) > 0
                   "
                   class="wf-count ntf folded"
-                  :title="`${foldedNotificationCounts.get(span.spanId)} notifications are inside this fold`"
+                  :title="`${foldedNotificationCounts.get(row.entry.span.spanId)} notifications are inside this fold`"
                 >
-                  {{ foldedNotificationCounts.get(span.spanId) }}
+                  {{ foldedNotificationCounts.get(row.entry.span.spanId) }}
                 </span>
                 <span
                   v-if="
                     showExceptions &&
-                    collapsed.has(span.spanId) &&
-                    (foldedExceptionCounts.get(span.spanId) ?? 0) > 0
+                    collapsed.has(row.entry.span.spanId) &&
+                    (foldedExceptionCounts.get(row.entry.span.spanId) ?? 0) > 0
                   "
                   class="wf-count exc folded"
-                  :title="`${foldedExceptionCounts.get(span.spanId)} throws are inside this fold`"
+                  :title="`${foldedExceptionCounts.get(row.entry.span.spanId)} throws are inside this fold`"
                 >
-                  {{ foldedExceptionCounts.get(span.spanId) }}
+                  {{ foldedExceptionCounts.get(row.entry.span.spanId) }}
                 </span>
               </span>
 
               <span class="wf-track">
                 <span
                   class="wf-bar"
-                  :class="barClass(span)"
-                  :style="barStyle(span)"
-                  :title="tooltip(span)"
+                  :class="barClass(row.entry.span)"
+                  :style="barStyle(row.entry.span)"
+                  :title="tooltip(row.entry.span)"
                 >
                   <span
-                    v-for="(segment, index) in bar(span).selfSegments"
+                    v-for="(segment, index) in bar(row.entry.span).selfSegments"
                     :key="index"
                     class="wf-self"
                     :style="{ left: segment.leftPercent + '%', width: segment.widthPercent + '%' }"
@@ -854,23 +1008,23 @@
             -->
                 <template v-if="showNotifications">
                   <span
-                    v-for="notification in notificationsBySpan.get(span.spanId) ?? []"
+                    v-for="notification in notificationsBySpan.get(row.entry.span.spanId) ?? []"
                     :key="notification.notificationId"
                     class="wf-pin ntf"
                     :style="{
-                      left: offsetPercent(notification.startEpochMicros, traceWindow(spans)) + '%',
+                      left: offsetPercent(notification.startEpochMicros, traceAxis) + '%',
                       '--mark': severityColor(notification.severity)
                     }"
                   ></span>
                 </template>
                 <template v-if="showExceptions">
                   <span
-                    v-for="exception in exceptionsBySpan.get(span.spanId) ?? []"
+                    v-for="exception in exceptionsBySpan.get(row.entry.span.spanId) ?? []"
                     :key="exception.exceptionId"
                     class="wf-pin exc"
                     :class="{ escaped: exception.escaped }"
                     :style="{
-                      left: offsetPercent(exception.startEpochMicros, traceWindow(spans)) + '%',
+                      left: offsetPercent(exception.startEpochMicros, traceAxis) + '%',
                       '--mark': exceptionColor(exception.escaped)
                     }"
                   ></span>
@@ -878,7 +1032,7 @@
               </span>
 
               <span class="wf-duration">{{
-                FormattingService.formatDuration2Units(span.durationNanos)
+                FormattingService.formatDuration2Units(row.entry.span.durationNanos)
               }}</span>
             </button>
 
@@ -888,14 +1042,14 @@
         that was clicked out of view, which is the one thing the reader is comparing against.
       -->
             <TraceSpanInlineDetail
-              v-if="span.spanId === selectedSpanId"
+              v-if="row.entry.span.spanId === selectedSpanId"
               :profile-id="profileId"
-              :span="span"
-              :fields="eventFields[span.eventType] ?? []"
-              :child-count="childCounts.get(span.spanId) ?? 0"
-              :waits="context?.spanWaits?.[span.spanId] ?? []"
-              :notifications="notificationsBySpan.get(span.spanId) ?? []"
-              :exceptions="exceptionsBySpan.get(span.spanId) ?? []"
+              :span="row.entry.span"
+              :fields="eventFields[row.entry.span.eventType] ?? []"
+              :child-count="childCounts.get(row.entry.span.spanId) ?? 0"
+              :waits="context?.spanWaits?.[row.entry.span.spanId] ?? []"
+              :notifications="notificationsBySpan.get(row.entry.span.spanId) ?? []"
+              :exceptions="exceptionsBySpan.get(row.entry.span.spanId) ?? []"
               @view-events="$emit('viewEvents')"
               @view-flamegraph="$emit('viewFlamegraph')"
             />
@@ -963,18 +1117,36 @@ import { computed, ref, watch } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import FormattingService from '@shared/services/FormattingService';
+import TraceRunStats from '@/components/trace/TraceRunStats.vue';
 import TraceSpanInlineDetail from '@/components/trace/TraceSpanInlineDetail.vue';
 import TraceStackTrace from '@/components/trace/TraceStackTrace.vue';
+import { RUN_MEMBERS_PAGE_SIZE, useRunMembers } from '@/composables/useRunMembers';
+import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import type {
   EventFieldRow,
   TraceContext,
   TraceExceptionRow,
   TraceNotificationRow,
-  TraceSpanRow
+  TraceSpanRow,
+  TraceSpanRunRow,
+  TraceWindowRow
 } from '@/services/api/model/trace/TraceModels';
 import { attributeRows } from '@/services/trace/spanAttributes';
-import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
-import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
+import type { RunLane, SpanBar } from '@/services/trace/TraceWaterfallLayout';
+import {
+  indentRem,
+  runLane,
+  spanBar,
+  waterfallBars,
+  windowOf
+} from '@/services/trace/TraceWaterfallLayout';
+import type { ClientRun, RunMembersState, WaterfallEntry } from '@/services/trace/traceRuns';
+import {
+  isCriticalEntry,
+  mergeEntries,
+  rollupRows,
+  serverRunFacts
+} from '@/services/trace/traceRuns';
 import {
   descendantCounts,
   drawnSpans,
@@ -1018,7 +1190,18 @@ const props = withDefaults(
   defineProps<{
     /** Which profile to read a throw's stack from, for the docked strip and the opened span. */
     profileId: string;
+    /** Which trace the folded runs' members are paged in from. */
+    traceId: string;
+    /** The span the trace carried one by one — every span the server did not fold into a run. */
     spans: TraceSpanRow[];
+    /**
+     * The axis, as the server measured it over every span. Not derived from {@link spans}: those are
+     * not the whole trace once runs are folded, and an axis cut short of a run's last member would
+     * push its lane off the track.
+     */
+    window: TraceWindowRow;
+    /** The sibling runs the server folded, each drawn as one row until it is expanded. */
+    runs?: TraceSpanRunRow[];
     selectedSpanId?: string | null;
     /** Field metadata per event type, so an opened span can label and format what its event recorded. */
     eventFields: Record<string, EventFieldRow[]>;
@@ -1044,6 +1227,7 @@ const props = withDefaults(
     exceptions?: TraceExceptionRow[];
   }>(),
   {
+    runs: () => [],
     selectedSpanId: null,
     context: null,
     contextState: 'ready',
@@ -1077,10 +1261,23 @@ const emit = defineEmits<{
 const showNotifications = ref(true);
 const showExceptions = ref(true);
 
+/** The axis every bar, band, pin and lane is laid out against. */
+const traceAxis = computed(() => windowOf(props.window));
+
+/*
+ * The members of the folded runs, paged in as the reader opens them. Held apart from props.spans on
+ * purpose: a change of that array's identity is how this component tells a new trace from the old
+ * one, and a page of members landing must not reset the reader's folds.
+ */
+const runMembers = useRunMembers(
+  () => new ProfileTracesClient(props.profileId),
+  () => props.traceId
+);
+
 const notificationMarks = computed(() =>
   props.notifications.map(notification => ({
     entry: notification,
-    leftPercent: offsetPercent(notification.startEpochMicros, traceWindow(props.spans)),
+    leftPercent: offsetPercent(notification.startEpochMicros, traceAxis.value),
     color: severityColor(notification.severity)
   }))
 );
@@ -1088,7 +1285,7 @@ const notificationMarks = computed(() =>
 const exceptionMarks = computed(() =>
   props.exceptions.map(exception => ({
     entry: exception,
-    leftPercent: offsetPercent(exception.startEpochMicros, traceWindow(props.spans)),
+    leftPercent: offsetPercent(exception.startEpochMicros, traceAxis.value),
     color: exceptionColor(exception.escaped)
   }))
 );
@@ -1098,9 +1295,11 @@ const exceptionsBySpan = computed(() => bySpan(props.exceptions));
 
 /** What a fold swallowed, so a collapsed row can say it the way it already says +N and a red dot. */
 const foldedNotificationCounts = computed(() =>
-  descendantEntryCounts(props.spans, props.notifications)
+  descendantEntryCounts(props.spans, props.notifications, props.runs)
 );
-const foldedExceptionCounts = computed(() => descendantEntryCounts(props.spans, props.exceptions));
+const foldedExceptionCounts = computed(() =>
+  descendantEntryCounts(props.spans, props.exceptions, props.runs)
+);
 
 const worstNotificationSeverity = computed(() => worstSeverity(props.notifications));
 
@@ -1163,40 +1362,84 @@ function toggleEntry(entryId: string): void {
  * The strip's bridge from the fast read to the slow one. Selecting the span opens its detail panel
  * underneath, where the same entry is listed with everything else the span carries.
  */
-function selectSpanOf(spanId: string | null): void {
+async function selectSpanOf(spanId: string | null): Promise<void> {
   openEntryId.value = null;
   if (spanId === null) {
     return;
   }
-  const span = props.spans.find(candidate => candidate.spanId === spanId);
-  if (span === undefined) {
+  const span = props.spans.find(candidate => candidate.spanId === spanId) ?? loadedMember(spanId);
+  if (span !== null && span !== undefined) {
+    // Unfold everything hiding it first, or selecting a span inside a collapsed subtree opens a
+    // detail panel for a row that is not on screen.
+    revealSpan(span);
+    emit('select', span);
     return;
   }
-  // Unfold everything hiding it first, or selecting a span inside a collapsed subtree opens a
-  // detail panel for a row that is not on screen.
-  revealSpan(span);
-  emit('select', span);
+
+  // Not in hand: a member of a folded run the pages have not reached. The run says which of its
+  // members an entry points at, so it can be opened and that one member fetched by id.
+  const run = props.runs.find(candidate => candidate.entrySpanIds.includes(spanId));
+  if (run === undefined) {
+    return;
+  }
+  unfoldAncestors(run.parentSpanId);
+  const member = await runMembers.reveal(run, spanId);
+  if (member !== null) {
+    emit('select', member);
+    scrollRowIntoView(member.spanId);
+  }
+}
+
+/** Opens every ancestor from `parentId` up, so whatever hangs under it is drawn. */
+function unfoldAncestors(parentId: string | null): void {
+  const byId = new Map(props.spans.map(candidate => [candidate.spanId, candidate]));
+  const next = new Set(collapsed.value);
+  let ancestorId = parentId;
+  while (ancestorId !== null) {
+    next.delete(ancestorId);
+    ancestorId = byId.get(ancestorId)?.parentSpanId ?? null;
+  }
+  collapsed.value = next;
 }
 
 /**
  * Opens every ancestor of a span, and the run it is grouped into, so a row reached from a rail is
- * actually visible. The run is looked up after the ancestors are unfolded: a span under a folded
- * parent is not drawn at all, so the rows would not yet know which rollup it belongs to.
+ * actually visible. The client run is looked up after the ancestors are unfolded: a span under a
+ * folded parent is not drawn at all, so the rows would not yet know which rollup it belongs to.
  */
 function revealSpan(span: TraceSpanRow): void {
-  const byId = new Map(props.spans.map(candidate => [candidate.spanId, candidate]));
-  const next = new Set(collapsed.value);
-  let parentId = span.parentSpanId;
-  while (parentId !== null) {
-    next.delete(parentId);
-    parentId = byId.get(parentId)?.parentSpanId ?? null;
-  }
-  collapsed.value = next;
+  unfoldAncestors(span.parentSpanId);
 
+  const serverRun = runHoldingMember(span.spanId);
+  if (serverRun !== null) {
+    void runMembers.expand(serverRun);
+    return;
+  }
   const run = runContaining(span.spanId);
   if (run !== null) {
     expandedRuns.value = new Set(expandedRuns.value).add(run.key);
   }
+}
+
+/** A member some page or reveal already brought in, or null. */
+function loadedMember(spanId: string): TraceSpanRow | null {
+  for (const state of runMembers.states.values()) {
+    const member = state.members.find(candidate => candidate.spanId === spanId);
+    if (member !== undefined) {
+      return member;
+    }
+  }
+  return null;
+}
+
+/** The server run a loaded member was paged in from, or null for any other span. */
+function runHoldingMember(spanId: string): TraceSpanRunRow | null {
+  for (const [runId, state] of runMembers.states.entries()) {
+    if (state.members.some(member => member.spanId === spanId)) {
+      return props.runs.find(run => run.runId === runId) ?? null;
+    }
+  }
+  return null;
 }
 
 function notificationCountTitle(span: TraceSpanRow): string {
@@ -1220,16 +1463,18 @@ function spanNameOf(spanId: string | null): string | null {
   if (spanId === null) {
     return null;
   }
-  return props.spans.find(span => span.spanId === spanId)?.name ?? null;
+  const span = props.spans.find(candidate => candidate.spanId === spanId) ?? loadedMember(spanId);
+  if (span !== null && span !== undefined) {
+    return span.name;
+  }
+  // A folded member is named by its run: every member of one shares the name.
+  return props.runs.find(run => run.entrySpanIds.includes(spanId))?.name ?? null;
 }
 
 function offsetIntoTrace(startEpochMicros: number): string {
-  const micros = Math.max(0, startEpochMicros - traceWindow(props.spans).startMicros);
+  const micros = Math.max(0, startEpochMicros - traceAxis.value.startMicros);
   return '+' + FormattingService.formatDuration2Units(micros * NANOS_PER_MICRO);
 }
-
-/** A span with no geometry cannot happen for a span that is being drawn, but must not throw. */
-const EMPTY_BAR: SpanBar = { leftPercent: 0, widthPercent: 0, selfSegments: [] };
 
 const collapsed = ref<Set<string>>(new Set());
 const criticalOnly = ref(false);
@@ -1241,6 +1486,7 @@ watch(
   () => {
     collapsed.value = new Set();
     expandedRuns.value = new Set();
+    runMembers.reset();
     openRunDetail.value = null;
     criticalOnly.value = false;
     showContext.value = true;
@@ -1254,11 +1500,23 @@ watch(
 );
 
 const windowNanos = computed(() => {
-  const window = traceWindow(props.spans);
+  const window = traceAxis.value;
   return (window.endMicros - window.startMicros) * NANOS_PER_MICRO;
 });
 
-const parents = computed(() => spansWithChildren(props.spans));
+/*
+ * The trace as one list in tree order, with nothing expanded: the shape folding and the fold counts
+ * are read from. Kept apart from the drawn list so a page of members landing never changes which
+ * spans have twisties or what a fold says it hides.
+ */
+const baseEntries = computed(() => mergeEntries(props.spans, props.runs));
+
+/** The same list with each expanded server run's loaded members, and its "more" row, after it. */
+const entries = computed(() =>
+  mergeEntries(props.spans, props.runs, runMembers.expanded.value, runMembers.states)
+);
+
+const parents = computed(() => spansWithChildren(baseEntries.value));
 
 /**
  * Whether the promoted blocking operations — the synthesized leaf spans the derivation built out of
@@ -1303,19 +1561,37 @@ const showMethodOps = ref(true);
 /** Whether the global pause bands are drawn — the third master, over what the JVM did to the trace. */
 const showContext = ref(true);
 
-const promotedCount = computed(() => props.spans.filter(span => span.synthesized).length);
+/** What decides which master governs a row — the same few fields on a span and on a folded run. */
+type SpanLike = Pick<TraceSpanRow, 'synthesized' | 'eventType' | 'ioOrigin'>;
 
-const promotedIoCount = computed(() => props.spans.filter(isPromotedIo).length);
+/**
+ * How many spans of the trace match, each folded run counted as all of its members. The switches
+ * count spans, not rows: a run of 903,029 writes is 903,029 I/O operations the switch hides, and
+ * calling it one would make the switch look like it governed nothing.
+ */
+function spanCount(predicate: (span: SpanLike) => boolean): number {
+  let count = props.spans.filter(predicate).length;
+  for (const run of props.runs) {
+    if (predicate(run)) {
+      count += run.durations.count;
+    }
+  }
+  return count;
+}
 
-const promotedMethodCount = computed(() => props.spans.filter(isPromotedMethod).length);
+const promotedCount = computed(() => spanCount(span => span.synthesized));
+
+const promotedIoCount = computed(() => spanCount(isPromotedIo));
+
+const promotedMethodCount = computed(() => spanCount(isPromotedMethod));
 
 /*
  * Deliberately NOT a term in the complement below. Class-loading reads are promoted I/O and are
  * already counted by promotedIoCount; this switch narrows that family rather than carving a new one
  * out of it, so subtracting here would leave those rows counted by nothing.
  */
-const classLoadingIoCount = computed(
-  () => props.spans.filter(span => isPromotedIo(span) && isClassLoadingIo(span)).length
+const classLoadingIoCount = computed(() =>
+  spanCount(span => isPromotedIo(span) && isClassLoadingIo(span))
 );
 
 /*
@@ -1328,7 +1604,7 @@ const promotedBlockingCount = computed(
 );
 
 /** Whether a span is a promoted file or socket I/O wait, as opposed to any other promoted wait. */
-function isPromotedIo(span: TraceSpanRow): boolean {
+function isPromotedIo(span: SpanLike): boolean {
   if (!span.synthesized) {
     return false;
   }
@@ -1337,7 +1613,7 @@ function isPromotedIo(span: TraceSpanRow): boolean {
 }
 
 /** Whether a span is a promoted traced method, as opposed to a promoted wait. */
-function isPromotedMethod(span: TraceSpanRow): boolean {
+function isPromotedMethod(span: SpanLike): boolean {
   return span.synthesized && isMethodEventType(span.eventType);
 }
 
@@ -1346,7 +1622,7 @@ const methodToggleTitle = computed(() => {
     return 'No traced methods were promoted in this trace';
   }
   const count = promotedMethodCount.value;
-  const ops = count === 1 ? '1 traced method' : `${count} traced methods`;
+  const ops = count === 1 ? '1 traced method' : `${count.toLocaleString()} traced methods`;
   return showMethodOps.value
     ? `Hide the ${ops} drawn as child spans`
     : `Show the ${ops} drawn as child spans`;
@@ -1357,7 +1633,8 @@ const blockingToggleTitle = computed(() => {
     return 'No blocking operations were promoted in this trace';
   }
   const count = promotedBlockingCount.value;
-  const ops = count === 1 ? '1 blocking operation' : `${count} blocking operations`;
+  const ops =
+    count === 1 ? '1 blocking operation' : `${count.toLocaleString()} blocking operations`;
   return showBlockingOps.value
     ? `Hide the ${ops} drawn as child spans`
     : `Show the ${ops} drawn as child spans`;
@@ -1368,7 +1645,7 @@ const ioToggleTitle = computed(() => {
     return 'No file or socket I/O operations were promoted in this trace';
   }
   const count = promotedIoCount.value;
-  const ops = count === 1 ? '1 I/O operation' : `${count} I/O operations`;
+  const ops = count === 1 ? '1 I/O operation' : `${count.toLocaleString()} I/O operations`;
   return showIoOps.value
     ? `Hide the ${ops} drawn as child spans`
     : `Show the ${ops} drawn as child spans`;
@@ -1379,7 +1656,7 @@ const classLoadingToggleTitle = computed(() => {
     return 'No file reads in this trace were attributed to class loading';
   }
   const count = classLoadingIoCount.value;
-  const reads = count === 1 ? '1 file read' : `${count} file reads`;
+  const reads = count === 1 ? '1 file read' : `${count.toLocaleString()} file reads`;
   return showClassLoadingIo.value
     ? `Hide the ${reads} the class loader asked for`
     : `Show the ${reads} the class loader asked for`;
@@ -1388,7 +1665,7 @@ const classLoadingToggleTitle = computed(() => {
 const allBands = computed(() =>
   contextBands(
     (props.context?.pauses ?? []).filter(pause => !pause.nested),
-    traceWindow(props.spans)
+    traceAxis.value
   )
 );
 
@@ -1409,7 +1686,7 @@ const contextCategories = computed(() => {
   if (allThrottleBands.value.length > 0) {
     categories.push(THROTTLE_CATEGORY);
   }
-  for (const span of props.spans) {
+  for (const span of [...props.spans, ...props.runs]) {
     if (!span.synthesized) {
       continue;
     }
@@ -1426,7 +1703,7 @@ const bands = computed(() => (showContext.value ? allBands.value : []));
 const laneGroups = computed(() => bandLanes(bands.value));
 
 const allThrottleBands = computed(() =>
-  throttleBands(props.context?.throttleWindows ?? [], traceWindow(props.spans))
+  throttleBands(props.context?.throttleWindows ?? [], traceAxis.value)
 );
 
 /*
@@ -1520,7 +1797,7 @@ const contextToggleTitle = computed(() => {
 
 // Counted once for the whole trace, like the bars and the child counts below: every parent row asks
 // for this on each render, and answering per row would rescan the trace for each of them.
-const foldedCounts = computed(() => descendantCounts(props.spans));
+const foldedCounts = computed(() => descendantCounts(baseEntries.value));
 
 /**
  * The rows actually drawn: folded subtrees removed first, then the promoted rows the reader has
@@ -1528,14 +1805,15 @@ const foldedCounts = computed(() => descendantCounts(props.spans));
  * compose — collapsing hides a subtree whether or not its spans are critical, and each filter then
  * narrows whatever survived. Dropping a synthesized row never breaks the tree: drawnSpans takes the
  * promoted subtree down with it and resurfaces the recorded spans a traced method had adopted, so
- * no drawn row is ever left under a parent that is not.
+ * no drawn row is ever left under a parent that is not. A folded run answers to the same switches
+ * as the spans it stands for, and its members and "more" row go wherever it goes.
  */
 const rows = computed(() => {
-  const visible = drawnSpans(visibleSpans(props.spans, collapsed.value), isSpanDrawn);
+  const visible = drawnSpans(visibleSpans(entries.value, collapsed.value), isEntryDrawn);
   if (!criticalOnly.value) {
     return visible;
   }
-  return visible.filter(isCritical);
+  return visible.filter(isCriticalEntry);
 });
 
 /**
@@ -1547,47 +1825,7 @@ const rows = computed(() => {
  */
 const MIN_RUN_LENGTH = 2;
 
-/** Consecutive same-named leaf siblings, drawn as one rollup row until expanded. */
-interface SpanRun {
-  key: string;
-  spans: TraceSpanRow[];
-  totalNanos: number;
-  medianNanos: number;
-  p95Nanos: number;
-  maxNanos: number;
-}
-
-/** One drawn row: either a single span or a whole run. Exactly one side is set. */
-interface DisplayRow {
-  span?: TraceSpanRow;
-  run?: SpanRun;
-}
-
 const expandedRuns = ref<Set<string>>(new Set());
-
-/** Whether two visible rows belong to one run. Errors never join one — a rollup must not eat one. */
-function sameRun(a: TraceSpanRow, b: TraceSpanRow): boolean {
-  return (
-    a.parentSpanId === b.parentSpanId &&
-    a.name === b.name &&
-    a.eventType === b.eventType &&
-    a.status !== 'ERROR' &&
-    b.status !== 'ERROR'
-  );
-}
-
-function buildRun(spans: TraceSpanRow[]): SpanRun {
-  const durations = spans.map(span => span.durationNanos).sort((a, b) => a - b);
-  return {
-    // The first span's id keeps the key stable however often the surrounding filters recompute.
-    key: `${spans[0].parentSpanId ?? ''}|${spans[0].name}|${spans[0].eventType}|${spans[0].spanId}`,
-    spans,
-    totalNanos: durations.reduce((sum, nanos) => sum + nanos, 0),
-    medianNanos: durations[Math.floor(durations.length / 2)],
-    p95Nanos: durations[Math.min(durations.length - 1, Math.floor(durations.length * 0.95))],
-    maxNanos: durations[durations.length - 1]
-  };
-}
 
 /*
  * Only what the reader unfolded, and nothing implicit. A run holding the selected span used to
@@ -1596,7 +1834,7 @@ function buildRun(spans: TraceSpanRow[]): SpanRun {
  * still lands somewhere visible because {@link revealSpan} unfolds the run it lands in, so the row
  * is opened once rather than held open forever.
  */
-function isRunExpanded(run: SpanRun): boolean {
+function isRunExpanded(run: ClientRun): boolean {
   return expandedRuns.value.has(run.key);
 }
 
@@ -1615,56 +1853,52 @@ function toggleRun(key: string): void {
  * span has a row of its own. Whether a span is grouped depends on its neighbours after filtering,
  * which only the drawn rows know.
  */
-function runContaining(spanId: string): SpanRun | null {
+function runContaining(spanId: string): ClientRun | null {
   for (const row of displayRows.value) {
-    if (row.run !== undefined && row.run.spans.some(span => span.spanId === spanId)) {
+    if (row.kind === 'clientRun' && row.run.entries.some(entry => entry.key === spanId)) {
       return row.run;
     }
   }
   return null;
 }
 
-/** Which run's statistics panel is open. One at a time, like the span detail above it. */
+function isServerRunExpanded(run: TraceSpanRunRow): boolean {
+  return runMembers.expanded.value.has(run.runId);
+}
+
+function serverRunTitle(run: TraceSpanRunRow): string {
+  if (isServerRunExpanded(run)) {
+    return 'Collapse the run';
+  }
+  return `Expand the slowest of ${run.durations.count.toLocaleString()} spans`;
+}
+
+/** Each server run's lane, laid out once per trace rather than once per render of its row. */
+const runLanes = computed(
+  () => new Map(props.runs.map(run => [run.runId, runLane(run, traceAxis.value)]))
+);
+
+const EMPTY_LANE: RunLane = { cellOpacities: [], outline: { leftPercent: 0, widthPercent: 0 } };
+
+function laneOf(run: TraceSpanRunRow): RunLane {
+  return runLanes.value.get(run.runId) ?? EMPTY_LANE;
+}
+
+/** What the next "Load more" will bring: a full page, or whatever is left of the run. */
+function nextPageSize(run: TraceSpanRunRow, state: RunMembersState): string {
+  const remaining = Math.max(0, run.durations.count - state.fetched);
+  return Math.min(RUN_MEMBERS_PAGE_SIZE, remaining || RUN_MEMBERS_PAGE_SIZE).toLocaleString();
+}
+
+/** Which run's statistics panel is open, by row key. One at a time, like the span detail above it. */
 const openRunDetail = ref<string | null>(null);
 
 function toggleRunDetail(key: string): void {
   openRunDetail.value = openRunDetail.value === key ? null : key;
 }
 
-/** Buckets in the detail strip's histogram — enough to show a shape, few enough to stay a glyph. */
-const RUN_HISTOGRAM_BUCKETS = 12;
-
-interface RunHistogramBucket {
-  /** Drawn height, 0..1 against the busiest bucket. */
-  height: number;
-  fromNanos: number;
-  toNanos: number;
-  count: number;
-}
-
-/**
- * The run's durations bucketed min-to-max, each height normalized to the busiest bucket. The shape
- * answers what median and max cannot: were the slow writes a tail, a cluster, or a second mode?
- */
-function runHistogram(run: SpanRun): RunHistogramBucket[] {
-  const counts = new Array(RUN_HISTOGRAM_BUCKETS).fill(0) as number[];
-  const min = Math.min(...run.spans.map(span => span.durationNanos));
-  const range = Math.max(1, run.maxNanos - min);
-  for (const span of run.spans) {
-    const bucket = Math.min(
-      RUN_HISTOGRAM_BUCKETS - 1,
-      Math.floor(((span.durationNanos - min) / range) * RUN_HISTOGRAM_BUCKETS)
-    );
-    counts[bucket]++;
-  }
-  const peak = Math.max(...counts, 1);
-  const bucketWidth = range / RUN_HISTOGRAM_BUCKETS;
-  return counts.map((count, index) => ({
-    height: count / peak,
-    fromNanos: min + index * bucketWidth,
-    toNanos: min + (index + 1) * bucketWidth,
-    count
-  }));
+function runDetailToggleTitle(key: string): string {
+  return openRunDetail.value === key ? 'Hide the run statistics' : 'Show the run statistics';
 }
 
 /**
@@ -1674,59 +1908,33 @@ function runHistogram(run: SpanRun): RunHistogramBucket[] {
  */
 const RUN_DETAIL_BASE_REM = 1 + 0.8 + 0.4 + 0.45 + 0.4;
 
-function runDetailIndent(run: SpanRun): string {
+function runDetailIndent(depth: number): string {
   // The extra 2px is the accent gutter every row carries on its left edge.
-  return `calc(${RUN_DETAIL_BASE_REM + indentRem(run.spans[0].depth)}rem + 2px)`;
-}
-
-/** One bar, said in words: which slice of durations it covers and how many spans landed in it. */
-function bucketTitle(bucket: RunHistogramBucket): string {
-  const format = FormattingService.formatDuration2Units;
-  const spans = bucket.count === 1 ? '1 span' : `${bucket.count} spans`;
-  return `${format(bucket.fromNanos)} – ${format(bucket.toNanos)}: ${spans}`;
+  return `calc(${RUN_DETAIL_BASE_REM + indentRem(depth)}rem + 2px)`;
 }
 
 /**
- * The rows as drawn: runs of {@link MIN_RUN_LENGTH}+ identical leaves fold into one rollup entry,
- * everything else passes through one span per row. Only leaves are grouped — merging a parent
- * would hide the structure beneath it, which is the opposite of what the rollup is for.
+ * The rows as drawn: runs of {@link MIN_RUN_LENGTH}+ identical leaves the trace carried fold into
+ * one rollup entry, everything else — server runs, their members, their "more" rows — passes
+ * through one entry per row.
  */
-const displayRows = computed<DisplayRow[]>(() => {
-  const list = rows.value;
-  const out: DisplayRow[] = [];
-  let index = 0;
-  while (index < list.length) {
-    const start = list[index];
-    let end = index;
-    if (!parents.value.has(start.spanId)) {
-      while (
-        end + 1 < list.length &&
-        !parents.value.has(list[end + 1].spanId) &&
-        sameRun(start, list[end + 1])
-      ) {
-        end++;
-      }
-    }
-    if (end - index + 1 >= MIN_RUN_LENGTH) {
-      const run = buildRun(list.slice(index, end + 1));
-      out.push({ run });
-      if (isRunExpanded(run)) {
-        for (const span of run.spans) {
-          out.push({ span });
-        }
-      }
-    } else {
-      for (let position = index; position <= end; position++) {
-        out.push({ span: list[position] });
-      }
-    }
-    index = end + 1;
+const displayRows = computed(() =>
+  rollupRows(rows.value, parents.value, expandedRuns.value, MIN_RUN_LENGTH)
+);
+
+/** Whether an entry survives the toolbar: a run as the spans it stands for, a "more" row always. */
+function isEntryDrawn(entry: WaterfallEntry): boolean {
+  if (entry.kind === 'span') {
+    return isSpanDrawn(entry.span);
   }
-  return out;
-});
+  if (entry.kind === 'run') {
+    return isSpanDrawn(entry.run);
+  }
+  return true;
+}
 
 /** Whether a promoted row survives its family's master toggle; a recorded span always draws. */
-function isSpanDrawn(span: TraceSpanRow): boolean {
+function isSpanDrawn(span: SpanLike): boolean {
   if (!span.synthesized) {
     return true;
   }
@@ -1749,7 +1957,11 @@ function isSpanDrawn(span: TraceSpanRow): boolean {
  * critical path — correct, but it makes the toggle a no-op, so it is disabled rather than left to
  * look broken.
  */
-const hasOffPathSpans = computed(() => props.spans.some(span => !isCritical(span)));
+const hasOffPathSpans = computed(
+  () =>
+    props.spans.some(span => !isCritical(span)) ||
+    props.runs.some(run => run.criticalPathNanos <= 0)
+);
 
 const criticalOnlyTitle = computed(() => {
   if (!hasOffPathSpans.value) {
@@ -1764,10 +1976,11 @@ const allCollapsed = computed(
 
 // Every bar at once: a bar's solid stretches depend on the span's children, so laying them out
 // row by row would rescan the whole trace per row.
-const bars = computed(() => waterfallBars(props.spans));
+const bars = computed(() => waterfallBars(props.spans, traceAxis.value, props.runs));
 
 // Counted here rather than in the panel, which only ever sees one span: the tree's shape lives in
 // this flat list, and counting it once beats scanning every row each time one is opened.
+// A folded run counts as every member it stands for, the same way the fold counts do.
 const childCounts = computed(() => {
   const counts = new Map<string, number>();
   for (const span of props.spans) {
@@ -1775,11 +1988,20 @@ const childCounts = computed(() => {
       counts.set(span.parentSpanId, (counts.get(span.parentSpanId) ?? 0) + 1);
     }
   }
+  for (const run of props.runs) {
+    if (run.parentSpanId !== null) {
+      counts.set(run.parentSpanId, (counts.get(run.parentSpanId) ?? 0) + run.durations.count);
+    }
+  }
   return counts;
 });
 
+/*
+ * A loaded run member has no precomputed bar: it was not in the trace the bars were laid out from.
+ * It is a leaf, so its geometry needs nothing but itself and the axis.
+ */
 function bar(span: TraceSpanRow): SpanBar {
-  return bars.value.get(span.spanId) ?? EMPTY_BAR;
+  return bars.value.get(span.spanId) ?? spanBar(span, [], traceAxis.value);
 }
 
 function isCritical(span: TraceSpanRow): boolean {
@@ -1839,14 +2061,7 @@ function jumpToFirstError(): void {
   if (!target) {
     return;
   }
-  const byId = new Map(props.spans.map(span => [span.spanId, span]));
-  const next = new Set(collapsed.value);
-  let parentId = target.parentSpanId;
-  while (parentId !== null) {
-    next.delete(parentId);
-    parentId = byId.get(parentId)?.parentSpanId ?? null;
-  }
-  collapsed.value = next;
+  unfoldAncestors(target.parentSpanId);
   if (criticalOnly.value && !isCritical(target)) {
     criticalOnly.value = false;
   }
@@ -1985,7 +2200,7 @@ function toggleAll(): void {
 
 function twistTitle(span: TraceSpanRow): string {
   const hidden = foldedCounts.value.get(span.spanId) ?? 0;
-  const spans = hidden === 1 ? '1 span' : `${hidden} spans`;
+  const spans = hidden === 1 ? '1 span' : `${hidden.toLocaleString()} spans`;
   return collapsed.value.has(span.spanId) ? `Expand ${spans}` : `Collapse ${spans}`;
 }
 
@@ -2043,7 +2258,7 @@ function barClass(span: TraceSpanRow): string {
  * cannot end up disagreeing with the bar beside it about what the row is -- and so the pale members
  * of the palette can be darkened for the small solid marks without the bar's wash following them.
  */
-function spanColorStyle(span: TraceSpanRow): Record<string, string> {
+function spanColorStyle(span: Pick<TraceSpanRow, 'eventType'>): Record<string, string> {
   return { '--span-color': spanEventColor(span.eventType) };
 }
 
@@ -2052,7 +2267,9 @@ function spanColorStyle(span: TraceSpanRow): Record<string, string> {
  * from the whole trace rather than from what survives the toolbar, for the same reason the context
  * categories are: switching a family off must not also take away the key to the colour it hid.
  */
-const spanFamilies = computed(() => spanFamiliesOf(props.spans.map(span => span.eventType)));
+const spanFamilies = computed(() =>
+  spanFamiliesOf([...props.spans, ...props.runs].map(span => span.eventType))
+);
 
 /**
  * Self time is the number worth surfacing on hover: the duration is already in its own column,
@@ -2067,7 +2284,7 @@ function tooltip(span: TraceSpanRow): string {
     : ', off the critical path';
   // The absolute instant is what lines a span up against application logs — the one correlation
   // the recording-relative offsets everywhere else cannot serve.
-  const startedMicros = span.startEpochMicros - traceWindow(props.spans).startMicros;
+  const startedMicros = span.startEpochMicros - traceAxis.value.startMicros;
   const offset = FormattingService.formatDuration2Units(startedMicros * NANOS_PER_MICRO);
   const wallClock = FormattingService.formatTimestamp(Math.floor(span.startEpochMicros / 1_000));
   // A promoted row names its source event, so the bar never passes itself off as instrumentation.
@@ -2242,6 +2459,7 @@ function tooltip(span: TraceSpanRow): string {
 
 .wf-head,
 .wf-row,
+.wf-more-row,
 .wf-lane,
 .wf-stripes,
 .wf-cursor {
@@ -3138,56 +3356,112 @@ function tooltip(span: TraceSpanRow): string {
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.wf-run-detail {
+/*
+ * A server run's lane: the trace window's slices side by side, each the run's hue at the opacity
+ * its coverage earned. Full width, because the slices are the window's, not the run's.
+ */
+.wf-density {
+  position: absolute;
+  top: 0.15rem;
+  left: 0;
+  width: 100%;
+  height: 0.8rem;
   display: flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  flex-wrap: wrap;
-  /* The left margin comes inline, per row — it follows the run's own indent depth. */
-  margin: var(--spacing-1) 1rem var(--spacing-2) 0;
-  padding: var(--spacing-2) var(--spacing-3);
-  background: var(--color-light);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
 }
 
-.wf-run-stat {
-  display: flex;
-  flex-direction: column;
+.wf-density i {
+  flex: 1 1 0;
+  background: var(--span-color);
 }
 
-.wf-run-stat-label {
+/* First member's start to last member's end: faint, so it frames the density rather than competing. */
+.wf-density-outline {
+  position: absolute;
+  top: 0.15rem;
+  height: 0.8rem;
+  border-radius: var(--radius-xs);
+  outline: 1px solid color-mix(in srgb, var(--span-color) 35%, transparent);
+  outline-offset: -1px;
+  pointer-events: none;
+}
+
+.wf-rank {
+  flex: none;
+  min-width: 2.2rem;
+  text-align: right;
+  font-family: var(--font-family-monospace);
   font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
 }
 
-.wf-run-stat-value {
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-base);
-  font-weight: 600;
+/* The row closing an expanded run: on the row grid, so its button lines up with the track. */
+.wf-more-row {
+  padding: 0.35rem 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  border-left: 2px solid transparent;
+  background: var(--color-light);
+  font-size: var(--font-size-sm);
+}
+
+.wf-more {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.wf-more-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
   font-variant-numeric: tabular-nums;
+}
+
+.wf-more-text b {
+  font-weight: 600;
   color: var(--color-dark);
 }
 
-.wf-run-histogram {
+.wf-more-error {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-danger);
+}
+
+.wf-more-btn {
   display: inline-flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 30px;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1px var(--spacing-3);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.wf-run-histogram i {
-  width: 22px;
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-  background: var(--span-color);
-  opacity: 0.35;
+.wf-more-btn:hover:not(:disabled) {
+  background: var(--color-primary-lighter);
 }
 
-.wf-run-histogram i.hot {
-  opacity: 1;
+.wf-more-btn:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.wf-more-spinner {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-width: 0.12em;
 }
 
 /*

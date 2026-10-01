@@ -238,7 +238,7 @@ const CLASS_LOADING_ORIGIN = 'CLASS_LOADING';
  * One-sided, like the field: `false` means nothing said class loading, not that something said
  * otherwise, so this is only ever used to *hide* rows and never to label a row as something else.
  */
-export function isClassLoadingIo(span: TraceSpanRow): boolean {
+export function isClassLoadingIo(span: Pick<TraceSpanRow, 'ioOrigin'>): boolean {
   return span.ioOrigin === CLASS_LOADING_ORIGIN;
 }
 

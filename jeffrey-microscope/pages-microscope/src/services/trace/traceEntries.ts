@@ -19,9 +19,11 @@ import type {
   NotificationSeverity,
   TraceExceptionRow,
   TraceNotificationRow,
-  TraceSpanRow
+  TraceSpanRow,
+  TraceSpanRunRow
 } from '@/services/api/model/trace/TraceModels';
 import type { TraceWindow } from '@/services/trace/TraceWaterfallLayout';
+import { runKey } from '@/services/trace/traceRuns';
 
 /**
  * The instants a trace carries beside its spans: what the application said, and what was thrown at
@@ -120,18 +122,36 @@ export function bySpan<T extends RailEntry>(entries: readonly T[]): Map<string, 
  *
  * Walks each entry's parent chain rather than scanning a subtree per row, the same shape the error
  * descendant count uses: there are few entries and many rows.
+ *
+ * An entry raised in a member the server folded has no span here to start the walk from, so it
+ * starts at the run instead: the run row counts it (keyed by {@link runKey}, the key its row is
+ * drawn under) and the walk carries on from the run's parent, exactly as it would have from the
+ * member's. Without that, a throw inside a folded write would vanish from every fold above it.
  */
 export function descendantEntryCounts<T extends RailEntry>(
   spans: readonly TraceSpanRow[],
-  entries: readonly T[]
+  entries: readonly T[],
+  runs: readonly TraceSpanRunRow[] = []
 ): Map<string, number> {
   const byId = new Map(spans.map(span => [span.spanId, span]));
+  const runByMember = new Map<string, TraceSpanRunRow>();
+  for (const run of runs) {
+    for (const spanId of run.entrySpanIds) {
+      runByMember.set(spanId, run);
+    }
+  }
   const counts = new Map<string, number>();
   for (const entry of entries) {
     if (entry.spanId === null) {
       continue;
     }
     let parentId = byId.get(entry.spanId)?.parentSpanId ?? null;
+    const run = byId.has(entry.spanId) ? undefined : runByMember.get(entry.spanId);
+    if (run !== undefined) {
+      const key = runKey(run.runId);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+      parentId = run.parentSpanId;
+    }
     while (parentId !== null) {
       counts.set(parentId, (counts.get(parentId) ?? 0) + 1);
       parentId = byId.get(parentId)?.parentSpanId ?? null;
@@ -143,8 +163,8 @@ export function descendantEntryCounts<T extends RailEntry>(
 /**
  * Where an instant sits across the track, as a percentage of the trace's window.
  *
- * Clamped, because the window is derived from the spans and an entry can fall a hair outside it: a
- * throw recorded at the closing microsecond of the last span rounds past the end, and a mark drawn
+ * Clamped, because an entry can fall a hair outside the window: a throw recorded at the closing
+ * microsecond of the last span rounds past the end, and a mark drawn
  * at 100.4% would sit outside the track rather than at its edge. A zero-width window puts
  * everything at the start, which is the only honest answer when there is no axis to place it on.
  */

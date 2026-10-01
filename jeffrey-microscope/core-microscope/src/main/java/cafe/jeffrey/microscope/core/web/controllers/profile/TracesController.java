@@ -25,6 +25,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
@@ -34,6 +35,8 @@ import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunMembers;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
@@ -103,6 +106,9 @@ public class TracesController {
     private static final String DEFAULT_OPERATION_SORT = "TOTAL_TIME";
     /** Enough points to see where an operation got busy, few enough to stay readable. */
     private static final String DEFAULT_TIMELINE_BUCKETS = "60";
+    private static final String DEFAULT_RUN_MEMBERS_LIMIT = "50";
+    /** A page of a folded run, not the run: a run can hold a million members. */
+    private static final int MAX_RUN_MEMBERS_LIMIT = 1_000;
     private static final int MAX_TIMELINE_BUCKETS = 500;
 
     private final ProfileManagerResolver resolver;
@@ -265,12 +271,11 @@ public class TracesController {
             @PathVariable("traceId") String traceId) {
         LOG.debug("Exporting a trace for AI: profile_id={} trace_id={}", profileId, traceId);
 
-        long id = parseId(traceId);
-        TraceManager traceManager = resolver.resolve(profileId).traceManager();
-        TraceDetail detail = traceManager.trace(id)
+        TraceExportSource source = resolver.resolve(profileId).traceManager()
+                .export(parseId(traceId))
                 .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
 
-        return new TraceAiMarkdownBuilder(detail, traceManager.context(id)).build();
+        return new TraceAiMarkdownBuilder(source).build();
     }
 
     @GetMapping("/{traceId}")
@@ -281,6 +286,43 @@ public class TracesController {
         return resolver.resolve(profileId).traceManager()
                 .trace(parseId(traceId))
                 .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
+    }
+
+    /**
+     * One page of a folded run's members, slowest first — what the waterfall loads when a summed
+     * row is unfolded.
+     * <p>
+     * The offset is not held to the general page ceiling: a run can hold a million members, and
+     * "Load more" has to be able to reach the last of them.
+     */
+    @GetMapping("/{traceId}/runs/{runId}/members")
+    public TraceSpanRunMembers runMembers(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId,
+            @PathVariable("runId") String runId,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = DEFAULT_RUN_MEMBERS_LIMIT) int limit) {
+        LOG.debug("Loading run members: profile_id={} trace_id={} run_id={} offset={} limit={}",
+                profileId, traceId, runId, offset, limit);
+        return resolver.resolve(profileId).traceManager()
+                .runMembers(parseId(traceId), parseId(runId),
+                        Math.max(0, offset), Math.clamp(limit, 1, MAX_RUN_MEMBERS_LIMIT))
+                .orElseThrow(() -> Exceptions.resourceNotFound("Run not found: " + runId));
+    }
+
+    /**
+     * One span, folded or not — how the waterfall reaches a run member that a notification or an
+     * exception points at, without paging through the run to find it.
+     */
+    @GetMapping("/{traceId}/spans/{spanId}")
+    public TraceSpanRow span(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId,
+            @PathVariable("spanId") String spanId) {
+        LOG.debug("Loading span: profile_id={} trace_id={} span_id={}", profileId, traceId, spanId);
+        return resolver.resolve(profileId).traceManager()
+                .span(parseId(traceId), parseId(spanId))
+                .orElseThrow(() -> Exceptions.resourceNotFound("Span not found: " + spanId));
     }
 
     /**

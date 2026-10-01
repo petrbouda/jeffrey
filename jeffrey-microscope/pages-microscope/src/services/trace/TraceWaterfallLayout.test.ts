@@ -20,11 +20,12 @@ import {
   indentRem,
   MAX_INDENT_DEPTH,
   MIN_BAR_PERCENT,
+  runLane,
   spanBar,
-  traceWindow,
-  waterfallBars
+  waterfallBars,
+  windowOf
 } from '@/services/trace/TraceWaterfallLayout';
-import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type { TraceSpanRow, TraceSpanRunRow } from '@/services/api/model/trace/TraceModels';
 
 const NANOS_PER_MICRO = 1_000;
 
@@ -73,22 +74,50 @@ function child(
   });
 }
 
-describe('traceWindow', () => {
-  it('spans from the first start to the last end', () => {
-    expect(traceWindow([span(100, 50), span(120, 10)])).toEqual({
+/**
+ * A run the server folded under the root span `0000000000000001`, its coverage given slice by slice.
+ * Everything not given is what the layout never reads.
+ */
+function run(coverage: number[], overrides: Partial<TraceSpanRunRow> = {}): TraceSpanRunRow {
+  return {
+    runId: 'run-1',
+    parentSpanId: '0000000000000001',
+    position: 0,
+    depth: 1,
+    name: 'File write',
+    kind: 'INTERNAL',
+    eventType: 'jdk.FileWrite',
+    ioOrigin: null,
+    synthesized: true,
+    threadHash: '900',
+    threadName: 'worker',
+    threadCount: 1,
+    durations: {
+      count: 100,
+      totalNanos: 0,
+      minNanos: 0,
+      p50Nanos: 0,
+      p95Nanos: 0,
+      p99Nanos: 0,
+      maxNanos: 0,
+      buckets: []
+    },
+    criticalPathNanos: 0,
+    firstStartEpochMicros: 0,
+    lastEndEpochMicros: 0,
+    coverage,
+    entrySpanIds: [],
+    ...overrides
+  };
+}
+
+describe('windowOf', () => {
+  it("takes the server's window as it is, in the layout's units", () => {
+    // The axis is no longer derived from the rows: with runs folded they are not the whole trace.
+    expect(windowOf({ startEpochMicros: 100, endEpochMicros: 150 })).toEqual({
       startMicros: 100,
       endMicros: 150
     });
-  });
-
-  it('extends past the root when a child outlives it', () => {
-    // Happens whenever a parent hands work to another thread and returns first. The window has to
-    // cover the child or its bar would overflow the track.
-    expect(traceWindow([span(0, 10), span(0, 80)]).endMicros).toBe(80);
-  });
-
-  it('is empty for no spans rather than infinite', () => {
-    expect(traceWindow([])).toEqual({ startMicros: 0, endMicros: 0 });
   });
 });
 
@@ -223,7 +252,7 @@ describe('a recorded trace of sub-millisecond calls', () => {
   const children = CHILDREN.map(([startMicros, durationNanos], index) =>
     child(String(index + 2), startMicros, durationNanos / NANOS_PER_MICRO)
   );
-  const bars = waterfallBars([root, ...children]);
+  const bars = waterfallBars([root, ...children], { startMicros: 0, endMicros: 36_231.5 });
 
   it('never draws two of them as overlapping', () => {
     const laidOut = children.map(span => bars.get(span.spanId)!);
@@ -261,7 +290,7 @@ describe('waterfallBars', () => {
   it('gives every span its geometry, with children taken from the flat list', () => {
     const parent = span(0, 100);
     const only = child('2', 20, 40);
-    const bars = waterfallBars([parent, only]);
+    const bars = waterfallBars([parent, only], { startMicros: 0, endMicros: 100 });
 
     expect(bars.size).toBe(2);
     expect(bars.get(parent.spanId)?.selfSegments).toEqual([
@@ -272,7 +301,75 @@ describe('waterfallBars', () => {
   });
 
   it('has no geometry to give for no spans', () => {
-    expect(waterfallBars([]).size).toBe(0);
+    expect(waterfallBars([], { startMicros: 0, endMicros: 0 }).size).toBe(0);
+  });
+
+  it("takes a folded run's covered slices out of its parent's self time", () => {
+    // Four slices of 25us; the run's members filled the second slice completely and half the
+    // third. Each slice's busy time is packed to its start, so 25..50 and 50..62.5 are covered.
+    const parent = span(0, 100);
+    const bars = waterfallBars([parent], { startMicros: 0, endMicros: 100 }, [run([0, 1, 0.5, 0])]);
+
+    expect(bars.get(parent.spanId)?.selfSegments).toEqual([
+      { leftPercent: 0, widthPercent: 25 },
+      { leftPercent: 62.5, widthPercent: 37.5 }
+    ]);
+  });
+
+  it('leaves the parent its time when the run ran on another thread', () => {
+    const parent = span(0, 100);
+    const elsewhere = run([0, 1, 1, 0], { threadHash: '901' });
+
+    const bars = waterfallBars([parent], { startMicros: 0, endMicros: 100 }, [elsewhere]);
+
+    expect(bars.get(parent.spanId)?.selfSegments).toEqual([{ leftPercent: 0, widthPercent: 100 }]);
+  });
+
+  it('leaves the parent its time when the run spread over several threads', () => {
+    // Its threadHash is only one of them, so it cannot say which stretches were the parent's own.
+    const parent = span(0, 100);
+    const spread = run([0, 1, 1, 0], { threadCount: 3 });
+
+    const bars = waterfallBars([parent], { startMicros: 0, endMicros: 100 }, [spread]);
+
+    expect(bars.get(parent.spanId)?.selfSegments).toEqual([{ leftPercent: 0, widthPercent: 100 }]);
+  });
+
+  it('does not touch a span the run does not hang under', () => {
+    const other = span(0, 100, { spanId: '0000000000000009' });
+
+    const bars = waterfallBars([other], { startMicros: 0, endMicros: 100 }, [run([1, 1, 1, 1])]);
+
+    expect(bars.get(other.spanId)?.selfSegments).toEqual([{ leftPercent: 0, widthPercent: 100 }]);
+  });
+});
+
+describe('runLane', () => {
+  const window = { startMicros: 0, endMicros: 100 };
+
+  it("shades each slice against the run's busiest one, leaving empty slices clear", () => {
+    const lane = runLane(run([0, 0.5, 0.25, 0]), window);
+
+    expect(lane.cellOpacities[0]).toBe(0);
+    expect(lane.cellOpacities[1]).toBe(1);
+    expect(lane.cellOpacities[2]).toBeCloseTo(0.12 + 0.88 * 0.5, 6);
+    expect(lane.cellOpacities[3]).toBe(0);
+  });
+
+  it('never draws a grazed slice as empty', () => {
+    const lane = runLane(run([1, 0.0001]), window);
+
+    expect(lane.cellOpacities[1]).toBeGreaterThanOrEqual(0.12);
+  });
+
+  it("outlines the run from its first member's start to its last member's end", () => {
+    const lane = runLane(run([1], { firstStartEpochMicros: 20, lastEndEpochMicros: 70 }), window);
+
+    expect(lane.outline).toEqual({ leftPercent: 20, widthPercent: 50 });
+  });
+
+  it('draws nothing for a run that covered nothing', () => {
+    expect(runLane(run([0, 0]), window).cellOpacities).toEqual([0, 0]);
   });
 });
 

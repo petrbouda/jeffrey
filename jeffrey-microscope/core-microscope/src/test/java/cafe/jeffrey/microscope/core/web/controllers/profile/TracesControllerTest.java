@@ -23,6 +23,7 @@ import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunMembers;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
@@ -42,6 +43,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -197,4 +199,55 @@ class TracesControllerTest {
         }
     }
 
+    @Nested
+    class RunMembers {
+
+        private static final String MEMBERS_URI =
+                "/api/internal/profiles/p-1/traces/00000000000000ff/runs/0000000000000010/members";
+
+        private MockMvcTester mvc() {
+            when(resolver.resolve(PROFILE)).thenReturn(profileManager);
+            when(profileManager.traceManager()).thenReturn(traceManager);
+            return mockMvcTesterFor(new TracesController(resolver, panelProvider));
+        }
+
+        @Test
+        void aBareRequestReadsTheFirstFifty() {
+            when(traceManager.runMembers(TRACE_ID, SPAN_ID, 0, 50))
+                    .thenReturn(Optional.of(new TraceSpanRunMembers(List.of(), 903_029, true)));
+
+            assertThat(mvc().get().uri(MEMBERS_URI))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.total").asNumber().isEqualTo(903_029);
+        }
+
+        @Test
+        void thePageSizeIsBoundedButTheOffsetReachesTheLastMember() {
+            // A run can hold a million members: "Load more" has to reach the end of it, so the
+            // offset is not held to the ceiling a page size is.
+            when(traceManager.runMembers(TRACE_ID, SPAN_ID, 900_000, 1_000))
+                    .thenReturn(Optional.of(new TraceSpanRunMembers(List.of(), 903_029, true)));
+
+            assertThat(mvc().get().uri(MEMBERS_URI + "?offset=900000&limit=999999")).hasStatusOk();
+        }
+
+        @Test
+        void anUnknownRunIs404() {
+            when(traceManager.runMembers(TRACE_ID, SPAN_ID, 0, 50)).thenReturn(Optional.empty());
+
+            assertThat(mvc().get().uri(MEMBERS_URI))
+                    .hasStatus(404)
+                    .bodyJson()
+                    .extractingPath("$.code").asString().isEqualTo("RESOURCE_NOT_FOUND");
+        }
+
+        @Test
+        void anUnknownSpanIs404() {
+            when(traceManager.span(TRACE_ID, SPAN_ID)).thenReturn(Optional.empty());
+
+            assertThat(mvc().get().uri("/api/internal/profiles/p-1/traces/00000000000000ff/spans/0000000000000010"))
+                    .hasStatus(404);
+        }
+    }
 }

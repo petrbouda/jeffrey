@@ -51,6 +51,7 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
@@ -463,10 +464,10 @@ public class TracesMcpTools {
             String traceId) {
 
         long id = parseId(traceId, "traceId");
-        TraceManager traceManager = traceManager();
-        TraceDetail detail = traceManager.trace(id)
+        TraceExportSource source = traceManager().export(id)
                 .orElseThrow(() -> new ToolExecutionException(NO_SUCH_TRACE.formatted(traceId)));
-        String export = new TraceAiMarkdownBuilder(detail, traceManager.context(id)).build();
+        TraceDetail detail = source.detail();
+        String export = new TraceAiMarkdownBuilder(source).build();
 
         // A sample is matched to a span by thread and window, and the profiler files it under the
         // carrier: a trace that never left its virtual threads has nothing to draw, as the UI says.
