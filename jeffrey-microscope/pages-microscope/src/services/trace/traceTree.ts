@@ -15,21 +15,28 @@
  * limitations under the License.
  */
 
-import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type { WaterfallEntry } from '@/services/trace/traceRuns';
 
 /**
  * Which spans have something hanging off them, so the waterfall knows where to draw a twistie.
  *
- * Read off `depth` rather than off `parentSpanId`: the backend delivers the tree pre-ordered, so a
- * span has children exactly when the row after it sits deeper. That also keeps the answer consistent
- * with what the list actually draws — a span whose parent link was dropped as dangling is a root
- * here, the same way it is a root on screen.
+ * Read off `depth` rather than off a parent link: the entries arrive pre-ordered, so a span has
+ * children exactly when the row after it sits deeper. That also keeps the answer consistent with
+ * what the list actually draws — a span whose parent link was dropped as dangling is a root here,
+ * the same way it is a root on screen. A folded run counts as a child like any other, so a span
+ * whose only children the server folded still gets its twistie.
+ *
+ * Only spans the trace carried: a run folds and unfolds through its own row, and a member is a leaf.
  */
-export function spansWithChildren(spans: TraceSpanRow[]): Set<string> {
+export function spansWithChildren(entries: readonly WaterfallEntry[]): Set<string> {
   const parents = new Set<string>();
-  for (let index = 0; index < spans.length - 1; index++) {
-    if (spans[index + 1].depth > spans[index].depth) {
-      parents.add(spans[index].spanId);
+  for (let index = 0; index < entries.length - 1; index++) {
+    const entry = entries[index];
+    if (entry.kind !== 'span' || entry.memberOf !== null) {
+      continue;
+    }
+    if (entries[index + 1].depth > entry.depth) {
+      parents.add(entry.key);
     }
   }
   return parents;
@@ -39,60 +46,63 @@ export function spansWithChildren(spans: TraceSpanRow[]): Set<string> {
  * The rows left once every collapsed span's subtree is folded away.
  *
  * A subtree is the run of rows immediately after a span that are deeper than it, which the
- * pre-ordering guarantees are exactly its descendants. So one pass with a depth watermark hides a
- * whole subtree without ever building a parent map, and nested collapsed spans cost nothing extra:
- * their rows were already being skipped.
+ * pre-ordering guarantees are exactly its descendants — runs, their loaded members and their "more"
+ * rows included. So one pass with a depth watermark hides a whole subtree without ever building a
+ * parent map, and nested collapsed spans cost nothing extra: their rows were already being skipped.
  */
-export function visibleSpans(
-  spans: TraceSpanRow[],
+export function visibleSpans<T extends WaterfallEntry>(
+  entries: T[],
   collapsed: ReadonlySet<string>
-): TraceSpanRow[] {
+): T[] {
   if (collapsed.size === 0) {
-    return spans;
+    return entries;
   }
 
-  const visible: TraceSpanRow[] = [];
+  const visible: T[] = [];
   // The depth of the collapsed span currently being skipped past; null when nothing is folded.
   let hidingBelowDepth: number | null = null;
 
-  for (const span of spans) {
+  for (const entry of entries) {
     if (hidingBelowDepth !== null) {
-      if (span.depth > hidingBelowDepth) {
+      if (entry.depth > hidingBelowDepth) {
         continue;
       }
       hidingBelowDepth = null;
     }
-    visible.push(span);
-    if (collapsed.has(span.spanId)) {
-      hidingBelowDepth = span.depth;
+    visible.push(entry);
+    if (collapsed.has(entry.key)) {
+      hidingBelowDepth = entry.depth;
     }
   }
   return visible;
 }
 
 /**
- * How many rows each span is folding away, keyed by span id. A span absent from the result has no
- * descendants.
+ * How many spans each entry is folding away, keyed by entry key. An entry absent from the result
+ * has no descendants.
  *
- * Every span at once, rather than a lookup per row: the twistie's title needs this for each parent
+ * Weighted: a folded run is every one of its members, so a parent folding a run of 903,029 writes
+ * says +903,030 rather than +1 — the fold hides what the run stands for, not the row drawing it.
+ *
+ * Every entry at once, rather than a lookup per row: the twistie's title needs this for each parent
  * on every render, and scanning forward from one span to find its subtree costs a pass over the
  * trace — which turns drawing a deep trace into a scan per row of it. Counted from the same run of
  * deeper rows {@link visibleSpans} folds, so the two can never disagree about what a fold hides.
  */
-export function descendantCounts(spans: TraceSpanRow[]): Map<string, number> {
+export function descendantCounts(entries: readonly WaterfallEntry[]): Map<string, number> {
   const counts = new Map<string, number>();
-  // The spans the current row sits inside, outermost first. Everything still on it gains a
-  // descendant when a deeper row arrives; anything at or above the new row's depth has closed.
-  const ancestors: TraceSpanRow[] = [];
+  // The entries the current row sits inside, outermost first. Everything still on it gains the
+  // row's weight when a deeper row arrives; anything at or above the new row's depth has closed.
+  const ancestors: WaterfallEntry[] = [];
 
-  for (const span of spans) {
-    while (ancestors.length > 0 && ancestors[ancestors.length - 1].depth >= span.depth) {
+  for (const entry of entries) {
+    while (ancestors.length > 0 && ancestors[ancestors.length - 1].depth >= entry.depth) {
       ancestors.pop();
     }
     for (const ancestor of ancestors) {
-      counts.set(ancestor.spanId, (counts.get(ancestor.spanId) ?? 0) + 1);
+      counts.set(ancestor.key, (counts.get(ancestor.key) ?? 0) + entry.weight);
     }
-    ancestors.push(span);
+    ancestors.push(entry);
   }
   return counts;
 }
@@ -105,31 +115,31 @@ export function descendantCounts(spans: TraceSpanRow[]): Map<string, number> {
  * waits that happened inside it, so removing one on its own would leave its children indented under
  * a parent that is no longer drawn.
  *
- * Hiding carries down to a *synthesized* child only. A promoted span hangs where the derivation
- * put it, so it goes wherever its parent goes — but a recorded span under a method span was only
- * ADOPTED there (instrumentation recorded it under a recorded parent, and the derivation re-hung
- * it under the traced method wrapping it), so switching a promoted family off must resurface it
- * rather than take the request's real spans down with the toggle. A resurfaced span keeps its
- * depth; the one-level gap it leaves is the hidden method's, and it closes when the toggle
- * returns.
+ * Hiding carries down to an entry that *follows its parent* only (see `followsParent`). A promoted
+ * span hangs where the derivation put it, so it goes wherever its parent goes, and so do a run's
+ * members and its "more" row — but a recorded span under a method span was only ADOPTED there
+ * (instrumentation recorded it under a recorded parent, and the derivation re-hung it under the
+ * traced method wrapping it), so switching a promoted family off must resurface it rather than
+ * take the request's real spans down with the toggle. A resurfaced span keeps its depth; the
+ * one-level gap it leaves is the hidden method's, and it closes when the toggle returns.
  *
- * Relies on tree order — the caller passes spans with every parent ahead of its children, which is
- * what {@link visibleSpans} returns — so one pass carries each decision downwards and no parent
+ * Relies on tree order — the caller passes entries with every parent ahead of its children, which
+ * is what {@link visibleSpans} returns — so one pass carries each decision downwards and no parent
  * chain is ever walked.
  */
-export function drawnSpans(
-  spans: TraceSpanRow[],
-  isDrawn: (span: TraceSpanRow) => boolean
-): TraceSpanRow[] {
+export function drawnSpans<T extends WaterfallEntry>(
+  entries: T[],
+  isDrawn: (entry: T) => boolean
+): T[] {
   const hidden = new Set<string>();
-  const drawn: TraceSpanRow[] = [];
-  for (const span of spans) {
-    const underHidden = span.parentSpanId !== null && hidden.has(span.parentSpanId);
-    if (!isDrawn(span) || (underHidden && span.synthesized)) {
-      hidden.add(span.spanId);
+  const drawn: T[] = [];
+  for (const entry of entries) {
+    const underHidden = entry.parentKey !== null && hidden.has(entry.parentKey);
+    if (!isDrawn(entry) || (underHidden && entry.followsParent)) {
+      hidden.add(entry.key);
       continue;
     }
-    drawn.push(span);
+    drawn.push(entry);
   }
   return drawn;
 }

@@ -23,13 +23,21 @@ import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceRunDurations;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunMembers;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunRow;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
+import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
+import cafe.jeffrey.provider.profile.api.TracePromotedGroupRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanRunRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanShape;
+import cafe.jeffrey.provider.profile.api.TraceWindowRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.microscope.model.SpanInterval;
 import org.junit.jupiter.api.DisplayName;
@@ -39,14 +47,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -135,16 +153,322 @@ class TraceManagerImplTest {
     }
 
     private TraceManagerImpl managerOf(List<TraceSpanRecord> spans) {
-        when(traceRepository.spansOf(TRACE)).thenReturn(spans);
+        stub(spans);
+        return new TraceManagerImpl(traceRepository);
+    }
+
+    /**
+     * Answers every per-trace read from {@code spans}, folding nothing — the shape every tree,
+     * interval and context test wants. Lenient, since each test exercises only some of the reads.
+     */
+    private void stub(List<TraceSpanRecord> spans) {
+        stub(spans, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Answers every per-trace read from {@code spans}, folding runs of at least {@code foldAt}
+     * identical sibling leaves the way the repository's SQL does — so a manager test can put a
+     * folded run in front of the real assembly without a database.
+     */
+    private void stub(List<TraceSpanRecord> spans, int foldAt) {
+        FoldingFixture fixture = FoldingFixture.of(spans, foldAt);
+        lenient().when(traceRepository.shapesOf(eq(TRACE), anyInt())).thenReturn(fixture.shapes());
+        lenient().when(traceRepository.spansOf(eq(TRACE), anyInt())).thenReturn(fixture.drawn());
+        lenient().when(traceRepository.runsOf(eq(TRACE), anyInt())).thenReturn(fixture.runs());
+        lenient().when(traceRepository.runMembers(eq(TRACE), anyLong(), anyInt(), anyInt(), anyInt()))
+                .thenAnswer(call -> fixture.page(call.getArgument(1), call.getArgument(3), call.getArgument(4)));
+        lenient().when(traceRepository.spanOf(eq(TRACE), anyLong()))
+                .thenAnswer(call -> spans.stream()
+                        .filter(span -> span.spanId() == (long) call.getArgument(1))
+                        .findFirst());
+        lenient().when(traceRepository.windowOf(TRACE)).thenReturn(fixture.window());
+        lenient().when(traceRepository.promotedGroupsOf(TRACE)).thenReturn(fixture.promoted());
         // The header comes from the traces table rather than being recomputed from these spans, so a
         // manager test has to supply it. Its values do not matter to the tree assembly under test.
         lenient().when(traceRepository.summaryOf(TRACE)).thenReturn(Optional.of(new TraceSummaryRecord(
                 TRACE, "root", "INTERNAL", "jeffrey.TraceSpan", 0, 0, 0, spans.size(), 0, true)));
-        return new TraceManagerImpl(traceRepository);
     }
 
     private List<TraceSpanRow> spansOf(List<TraceSpanRecord> records) {
         return managerOf(records).trace(TRACE).map(TraceDetail::spans).orElseThrow();
+    }
+
+    /**
+     * The repository's per-trace reads, answered in memory from a list of span records. Folding
+     * follows the rule the SQL applies — leaves not in error, grouped by parent, name, event type and
+     * I/O origin, named by their lowest id — so the manager sees exactly what a database would hand it.
+     */
+    private record FoldingFixture(
+            List<TraceSpanShape> shapes,
+            List<TraceSpanRecord> drawn,
+            List<TraceSpanRunRecord> runs,
+            Map<Long, List<TraceSpanRecord>> members,
+            Optional<TraceWindowRecord> window,
+            List<TracePromotedGroupRecord> promoted) {
+
+        private record RunKey(Long parentSpanId, String name, String eventType, String ioOrigin) {
+        }
+
+        static FoldingFixture of(List<TraceSpanRecord> spans, int foldAt) {
+            Set<Long> parents = spans.stream()
+                    .map(TraceSpanRecord::parentSpanId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            Map<RunKey, List<TraceSpanRecord>> groups = spans.stream()
+                    .filter(span -> !parents.contains(span.spanId()) && !"ERROR".equals(span.status()))
+                    .collect(Collectors.groupingBy(
+                            span -> new RunKey(span.parentSpanId(), span.name(), span.eventType(), span.ioOrigin()),
+                            LinkedHashMap::new,
+                            Collectors.toList()));
+
+            Map<Long, Long> runOf = new HashMap<>();
+            Map<Long, List<TraceSpanRecord>> members = new HashMap<>();
+            List<TraceSpanRunRecord> runs = new ArrayList<>();
+            for (List<TraceSpanRecord> group : groups.values()) {
+                if (group.size() < foldAt) {
+                    continue;
+                }
+                long runId = group.stream().mapToLong(TraceSpanRecord::spanId).min().orElseThrow();
+                TraceSpanRecord earliest = group.stream()
+                        .min(Comparator.comparingLong(TraceSpanRecord::startEpochMicros))
+                        .orElseThrow();
+                group.forEach(member -> runOf.put(member.spanId(), runId));
+                members.put(runId, group.stream()
+                        .sorted(Comparator.comparingLong(TraceSpanRecord::durationNanos).reversed()
+                                .thenComparingLong(TraceSpanRecord::spanId))
+                        .toList());
+                runs.add(new TraceSpanRunRecord(runId, earliest.parentSpanId(), earliest.name(), earliest.kind(),
+                        earliest.eventType(), earliest.ioOrigin(),
+                        group.stream().allMatch(TraceSpanRecord::synthesized), earliest.threadName()));
+            }
+
+            List<TraceSpanShape> shapes = spans.stream()
+                    .map(span -> new TraceSpanShape(span.spanId(), span.parentSpanId(), span.startEpochMicros(),
+                            span.durationNanos(), span.threadHash(), runOf.get(span.spanId())))
+                    .toList();
+            List<TraceSpanRecord> drawn = spans.stream()
+                    .filter(span -> !runOf.containsKey(span.spanId()))
+                    .toList();
+
+            Optional<TraceWindowRecord> window = spans.isEmpty()
+                    ? Optional.empty()
+                    : Optional.of(new TraceWindowRecord(
+                            spans.stream().mapToLong(TraceSpanRecord::startEpochMicros).min().orElseThrow(),
+                            spans.stream().mapToLong(span -> span.startEpochMicros() + span.durationNanos() / US)
+                                    .max().orElseThrow()));
+
+            List<TracePromotedGroupRecord> promoted = spans.stream()
+                    .filter(TraceSpanRecord::synthesized)
+                    .collect(Collectors.groupingBy(TraceSpanRecord::eventType, LinkedHashMap::new, Collectors.toList()))
+                    .entrySet().stream()
+                    .map(entry -> new TracePromotedGroupRecord(
+                            entry.getKey(),
+                            null,
+                            entry.getValue().size(),
+                            entry.getValue().stream().mapToLong(TraceSpanRecord::durationNanos).sum(),
+                            entry.getValue().stream().mapToLong(TraceSpanRecord::durationNanos).max().orElse(0)))
+                    .toList();
+
+            return new FoldingFixture(shapes, drawn, runs, members, window, promoted);
+        }
+
+        List<TraceSpanRecord> page(long runId, int offset, int limit) {
+            List<TraceSpanRecord> all = members.getOrDefault(runId, List.of());
+            return all.subList(Math.min(offset, all.size()), Math.min(offset + limit, all.size()));
+        }
+    }
+
+    /** A promoted write of {@code durationMicros}, starting {@code startMicros} into the trace. */
+    private static TraceSpanRecord write(long spanId, long parentSpanId, long startMicros, long durationMicros) {
+        return writeOn(spanId, parentSpanId, startMicros, durationMicros, THREAD);
+    }
+
+    private static TraceSpanRecord writeOn(
+            long spanId, long parentSpanId, long startMicros, long durationMicros, long threadHash) {
+        return new TraceSpanRecord(
+                TRACE, spanId, parentSpanId, "File write", "INTERNAL", "UNSET", null,
+                startMicros / MICROS_PER_MILLI, startMicros, durationMicros * US, durationMicros * US,
+                threadHash, "worker", false, "jdk.FileWrite", null, null, true, null);
+    }
+
+    @Nested
+    @DisplayName("Folded runs")
+    class RunFolding {
+
+        private static final int FOLD_AT = 3;
+
+        /** root 0..100ms; recorded A at 10ms; three writes at 20, 30, 40ms of 1, 2, 3ms; recorded B at 50ms. */
+        private List<TraceSpanRecord> trace() {
+            return List.of(
+                    span(1, null, "root", 0, 100),
+                    span(2, 1L, "A", 10, 5),
+                    write(10, 1, 20_000, 1_000),
+                    write(11, 1, 30_000, 2_000),
+                    write(12, 1, 40_000, 3_000),
+                    span(3, 1L, "B", 50, 5));
+        }
+
+        private TraceDetail detail(List<TraceSpanRecord> spans, int foldAt) {
+            stub(spans, foldAt);
+            return new TraceManagerImpl(traceRepository).trace(TRACE).orElseThrow();
+        }
+
+        @Test
+        @DisplayName("sends the run as one row, placed among its siblings at its first member's start")
+        void foldsIntoOneRow() {
+            TraceDetail detail = detail(trace(), FOLD_AT);
+
+            assertEquals(List.of("root", "A", "B"), detail.spans().stream().map(TraceSpanRow::name).toList());
+            assertEquals(1, detail.runs().size());
+            TraceSpanRunRow run = detail.runs().getFirst();
+            assertEquals(2, run.position(), "drawn before B, which started after the first write");
+            assertEquals(1, run.depth());
+            assertEquals(TraceIds.hex(1), run.parentSpanId());
+            assertEquals(TraceIds.hex(10), run.runId(), "the lowest member id names the run");
+            assertEquals("File write", run.name());
+            assertEquals(3, run.durations().count());
+        }
+
+        @Test
+        @DisplayName("leaves a run below the threshold as spans")
+        void keepsShortRunsAsSpans() {
+            TraceDetail detail = detail(trace(), FOLD_AT + 1);
+
+            assertEquals(6, detail.spans().size());
+            assertTrue(detail.runs().isEmpty());
+        }
+
+        @Test
+        @DisplayName("credits the run exactly what its members are credited when drawn one by one")
+        void criticalShareMatchesUnfoldedMembers() {
+            long unfolded = detail(trace(), Integer.MAX_VALUE).spans().stream()
+                    .filter(span -> span.eventType().equals("jdk.FileWrite"))
+                    .mapToLong(TraceSpanRow::criticalPathNanos)
+                    .sum();
+            long rootUnfolded = detail(trace(), Integer.MAX_VALUE).spans().getFirst().criticalPathNanos();
+
+            TraceDetail folded = detail(trace(), FOLD_AT);
+
+            assertEquals(6 * MS, unfolded, "three sequential writes, all on the path");
+            assertEquals(unfolded, folded.runs().getFirst().criticalPathNanos());
+            assertEquals(rootUnfolded, folded.spans().getFirst().criticalPathNanos(),
+                    "folding hides the writes, it does not hand their stretch back to the parent");
+        }
+
+        @Test
+        @DisplayName("summarises the members' durations")
+        void summarisesDurations() {
+            TraceRunDurations durations = detail(trace(), FOLD_AT).runs().getFirst().durations();
+
+            assertEquals(6 * MS, durations.totalNanos());
+            assertEquals(1 * MS, durations.minNanos());
+            assertEquals(2 * MS, durations.p50Nanos());
+            assertEquals(3 * MS, durations.maxNanos());
+        }
+
+        @Test
+        @DisplayName("draws where the members ran as coverage of the trace window")
+        void coversTheMembersWindows() {
+            TraceSpanRunRow run = detail(trace(), FOLD_AT).runs().getFirst();
+
+            assertEquals(TraceRunCoverage.SLICES, run.coverage().size());
+            // The window is 100ms, so a slice is 100ms / 240; the writes cover 6ms of it.
+            double coveredMs = run.coverage().stream().mapToDouble(Double::doubleValue).sum() * 100d / TraceRunCoverage.SLICES;
+            assertEquals(6d, coveredMs, 0.05);
+            assertEquals(0d, run.coverage().getFirst(), "nothing ran in the first slice");
+            assertEquals(20_000, run.firstStartEpochMicros());
+            assertEquals(43_000, run.lastEndEpochMicros());
+        }
+
+        @Test
+        @DisplayName("names the members a throw points at, so the rail can reach them")
+        void namesEntryMembers() {
+            when(traceRepository.exceptionsOf(TRACE)).thenReturn(List.of(new TraceExceptionRecord(
+                    TRACE, 11, 99, 30, 30_000, "jdk.JavaExceptionThrow", "java.io.IOException", "disk full",
+                    false, null, THREAD)));
+
+            TraceSpanRunRow run = detail(trace(), FOLD_AT).runs().getFirst();
+
+            assertEquals(List.of(TraceIds.hex(11)), run.entrySpanIds());
+        }
+
+        @Test
+        @DisplayName("keeps a failed member out of the run, drawn on its own")
+        void keepsErrorsOut() {
+            List<TraceSpanRecord> spans = new ArrayList<>(trace());
+            TraceSpanRecord failing = write(13, 1, 45_000, 1_000);
+            spans.add(new TraceSpanRecord(TRACE, failing.spanId(), failing.parentSpanId(), failing.name(), failing.kind(),
+                    "ERROR", "java.io.IOException", failing.startMillisFromBeginning(), failing.startEpochMicros(),
+                    failing.durationNanos(), failing.selfDurationNanos(), failing.threadHash(), failing.threadName(),
+                    false, failing.eventType(), null, null, true, null));
+
+            TraceDetail detail = detail(spans, FOLD_AT);
+
+            assertEquals(3, detail.runs().getFirst().durations().count());
+            assertTrue(detail.spans().stream().anyMatch(span -> span.spanId().equals(TraceIds.hex(13))));
+        }
+
+        @Test
+        @DisplayName("counts the threads of folded members too")
+        void countsThreadsOfMembers() {
+            List<TraceSpanRecord> spans = new ArrayList<>(trace());
+            spans.add(writeOn(14, 1, 60_000, 1_000, OTHER_THREAD));
+
+            assertEquals(1, detail(trace(), FOLD_AT).threadCount());
+            TraceDetail detail = detail(spans, FOLD_AT);
+            assertEquals(2, detail.threadCount());
+            assertEquals(2, detail.runs().getFirst().threadCount());
+        }
+    }
+
+    @Nested
+    @DisplayName("Run members")
+    class RunMembers {
+
+        private TraceManagerImpl manager() {
+            stub(new RunFolding().trace(), RunFolding.FOLD_AT);
+            return new TraceManagerImpl(traceRepository);
+        }
+
+        @Test
+        @DisplayName("pages the members slowest first, each placed as its run is")
+        void pagesSlowestFirst() {
+            TraceSpanRunMembers page = manager().runMembers(TRACE, 10, 0, 2).orElseThrow();
+
+            assertEquals(3, page.total());
+            assertTrue(page.hasMore());
+            assertEquals(List.of(TraceIds.hex(12), TraceIds.hex(11)),
+                    page.members().stream().map(TraceSpanRow::spanId).toList());
+            TraceSpanRow slowest = page.members().getFirst();
+            assertEquals(1, slowest.depth());
+            assertEquals(TraceIds.hex(1), slowest.parentSpanId());
+            assertEquals(3 * MS, slowest.criticalPathNanos());
+        }
+
+        @Test
+        @DisplayName("says when the last page has been read")
+        void lastPageHasNoMore() {
+            TraceSpanRunMembers page = manager().runMembers(TRACE, 10, 2, 2).orElseThrow();
+
+            assertEquals(List.of(TraceIds.hex(10)), page.members().stream().map(TraceSpanRow::spanId).toList());
+            assertFalse(page.hasMore());
+        }
+
+        @Test
+        @DisplayName("an unknown run is absent")
+        void unknownRunIsAbsent() {
+            assertEquals(Optional.empty(), manager().runMembers(TRACE, 2, 0, 10));
+        }
+
+        @Test
+        @DisplayName("one folded member can be read on its own, placed as its run is")
+        void readsOneMember() {
+            TraceSpanRow member = manager().span(TRACE, 11).orElseThrow();
+
+            assertEquals(1, member.depth());
+            assertEquals(TraceIds.hex(1), member.parentSpanId());
+            assertEquals("File write", member.name());
+        }
     }
 
     @Nested
@@ -261,7 +585,7 @@ class TraceManagerImplTest {
         private static final long WINDOW_MICROS = 1_000_000L;
 
         private List<TraceContextSlice> summaryOf(TracePauseRecord... pauses) {
-            when(traceRepository.spansOf(TRACE)).thenReturn(List.of(new TraceSpanRecord(
+            stub(List.of(new TraceSpanRecord(
                     TRACE, 1L, null, "root", "SERVER", "UNSET", null,
                     0, 0, WINDOW_MICROS * 1_000, WINDOW_MICROS * 1_000,
                     THREAD, "main", false, "jeffrey.TraceSpan", null, null, false, null)));
@@ -282,7 +606,7 @@ class TraceManagerImplTest {
             // The promoted categories never arrive as waits any more -- the repository excludes
             // them -- so the summary must rebuild their totals from the synthesized spans, or the
             // panel would say a trace full of socket reads waited on nothing.
-            when(traceRepository.spansOf(TRACE)).thenReturn(List.of(
+            stub(List.of(
                     new TraceSpanRecord(
                             TRACE, 1L, null, "root", "SERVER", "UNSET", null,
                             0, 0, WINDOW_MICROS * 1_000, WINDOW_MICROS * 1_000,
@@ -713,7 +1037,7 @@ class TraceManagerImplTest {
     @Test
     @DisplayName("a trace with no spans is absent, not an empty trace")
     void unknownTraceIsEmpty() {
-        when(traceRepository.spansOf(TRACE)).thenReturn(List.of());
+        stub(List.of());
 
         assertEquals(Optional.empty(), new TraceManagerImpl(traceRepository).trace(TRACE));
     }
@@ -728,7 +1052,7 @@ class TraceManagerImplTest {
         @Test
         @DisplayName("a truncated window says so rather than passing the page off as complete")
         void propagatesTruncation() {
-            when(traceRepository.spansOf(TRACE)).thenReturn(List.of(span(1, null, "root", 0, 100)));
+            stub(List.of(span(1, null, "root", 0, 100)));
             when(traceRepository.eventsInSpan(THREAD, 0, 100)).thenReturn(new ThreadWindowEventsPage(
                     List.of(new ThreadWindowEventRecord("jdk.ExecutionSample", 5, MS, "{}")), true));
 
@@ -742,7 +1066,7 @@ class TraceManagerImplTest {
         @Test
         @DisplayName("an unknown span yields an empty page rather than failing")
         void unknownSpanIsEmpty() {
-            when(traceRepository.spansOf(TRACE)).thenReturn(List.of());
+            stub(List.of());
 
             assertEquals(TraceSpanEvents.EMPTY, new TraceManagerImpl(traceRepository).eventsInSpan(TRACE, 1));
         }

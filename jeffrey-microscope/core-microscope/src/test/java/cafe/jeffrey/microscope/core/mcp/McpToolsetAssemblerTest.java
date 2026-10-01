@@ -65,6 +65,8 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
+import cafe.jeffrey.profile.manager.model.trace.TraceWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
@@ -1229,7 +1231,8 @@ class McpToolsetAssemblerTest {
         /** The fixture trace has more spans than the export lists, so its span cap is what is tested. */
         @Test
         void theFixtureTraceRunsPastTheExportsSpanCap() {
-            String export = new TraceAiMarkdownBuilder(traceDetail(), traceContext()).build();
+            String export = new TraceAiMarkdownBuilder(
+                    new TraceExportSource(traceDetail(), traceContext(), List.of())).build();
 
             assertTrue(export.contains("(truncated: "), "the fixture trace fits the export whole");
         }
@@ -1340,6 +1343,8 @@ class McpToolsetAssemblerTest {
         private void stubTraces(TraceManager traceManager) {
             lenient().when(traceManager.trace(anyLong())).thenReturn(Optional.of(traceDetail()));
             lenient().when(traceManager.context(anyLong())).thenReturn(traceContext());
+            lenient().when(traceManager.export(anyLong())).thenReturn(
+                    Optional.of(new TraceExportSource(traceDetail(), traceContext(), List.of())));
             lenient().when(traceManager.operation(any())).thenReturn(Optional.of(operationRow()));
             lenient().when(traceManager.operationSummary(any(), anyInt()))
                     .thenAnswer(invocation -> operationSummary(invocation.getArgument(1)));
@@ -1401,7 +1406,8 @@ class McpToolsetAssemblerTest {
             all.addAll(spans);
             TraceRow trace = new TraceRow(TRACE_ID, OPERATION_NAME, OPERATION_KIND, OPERATION_EVENT_TYPE,
                     120_000L, 1_767_261_720_000L, total, all.size(), exceptions.size(), true);
-            return new TraceDetail(trace, all, notifications, exceptions, Map.of());
+            return new TraceDetail(trace, new TraceWindow(0, total / 1_000L), all, List.of(), 1,
+                    notifications, exceptions, Map.of());
         }
 
         private static TraceSpanRow span(String spanId, String parentSpanId, String name, String kind, boolean failed,

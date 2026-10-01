@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.profile.trace.export;
 
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TracePromotedGroup;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;
 
@@ -30,20 +30,23 @@ import java.util.stream.Collectors;
 /**
  * The trace's socket and file I/O, grouped by what it was against.
  * <p>
- * Built from the spans the trace already carries rather than from a second query: the derivation
- * promotes every recorded {@code jdk.SocketRead}, {@code jdk.FileWrite} and friend into a leaf span
- * whose payload still holds the event's own fields, so the bytes and the path are already here. The
- * tree shows each operation where it happened; this shows what they add up to, which is the reading
- * the tree cannot give — four hundred bullets named "File read" say nothing about the buffer.
+ * Built from the promoted spans totalled per event type and payload: the derivation promotes every
+ * recorded {@code jdk.SocketRead}, {@code jdk.FileWrite} and friend into a leaf span whose payload
+ * still holds the event's own fields, so the bytes and the path are there — and a payload is stored
+ * once however many operations share it, so a million writes to one buffer arrive as a handful of
+ * groups. The tree shows each operation where it happened; this shows what they add up to, which is
+ * the reading the tree cannot give — four hundred bullets named "File read" say nothing about the
+ * buffer.
  * <p>
- * Computed over <em>every</em> span, including the ones the tree had to truncate. A trace whose
- * bullet list stops at four hundred spans still gets a complete I/O accounting, which is exactly the
- * trace whose I/O is worth accounting for.
+ * Computed over <em>every</em> operation, including the ones the tree folded or truncated. A trace
+ * whose bullet list stops at four hundred spans still gets a complete I/O accounting, which is
+ * exactly the trace whose I/O is worth accounting for.
  */
 record TraceIoSummary(List<TraceIoTarget> targets, long operations, long bytes, long totalNanos) {
 
-    /** One recorded operation, before its group swallows it. */
-    private record Operation(TraceIoDirection direction, String target, long bytes, long nanos) {
+    /** Operations that shared one payload, before their target's group swallows them. */
+    private record Operation(
+            TraceIoDirection direction, String target, long count, long bytes, long nanos, long maxNanos) {
     }
 
     /** What makes two operations the same row: the same kind of I/O against the same thing. */
@@ -52,8 +55,8 @@ record TraceIoSummary(List<TraceIoTarget> targets, long operations, long bytes, 
 
     static final TraceIoSummary EMPTY = new TraceIoSummary(List.of(), 0, 0, 0);
 
-    static TraceIoSummary of(List<TraceSpanRow> spans) {
-        List<Operation> operations = spans.stream()
+    static TraceIoSummary of(List<TracePromotedGroup> groups) {
+        List<Operation> operations = groups.stream()
                 .map(TraceIoSummary::toOperation)
                 .filter(Objects::nonNull)
                 .toList();
@@ -75,27 +78,30 @@ record TraceIoSummary(List<TraceIoTarget> targets, long operations, long bytes, 
 
         return new TraceIoSummary(
                 targets,
-                operations.size(),
+                operations.stream().mapToLong(Operation::count).sum(),
                 operations.stream().mapToLong(Operation::bytes).sum(),
                 operations.stream().mapToLong(Operation::nanos).sum());
     }
 
     /**
-     * One span read as an I/O operation, or {@code null} when it is not one.
+     * One group read as I/O operations, or {@code null} when its event type is not I/O.
      * <p>
-     * A span with no payload still becomes an operation: the recording's threshold decided it was
-     * worth an event, so it counts toward the shape even when its path went unrecorded. The field
-     * readers take a null node, so the unknown target falls out rather than being branched on.
+     * A group with no payload still becomes operations: the recording's threshold decided each was
+     * worth an event, so they count toward the shape even when their path went unrecorded. The field
+     * readers take a null node, so the unknown target falls out rather than being branched on. Every
+     * operation in a group carried the same payload, so the bytes one moved is what each moved.
      */
-    private static Operation toOperation(TraceSpanRow span) {
-        return TraceIoDirection.of(span.eventType())
+    private static Operation toOperation(TracePromotedGroup group) {
+        return TraceIoDirection.of(group.eventType())
                 .map(direction -> {
-                    JsonNode fields = parseFields(span.eventFields());
+                    JsonNode fields = parseFields(group.eventFields());
                     return new Operation(
                             direction,
                             direction.target(fields),
-                            direction.bytes(fields),
-                            span.durationNanos());
+                            group.count(),
+                            direction.bytes(fields) * group.count(),
+                            group.totalNanos(),
+                            group.maxNanos());
                 })
                 .orElse(null);
     }
@@ -111,10 +117,10 @@ record TraceIoSummary(List<TraceIoTarget> targets, long operations, long bytes, 
         return new TraceIoTarget(
                 key.direction(),
                 key.target(),
-                operations.size(),
+                operations.stream().mapToLong(Operation::count).sum(),
                 operations.stream().mapToLong(Operation::bytes).sum(),
                 operations.stream().mapToLong(Operation::nanos).sum(),
-                operations.stream().mapToLong(Operation::nanos).max().orElse(0L));
+                operations.stream().mapToLong(Operation::maxNanos).max().orElse(0L));
     }
 
     boolean isEmpty() {

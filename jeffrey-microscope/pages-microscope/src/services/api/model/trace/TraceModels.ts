@@ -222,15 +222,130 @@ export interface TraceStacktrace {
   frames: TraceStackFrameRow[];
 }
 
+/**
+ * The stretch of time a trace's bars are laid out against, in epoch microseconds: from the first
+ * span's start to the last span's end, over EVERY span — including the members of a folded run the
+ * browser never receives. Which is why it travels with the trace rather than being derived from the
+ * rows: the rows a reader has loaded are not the trace.
+ */
+export interface TraceWindowRow {
+  startEpochMicros: number;
+  endEpochMicros: number;
+}
+
+/**
+ * One bar of a run's duration histogram: the members whose duration fell in `[from, to)` — the
+ * last bar closed at `to`, so the slowest member lands in it.
+ */
+export interface TraceRunDurationBucket {
+  fromNanos: number;
+  toNanos: number;
+  count: number;
+}
+
+/**
+ * The shape of a folded run's durations, computed on the server over every member — the browser
+ * never holds them all, so it cannot compute these itself.
+ */
+export interface TraceRunDurations {
+  count: number;
+  totalNanos: number;
+  minNanos: number;
+  p50Nanos: number;
+  p95Nanos: number;
+  p99Nanos: number;
+  maxNanos: number;
+  /**
+   * Log-spaced from `minNanos` to `maxNanos`, fastest first; one bucket when every member took the
+   * same time. Log rather than linear because a run of a million writes is almost all fast with a
+   * long tail, and on a linear scale everything but a handful lands in the first bar.
+   */
+  buckets: TraceRunDurationBucket[];
+}
+
+/**
+ * Siblings the server folded into one row: leaves that share a parent, a name, an event type and an
+ * I/O origin, numerous enough that sending each one would make the trace unreadable — or, at a
+ * million of them, unloadable. Its members are fetched on demand, slowest first.
+ */
+export interface TraceSpanRunRow {
+  /** The hex id of the run's lowest member span — what the members endpoint is addressed by. */
+  runId: string;
+  parentSpanId: string | null;
+  /**
+   * Where the run is drawn: before `spans[position]`, or after the last span when it equals
+   * `spans.length`. The server places it among its siblings by its first member's start.
+   */
+  position: number;
+  /** The members' own depth in the tree; loaded members are drawn one level deeper, under the run. */
+  depth: number;
+  name: string;
+  kind: SpanKind;
+  eventType: string;
+  ioOrigin: string | null;
+  synthesized: boolean;
+  /** The thread the earliest member ran on — the only one when {@link threadCount} is 1. */
+  threadHash: string;
+  threadName: string | null;
+  threadCount: number;
+  durations: TraceRunDurations;
+  /** The critical-path credit of every member, summed. Above zero puts the run on the path. */
+  criticalPathNanos: number;
+  firstStartEpochMicros: number;
+  lastEndEpochMicros: number;
+  /**
+   * The trace window cut into equal slices, each the fraction (0..1) of it some member covered.
+   * What the run's lane draws instead of a tick per member.
+   */
+  coverage: number[];
+  /** The members a notification or a throw points at, so a rail entry can find its way in. */
+  entrySpanIds: string[];
+}
+
+/** One page of a run's members, slowest first. */
+export interface TraceSpanRunMembers {
+  members: TraceSpanRow[];
+  total: number;
+  hasMore: boolean;
+}
+
 export interface TraceDetail {
   trace: TraceRow;
+  /** See {@link TraceWindowRow}: the axis, which the loaded rows alone cannot give. */
+  window: TraceWindowRow;
+  /** Every span the server did NOT fold into a run, pre-ordered so `depth` carries the tree. */
   spans: TraceSpanRow[];
+  /** The folded runs, each placed among the spans by its `position`. */
+  runs: TraceSpanRunRow[];
+  /** Distinct threads across the whole trace, folded members included. */
+  threadCount: number;
   /** What the application said while the trace ran, oldest first. */
   notifications: TraceNotificationRow[];
   /** Every throw recorded inside the trace, oldest first, each already attributed to a span. */
   exceptions: TraceExceptionRow[];
   /** Field metadata for the event types these spans came from, keyed by event type. */
   eventFields: Record<string, EventFieldRow[]>;
+}
+
+/**
+ * Whether a response is a trace at all. The check exists because of how the trace used to fail: a
+ * response too large for the browser to parse came back from axios as empty data, which the dialog
+ * then drew as "No spans" — a confident statement about a trace nobody had read. Shape-checked
+ * rather than trusted, so an unreadable answer is an error the reader is told about.
+ */
+export function isTraceDetail(value: unknown): value is TraceDetail {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.trace === 'object' &&
+    candidate.trace !== null &&
+    typeof candidate.window === 'object' &&
+    candidate.window !== null &&
+    Array.isArray(candidate.spans) &&
+    Array.isArray(candidate.runs)
+  );
 }
 
 /**

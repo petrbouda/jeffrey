@@ -28,8 +28,10 @@ import type {
   NotificationSeverity,
   TraceExceptionRow,
   TraceNotificationRow,
-  TraceSpanRow
+  TraceSpanRow,
+  TraceSpanRunRow
 } from '@/services/api/model/trace/TraceModels';
+import { runKey } from '@/services/trace/traceRuns';
 
 function notification(
   spanId: string | null,
@@ -185,6 +187,45 @@ describe('traceEntries', () => {
       ]);
 
       expect(counts.size).toBe(0);
+    });
+
+    it("counts a throw inside a folded member under the run's row and every fold above it", () => {
+      // The member itself is not in hand -- the server folded it -- so the walk starts at its run.
+      const folded: TraceSpanRunRow = {
+        runId: 'w1',
+        parentSpanId: 'child',
+        position: 3,
+        depth: 2,
+        name: 'File write',
+        kind: 'INTERNAL',
+        eventType: 'jdk.FileWrite',
+        ioOrigin: null,
+        synthesized: true,
+        threadHash: 't1',
+        threadName: 'main',
+        threadCount: 1,
+        durations: {
+          count: 500,
+          totalNanos: 0,
+          minNanos: 0,
+          p50Nanos: 0,
+          p95Nanos: 0,
+          p99Nanos: 0,
+          maxNanos: 0,
+          buckets: []
+        },
+        criticalPathNanos: 0,
+        firstStartEpochMicros: 0,
+        lastEndEpochMicros: 0,
+        coverage: [],
+        entrySpanIds: ['w7']
+      };
+
+      const counts = descendantEntryCounts(spans, [thrown('w7', true)], [folded]);
+
+      expect(counts.get(runKey('w1'))).toBe(1);
+      expect(counts.get('child')).toBe(1);
+      expect(counts.get('root')).toBe(1);
     });
   });
 

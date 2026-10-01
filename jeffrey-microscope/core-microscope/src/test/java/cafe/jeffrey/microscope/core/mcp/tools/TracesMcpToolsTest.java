@@ -31,6 +31,8 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
+import cafe.jeffrey.profile.manager.model.trace.TraceWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
@@ -161,10 +163,11 @@ class TracesMcpToolsTest {
     private void traceRecorded(boolean hasPlatformSpan) {
         TraceRow root = new TraceRow(TRACE_ID, NAME, KIND, EVENT_TYPE, 1_200, TRACE_START_EPOCH_MS, 4_000_000, 9, 0,
                 hasPlatformSpan);
-        when(traceManager.trace(anyLong())).thenReturn(Optional.of(new TraceDetail(
-                root, List.of(span(ROOT_SPAN, null, 1_000), span(BUSY_SPAN, ROOT_SPAN, 8_000_000)),
-                List.of(), List.of(), Map.of())));
-        when(traceManager.context(anyLong())).thenReturn(TraceContext.EMPTY);
+        TraceDetail detail = new TraceDetail(
+                root, new TraceWindow(0, 4_000), List.of(span(ROOT_SPAN, null, 1_000), span(BUSY_SPAN, ROOT_SPAN, 8_000_000)),
+                List.of(), 1, List.of(), List.of(), Map.of());
+        when(traceManager.export(anyLong())).thenReturn(
+                Optional.of(new TraceExportSource(detail, TraceContext.EMPTY, List.of())));
     }
 
     private static TraceOperationRow operation(String name) {
@@ -708,7 +711,7 @@ class TracesMcpToolsTest {
 
         @Test
         void refusesATraceThisProfileDoesNotHold() {
-            when(traceManager.trace(anyLong())).thenReturn(Optional.empty());
+            when(traceManager.export(anyLong())).thenReturn(Optional.empty());
 
             ToolExecutionException error = assertThrows(ToolExecutionException.class,
                     () -> tools().traceExport(TRACE_ID));

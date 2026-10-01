@@ -118,16 +118,72 @@ public interface TraceRepository {
     TraceOverviewRecord overview();
 
     /**
-     * Returns every span of one trace, ordered by start time. The tree is assembled above this
-     * layer; the ordering here is what makes that assembly deterministic.
+     * Returns the spans of one trace that are drawn on their own, ordered by start time — every
+     * span except the members of a folded run. The tree is assembled above this layer; the ordering
+     * here is what makes that assembly deterministic.
+     * <p>
+     * A run is every leaf under one parent sharing a name, an event type and an I/O origin, not in
+     * error, once there are at least {@code minRunLength} of them. One definition serves this read,
+     * {@link #shapesOf}, {@link #runsOf} and {@link #runMembers}, so the four always agree on which
+     * spans a run holds.
+     *
+     * @param minRunLength how many siblings it takes to fold them; {@link Integer#MAX_VALUE} folds
+     *                     nothing and returns every span
      */
-    List<TraceSpanRecord> spansOf(long traceId);
+    List<TraceSpanRecord> spansOf(long traceId, int minRunLength);
+
+    /**
+     * Every span of one trace in its skinny form, folded run members included and tagged with their
+     * run, ordered by start time — what the tree and the critical path are computed from.
+     *
+     * @param minRunLength as for {@link #spansOf(long, int)}
+     */
+    List<TraceSpanShape> shapesOf(long traceId, int minRunLength);
+
+    /**
+     * What each folded run of one trace shares. The members themselves are counted from
+     * {@link #shapesOf} and read from {@link #runMembers}.
+     *
+     * @param minRunLength as for {@link #spansOf(long, int)}
+     */
+    List<TraceSpanRunRecord> runsOf(long traceId, int minRunLength);
+
+    /**
+     * One page of a folded run's members, slowest first, ties broken by span id so consecutive
+     * pages neither repeat nor skip a member.
+     *
+     * @param runId        the run, as {@link TraceSpanRunRecord#runId()} names it
+     * @param minRunLength as for {@link #spansOf(long, int)}; must match the read the run came from
+     * @param offset       how many members to skip
+     * @param limit        how many to return at most
+     */
+    List<TraceSpanRecord> runMembers(long traceId, long runId, int minRunLength, int offset, int limit);
+
+    /**
+     * One span of a trace, folded or not.
+     *
+     * @return empty when the trace holds no span with that id
+     */
+    Optional<TraceSpanRecord> spanOf(long traceId, long spanId);
+
+    /**
+     * The stretch one trace occupied, every span included.
+     *
+     * @return empty when no trace carries that id
+     */
+    Optional<TraceWindowRecord> windowOf(long traceId);
+
+    /**
+     * The trace's synthesized spans totalled per event type and payload — the context summary's
+     * per-category totals and the I/O accounting, without reading each span.
+     */
+    List<TracePromotedGroupRecord> promotedGroupsOf(long traceId);
 
     /**
      * Everything the application said during one trace, oldest first.
      * <p>
      * Read apart from the spans because it is a different question about the same trace, and
-     * because a notification is not a span: it has no place in the tree {@link #spansOf(long)}
+     * because a notification is not a span: it has no place in the tree {@link #spansOf(long, int)}
      * feeds.
      */
     List<TraceNotificationRecord> notificationsOf(long traceId);

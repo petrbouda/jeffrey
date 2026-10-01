@@ -35,12 +35,16 @@ import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
+import cafe.jeffrey.provider.profile.api.TracePromotedGroupRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanRunRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanShape;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceThrottleWindowRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
+import cafe.jeffrey.provider.profile.api.TraceWindowRecord;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.model.SpanInterval;
 import cafe.jeffrey.shared.persistence.StatementLabel;
@@ -1130,9 +1134,12 @@ public class JdbcTraceRepository implements TraceRepository {
      * The start is projected as EPOCH_US, not EPOCH_MS: a span is routinely shorter than a
      * millisecond, so flooring its start to one puts sequential spans on the same instant and the
      * waterfall then draws them overlapping. Microseconds are all the stored timestamp carries.
+     *
+     * The projection and its joins, shared by every read that returns full span rows; each read
+     * appends its own narrowing.
      */
     //language=SQL
-    private static final String SPANS_OF_TRACE = """
+    private static final String SPAN_ROWS = """
             SELECT
                 s.trace_id                              AS trace_id,
                 s.span_id                               AS span_id,
@@ -1156,8 +1163,142 @@ public class JdbcTraceRepository implements TraceRepository {
             FROM trace_spans s
             LEFT JOIN threads t ON s.thread_hash = t.thread_hash
             LEFT JOIN trace_span_payloads p ON p.payload_id = s.event_fields_ref
+            """;
+
+    /*
+     * The one definition of a folded run, prefixed to every read that has to know which spans one
+     * holds — so the spans drawn on their own, the shapes, the run headers and a page of members can
+     * never disagree about it.
+     *
+     * A member is a leaf (no span of the trace names it as parent) not in error: a failure must stay
+     * its own row, and a span with children has a subtree a fold would hide. Members share their
+     * stored parent, name, event type and I/O origin, NULLs comparing equal — a run of roots is still
+     * a run, and class-loading reads stay apart from the rest because the waterfall hides them by
+     * default. The lowest member id names the run: it is stable across reads, so a page fetched
+     * later finds the same run.
+     */
+    //language=SQL
+    private static final String RUN_MEMBERS_CTE = """
+            WITH trace AS (
+                SELECT * FROM trace_spans WHERE trace_id = :trace_id
+            ),
+            leaves AS (
+                SELECT l.span_id, l.parent_span_id, l.name, l.kind, l.event_type, l.io_origin,
+                       l.synthesized, l.start_timestamp, l.thread_hash
+                FROM trace l
+                WHERE COALESCE(l.status, '') <> 'ERROR'
+                  AND NOT EXISTS (SELECT 1 FROM trace c WHERE c.parent_span_id = l.span_id)
+            ),
+            runs AS (
+                SELECT
+                    MIN(span_id)                                AS run_id,
+                    parent_span_id,
+                    name,
+                    event_type,
+                    io_origin,
+                    ANY_VALUE(kind)                             AS kind,
+                    BOOL_AND(synthesized)                       AS synthesized,
+                    ARG_MIN(thread_hash, start_timestamp)       AS first_thread_hash
+                FROM leaves
+                GROUP BY parent_span_id, name, event_type, io_origin
+                HAVING COUNT(*) >= :min_run_length
+            ),
+            members AS (
+                SELECT l.span_id, r.run_id
+                FROM leaves l
+                JOIN runs r
+                  ON l.parent_span_id IS NOT DISTINCT FROM r.parent_span_id
+                 AND l.name = r.name
+                 AND l.event_type = r.event_type
+                 AND l.io_origin IS NOT DISTINCT FROM r.io_origin
+            )
+            """;
+
+    // The anti-join keeps every span no run claimed.
+    //language=SQL
+    private static final String SPANS_OF_TRACE = RUN_MEMBERS_CTE + SPAN_ROWS + """
+            LEFT JOIN members m ON m.span_id = s.span_id
             WHERE s.trace_id = :trace_id
+              AND m.span_id IS NULL
             ORDER BY s.start_timestamp
+            """;
+
+    // Every span, four numbers each, with the run that claimed it.
+    //language=SQL
+    private static final String SHAPES_OF_TRACE = RUN_MEMBERS_CTE + """
+            SELECT
+                t.span_id                               AS span_id,
+                t.parent_span_id                        AS parent_span_id,
+                EPOCH_US(t.start_timestamp)             AS start_epoch_us,
+                t.duration                              AS duration_ns,
+                COALESCE(t.thread_hash, 0)              AS thread_hash,
+                m.run_id                                AS run_id
+            FROM trace t
+            LEFT JOIN members m ON m.span_id = t.span_id
+            ORDER BY t.start_timestamp, t.span_id
+            """;
+
+    //language=SQL
+    private static final String RUNS_OF_TRACE = RUN_MEMBERS_CTE + """
+            SELECT
+                r.run_id                                AS run_id,
+                r.parent_span_id                        AS parent_span_id,
+                r.name                                  AS name,
+                r.kind                                  AS kind,
+                r.event_type                            AS event_type,
+                r.io_origin                             AS io_origin,
+                r.synthesized                           AS synthesized,
+                th.name                                 AS first_thread_name
+            FROM runs r
+            LEFT JOIN threads th ON th.thread_hash = r.first_thread_hash
+            ORDER BY r.run_id
+            """;
+
+    //language=SQL
+    private static final String RUN_MEMBERS_PAGE = RUN_MEMBERS_CTE + SPAN_ROWS + """
+            JOIN members m ON m.span_id = s.span_id
+            WHERE s.trace_id = :trace_id
+              AND m.run_id = :run_id
+            ORDER BY s.duration DESC, s.span_id
+            LIMIT :limit OFFSET :offset
+            """;
+
+    //language=SQL
+    private static final String SPAN_OF_TRACE = SPAN_ROWS + """
+            WHERE s.trace_id = :trace_id
+              AND s.span_id = :span_id
+            """;
+
+    // The trace header already holds the bounds: duration is last span end minus first span start.
+    //language=SQL
+    private static final String TRACE_WINDOW = """
+            SELECT
+                EPOCH_US(start_timestamp)                       AS from_us,
+                EPOCH_US(start_timestamp) + duration // 1000    AS to_us
+            FROM traces
+            WHERE trace_id = :trace_id
+            """;
+
+    // Grouped on the payload reference rather than its text: payloads are stored once, so the
+    // reference already identifies the text, and joining it in after the grouping reads each once.
+    //language=SQL
+    private static final String PROMOTED_GROUPS_OF_TRACE = """
+            SELECT
+                g.event_type                            AS event_type,
+                p.payload                               AS event_fields,
+                g.span_count                            AS span_count,
+                g.total_ns                              AS total_ns,
+                g.max_ns                                AS max_ns
+            FROM (
+                SELECT event_type, event_fields_ref, COUNT(*) AS span_count,
+                       SUM(duration) AS total_ns, MAX(duration) AS max_ns
+                FROM trace_spans
+                WHERE trace_id = :trace_id
+                  AND synthesized
+                GROUP BY event_type, event_fields_ref
+            ) g
+            LEFT JOIN trace_span_payloads p ON p.payload_id = g.event_fields_ref
+            ORDER BY g.event_type, g.total_ns DESC
             """;
 
     /**
@@ -1979,14 +2120,100 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
-    public List<TraceSpanRecord> spansOf(long traceId) {
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("trace_id", traceId);
-
+    public List<TraceSpanRecord> spansOf(long traceId, int minRunLength) {
         return databaseClient.query(
                 StatementLabel.TRACE_SPANS,
                 SPANS_OF_TRACE,
+                runParams(traceId, minRunLength),
+                traceSpanMapper());
+    }
+
+    @Override
+    public List<TraceSpanShape> shapesOf(long traceId, int minRunLength) {
+        return databaseClient.query(
+                StatementLabel.TRACE_SPAN_SHAPES,
+                SHAPES_OF_TRACE,
+                runParams(traceId, minRunLength),
+                (rs, _) -> new TraceSpanShape(
+                        rs.getLong("span_id"),
+                        JdbcNulls.longOrNull(rs, "parent_span_id"),
+                        rs.getLong("start_epoch_us"),
+                        rs.getLong("duration_ns"),
+                        rs.getLong("thread_hash"),
+                        JdbcNulls.longOrNull(rs, "run_id")));
+    }
+
+    @Override
+    public List<TraceSpanRunRecord> runsOf(long traceId, int minRunLength) {
+        return databaseClient.query(
+                StatementLabel.TRACE_SPAN_RUNS,
+                RUNS_OF_TRACE,
+                runParams(traceId, minRunLength),
+                (rs, _) -> new TraceSpanRunRecord(
+                        rs.getLong("run_id"),
+                        JdbcNulls.longOrNull(rs, "parent_span_id"),
+                        rs.getString("name"),
+                        rs.getString("kind"),
+                        rs.getString("event_type"),
+                        rs.getString("io_origin"),
+                        rs.getBoolean("synthesized"),
+                        rs.getString("first_thread_name")));
+    }
+
+    @Override
+    public List<TraceSpanRecord> runMembers(long traceId, long runId, int minRunLength, int offset, int limit) {
+        MapSqlParameterSource params = runParams(traceId, minRunLength)
+                .addValue("run_id", runId)
+                .addValue("offset", offset)
+                .addValue("limit", limit);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_RUN_MEMBERS,
+                RUN_MEMBERS_PAGE,
                 params,
                 traceSpanMapper());
+    }
+
+    @Override
+    public Optional<TraceSpanRecord> spanOf(long traceId, long spanId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("trace_id", traceId)
+                .addValue("span_id", spanId);
+
+        return databaseClient.querySingle(
+                StatementLabel.TRACE_SPAN,
+                SPAN_OF_TRACE,
+                params,
+                traceSpanMapper());
+    }
+
+    @Override
+    public Optional<TraceWindowRecord> windowOf(long traceId) {
+        return databaseClient.querySingle(
+                StatementLabel.TRACE_WINDOW,
+                TRACE_WINDOW,
+                new MapSqlParameterSource().addValue("trace_id", traceId),
+                (rs, _) -> new TraceWindowRecord(rs.getLong("from_us"), rs.getLong("to_us")));
+    }
+
+    @Override
+    public List<TracePromotedGroupRecord> promotedGroupsOf(long traceId) {
+        return databaseClient.query(
+                StatementLabel.TRACE_PROMOTED_GROUPS,
+                PROMOTED_GROUPS_OF_TRACE,
+                new MapSqlParameterSource().addValue("trace_id", traceId),
+                (rs, _) -> new TracePromotedGroupRecord(
+                        rs.getString("event_type"),
+                        rs.getString("event_fields"),
+                        rs.getLong("span_count"),
+                        rs.getLong("total_ns"),
+                        rs.getLong("max_ns")));
+    }
+
+    private static MapSqlParameterSource runParams(long traceId, int minRunLength) {
+        return new MapSqlParameterSource()
+                .addValue("trace_id", traceId)
+                .addValue("min_run_length", minRunLength);
     }
 
     @Override

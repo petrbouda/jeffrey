@@ -40,9 +40,12 @@ import type {
   TraceOverview,
   TraceRow,
   TraceSpanEvents,
+  TraceSpanRow,
+  TraceSpanRunMembers,
   TraceStacktrace,
   TraceTimelineBucket
 } from '@/services/api/model/trace/TraceModels';
+import { isTraceDetail } from '@/services/api/model/trace/TraceModels';
 
 /**
  * A trace type as query parameters. All three travel together — narrowing on the name alone would
@@ -82,8 +85,38 @@ export default class ProfileTracesClient extends BaseProfileClient {
     return this.get<TraceOverview>('/overview');
   }
 
-  public getTrace(traceId: string): Promise<TraceDetail> {
-    return this.get<TraceDetail>(`/${traceId}`);
+  /**
+   * Validated before it is handed on: a response the browser could not parse arrives from axios as
+   * empty data rather than as a failure, and drawing that as an empty trace would state something
+   * about the trace that nobody read.
+   */
+  public async getTrace(traceId: string): Promise<TraceDetail> {
+    const detail: unknown = await this.get<unknown>(`/${traceId}`);
+    if (!isTraceDetail(detail)) {
+      throw new Error(MALFORMED_TRACE_MESSAGE);
+    }
+    return detail;
+  }
+
+  /**
+   * A page of one folded run's members, slowest first — the order in which they are worth reading,
+   * since a run is folded precisely because there are too many to read them all.
+   */
+  public getRunMembers(
+    traceId: string,
+    runId: string,
+    offset: number,
+    limit: number
+  ): Promise<TraceSpanRunMembers> {
+    return this.get<TraceSpanRunMembers>(`/${traceId}/runs/${runId}/members`, { offset, limit });
+  }
+
+  /**
+   * One span by id, whether or not the trace response carried it. What reveals a folded member that
+   * a notification or a throw points at, without paging through the run to find it.
+   */
+  public getSpan(traceId: string, spanId: string): Promise<TraceSpanRow> {
+    return this.get<TraceSpanRow>(`/${traceId}/spans/${spanId}`);
   }
 
   /**
@@ -119,7 +152,10 @@ export default class ProfileTracesClient extends BaseProfileClient {
    * The slowest traces of one type, longest first, ranked by the server over every trace of the type
    * — the same ranking the MCP `traces_slowestTraces` tool answers with.
    */
-  public getOperationSlowestTraces(operation: TraceOperationId, limit?: number): Promise<TraceRow[]> {
+  public getOperationSlowestTraces(
+    operation: TraceOperationId,
+    limit?: number
+  ): Promise<TraceRow[]> {
     return this.get<TraceRow[]>('/operation/slowest-traces', {
       ...operationParams(operation),
       ...(limit === undefined ? {} : { limit })
@@ -262,6 +298,9 @@ export default class ProfileTracesClient extends BaseProfileClient {
     });
   }
 }
+
+/** What {@link ProfileTracesClient.getTrace} throws when the response is not a trace. */
+export const MALFORMED_TRACE_MESSAGE = 'The trace response was empty or malformed';
 
 /**
  * Axios repeats an array parameter as `where[]=a&where[]=b` by default, which Spring does not bind

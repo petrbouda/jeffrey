@@ -20,11 +20,15 @@ package cafe.jeffrey.profile.trace.export;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
 import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunRow;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Renders one trace as Markdown written to be read by a model rather than by a person.
@@ -65,6 +69,8 @@ public final class TraceAiMarkdownBuilder {
 
                    - <name> ×<n> [<KIND>] — <summed> summed (<total%>), longest <max> !folded[ !class-loading]
 
+               A hundred or more identical leaves under one parent — recorded spans included,
+               such as a batch of identical statements — always arrive as one folded line.
                `!class-loading` says every read in the fold was the class loader's — the JVM
                paging in its own code, not the request's I/O. Nothing folded is lost to the
                accounting: the I/O operations section counts every operation individually.
@@ -327,13 +333,32 @@ public final class TraceAiMarkdownBuilder {
     private final TraceThrowSummary throwSummary;
     private final TraceNotificationSummary notificationSummary;
 
-    public TraceAiMarkdownBuilder(TraceDetail detail, TraceContext context) {
-        this.detail = detail;
-        this.context = context;
-        this.io = TraceIoSummary.of(detail.spans());
-        this.throwSummary = TraceThrowSummary.of(detail.exceptions(), detail.spans());
+    public TraceAiMarkdownBuilder(TraceExportSource source) {
+        this.detail = source.detail();
+        this.context = source.context();
+        this.io = TraceIoSummary.of(source.promoted());
+        Map<String, String> spanNames = spanNamesOf(detail);
+        this.throwSummary = TraceThrowSummary.of(detail.exceptions(), spanNames);
         this.notificationSummary = TraceNotificationSummary.of(
-                detail.notifications(), detail.spans(), detail.trace().startMillisFromBeginning());
+                detail.notifications(), spanNames, detail.trace().startMillisFromBeginning());
+    }
+
+    /**
+     * Every span name a throw or a notification can be reported against: the drawn spans', and for
+     * a member of a folded run that an entry points at, its run's — the member itself was never
+     * sent, but it carried the run's name.
+     */
+    private static Map<String, String> spanNamesOf(TraceDetail detail) {
+        Map<String, String> names = new HashMap<>();
+        for (TraceSpanRow span : detail.spans()) {
+            names.putIfAbsent(span.spanId(), span.name());
+        }
+        for (TraceSpanRunRow run : detail.runs()) {
+            for (String spanId : run.entrySpanIds()) {
+                names.putIfAbsent(spanId, run.name());
+            }
+        }
+        return names;
     }
 
     public String build() {
@@ -386,13 +411,13 @@ public final class TraceAiMarkdownBuilder {
         out.append(HEADING_TREE).append('\n').append('\n');
 
         List<TraceSpanRow> spans = detail.spans();
-        if (spans.isEmpty()) {
+        if (spans.isEmpty() && detail.runs().isEmpty()) {
             out.append(BULLET_PREFIX).append(NO_SPANS_NOTE).append('\n');
             return;
         }
 
         long traceNanos = detail.trace().durationNanos();
-        TraceTreePlan plan = TraceTreePlan.of(spans, traceNanos, MAX_SPANS);
+        TraceTreePlan plan = TraceTreePlan.of(spans, detail.runs(), traceNanos, MAX_SPANS);
         for (TraceTreePlan.Row row : plan.rows()) {
             switch (row) {
                 case TraceTreePlan.SpanLine line -> renderSpan(out, line.span(), traceNanos);
@@ -407,7 +432,7 @@ public final class TraceAiMarkdownBuilder {
             out.append(BULLET_PREFIX)
                     .append("(folded: ")
                     .append(plan.folded())
-                    .append(" promoted leaf spans into ")
+                    .append(" leaf spans into ")
                     .append(TraceAiFormat.count(plan.foldLines(), "line"))
                     .append(" marked !folded; the I/O operations section counts each of them)")
                     .append('\n');
@@ -417,7 +442,7 @@ public final class TraceAiMarkdownBuilder {
                     .append("(truncated: ")
                     .append(plan.omitted())
                     .append(" further spans were omitted from this export, out of ")
-                    .append(spans.size())
+                    .append(detail.trace().spanCount())
                     .append(" in the trace)")
                     .append('\n');
         }
@@ -429,7 +454,7 @@ public final class TraceAiMarkdownBuilder {
                 .append("(+")
                 .append(TraceAiFormat.count(collapsed.groups(), "more folded group"))
                 .append(": ")
-                .append(TraceAiFormat.count(collapsed.count(), "promoted leaf span"))
+                .append(TraceAiFormat.count(collapsed.count(), "leaf span"))
                 .append(" past the export's span budget;")
                 .append(" the I/O operations section counts each of them)")
                 .append('\n');

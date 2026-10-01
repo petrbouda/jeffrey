@@ -19,6 +19,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
@@ -26,6 +27,9 @@ import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunMembers;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
@@ -83,12 +87,41 @@ public interface TraceManager {
 
     /**
      * Assembles one trace into the order the waterfall draws it: depth-first from each root,
-     * children by start time, with depth and self-time resolved.
+     * children by start time, with depth and self-time resolved. Big runs of identical sibling
+     * leaves arrive folded, one summed row each; {@link #runMembers} reads their members.
      *
      * @param traceId the trace to load
      * @return the trace, or empty when the profile has no such trace
      */
     Optional<TraceDetail> trace(long traceId);
+
+    /**
+     * One page of a folded run's members, slowest first, each placed in the tree and credited its
+     * share of the critical path exactly as it would be were it drawn on its own.
+     *
+     * @param traceId the trace the run belongs to
+     * @param runId   the run, as {@link TraceSpanRunRow#runId()} names it
+     * @param offset  how many members to skip
+     * @param limit   how many to return at most
+     * @return the page, or empty when the trace holds no such run
+     */
+    Optional<TraceSpanRunMembers> runMembers(long traceId, long runId, int offset, int limit);
+
+    /**
+     * One span of a trace, folded or not, placed in the tree — how the waterfall reaches a member
+     * of a folded run that a notification or exception points at without paging the whole run.
+     *
+     * @return the span, or empty when the trace holds no such span
+     */
+    Optional<TraceSpanRow> span(long traceId, long spanId);
+
+    /**
+     * Everything the trace bundle for a coding agent is written from: the trace as the waterfall
+     * receives it, its context, and its synthesized spans totalled for the I/O accounting.
+     *
+     * @return the source, or empty when the profile has no such trace
+     */
+    Optional<TraceExportSource> export(long traceId);
 
     /**
      * What the JVM was doing to one trace: the stop-the-world pauses that crossed it, what each of

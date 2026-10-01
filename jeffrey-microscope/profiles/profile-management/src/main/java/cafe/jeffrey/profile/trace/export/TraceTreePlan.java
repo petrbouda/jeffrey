@@ -17,6 +17,7 @@
 package cafe.jeffrey.profile.trace.export;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunRow;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +49,11 @@ import java.util.Set;
  * was omitted is omitted with it, since a fold has nothing to hang under. The fold lines have the
  * same budget: past it, the remaining groups collapse into one closing {@link CollapsedFolds} line
  * rather than each taking a line of its own.
+ * <p>
+ * Runs the server already folded — a hundred or more identical leaves under one parent — arrive as
+ * {@link TraceSpanRunRow}s rather than spans, and become fold lines as they are: their members were
+ * never sent, so there is nothing to tier. They take the same budget and the same rule about an
+ * omitted parent as the folds built here.
  */
 final class TraceTreePlan {
 
@@ -138,19 +144,29 @@ final class TraceTreePlan {
 
     /**
      * Plans the tree for {@code spans}, which arrive pre-ordered exactly as the waterfall draws
-     * them.
+     * them, with the server's folded {@code runs} placed among them.
      *
-     * @param spans      every span of the trace, depth-first, siblings by start
+     * @param spans      every span of the trace not folded into a run, depth-first, siblings by start
+     * @param runs       the runs the server folded, each placed before {@code spans[position]}
      * @param traceNanos the trace's own duration, which sets the trace-relative floor
      * @param maxLines   how many spans may take a line of their own
      */
-    static TraceTreePlan of(List<TraceSpanRow> spans, long traceNanos, int maxLines) {
+    static TraceTreePlan of(
+            List<TraceSpanRow> spans, List<TraceSpanRunRow> runs, long traceNanos, int maxLines) {
+
         long floorNanos = Math.max(LEAF_FLOOR_NANOS, traceNanos / LEAF_FLOOR_SHARE_DENOMINATOR);
 
+        // A span whose only children were folded on the server still has children: it is structure,
+        // never a promoted leaf.
         Set<String> parents = new HashSet<>();
         for (TraceSpanRow span : spans) {
             if (span.parentSpanId() != null) {
                 parents.add(span.parentSpanId());
+            }
+        }
+        for (TraceSpanRunRow run : runs) {
+            if (run.parentSpanId() != null) {
+                parents.add(run.parentSpanId());
             }
         }
 
@@ -189,33 +205,44 @@ final class TraceTreePlan {
             foldOf.put(span.spanId(), key);
         }
 
+        // A server run renders where the server placed it, if its parent made it into the tree; one
+        // of roots always does.
+        Map<Integer, List<TraceSpanRunRow>> runsAt = new HashMap<>();
+        for (TraceSpanRunRow run : runs) {
+            boolean parentRendered = run.parentSpanId() == null || rendered.contains(run.parentSpanId());
+            if (parentRendered) {
+                runsAt.computeIfAbsent(run.position(), _ -> new ArrayList<>()).add(run);
+            } else {
+                omitted += (int) run.durations().count();
+            }
+        }
+
         // Lines in tree order: a fold takes the place of the first leaf it swallowed, while the
         // budget for fold lines lasts; the groups past it are counted on one closing line.
-        List<Row> rows = new ArrayList<>(rendered.size() + Math.min(folds.size(), maxLines) + 1);
+        FoldBudget budget = new FoldBudget(maxLines);
+        List<Row> rows = new ArrayList<>(rendered.size() + Math.min(folds.size() + runs.size(), maxLines) + 1);
         Set<FoldKey> emitted = new HashSet<>();
-        int folded = 0;
-        int collapsedGroups = 0;
-        int collapsedLeaves = 0;
-        for (TraceSpanRow span : spans) {
+        for (int index = 0; index < spans.size(); index++) {
+            for (TraceSpanRunRow run : runsAt.getOrDefault(index, List.of())) {
+                budget.add(rows, runLine(run));
+            }
+            TraceSpanRow span = spans.get(index);
             if (rendered.contains(span.spanId())) {
                 rows.add(new SpanLine(span));
                 continue;
             }
             FoldKey key = foldOf.get(span.spanId());
             if (key != null && emitted.add(key)) {
-                FoldLine line = folds.get(key).freeze();
-                if (emitted.size() <= maxLines) {
-                    folded += line.count();
-                    rows.add(line);
-                } else {
-                    collapsedGroups++;
-                    collapsedLeaves += line.count();
-                }
+                budget.add(rows, folds.get(key).freeze());
             }
         }
-        if (collapsedGroups > 0) {
-            rows.add(new CollapsedFolds(collapsedGroups, collapsedLeaves));
+        for (TraceSpanRunRow run : runsAt.getOrDefault(spans.size(), List.of())) {
+            budget.add(rows, runLine(run));
         }
+        if (budget.collapsedGroups > 0) {
+            rows.add(new CollapsedFolds(budget.collapsedGroups, budget.collapsedLeaves));
+        }
+        int folded = budget.folded;
         return new TraceTreePlan(List.copyOf(rows), folded, omitted);
     }
 
@@ -224,12 +251,46 @@ final class TraceTreePlan {
         return span.synthesized() && !parents.contains(span.spanId());
     }
 
+    private static FoldLine runLine(TraceSpanRunRow run) {
+        return new FoldLine(
+                run.name(),
+                run.kind(),
+                run.depth(),
+                (int) run.durations().count(),
+                run.durations().totalNanos(),
+                run.durations().maxNanos(),
+                CLASS_LOADING_ORIGIN.equals(run.ioOrigin()));
+    }
+
+    /** How many fold lines may still be emitted, and what the ones past that added up to. */
+    private static final class FoldBudget {
+        private final int maxLines;
+        private int lines;
+        private int folded;
+        private int collapsedGroups;
+        private int collapsedLeaves;
+
+        private FoldBudget(int maxLines) {
+            this.maxLines = maxLines;
+        }
+
+        private void add(List<Row> rows, FoldLine line) {
+            if (++lines <= maxLines) {
+                folded += line.count();
+                rows.add(line);
+            } else {
+                collapsedGroups++;
+                collapsedLeaves += line.count();
+            }
+        }
+    }
+
     /** The lines to render, in tree order. */
     List<Row> rows() {
         return rows;
     }
 
-    /** How many promoted leaves were folded into {@link FoldLine}s, not counting collapsed ones. */
+    /** How many leaves were folded into {@link FoldLine}s, not counting collapsed ones. */
     int folded() {
         return folded;
     }

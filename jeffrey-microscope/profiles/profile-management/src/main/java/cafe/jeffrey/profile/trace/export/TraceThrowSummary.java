@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.trace.export;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -46,19 +45,13 @@ record TraceThrowSummary(List<TraceThrowGroup> groups, long total, long escaped)
 
     /**
      * @param exceptions the trace's throws, each already attributed to a span
-     * @param spans      the trace's spans, so a throw can be reported against a name rather than
-     *                   against a hex id no reader can resolve
+     * @param spanNames  the trace's span names by span id, so a throw can be reported against a name
+     *                   rather than against a hex id no reader can resolve
      */
-    static TraceThrowSummary of(List<TraceExceptionRow> exceptions, List<TraceSpanRow> spans) {
+    static TraceThrowSummary of(List<TraceExceptionRow> exceptions, Map<String, String> spanNames) {
         if (exceptions.isEmpty()) {
             return EMPTY;
         }
-
-        Map<String, String> spanNames = spans.stream()
-                .collect(Collectors.toMap(
-                        TraceSpanRow::spanId,
-                        TraceSpanRow::name,
-                        (first, duplicate) -> first));
 
         Map<Key, List<TraceExceptionRow>> grouped = exceptions.stream()
                 .collect(Collectors.groupingBy(

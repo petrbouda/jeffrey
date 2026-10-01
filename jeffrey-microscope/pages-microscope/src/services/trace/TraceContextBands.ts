@@ -26,7 +26,7 @@ import type { TraceWindow } from '@/services/trace/TraceWaterfallLayout';
  * One pause drawn against the trace's window, as percentages of it.
  *
  * Positioned against the same window the bars are, so a band and the span it crossed line up
- * without either side converting: both are laid out from `TraceWaterfallLayout.traceWindow`.
+ * without either side converting: both are laid out against `TraceWaterfallLayout.windowOf`.
  */
 export interface ContextBand {
   category: string;
