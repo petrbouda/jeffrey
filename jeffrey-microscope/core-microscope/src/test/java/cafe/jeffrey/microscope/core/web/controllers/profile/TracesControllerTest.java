@@ -60,8 +60,9 @@ class TracesControllerTest {
 
     private static final String PROFILE = "p-1";
     private static final String OPERATIONS_URI = "/api/internal/profiles/p-1/traces/operations";
-    private static final String SPAN_FLAMEGRAPH_AI_EXPORT_URI =
-            "/api/internal/profiles/p-1/traces/00000000000000ff/spans/0000000000000010/flamegraph/ai-export";
+    private static final String SPAN_FLAMEGRAPH_URI =
+            "/api/internal/profiles/p-1/traces/00000000000000ff/spans/0000000000000010/flamegraph";
+    private static final byte[] GRAPH = {1, 2, 3};
     private static final long TRACE_ID = 0xff;
     private static final long SPAN_ID = 0x10;
     private static final String SPAN_FLAMEGRAPH_REQUEST = """
@@ -148,7 +149,7 @@ class TracesControllerTest {
     }
 
     @Nested
-    class SpanFlamegraphAiExport {
+    class SpanFlamegraph {
 
         private MockMvcTester mvcWithSpanIntervals(List<SpanInterval> intervals) {
             when(resolver.resolve(PROFILE)).thenReturn(profileManager);
@@ -158,27 +159,25 @@ class TracesControllerTest {
         }
 
         @Test
-        void exportsTheFlamegraphScopedToTheSpan() {
+        void drawsTheFlamegraphScopedToTheSpan() {
             when(profileManager.info()).thenReturn(PROFILE_INFO);
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
-            when(flamegraphManager.generateAiExport(any())).thenReturn("# How to read this profile");
+            when(flamegraphManager.generate(any())).thenReturn(GRAPH);
             SpanInterval interval = new SpanInterval(7, 1_000, 2_000);
             MockMvcTester mvc = mvcWithSpanIntervals(List.of(interval));
 
-            assertThat(mvc.post().uri(SPAN_FLAMEGRAPH_AI_EXPORT_URI)
+            assertThat(mvc.post().uri(SPAN_FLAMEGRAPH_URI)
                     .contentType("application/json")
-                    .accept("text/markdown")
+                    .accept(ProfileMediaTypes.PROTOBUF)
                     .content(SPAN_FLAMEGRAPH_REQUEST))
-                    .hasStatusOk()
-                    .hasContentType("text/markdown;charset=UTF-8")
-                    .hasBodyTextEqualTo("# How to read this profile");
+                    .hasStatusOk();
 
             ArgumentCaptor<GraphParameters> captor = ArgumentCaptor.forClass(GraphParameters.class);
-            verify(flamegraphManager).generateAiExport(captor.capture());
+            verify(flamegraphManager).generate(captor.capture());
             GraphParameters params = captor.getValue();
             assertEquals(Type.EXECUTION_SAMPLE, params.eventType());
             assertEquals(SpanScope.of(List.of(interval)), params.spanScope(),
-                    "the export must cover exactly the windows the drawn graph covers");
+                    "the graph must cover exactly the span's windows");
             assertNotNull(params.timeRange(), "full-profile range, narrowed by the scope");
         }
 
@@ -186,10 +185,10 @@ class TracesControllerTest {
         void aSpanWithNoWindowIs404() {
             MockMvcTester mvc = mvcWithSpanIntervals(List.of());
 
-            // The error body is JSON, so a client accepting only Markdown could not be told at all.
-            assertThat(mvc.post().uri(SPAN_FLAMEGRAPH_AI_EXPORT_URI)
+            // The error body is JSON, so a client accepting only protobuf could not be told at all.
+            assertThat(mvc.post().uri(SPAN_FLAMEGRAPH_URI)
                     .contentType("application/json")
-                    .accept("text/markdown", "application/json")
+                    .accept(ProfileMediaTypes.PROTOBUF, "application/json")
                     .content(SPAN_FLAMEGRAPH_REQUEST))
                     .hasStatus(404)
                     .bodyJson()

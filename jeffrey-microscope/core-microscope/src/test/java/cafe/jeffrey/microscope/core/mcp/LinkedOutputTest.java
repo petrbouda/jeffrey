@@ -17,6 +17,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import org.junit.jupiter.api.Nested;
@@ -40,9 +41,9 @@ class LinkedOutputTest {
     class Footer {
 
         private final McpFollowUp followUp = new McpFollowUp(
-                List.of(McpNextTool.call("timeline_hotWindows").with("profileId", "p-1")
+                List.of(NextCalls.to("timeline_hotWindows").with("profileId", "p-1")
                                 .with("eventType", "jdk.ExecutionSample").why("finds when"),
-                        McpNextTool.call("jvm_threads").with("profileId", "p-1").why("names the threads")),
+                        NextCalls.to("jvm_threads").with("profileId", "p-1").why("names the threads")),
                 List.of("A short piece of advice.", "x".repeat(1_000)));
 
         @Test
@@ -56,14 +57,17 @@ class LinkedOutputTest {
             assertFalse(footed.truncated());
         }
 
-        /** One line per next call, the tool and its arguments as compact JSON, in the record's order. */
+        /**
+         * One line per next call, the tool, its arguments as compact JSON and its weight, in the record's
+         * order.
+         */
         @Test
         void listsExactlyTheNextCallsOfTheRecord() {
             String text = LinkedOutput.footed("the answer", followUp, URL, null).text();
 
             assertEquals(List.of(
-                            "- timeline_hotWindows {\"profileId\":\"p-1\",\"eventType\":\"jdk.ExecutionSample\"}",
-                            "- jvm_threads {\"profileId\":\"p-1\"}"),
+                            "- timeline_hotWindows {\"profileId\":\"p-1\",\"eventType\":\"jdk.ExecutionSample\"} [MEDIUM]",
+                            "- jvm_threads {\"profileId\":\"p-1\"} [MEDIUM]"),
                     linesAfter(text, "Next:"));
             assertFalse(text.contains("Link note"), text);
         }

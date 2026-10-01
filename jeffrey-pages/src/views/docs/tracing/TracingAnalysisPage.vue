@@ -34,7 +34,7 @@ const headings = [
   { id: 'flamegraphs', text: 'Per-Span Flamegraphs', level: 2 },
   { id: 'virtual-threads', text: 'Spans on Virtual Threads', level: 2 },
   { id: 'attributes', text: 'Traces by Attributes', level: 2 },
-  { id: 'agent-export', text: 'Export for an Agent', level: 2 },
+  { id: 'agent-export', text: 'Traces for an Agent', level: 2 },
   { id: 'limits', text: 'Limits', level: 2 }
 ];
 
@@ -219,19 +219,19 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
         <figcaption>Attribute Values &mdash; keys are picked in two steps, event type first; JDK events carry attributes too, so <code>jdk.FileWrite</code> ranks beside your own spans.</figcaption>
       </figure>
 
-      <h2 id="agent-export">Export for an Agent</h2>
+      <h2 id="agent-export">Traces for an Agent</h2>
 
-      <p>The trace waterfall, an operation's drill-down and a span's flamegraph each carry an export button that renders what you are looking at as a single Markdown document built for handing to a coding agent — paste it into Claude Code, or attach the downloaded file. The document is rendered server-side, and each bundle opens with a "how to read this" preamble stating the semantics an agent would otherwise guess wrong:</p>
+      <p>A coding agent reads the same traces through the <router-link to="/docs/microscope-mcp">Microscope MCP server</router-link>: <code>traces_traceExport</code> renders one trace, <code>traces_operationExport</code> one operation and <code>traces_spanFlamegraphExport</code> one span's flamegraph, each as a single Markdown document, and each answer links back to the page here that shows it. Every bundle opens with a "how to read this" preamble stating the semantics an agent would otherwise guess wrong:</p>
 
       <ul>
         <li><strong>Trace bundle</strong> — the span tree with self and inclusive times, the JVM context (pauses that crossed the trace, what each thread waited on), the ranked why-slow summary, the trace's I/O grouped by target, and every throw recorded inside it. A summed run appears as one <code>!folded</code> line; the I/O section still counts each of its operations. The preamble spells out that self time is an interval merge, and that the critical path assumes children block their parent.</li>
         <li><strong>I/O operations</strong> — the promoted <code>jdk.SocketRead</code>, <code>jdk.SocketWrite</code>, <code>jdk.FileRead</code>, <code>jdk.FileWrite</code> and <code>jdk.FileForce</code> spans grouped by file path or <code>host:port</code>, each with its operation count, bytes, and <em>mean bytes per operation</em> — the buffering figure. Many operations with a small mean is the fingerprint of an absent or undersized buffer, and such rows are marked <code>!small-ops</code>. Grouped over every operation, including ones the span tree had to truncate. The preamble carries the caveat that matters: JFR only records operations slower than its I/O threshold, so the counts are lower bounds, not measurements.</li>
         <li><strong>Exceptions</strong> — every captured throw grouped by class and message, with the spans it was thrown in. A throw is not a failure: only one marked <code>!escaped</code> is why its span failed, and a large all-caught group is the exceptions-as-control-flow cost rather than breakage.</li>
         <li><strong>Operation bundle</strong> — the operation's profile-wide aggregates, its per-span time breakdown in inclusive and self terms, and its slowest runs — with the invariant worth checking: inclusive sums <em>past</em> the total (spans nest), self sums <em>to</em> it.</li>
-        <li><strong>Span flamegraph</strong> — with a per-span flamegraph open, the export button in the graph's toolbar replaces the trace's own and renders that graph: the same call tree the flamegraph export produces elsewhere, cut to the span's window in whichever mode (Inclusive or Self) is on screen. Its header says so &mdash; <code>scope: span</code>, with the number of windows and threads it covers &mdash; so an agent does not read one span's hot path as the application's. On a weighted profile (allocation, blocking, method latency) every line of the call tree carries the subtree's weight next to its sample count, and the tree is pruned and ordered by that weight, so one sampled allocation of a large array is not lost among a hundred small ones.</li>
+        <li><strong>Span flamegraph</strong> — the same call tree the flamegraph export produces elsewhere, cut to the span's window, Inclusive or Self. Its header says so &mdash; <code>scope: span</code>, with the number of windows and threads it covers &mdash; so an agent does not read one span's hot path as the application's. On a weighted profile (allocation, blocking, method latency) every line of the call tree carries the subtree's weight next to its sample count, and the tree is pruned and ordered by that weight, so one sampled allocation of a large array is not lost among a hundred small ones.</li>
       </ul>
 
-      <p>Anything truncated says so inside the document. <em>Copy for AI</em> needs the browser clipboard (HTTPS or localhost); on plain HTTP the button downloads the file instead.</p>
+      <p>Anything truncated says so inside the document.</p>
 
       <h2 id="limits">Limits</h2>
 

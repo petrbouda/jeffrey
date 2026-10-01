@@ -164,7 +164,7 @@ public class IoMcpTools {
     }
 
     private McpNextTool.Call call(String tool, IoKind kind) {
-        return McpNextTool.call(tool)
+        return NextCalls.to(tool)
                 .with(FollowUpCalls.PROFILE_ID, profileId())
                 .with(FollowUpCalls.KIND, kind);
     }

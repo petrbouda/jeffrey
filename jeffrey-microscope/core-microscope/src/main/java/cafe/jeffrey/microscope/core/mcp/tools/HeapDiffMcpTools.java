@@ -139,7 +139,7 @@ public class HeapDiffMcpTools {
         HeapDumpManager primary = profileManager.heapDumpManager();
         if (!primary.heapDumpExists()) {
             return absent(DiffStatus.NO_HEAP_DUMP, NO_PRIMARY_DUMP, profileId, baselineProfileId, top,
-                    steps().next(McpNextTool.call(PROFILES_LIST_TOOL).why(WHY_PROFILES)).followUp());
+                    steps().next(NextCalls.to(PROFILES_LIST_TOOL).why(WHY_PROFILES)).followUp());
         }
         if (!primary.isCacheReady()) {
             return absent(DiffStatus.NOT_INDEXED, NOT_INDEXED.formatted("this profile"), profileId, baselineProfileId,
@@ -150,7 +150,7 @@ public class HeapDiffMcpTools {
         HeapDumpManager baseline = baselineResolver.apply(baselineId).heapDumpManager();
         if (!baseline.heapDumpExists()) {
             return absent(DiffStatus.BASELINE_NO_HEAP_DUMP, NO_BASELINE_DUMP.formatted(baselineId), profileId,
-                    baselineId, top, steps().next(McpNextTool.call(PROFILES_LIST_TOOL).why(WHY_PROFILES)).followUp());
+                    baselineId, top, steps().next(NextCalls.to(PROFILES_LIST_TOOL).why(WHY_PROFILES)).followUp());
         }
         if (!baseline.isCacheReady()) {
             return absent(DiffStatus.BASELINE_NOT_INDEXED, NOT_INDEXED.formatted("baseline profile " + baselineId),
@@ -201,7 +201,7 @@ public class HeapDiffMcpTools {
     }
 
     private static McpNextTool.Call onProfile(String tool, String profileId) {
-        return McpNextTool.call(tool).with(PROFILE_ID, profileId);
+        return NextCalls.to(tool).with(PROFILE_ID, profileId);
     }
 
     private static String requireBaseline(String baselineProfileId) {

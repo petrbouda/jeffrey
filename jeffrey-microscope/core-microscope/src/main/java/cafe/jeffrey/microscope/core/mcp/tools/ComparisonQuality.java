@@ -23,7 +23,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 
@@ -170,7 +169,7 @@ final class ComparisonQuality {
                 ProfileEvidence.samplerHealth(primary), List.of(), List.of());
         ComparedProfile baselineSide = new ComparedProfile(ProfileEvidence.identity(baseline.info(), null),
                 ProfileEvidence.samplerHealth(baseline), List.of(), List.of());
-        McpFollowUp followUp = new McpFollowUp(List.of(McpNextTool.call(TOOL_NAME)
+        McpFollowUp followUp = new McpFollowUp(List.of(NextCalls.to(TOOL_NAME)
                 .with(PROFILE_ID, primary.info().id()).with(BASELINE_PROFILE_ID, baseline.info().id())
                 .why(REPLAY_WHY)), List.of());
         Long primaryMs = ProfileEvidence.durationMillis(primary.info());
@@ -198,7 +197,7 @@ final class ComparisonQuality {
                         .detail("Configuration differences can change event volume independently of application behavior")
                         .source(TOOL_NAME).evidence("eventType", type)
                         .evidence("primarySettings", left.settings()).evidence("baselineSettings", right.settings())
-                        .nextTool(McpNextTool.call(NEXT_TOOL).with(PROFILE_ID, primary.info().id())
+                        .nextTool(NextCalls.to(NEXT_TOOL).with(PROFILE_ID, primary.info().id())
                                 .with(BASELINE_PROFILE_ID, baseline.info().id()).why(COMPARABLE_WHY))
                         .build());
             }

@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
@@ -556,9 +557,54 @@ class ProfileMcpToolsTest {
             JsonNode compute = summary.get("followUp").get("nextTools").get(0);
             assertEquals("jvm_autoAnalysis", compute.get("tool").asString());
             assertTrue(compute.get("arguments").get("compute").asBoolean());
-            assertEquals(1, McpNextToolConformance.assertFollowable(summary,
+            assertEquals(1, McpNextToolConformance.assertFollowable(summary.get("followUp"),
                     CatalogueSpecs.of(profilesSpecs(), CatalogueSpecs.profileScoped(JvmMcpTools.class, "jvm"))));
             verify(autoAnalysisManager, never()).analysisResults();
+        }
+
+        /**
+         * The menu an open question is answered with rides on the summary: the CPU samples this profile
+         * holds make CPU hotspots available — and suggested, as all of the stack samples — with the
+         * flamegraph that opens it, and every call in the menu is one the agent can send.
+         */
+        @Test
+        void summaryCarriesTheInvestigationMenu() {
+            stubProfile(RecordingEventSource.JDK);
+            when(flamegraphManager.eventSummaries()).thenReturn(List.of(recorded("jdk.ExecutionSample", 1_000)));
+            when(flamegraphManager.allEventSummaries()).thenReturn(List.of(recorded("jdk.ExecutionSample", 1_000)));
+
+            JsonNode summary = conforming("summary", tools().summary());
+
+            JsonNode cpu = null;
+            for (JsonNode area : summary.get("investigationAreas")) {
+                if ("CPU_HOTSPOTS".equals(area.get("area").asString())) {
+                    cpu = area;
+                }
+            }
+            assertNotNull(cpu, summary.get("investigationAreas").toString());
+            assertEquals("AVAILABLE", cpu.get("availability").asString());
+            assertTrue(cpu.get("suggested").asBoolean());
+            assertEquals("HEAVY", cpu.get("weight").asString());
+            assertEquals("flamegraph_export", cpu.get("nextTools").get(0).get("tool").asString());
+            assertTrue(McpNextToolConformance.assertFollowable(summary.get("investigationAreas"), CatalogueSpecs.of(
+                    CatalogueSpecs.profileScoped(FlamegraphMcpTools.class, "flamegraph"),
+                    CatalogueSpecs.profileScoped(JvmMcpTools.class, "jvm"),
+                    CatalogueSpecs.profileScoped(MemoryMcpTools.class, "memory"),
+                    CatalogueSpecs.profileScoped(TimelineMcpTools.class, "timeline"),
+                    CatalogueSpecs.profileScoped(TracesMcpTools.class, "traces"),
+                    CatalogueSpecs.profileScoped(HttpMcpTools.class, "http"),
+                    CatalogueSpecs.profileScoped(JdbcMcpTools.class, "jdbc"),
+                    CatalogueSpecs.profileScoped(IoMcpTools.class, "io"),
+                    CatalogueSpecs.profileScoped(BlockingMcpTools.class, "blocking"))) > 0);
+        }
+
+        @Test
+        void aHeapDumpSummaryHasNoMenu() {
+            stubProfile(RecordingEventSource.HEAP_DUMP);
+
+            JsonNode summary = conforming("summary", tools().summary());
+
+            assertTrue(summary.get("investigationAreas").isEmpty());
         }
 
         @Test

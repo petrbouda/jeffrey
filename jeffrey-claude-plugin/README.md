@@ -241,8 +241,9 @@ empty result.
 `profile-lead` is for the open-ended question — "why is this service slow", "review this recording" —
 where nobody has said which dimension to look at. It triages from `profiles_summary` itself, reads
 the capability gaps before anything else, and dispatches nothing until areas have been chosen:
-without them it returns a menu of what the profile can answer, each area tagged light, medium or
-heavy and the ones the summary points at marked as suggested, for the caller to put to the user.
+without them it returns the summary's `investigationAreas` — the menu Jeffrey builds of what the
+profile can answer, each area with its weight (LIGHT, MEDIUM or HEAVY) and the ones the evidence
+points at marked as suggested — for the caller to put to the user.
 With them it dispatches `profile-analyst` and `heap-triage` for those areas only and all at once,
 then merges what comes back: findings carry a
 stable id, so the same condition reported twice collapses into one, ranked by share of wall clock,

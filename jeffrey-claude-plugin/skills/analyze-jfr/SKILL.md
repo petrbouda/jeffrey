@@ -51,62 +51,71 @@ A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch t
 
 ## Ask before you analyse — the user picks what to spend on
 
-Orientation is cheap; analysis is not. `profiles_summary` and `flamegraph_list` are two compact
-calls, while one flamegraph or trace export runs to tens of thousands of characters and a sweep of
-every family costs a dozen calls whose findings mostly go unread. So the user decides what is worth
-that, not habit:
+Orientation is cheap; analysis is not. `profiles_summary` is one compact call, while one flamegraph
+or trace export runs to tens of thousands of characters and a sweep of every family costs a dozen
+calls whose findings mostly go unread. So the user decides what is worth that, not habit:
 
 - **The question names an area** — "why is `/orders` slow", "what is allocating", "are the GC
   pauses long" — go straight to that area through the routing table below. Do only that area, and
   do not show the menu.
-- **The question is open** — "analyse this", "what is wrong", "review this recording" — make the
-  two orientation calls, then show the menu below and **stop**. Wait for the user's choice before
-  any other call. A fired rule in `topFindings` and a `capabilityGaps` entry the question needs are
-  worth one line each above the menu, because they are already paid for; neither is a reason to
-  start work unasked.
+- **The question is open** — "analyse this", "what is wrong", "review this recording" — call
+  `profiles_summary`, put its `investigationAreas` to the user as below, and **stop**. Wait for the
+  user's choice before any other call. A fired rule in `topFindings` and a `capabilityGaps` entry
+  the question needs are worth one line each above the menu, because they are already paid for;
+  neither is a reason to start work unasked.
 
-### The menu
+### The menu is `investigationAreas`
 
-Offer only what this profile carries: drop a line whose events `disabledFeatures`, `eventTypes` or
-`flamegraph_list`'s `notRecorded` rule out, and name what was dropped in one line beneath the menu,
-with the async-profiler option that would capture it next time (`event=ctimer`, `wall=10ms`,
-`alloc=512k`, `lock=10ms`). Mark the line the summary points at as *suggested* — the dominant event
-type, a fired rule — and keep the order below otherwise. One line per area, its tag, and what it
-answers:
+Jeffrey builds the menu, so do not assemble one yourself. Each entry has an `area`, its `group`
+(`CODE`, `WAITING`, `JVM`, `OVERALL`), a `title`, the `question` it answers, and its `availability`:
 
-| Area | Tag | Answers | Calls it makes |
-|---|---|---|---|
-| Rule findings | light | Jeffrey's own rules over the whole recording | `topFindings` is already in the summary; `jvm_autoAnalysis` with `compute: true` only if they have not run — slow, it reads the whole recording |
-| CPU hotspots | heavy | Which code burned the CPU | `flamegraph_export` of the CPU type |
-| Wall-clock | heavy | Where time went, running or waiting | `flamegraph_export` of `profiler.WallClockSample` |
-| Allocation | medium · heavy | Which types, then which call sites | `memory_allocations`; the allocation flamegraph for the sites |
-| Lock contention | medium | Which locks threads queued on | `blocking_overview` → `blocking_monitors` |
-| Slow endpoints | medium · heavy | Which operations took the time, then one request span by span | `traces_overview` → `traces_operations`; exports for one exemplar. `http_overview`/`jdbc_overview` without traces |
-| Database | medium | Which statements, and whether the pool made requests wait | `jdbc_overview`, `jdbc_pools` |
-| I/O waiting | medium | What it talked to and how long it waited | `io_overview` → `io_endpoints` |
-| GC and pauses | medium | Whether collections and safepoints hurt | `jvm_gc`, `jvm_safepoints` |
-| JIT | medium | Slow compilations, deoptimisation loops | `jvm_jit` |
-| Threads | medium | Busiest threads, pinning | `jvm_threads` |
-| Native memory | medium | Memory outside the Java heap | `jvm_nativeMemory` |
-| Container and flags | light | Throttling, and what the JVM really ran with | `jvm_container`, `jvm_flags` |
-| When it happened | medium | Steady, ramp or spike — and the window to export | `timeline_hotWindows` |
-| Leak candidates | medium | Objects that survived collections | `memory_leakCandidates` |
+- **`AVAILABLE`** — offer it, with its `weight` and, when `suggested` is true, its `evidence` (the
+  rule that fired, or the share of samples that points there). `nextTools` are the calls that open
+  it, ready to send.
+- **`NOT_RECORDED`** — do not offer it. Name these in one line beneath the menu, with their `remedy`
+  (`event=cpu`, `wall=10ms`, `alloc=512k`, `lock=10ms`, …) so the next recording can capture them.
 
-The tags count what the answer puts into this conversation as well as what Jeffrey spends to
-compute it — the `jeffrey/cost` hint on each tool is the latter only. **light**: one or two calls,
-compact records. **medium**: a short chain of dashboard calls. **heavy**: a Markdown export, tens of
-thousands of characters — delegated to the analyst when the client has one. A line tagged
-`medium · heavy` starts medium and turns heavy only if the user asks to go down to frames.
+An empty `investigationAreas` means a heap dump: switch to `analyze-heap`.
 
-The user may pick several; take them in the order they gave. A pick you cannot serve after all —
-the dashboard answers `NOT_RECORDED` — is reported as not assessed, and the next pick goes on.
+**Put it as a structured question when your client has one.** In Claude Code that is
+`AskUserQuestion`: one multi-select question per group that has an `AVAILABLE` area, in group order,
+`header` the group in a word (Code, Waiting, JVM, Overall), one option per area with the `title` as
+its label and the description `weight · question` — with `· suggested: <evidence>` when suggested,
+and `· covered` when the ledger already has it. A group with a single available area joins another
+group's question when that one has room, since a question needs two options. Everything else — the
+fired rules, the gaps the question needs, the not-recorded line — is text above the question.
+
+**Without a structured question tool** (Codex, Gemini CLI), write the menu as a table grouped by
+group — area, weight, what it answers, why it is suggested — then the not-recorded line, and stop.
+
+The user may pick several; take them in the order they gave, sending each area's `nextTools`
+unchanged. A pick that comes back `NOT_RECORDED` after all is reported as not assessed, and the next
+pick goes on.
+
+**Weight** is what an answer puts into this conversation: **LIGHT** one or two compact records,
+**MEDIUM** a dashboard or a ranking, **HEAVY** a long document — a flamegraph, a trace, a dump —
+delegated to the analyst when the client has one. It is not `jeffrey/cost`, which is what Jeffrey
+spends to compute the answer.
 
 ### After every answer, offer — do not run
 
-Close each answer with at most two follow-ups taken from its `followUp.nextTools` or from the
-routing table below, each with its tag and the one question it would answer, and wait. A follow-up
-the user did not ask for is not run, however well the evidence points at it: "the allocation
-flamegraph would name the call sites (heavy)" is the sentence, not the export.
+Close each answer with at most two follow-ups taken from its `followUp.nextTools` — each carries its
+`weight` and its `why` — and wait. In Claude Code put them as one `AskUserQuestion` with an option
+per follow-up and a "Stop here" option; elsewhere, one line each. A follow-up the user did not ask
+for is not run, however well the evidence points at it: "the allocation flamegraph would name the
+call sites (HEAVY)" is the sentence, not the export.
+
+### Keep a ledger
+
+Across the conversation keep a short block, updated after every answer:
+
+- **Covered** — each area answered, with its one-line result and its link;
+- **Open leads** — follow-ups offered and not yet taken;
+- **Not assessed** — areas the recording cannot answer, and picks that turned out `NOT_RECORDED`.
+
+When the user asks what else there is, show the menu again with the covered areas marked. The
+ledger is yours: nothing in it is sent to a tool, and the `report` skill builds its findings and its
+**Not assessed** section from it.
 
 ## Route from the summary — never open with a flamegraph
 

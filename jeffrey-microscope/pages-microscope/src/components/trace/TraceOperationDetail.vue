@@ -21,16 +21,8 @@
     <ErrorState v-else-if="error" :message="error" @retry="load" />
 
     <template v-else>
-      <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="mb-3">
         <TabBar v-model="activeTab" :tabs="tabs" />
-        <!--
-          Beside the tabs rather than inside one: it exports the whole operation — summary, span
-          ranking, slowest traces — not whichever tab happens to be open.
-        -->
-        <AiExportButton
-          :build-source="buildAiExportSource"
-          tooltip="Export this operation for a coding agent"
-        />
       </div>
 
       <div v-show="activeTab === 'summary'">
@@ -125,7 +117,6 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import AiExportButton from '@/components/export/AiExportButton.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -137,8 +128,6 @@ import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import TraceOperationFlamegraphs from '@/components/trace/TraceOperationFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import TraceAiExportClient from '@/services/api/TraceAiExportClient';
-import type { AiExportSource } from '@/composables/useAiExport';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type {
   TraceOperationId,
@@ -300,20 +289,6 @@ const capNote = computed<string | undefined>(() => {
   }
   return `Slowest ${TRACE_LIMIT} traces of this operation`;
 });
-
-/**
- * The rendering happens on the server from the operation's identifying triple alone, and the triple
- * is a prop — so unlike the trace export, this one is never waiting on anything to load.
- */
-function buildAiExportSource(): AiExportSource {
-  const client = new TraceAiExportClient(props.profileId);
-  const { name, kind, eventType } = props.operation;
-  return {
-    fetch: () => client.generateOperation(name, kind, eventType),
-    label: 'Operation',
-    filenameStem: `operation-${name}`
-  };
-}
 
 /*
  * Guards against an out-of-order response. Each load claims a number; a response whose number is no

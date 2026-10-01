@@ -141,7 +141,7 @@ public class FlamegraphMcpTools {
 
         if (available.isEmpty()) {
             McpFollowUp followUp = NextSteps.builder(advertised)
-                    .next(McpNextTool.call(FEATURES_TOOL).with(PROFILE_ID, profileId).why(FEATURES_WHY))
+                    .next(NextCalls.to(FEATURES_TOOL).with(PROFILE_ID, profileId).why(FEATURES_WHY))
                     .followUp();
             return McpToolResult.of(new GraphableTypes(
                     CatalogueStatus.EMPTY, NOTHING_TO_GRAPH, profileId, available, notRecorded, followUp, uiLink));
@@ -149,7 +149,7 @@ public class FlamegraphMcpTools {
 
         GraphableType first = available.getFirst();
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(McpNextTool.call(EXPORT_TOOL)
+                .next(NextCalls.to(EXPORT_TOOL)
                         .with(PROFILE_ID, profileId)
                         .with(EVENT_TYPE, first.eventType())
                         .with(USE_WEIGHT, first.defaultUseWeight())
@@ -306,7 +306,7 @@ public class FlamegraphMcpTools {
             String profileId, Type type, EpochWindow window,
             Boolean threadMode, boolean weighted, Boolean excludeIdle, Boolean excludeNonJava) {
 
-        McpNextTool.Call perThread = McpNextTool.call(EXPORT_TOOL)
+        McpNextTool.Call perThread = NextCalls.to(EXPORT_TOOL)
                 .with(PROFILE_ID, profileId)
                 .with(EVENT_TYPE, type.code())
                 .with(THREAD_MODE, true);
@@ -321,13 +321,13 @@ public class FlamegraphMcpTools {
             perThread.with(EXCLUDE_NON_JAVA, true);
         }
 
-        McpNextTool.Call hotWindows = McpNextTool.call(HOT_WINDOWS_TOOL)
+        McpNextTool.Call hotWindows = NextCalls.to(HOT_WINDOWS_TOOL)
                 .with(PROFILE_ID, profileId)
                 .with(EVENT_TYPE, type.code())
                 .with(USE_WEIGHT, weighted);
 
         return NextSteps.builder(advertised)
-                .next(McpNextTool.call(THREADS_TOOL).with(PROFILE_ID, profileId).why(THREADS_WHY))
+                .next(NextCalls.to(THREADS_TOOL).with(PROFILE_ID, profileId).why(THREADS_WHY))
                 .nextWhen(!Boolean.TRUE.equals(threadMode), perThread.why(PER_THREAD_WHY))
                 .nextWhen(window == null, hotWindows.why(HOT_WINDOWS_WHY))
                 .guidance(advertised.hint(AdvertisedFamilies.COMPARE, COMPARE_GUIDANCE))

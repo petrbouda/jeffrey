@@ -208,12 +208,12 @@ public class CompareMcpTools {
         boolean nothing = comparable.isEmpty();
         McpFollowUp followUp = nothing
                 ? NextSteps.builder(advertised)
-                        .next(McpNextTool.call(FEATURES_TOOL).with(PROFILE_ID, primaryId).why(PRIMARY_FEATURES_WHY))
-                        .next(McpNextTool.call(FEATURES_TOOL).with(PROFILE_ID, baselineId).why(BASELINE_FEATURES_WHY))
+                        .next(NextCalls.to(FEATURES_TOOL).with(PROFILE_ID, primaryId).why(PRIMARY_FEATURES_WHY))
+                        .next(NextCalls.to(FEATURES_TOOL).with(PROFILE_ID, baselineId).why(BASELINE_FEATURES_WHY))
                         .followUp()
                 : NextSteps.builder(advertised)
                         .next(quality(primaryId, baselineId))
-                        .next(McpNextTool.call(MOVEMENTS_TOOL)
+                        .next(NextCalls.to(MOVEMENTS_TOOL)
                                 .with(PROFILE_ID, primaryId)
                                 .with(BASELINE_PROFILE_ID, baselineId)
                                 .with(EVENT_TYPE, comparable.getFirst().eventType())
@@ -284,7 +284,7 @@ public class CompareMcpTools {
         String baselineId = baseline.info().id();
         McpFollowUp followUp = NextSteps.builder(advertised)
                 .next(quality(primaryId, baselineId))
-                .next(request.applyTo(McpNextTool.call(DIFF_TOOL)
+                .next(request.applyTo(NextCalls.to(DIFF_TOOL)
                                 .with(PROFILE_ID, primaryId)
                                 .with(BASELINE_PROFILE_ID, baselineId))
                         .why(DRILL_WHY))
@@ -435,7 +435,7 @@ public class CompareMcpTools {
     }
 
     private static McpNextTool quality(String primaryId, String baselineId) {
-        return McpNextTool.call(QUALITY_TOOL)
+        return NextCalls.to(QUALITY_TOOL)
                 .with(PROFILE_ID, primaryId)
                 .with(BASELINE_PROFILE_ID, baselineId)
                 .why(QUALITY_WHY);
@@ -628,7 +628,7 @@ public class CompareMcpTools {
          * on that side's clock.
          */
         McpNextTool.Call plainExport(String profileId, EpochWindow window) {
-            McpNextTool.Call call = McpNextTool.call(EXPORT_TOOL)
+            McpNextTool.Call call = NextCalls.to(EXPORT_TOOL)
                     .with(PROFILE_ID, profileId)
                     .with(EVENT_TYPE, type.code());
             if (window != null) {

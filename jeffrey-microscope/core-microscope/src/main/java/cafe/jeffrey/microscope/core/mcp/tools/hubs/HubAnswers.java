@@ -216,7 +216,49 @@ public final class HubAnswers {
         /** The transfer failed; the same call with retry=true starts a new one. */
         FAILED,
         /** The transfer was cancelled; the same call with retry=true starts a new one. */
-        CANCELLED
+        CANCELLED,
+        /**
+         * STARTUP was asked for and the hub no longer holds the session's first chunk; nothing was
+         * transferred, and chosen names the oldest chunk still kept.
+         */
+        STARTUP_NOT_RETAINED
+    }
+
+    /**
+     * What a predefined window picked, and why: the window, the evidence for the choice, and for a
+     * window that picks one chunk — STARTUP, LATEST, PEAK — that chunk with the figures behind it.
+     */
+    public record ChosenWindow(
+            DownloadWindow window,
+            @McpDescription("Why this part, in words: the chunk's place and, for PEAK, its size against the rest")
+            String evidence,
+            @McpNullable
+            @McpDescription("The chunk picked, as a hubs_files fileId; for STARTUP_NOT_RETAINED the oldest one kept; "
+                    + "null for a window that is not one chunk")
+            String chunkFileId,
+            @McpNullable
+            @McpMinimum(0)
+            @McpDescription("That chunk's size on the hub; null for a window that is not one chunk")
+            Long chunkSizeBytes,
+            @McpNullable
+            @McpMinimum(0)
+            @McpDescription("For PEAK, the median size of the compressed chunks it was compared with; null otherwise")
+            Long medianChunkSizeBytes,
+            @McpNullable
+            @McpMinimum(0)
+            @McpDescription("The session's chunk length, measured from its chunk starts; null when not measured")
+            Long chunkLengthMs) {
+
+        public ChosenWindow {
+            if (window == null || evidence == null || evidence.isBlank()) {
+                throw new IllegalArgumentException("a chosen window needs its window and evidence: window=" + window);
+            }
+        }
+
+        /** A window that is a span or the whole session, not one chunk. */
+        static ChosenWindow span(DownloadWindow window, String evidence) {
+            return new ChosenWindow(window, evidence, null, null, null, null);
+        }
     }
 
     /**
@@ -271,6 +313,10 @@ public final class HubAnswers {
             @McpDescription("Where the last downloaded chunk of a part ends, as UTC epoch milliseconds; null for "
                     + "the whole session and for a last chunk nothing bounds")
             Long coveredEndEpochMs,
+            @McpNullable
+            @McpDescription("What a predefined window picked and why; null when the call named the part itself or "
+                    + "took the whole session without a window")
+            ChosenWindow chosen,
             @McpNullable
             @McpDescription("The transfer behind this answer, for operations_status and operations_cancel")
             String operationId,

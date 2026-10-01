@@ -139,7 +139,7 @@ onMounted(() => {
             <td><code>2.0</code></td>
             <td>
               Prune threshold for the Markdown flamegraph export handed to a coding agent &mdash; the
-              Copy-for-AI buttons and the MCP flamegraph, compare and trace-span exports. Subtrees below
+              MCP flamegraph, compare and trace-span exports. Subtrees below
               this share of the samples are dropped; coarser than the visualization threshold to keep the
               export compact.
             </td>

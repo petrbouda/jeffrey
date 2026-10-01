@@ -48,8 +48,6 @@ import java.util.List;
 @RequestMapping("/api/internal/profiles/{profileId}/flamegraph")
 public class FlamegraphController {
 
-    public static final String MARKDOWN_MEDIA_TYPE = "text/markdown";
-
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphController.class);
 
     private final ProfileManagerResolver resolver;
@@ -68,16 +66,6 @@ public class FlamegraphController {
         ProfileManager pm = resolver.resolve(profileId);
         GraphParameters params = mapToGenerateRequest(pm, request, GraphType.PRIMARY);
         return pm.flamegraphManager().generate(params);
-    }
-
-    @PostMapping(value = "/ai-export", produces = MARKDOWN_MEDIA_TYPE)
-    public String aiExport(
-            @PathVariable("profileId") String profileId,
-            @RequestBody GenerateFlamegraphRequest request) {
-        LOG.debug("Generating AI export: eventType={}", request.eventType());
-        ProfileManager pm = resolver.resolve(profileId);
-        GraphParameters params = mapToGenerateRequest(pm, request, GraphType.PRIMARY);
-        return pm.flamegraphManager().generateAiExport(params);
     }
 
     @GetMapping("/events")

@@ -85,9 +85,6 @@ export default abstract class GraphUpdater {
   // once, after the first drawing. Both null unless a link named them.
   private linkedState: LinkedGraphState = { timeRange: null, search: null };
   private linkedSearchPending: boolean = false;
-  // The range the flamegraph was last asked for: the linked window, the opening zoom, a reader's
-  // zoom, or null for the whole recording.
-  protected drawnTimeRange: TimeRange | null = null;
 
   public setTimeseriesSearchEnabled(enabled: boolean): void {
     this.timeseriesSearchEnabled = enabled;
@@ -113,14 +110,6 @@ export default abstract class GraphUpdater {
   /** The window a link opened the graph on, as the relative range the requests take; null without one. */
   public linkedTimeRange(): TimeRange | null {
     return this.linkedState.timeRange;
-  }
-
-  /**
-   * The range the graph on screen is drawn over, as the relative range the requests take; null for
-   * the whole recording. An export of the graph sends it, so the document describes what is shown.
-   */
-  public currentTimeRange(): TimeRange | null {
-    return this.drawnTimeRange;
   }
 
   /** The search a link opened the graph with, for the search box to show; null without one. */

@@ -43,9 +43,9 @@ class NextStepsTest {
     private static final AdvertisedFamilies TIMELINE_ONLY =
             new AdvertisedFamilies(Set.of(AdvertisedFamilies.TIMELINE));
 
-    private static final McpNextTool HOT_WINDOWS = McpNextTool.call("timeline_hotWindows")
+    private static final McpNextTool HOT_WINDOWS = NextCalls.to("timeline_hotWindows")
             .with("profileId", "p-1").why("says when the load peaked");
-    private static final McpNextTool HISTOGRAM = McpNextTool.call("heap_getClassHistogram")
+    private static final McpNextTool HISTOGRAM = NextCalls.to("heap_getClassHistogram")
             .with("profileId", "p-1").why("says which classes hold the heap");
     private static final String RECORD_ALLOCATION = "record with jdk.ObjectAllocationSample enabled to see allocation";
 

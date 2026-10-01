@@ -52,29 +52,24 @@ looking at.
 
 ## 2. Choose the evidence
 
-**Ask what the profile carries before asking anything else.** One call to `profiles_features` says
-which families can answer at all — its `disabledFeatures` rules out a whole family, its
-`eventTypes` names what was captured — and `flamegraph_list` splits the graphable types into
-`available` and `notRecorded`. Analysing every family unconditionally is a fishing expedition: it
-costs a dozen calls and buries the two findings that matter under twelve that do not.
+**Ask what the profile carries before asking anything else.** One call to `profiles_summary` says
+which areas this profile can answer at all — its `investigationAreas` lists each area with its
+`availability`, its `weight` and, when the evidence points there, `suggested` with the `evidence`
+(a fired rule, the dominant kind of sample). Analysing every family unconditionally is a fishing
+expedition: it costs a dozen calls and buries the two findings that matter under twelve that do not.
 
 **If the user named an area** — in the scope argument or in the request — do that one and skip the
-menu. **Otherwise ask.** Show the areas below that this profile carries, one line each with its tag
-and what it would lead to in the code, mark the one the profile points at (the dominant event type,
-a fired rule in `topFindings`) as *suggested*, name what was dropped as not recorded, and **stop**
-until the user picks. Do not export anything first to make the menu look better informed.
+menu. **Otherwise ask.** Put the `AVAILABLE` areas to the user the way `analyze-jfr` does — as one
+`AskUserQuestion` with a multi-select question per group in Claude Code, a table elsewhere — each
+with its weight and what it would lead to in the code, the suggested ones marked with their
+evidence, and the `NOT_RECORDED` ones named in one line with their `remedy`. Then **stop** until the
+user picks. Do not export anything first to make the menu look better informed.
 
-The tags count what an area puts into this conversation as well as what Jeffrey spends on it.
-**medium**: a short chain of dashboard calls with compact answers. **heavy**: a Markdown export of
-tens of thousands of characters per group, which is also what makes step 4 slower. A pick is worked
-in the order given; an area nobody picked is not analysed, and belongs under **not assessed** only if
-the user's question needed it.
-
-| Area | Tag |
-|---|---|
-| `cpu`, `wall`, `alloc`, `lock` — the flamegraph groups below, each its own pick | heavy |
-| `latency` | medium, heavy once one trace is exported |
-| `waiting` (locks, I/O), `memory`, database, HTTP/gRPC | medium |
+The weight is what an area puts into this conversation: **MEDIUM** a short chain of dashboard calls
+with compact answers, **HEAVY** a Markdown export of tens of thousands of characters per group,
+which is also what makes step 4 slower. A pick is worked in the order given, sending the area's
+`nextTools` unchanged; an area nobody picked is not analysed, and belongs under **not assessed**
+only if the user's question needed it.
 
 ### The flamegraph groups — where the time was spent
 
@@ -176,7 +171,10 @@ carrying the recommendation the analysis stage left out:
 - **Confidence per finding**, with what caps it: sampled data, a lossy sampler
   (`profiles_samplerHealth`), a rule that fired rather than a figure that was measured.
 
-Then ask which findings to apply, and wait for the answer. This is the gate.
+Then ask which findings to apply, and wait for the answer. This is the gate. In Claude Code ask
+with `AskUserQuestion`, one multi-select option per finding (its one-line title, the edit or setting
+it leads to in the description), when there are at most four; with more, list them numbered and let
+the user name the ones to apply.
 
 A finding that reaches neither source nor a setting is not a finding yet. Say what it measured and
 what would be needed to act on it, rather than inventing a change to attach to it.

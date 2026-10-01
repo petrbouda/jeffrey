@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
-import cafe.jeffrey.microscope.core.mcp.tools.ByteSizes;
 import cafe.jeffrey.microscope.mcp.protocol.McpFormElicitation;
 import cafe.jeffrey.microscope.mcp.protocol.McpFormSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
@@ -27,31 +25,29 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Duration;
-import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * The question {@code hubs_download} puts to the user before it moves a large hub session across the
- * network: which part of it to bring — the last hour, the last few minutes, all of it, or a window
- * of their own.
+ * network: which part of it to bring. The choices are the {@link DownloadWindow}s this session can
+ * offer — the whole of it, the last minutes, its startup, its latest or its largest chunk, the
+ * minutes before or around a moment, or a window of their own — each titled with its figures.
  * <p>
  * Asked only about a session that runs longer than {@link #askOverDuration} or holds more than
- * {@link #askOverBytes}; anything smaller is downloaded whole, as it always was. Every window is
- * measured back from the session's end — when it finished, or now while it is still recording — and
- * is worked out afresh from the session as read on each call, so a retry answers about the session
- * as it stands then.
+ * {@link #askOverBytes}; anything smaller is downloaded whole, as it always was. The answer is
+ * resolved by the same rules as a window the call names, on the session as read on each call, so a
+ * retry answers about the session as it stands then.
  * <p>
  * The form is flat and primitive, as the elicitation specification requires: one titled single
- * choice, one bounded integer and two {@code date-time} strings, all with defaults.
+ * choice, one bounded integer and three {@code date-time} strings, all with defaults.
  *
  * @param askOverDuration a session longer than this is asked about
  * @param askOverBytes    a session holding more bytes than this is asked about
@@ -62,35 +58,19 @@ public record DownloadWindowQuestion(Duration askOverDuration, long askOverBytes
     public static final String KEY = "downloadWindow";
 
     private static final String FIELD_WINDOW = "window";
-    private static final String FIELD_MINUTES = "minutes";
-    private static final String FIELD_START = "start";
-    private static final String FIELD_END = "end";
-
-    private static final Duration ONE_HOUR = Duration.ofHours(1);
-    private static final long MIN_MINUTES = 1;
-    private static final long DEFAULT_MINUTES = 15;
-
-    private static final DateTimeFormatter CLOCK_TIME = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneOffset.UTC);
+    private static final Map<WindowParam, String> FIELDS = Map.of(
+            WindowParam.MINUTES, "minutes",
+            WindowParam.AT, "at",
+            WindowParam.START, "start",
+            WindowParam.END, "end");
 
     private static final String DECLINED = "The user declined to choose a part of the session.";
     private static final String CANCELLED = "The user dismissed the question without choosing a part of the session.";
     private static final String NO_WINDOW = "Choose which part of the session to download in the window field.";
-    private static final String UNKNOWN_WINDOW =
-            "'%s' is not one of the choices; choose the last hour, the last N minutes, the whole session or a custom window.";
-    private static final String NO_MINUTES =
-            "'The last N minutes' needs the number of minutes in the minutes field%s.";
-    private static final String BAD_MINUTES = "The minutes must be a whole number%s; got %s.";
-    private static final String MINUTES_RANGE = ", from 1 to %d";
-    private static final String NOT_A_DATE_TIME =
-            "The %s of the custom window, '%s', is not a date-time; give it as 2026-03-01T10:00:00Z.";
-    private static final String NO_BOUND =
-            "The custom window needs its %s: the session's own is not known.";
-    private static final String ENDS_BEFORE_START =
-            "The custom window ends at %s, before (or as) it starts at %s; give an end after the start.";
-    private static final String OUTSIDE_SESSION =
-            "The custom window from %s to %s lies outside the session, which spans %s to %s; choose a window inside it.";
-    private static final String NO_SPAN =
-            "The session spans no time, so it has no last stretch to take; choose the whole session.";
+    private static final String UNKNOWN_WINDOW = "'%s' is not one of the choices; choose one of %s.";
+    private static final String BAD_MINUTES = "The minutes must be a whole number from 1 to %d; got %s.";
+    private static final String NOT_A_DATE_TIME = "The %s, '%s', is not a date-time; give it as 2026-03-01T10:00:00Z.";
+    private static final String CHOICE_SEPARATOR = ", ";
 
     public DownloadWindowQuestion {
         Objects.requireNonNull(askOverDuration, "askOverDuration");
@@ -111,30 +91,30 @@ public record DownloadWindowQuestion(Duration askOverDuration, long askOverBytes
         if (session.totalSizeBytes() > askOverBytes) {
             return true;
         }
-        Subject subject = new Subject(session, null, null, now);
+        WindowSubject subject = new WindowSubject(session, null, null, now);
         return subject.start() != null
                 && Duration.between(subject.start(), subject.end()).compareTo(askOverDuration) > 0;
     }
 
     /** The question as first asked. */
-    public McpToolOutcome.InputRequired ask(Subject subject) {
+    public McpToolOutcome.InputRequired ask(WindowSubject subject) {
         return new McpToolOutcome.InputRequired(Map.of(KEY, new McpFormElicitation(subject.describe(), form(subject))));
     }
 
     /**
      * The question asked again after an answer that did not make a window, stating what was wrong
-     * before anything else.
+     * first.
      */
-    public McpToolOutcome.InputRequired ask(Subject subject, String problem) {
+    public McpToolOutcome.InputRequired ask(WindowSubject subject, String problem) {
         return new McpToolOutcome.InputRequired(
                 Map.of(KEY, new McpFormElicitation(problem + " " + subject.describe(), form(subject))));
     }
 
     /**
-     * What the user answered: a window, the whole session, nothing — or something that does not make
-     * a window, to be asked about again.
+     * What the user's answer means: the window chosen with the fields it takes, nothing at all, or a
+     * malformed answer that the question is asked again about. A malformed field never throws.
      */
-    public WindowAnswer read(McpInputResponse response, Subject subject) {
+    public WindowAnswer read(McpInputResponse response, WindowSubject subject) {
         return switch (response.action()) {
             case DECLINE -> new WindowAnswer.NotAnswered(DECLINED);
             case CANCEL -> new WindowAnswer.NotAnswered(CANCELLED);
@@ -142,267 +122,114 @@ public record DownloadWindowQuestion(Duration askOverDuration, long askOverBytes
         };
     }
 
-    private static WindowAnswer accepted(ObjectNode content, Subject subject) {
+    private static WindowAnswer accepted(ObjectNode content, WindowSubject subject) {
         JsonNode chosen = content == null ? null : content.get(FIELD_WINDOW);
         if (chosen == null || !chosen.isString() || chosen.asString().isBlank()) {
             return new WindowAnswer.Incomplete(NO_WINDOW);
         }
-        return Window.fromWire(chosen.asString())
-                .map(window -> window.answer(content, subject))
-                .orElseGet(() -> new WindowAnswer.Incomplete(UNKNOWN_WINDOW.formatted(chosen.asString())));
+        Optional<DownloadWindow> window = offered(subject).stream()
+                .filter(offered -> offered.name().equals(chosen.asString()))
+                .findFirst();
+        if (window.isEmpty()) {
+            return new WindowAnswer.Incomplete(UNKNOWN_WINDOW.formatted(chosen.asString(), offered(subject).stream()
+                    .map(Enum::name).collect(Collectors.joining(CHOICE_SEPARATOR))));
+        }
+        return fields(content, window.get());
     }
 
-    private static McpFormSchema form(Subject subject) {
-        List<McpFormSchema.Choice> choices = Arrays.stream(Window.values())
-                .map(window -> new McpFormSchema.Choice(window.wireName, window.title(subject)))
+    /** The fields the chosen window takes, read leniently enough that nothing malformed throws. */
+    private static WindowAnswer fields(ObjectNode content, DownloadWindow window) {
+        Field<Integer> minutes = window.takes(WindowParam.MINUTES)
+                ? minutes(content.get(FIELDS.get(WindowParam.MINUTES)))
+                : Field.absent();
+        Field<Long> at = dateTime(content, window, WindowParam.AT);
+        Field<Long> start = dateTime(content, window, WindowParam.START);
+        Field<Long> end = dateTime(content, window, WindowParam.END);
+        for (Field<?> field : List.of(minutes, at, start, end)) {
+            if (field.problem() != null) {
+                return new WindowAnswer.Incomplete(field.problem());
+            }
+        }
+        return new WindowAnswer.Chosen(window,
+                new WindowArguments(minutes.value(), at.value(), start.value(), end.value()));
+    }
+
+    /** One form field as read: its value, or the problem with it; both null when it was not given. */
+    private record Field<T>(T value, String problem) {
+
+        static <T> Field<T> absent() {
+            return new Field<>(null, null);
+        }
+    }
+
+    private static Field<Integer> minutes(JsonNode given) {
+        if (given == null || given.isNull()) {
+            return Field.absent();
+        }
+        return wholeMinutes(given)
+                .map(minutes -> new Field<>(minutes, null))
+                .orElseGet(() -> new Field<>(null, BAD_MINUTES.formatted(DownloadWindow.MAX_WINDOW_MINUTES, given)));
+    }
+
+    private static Field<Long> dateTime(ObjectNode content, DownloadWindow window, WindowParam param) {
+        String name = FIELDS.get(param);
+        JsonNode given = content.get(name);
+        if (!window.takes(param) || given == null || given.isNull()) {
+            return Field.absent();
+        }
+        // Only a string can be a date-time; asString() on anything else throws in Jackson 3.
+        if (!given.isString()) {
+            return new Field<>(null, NOT_A_DATE_TIME.formatted(name, given.toString()));
+        }
+        try {
+            return new Field<>(OffsetDateTime.parse(given.asString()).toInstant().toEpochMilli(), null);
+        } catch (DateTimeParseException | ArithmeticException e) {
+            return new Field<>(null, NOT_A_DATE_TIME.formatted(name, given.asString()));
+        }
+    }
+
+    private static Optional<Integer> wholeMinutes(JsonNode minutes) {
+        // Jackson reads a number strictly: one no int can hold is refused here, not thrown.
+        boolean whole = minutes.isIntegralNumber()
+                || (minutes.isNumber() && minutes.doubleValue() == Math.rint(minutes.doubleValue()));
+        if (!whole || !minutes.canConvertToLong()) {
+            return Optional.empty();
+        }
+        long value = minutes.longValue();
+        return value < 1 || value > DownloadWindow.MAX_WINDOW_MINUTES ? Optional.empty() : Optional.of((int) value);
+    }
+
+    private static List<DownloadWindow> offered(WindowSubject subject) {
+        return Arrays.stream(DownloadWindow.values())
+                .filter(window -> window.choice(subject).isPresent())
                 .toList();
-        Long maxMinutes = subject.spanMinutes();
-        long defaultMinutes = maxMinutes == null ? DEFAULT_MINUTES : Math.min(DEFAULT_MINUTES, maxMinutes);
+    }
+
+    private static McpFormSchema form(WindowSubject subject) {
+        List<McpFormSchema.Choice> choices = Arrays.stream(DownloadWindow.values())
+                .map(window -> window.choice(subject))
+                .flatMap(Optional::stream)
+                .toList();
         return McpFormSchema.builder()
                 .required(new McpFormSchema.ChoiceField(
                         new McpFormSchema.Label(FIELD_WINDOW, "Part of the session to download", null),
-                        choices, Window.LAST_HOUR.wireName))
+                        choices, DownloadWindow.LAST_MINUTES.name()))
                 .optional(new McpFormSchema.IntegerField(
-                        new McpFormSchema.Label(FIELD_MINUTES, "Minutes",
-                                "For 'The last N minutes': how many minutes, ending where the session ends"),
-                        MIN_MINUTES, maxMinutes, defaultMinutes))
+                        new McpFormSchema.Label(FIELDS.get(WindowParam.MINUTES), "Minutes",
+                                "For the last N minutes, Before and Around: how many minutes"),
+                        1L, (long) DownloadWindow.MAX_WINDOW_MINUTES, (long) DownloadWindow.DEFAULT_MINUTES))
                 .optional(new McpFormSchema.DateTimeField(
-                        new McpFormSchema.Label(FIELD_START, "Start (UTC)", "For a custom window: where it starts"),
+                        new McpFormSchema.Label(FIELDS.get(WindowParam.AT), "At (UTC)",
+                                "For Before and Around: the moment, e.g. when a heap dump or crash file was written"),
+                        subject.end()))
+                .optional(new McpFormSchema.DateTimeField(
+                        new McpFormSchema.Label(FIELDS.get(WindowParam.START), "Start (UTC)",
+                                "For a custom window: where it starts"),
                         subject.start()))
                 .optional(new McpFormSchema.DateTimeField(
-                        new McpFormSchema.Label(FIELD_END, "End (UTC)", "For a custom window: where it ends"),
+                        new McpFormSchema.Label(FIELDS.get(WindowParam.END), "End (UTC)",
+                                "For a custom window: where it ends"),
                         subject.end()))
                 .build();
-    }
-
-    /**
-     * The session being asked about, and where it is: what the question describes and every window
-     * is measured against.
-     *
-     * @param session the session as read from its hub on this call
-     * @param hub     the hub's name, as the user knows it
-     * @param project the project's name on that hub
-     * @param now     when the question is asked; the end of a session still recording
-     */
-    public record Subject(RecordingSession session, String hub, String project, Instant now) {
-
-        public Subject {
-            Objects.requireNonNull(session, "session");
-            Objects.requireNonNull(now, "now");
-        }
-
-        /** When the session started, or null when the hub does not say. */
-        Instant start() {
-            return session.createdAt();
-        }
-
-        /** When the session finished, or now while it is still recording. */
-        Instant end() {
-            return session.finishedAt() == null ? now : session.finishedAt();
-        }
-
-        boolean stillRecording() {
-            return session.finishedAt() == null;
-        }
-
-        /** The session's length in whole minutes, rounded up and at least one; null with no start. */
-        Long spanMinutes() {
-            if (start() == null) {
-                return null;
-            }
-            long millis = Math.max(0, Duration.between(start(), end()).toMillis());
-            long minutes = (millis + Duration.ofMinutes(1).toMillis() - 1) / Duration.ofMinutes(1).toMillis();
-            return Math.max(MIN_MINUTES, minutes);
-        }
-
-        /** The last stretch of this length, cut off at the session's start. */
-        Instant startOfLast(Duration length) {
-            Instant from = end().minus(length);
-            return start() != null && from.isBefore(start()) ? start() : from;
-        }
-
-        String size() {
-            return ByteSizes.format(session.totalSizeBytes());
-        }
-
-        String describe() {
-            return "Session " + session.name() + " (" + session.id() + ") on hub " + hub + ", project " + project
-                    + ", " + span() + " "
-                    + "Downloading all of it moves every chunk across the network. Which part should Jeffrey download?";
-        }
-
-        /** Where the session starts and ends, how long that is and how much it holds. */
-        private String span() {
-            if (start() == null) {
-                return "has no recorded start and holds " + size() + ".";
-            }
-            if (stillRecording()) {
-                return "spans " + start() + " to now, " + end() + ", and is still recording ("
-                        + length() + " so far, " + size() + ").";
-            }
-            return "spans " + start() + " to " + end() + " (" + length() + ", " + size() + ").";
-        }
-
-        private String length() {
-            Duration elapsed = Duration.between(start(), end());
-            if (elapsed.toHours() > 0) {
-                return elapsed.toHours() + "h" + elapsed.toMinutesPart() + "m";
-            }
-            if (elapsed.toMinutes() > 0) {
-                return elapsed.toMinutes() + "m" + elapsed.toSecondsPart() + "s";
-            }
-            return elapsed.toSeconds() + "s";
-        }
-    }
-
-    /** The four choices; each words itself for the user and makes the answer it stands for. */
-    private enum Window {
-
-        LAST_HOUR("lastHour") {
-            @Override
-            String title(Subject subject) {
-                return "The last hour (" + CLOCK_TIME.format(subject.startOfLast(ONE_HOUR)) + "–"
-                        + CLOCK_TIME.format(subject.end()) + " UTC)";
-            }
-
-            @Override
-            WindowAnswer answer(ObjectNode content, Subject subject) {
-                return lastStretch(subject, ONE_HOUR);
-            }
-        },
-
-        LAST_MINUTES("lastMinutes") {
-            @Override
-            String title(Subject subject) {
-                return "The last N minutes (set Minutes below)";
-            }
-
-            @Override
-            WindowAnswer answer(ObjectNode content, Subject subject) {
-                Long max = subject.spanMinutes();
-                String range = max == null ? "" : MINUTES_RANGE.formatted(max);
-                JsonNode minutes = content.get(FIELD_MINUTES);
-                if (minutes == null || minutes.isNull()) {
-                    return new WindowAnswer.Incomplete(NO_MINUTES.formatted(range));
-                }
-                // Jackson reads a number strictly: one no long can hold is refused here, not thrown.
-                if (!wholeNumber(minutes) || !minutes.canConvertToLong()) {
-                    return new WindowAnswer.Incomplete(BAD_MINUTES.formatted(range, minutes));
-                }
-                long value = minutes.longValue();
-                if (value < MIN_MINUTES || (max != null && value > max)) {
-                    return new WindowAnswer.Incomplete(BAD_MINUTES.formatted(range, minutes));
-                }
-                // With no start there is no maximum, so the stretch can reach past what an Instant holds.
-                try {
-                    return lastStretch(subject, Duration.ofMinutes(value));
-                } catch (ArithmeticException | DateTimeException e) {
-                    return new WindowAnswer.Incomplete(BAD_MINUTES.formatted(range, minutes));
-                }
-            }
-
-            private static boolean wholeNumber(JsonNode minutes) {
-                return minutes.isIntegralNumber()
-                        || (minutes.isNumber() && minutes.doubleValue() == Math.rint(minutes.doubleValue()));
-            }
-        },
-
-        WHOLE("whole") {
-            @Override
-            String title(Subject subject) {
-                return "The whole session (" + subject.size() + ")";
-            }
-
-            @Override
-            WindowAnswer answer(ObjectNode content, Subject subject) {
-                return new WindowAnswer.Whole();
-            }
-        },
-
-        CUSTOM("custom") {
-            @Override
-            String title(Subject subject) {
-                return "A custom window (set Start and End below)";
-            }
-
-            /** A bound left out is the form's default for it: the session's own start or end. */
-            @Override
-            WindowAnswer answer(ObjectNode content, Subject subject) {
-                Bound start = bound(content, FIELD_START, subject.start());
-                if (start.problem() != null) {
-                    return new WindowAnswer.Incomplete(start.problem());
-                }
-                Bound end = bound(content, FIELD_END, subject.end());
-                if (end.problem() != null) {
-                    return new WindowAnswer.Incomplete(end.problem());
-                }
-                if (!end.value().isAfter(start.value())) {
-                    return new WindowAnswer.Incomplete(ENDS_BEFORE_START.formatted(end.value(), start.value()));
-                }
-                boolean beforeSession = subject.start() != null && !end.value().isAfter(subject.start());
-                boolean afterSession = !start.value().isBefore(subject.end());
-                if (beforeSession || afterSession) {
-                    return new WindowAnswer.Incomplete(OUTSIDE_SESSION.formatted(
-                            start.value(), end.value(), subject.start(), subject.end()));
-                }
-                return new WindowAnswer.Chosen(start.value().toEpochMilli(), end.value().toEpochMilli());
-            }
-
-            private static Bound bound(ObjectNode content, String field, Instant fallback) {
-                JsonNode given = content.get(field);
-                if (given == null || given.isNull()) {
-                    return fallback == null
-                            ? new Bound(null, NO_BOUND.formatted(field))
-                            : new Bound(fallback, null);
-                }
-                // Only a string can be a date-time; asString() on anything else throws in Jackson 3.
-                if (!given.isString()) {
-                    return new Bound(null, NOT_A_DATE_TIME.formatted(field, given.toString()));
-                }
-                try {
-                    return new Bound(OffsetDateTime.parse(given.asString()).toInstant(), null);
-                } catch (DateTimeParseException e) {
-                    return new Bound(null, NOT_A_DATE_TIME.formatted(field, given.asString()));
-                }
-            }
-        };
-
-        private final String wireName;
-
-        Window(String wireName) {
-            this.wireName = wireName;
-        }
-
-        /** What the user sees for this choice. */
-        abstract String title(Subject subject);
-
-        /** The answer choosing this means, read with the rest of the form. */
-        abstract WindowAnswer answer(ObjectNode content, Subject subject);
-
-        static Optional<Window> fromWire(String wireName) {
-            return Arrays.stream(values()).filter(window -> window.wireName.equals(wireName)).findFirst();
-        }
-
-        /**
-         * The last stretch of this length. On a finished session a stretch reaching back to its start
-         * is all of it, so it is the whole session — downloaded as the session's own local copy rather
-         * than as a part. A session still recording keeps it a window up to now.
-         */
-        private static WindowAnswer lastStretch(Subject subject, Duration length) {
-            Instant reach = subject.end().minus(length);
-            boolean reachesTheStart = subject.start() != null && !reach.isAfter(subject.start());
-            if (reachesTheStart && !subject.stillRecording()) {
-                return new WindowAnswer.Whole();
-            }
-            Instant from = reachesTheStart ? subject.start() : reach;
-            if (!subject.end().isAfter(from)) {
-                return new WindowAnswer.Incomplete(NO_SPAN);
-            }
-            return new WindowAnswer.Chosen(from.toEpochMilli(), subject.end().toEpochMilli());
-        }
-    }
-
-    /** One end of a custom window: its instant, or why none could be read. */
-    private record Bound(Instant value, String problem) {
     }
 }

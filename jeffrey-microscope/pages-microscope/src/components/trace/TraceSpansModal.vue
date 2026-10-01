@@ -30,31 +30,14 @@
     <div v-if="show" class="trace-spans">
       <div class="trace-meta">
         <MetaChips :chips="chips" />
-        <div class="trace-actions">
-          <!--
-            The edge from one trace to all of its kind: this dialog answers "why was THIS one slow",
-            and the operation page answers "is it always like this" — the natural next question, and
-            previously unreachable from here without retyping the name into another page's filter.
-          -->
-          <router-link v-if="operationLink" class="trace-op-link" :to="operationLink">
-            <i class="bi bi-bar-chart-steps"></i> All {{ detail?.trace?.rootName }} traces
-          </router-link>
-          <!--
-            Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
-            trace, not the view of it, so it should not sit among the controls that change that view.
-
-            Withdrawn while a span's flamegraph is open: the graph carries its own export in its
-            toolbar, and two buttons both saying "Copy for AI" left the reader with a trace bundle
-            when they had asked for the frames in front of them.
-          -->
-          <AiExportButton
-            v-if="mode !== 'flamegraph'"
-            :build-source="buildAiExportSource"
-            tooltip="Export this trace for a coding agent"
-            :disabled="!detail"
-            disabled-tooltip="Waiting for the trace to load"
-          />
-        </div>
+        <!--
+          The edge from one trace to all of its kind: this dialog answers "why was THIS one slow",
+          and the operation page answers "is it always like this" — the natural next question, and
+          previously unreachable from here without retyping the name into another page's filter.
+        -->
+        <router-link v-if="operationLink" class="trace-op-link" :to="operationLink">
+          <i class="bi bi-bar-chart-steps"></i> All {{ detail?.trace?.rootName }} traces
+        </router-link>
       </div>
 
       <LoadingState v-if="loading" message="Loading trace..." />
@@ -131,7 +114,6 @@
               :scrollable-wrapper-class="TRACE_FG_SCROLL_ID"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"
-              :ai-export-context="flamegraphAiExport"
               @loaded="scrollToTop"
             />
           </div>
@@ -231,17 +213,12 @@ import FormattingService from '@shared/services/FormattingService';
 
 import TraceWaterfall from '@/components/trace/TraceWaterfall.vue';
 import TraceWhySlowPanel from '@/components/trace/TraceWhySlowPanel.vue';
-import AiExportButton from '@/components/export/AiExportButton.vue';
 import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import type { AiExportContext } from '@/components/FlamegraphComponent.vue';
 
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import TraceAiExportClient from '@/services/api/TraceAiExportClient';
-import { flamegraphFilenameStem } from '@/composables/useAiExport';
-import type { AiExportSource } from '@/composables/useAiExport';
 import TraceSpanFlamegraphClient from '@/services/api/TraceSpanFlamegraphClient';
 import { errorLabel } from '@/services/trace/traceLabels';
 import { ceilNanosToMillis, floorToMillis } from '@/services/trace/timeUnits';
@@ -291,8 +268,6 @@ const flamegraphOrigin = ref<'events' | 'flamegraph-picker'>('flamegraph-picker'
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
 const activeSelfOnly = ref(false);
-/** The open span graph's own AI export, so "Copy for AI" over it describes the graph, not the trace. */
-const flamegraphAiExport = ref<AiExportContext | null>(null);
 
 /** Null until the second request lands, and after one that failed. The waterfall copes with both. */
 const context = ref<TraceContext | null>(null);
@@ -559,7 +534,6 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
     request.payload.useWeight,
     false
   );
-  flamegraphAiExport.value = spanFlamegraphAiExport(span, request);
 
   mode.value = 'flamegraph';
 
@@ -567,33 +541,6 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
   setTimeout(() => {
     graphUpdater.initialize();
   }, GraphUpdater.MODAL_INIT_DELAY_MS);
-}
-
-/**
- * The same scope the graph was asked with — span, self-only, event type, filters — so the document
- * and the picture agree. Search is left to the graph, which alone knows what is typed into it.
- */
-function spanFlamegraphAiExport(
-  span: TraceSpanRow,
-  request: TraceSpanFlamegraphRequest
-): AiExportContext {
-  const client = new TraceAiExportClient(props.profileId);
-  const traceId = props.traceId;
-  const payload = request.payload;
-  return {
-    graphMode: 'PRIMARY',
-    filenameStem: flamegraphFilenameStem(payload.eventType, `span-${span.name}`),
-    generate: () =>
-      client.generateSpanFlamegraph(traceId, span.spanId, {
-        selfOnly: request.selfOnly,
-        eventType: payload.eventType,
-        useWeight: payload.useWeight,
-        useThreadMode: payload.useThreadMode,
-        excludeNonJavaSamples: payload.excludeNonJavaSamples,
-        excludeIdleSamples: payload.excludeIdleSamples,
-        onlyUnsafeAllocationSamples: payload.onlyUnsafeAllocationSamples
-      })
-  };
 }
 
 /**
@@ -641,26 +588,6 @@ function scrollToTop(): void {
   if (wrapper) {
     wrapper.scrollTop = 0;
   }
-}
-
-/**
- * Null until the trace is loaded, so the button cannot export a document describing nothing. The
- * rendering happens on the server, so nothing here has to know what a bundle contains.
- */
-function buildAiExportSource(): AiExportSource | null {
-  if (!detail.value) {
-    return null;
-  }
-  const client = new TraceAiExportClient(props.profileId);
-  const traceId = props.traceId;
-  // The name leads and the id follows, truncated: in a downloads folder the operation name is what
-  // a person scans for, and the id tail still tells two traces of the same operation apart.
-  const idTail = traceId.slice(0, 8);
-  return {
-    fetch: () => client.generateTrace(traceId),
-    label: 'Trace',
-    filenameStem: `trace-${detail.value.trace.rootName}-${idTail}`
-  };
 }
 
 async function load(): Promise<void> {
@@ -761,12 +688,6 @@ watch(
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-
-.trace-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .trace-op-link {

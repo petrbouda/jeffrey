@@ -202,7 +202,7 @@ onMounted(() => {
           <li><strong>Instance Recording Cleaner</strong> - Trims finished chunks inside the <em>live</em> session (3 days by default), so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
           <li><strong>Storage Quota Cleaner</strong> - Caps total disk per project (20 GB by default). Age alone cannot bound disk usage, so when a project exceeds its budget this job reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
           <li><strong>Expired Instance Cleaner</strong> - Deletes instances (including their directories on disk) once they have been EXPIRED past their retention (14 days by default).</li>
-          <li><strong>JFR Compression</strong> - Compresses finished JFR files to save storage space.</li>
+          <li><strong>JFR Compression</strong> - LZ4-compresses finished JFR files to save storage space, every minute by default.</li>
         </ul>
 
         <h2 id="retained-sessions">Retained Sessions</h2>

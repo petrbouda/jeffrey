@@ -182,7 +182,7 @@ public class TimelineMcpTools {
         SingleSerie serie = primarySerie(type, weighted);
         if (serie == null || serie.data().isEmpty()) {
             return answer.notRecorded(whole,
-                    McpNextTool.call(LIST_TOOL).with(PROFILE_ID, profileId()).why(LIST_WHY));
+                    NextCalls.to(LIST_TOOL).with(PROFILE_ID, profileId()).why(LIST_WHY));
         }
 
         List<Bucket> buckets = buckets(serie, recording);
@@ -251,7 +251,7 @@ public class TimelineMcpTools {
         }
 
         List<Bucket> buckets = subSecondBuckets(type, recording, window, width);
-        McpNextTool wider = McpNextTool.call(HOT_WINDOWS_TOOL)
+        McpNextTool wider = NextCalls.to(HOT_WINDOWS_TOOL)
                 .with(PROFILE_ID, profileId()).with(EVENT_TYPE, type.code()).why(WIDER_WHY);
         if (buckets.isEmpty()) {
             return answer.notRecorded(window, wider);
@@ -412,7 +412,7 @@ public class TimelineMcpTools {
      * is counting, since the export's own default for an allocation or blocking type is to weigh.
      */
     private McpNextTool.Call export(Type type, boolean weighted, Window window) {
-        return McpNextTool.call(EXPORT_TOOL)
+        return NextCalls.to(EXPORT_TOOL)
                 .with(PROFILE_ID, profileId())
                 .with(EVENT_TYPE, type.code())
                 .with(START_INPUT, window.startEpochMs())
@@ -427,7 +427,7 @@ public class TimelineMcpTools {
     private McpNextTool.Call zoom(Type type, Window window) {
         long length = window.endEpochMs() - window.startEpochMs();
         long width = Math.max(DEFAULT_ZOOM_BUCKET_MS, (length + MAX_ZOOM_BUCKETS - 1) / MAX_ZOOM_BUCKETS);
-        McpNextTool.Call call = McpNextTool.call(ZOOM_TOOL)
+        McpNextTool.Call call = NextCalls.to(ZOOM_TOOL)
                 .with(PROFILE_ID, profileId())
                 .with(EVENT_TYPE, type.code())
                 .with(START_INPUT, window.startEpochMs())
@@ -468,7 +468,7 @@ public class TimelineMcpTools {
         /** No timeline to rank at all; the whole-recording graph is what the profile can still give. */
         McpToolResult noTimeseries(String reason) {
             McpFollowUp followUp = NextSteps.builder(advertised)
-                    .next(McpNextTool.call(EXPORT_TOOL)
+                    .next(NextCalls.to(EXPORT_TOOL)
                             .with(PROFILE_ID, profileId()).with(EVENT_TYPE, type.code())
                             .with(USE_WEIGHT, weighted).why(EXPORT_WHOLE_WHY))
                     .followUp();

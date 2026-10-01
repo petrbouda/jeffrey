@@ -27,8 +27,10 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.MicroscopePage;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindow;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindowQuestion;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadedSessionIndex;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.ChosenWindow;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Download;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.DownloadStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.HubRow;
@@ -36,13 +38,15 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.HubStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Hubs;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.SessionRow;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Sessions;
-import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubCalls;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubScanFilter;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionLocator;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.WindowAnswer;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.WindowArguments;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.WindowResolution;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.WindowSubject;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
@@ -201,6 +205,10 @@ public class HubsMcpTools {
             "The whole session is also here, already analysed as profile %s.";
     private static final String WHOLE_RECORDING_GUIDANCE = "The whole session is also here as recording %s.";
 
+    private static final String WINDOW_WITH_FILE_IDS = "Choose the part of the session one way: a window or "
+            + "fileIds, not both.";
+    private static final String NOT_RETAINED_GUIDANCE = "The session's first chunk is gone from the hub. Ask the "
+            + "user whether the oldest chunk kept, LATEST, PEAK or a window will do instead.";
     private static final String NO_FINISHED_CHUNK =
             "No finished chunk covers the window from %s to %s: the session's recording there is missing or "
                     + "still being written. Choose another window, or the whole session.";
@@ -304,9 +312,9 @@ public class HubsMcpTools {
         boolean anyReachable = hubRows.stream().anyMatch(row -> row.status() == HubStatus.REACHABLE);
         boolean anyUnreachable = hubRows.stream().anyMatch(row -> row.status() == HubStatus.UNREACHABLE);
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .nextWhen(next.hasMore(), McpNextTool.call(HubCalls.HUBS_LIST)
+                .nextWhen(next.hasMore(), NextCalls.to(HubCalls.HUBS_LIST)
                         .with(HubCalls.LIMIT, rows).with(HubCalls.CURSOR, next.nextCursor()).why(NEXT_HUBS_WHY))
-                .nextWhen(anyReachable, McpNextTool.call(HubCalls.HUBS_SESSIONS).why(SESSIONS_WHY))
+                .nextWhen(anyReachable, NextCalls.to(HubCalls.HUBS_SESSIONS).why(SESSIONS_WHY))
                 .guidanceWhen(anyUnreachable, UNREACHABLE_GUIDANCE)
                 .followUp();
         Hubs answer = new Hubs(CatalogueStatus.OK, null, List.copyOf(hubRows), hubRows.size(), all.size(),
@@ -415,7 +423,7 @@ public class HubsMcpTools {
                                 RecordingStatus status, int limit) {
 
         McpNextTool nextPage(String cursor) {
-            McpNextTool.Call call = McpNextTool.call(HubCalls.HUBS_SESSIONS)
+            McpNextTool.Call call = NextCalls.to(HubCalls.HUBS_SESSIONS)
                     .with(HubCalls.HUB, hub)
                     .with(HubCalls.WORKSPACE, workspace)
                     .with(HubCalls.PROJECT, project);
@@ -551,7 +559,7 @@ public class HubsMcpTools {
                 .nextWhen(unanalysed.isPresent(), () -> HubCalls.analyse(unanalysed.orElseThrow().recordingId()))
                 .nextWhen(analysed.isPresent(), () -> HubCalls.summary(analysed.orElseThrow().profileId()))
                 .nextWhen(!page.complete() || emptyWithoutWindow,
-                        McpNextTool.call(HubCalls.HUBS_LIST).why(CHECK_HUBS_WHY))
+                        NextCalls.to(HubCalls.HUBS_LIST).why(CHECK_HUBS_WHY))
                 .guidanceWhen(notHere.isPresent(), DOWNLOAD_GUIDANCE)
                 .followUp();
     }
@@ -593,45 +601,74 @@ public class HubsMcpTools {
             + "recording, by the sessionRef of a hubs_sessions row, and returns a recordingId for "
             + "recordings_analyzeRecording. With no selection it brings the session's finished "
             + "recording files, kept as the several files they are, and its artifacts - heap dumps, "
-            + "JVM and application logs. A part instead: startEpochMs and/or endEpochMs bring every "
-            + "chunk whose span touches the window, so the recording covers it with some slack; or "
-            + "fileIds bring named hubs_files rows - an unbroken run of chunks and any artifacts beside "
-            + "them. The answer reports the span actually covered. A whole session already "
-            + "downloaded is returned as it is; a part always makes a recording of its own. status "
-            + "DOWNLOADED, or RUNNING when a large transfer outlasts the call - the same call again "
-            + "joins it. Every started transfer carries an operationId for operations_status and "
+            + "JVM and application logs. A part instead: window names one - the last minutes, the "
+            + "startup, latest or peak chunk, the minutes before or around a moment, or a custom span; "
+            + "startEpochMs and/or endEpochMs bring every chunk whose span touches them; or fileIds "
+            + "bring named hubs_files rows - an unbroken run of chunks and any artifacts beside them. "
+            + "The answer reports the span actually covered, and what a window picked and why. A whole "
+            + "session already downloaded is returned as it is; a part always makes a recording of its "
+            + "own. status DOWNLOADED, STARTUP_NOT_RETAINED when the hub no longer holds the first "
+            + "chunk, or RUNNING when a large transfer outlasts the call - the call in followUp joins "
+            + "it. Every started transfer carries an operationId for operations_status and "
             + "operations_cancel, and a client that declared the MCP tasks extension gets a task after "
             + "about 5 s instead. A FAILED or CANCELLED outcome is kept in memory for one hour and "
-            + "reported rather than restarted unless retry=true; after that, or a server restart, the "
-            + "call starts a new transfer.")
+            + "reported rather than restarted unless retry=true.")
     @McpOutputSchema(Download.class)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.HUB)
     public McpToolOutcome download(
             @ToolParam(required = true, description = "The sessionRef from a hubs_sessions row, copied exactly")
             String sessionRef,
-            @ToolParam(required = false, description = "Retry a failed transfer while its outcome is retained "
-                    + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
-                    + "After expiry or a server restart, this call can start a new transfer regardless of retry")
-            Boolean retry,
-            @ToolParam(required = false, description = "Start of the window as UTC epoch milliseconds. Omit "
-                    + "with endEpochMs for the whole session; omit on its own to reach back to the session's start")
+            @ToolParam(required = false, description = "A part chosen by name. WHOLE: all of it. LAST_MINUTES: "
+                    + "the last minutes up to the session end (now while recording). STARTUP: its first chunk. "
+                    + "LATEST: the newest finished chunk. PEAK: the largest compressed chunk. BEFORE/AROUND: "
+                    + "minutes ending at, or centred on, atEpochMs. CUSTOM: startEpochMs/endEpochMs. Not "
+                    + "combined with fileIds")
+            DownloadWindow window,
+            @ToolParam(required = false, description = "Length in minutes for LAST_MINUTES, BEFORE and AROUND; "
+                    + "60 (the last hour) when omitted. Only with those windows")
+            @ToolParamBounds(min = 1, max = DownloadWindow.MAX_WINDOW_MINUTES)
+            Integer minutes,
+            @ToolParam(required = false, description = "The moment BEFORE ends at and AROUND is centred on, as UTC "
+                    + "epoch milliseconds - for a heap dump or crash file, the createdAtEpochMs of its hubs_files "
+                    + "row. Required with those two windows, refused with any other")
+            Long atEpochMs,
+            @ToolParam(required = false, description = "Start of the window as UTC epoch milliseconds, with window "
+                    + "CUSTOM or no window. Omit with endEpochMs for the whole session; omit on its own to reach "
+                    + "back to the session's start")
             Long startEpochMs,
             @ToolParam(required = false, description = "End of the window as UTC epoch milliseconds, after "
-                    + "startEpochMs. Omit on its own to reach forward to the session's end")
+                    + "startEpochMs, with window CUSTOM or no window. Omit on its own to reach forward to the "
+                    + "session's end")
             Long endEpochMs,
             @ToolParam(required = false, description = "The fileId values from hubs_files rows to "
                     + "bring instead of a window - at least one must be a JFR chunk, and the chunks must be an "
                     + "unbroken run of the session because the recording reports one span across them. Artifacts beside "
-                    + "them are free to pick. Not combined with startEpochMs or endEpochMs")
+                    + "them are free to pick. Not combined with window, startEpochMs or endEpochMs")
             List<String> fileIds,
+            @ToolParam(required = false, description = "Retry a failed transfer while its outcome is retained "
+                    + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
+                    + "After expiry or a server restart, this call can start a new transfer regardless of retry")
+            Boolean retry,
             McpCallContext call) {
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
-        DownloadKey key = DownloadKey.of(ref, startEpochMs, endEpochMs, fileIds);
+        WindowArguments given = new WindowArguments(minutes, atEpochMs, startEpochMs, endEpochMs);
         // Read here, where the request is bound: an answer is rendered wherever the finished transfer is
         // first seen, and that need not be a request thread.
         String base = UiLinks.base();
+        if (window != null) {
+            if (fileIds != null && !fileIds.isEmpty()) {
+                throw new IllegalArgumentException(WINDOW_WITH_FILE_IDS);
+            }
+            window.checkArguments(given);
+            // The session is read only when the window needs it; WHOLE, a span or a moment does not.
+            SessionReading reading = new SessionReading(ref);
+            WindowResolution resolution = window.resolve(given, reading::subject);
+            return downloadResolved(ref, resolution, retry, call, reading.read(), base, Optional.empty());
+        }
+        DownloadWindow.checkWithoutWindow(given);
+        DownloadKey key = DownloadKey.of(ref, startEpochMs, endEpochMs, fileIds);
         if (!mayAskForWindow(key, call)) {
-            return downloadReportingRetained(key, retry, call, Optional.empty(), base);
+            return downloadReportingRetained(key, null, retry, call, Optional.empty(), base);
         }
 
         // Asked before anything crosses the network. The session is read once, under the call's
@@ -641,9 +678,9 @@ public class HubsMcpTools {
         Optional<SessionRead> read = Optional.of(new SessionRead(responseDeadline, preflight));
         Instant now = clock.instant();
         if (!windowQuestion.asks(preflight.session(), now)) {
-            return downloadReportingRetained(key, retry, call, read, base);
+            return downloadReportingRetained(key, null, retry, call, read, base);
         }
-        DownloadWindowQuestion.Subject subject = new DownloadWindowQuestion.Subject(
+        WindowSubject subject = new WindowSubject(
                 preflight.session(), preflight.hubInfo().name(), preflight.project().info().name(), now);
         Optional<McpInputResponse> response = call.inputResponse(DownloadWindowQuestion.KEY);
         if (response.isEmpty()) {
@@ -652,28 +689,90 @@ public class HubsMcpTools {
             return windowQuestion.ask(subject);
         }
         return switch (windowQuestion.read(response.get(), subject)) {
-            case WindowAnswer.Chosen chosen -> downloadChosen(
-                    DownloadKey.of(ref, chosen.startEpochMs(), chosen.endEpochMs(), null), subject, retry, call, read,
-                    base);
-            case WindowAnswer.Whole _ -> downloadReportingRetained(key, retry, call, read, base);
-            case WindowAnswer.NotAnswered notAnswered -> answer(key, DownloadFacts.notDownloaded(
+            case WindowAnswer.Chosen chosen -> downloadResolved(ref,
+                    chosen.window().resolve(chosen.given(), () -> subject), retry, call, read, base,
+                    Optional.of(subject));
+            case WindowAnswer.NotAnswered notAnswered -> answer(key, null, DownloadFacts.notDownloaded(
                     notAnswered.reason(), preflight), null, base);
             case WindowAnswer.Incomplete incomplete -> windowQuestion.ask(subject, incomplete.problem());
         };
     }
 
     /**
-     * The window the user chose, unless no finished chunk covers it — then the question is put again,
-     * saying so, rather than the transfer failing on an empty selection.
+     * The part a window resolved to, downloaded — the same for a window the call named and one the
+     * user chose in the form. What cannot be taken is refused to a call and asked again of a user.
+     *
+     * @param askAgain the session the question was asked about, when the window came from the form
      */
-    private McpToolOutcome downloadChosen(DownloadKey chosen, DownloadWindowQuestion.Subject subject,
-                                          Boolean retry, McpCallContext call, Optional<SessionRead> read,
-                                          String base) {
-        if (chosen.coversNothing(subject.session())) {
-            return windowQuestion.ask(subject,
-                    NO_FINISHED_CHUNK.formatted(chosen.window().start(), chosen.window().end()));
+    private McpToolOutcome downloadResolved(HubSessionRef ref, WindowResolution resolution, Boolean retry,
+                                            McpCallContext call, Optional<SessionRead> read, String base,
+                                            Optional<WindowSubject> askAgain) {
+        return switch (resolution) {
+            case WindowResolution.Span span -> downloadPart(DownloadKey.of(ref, epochMillis(span.window().start()),
+                    epochMillis(span.window().end()), null), span.chosen(), retry, call, read, base, askAgain);
+            case WindowResolution.OneChunk one -> downloadPart(DownloadKey.of(ref, null, null, List.of(one.fileId())),
+                    one.chosen(), retry, call, read, base, askAgain);
+            case WindowResolution.Whole whole ->
+                    downloadReportingRetained(DownloadKey.of(ref, null, null, null), whole.chosen(), retry, call,
+                            read, base);
+            case WindowResolution.NotRetained notRetained -> askAgain
+                    .<McpToolOutcome>map(subject -> windowQuestion.ask(subject, notRetained.reason()))
+                    .orElseGet(() -> answer(DownloadKey.of(ref, null, null, null), notRetained.chosen(),
+                            DownloadFacts.notRetained(notRetained.reason(), read.orElseThrow().preflight()),
+                            null, base));
+            case WindowResolution.Refused refused -> askAgain
+                    .<McpToolOutcome>map(subject -> windowQuestion.ask(subject, refused.problem()))
+                    .orElseThrow(() -> new IllegalArgumentException(refused.problem()));
+        };
+    }
+
+    private static Long epochMillis(Instant instant) {
+        return instant == null ? null : instant.toEpochMilli();
+    }
+
+    /**
+     * A part of the session, unless the user chose a window no finished chunk covers — then the
+     * question is put again, saying so, rather than the transfer failing on an empty selection. A
+     * call's window that covers nothing is refused by the selection itself.
+     */
+    private McpToolOutcome downloadPart(DownloadKey key, ChosenWindow chosen, Boolean retry,
+                                        McpCallContext call, Optional<SessionRead> read, String base,
+                                        Optional<WindowSubject> askAgain) {
+        if (askAgain.isPresent() && key.coversNothing(askAgain.get().session())) {
+            return windowQuestion.ask(askAgain.get(),
+                    NO_FINISHED_CHUNK.formatted(key.window().start(), key.window().end()));
         }
-        return downloadReportingRetained(chosen, retry, call, read, base);
+        return downloadReportingRetained(key, chosen, retry, call, read, base);
+    }
+
+    /**
+     * The session read once for a window that needs it — its chunks, its span — under the call's
+     * whole response budget, and kept so the transfer that follows starts from the same read.
+     */
+    private final class SessionReading {
+
+        private final HubSessionRef ref;
+        private SessionRead read;
+        private WindowSubject subject;
+
+        private SessionReading(HubSessionRef ref) {
+            this.ref = ref;
+        }
+
+        WindowSubject subject() {
+            if (subject == null) {
+                Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
+                DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
+                read = new SessionRead(responseDeadline, preflight);
+                subject = new WindowSubject(preflight.session(), preflight.hubInfo().name(),
+                        preflight.project().info().name(), clock.instant());
+            }
+            return subject;
+        }
+
+        Optional<SessionRead> read() {
+            return Optional.ofNullable(read);
+        }
     }
 
     /**
@@ -696,13 +795,13 @@ public class HubsMcpTools {
      * @param read the session as the window question already read it, if it did
      * @param base the link base, read on the request thread
      */
-    private McpToolOutcome downloadReportingRetained(
-            DownloadKey key, Boolean retry, McpCallContext call, Optional<SessionRead> read, String base) {
+    private McpToolOutcome downloadReportingRetained(DownloadKey key, ChosenWindow chosen, Boolean retry,
+                                                     McpCallContext call, Optional<SessionRead> read, String base) {
         Optional<OperationHandle<String>> before = downloads.current(key);
         String priorId = before.map(OperationHandle::operationId).orElse(null);
         boolean priorTerminal = before.map(handle -> handle.snapshot().state().terminal()).orElse(false);
         try {
-            return download(key, retry, call, read, base);
+            return download(key, chosen, retry, call, read, base);
         } catch (RuntimeException failure) {
             Optional<OperationHandle<String>> attempt = downloads.current(key);
             if (attempt.isPresent()) {
@@ -711,8 +810,8 @@ public class HubsMcpTools {
                 boolean reportsThisAttempt = !Boolean.TRUE.equals(retry) || !priorTerminal
                         || !current.operationId().equals(priorId);
                 if (reportsThisAttempt && (state == OperationState.FAILED || state == OperationState.CANCELLED)) {
-                    String operationId = registerDownload(key, current, null, base);
-                    return answer(key, DownloadFacts.ended(state, failureMessage(current)), operationId, base);
+                    String operationId = registerDownload(key, chosen, current, null, base);
+                    return answer(key, chosen, DownloadFacts.ended(state, failureMessage(current)), operationId, base);
                 }
             }
             // A rejected retry preflight did not create an attempt. Its own error must not be
@@ -733,8 +832,8 @@ public class HubsMcpTools {
      *             empty to read it here
      * @param base the link base, read on the request thread
      */
-    private McpToolOutcome download(
-            DownloadKey key, Boolean retry, McpCallContext call, Optional<SessionRead> read, String base) {
+    private McpToolOutcome download(DownloadKey key, ChosenWindow chosen, Boolean retry,
+                                    McpCallContext call, Optional<SessionRead> read, String base) {
         HubSessionRef ref = key.ref();
         boolean retryFailed = Boolean.TRUE.equals(retry);
 
@@ -750,8 +849,8 @@ public class HubsMcpTools {
                     ref.sessionId(), copy.recordingId());
             OperationHandle<String> operation = downloads.rememberCompleted(key, copy.recordingId());
             DownloadFacts facts = DownloadFacts.here(copy.recordingId(), copy.profileId());
-            String operationId = registerDownload(key, operation, recordingId -> facts, base);
-            return answer(key, facts, operationId, base);
+            String operationId = registerDownload(key, chosen, operation, recordingId -> facts, base);
+            return answer(key, chosen, facts, operationId, base);
         }
 
         Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
@@ -778,8 +877,8 @@ public class HubsMcpTools {
         if (prior.isPresent() && !key.reachesPastTheEnd(session)) {
             String recordingId = prior.get().value();
             if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
-                String operationId = registerDownload(key, downloads.current(key).orElseThrow(), landing::landed, base);
-                return answer(key, landing.landed(recordingId), operationId, base);
+                String operationId = registerDownload(key, chosen, downloads.current(key).orElseThrow(), landing::landed, base);
+                return answer(key, chosen, landing.landed(recordingId), operationId, base);
             }
         }
 
@@ -799,7 +898,7 @@ public class HubsMcpTools {
                     control.progress(OperationDetails.hubDownload(ref.encode(), ref.sessionId(), transferBytes));
                     return transferWithinDeadline(project, key, control);
                 });
-        String operationId = registerDownload(key, operation, landing::landed, base);
+        String operationId = registerDownload(key, chosen, operation, landing::landed, base);
         Optional<String> transferred;
         try {
             transferred = downloads.awaitWithin(operation, McpDeadlines.remainingWithin(responseDeadline,
@@ -811,9 +910,9 @@ public class HubsMcpTools {
             // Nothing to poll but this tool and the operation: the tool answers from the local store
             // first, so calling it again with the same part reports the finished copy once it lands.
             return answers.stillRunning(call, operationId,
-                    () -> answer(key, DownloadFacts.running(preflight, transferBytes), operationId, base));
+                    () -> answer(key, chosen, DownloadFacts.running(preflight, transferBytes), operationId, base));
         }
-        return answer(key, landing.landed(transferred.get()), operationId, base);
+        return answer(key, chosen, landing.landed(transferred.get()), operationId, base);
     }
 
     /**
@@ -824,12 +923,12 @@ public class HubsMcpTools {
      *               without a recording
      * @return the operation id
      */
-    private String registerDownload(
-            DownloadKey key, OperationHandle<String> operation, Function<String, DownloadFacts> landed, String base) {
+    private String registerDownload(DownloadKey key, ChosenWindow chosen, OperationHandle<String> operation,
+                                    Function<String, DownloadFacts> landed, String base) {
         String operationId = operation.operationId();
         Function<String, McpToolResult> finished = landed == null
-                ? recordingId -> answer(key, DownloadFacts.here(recordingId, null), operationId, base)
-                : recordingId -> answer(key, landed.apply(recordingId), operationId, base);
+                ? recordingId -> answer(key, chosen, DownloadFacts.here(recordingId, null), operationId, base)
+                : recordingId -> answer(key, chosen, landed.apply(recordingId), operationId, base);
         return operations.register(OperationKind.HUB_DOWNLOAD, operation, downloadResult(key), finished,
                 key.retryCall());
     }
@@ -850,7 +949,8 @@ public class HubsMcpTools {
      * @param operationId the transfer this answer reports, or null when there is none
      * @param base        the link base, read on the request thread; see {@link UiLinks#base()}
      */
-    private McpToolResult answer(DownloadKey key, DownloadFacts facts, String operationId, String base) {
+    private McpToolResult answer(DownloadKey key, ChosenWindow chosen, DownloadFacts facts,
+                                 String operationId, String base) {
         McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
         String uiLink = facts.profileId() != null
                 ? UiLinks.profile(base, facts.profileId())
@@ -861,7 +961,7 @@ public class HubsMcpTools {
                 facts.sessionName(), facts.hub(), facts.project(), key.startEpochMs(), key.endEpochMs(),
                 key.fileIds() == null ? List.of() : key.fileIds(), facts.recordingId(), facts.profileId(),
                 facts.recordingFiles(), facts.artifactFiles(), facts.sizeBytes(), facts.coveredStartEpochMs(),
-                facts.coveredEndEpochMs(), operationId, operation, followUp(key, facts, operationId), uiLink));
+                facts.coveredEndEpochMs(), chosen, operationId, operation, followUp(key, facts, operationId), uiLink));
     }
 
     private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, String operationId) {
@@ -883,6 +983,10 @@ public class HubsMcpTools {
                     .followUp();
             case FAILED, CANCELLED -> next
                     .next(key.retryCall())
+                    .followUp();
+            case STARTUP_NOT_RETAINED -> next
+                    .next(HubCalls.onSession(HubCalls.HUBS_FILES, key.ref().encode()).why(CHOOSE_FILES_WHY))
+                    .guidance(NOT_RETAINED_GUIDANCE)
                     .followUp();
         };
     }
@@ -1110,6 +1214,13 @@ public class HubsMcpTools {
                     null, null, "");
         }
 
+        /** STARTUP asked for on a session whose first chunk the hub no longer holds; nothing moved. */
+        static DownloadFacts notRetained(String reason, DownloadPreflight preflight) {
+            return new DownloadFacts(DownloadStatus.STARTUP_NOT_RETAINED, reason, preflight.session().name(),
+                    preflight.hubInfo().name(), preflight.project().info().name(), null, null, null, null, null,
+                    null, null, "");
+        }
+
         /** An attempt that ended without a recording, retained and reported rather than started again. */
         static DownloadFacts ended(OperationState state, String message) {
             return new DownloadFacts(state == OperationState.CANCELLED ? DownloadStatus.CANCELLED : DownloadStatus.FAILED,
@@ -1209,7 +1320,8 @@ public class HubsMcpTools {
         /**
          * The call that names this download again: it builds an equal key, so it joins the attempt in
          * flight or returns the recording it made. For a window the user chose when asked, its exact
-         * bounds, since a whole-session call would put the question again rather than find the transfer.
+         * bounds, since a whole-session call would put the question again rather than find the transfer;
+         * for the whole session, window WHOLE, for the same reason.
          */
         McpNextTool sameCall(String why) {
             return arguments().why(why);
@@ -1229,6 +1341,10 @@ public class HubsMcpTools {
             }
             if (end != null) {
                 call.with(HubCalls.END_EPOCH_MS, end.longValue());
+            }
+            if (wholeSession()) {
+                // The whole session is already decided, so naming it again never asks which part.
+                call.with(HubCalls.WINDOW, DownloadWindow.WHOLE);
             }
             return call.with(HubCalls.FILE_IDS, fileIds);
         }

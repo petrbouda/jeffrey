@@ -37,9 +37,8 @@ export default class FullGraphUpdater extends GraphUpdater {
 
     if (!this.timeseriesEnabled) {
       this.flamegraphOnUpdateStartedCallback();
-      this.drawnTimeRange = this.linkedTimeRange();
       this.httpClient
-        .provide(this.drawnTimeRange)
+        .provide(this.linkedTimeRange())
         .then(flamegraph => {
           this.flamegraphOnInitCallback(flamegraph);
           this.flamegraphOnUpdateFinishedCallback();
@@ -63,7 +62,6 @@ export default class FullGraphUpdater extends GraphUpdater {
         // A window a link named, otherwise the range the visibleMinutes setting opens on
         const initialTimeRange =
           this.linkedTimeRange() ?? this.calculateInitialTimeRange(timeseries);
-        this.drawnTimeRange = initialTimeRange;
 
         // Fetch flamegraph with the calculated range (zoomed or full). Returned so a failure
         // propagates into the single catch below instead of dying unobserved.
@@ -119,7 +117,6 @@ export default class FullGraphUpdater extends GraphUpdater {
   public updateWithZoom(timeRange: TimeRange): void {
     this.flamegraphOnUpdateStartedCallback();
     this.timeseriesOnZoomCallback();
-    this.drawnTimeRange = timeRange;
 
     this.httpClient
       .provide(timeRange)
@@ -133,7 +130,6 @@ export default class FullGraphUpdater extends GraphUpdater {
   public resetZoom(): void {
     this.flamegraphOnUpdateStartedCallback();
     this.timeseriesOnResetZoomCallback();
-    this.drawnTimeRange = null;
 
     this.httpClient
       .provide(null)

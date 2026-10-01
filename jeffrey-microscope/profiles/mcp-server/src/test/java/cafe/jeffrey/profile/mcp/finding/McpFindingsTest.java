@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.mcp.finding;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.profile.mcp.McpToolWeight;
 import cafe.jeffrey.profile.mcp.finding.McpFinding.Severity;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
@@ -70,7 +71,7 @@ class McpFindingsTest {
                     .evidence("collections", 17)
                     .evidence("missing", null)
                     .source("jvm_gc")
-                    .nextTool(McpNextTool.call("jvm_gc").with("profileId", "p-1").why("shows the pauses"))
+                    .nextTool(McpNextTool.call("jvm_gc", McpToolWeight.LIGHT).with("profileId", "p-1").why("shows the pauses"))
                     .build();
 
             assertEquals("gc:pauses", finding.id());
@@ -122,7 +123,7 @@ class McpFindingsTest {
         private McpFinding routedTo(String tool) {
             return McpFinding.of("gc", "pauses").severity(Severity.WARNING).title("Long GC pauses")
                     .evidence("pauses", 3)
-                    .nextTool(McpNextTool.call(tool).with("profileId", "p-1").why("shows the figures"))
+                    .nextTool(McpNextTool.call(tool, McpToolWeight.LIGHT).with("profileId", "p-1").why("shows the figures"))
                     .build();
         }
 

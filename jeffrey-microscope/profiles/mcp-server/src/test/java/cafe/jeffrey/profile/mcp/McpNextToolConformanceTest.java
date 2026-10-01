@@ -43,6 +43,7 @@ class McpNextToolConformanceTest {
 
     public static class WindowFixture {
         @Tool(description = "A window fixture that must never be invoked")
+        @McpToolMeta(cost = McpToolCost.CHEAP)
         public String window(
                 @ToolParam(description = "profile") String profileId,
                 @ToolParam(required = false, description = "rows") Integer limit,
@@ -66,7 +67,7 @@ class McpNextToolConformanceTest {
 
         @Test
         void aCallWithEveryArgumentOfTheDeclaredType() {
-            JsonNode payload = payload(McpNextTool.call("fixture_window").with("profileId", "p-1").with("limit", 5)
+            JsonNode payload = payload(McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1").with("limit", 5)
                     .with("startEpochMs", 1_772_366_400_000L).with("excludeIdle", true).with("mode", Mode.WALL)
                     .why(WHY));
 
@@ -80,7 +81,7 @@ class McpNextToolConformanceTest {
             }
             record Pair(Side primary, List<Side> others) {
             }
-            McpNextTool call = McpNextTool.call("fixture_window").with("profileId", "p-1").why(WHY);
+            McpNextTool call = McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1").why(WHY);
             Side side = new Side(new McpFollowUp(List.of(call, call), List.of()));
 
             assertEquals(4, McpNextToolConformance.assertFollowable(
@@ -94,7 +95,7 @@ class McpNextToolConformanceTest {
             }
             record Findings(List<Finding> findings) {
             }
-            McpNextTool call = McpNextTool.call("fixture_window").with("profileId", "p-1").why(WHY);
+            McpNextTool call = McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1").why(WHY);
 
             assertEquals(2, McpNextToolConformance.assertFollowable(
                     Json.toTree(new Findings(List.of(new Finding(call), new Finding(call)))), ADVERTISED));
@@ -116,15 +117,23 @@ class McpNextToolConformanceTest {
     class Refuses {
 
         @Test
+        void aWeightTheToolsHintsDoNotImply() {
+            JsonNode payload = payload(McpNextTool.call("fixture_window", McpToolWeight.HEAVY)
+                    .with("profileId", "p-1").why(WHY));
+
+            assertThrows(AssertionError.class, () -> McpNextToolConformance.assertFollowable(payload, ADVERTISED));
+        }
+
+        @Test
         void aToolThatIsNotAdvertised() {
-            JsonNode payload = payload(McpNextTool.call("fixture_other").with("profileId", "p-1").why(WHY));
+            JsonNode payload = payload(McpNextTool.call("fixture_other", McpToolWeight.LIGHT).with("profileId", "p-1").why(WHY));
 
             assertThrows(AssertionError.class, () -> McpNextToolConformance.assertFollowable(payload, ADVERTISED));
         }
 
         @Test
         void anArgumentTheToolDoesNotTake() {
-            JsonNode payload = payload(McpNextTool.call("fixture_window").with("profileId", "p-1")
+            JsonNode payload = payload(McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1")
                     .with("offset", 3).why(WHY));
 
             assertThrows(AssertionError.class, () -> McpNextToolConformance.assertFollowable(payload, ADVERTISED));
@@ -133,10 +142,10 @@ class McpNextToolConformanceTest {
         @Test
         void anArgumentOfAnotherType() {
             for (McpNextTool call : List.of(
-                    McpNextTool.call("fixture_window").with("profileId", "p-1").with("limit", "5").why(WHY),
-                    McpNextTool.call("fixture_window").with("profileId", "p-1").with("limit", 2.5).why(WHY),
-                    McpNextTool.call("fixture_window").with("profileId", 7).why(WHY),
-                    McpNextTool.call("fixture_window").with("profileId", "p-1").with("excludeIdle", "yes").why(WHY))) {
+                    McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1").with("limit", "5").why(WHY),
+                    McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1").with("limit", 2.5).why(WHY),
+                    McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", 7).why(WHY),
+                    McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1").with("excludeIdle", "yes").why(WHY))) {
                 assertThrows(AssertionError.class,
                         () -> McpNextToolConformance.assertFollowable(payload(call), ADVERTISED), call.toString());
             }
@@ -144,7 +153,7 @@ class McpNextToolConformanceTest {
 
         @Test
         void aValueOutsideTheDeclaredEnum() {
-            JsonNode payload = payload(McpNextTool.call("fixture_window").with("profileId", "p-1")
+            JsonNode payload = payload(McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("profileId", "p-1")
                     .with("mode", "ALLOC").why(WHY));
 
             assertThrows(AssertionError.class, () -> McpNextToolConformance.assertFollowable(payload, ADVERTISED));
@@ -154,14 +163,14 @@ class McpNextToolConformanceTest {
         void aFindingsNextToolThatCannotBeFollowed() {
             record Finding(McpNextTool nextTool) {
             }
-            JsonNode payload = Json.toTree(new Finding(McpNextTool.call("fixture_window").with("limit", 5).why(WHY)));
+            JsonNode payload = Json.toTree(new Finding(McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("limit", 5).why(WHY)));
 
             assertThrows(AssertionError.class, () -> McpNextToolConformance.assertFollowable(payload, ADVERTISED));
         }
 
         @Test
         void aMissingRequiredArgument() {
-            JsonNode payload = payload(McpNextTool.call("fixture_window").with("limit", 5).why(WHY));
+            JsonNode payload = payload(McpNextTool.call("fixture_window", McpToolWeight.LIGHT).with("limit", 5).why(WHY));
 
             assertThrows(AssertionError.class, () -> McpNextToolConformance.assertFollowable(payload, ADVERTISED));
         }

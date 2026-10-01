@@ -86,10 +86,9 @@ class McpInstructionsTest {
         void letsARunningImportOrTransferBeFollowedAsATask() {
             assertTrue(text.contains("answered with a running operationId or a task is followed, not "
                     + "called again"), text);
-            assertTrue(text.contains("calling hubs_download again with the same arguments, or by following "
-                    + "its task"), text);
-            assertTrue(text.contains("after the user chose a window when asked, with the startEpochMs and "
-                    + "endEpochMs its answer names"), text);
+            assertTrue(text.contains("joined by calling hubs_download with the arguments its followUp names, "
+                    + "or by following its task"), text);
+            assertTrue(text.contains("a window named by its window argument"), text);
             assertFalse(text.contains("startTime"), text);
         }
 

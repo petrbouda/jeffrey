@@ -37,6 +37,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DownloadWindowQuestionTest {
@@ -62,8 +63,19 @@ class DownloadWindowQuestionTest {
         return session(CREATED, FINISHED, 2 * GIB);
     }
 
-    private static DownloadWindowQuestion.Subject subject(RecordingSession session) {
-        return new DownloadWindowQuestion.Subject(session, "production", "checkout", NOW);
+    private static WindowSubject subject(RecordingSession session) {
+        return new WindowSubject(session, "production", "checkout", NOW);
+    }
+
+    /** Twelve compressed chunks of a quarter of an hour from 09:00 to 12:00, the third the largest. */
+    private static RecordingSession chunked() {
+        return ChunkedSessions.startingAt(CREATED, Duration.ofMinutes(15))
+                .compressed(10, 20, 90, 30, 20, 10, 20, 30, 40, 10, 20, 30)
+                .build();
+    }
+
+    private static WindowAnswer.Chosen chosen(WindowAnswer answer) {
+        return assertInstanceOf(WindowAnswer.Chosen.class, answer);
     }
 
     private static McpInputResponse accepted(String contentJson) {
@@ -149,6 +161,14 @@ class DownloadWindowQuestionTest {
             }
         }
 
+        /** The chunk length is measured from the session, never assumed. */
+        @Test
+        void theMessageStatesTheMeasuredChunkLength() {
+            String message = request(QUESTION.ask(subject(chunked()))).path("params").path("message").asString();
+
+            assertTrue(message.contains("in chunks of about 15m0s"), message);
+        }
+
         @Test
         void theMessageSaysASessionIsStillRecording() {
             String message = request(QUESTION.ask(subject(session(CREATED, null, 2 * GIB))))
@@ -161,10 +181,11 @@ class DownloadWindowQuestionTest {
         /** The specification allows a flat object of primitive properties and nothing else. */
         @Test
         void isAFlatObjectOfPrimitiveProperties() {
-            JsonNode schema = schema(QUESTION.ask(subject(large())));
+            JsonNode schema = schema(QUESTION.ask(subject(chunked())));
 
             assertEquals("object", schema.path("type").asString());
-            assertEquals(List.of("window", "minutes", "start", "end"), List.copyOf(schema.path("properties").propertyNames()));
+            assertEquals(List.of("window", "minutes", "at", "start", "end"),
+                    List.copyOf(schema.path("properties").propertyNames()));
             for (JsonNode property : schema.path("properties")) {
                 assertTrue(PRIMITIVE_TYPES.contains(property.path("type").asString()), property.toString());
                 assertFalse(property.has("properties"), property.toString());
@@ -177,55 +198,53 @@ class DownloadWindowQuestionTest {
         }
 
         @Test
-        void offersTheFourWindowsAsTitledChoicesDefaultingToTheLastHour() {
-            JsonNode window = schema(QUESTION.ask(subject(large()))).path("properties").path("window");
+        void offersEveryWindowTheSessionCanAnswerByNameDefaultingToTheLastMinutes() {
+            JsonNode window = schema(QUESTION.ask(subject(chunked()))).path("properties").path("window");
 
-            List<String> values = new ArrayList<>();
-            List<String> titles = new ArrayList<>();
-            window.path("oneOf").forEach(choice -> {
-                values.add(choice.path("const").asString());
-                titles.add(choice.path("title").asString());
-            });
-            assertEquals(List.of("lastHour", "lastMinutes", "whole", "custom"), values);
-            assertEquals("The last hour (11:00–12:00 UTC)", titles.get(0));
-            assertTrue(titles.get(2).contains("(2.0GB)"), titles.get(2));
-            assertEquals("lastHour", window.path("default").asString());
+            assertEquals(List.of("WHOLE", "LAST_MINUTES", "STARTUP", "LATEST", "PEAK", "BEFORE", "AROUND", "CUSTOM"),
+                    values(window));
+            assertEquals("LAST_MINUTES", window.path("default").asString());
         }
 
         @Test
-        void theLastHourOfASessionStillRecordingEndsNow() {
-            JsonNode window = schema(QUESTION.ask(subject(session(CREATED, null, 2 * GIB))))
-                    .path("properties").path("window");
+        void titlesCarryTheSessionsOwnFigures() {
+            List<String> titles = titles(schema(QUESTION.ask(subject(chunked()))).path("properties").path("window"));
 
-            assertEquals("The last hour (11:30–12:30 UTC)", window.path("oneOf").get(0).path("title").asString());
+            assertTrue(titles.contains("The last N minutes (set Minutes; 60 is 11:00–12:00 UTC)"), titles.toString());
+            assertTrue(titles.contains("Startup (09:00–09:15 UTC, 10B)"), titles.toString());
+            assertTrue(titles.contains("Peak (09:30–09:45 UTC, 90B, 4.5× median)"), titles.toString());
+            assertTrue(titles.contains("Latest finished chunk (11:45–12:00 UTC, 30B)"), titles.toString());
+        }
+
+        /** No compressed chunk, no peak; a first chunk the cleaner removed, no startup. */
+        @Test
+        void offersOnlyWhatTheSessionCanAnswer() {
+            RecordingSession trimmed = ChunkedSessions.startingAt(CREATED, Duration.ofMinutes(15))
+                    .raw(10, 20, 30, 40, 50).withoutOldest(3).build();
+
+            List<String> values = values(schema(QUESTION.ask(subject(trimmed))).path("properties").path("window"));
+
+            assertFalse(values.contains("PEAK"), values.toString());
+            assertFalse(values.contains("STARTUP"), values.toString());
+            assertTrue(values.contains("LATEST"), values.toString());
         }
 
         @Test
-        void minutesRunFromOneToTheSessionsLengthDefaultingToFifteen() {
+        void minutesDefaultToTheLastHour() {
             JsonNode minutes = schema(QUESTION.ask(subject(large()))).path("properties").path("minutes");
 
             assertEquals("integer", minutes.path("type").asString());
             assertEquals(1, minutes.path("minimum").asLong());
-            assertEquals(180, minutes.path("maximum").asLong());
-            assertEquals(15, minutes.path("default").asLong());
+            assertEquals(DownloadWindow.DEFAULT_MINUTES, minutes.path("default").asLong());
         }
 
         @Test
-        void theDefaultMinutesNeverExceedAShortSession() {
-            JsonNode minutes = schema(QUESTION.ask(subject(session(FINISHED.minusSeconds(600), FINISHED, 2 * GIB))))
-                    .path("properties").path("minutes");
-
-            assertEquals(10, minutes.path("maximum").asLong());
-            assertEquals(10, minutes.path("default").asLong());
-        }
-
-        @Test
-        void startAndEndAreDateTimesDefaultingToTheSessionsSpan() {
+        void atStartAndEndAreDateTimesDefaultingToTheSessionsSpan() {
             JsonNode properties = schema(QUESTION.ask(subject(large()))).path("properties");
 
-            assertEquals("date-time", properties.path("start").path("format").asString());
+            assertEquals("date-time", properties.path("at").path("format").asString());
+            assertEquals(FINISHED.toString(), properties.path("at").path("default").asString());
             assertEquals(CREATED.toString(), properties.path("start").path("default").asString());
-            assertEquals("date-time", properties.path("end").path("format").asString());
             assertEquals(FINISHED.toString(), properties.path("end").path("default").asString());
         }
 
@@ -245,6 +264,18 @@ class DownloadWindowQuestionTest {
             assertTrue(message.contains("checkout-api"), message);
         }
 
+        private static List<String> values(JsonNode window) {
+            List<String> values = new ArrayList<>();
+            window.path("oneOf").forEach(choice -> values.add(choice.path("const").asString()));
+            return values;
+        }
+
+        private static List<String> titles(JsonNode window) {
+            List<String> titles = new ArrayList<>();
+            window.path("oneOf").forEach(choice -> titles.add(choice.path("title").asString()));
+            return titles;
+        }
+
         private static List<String> strings(JsonNode array) {
             List<String> values = new ArrayList<>();
             array.forEach(value -> values.add(value.asString()));
@@ -252,86 +283,56 @@ class DownloadWindowQuestionTest {
         }
     }
 
+    /** An answer is the window chosen with the fields it takes; resolving it is DownloadWindow's. */
     @Nested
     class Answers {
 
         @Test
-        void theLastHourEndsAtTheSessionsFinish() {
-            WindowAnswer answer = read(large(), "{\"window\":\"lastHour\"}");
+        void theLastMinutesWithTheirMinutes() {
+            WindowAnswer.Chosen answer = chosen(read(large(), "{\"window\":\"LAST_MINUTES\",\"minutes\":10}"));
 
-            assertEquals(new WindowAnswer.Chosen(
-                    FINISHED.minus(Duration.ofHours(1)).toEpochMilli(), FINISHED.toEpochMilli()), answer);
+            assertEquals(DownloadWindow.LAST_MINUTES, answer.window());
+            assertEquals(10, answer.given().minutes());
         }
 
         @Test
-        void theLastHourOfASessionStillRecordingEndsNow() {
-            WindowAnswer answer = read(session(CREATED, null, 2 * GIB), "{\"window\":\"lastHour\"}");
+        void theLastMinutesWithoutMinutesLeaveTheDefaultToTheWindow() {
+            WindowAnswer.Chosen answer = chosen(read(large(), "{\"window\":\"LAST_MINUTES\"}"));
 
-            assertEquals(new WindowAnswer.Chosen(
-                    NOW.minus(Duration.ofHours(1)).toEpochMilli(), NOW.toEpochMilli()), answer);
+            assertNull(answer.given().minutes());
         }
 
-        /** A last hour that reaches back past a finished session's start is all of it: its local copy. */
-        @Test
-        void theLastHourOfAFinishedSessionShorterThanAnHourIsTheWholeSession() {
-            RecordingSession short_ = session(FINISHED.minusSeconds(600), FINISHED, 2 * GIB);
-
-            assertInstanceOf(WindowAnswer.Whole.class, read(short_, "{\"window\":\"lastHour\"}"));
-        }
-
-        @Test
-        void theLastMinutesSpanningAFinishedSessionAreTheWholeSession() {
-            assertInstanceOf(WindowAnswer.Whole.class, read(large(), "{\"window\":\"lastMinutes\",\"minutes\":180}"));
-        }
-
-        /** A session still recording has no settled whole: the clamped stretch stays a window up to now. */
-        @Test
-        void theLastHourOfALiveSessionShorterThanAnHourStartsWithTheSession() {
-            RecordingSession live = session(NOW.minusSeconds(600), null, 2 * GIB);
-
-            assertEquals(new WindowAnswer.Chosen(NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli()),
-                    read(live, "{\"window\":\"lastHour\"}"));
-        }
-
-        @Test
-        void theLastMinutesEndAtTheSessionsFinish() {
-            WindowAnswer answer = read(large(), "{\"window\":\"lastMinutes\",\"minutes\":20}");
-
-            assertEquals(new WindowAnswer.Chosen(
-                    FINISHED.minus(Duration.ofMinutes(20)).toEpochMilli(), FINISHED.toEpochMilli()), answer);
-        }
-
-        /** Some hosts send every number as a float; a whole one is still a whole number of minutes. */
         @Test
         void aWholeNumberOfMinutesSentAsAFloatIsAccepted() {
-            WindowAnswer answer = read(large(), "{\"window\":\"lastMinutes\",\"minutes\":20.0}");
-
-            assertInstanceOf(WindowAnswer.Chosen.class, answer);
+            assertEquals(10, chosen(read(large(), "{\"window\":\"LAST_MINUTES\",\"minutes\":10.0}"))
+                    .given().minutes());
         }
 
         @Test
-        void theWholeSession() {
-            assertInstanceOf(WindowAnswer.Whole.class, read(large(), "{\"window\":\"whole\"}"));
+        void beforeReadsItsMomentAndMinutes() {
+            WindowAnswer.Chosen answer = chosen(read(large(),
+                    "{\"window\":\"BEFORE\",\"at\":\"2026-03-01T10:00:00Z\",\"minutes\":20}"));
+
+            assertEquals(Instant.parse("2026-03-01T10:00:00Z").toEpochMilli(), answer.given().atEpochMs());
+            assertEquals(20, answer.given().minutes());
+        }
+
+        /** Fields the chosen window does not take are not read, whatever the form filled them with. */
+        @Test
+        void fieldsTheWindowDoesNotTakeAreIgnored() {
+            WindowAnswer.Chosen answer = chosen(read(large(),
+                    "{\"window\":\"WHOLE\",\"minutes\":60,\"at\":\"not a time\",\"start\":7}"));
+
+            assertEquals(WindowArguments.NONE, answer.given());
         }
 
         @Test
         void aCustomWindow() {
-            WindowAnswer answer = read(large(),
-                    "{\"window\":\"custom\",\"start\":\"2026-03-01T10:00:00Z\",\"end\":\"2026-03-01T10:30:00+00:00\"}");
+            WindowAnswer.Chosen answer = chosen(read(large(),
+                    "{\"window\":\"CUSTOM\",\"start\":\"2026-03-01T10:00:00Z\",\"end\":\"2026-03-01T10:30:00Z\"}"));
 
-            assertEquals(new WindowAnswer.Chosen(
-                    Instant.parse("2026-03-01T10:00:00Z").toEpochMilli(),
-                    Instant.parse("2026-03-01T10:30:00Z").toEpochMilli()), answer);
-        }
-
-        /** An absent start or end is the form's default: the session's own start or end. */
-        @Test
-        void aCustomWindowWithoutItsEndsTakesTheSessionsSpan() {
-            WindowAnswer answer = read(large(),
-                    "{\"window\":\"custom\",\"start\":\"2026-03-01T10:00:00Z\"}");
-
-            assertEquals(new WindowAnswer.Chosen(
-                    Instant.parse("2026-03-01T10:00:00Z").toEpochMilli(), FINISHED.toEpochMilli()), answer);
+            assertEquals(Instant.parse("2026-03-01T10:00:00Z").toEpochMilli(), answer.given().startEpochMs());
+            assertEquals(Instant.parse("2026-03-01T10:30:00Z").toEpochMilli(), answer.given().endEpochMs());
         }
 
         @Test
@@ -339,8 +340,7 @@ class DownloadWindowQuestionTest {
             WindowAnswer answer = QUESTION.read(
                     new McpInputResponse(McpInputResponse.Action.DECLINE, null), subject(large()));
 
-            assertFalse(assertInstanceOf(WindowAnswer.NotAnswered.class, answer)
-                    .reason().isBlank());
+            assertTrue(assertInstanceOf(WindowAnswer.NotAnswered.class, answer).reason().contains("declined"));
         }
 
         @Test
@@ -348,11 +348,10 @@ class DownloadWindowQuestionTest {
             WindowAnswer answer = QUESTION.read(
                     new McpInputResponse(McpInputResponse.Action.CANCEL, null), subject(large()));
 
-            assertInstanceOf(WindowAnswer.NotAnswered.class, answer);
+            assertTrue(assertInstanceOf(WindowAnswer.NotAnswered.class, answer).reason().contains("dismissed"));
         }
     }
 
-    /** What the user sent does not make a window: asked again, naming what is missing. */
     @Nested
     class IncompleteAnswers {
 
@@ -361,7 +360,7 @@ class DownloadWindowQuestionTest {
             WindowAnswer answer = QUESTION.read(
                     new McpInputResponse(McpInputResponse.Action.ACCEPT, null), subject(large()));
 
-            assertTrue(problemOf(answer).contains("window"), problemOf(answer));
+            assertTrue(problemOf(answer).contains("window"));
         }
 
         @Test
@@ -371,113 +370,67 @@ class DownloadWindowQuestionTest {
 
         @Test
         void aWindowThatIsNoneOfTheChoices() {
-            String problem = problemOf(read(large(), "{\"window\":\"yesterday\"}"));
+            String problem = problemOf(read(large(), "{\"window\":\"lastHour\"}"));
 
-            assertTrue(problem.contains("yesterday"), problem);
+            assertTrue(problem.contains("'lastHour'"), problem);
+            assertTrue(problem.contains("LAST_MINUTES"), problem);
         }
 
+        /** A window the session could not offer is not one of its choices. */
         @Test
-        void theLastMinutesWithoutMinutes() {
-            assertTrue(problemOf(read(large(), "{\"window\":\"lastMinutes\"}")).contains("minutes"));
-        }
-
-        @Test
-        void minutesThatAreNotANumber() {
-            assertTrue(problemOf(read(large(), "{\"window\":\"lastMinutes\",\"minutes\":\"many\"}")).contains("minutes"));
-        }
-
-        @Test
-        void minutesThatAreNotWhole() {
-            assertTrue(problemOf(read(large(), "{\"window\":\"lastMinutes\",\"minutes\":2.5}")).contains("minutes"));
-        }
-
-        @Test
-        void zeroMinutes() {
-            String problem = problemOf(read(large(), "{\"window\":\"lastMinutes\",\"minutes\":0}"));
-
-            assertTrue(problem.contains("180"), problem);
-        }
-
-        @Test
-        void moreMinutesThanTheSessionLasted() {
-            String problem = problemOf(read(large(), "{\"window\":\"lastMinutes\",\"minutes\":181}"));
-
-            assertTrue(problem.contains("180"), problem);
-        }
-
-        /** Jackson reads these strictly; a value no long can hold is asked about, never thrown. */
-        @Test
-        void minutesTooLargeForAnyWholeNumber() {
-            String problem = problemOf(read(large(), "{\"window\":\"lastMinutes\",\"minutes\":1e30}"));
-
-            assertTrue(problem.contains("minutes"), problem);
-        }
-
-        @Test
-        void minutesBeyondTheRangeOfALong() {
-            String problem = problemOf(read(large(),
-                    "{\"window\":\"lastMinutes\",\"minutes\":123456789012345678901234567890}"));
-
-            assertTrue(problem.contains("minutes"), problem);
-        }
-
-        @Test
-        void hugeMinutesOnASessionWithNoStart() {
-            String problem = problemOf(read(session(null, FINISHED, 2 * GIB),
-                    "{\"window\":\"lastMinutes\",\"minutes\":9223372036854775807}"));
-
-            assertTrue(problem.contains("minutes"), problem);
+        void aWindowTheSessionDidNotOffer() {
+            assertTrue(problemOf(read(large(), "{\"window\":\"PEAK\"}")).contains("'PEAK'"));
         }
 
         @Test
         void aWindowThatIsNotAString() {
-            assertTrue(problemOf(read(large(), "{\"window\":5}")).contains("window"));
-            assertTrue(problemOf(read(large(), "{\"window\":{}}")).contains("window"));
+            assertTrue(problemOf(read(large(), "{\"window\":3}")).contains("window"));
         }
 
         @Test
-        void aCustomStartThatIsAnObject() {
-            String problem = problemOf(read(large(), "{\"window\":\"custom\",\"start\":{}}"));
+        void minutesThatAreNotANumber() {
+            assertTrue(problemOf(read(large(), "{\"window\":\"LAST_MINUTES\",\"minutes\":\"ten\"}"))
+                    .contains("minutes"));
+        }
 
-            assertTrue(problem.contains("{}"), problem);
+        @Test
+        void minutesThatAreNotWhole() {
+            assertTrue(problemOf(read(large(), "{\"window\":\"LAST_MINUTES\",\"minutes\":2.5}"))
+                    .contains("minutes"));
+        }
+
+        @Test
+        void zeroMinutes() {
+            assertTrue(problemOf(read(large(), "{\"window\":\"LAST_MINUTES\",\"minutes\":0}"))
+                    .contains("minutes"));
+        }
+
+        @Test
+        void minutesBeyondTheRangeOfALong() {
+            assertTrue(problemOf(read(large(),
+                    "{\"window\":\"LAST_MINUTES\",\"minutes\":99999999999999999999999}")).contains("minutes"));
+        }
+
+        @Test
+        void aMomentThatIsAnObject() {
+            assertTrue(problemOf(read(large(), "{\"window\":\"AROUND\",\"at\":{}}")).contains("at"));
         }
 
         @Test
         void aCustomEndThatIsAnArray() {
-            String problem = problemOf(read(large(), "{\"window\":\"custom\",\"end\":[]}"));
-
-            assertTrue(problem.contains("[]"), problem);
+            assertTrue(problemOf(read(large(), "{\"window\":\"CUSTOM\",\"end\":[]}")).contains("end"));
         }
 
         @Test
         void aCustomStartThatIsANumber() {
-            String problem = problemOf(read(large(), "{\"window\":\"custom\",\"start\":1772355600000}"));
-
-            assertTrue(problem.contains("1772355600000"), problem);
+            assertTrue(problemOf(read(large(), "{\"window\":\"CUSTOM\",\"start\":1}")).contains("start"));
         }
 
         @Test
         void aCustomStartThatIsNotADateTime() {
-            String problem = problemOf(read(large(), "{\"window\":\"custom\",\"start\":\"ten o'clock\"}"));
+            String problem = problemOf(read(large(), "{\"window\":\"CUSTOM\",\"start\":\"yesterday\"}"));
 
-            assertTrue(problem.contains("ten o'clock"), problem);
-        }
-
-        @Test
-        void aCustomWindowEndingBeforeItStarts() {
-            String problem = problemOf(read(large(),
-                    "{\"window\":\"custom\",\"start\":\"2026-03-01T11:00:00Z\",\"end\":\"2026-03-01T10:00:00Z\"}"));
-
-            assertTrue(problem.contains("before"), problem);
-        }
-
-        @Test
-        void aCustomWindowOutsideTheSession() {
-            String problem = problemOf(read(large(),
-                    "{\"window\":\"custom\",\"start\":\"2026-03-01T13:00:00Z\",\"end\":\"2026-03-01T14:00:00Z\"}"));
-
-            assertTrue(problem.contains(CREATED.toString()), problem);
-            assertTrue(problem.contains(FINISHED.toString()), problem);
+            assertTrue(problem.contains("'yesterday'"), problem);
         }
     }
 }

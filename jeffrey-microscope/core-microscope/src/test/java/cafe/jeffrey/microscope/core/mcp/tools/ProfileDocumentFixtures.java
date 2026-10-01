@@ -65,7 +65,7 @@ public final class ProfileDocumentFixtures {
                 findings,
                 List.of(),
                 List.of(new ProfileCapabilityGaps.CapabilityGap("autoAnalysis", "The rules did not run.", null)),
-                new McpFollowUp(List.of(McpNextTool.call("jvm_autoAnalysis")
+                new McpFollowUp(List.of(NextCalls.to("jvm_autoAnalysis")
                         .with("profileId", profileId)
                         .with("compute", true)
                         .why("runs the rules this resource only reads")), List.of()),

@@ -306,7 +306,7 @@ public class HeapComputeMcpTools {
      * pipeline otherwise.
      */
     private static McpNextTool retryCall(String profileId, List<HeapReport> computing) {
-        return McpNextTool.call(PREPARE_TOOL).with(PROFILE_ID, profileId)
+        return NextCalls.to(PREPARE_TOOL).with(PROFILE_ID, profileId)
                 .with(REPORT, computing.size() == 1 ? computing.getFirst() : null)
                 .with(RETRY, true)
                 .why(WHY_RETRY);
@@ -389,7 +389,7 @@ public class HeapComputeMcpTools {
     }
 
     private static McpNextTool.Call onProfile(String tool, String profileId) {
-        return McpNextTool.call(tool).with(PROFILE_ID, profileId);
+        return NextCalls.to(tool).with(PROFILE_ID, profileId);
     }
 
     /** Where the heap-dump preparation pipeline stands, named as the answer reports it. */

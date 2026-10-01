@@ -50,22 +50,28 @@ class McpNextToolTest {
         @Test
         void refusesABlankToolName() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new McpNextTool(" ", McpJsonObject.of(Map.of()), WHY));
+                    () -> new McpNextTool(" ", McpJsonObject.of(Map.of()), WHY, McpToolWeight.LIGHT));
             assertThrows(IllegalArgumentException.class,
-                    () -> new McpNextTool(null, McpJsonObject.of(Map.of()), WHY));
+                    () -> new McpNextTool(null, McpJsonObject.of(Map.of()), WHY, McpToolWeight.LIGHT));
         }
 
         @Test
         void refusesMissingArguments() {
-            assertThrows(IllegalArgumentException.class, () -> new McpNextTool(TOOL, null, WHY));
+            assertThrows(IllegalArgumentException.class, () -> new McpNextTool(TOOL, null, WHY, McpToolWeight.LIGHT));
         }
 
         @Test
         void refusesABlankWhy() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new McpNextTool(TOOL, McpJsonObject.of(Map.of()), ""));
+                    () -> new McpNextTool(TOOL, McpJsonObject.of(Map.of()), "", McpToolWeight.LIGHT));
             assertThrows(IllegalArgumentException.class,
-                    () -> new McpNextTool(TOOL, McpJsonObject.of(Map.of()), null));
+                    () -> new McpNextTool(TOOL, McpJsonObject.of(Map.of()), null, McpToolWeight.LIGHT));
+        }
+
+        @Test
+        void refusesAMissingWeight() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> new McpNextTool(TOOL, McpJsonObject.of(Map.of()), WHY, null));
         }
     }
 
@@ -74,7 +80,7 @@ class McpNextToolTest {
 
         @Test
         void carriesTypedArgumentsInTheOrderTheyWereGiven() {
-            McpNextTool next = McpNextTool.call(TOOL)
+            McpNextTool next = McpNextTool.call(TOOL, McpToolWeight.LIGHT)
                     .with("profileId", "p-1")
                     .with("startEpochMs", 1_772_366_400_000L)
                     .with("limit", 25)
@@ -91,7 +97,7 @@ class McpNextToolTest {
         /** An absent optional argument is left out, which is how the tool reads its own default. */
         @Test
         void leavesAnAbsentOptionalArgumentOut() {
-            McpNextTool next = McpNextTool.call(TOOL)
+            McpNextTool next = McpNextTool.call(TOOL, McpToolWeight.LIGHT)
                     .with("profileId", "p-1")
                     .with("eventType", (String) null)
                     .with("mode", (Mode) null)
@@ -104,7 +110,7 @@ class McpNextToolTest {
 
         @Test
         void refusesAnArgumentGivenTwice() {
-            McpNextTool.Call call = McpNextTool.call(TOOL).with("profileId", "p-1");
+            McpNextTool.Call call = McpNextTool.call(TOOL, McpToolWeight.LIGHT).with("profileId", "p-1");
 
             assertThrows(IllegalArgumentException.class, () -> call.with("profileId", "p-2"));
         }
@@ -114,13 +120,13 @@ class McpNextToolTest {
         void refusesANonFiniteDouble() {
             for (double value : new double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
                 assertThrows(IllegalArgumentException.class,
-                        () -> McpNextTool.call(TOOL).with("ratio", value), String.valueOf(value));
+                        () -> McpNextTool.call(TOOL, McpToolWeight.LIGHT).with("ratio", value), String.valueOf(value));
             }
         }
 
         @Test
         void keepsAFiniteDouble() {
-            McpNextTool next = McpNextTool.call(TOOL).with("ratio", 0.25).why(WHY);
+            McpNextTool next = McpNextTool.call(TOOL, McpToolWeight.LIGHT).with("ratio", 0.25).why(WHY);
 
             assertEquals(0.25, Json.toTree(next.arguments()).path("ratio").asDouble());
         }
@@ -128,26 +134,26 @@ class McpNextToolTest {
         /** A list travels as a JSON array, such as the file ids a download takes. */
         @Test
         void carriesAListOfStringsAsAnArray() {
-            McpNextTool next = McpNextTool.call(TOOL).with("fileIds", List.of("f-1", "f-2")).why(WHY);
+            McpNextTool next = McpNextTool.call(TOOL, McpToolWeight.LIGHT).with("fileIds", List.of("f-1", "f-2")).why(WHY);
 
             assertEquals("[\"f-1\",\"f-2\"]", Json.toTree(next.arguments()).path("fileIds").toString());
         }
 
         @Test
         void leavesAnAbsentListOut() {
-            McpNextTool next = McpNextTool.call(TOOL).with("fileIds", (List<String>) null).why(WHY);
+            McpNextTool next = McpNextTool.call(TOOL, McpToolWeight.LIGHT).with("fileIds", (List<String>) null).why(WHY);
 
             assertFalse(Json.toTree(next.arguments()).has("fileIds"));
         }
 
         @Test
         void refusesABlankArgumentName() {
-            assertThrows(IllegalArgumentException.class, () -> McpNextTool.call(TOOL).with(" ", "x"));
+            assertThrows(IllegalArgumentException.class, () -> McpNextTool.call(TOOL, McpToolWeight.LIGHT).with(" ", "x"));
         }
 
         @Test
         void aCallWithNoArgumentsIsAnEmptyObject() {
-            McpNextTool next = McpNextTool.call("profiles_list").why("lists the analysed profiles");
+            McpNextTool next = McpNextTool.call("profiles_list", McpToolWeight.LIGHT).why("lists the analysed profiles");
 
             assertEquals("{}", Json.toString(next.arguments()));
         }
@@ -157,18 +163,18 @@ class McpNextToolTest {
     class Wire {
 
         @Test
-        void serialisesAsToolArgumentsAndWhy() {
-            McpNextTool next = McpNextTool.call(TOOL).with("profileId", "p-1").why(WHY);
+        void serialisesAsToolArgumentsWhyAndWeight() {
+            McpNextTool next = McpNextTool.call(TOOL, McpToolWeight.HEAVY).with("profileId", "p-1").why(WHY);
 
             assertEquals("{\"tool\":\"flamegraph_export\",\"arguments\":{\"profileId\":\"p-1\"},"
-                    + "\"why\":\"" + WHY + "\"}", Json.toString(next));
+                    + "\"why\":\"" + WHY + "\",\"weight\":\"HEAVY\"}", Json.toString(next));
         }
 
         /** The follow-up block a payload embeds conforms to the schema generated for it. */
         @Test
         void aFollowUpConformsToItsGeneratedSchema() {
             McpFollowUp followUp = new McpFollowUp(
-                    List.of(McpNextTool.call(TOOL).with("profileId", "p-1").why(WHY)),
+                    List.of(McpNextTool.call(TOOL, McpToolWeight.LIGHT).with("profileId", "p-1").why(WHY)),
                     List.of("record with jdk.ObjectAllocationSample enabled to see allocation"));
 
             JsonNode schema = McpSchemaGenerator.schemaOf(McpFollowUp.class);
@@ -187,7 +193,7 @@ class McpNextToolTest {
             List<McpNextTool> tools = new ArrayList<>();
             McpFollowUp followUp = new McpFollowUp(tools, List.of());
 
-            tools.add(McpNextTool.call(TOOL).why(WHY));
+            tools.add(McpNextTool.call(TOOL, McpToolWeight.LIGHT).why(WHY));
 
             assertTrue(followUp.nextTools().isEmpty());
         }

@@ -276,7 +276,7 @@ class OperationsMcpToolsTest {
         OperationHandle<String> failed = jobs.startOrJoin("heap", false, value -> true, () -> {
             throw new IllegalStateException("index failed");
         });
-        McpNextTool retry = McpNextTool.call("heap_prepare").with("profileId", "p-1").with("retry", true)
+        McpNextTool retry = NextCalls.to("heap_prepare").with("profileId", "p-1").with("retry", true)
                 .why("starts a new attempt");
         String id = registry.register(OperationKind.HEAP_PREPARE, failed, OperationResults.Value::new,
                 value -> McpToolResult.text(value), retry);
@@ -295,7 +295,7 @@ class OperationsMcpToolsTest {
     void aCompletedOperationRegisteredWithItsRetryDoesNotOfferIt() {
         BoundedJobs<String, String> jobs = ToolFixtures.jobs(BoundedJobs.WAIT_BUDGET);
         McpOperationRegistry registry = new McpOperationRegistry(Clock.systemUTC());
-        McpNextTool retry = McpNextTool.call("heap_prepare").with("profileId", "p-1").with("retry", true)
+        McpNextTool retry = NextCalls.to("heap_prepare").with("profileId", "p-1").with("retry", true)
                 .why("starts a new attempt");
         String id = registry.register(OperationKind.HEAP_PREPARE, jobs.rememberCompleted("heap", "done"),
                 OperationResults.Value::new, value -> McpToolResult.text(value), retry);

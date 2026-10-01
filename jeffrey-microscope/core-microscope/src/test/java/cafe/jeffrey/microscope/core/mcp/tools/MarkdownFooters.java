@@ -68,7 +68,8 @@ public final class MarkdownFooters {
 
         List<String> expected = new ArrayList<>();
         for (JsonNode call : structured.get("followUp").get("nextTools")) {
-            expected.add(CALL_PREFIX + call.get("tool").asString() + " " + Json.toString(call.get("arguments")));
+            expected.add(CALL_PREFIX + call.get("tool").asString() + " " + Json.toString(call.get("arguments"))
+                    + " [" + call.get("weight").asString() + "]");
         }
         assertEquals(expected, nextLines(text.substring(link)), tail(text));
     }

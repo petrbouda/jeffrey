@@ -47,6 +47,7 @@ public final class McpNextToolConformance {
     private static final String TOOL = "tool";
     private static final String ARGUMENTS = "arguments";
     private static final String WHY = "why";
+    private static final String WEIGHT = "weight";
 
     private static final String PROPERTIES = "properties";
     private static final String REQUIRED = "required";
@@ -103,13 +104,19 @@ public final class McpNextToolConformance {
     }
 
     private static void checkCall(JsonNode call, Map<String, McpToolSpec> advertised) {
-        if (!call.path(TOOL).isString() || !call.path(ARGUMENTS).isObject() || !call.path(WHY).isString()) {
-            throw new AssertionError("A next call is not {tool, arguments, why}: " + call);
+        if (!call.path(TOOL).isString() || !call.path(ARGUMENTS).isObject() || !call.path(WHY).isString()
+                || !call.path(WEIGHT).isString()) {
+            throw new AssertionError("A next call is not {tool, arguments, why, weight}: " + call);
         }
         String tool = call.get(TOOL).asString();
         McpToolSpec spec = advertised.get(tool);
         if (spec == null) {
             throw new AssertionError("A next call names " + tool + ", which is not advertised");
+        }
+        String weight = McpToolWeight.of(spec).name();
+        if (!weight.equals(call.get(WEIGHT).asString())) {
+            throw new AssertionError("A next call to " + tool + " says weight " + call.get(WEIGHT).asString()
+                    + ", but the tool's hints make it " + weight);
         }
         JsonNode arguments = call.get(ARGUMENTS);
         JsonNode properties = spec.inputSchema().path(PROPERTIES);
