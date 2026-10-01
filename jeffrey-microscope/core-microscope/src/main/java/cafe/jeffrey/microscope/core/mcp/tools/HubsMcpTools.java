@@ -156,9 +156,18 @@ public class HubsMcpTools {
                     + "even when hasMore=false. Long display names and failure details are shortened; "
                     + "sessionRef identities are preserved.";
 
+    // Connecting a hub stays with the user: the Hubs page or this configuration, never an MCP tool,
+    // since the address it dials would otherwise come from whatever text the agent last read.
+    private static final String CONFIGURED_HUBS_PROPERTY = "jeffrey.microscope.hubs";
     private static final String NO_HUBS =
-            "No Jeffrey Hub is connected to this installation. Recordings can still be analysed from a local "
-                    + "file with recordings_analyzeFile.";
+            ("No Jeffrey Hub is connected to this installation. Connect one on the Hubs page, or declare it in "
+                    + "configuration and restart Microscope:\n\n"
+                    + "  %1$s.production.name=Production\n"
+                    + "  %1$s.production.hostname=hub.example.com\n"
+                    + "  %1$s.production.port=443\n"
+                    + "  %1$s.production.plaintext=false\n\n"
+                    + "Recordings can still be analysed from a local file with recordings_analyzeFile.")
+                    .formatted(CONFIGURED_HUBS_PROPERTY);
     private static final String HUBS_NOTE =
             "A hub marked `UNREACHABLE` did not answer just now, so hubs_sessions can list nothing from it. A "
                     + "hub whose source is `CONFIG` is declared in this installation's configuration and cannot "

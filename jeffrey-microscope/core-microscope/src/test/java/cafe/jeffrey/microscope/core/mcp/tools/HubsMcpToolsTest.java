@@ -26,6 +26,8 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
+import cafe.jeffrey.microscope.core.mcp.MicroscopePage;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindow;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.ChunkedSessions;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindowQuestion;
@@ -513,6 +515,21 @@ class HubsMcpToolsTest {
             assertEquals("EMPTY", answer.get("status").asString());
             assertTrue(answer.get("reason").asString().contains("No Jeffrey Hub is connected"), answer.toString());
             assertTrue(result.text().contains("recordings_analyzeFile"), result.text());
+        }
+
+        @Test
+        void tellsHowToConnectAHubWhenNoneIsConnected() {
+            when(hubsManager.findAll()).thenReturn(List.of());
+
+            McpToolResult result = tools.list(null, null);
+            String reason = hubs(result).get("reason").asString();
+
+            assertTrue(reason.contains("Hubs page"), reason);
+            assertTrue(reason.contains("jeffrey.microscope.hubs.production.name=Production"), reason);
+            assertTrue(reason.contains("jeffrey.microscope.hubs.production.hostname="), reason);
+            assertTrue(reason.contains("jeffrey.microscope.hubs.production.port="), reason);
+            assertTrue(reason.contains("jeffrey.microscope.hubs.production.plaintext=false"), reason);
+            assertTrue(result.text().contains(UiLinks.page(MicroscopePage.HUBS)), result.text());
         }
 
         @Test

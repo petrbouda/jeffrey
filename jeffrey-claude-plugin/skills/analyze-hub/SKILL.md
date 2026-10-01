@@ -13,8 +13,16 @@ ordinary profile that `analyze-jfr` and `analyze-heap` answer about.
 Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `hubs_sessions`, not `hubs_list_sessions`.
 
 If no `hubs_` tool is advertised, this Jeffrey has hub access switched off
-(`jeffrey.microscope.mcp.hubs.enabled=false`) or is connected to no hub at all. Say so rather than
-guessing at a path — the recordings are not reachable from here.
+(`jeffrey.microscope.mcp.hubs.enabled=false`). Say so rather than guessing at a path — the
+recordings are not reachable from here.
+
+If `hubs_list` answers `status: EMPTY`, hub access is on but no hub is connected. Connecting one is
+the user's step, and no tool does it. Give them both routes from the answer: the Hubs page (its
+link), whose form checks that the hub answers, and the `jeffrey.microscope.hubs.<key>.*`
+properties (name, hostname, port, plaintext) followed by a restart. Use the user's own hostname and
+port if they gave them, otherwise keep the placeholders. Never invent an address. `plaintext=true`
+is only for an in-cluster or trusted-LAN hub without TLS. Offer to analyse a local `.jfr` in the
+meantime, and call `hubs_list` again once they say it is connected.
 
 ## The shape of the whole thing
 
