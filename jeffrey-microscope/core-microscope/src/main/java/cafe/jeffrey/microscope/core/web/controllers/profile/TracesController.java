@@ -18,15 +18,10 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.trace.export.TraceAiMarkdownBuilder;
-import cafe.jeffrey.profile.trace.export.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
-import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
@@ -42,7 +37,6 @@ import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
-import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
@@ -85,23 +79,6 @@ public class TracesController {
     private static final String DEFAULT_OPERATION_SPANS_LIMIT = "20";
     /** The most rows any of these lists can usefully render, and the ceiling a caller cannot raise. */
     private static final int MAX_LIMIT = 10_000;
-    /**
-     * Markdown, because the export is a document rather than a payload.
-     * <p>
-     * The charset is explicit: both documents are prose containing em dashes and typographic
-     * punctuation, and a string converter that falls back to ISO-8859-1 turns every one of them into
-     * a replacement character. Stating UTF-8 costs nothing and removes the question.
-     */
-    private static final String MARKDOWN_MEDIA_TYPE = "text/markdown;charset=UTF-8";
-    /**
-     * How much of an operation an AI bundle carries. Wider than the UI's twenty, because a reader
-     * scrolls and a model does not, and narrow enough to stay inside an agent's context window.
-     */
-    private static final int AI_EXPORT_SPANS_LIMIT = 40;
-    /** Exemplars to name at the end of an operation bundle, as candidates to export individually. */
-    private static final int AI_EXPORT_EXEMPLARS_LIMIT = 10;
-    /** Notification kinds an operation bundle carries, the most severe first. */
-    private static final int AI_EXPORT_NOTIFICATION_KINDS_LIMIT = 25;
     /** Busiest-first: what the operations list showed before it could be sorted at all. */
     private static final String DEFAULT_OPERATION_SORT = "TOTAL_TIME";
     /** Enough points to see where an operation got busy, few enough to stay readable. */
@@ -226,56 +203,6 @@ public class TracesController {
                 profileId, name, kind, eventType, spanLimit);
         return resolver.resolve(profileId).traceManager()
                 .operationSummary(new TraceOperationId(name, kind, eventType), boundedLimit(spanLimit));
-    }
-
-    /**
-     * One operation rendered as Markdown for an AI to read — percentiles, the span breakdown in both
-     * accountings, and slowest exemplars, with a preamble that defines every term it uses.
-     * <p>
-     * Placed before {@code /{traceId}} so the literal path is matched as one rather than being read
-     * as a trace id.
-     */
-    @GetMapping(value = "/operation/ai-export", produces = MARKDOWN_MEDIA_TYPE)
-    public String operationAiExport(
-            @PathVariable("profileId") String profileId,
-            @RequestParam("name") String name,
-            @RequestParam("kind") String kind,
-            @RequestParam("eventType") String eventType) {
-        LOG.debug("Exporting an operation for AI: profile_id={} name={} kind={} event_type={}",
-                profileId, name, kind, eventType);
-
-        TraceOperationId operationId = new TraceOperationId(name, kind, eventType);
-        TraceManager traceManager = resolver.resolve(profileId).traceManager();
-        TraceOperationRow operation = traceManager.operation(operationId)
-                .orElseThrow(() -> Exceptions.resourceNotFound("Operation not found: " + name));
-
-        return new TraceOperationAiMarkdownBuilder(
-                operation,
-                traceManager.operationSummary(operationId, AI_EXPORT_SPANS_LIMIT),
-                traceManager.notifications(
-                        TraceNotificationListQuery.ofOperation(operationId, AI_EXPORT_NOTIFICATION_KINDS_LIMIT)),
-                traceManager.slowestTracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT))
-                .build();
-    }
-
-    /**
-     * One trace rendered as Markdown for an AI to read.
-     * <p>
-     * The context is fetched alongside the trace rather than left out: without the pauses and waits
-     * this is an ordinary tracing export, and the JVM's own events are the whole reason Jeffrey's
-     * version of this document is worth reading.
-     */
-    @GetMapping(value = "/{traceId}/ai-export", produces = MARKDOWN_MEDIA_TYPE)
-    public String traceAiExport(
-            @PathVariable("profileId") String profileId,
-            @PathVariable("traceId") String traceId) {
-        LOG.debug("Exporting a trace for AI: profile_id={} trace_id={}", profileId, traceId);
-
-        TraceExportSource source = resolver.resolve(profileId).traceManager()
-                .export(parseId(traceId))
-                .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
-
-        return new TraceAiMarkdownBuilder(source).build();
     }
 
     @GetMapping("/{traceId}")
@@ -414,30 +341,6 @@ public class TracesController {
     }
 
     /**
-     * The span's flamegraph rendered as Markdown for an AI to read — the same samples the graph
-     * next door draws, scoped the same way. Without this, "Copy for AI" over an open span graph
-     * could only offer the trace's own bundle, which describes the span tree rather than the
-     * frames the reader was looking at.
-     */
-    @PostMapping(value = "/{traceId}/spans/{spanId}/flamegraph/ai-export",
-            produces = MARKDOWN_MEDIA_TYPE)
-    public String spanFlamegraphAiExport(
-            @PathVariable("profileId") String profileId,
-            @PathVariable("traceId") String traceId,
-            @PathVariable("spanId") String spanId,
-            @RequestBody GenerateTraceSpanFlamegraphRequest request) {
-        LOG.debug("Exporting a span flamegraph for AI: profile_id={} trace_id={} span_id={} self_only={}",
-                profileId, traceId, spanId, request.selfOnly());
-        ProfileManager profileManager = resolver.resolve(profileId);
-
-        List<SpanInterval> intervals = profileManager.traceManager()
-                .spanIntervals(parseId(traceId), parseId(spanId), request.selfOnly());
-        GraphParameters params = spanScopedParameters(profileManager, request, SpanScope.of(intervals),
-                "Span has no samples to show: " + spanId);
-        return profileManager.flamegraphManager().generateAiExport(params);
-    }
-
-    /**
      * Which event types recorded samples inside the traces of one type, with their real counts, so
      * the drill-down offers only flamegraphs that exist.
      */
@@ -498,20 +401,6 @@ public class TracesController {
             SpanScope scope,
             String notFoundMessage) {
 
-        GraphParameters params = spanScopedParameters(profileManager, request, scope, notFoundMessage);
-        return profileManager.flamegraphManager().generate(params);
-    }
-
-    /**
-     * The parameters of a graph over a set of intervals, shared by the drawn graph and its AI
-     * export so the two describe the same samples.
-     */
-    private static GraphParameters spanScopedParameters(
-            ProfileManager profileManager,
-            SpanFlamegraphOptions request,
-            SpanScope scope,
-            String notFoundMessage) {
-
         // A scope the caller enumerated can be seen to be empty; one it merely named cannot, and
         // asking would cost the very query this scope exists to avoid. A named scope that turns out
         // to cover nothing therefore yields an empty graph rather than this 404 — the panel that
@@ -519,7 +408,8 @@ public class TracesController {
         if (scope.isEmpty()) {
             throw Exceptions.resourceNotFound(notFoundMessage);
         }
-        return SpanScopedGraphParameters.of(profileManager.info(), request, scope);
+        GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, scope);
+        return profileManager.flamegraphManager().generate(params);
     }
 
     /**

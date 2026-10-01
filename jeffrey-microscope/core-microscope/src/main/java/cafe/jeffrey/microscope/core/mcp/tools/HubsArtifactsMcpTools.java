@@ -558,7 +558,7 @@ public class HubsArtifactsMcpTools {
         boolean heapDump = HEAP_DUMPS.contains(facts.type());
         boolean heapServed = advertised.has(AdvertisedFamilies.HEAP);
         return next
-                .nextWhen(heapDump && heapServed, McpNextTool.call(HubCalls.RECORDINGS_ANALYZE_FILE)
+                .nextWhen(heapDump && heapServed, NextCalls.to(HubCalls.RECORDINGS_ANALYZE_FILE)
                         .with(HubCalls.PATH, facts.path()).why(ANALYSE_HEAP_DUMP_WHY))
                 .guidanceWhen(heapDump && !heapServed, HEAP_NOT_SERVED_GUIDANCE)
                 .guidanceWhen(!heapDump, READ_IT_YOURSELF)

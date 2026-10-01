@@ -37,6 +37,7 @@ import java.util.List;
  * @param tool      an advertised tool name, {@code family_name}
  * @param arguments the arguments to pass unchanged
  * @param why       what the call answers, in one short clause
+ * @param weight    what the call's answer puts into the conversation, read from the tool's own hints
  */
 public record McpNextTool(
         @McpDescription("An advertised tool name")
@@ -44,7 +45,10 @@ public record McpNextTool(
         @McpDescription("Arguments to pass unchanged")
         McpJsonObject arguments,
         @McpDescription("What the call answers, in one short clause")
-        String why) {
+        String why,
+        @McpDescription("What the call's answer puts into the conversation: LIGHT a few compact records, "
+                + "MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace")
+        McpToolWeight weight) {
 
     public McpNextTool {
         if (tool == null || tool.isBlank()) {
@@ -56,14 +60,18 @@ public record McpNextTool(
         if (why == null || why.isBlank()) {
             throw new IllegalArgumentException("why must not be blank: tool=" + tool);
         }
+        if (weight == null) {
+            throw new IllegalArgumentException("weight must not be null: tool=" + tool);
+        }
     }
 
     /**
-     * The start of a call to the given tool; add its arguments with {@link Call#with} and finish it
-     * with {@link Call#why}.
+     * The start of a call to the given tool, with the weight its own hints imply (an
+     * {@link McpToolWeights} reads it); add its arguments with {@link Call#with} and finish it with
+     * {@link Call#why}.
      */
-    public static Call call(String tool) {
-        return new Call(tool);
+    public static Call call(String tool, McpToolWeight weight) {
+        return new Call(tool, weight);
     }
 
     /**
@@ -73,10 +81,12 @@ public record McpNextTool(
     public static final class Call {
 
         private final String tool;
+        private final McpToolWeight weight;
         private final ObjectNode arguments = Json.createObject();
 
-        private Call(String tool) {
+        private Call(String tool, McpToolWeight weight) {
             this.tool = tool;
+            this.weight = weight;
         }
 
         public Call with(String name, String value) {
@@ -131,7 +141,7 @@ public record McpNextTool(
          * The finished call, with what it answers.
          */
         public McpNextTool why(String why) {
-            return new McpNextTool(tool, new McpJsonObject(arguments), why);
+            return new McpNextTool(tool, new McpJsonObject(arguments), why, weight);
         }
 
         private ObjectNode named(String name) {

@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 
+import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.profile.mcp.McpNextTool;
 
 /**
@@ -41,6 +42,9 @@ public final class HubCalls {
     public static final String START_EPOCH_MS = "startEpochMs";
     public static final String END_EPOCH_MS = "endEpochMs";
     public static final String RETRY = "retry";
+    public static final String WINDOW = "window";
+    public static final String MINUTES = "minutes";
+    public static final String AT_EPOCH_MS = "atEpochMs";
     public static final String LIMIT = "limit";
     public static final String CURSOR = "cursor";
     public static final String HUB = "hub";
@@ -63,21 +67,21 @@ public final class HubCalls {
 
     /** A call to one of the hub tools on a session; add the rest of its arguments and a why. */
     public static McpNextTool.Call onSession(String tool, String sessionRef) {
-        return McpNextTool.call(tool).with(SESSION_REF, sessionRef);
+        return NextCalls.to(tool).with(SESSION_REF, sessionRef);
     }
 
     /** The poll of a transfer still running. */
     public static McpNextTool poll(String operationId) {
-        return McpNextTool.call(OPERATIONS_STATUS).with(OPERATION_ID, operationId).why(POLL_WHY);
+        return NextCalls.to(OPERATIONS_STATUS).with(OPERATION_ID, operationId).why(POLL_WHY);
     }
 
     /** The analysis of a recording a download brought and nothing has analysed yet. */
     public static McpNextTool analyse(String recordingId) {
-        return McpNextTool.call(RECORDINGS_ANALYZE_RECORDING).with(RECORDING_ID, recordingId).why(ANALYSE_WHY);
+        return NextCalls.to(RECORDINGS_ANALYZE_RECORDING).with(RECORDING_ID, recordingId).why(ANALYSE_WHY);
     }
 
     /** Where a recording already analysed is read from. */
     public static McpNextTool summary(String profileId) {
-        return McpNextTool.call(PROFILES_SUMMARY).with(PROFILE_ID, profileId).why(SUMMARY_WHY);
+        return NextCalls.to(PROFILES_SUMMARY).with(PROFILE_ID, profileId).why(SUMMARY_WHY);
     }
 }

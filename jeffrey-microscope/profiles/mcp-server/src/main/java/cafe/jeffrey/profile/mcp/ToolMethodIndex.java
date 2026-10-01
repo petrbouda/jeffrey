@@ -123,7 +123,7 @@ final class ToolMethodIndex {
             // second one written here. Jeffrey adds the family prefix and nothing else, so a tool that
             // names itself with @Tool(name=...) is called what it says, instead of being silently
             // advertised under its method name.
-            String toolName = prefix + TOOL_NAME_SEPARATOR + ToolUtils.getToolName(method);
+            String toolName = toolName(prefix, method);
             Method previous = methodsByToolName.putIfAbsent(toolName, method);
             if (previous != null) {
                 // Two overloads of one @Tool method. MCP addresses a tool by name alone, so one of the
@@ -226,7 +226,7 @@ final class ToolMethodIndex {
      * appear in {@code tools/list} is what a model reads first, and it could change under a client
      * without a line of Jeffrey changing.
      */
-    private static List<Method> toolMethods(Class<?> targetType) {
+    static List<Method> toolMethods(Class<?> targetType) {
         List<Method> methods = new ArrayList<>();
         for (Method method : targetType.getMethods()) {
             if (method.isAnnotationPresent(Tool.class)) {
@@ -235,6 +235,11 @@ final class ToolMethodIndex {
         }
         methods.sort(Comparator.comparing(ToolUtils::getToolName));
         return methods;
+    }
+
+    /** The name a {@code @Tool} method is advertised under: the family prefix, then Spring AI's name. */
+    static String toolName(String prefix, Method method) {
+        return prefix + TOOL_NAME_SEPARATOR + ToolUtils.getToolName(method);
     }
 
     /**

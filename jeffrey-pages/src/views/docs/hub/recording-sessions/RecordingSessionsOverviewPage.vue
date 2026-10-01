@@ -63,7 +63,7 @@ onMounted(() => {
         </figure>
 
         <DocsCallout type="info">
-          <strong>Chunked recordings:</strong> Async-Profiler creates JFR files in chunks (e.g., every 15 minutes) to prevent data loss and enable rolling analysis. This means a single session typically contains multiple JFR files, and any contiguous run of them can be selected for analysis &mdash; they are fetched separately and stay separate, as the several files one local recording is made of.
+          <strong>Chunked recordings:</strong> Async-Profiler creates JFR files in chunks, as often as its <code>loop</code> option says (e.g., every 15 minutes), to prevent data loss and enable rolling analysis. This means a single session typically contains multiple JFR files, and any contiguous run of them can be selected for analysis &mdash; they are fetched separately and stay separate, as the several files one local recording is made of.
         </DocsCallout>
 
         <h2 id="session-contents">Session Contents</h2>

@@ -28,6 +28,11 @@ that each one accounts for — never by how confident the wording sounds. Each i
 
 Then, separately and always: **Not assessed** — what this profile could not answer, and why.
 
+When the analysis kept a ledger (Covered / Open leads / Not assessed, as `analyze-jfr` keeps it),
+build from it: each **Covered** area that found something becomes a finding, its **Not assessed**
+entries become that section, and its **Open leads** close the report as next steps the user can
+choose, each with its weight — offered, not run.
+
 Keep it short. Three findings that carry their evidence beat twelve that do not.
 
 ## The evidence rule

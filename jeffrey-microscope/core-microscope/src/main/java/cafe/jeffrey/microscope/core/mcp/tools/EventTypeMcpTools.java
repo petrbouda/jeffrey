@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolMeta;
 import org.springframework.ai.tool.annotation.Tool;
@@ -108,7 +107,7 @@ public class EventTypeMcpTools {
 
         String profileId = profileManager.info().id();
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .nextWhen(recorded.count() > 0, McpNextTool.call(QUERY_EVENTS).with(PROFILE_ID, profileId)
+                .nextWhen(recorded.count() > 0, NextCalls.to(QUERY_EVENTS).with(PROFILE_ID, profileId)
                         .with(EVENT_TYPE, code).with(LIMIT, SAMPLE_EVENTS).why(QUERY_WHY))
                 .guidance(SQL_GUIDANCE)
                 .followUp();

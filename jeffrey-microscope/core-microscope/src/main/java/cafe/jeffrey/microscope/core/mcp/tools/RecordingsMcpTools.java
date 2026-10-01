@@ -39,7 +39,6 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolMeta;
@@ -523,9 +522,9 @@ public class RecordingsMcpTools {
                 .findFirst()
                 .orElse(null);
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .nextWhen(next.hasMore(), McpNextTool.call(LIST_TOOL)
+                .nextWhen(next.hasMore(), NextCalls.to(LIST_TOOL)
                         .with(LIMIT, request.limit()).with(CURSOR, next.nextCursor()).why(NEXT_PAGE_WHY))
-                .nextWhen(unanalysed != null, McpNextTool.call(ANALYZE_RECORDING_TOOL)
+                .nextWhen(unanalysed != null, NextCalls.to(ANALYZE_RECORDING_TOOL)
                         .with(RECORDING_ID, unanalysed).why(UNANALYSED_WHY))
                 .followUp();
         RecordingPage structured = new RecordingPage(CatalogueStatus.OK, null, rows, rows.size(), request.total(),
@@ -777,19 +776,19 @@ public class RecordingsMcpTools {
         NextSteps.Builder next = NextSteps.builder(advertised);
         return switch (facts.status()) {
             case READY -> next
-                    .next(McpNextTool.call(PROFILES_SUMMARY).with(PROFILE_ID, facts.profileId()).why(SUMMARY_WHY))
+                    .next(NextCalls.to(PROFILES_SUMMARY).with(PROFILE_ID, facts.profileId()).why(SUMMARY_WHY))
                     .followUp();
             case RUNNING -> next
-                    .nextWhen(known, McpNextTool.call(STATUS_TOOL).with(RECORDING_ID, recordingId)
+                    .nextWhen(known, NextCalls.to(STATUS_TOOL).with(RECORDING_ID, recordingId)
                             .why(POLL_RECORDING_WHY))
-                    .nextWhen(!known && operationId != null, McpNextTool.call(OPERATIONS_STATUS)
+                    .nextWhen(!known && operationId != null, NextCalls.to(OPERATIONS_STATUS)
                             .with(OPERATION_ID, operationId).why(POLL_OPERATION_WHY))
                     .followUp();
             case NOT_STARTED -> next
-                    .next(McpNextTool.call(ANALYZE_RECORDING_TOOL).with(RECORDING_ID, recordingId).why(ANALYZE_WHY))
+                    .next(NextCalls.to(ANALYZE_RECORDING_TOOL).with(RECORDING_ID, recordingId).why(ANALYZE_WHY))
                     .followUp();
             case FAILED, INTERRUPTED -> next
-                    .nextWhen(known, McpNextTool.call(ANALYZE_RECORDING_TOOL).with(RECORDING_ID, recordingId)
+                    .nextWhen(known, NextCalls.to(ANALYZE_RECORDING_TOOL).with(RECORDING_ID, recordingId)
                             .with(RETRY, true).why(RETRY_WHY))
                     .followUp();
         };

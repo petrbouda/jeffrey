@@ -54,6 +54,8 @@ public final class LinkedOutput {
     private static final String FOOTER_NEXT = "Next:";
     private static final String FOOTER_GUIDANCE = "Guidance:";
     private static final String CALL_SEPARATOR = " ";
+    private static final String WEIGHT_OPEN = " [";
+    private static final String WEIGHT_CLOSE = "]";
 
     /**
      * The longest guidance line the footer repeats. A longer one is advice to read with the record,
@@ -70,7 +72,8 @@ public final class LinkedOutput {
      * text, so the text has to carry the link and the next calls too; reserving the footer's length is
      * what keeps it whole when the envelope caps the full text again.
      *
-     * @param followUp   the record's follow-up; each next call becomes one {@code Next:} line
+     * @param followUp   the record's follow-up; each next call becomes one {@code Next:} line, ending
+     *                   with the call's weight in brackets
      * @param uiLink     the record's page for the user
      * @param uiLinkNote what the link cannot reproduce, or {@code null}
      */
@@ -99,7 +102,8 @@ public final class LinkedOutput {
         if (!followUp.nextTools().isEmpty()) {
             lines.add(FOOTER_NEXT);
             for (McpNextTool call : followUp.nextTools()) {
-                lines.add(NEXT_STEPS_BULLET + call.tool() + CALL_SEPARATOR + Json.toString(call.arguments()));
+                lines.add(NEXT_STEPS_BULLET + call.tool() + CALL_SEPARATOR + Json.toString(call.arguments())
+                        + WEIGHT_OPEN + call.weight().name() + WEIGHT_CLOSE);
             }
         }
         List<String> shortGuidance = followUp.guidance().stream()

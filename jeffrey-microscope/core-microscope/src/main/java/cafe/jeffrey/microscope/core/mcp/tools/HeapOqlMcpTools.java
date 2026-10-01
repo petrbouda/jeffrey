@@ -235,7 +235,7 @@ public class HeapOqlMcpTools {
 
     private OqlAnswer running(Page page, McpOperationRegistry.Snapshot operation) {
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(McpNextTool.call(OPERATIONS_STATUS_TOOL).with(OPERATION_ID, operation.operationId())
+                .next(NextCalls.to(OPERATIONS_STATUS_TOOL).with(OPERATION_ID, operation.operationId())
                         .why(WHY_POLL))
                 .followUp();
         return new OqlAnswer(OqlStatus.RUNNING, RUNNING_REASON, page.profileId(), page.query(), page.retained(),
@@ -250,7 +250,7 @@ public class HeapOqlMcpTools {
 
         /** A call of the same query, as this page asked it. */
         McpNextTool.Call call(String tool) {
-            McpNextTool.Call call = McpNextTool.call(tool).with(PROFILE_ID, profileId).with(QUERY, query)
+            McpNextTool.Call call = NextCalls.to(tool).with(PROFILE_ID, profileId).with(QUERY, query)
                     .with(LIMIT, limit);
             if (retained) {
                 call.with(INCLUDE_RETAINED_SIZE, true);
@@ -259,7 +259,7 @@ public class HeapOqlMcpTools {
         }
 
         McpNextTool.Call onObject(String tool, Optional<String> objectId) {
-            return McpNextTool.call(tool).with(PROFILE_ID, profileId)
+            return NextCalls.to(tool).with(PROFILE_ID, profileId)
                     .with(HeapObjectIds.PARAMETER, objectId.orElse(null));
         }
     }

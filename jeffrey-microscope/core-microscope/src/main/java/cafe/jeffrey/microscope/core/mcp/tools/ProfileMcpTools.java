@@ -23,6 +23,7 @@ import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileCapabilityGaps.CapabilityGap;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisFindings;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
@@ -34,7 +35,6 @@ import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
@@ -50,6 +50,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -112,6 +113,8 @@ public class ProfileMcpTools {
     private final ProfileManager profileManager;
     private final RecordingCommitResolver recordingCommitResolver;
     private final ProfileCapabilityGaps capabilityGaps;
+    private final FlamegraphCatalog catalog;
+    private final JvmSections sections;
     private final AdvertisedFamilies advertised;
 
     /**
@@ -126,8 +129,9 @@ public class ProfileMcpTools {
 
         this.profileManager = profileManager;
         this.recordingCommitResolver = recordingCommitResolver;
-        this.capabilityGaps = new ProfileCapabilityGaps(
-                profileManager, new FlamegraphCatalog(profileManager, jfrPanelProvider, stackSamplePanelProvider));
+        this.catalog = new FlamegraphCatalog(profileManager, jfrPanelProvider, stackSamplePanelProvider);
+        this.sections = JvmSections.standard(profileManager);
+        this.capabilityGaps = new ProfileCapabilityGaps(profileManager, catalog, sections);
         this.advertised = advertised;
     }
 
@@ -155,7 +159,7 @@ public class ProfileMcpTools {
                 profileManager.sizeInBytes(),
                 recordingCommitResolver.resolve(info.recordingId()).orElse(null),
                 NextSteps.builder(advertised)
-                        .next(McpNextTool.call(PROFILES_SUMMARY).with(PROFILE_ID, info.id()).why(SUMMARY_WHY))
+                        .next(NextCalls.to(PROFILES_SUMMARY).with(PROFILE_ID, info.id()).why(SUMMARY_WHY))
                         .followUp(),
                 UiLinks.profile(info.id())));
     }
@@ -205,7 +209,7 @@ public class ProfileMcpTools {
         CpuTimeSampleLoss loss = profileManager.samplerHealthManager().cpuTimeSampleLoss();
         boolean reported = loss != null && (loss.capturedSamples() != 0 || loss.lostSamples() != 0);
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(McpNextTool.call(PROFILES_FEATURES).with(PROFILE_ID, profileId).why(FEATURES_WHY))
+                .next(NextCalls.to(PROFILES_FEATURES).with(PROFILE_ID, profileId).why(FEATURES_WHY))
                 .guidanceWhen(reported, UNEVEN_LOSS)
                 .followUp();
         if (!reported) {
@@ -229,7 +233,9 @@ public class ProfileMcpTools {
             + "features it has data for, every event type it recorded with its totals, whether the "
             + "auto-analysis rules have run (autoAnalysis) and their top findings, and capabilityGaps "
             + "- in words, every question this recording cannot answer and which tools that leaves "
-            + "empty. A superset of profiles_features. Reads the cached auto-analysis and never runs "
+            + "empty, and investigationAreas - the menu to put to the user when the question is open: each "
+            + "area it can answer with its weight, the evidence when suggested, and the calls that open it. "
+            + "A superset of profiles_features. Reads the cached auto-analysis and never runs "
             + "it. Not included: the sampler's loss figures (profiles_samplerHealth), the source "
             + "commit and the size on disk (profiles_get).")
     @McpOutputSchema(ProfileSummary.class)
@@ -244,6 +250,8 @@ public class ProfileMcpTools {
                 ? autoAnalysis.analysisResults()
                 : List.of();
         List<FeatureType> disabled = disabledFeatures();
+        List<RecordedEventType> eventTypes = recordedEventTypes();
+        List<McpFinding> flagged = AutoAnalysisFindings.flagged(info.id(), results);
 
         return McpToolResult.of(new ProfileSummary(
                 info.id(),
@@ -252,13 +260,14 @@ public class ProfileMcpTools {
                 epochMillis(info.profilingStartedAt()),
                 epochMillis(info.profilingFinishedAt()),
                 disabled.stream().map(Enum::name).sorted().toList(),
-                recordedEventTypes(),
+                eventTypes,
                 status,
-                McpFindings.reachable(AutoAnalysisFindings.flagged(info.id(), results), advertised::servesTool)
+                McpFindings.reachable(flagged, advertised::servesTool)
                         .stream().limit(TOP_FINDINGS_LIMIT).toList(),
                 capabilityGaps.gaps(disabled),
+                InvestigationMenu.of(facts(info, disabled, eventTypes, status, flagged), advertised),
                 NextSteps.builder(advertised)
-                        .nextWhen(status == AutoAnalysisStatus.NOT_COMPUTED, McpNextTool.call(AUTO_ANALYSIS_TOOL)
+                        .nextWhen(status == AutoAnalysisStatus.NOT_COMPUTED, NextCalls.to(AUTO_ANALYSIS_TOOL)
                                 .with(PROFILE_ID, info.id())
                                 .with(COMPUTE, true)
                                 .why(COMPUTE_WHY))
@@ -337,6 +346,34 @@ public class ProfileMcpTools {
         return ProfileDisabledFeatures.of(profileManager);
     }
 
+    /** What the summary has read, gathered for the investigation menu, which reads nothing more. */
+    private ProfileFacts facts(
+            ProfileInfo info,
+            List<FeatureType> disabled,
+            List<RecordedEventType> eventTypes,
+            AutoAnalysisStatus status,
+            List<McpFinding> flagged) {
+
+        boolean stackSampleImport = info.eventSource().isFlamegraphOnlyImport();
+        return new ProfileFacts(
+                info.id(),
+                info.eventSource(),
+                Set.copyOf(disabled),
+                eventTypes.stream()
+                        .filter(type -> type.samples() > 0)
+                        .map(RecordedEventType::name)
+                        .collect(Collectors.toSet()),
+                catalog.panels().stream()
+                        .map(panel -> new ProfileFacts.Sampled(
+                                SampleKind.of(panel, stackSampleImport),
+                                panel.event().code(),
+                                panel.event().primary().samples()))
+                        .toList(),
+                sections.availability(),
+                status,
+                flagged);
+    }
+
     /**
      * @param capabilityGaps what this recording cannot answer, in words, with what would close each gap
      * @param uiLink         the page that lists what the profile recorded
@@ -357,6 +394,7 @@ public class ProfileMcpTools {
      *                       shared finding shape — the passes are left to jvm_autoAnalysis
      * @param capabilityGaps what this recording cannot answer, in words, with what would close each
      *                       gap — read before any negative result is believed
+     * @param investigationAreas the menu for an open question: what the user can choose to investigate
      */
     record ProfileSummary(
             String profileId,
@@ -375,6 +413,10 @@ public class ProfileMcpTools {
             AutoAnalysisStatus autoAnalysis,
             List<McpFinding> topFindings,
             List<CapabilityGap> capabilityGaps,
+            @McpDescription("The menu for an open question: every area this profile can be investigated in, "
+                    + "with its weight, the evidence when suggested and the calls that open it, and the areas "
+                    + "it cannot answer with what is missing. Empty for a heap dump")
+            List<InvestigationOption> investigationAreas,
             McpFollowUp followUp,
             @McpDescription("The profile's page in the Microscope UI, for the user")
             String uiLink) {

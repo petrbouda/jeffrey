@@ -191,7 +191,7 @@ public class BlockingMcpTools {
     }
 
     private McpNextTool.Call call(String tool) {
-        return McpNextTool.call(tool).with(FollowUpCalls.PROFILE_ID, profileId());
+        return NextCalls.to(tool).with(FollowUpCalls.PROFILE_ID, profileId());
     }
 
     /**

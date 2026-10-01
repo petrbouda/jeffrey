@@ -84,7 +84,9 @@ final class McpInstructions {
             profiles_summary, and read two of its fields before choosing a tool: topFindings, which is \
             what the rule set already flagged, and capabilityGaps, which is the questions this \
             recording cannot answer. Asking a family about something the recording never enabled is \
-            the most common wasted call.""";
+            the most common wasted call. When the question is open, investigationAreas is the menu to \
+            put to the user - each area the profile can answer, its weight and what suggests it - and \
+            the user picks what is worth running.""";
 
     private static final String PROFILE_ID_ALL = "Every tool takes a required profileId.";
     private static final String PROFILE_ID_EXCEPT = "Every tool except %s takes a required profileId.";
@@ -171,11 +173,11 @@ final class McpInstructions {
                     + "catalogue to trust: the deleted profile id no longer works."),
             new OrderRule(Set.of(HUBS, RECORDINGS), "A question about an environment rather than a file starts at "
                     + "hubs_sessions, with hubs_list when it shows nothing from a hub you expected. "
-                    + "hubs_download brings the session or the window its started and duration columns "
-                    + "allow, and recordings_analyzeRecording turns the recordingId into a profile; a "
-                    + "transfer still running is checked by calling hubs_download again with the same "
-                    + "arguments, or by following its task; after the user chose a window when asked, with "
-                    + "the startEpochMs and endEpochMs its answer names."),
+                    + "hubs_download brings the session, a window named by its window argument (the last "
+                    + "minutes, the startup, latest or peak chunk, the minutes before or around a moment) or "
+                    + "the span its started and duration columns allow, and recordings_analyzeRecording turns "
+                    + "the recordingId into a profile; a transfer still running is joined by calling "
+                    + "hubs_download with the arguments its followUp names, or by following its task."),
             new OrderRule(Set.of(IDE), "ide_resolve comes before a finding names a file or a line - the "
                     + "exports carry call paths, never file paths; ide_windows settles a window ide_resolve "
                     + "calls ambiguous and ide_link pins it; ide_open is for when the reader asked to be "
@@ -253,8 +255,9 @@ final class McpInstructions {
             answers with a status such as NOT_RECORDED and a reason, not an error; an unknown id is an \
             error naming it. A list that continues returns hasMore and nextCursor: pass nextCursor back \
             as cursor with the same arguments. followUp.nextTools are the next calls, with this \
-            answer's ids, windows and cursors already filled in; followUp.guidance is advice that is \
-            not a call. uiLink opens the same thing in Microscope for the user: give it to them with \
+            answer's ids, windows and cursors already filled in, each with its weight - LIGHT, MEDIUM \
+            or HEAVY, how much its answer puts into the conversation; followUp.guidance is advice that \
+            is not a call. uiLink opens the same thing in Microscope for the user: give it to them with \
             your answer, and never fetch it.""";
 
     private static final String OUTPUT_CAP = """

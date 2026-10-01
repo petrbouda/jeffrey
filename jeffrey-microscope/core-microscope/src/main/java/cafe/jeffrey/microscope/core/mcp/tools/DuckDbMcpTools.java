@@ -492,7 +492,7 @@ public class DuckDbMcpTools {
     }
 
     private McpNextTool.Call onProfile(String tool) {
-        return McpNextTool.call(tool).with(PROFILE_ID, profileId);
+        return NextCalls.to(tool).with(PROFILE_ID, profileId);
     }
 
     /** The schema resource's URI exactly as the resource links attach it, the id encoded the same way. */

@@ -377,7 +377,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           </tr>
           <tr>
             <td><code>repository-jfr-compression</code></td>
-            <td><code>15m</code></td>
+            <td><code>1m</code></td>
             <td>—</td>
             <td>LZ4-compresses finished JFR files and deletes the originals</td>
           </tr>

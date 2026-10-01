@@ -467,14 +467,14 @@ public final class McpOperationRegistry {
             List<McpNextTool> nextTools = new ArrayList<>();
             List<String> guidance = new ArrayList<>();
             if (!state.terminal()) {
-                nextTools.add(McpNextTool.call(OPERATIONS_STATUS).with(OPERATION_ID, operationId).why(POLL_WHY));
+                nextTools.add(NextCalls.to(OPERATIONS_STATUS).with(OPERATION_ID, operationId).why(POLL_WHY));
                 if (state == OperationState.CANCEL_REQUESTED) {
                     guidance.add(CANCEL_PENDING);
                 }
             } else if (retryable) {
                 String recordingId = kind.tracksRecording() && recordingIdentity != null ? recordingIdentity.get() : null;
                 if (recordingId != null) {
-                    nextTools.add(McpNextTool.call(RECORDINGS_ANALYZE_RECORDING)
+                    nextTools.add(NextCalls.to(RECORDINGS_ANALYZE_RECORDING)
                             .with(RECORDING_ID, recordingId).with(RETRY, true).why(RETRY_WHY));
                 } else if (retry != null) {
                     nextTools.add(retry);

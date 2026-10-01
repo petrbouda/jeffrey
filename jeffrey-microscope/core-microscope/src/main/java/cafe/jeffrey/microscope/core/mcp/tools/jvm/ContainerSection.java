@@ -27,7 +27,7 @@ import cafe.jeffrey.profile.manager.ContainerManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.profile.mcp.finding.McpFindings;
 
@@ -107,7 +107,7 @@ public record ContainerSection(ProfileManager profileManager) implements JvmSect
 
     @Override
     public void followUp(NextSteps.Builder next, ContainerDashboard dashboard) {
-        next.next(McpNextTool.call(NEXT_TOOL).with(PROFILE_ID, profileManager.info().id()).why(THREADS_WHY))
+        next.next(NextCalls.to(NEXT_TOOL).with(PROFILE_ID, profileManager.info().id()).why(THREADS_WHY))
                 .guidance(LIMITS_GUIDANCE);
     }
 
@@ -180,7 +180,7 @@ public record ContainerSection(ProfileManager profileManager) implements JvmSect
                 .detail(verdict.description())
                 .source(SOURCE)
                 .evidence(EVIDENCE_THROTTLED, verdict.throttled())
-                .nextTool(McpNextTool.call(NEXT_TOOL).with(PROFILE_ID, profileId).why(NEXT_TOOL_WHY));
+                .nextTool(NextCalls.to(NEXT_TOOL).with(PROFILE_ID, profileId).why(NEXT_TOOL_WHY));
         if (summary != null) {
             finding.evidence(EVIDENCE_THROTTLED_PERIODS, summary.throttledPeriods())
                     .evidence(EVIDENCE_ELAPSED_PERIODS, summary.elapsedPeriods())

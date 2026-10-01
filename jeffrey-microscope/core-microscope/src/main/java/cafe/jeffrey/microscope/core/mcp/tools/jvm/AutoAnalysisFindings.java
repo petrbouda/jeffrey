@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.analysis.AnalysisResult;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.profile.mcp.finding.McpFindings;
@@ -176,7 +177,7 @@ public final class AutoAnalysisFindings {
         }
 
         McpNextTool on(String profileId) {
-            McpNextTool.Call call = McpNextTool.call(tool).with(PROFILE_ID, profileId);
+            McpNextTool.Call call = NextCalls.to(tool).with(PROFILE_ID, profileId);
             arguments.forEach(call::with);
             return call.why(FIGURES_WHY);
         }

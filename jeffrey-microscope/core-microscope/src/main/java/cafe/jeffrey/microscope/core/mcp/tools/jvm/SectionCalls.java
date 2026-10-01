@@ -21,6 +21,7 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.tools.FollowUpCalls;
 import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.profile.mcp.McpNextTool;
 
 import java.util.Optional;
@@ -65,7 +66,7 @@ final class SectionCalls {
 
     /** A call to a tool on the profile being answered about; add the rest of its arguments and a why. */
     static McpNextTool.Call on(String tool, String profileId) {
-        return McpNextTool.call(tool).with(PROFILE_ID, profileId);
+        return NextCalls.to(tool).with(PROFILE_ID, profileId);
     }
 
     /**

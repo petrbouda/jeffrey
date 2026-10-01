@@ -28,26 +28,9 @@ import VisualizationConfigClient from '@/services/api/VisualizationConfigClient'
 import { FrameTextMode } from '@/services/api/model/VisualizationConfig';
 import MessageBus from '@/services/MessageBus.ts';
 import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
-import AiExportButton from '@/components/export/AiExportButton.vue';
 import DifferentialRootHeader from '@/components/DifferentialRootHeader.vue';
 import PrimaryRootHeader from '@/components/PrimaryRootHeader.vue';
-import type { AiExportSource } from '@/composables/useAiExport';
 import type Frame from '@/services/api/model/Frame';
-
-export type AiExportGraphMode = 'PRIMARY' | 'DIFFERENTIAL';
-
-/**
- * How this graph is exported for an AI, supplied by whoever opened it. The host knows which endpoint
- * describes its graph — the whole profile, one span of a trace — and this component only knows the
- * search term in effect, so the two meet here: the host renders, the component says what to mark.
- */
-export interface AiExportContext {
-  graphMode: AiExportGraphMode;
-  /** Filename stem for a download, naming what the graph covers; the extension is added later. */
-  filenameStem: string;
-  /** Renders the Markdown for the graph as it is on screen, with the search term currently applied. */
-  generate: (search: string | null) => Promise<string>;
-}
 
 const props = defineProps<{
   withTimeseries: boolean;
@@ -55,7 +38,6 @@ const props = defineProps<{
   scrollableWrapperClass: string | null;
   flamegraphTooltip: FlamegraphTooltip;
   graphUpdater: GraphUpdater;
-  aiExportContext?: AiExportContext | null;
 }>();
 
 const emit = defineEmits<{
@@ -76,20 +58,6 @@ const canvasWidth = ref('100%');
 const twoLineMode = ref(false);
 const differentialRootFrame = ref<Frame | null>(null);
 const primaryRootFrame = ref<Frame | null>(null);
-
-function buildAiExportSource(): AiExportSource | null {
-  const ctx = props.aiExportContext;
-  if (!ctx) {
-    return null;
-  }
-  // The search in effect travels with the request, so the exported document describes the graph as
-  // it is on screen rather than the unmarked one.
-  return {
-    fetch: () => ctx.generate(currentSearchValue),
-    label: 'Flamegraph',
-    filenameStem: ctx.filenameStem
-  };
-}
 
 function setDisplayMode(twoLine: boolean) {
   twoLineMode.value = twoLine;
@@ -338,13 +306,6 @@ function search(value: string | null) {
         Two-line
       </button>
     </div>
-    <AiExportButton
-      v-if="aiExportContext"
-      :build-source="buildAiExportSource"
-      tooltip="Export this flamegraph for a coding agent"
-      :disabled="aiExportContext.graphMode === 'DIFFERENTIAL'"
-      disabled-tooltip="Differential export coming soon"
-    />
   </div>
   <DifferentialRootHeader
     v-if="differentialRootFrame"

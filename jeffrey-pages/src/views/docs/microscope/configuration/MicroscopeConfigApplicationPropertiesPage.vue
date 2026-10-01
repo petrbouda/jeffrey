@@ -353,10 +353,11 @@ onMounted(() => {
             <td>
               When a client that declared MCP form elicitation asks <code>hubs_download</code> for a
               whole session running longer than this &mdash; to its finish, or to now while it is still
-              recording &mdash; the user is first asked which part to bring: the last hour, the last N
-              minutes, a window of their own, or all of it. A smaller session is downloaded whole
+              recording &mdash; the user is first asked which part to bring: the last N minutes, its
+              startup, its latest or busiest chunk, the minutes before or around a moment, a window of
+              their own, or all of it. A smaller session is downloaded whole
               without a question, and so is every session for a client that cannot show a form; a call
-              that already names a window or <code>fileIds</code> is never asked. An ISO-8601 duration;
+              that already names a <code>window</code>, bounds or <code>fileIds</code> is never asked. An ISO-8601 duration;
               <code>PT0S</code> means always ask. Read at startup. See
               <router-link to="/docs/microscope-mcp/tools#window-question">Which Part of a Large Session</router-link>.
             </td>

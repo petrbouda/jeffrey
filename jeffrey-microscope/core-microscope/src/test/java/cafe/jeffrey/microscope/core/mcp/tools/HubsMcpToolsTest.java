@@ -26,6 +26,8 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindow;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.ChunkedSessions;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindowQuestion;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
@@ -870,7 +872,7 @@ class HubsMcpToolsTest {
                 McpToolOutcome outcome;
                 try {
                     outcome = assertTimeout(Duration.ofSeconds(20),
-                            () -> standard.download(REF.encode(), null, null, null, null, TASKS));
+                            () -> standard.download(REF.encode(), null, null, null, null, null, null, null, TASKS));
                 } catch (AssertionError e) {
                     release.countDown();
                     throw e;
@@ -902,7 +904,7 @@ class HubsMcpToolsTest {
                 resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
                 noLocalRecordings();
 
-                McpToolOutcome outcome = standard.download(REF.encode(), null, null, null, null, TASKS);
+                McpToolOutcome outcome = standard.download(REF.encode(), null, null, null, null, null, null, null, TASKS);
 
                 String answer = assertInstanceOf(McpToolResult.class, outcome).text();
                 String taskId = Json.readTree(answer).path("operationId").asString();
@@ -918,7 +920,7 @@ class HubsMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-new\""), result);
             verify(downloads).downloadSession(SESSION_ID);
@@ -931,7 +933,7 @@ class HubsMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
                     .contains("recordings_analyzeRecording"));
         }
 
@@ -945,7 +947,7 @@ class HubsMcpToolsTest {
             resolvesTo(projectWith(withHeapDump, downloads));
             noLocalRecordings();
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingFiles\":1"), result);
             assertTrue(result.contains("\"artifactFiles\":1"), result);
@@ -955,7 +957,7 @@ class HubsMcpToolsTest {
         void returnsTheExistingRecordingRatherThanFetchingItTwice() {
             localRecording("rec-existing", null, REF);
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("rec-existing"), result);
             verifyNoInteractions(resolver);
@@ -965,7 +967,7 @@ class HubsMcpToolsTest {
         void pointsStraightAtAnalysisWhenTheSessionIsAlreadyAProfile() {
             localRecording("rec-existing", "profile-1", REF);
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("profile-1"), result);
             verifyNoInteractions(resolver);
@@ -974,7 +976,7 @@ class HubsMcpToolsTest {
         @Test
         void rejectsAMalformedRefWithoutOpeningAHubConnection() {
             assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download("not-a-ref", null, null, null, null, RESOURCE_READ)));
+                    () -> complete(tools.download("not-a-ref", null, null, null, null, null, null, null, RESOURCE_READ)));
 
             verifyNoInteractions(resolver);
             verifyNoInteractions(recordingsManager);
@@ -987,7 +989,7 @@ class HubsMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("hubs_sessions"), e.getMessage());
         }
@@ -1004,7 +1006,7 @@ class HubsMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("retention"), e.getMessage());
         }
@@ -1019,10 +1021,122 @@ class HubsMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("no finished recording file"), e.getMessage());
             verify(downloads, never()).downloadSession(any());
+        }
+
+        /**
+         * A part chosen by name: resolved on the session as the hub describes it, downloaded through
+         * the same paths a window or named files take, with what was picked and why in the answer.
+         */
+        @Nested
+        class PredefinedWindows {
+
+            private static final Instant SESSION_START = NOW.minus(Duration.ofHours(3));
+            private static final Duration CHUNK = Duration.ofMinutes(15);
+
+            /** Three hours of twelve compressed chunks, the third the largest; finished at NOW. */
+            private ChunkedSessions threeHours() {
+                return ChunkedSessions.startingAt(SESSION_START, CHUNK)
+                        .compressed(10, 20, 90, 30, 20, 10, 20, 30, 40, 10, 20, 30);
+            }
+
+            private RecordingsDownloadManager serving(ChunkedSessions session) {
+                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+                when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-chunk");
+                when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+                resolvesTo(projectWith(session.build(), downloads));
+                noLocalRecordings();
+                return downloads;
+            }
+
+            private JsonNode download(DownloadWindow window, Integer minutes, Long atEpochMs, McpCallContext call) {
+                return StructuredAnswers.json(HubsMcpTools.class, "download",
+                        tools.download(REF.encode(), window, minutes, atEpochMs, null, null, null, null, call));
+            }
+
+            @Test
+            void peakDownloadsTheLargestCompressedChunkByItsId() {
+                RecordingsDownloadManager downloads = serving(threeHours());
+
+                JsonNode answer = download(DownloadWindow.PEAK, null, null, RESOURCE_READ);
+
+                verify(downloads).downloadRecordings(SESSION_ID, List.of(ChunkedSessions.fileId(2)));
+                JsonNode chosen = answer.get("chosen");
+                assertEquals("PEAK", chosen.get("window").asString());
+                assertEquals(ChunkedSessions.fileId(2), chosen.get("chunkFileId").asString());
+                assertEquals(CHUNK.toMillis(), chosen.get("chunkLengthMs").asLong());
+                assertTrue(chosen.get("evidence").asString().contains("4.5×"), chosen.toString());
+            }
+
+            @Test
+            void startupAndLatestAreTheFirstAndTheNewestChunk() {
+                RecordingsDownloadManager downloads = serving(threeHours());
+
+                download(DownloadWindow.STARTUP, null, null, RESOURCE_READ);
+                download(DownloadWindow.LATEST, null, null, RESOURCE_READ);
+
+                verify(downloads).downloadRecordings(SESSION_ID, List.of(ChunkedSessions.fileId(0)));
+                verify(downloads).downloadRecordings(SESSION_ID, List.of(ChunkedSessions.fileId(11)));
+            }
+
+            /** The cleaner removed the first chunks: nothing moves, and the answer says what is left. */
+            @Test
+            void startupTheHubNoLongerHoldsIsReportedNotSubstituted() {
+                RecordingsDownloadManager downloads = serving(threeHours().withoutOldest(4));
+
+                JsonNode answer = download(DownloadWindow.STARTUP, null, null, RESOURCE_READ);
+
+                assertEquals("STARTUP_NOT_RETAINED", answer.get("status").asString());
+                assertEquals(ChunkedSessions.fileId(4), answer.get("chosen").get("chunkFileId").asString());
+                assertTrue(answer.get("reason").asString().contains("profile-4"), answer.toString());
+                assertEquals(List.of("hubs_files"), StructuredAnswers.nextTools(answer));
+                verifyNoInteractions(downloads);
+            }
+
+            @Test
+            void beforeAMomentDownloadsTheMinutesEndingThere() {
+                RecordingsDownloadManager downloads = serving(threeHours());
+                long heapDumpWritten = NOW.minus(Duration.ofMinutes(50)).toEpochMilli();
+
+                download(DownloadWindow.BEFORE, 30, heapDumpWritten, RESOURCE_READ);
+
+                verify(downloads).downloadWindow(SESSION_ID, ChunkWindow.ofEpochMillis(
+                        heapDumpWritten - Duration.ofMinutes(30).toMillis(), heapDumpWritten));
+            }
+
+            /** A window named in conversation is a decision: an eliciting client is not asked again. */
+            @Test
+            void aNamedWindowIsNeverAskedAbout() {
+                serving(threeHours());
+
+                JsonNode answer = download(DownloadWindow.LAST_MINUTES, null, null, ELICITING);
+
+                assertEquals("DOWNLOADED", answer.get("status").asString());
+                assertEquals("LAST_MINUTES", answer.get("chosen").get("window").asString());
+            }
+
+            /** The form's answer and the call's argument resolve by the same rules to the same download. */
+            @Test
+            void theFormAnswerDownloadsWhatTheSameWindowNamedByTheCallDoes() {
+                RecordingsDownloadManager downloads = serving(threeHours());
+
+                McpToolOutcome asked = tools.download(REF.encode(), null, null, null, null, null, null, null,
+                        answering(ELICITING, DownloadWindowQuestion.KEY, McpInputResponse.Action.ACCEPT,
+                                "{\"window\":\"PEAK\"}"));
+
+                assertInstanceOf(McpToolResult.class, asked);
+                verify(downloads).downloadRecordings(SESSION_ID, List.of(ChunkedSessions.fileId(2)));
+            }
+
+            @Test
+            void aWindowArgumentItDoesNotTakeIsRefusedBeforeTheHubIsRead() {
+                assertThrows(IllegalArgumentException.class, () -> tools.download(
+                        REF.encode(), DownloadWindow.PEAK, 10, null, null, null, null, null, RESOURCE_READ));
+                verifyNoInteractions(resolver);
+            }
         }
 
         /**
@@ -1055,7 +1169,7 @@ class HubsMcpToolsTest {
             }
 
             private McpToolOutcome wholeSession(McpCallContext call) {
-                return tools.download(REF.encode(), null, null, null, null, call);
+                return tools.download(REF.encode(), null, null, null, null, null, null, null, call);
             }
 
             private McpToolOutcome answered(McpInputResponse.Action action, String contentJson) {
@@ -1114,7 +1228,7 @@ class HubsMcpToolsTest {
                 resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
                 noLocalRecordings();
 
-                message(strict.download(REF.encode(), null, null, null, null, ELICITING));
+                message(strict.download(REF.encode(), null, null, null, null, null, null, null, ELICITING));
 
                 verifyNoInteractions(downloads);
             }
@@ -1123,8 +1237,8 @@ class HubsMcpToolsTest {
             void doesNotAskWhenTheCallNamesAWindow() {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
-                McpToolOutcome outcome = tools.download(REF.encode(), null,
-                        NOW.minusSeconds(600).toEpochMilli(), null, null, ELICITING);
+                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null,
+                        NOW.minusSeconds(600).toEpochMilli(), null, null, null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-window"));
             }
@@ -1134,9 +1248,30 @@ class HubsMcpToolsTest {
                 RecordingsDownloadManager downloads = servingThreeHours();
                 when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-files");
 
-                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null, List.of("c3"), ELICITING);
+                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-files"));
+            }
+
+            /** The user chose the whole session in conversation: window WHOLE is not asked a second time. */
+            @Test
+            void doesNotAskWhenTheCallNamesTheWholeSession() {
+                RecordingsDownloadManager downloads = servingThreeHours();
+
+                McpToolOutcome outcome = tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, null, null, ELICITING);
+
+                assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-whole"));
+                verify(downloads).downloadSession(SESSION_ID);
+            }
+
+            @Test
+            void refusesAWindowTogetherWithBoundsOrFiles() {
+                servingThreeHours();
+
+                assertThrows(IllegalArgumentException.class, () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null,
+                        NOW.minusSeconds(600).toEpochMilli(), null, null, null, ELICITING));
+                assertThrows(IllegalArgumentException.class,
+                        () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, List.of("c3"), null, ELICITING));
             }
 
             @Test
@@ -1159,10 +1294,10 @@ class HubsMcpToolsTest {
                 noLocalRecordings();
                 HubsMcpTools impatient = toolsWithBudget(Duration.ofMillis(100));
                 try {
-                    complete(impatient.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+                    complete(impatient.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
                     assertTrue(started.await(5, TimeUnit.SECONDS));
 
-                    McpToolOutcome outcome = impatient.download(REF.encode(), null, null, null, null, ELICITING);
+                    McpToolOutcome outcome = impatient.download(REF.encode(), null, null, null, null, null, null, null, ELICITING);
 
                     assertInstanceOf(McpToolResult.class, outcome);
                 } finally {
@@ -1175,7 +1310,7 @@ class HubsMcpToolsTest {
             void theLastHourBringsTheChunksCoveringTheSessionsFinalHour() {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
-                McpToolOutcome outcome = answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"lastHour\"}");
+                McpToolOutcome outcome = answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}");
 
                 JsonNode answer = StructuredAnswers.json(HubsMcpTools.class, "download", outcome);
                 assertEquals("rec-window", answer.path("recordingId").asString(), answer.toString());
@@ -1212,10 +1347,10 @@ class HubsMcpToolsTest {
                 JsonNode first;
                 JsonNode followed;
                 try {
-                    message(impatient.download(REF.encode(), null, null, null, null, ELICITING));
+                    message(impatient.download(REF.encode(), null, null, null, null, null, null, null, ELICITING));
                     first = StructuredAnswers.json(HubsMcpTools.class, "download", impatient.download(
-                            REF.encode(), null, null, null, null, answering(ELICITING, KEY,
-                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"lastHour\"}")));
+                            REF.encode(), null, null, null, null, null, null, null, answering(ELICITING, KEY,
+                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}")));
                     assertEquals("RUNNING", first.path("status").asString(), first.toString());
                     assertEquals(List.of("operations_status", "hubs_download"), StructuredAnswers.nextTools(first));
                     JsonNode join = StructuredAnswers.call(first, "hubs_download");
@@ -1223,8 +1358,8 @@ class HubsMcpToolsTest {
                     assertEquals(NOW.toEpochMilli(), join.path("endEpochMs").asLong(), join.toString());
                     assertFalse(join.has("retry"), "joining is not a retry");
 
-                    McpToolOutcome followUp = impatient.download(REF.encode(), null,
-                            join.path("startEpochMs").asLong(), join.path("endEpochMs").asLong(), null, ELICITING);
+                    McpToolOutcome followUp = impatient.download(REF.encode(), null, null, null,
+                            join.path("startEpochMs").asLong(), join.path("endEpochMs").asLong(), null, null, ELICITING);
 
                     followed = Json.readTree(assertInstanceOf(McpToolResult.class, followUp).text());
                 } finally {
@@ -1245,7 +1380,7 @@ class HubsMcpToolsTest {
                 resolvesTo(projectWith(lateFirstChunk, downloads));
                 noLocalRecordings();
 
-                String message = message(answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"custom\",\"start\":\""
+                String message = message(answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"CUSTOM\",\"start\":\""
                         + START + "\",\"end\":\"" + START.plus(Duration.ofMinutes(30)) + "\"}"));
 
                 assertTrue(message.startsWith("No finished chunk"), message);
@@ -1269,7 +1404,7 @@ class HubsMcpToolsTest {
                 noLocalRecordings();
 
                 String message = message(answered(McpInputResponse.Action.ACCEPT,
-                        "{\"window\":\"lastMinutes\",\"minutes\":10}"));
+                        "{\"window\":\"LAST_MINUTES\",\"minutes\":10}"));
 
                 assertTrue(message.startsWith("No finished chunk"), message);
                 verifyNoInteractions(downloads);
@@ -1283,7 +1418,7 @@ class HubsMcpToolsTest {
                 noLocalRecordings();
 
                 IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> tools.download(
-                        REF.encode(), null, NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, ELICITING));
+                        REF.encode(), null, null, null, NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, null, ELICITING));
 
                 assertTrue(e.getMessage().startsWith("No finished chunk of session " + SESSION_ID), e.getMessage());
                 verifyNoInteractions(downloads);
@@ -1295,7 +1430,7 @@ class HubsMcpToolsTest {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
                 McpToolOutcome outcome = wholeSession(answering(McpCallContext.RESOURCE_READ, KEY,
-                        McpInputResponse.Action.ACCEPT, "{\"window\":\"lastHour\"}"));
+                        McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}"));
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-whole"));
                 verify(downloads).downloadSession(SESSION_ID);
@@ -1306,7 +1441,7 @@ class HubsMcpToolsTest {
             void theWholeSessionIsBroughtWhole() {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
-                McpToolOutcome outcome = answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"whole\"}");
+                McpToolOutcome outcome = answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"WHOLE\"}");
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-whole"));
                 verify(downloads).downloadSession(SESSION_ID);
@@ -1333,7 +1468,8 @@ class HubsMcpToolsTest {
             void anIncompleteAnswerIsAskedAgainNamingTheProblem() {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
-                String message = message(answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"lastMinutes\"}"));
+                String message = message(answered(McpInputResponse.Action.ACCEPT,
+                        "{\"window\":\"LAST_MINUTES\",\"minutes\":\"ten\"}"));
 
                 assertTrue(message.contains("minutes"), message);
                 assertTrue(message.contains("checkout-api"), message);
@@ -1357,12 +1493,12 @@ class HubsMcpToolsTest {
                 resolvesTo(projectWith(threeHours(), downloads));
                 noLocalRecordings();
 
-                message(standard.download(REF.encode(), null, null, null, null, ELICITING_TASKS));
+                message(standard.download(REF.encode(), null, null, null, null, null, null, null, ELICITING_TASKS));
                 McpToolOutcome outcome;
                 try {
                     outcome = assertTimeout(Duration.ofSeconds(20), () -> standard.download(
-                            REF.encode(), null, null, null, null, answering(ELICITING_TASKS, KEY,
-                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"lastHour\"}")));
+                            REF.encode(), null, null, null, null, null, null, null, answering(ELICITING_TASKS, KEY,
+                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}")));
                 } finally {
                     release.countDown();
                 }
@@ -1400,8 +1536,8 @@ class HubsMcpToolsTest {
             resolvesTo(projectWith(fourChunks(), downloads));
             noLocalRecordings();
 
-            String result = complete(tools.download(REF.encode(), null,
-                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null,
+                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-window\""), result);
             assertTrue(result.contains("\"recordingFiles\":2"), result);
@@ -1423,7 +1559,7 @@ class HubsMcpToolsTest {
             localRecording("rec-existing", "profile-existing", REF);
 
             String result =
-                    complete(tools.download(REF.encode(), null, NOW.plusSeconds(200).toEpochMilli(), null, null, RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(), null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("rec-window"), result);
             assertFalse(result.contains("rec-existing"), result);
@@ -1444,9 +1580,9 @@ class HubsMcpToolsTest {
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(mock(Recording.class)));
 
             long start = NOW.plusSeconds(200).toEpochMilli();
-            assertTrue(complete(tools.download(REF.encode(), null, start, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, start, null, null, null, RESOURCE_READ))
                     .contains("rec-first"));
-            String second = complete(tools.download(REF.encode(), null, start, null, null, RESOURCE_READ));
+            String second = complete(tools.download(REF.encode(), null, null, null, start, null, null, null, RESOURCE_READ));
 
             assertTrue(second.contains("rec-second"), second);
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
@@ -1463,8 +1599,8 @@ class HubsMcpToolsTest {
 
             long start = NOW.plusSeconds(200).toEpochMilli();
             long end = NOW.plusSeconds(320).toEpochMilli();
-            complete(tools.download(REF.encode(), null, start, end, null, RESOURCE_READ));
-            complete(tools.download(REF.encode(), null, start, end, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
 
             verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
         }
@@ -1476,7 +1612,7 @@ class HubsMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("started at " + NOW), e.getMessage());
             assertTrue(e.getMessage().contains("finished at " + NOW.plusSeconds(600)), e.getMessage());
@@ -1486,7 +1622,7 @@ class HubsMcpToolsTest {
         @Test
         void aWindowWithItsEndBeforeItsStartIsRefusedBeforeTheHubIsAsked() {
             assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, NOW.plusSeconds(300).toEpochMilli(), NOW.plusSeconds(200).toEpochMilli(), null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.plusSeconds(300).toEpochMilli(), NOW.plusSeconds(200).toEpochMilli(), null, null, RESOURCE_READ)));
             verifyNoInteractions(resolver);
         }
 
@@ -1498,7 +1634,7 @@ class HubsMcpToolsTest {
             noLocalRecordings();
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, List.of("c2", "log"), RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "log"), null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-files\""), result);
             assertTrue(result.contains("\"recordingFiles\":1"), result);
@@ -1514,7 +1650,7 @@ class HubsMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, List.of("c2", "nope"), RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "nope"), null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("[nope]"), e.getMessage());
             verifyNoInteractions(downloads);
@@ -1531,7 +1667,7 @@ class HubsMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, List.of("c1", "c3"), RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c3"), null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
             assertTrue(e.getMessage().contains("startEpochMs"), e.getMessage());
@@ -1546,7 +1682,7 @@ class HubsMcpToolsTest {
             noLocalRecordings();
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, List.of("c1", "c2", "log"), RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c2", "log"), null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingFiles\":2"), result);
             verify(downloads).downloadRecordings(SESSION_ID, List.of("c1", "c2", "log"));
@@ -1559,7 +1695,7 @@ class HubsMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, List.of("log"), RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("log"), null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("hubs_fetchFile"), e.getMessage());
             verifyNoInteractions(downloads);
@@ -1596,7 +1732,7 @@ class HubsMcpToolsTest {
         @Test
         void aWindowAndFileIdsTogetherAreRefused() {
             assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, NOW.toEpochMilli(), null, List.of("c1"), RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.toEpochMilli(), null, List.of("c1"), null, RESOURCE_READ)));
             verifyNoInteractions(resolver);
         }
 
@@ -1615,9 +1751,9 @@ class HubsMcpToolsTest {
             HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(200));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(otherRef.encode(), null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(otherRef.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
                 boolean bothStarted;
                 try {
@@ -1664,9 +1800,9 @@ class HubsMcpToolsTest {
             HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofSeconds(1));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
                 assertTrue(preflights.await(1, TimeUnit.SECONDS));
                 assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
@@ -1713,10 +1849,10 @@ class HubsMcpToolsTest {
             noLocalRecordings();
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> first = callers.submit(
-                        () -> complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
                 assertTrue(transferStarted.await(2, TimeUnit.SECONDS));
                 Future<String> second = callers.submit(
-                        () -> complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
                 assertTrue(first.get(3, TimeUnit.SECONDS).contains("rec-new"));
                 releasePreflight.countDown();
                 assertTrue(second.get(3, TimeUnit.SECONDS).contains("rec-new"));
@@ -1744,9 +1880,9 @@ class HubsMcpToolsTest {
                     .thenThrow(Status.UNAVAILABLE.withDescription("new preflight failure").asRuntimeException());
             resolvesTo(project);
             noLocalRecordings();
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
             JeffreyException failure = assertThrows(JeffreyException.class,
-                    () -> complete(tools.download(REF.encode(), true, null, null, null, RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ)));
             assertEquals(ErrorCode.HUB_UNAVAILABLE, failure.getCode());
             assertTrue(failure.getMessage().contains("UNAVAILABLE"), failure.getMessage());
             verify(downloads, times(1)).downloadSession(SESSION_ID);
@@ -1761,16 +1897,16 @@ class HubsMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
             var first =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), false, null, null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, false, RESOURCE_READ)));
             String operationId = first.path("operationId").asString();
             assertFalse(operationId.isBlank());
             assertEquals("FAILED", first.path("status").asString());
             var retained =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), false, null, null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, false, RESOURCE_READ)));
             assertEquals(operationId, retained.path("operationId").asString());
             verify(downloads, times(1)).downloadSession(SESSION_ID);
             var retry =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), true, null, null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ)));
             assertFalse(operationId.equals(retry.path("operationId").asString()));
             assertEquals("COMPLETED", retry.path("operation").path("status").asString());
         }
@@ -1790,7 +1926,7 @@ class HubsMcpToolsTest {
             long end = NOW.plusSeconds(320).toEpochMilli();
 
             JsonNode failed = StructuredAnswers.json(HubsMcpTools.class, "download",
-                    tools.download(REF.encode(), false, start, end, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, start, end, null, false, RESOURCE_READ));
 
             assertEquals("FAILED", failed.path("status").asString(), failed.toString());
             assertTrue(failed.path("reason").asString().contains("connection lost"), failed.toString());
@@ -1811,7 +1947,7 @@ class HubsMcpToolsTest {
             localRecording("rec-existing", null, REF);
 
             JsonNode answer = StructuredAnswers.json(HubsMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertEquals("DOWNLOADED", answer.path("status").asString());
             assertTrue(answer.path("recordingFiles").isNull(), answer.toString());
@@ -1826,7 +1962,7 @@ class HubsMcpToolsTest {
             localRecording("rec-existing", "profile-1", REF);
 
             JsonNode answer = StructuredAnswers.json(HubsMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertEquals("profile-1", answer.path("profileId").asString());
             assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(answer));
@@ -1842,10 +1978,10 @@ class HubsMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
-            assertTrue(complete(tools.download(REF.encode(), true, null, null, null, RESOURCE_READ))
+            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ))
                     .contains("rec-retried"));
         }
 
@@ -1870,17 +2006,17 @@ class HubsMcpToolsTest {
             noLocalRecordings();
             HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
 
-            String first = complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ));
+            String first = complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
             assertTrue(first.contains("still running"), first);
             assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
             release.countDown();
             assertTrue(failed.await(1, TimeUnit.SECONDS));
 
-            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
-            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
             verify(downloads, times(1)).downloadSession(SESSION_ID);
 
-            assertTrue(complete(shortBudgetTools.download(REF.encode(), true, null, null, null, RESOURCE_READ))
+            assertTrue(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ))
                     .contains("rec-retried"));
             verify(downloads, times(2)).downloadSession(SESSION_ID);
         }
@@ -1895,9 +2031,9 @@ class HubsMcpToolsTest {
             noLocalRecordings();
             when(recordingsManager.findRecording("rec-deleted")).thenReturn(Optional.empty());
 
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
                     .contains("rec-deleted"));
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
                     .contains("rec-refetched"));
 
             verify(downloads, times(2)).downloadSession(SESSION_ID);
@@ -1932,12 +2068,12 @@ class HubsMcpToolsTest {
             noLocalRecordings();
             HubsMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
 
-            assertTrue(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
                     .contains("still running"));
             assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
             try (ExecutorService callers = Executors.newSingleThreadExecutor()) {
                 Future<String> poll = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
                 assertTrue(secondPreflight.await(1, TimeUnit.SECONDS));
                 releaseTransfer.countDown();
                 assertTrue(failurePublished.await(1, TimeUnit.SECONDS));
@@ -1968,7 +2104,7 @@ class HubsMcpToolsTest {
             noLocalRecordings();
 
             JeffreyException exception = assertThrows(JeffreyException.class,
-                    () -> complete(toolsWithBudget(Duration.ofMillis(50)).download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                    () -> complete(toolsWithBudget(Duration.ofMillis(50)).download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
             assertEquals(ErrorCode.HUB_UNAVAILABLE, exception.getCode());
             assertTrue(exception.getMessage().contains("DEADLINE_EXCEEDED"), exception.getMessage());
@@ -1986,7 +2122,7 @@ class HubsMcpToolsTest {
 
             JeffreyException exception = assertThrows(
                     JeffreyException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
             assertEquals(ErrorCode.HUB_UNAVAILABLE, exception.getCode());
             assertTrue(exception.getMessage().contains("UNAVAILABLE"), exception.getMessage());

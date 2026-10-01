@@ -26,7 +26,6 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.profile.mcp.finding.McpFindings;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
@@ -104,7 +103,7 @@ public final class ProfileFindingsReader {
                 AutoAnalysisFindings.notEvaluated(results),
                 capabilityGaps.gaps(ProfileDisabledFeatures.of(profileManager)),
                 NextSteps.builder(advertised)
-                        .nextWhen(status == AutoAnalysisStatus.NOT_COMPUTED, McpNextTool.call(AUTO_ANALYSIS_TOOL)
+                        .nextWhen(status == AutoAnalysisStatus.NOT_COMPUTED, NextCalls.to(AUTO_ANALYSIS_TOOL)
                                 .with(PROFILE_ID, profileId)
                                 .with(COMPUTE, true)
                                 .why(COMPUTE_WHY))

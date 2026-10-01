@@ -27,23 +27,19 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 public sealed interface WindowAnswer {
 
     /**
-     * A window of the session, in UTC epoch milliseconds, downloaded as a part.
+     * The user chose a window, with what the form gave it; it is resolved by the same rules as a
+     * window a call names.
      *
-     * @param startEpochMs where the window starts
-     * @param endEpochMs   where it ends, after the start
+     * @param window the window chosen
+     * @param given  the form's fields that window takes
      */
-    record Chosen(long startEpochMs, long endEpochMs) implements WindowAnswer {
+    record Chosen(DownloadWindow window, WindowArguments given) implements WindowAnswer {
 
         public Chosen {
-            if (endEpochMs <= startEpochMs) {
-                throw new IllegalArgumentException(
-                        "A chosen window must end after it starts: start=" + startEpochMs + " end=" + endEpochMs);
+            if (window == null || given == null) {
+                throw new IllegalArgumentException("A chosen answer needs its window and arguments");
             }
         }
-    }
-
-    /** All of the session, as a call with no window downloads it. */
-    record Whole() implements WindowAnswer {
     }
 
     /**

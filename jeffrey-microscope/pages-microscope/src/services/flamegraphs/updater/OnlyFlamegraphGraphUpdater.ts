@@ -40,7 +40,6 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
   public updateWithZoom(timeRange: TimeRange): void {
     this.flamegraphOnUpdateStartedCallback();
-    this.drawnTimeRange = timeRange;
 
     this.httpClient
       .provide(timeRange)
@@ -53,7 +52,6 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
   public resetZoom(): void {
     this.flamegraphOnUpdateStartedCallback();
-    this.drawnTimeRange = null;
 
     this.httpClient
       .provide(null)

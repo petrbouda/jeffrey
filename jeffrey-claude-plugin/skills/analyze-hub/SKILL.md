@@ -21,7 +21,10 @@ guessing at a path — the recordings are not reachable from here.
 ```
 hubs_sessions(withinLastMinutes=60)                  → rows, newest first, each with a sessionRef
   … which interval? — ask, with started/duration in front of the user
-hubs_download(sessionRef, startEpochMs, endEpochMs)  → recordingId, or RUNNING with an operationId
+hubs_download(sessionRef, window=LAST_MINUTES)       → recordingId, or RUNNING with an operationId
+   or hubs_download(sessionRef, window=STARTUP|LATEST|PEAK|WHOLE)
+   or hubs_download(sessionRef, window=BEFORE|AROUND, atEpochMs, minutes)
+   or hubs_download(sessionRef, startEpochMs, endEpochMs) → a span of your own
    or hubs_download(sessionRef, fileIds=["…"])       → the same, for files picked from hubs_files
    or hubs_download(sessionRef)                      → the whole session, when it is short
 recordings_analyzeRecording(recordingId)             → profileId, or RUNNING with an operationId
@@ -111,17 +114,40 @@ A session on a hub is not a file, it is a JVM's whole recording life: hours or d
 rolled every few minutes, and the question is almost never about all of it. "Why was prod slow this
 morning" is about this morning. Before downloading a session that runs longer than a few minutes,
 ask **which interval** — with its `started` and `duration` in front of the user, so the answer can
-be concrete: *"checkout has been recording since 06:12 today, 9 hours so far. The last hour, the
-morning, or a particular window?"* The usual answers are the last hour, the last day, yesterday,
-"since the deploy", or a pair of hours; turn the one you get into UTC epoch milliseconds and pass
-it as `startEpochMs` / `endEpochMs`. One bound alone is fine — `startEpochMs` alone reads to the
-session's end, `endEpochMs` alone back to its start.
+be concrete: *"checkout has been recording since 06:12 today, 9 hours so far. The last hour, its
+startup, the busiest stretch, or a particular window?"*
 
-A window is **always covered**: a chunk holds a stretch of the recording — fifteen minutes is
-common — and every chunk whose stretch touches the window is brought, so the recording begins at or
-before the interval and ends at or after it, with some slack at either end rather than a gap. The
-answer reports the span the chunks actually cover; that span, not the interval you asked for, is
-what the profile's figures are about.
+Most answers have a name; pass it as `window` and let Jeffrey measure it on the session — from the
+session's own end, its own chunks — rather than working out times yourself:
+
+| The user says | `window` |
+|---|---|
+| the last hour, the last 20 minutes | `LAST_MINUTES` (`minutes`, 60 when omitted) |
+| since it started, the startup, the warm-up | `STARTUP` — the first chunk |
+| right now, what it is doing at the moment | `LATEST` — the newest finished chunk |
+| the worst moment, the busiest time | `PEAK` — the largest compressed chunk; the answer's `chosen.evidence` says by how much |
+| before the heap dump, before it crashed | `BEFORE` with `atEpochMs` = that file's `createdAtEpochMs` from `hubs_files`, and `minutes` |
+| around 10:42 | `AROUND` with `atEpochMs` and `minutes` |
+| all of it | `WHOLE` |
+
+Two times of their own ("from 09:00 to 10:30", "yesterday") are `startEpochMs` / `endEpochMs` in
+UTC epoch milliseconds, with no `window`. One bound alone is fine — `startEpochMs` alone reads to the
+session's end, `endEpochMs` alone back to its start. A named window is a decision: Jeffrey does not
+ask the user again about the part to bring.
+
+`STARTUP_NOT_RETAINED` means the hub's cleaners have already removed the session's first chunk; the
+answer names the oldest chunk still there. Nothing was downloaded and nothing was substituted — say
+so, and ask the user whether that chunk, `LATEST`, `PEAK` or a window will do.
+
+A window is **always covered**: a chunk holds a stretch of the recording — its length is the
+profiler's configuration — and every chunk whose stretch touches the window is brought, so the
+recording begins at or before the interval and ends at or after it, with some slack at either end
+rather than a gap. The answer reports the span the chunks actually cover; that span, not the
+interval you asked for, is what the profile's figures are about.
+
+When a transfer outlasts the call, follow the call its `followUp` names — it names the exact chunks
+or span this download resolved to — rather than repeating `window`: `LATEST` asked again later can
+be a newer chunk, and that would be a second download instead of joining the first.
 
 A session of a few minutes is pulled whole; asking would cost more than the download. Do **not**
 call `hubs_files` to choose chunks by hand for a window — a long session lists thousands of rows,

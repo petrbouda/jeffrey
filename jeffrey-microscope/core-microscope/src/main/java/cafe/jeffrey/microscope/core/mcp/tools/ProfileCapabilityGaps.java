@@ -125,7 +125,7 @@ final class ProfileCapabilityGaps {
      * {@code canGenerate()} is false for any profile without a JFR file to read: one whose file was
      * removed, and one that never had one -- a pprof or OTLP import, or a profile with no recording.
      */
-    private static final String AUTO_ANALYSIS_IMPOSSIBLE_REMEDY =
+    static final String AUTO_ANALYSIS_IMPOSSIBLE_REMEDY =
             "The rules cannot be run: no JFR recording file is available for this profile: it was removed, "
                     + "or the profile was not imported from a JFR recording.";
 
@@ -206,9 +206,26 @@ final class ProfileCapabilityGaps {
     private final JvmSections sections;
 
     ProfileCapabilityGaps(ProfileManager profileManager, FlamegraphCatalog catalog) {
+        this(profileManager, catalog, JvmSections.standard(profileManager));
+    }
+
+    /** Sharing the sections with a caller that reads them too, so their event types are read once. */
+    ProfileCapabilityGaps(ProfileManager profileManager, FlamegraphCatalog catalog, JvmSections sections) {
         this.profileManager = profileManager;
         this.catalog = catalog;
-        this.sections = JvmSections.standard(profileManager);
+        this.sections = sections;
+    }
+
+    /**
+     * The gap a disabled feature leaves, in the same words {@link #gaps} uses for it — for a reader
+     * that names one feature's gap on its own.
+     */
+    static CapabilityGap featureGap(FeatureType feature) {
+        FeatureGap text = FEATURE_GAPS.get(feature);
+        if (text == null) {
+            return new CapabilityGap(feature.name(), feature.name() + " is not available for this profile.", null);
+        }
+        return new CapabilityGap(feature.name(), text.gap(), text.remedy());
     }
 
     /**
@@ -244,12 +261,7 @@ final class ProfileCapabilityGaps {
             if (FEATURES_REPORTED_ELSEWHERE.contains(feature)) {
                 continue;
             }
-            FeatureGap text = FEATURE_GAPS.get(feature);
-            if (text == null) {
-                gaps.add(new CapabilityGap(feature.name(), feature.name() + " is not available for this profile.", null));
-            } else {
-                gaps.add(new CapabilityGap(feature.name(), text.gap(), text.remedy()));
-            }
+            gaps.add(featureGap(feature));
         }
     }
 

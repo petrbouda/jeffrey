@@ -570,7 +570,8 @@ public class TracesMcpTools {
             + "uiLink opens the operation's flamegraphs tab in Microscope, and uiLinkNote says what "
             + "the link cannot choose. An unknown operation is an error naming it.")
     @McpOutputSchema(OperationFlamegraph.class)
-    @McpToolMeta(cost = McpToolCost.MODERATE, requires = McpToolRequirement.TRACES)
+    @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.MODERATE,
+            requires = McpToolRequirement.TRACES)
     public McpToolResult operationFlamegraphExport(
             @ToolParam(required = true, description = "Operation name, e.g. 'GET /orders'")
             String name,
@@ -689,7 +690,7 @@ public class TracesMcpTools {
     }
 
     private McpNextTool.Call call(String tool) {
-        return McpNextTool.call(tool).with(FollowUpCalls.PROFILE_ID, profileId());
+        return NextCalls.to(tool).with(FollowUpCalls.PROFILE_ID, profileId());
     }
 
     private String operationUrl(String name, String kind, String eventType, String tab) {

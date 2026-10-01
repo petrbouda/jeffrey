@@ -17,9 +17,6 @@
 
 <script setup lang="ts">
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import type { AiExportContext } from '@/components/FlamegraphComponent.vue';
-import FlamegraphAiExportClient from '@/services/api/FlamegraphAiExportClient';
-import { flamegraphFilenameStem } from '@/composables/useAiExport';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import CpuTimeSampleLossAlert from '@/components/alerts/CpuTimeSampleLossAlert.vue';
@@ -63,7 +60,6 @@ const eventType = ref<string>('');
 const useWeight = ref(false);
 const isDifferential = ref(false);
 const isPrimary = ref(false);
-const aiExportContext = ref<AiExportContext | null>(null);
 // A differential graph with no baseline to subtract - a link whose baseline could not be loaded, or
 // one opened without any. Drawn as its own state rather than as a request for profile "null".
 const missingBaseline = ref(false);
@@ -137,26 +133,6 @@ onBeforeMount(() => {
     useWeightValue,
     isDifferentialValue
   );
-
-  // The filters and the range in effect travel with the request, so the exported document describes
-  // the graph as it is on screen rather than the unfiltered, whole-recording one.
-  const aiExportClient = new FlamegraphAiExportClient(route.params.profileId as string);
-  const updater = graphUpdater;
-  aiExportContext.value = {
-    graphMode: isDifferentialValue ? 'DIFFERENTIAL' : 'PRIMARY',
-    filenameStem: flamegraphFilenameStem(eventTypeValue),
-    generate: search =>
-      aiExportClient.generate({
-        eventType: eventTypeValue,
-        useWeight: useWeightValue,
-        useThreadMode,
-        search,
-        excludeNonJavaSamples,
-        excludeIdleSamples,
-        onlyUnsafeAllocationSamples,
-        timeRange: updater.currentTimeRange()
-      })
-  };
 });
 </script>
 
@@ -186,7 +162,6 @@ onBeforeMount(() => {
       :scrollable-wrapper-class="null"
       :flamegraph-tooltip="flamegraphTooltip"
       :graph-updater="graphUpdater"
-      :ai-export-context="aiExportContext"
       @loaded="scrollToTop"
     />
   </div>

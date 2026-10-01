@@ -478,7 +478,7 @@ public class IdeMcpTools {
     }
 
     private McpNextTool.Call onProfile(String tool) {
-        return McpNextTool.call(tool).with(PROFILE_ID, profileId);
+        return NextCalls.to(tool).with(PROFILE_ID, profileId);
     }
 
     private String recordingCommit() {

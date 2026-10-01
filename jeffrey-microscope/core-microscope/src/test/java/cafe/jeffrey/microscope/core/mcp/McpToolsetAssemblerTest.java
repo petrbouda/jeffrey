@@ -654,7 +654,8 @@ class McpToolsetAssemblerTest {
 
         /**
          * The tools whose ordinary answer can pass Claude Code's inline budget, and so tell the host
-         * up front how large an answer to keep inline rather than spill to a file.
+         * up front how large an answer to keep inline rather than spill to a file. The same set is what
+         * the agent is told is HEAVY to follow up with ({@code McpToolWeight}).
          */
         private static final Set<String> LARGE_RESULTS = Set.of(
                 "flamegraph_export",
@@ -662,6 +663,8 @@ class McpToolsetAssemblerTest {
                 "traces_traceExport",
                 "traces_operationExport",
                 "traces_spanFlamegraphExport",
+                "traces_operationFlamegraphExport",
+                "jvm_threadDump",
                 "jfr_executeQuery",
                 "heap_getDominatorTreeRoots");
 

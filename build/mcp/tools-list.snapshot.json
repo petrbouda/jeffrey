@@ -75,6 +75,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -82,6 +90,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -221,6 +230,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -228,6 +245,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -372,6 +390,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -379,6 +405,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -538,6 +565,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -545,6 +580,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -789,6 +825,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -796,6 +840,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -992,6 +1037,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -999,6 +1052,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -1492,6 +1546,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -1499,6 +1561,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": [
@@ -1559,6 +1622,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -1566,6 +1637,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -2117,6 +2189,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -2124,6 +2204,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -2315,6 +2396,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -2322,6 +2411,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -2445,6 +2535,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -2452,6 +2550,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -2750,6 +2849,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -2757,6 +2864,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -3048,6 +3156,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -3055,6 +3171,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -3293,6 +3410,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -3300,6 +3425,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -3460,6 +3586,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -3467,6 +3601,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -3633,6 +3768,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -3640,6 +3783,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -3810,6 +3954,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -3817,6 +3969,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -3915,6 +4068,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -3922,6 +4083,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -4098,6 +4260,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -4105,6 +4275,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -4349,6 +4520,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -4356,6 +4535,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -4456,6 +4636,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -4463,6 +4651,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -4672,6 +4861,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -4679,6 +4876,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -4785,6 +4983,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -4792,6 +4998,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -4930,6 +5137,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -4937,6 +5152,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -5103,6 +5319,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -5110,6 +5334,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -5219,6 +5444,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -5226,6 +5459,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -5320,6 +5554,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -5327,6 +5569,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -5500,6 +5743,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -5507,6 +5758,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -5761,6 +6013,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -5768,6 +6028,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -5962,6 +6223,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -5969,6 +6238,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -6106,6 +6376,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -6113,6 +6391,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -6282,6 +6561,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -6289,6 +6576,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -6522,6 +6810,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -6529,6 +6825,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -6643,6 +6940,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -6650,6 +6955,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -6751,6 +7057,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -6758,6 +7072,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -6840,6 +7155,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -6847,6 +7170,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -7227,6 +7551,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -7234,6 +7566,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -7304,6 +7637,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -7311,6 +7652,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -7643,6 +7985,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -7650,6 +8000,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -7720,6 +8071,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -7727,6 +8086,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -8145,6 +8505,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -8152,6 +8520,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -8488,6 +8857,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -8495,6 +8872,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -8728,11 +9106,19 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "atEpochMs": {
+            "type": "integer"
+          },
           "endEpochMs": {
             "type": "integer"
           },
           "fileIds": {
             "type": "array"
+          },
+          "minutes": {
+            "maximum": 527040,
+            "minimum": 1,
+            "type": "integer"
           },
           "retry": {
             "type": "boolean"
@@ -8742,6 +9128,19 @@
           },
           "startEpochMs": {
             "type": "integer"
+          },
+          "window": {
+            "enum": [
+              "WHOLE",
+              "LAST_MINUTES",
+              "STARTUP",
+              "LATEST",
+              "PEAK",
+              "BEFORE",
+              "AROUND",
+              "CUSTOM"
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -8756,6 +9155,66 @@
             "minimum": 0,
             "type": [
               "integer",
+              "null"
+            ]
+          },
+          "chosen": {
+            "additionalProperties": false,
+            "properties": {
+              "chunkFileId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "chunkLengthMs": {
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "chunkSizeBytes": {
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "evidence": {
+                "type": "string"
+              },
+              "medianChunkSizeBytes": {
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "window": {
+                "enum": [
+                  "WHOLE",
+                  "LAST_MINUTES",
+                  "STARTUP",
+                  "LATEST",
+                  "PEAK",
+                  "BEFORE",
+                  "AROUND",
+                  "CUSTOM"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "chunkFileId",
+              "chunkLengthMs",
+              "chunkSizeBytes",
+              "evidence",
+              "medianChunkSizeBytes",
+              "window"
+            ],
+            "type": [
+              "object",
               "null"
             ]
           },
@@ -8802,6 +9261,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -8809,6 +9276,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -8885,6 +9353,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -8892,6 +9368,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -9155,7 +9632,8 @@
               "RUNNING",
               "NOT_DOWNLOADED",
               "FAILED",
-              "CANCELLED"
+              "CANCELLED",
+              "STARTUP_NOT_RETAINED"
             ],
             "type": "string"
           },
@@ -9165,6 +9643,7 @@
         },
         "required": [
           "artifactFiles",
+          "chosen",
           "coveredEndEpochMs",
           "coveredStartEpochMs",
           "endEpochMs",
@@ -9250,6 +9729,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -9257,6 +9744,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -9327,6 +9815,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -9334,6 +9830,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -9755,6 +10252,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -9762,6 +10267,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -9909,6 +10415,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -9916,6 +10430,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -10139,6 +10654,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -10146,6 +10669,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -10351,6 +10875,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -10358,6 +10890,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -10483,6 +11016,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -10490,6 +11031,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -10643,6 +11185,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -10650,6 +11200,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -10805,6 +11356,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -10812,6 +11371,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -11003,6 +11563,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -11010,6 +11578,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -11122,6 +11691,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -11129,6 +11706,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -11268,6 +11846,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -11275,6 +11861,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -11406,6 +11993,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -11413,6 +12008,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -11701,6 +12297,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -11708,6 +12312,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -11906,6 +12511,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -11913,6 +12526,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -12253,6 +12867,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -12260,6 +12882,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -12368,6 +12991,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -12375,6 +13006,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -12467,6 +13099,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -12474,6 +13114,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -12571,6 +13212,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -12578,6 +13227,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -12707,6 +13357,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -12714,6 +13372,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -12784,6 +13443,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -12791,6 +13458,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -12902,6 +13570,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -12909,6 +13585,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -13064,6 +13741,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -13071,6 +13756,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": [
@@ -13148,6 +13834,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -13155,6 +13849,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -13225,6 +13920,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -13232,6 +13935,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -13658,6 +14362,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -13665,6 +14377,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -13840,6 +14553,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -13847,6 +14568,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -14043,6 +14765,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -14050,6 +14780,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": [
@@ -14173,6 +14904,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -14180,6 +14919,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -14366,6 +15106,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -14373,6 +15121,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -14553,6 +15302,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -14560,6 +15317,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -14883,6 +15641,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -14890,6 +15656,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -16234,6 +17001,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -16241,6 +17016,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -16624,6 +17400,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -16631,6 +17415,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -16855,6 +17640,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -16862,6 +17655,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -17085,6 +17879,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -17092,6 +17894,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -17189,6 +17992,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -17196,6 +18007,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -17506,6 +18318,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -17513,6 +18333,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -17719,6 +18540,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -17726,6 +18555,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -17781,6 +18611,7 @@
     },
     {
       "_meta": {
+        "anthropic/maxResultSizeChars": 120000,
         "jeffrey/cost": "CHEAP"
       },
       "annotations": {
@@ -17887,6 +18718,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -17894,6 +18733,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -18156,6 +18996,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -18163,6 +19011,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -18628,6 +19477,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -18635,6 +19492,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -18732,6 +19590,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -18739,6 +19605,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -18931,6 +19798,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -18938,6 +19813,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -19062,6 +19938,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -19069,6 +19953,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -19283,6 +20168,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -19290,6 +20183,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -19436,6 +20330,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -19443,6 +20345,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -19616,6 +20519,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -19623,6 +20534,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -19896,6 +20808,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -19903,6 +20823,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -20304,6 +21225,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -20311,6 +21240,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": [
@@ -20371,6 +21301,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -20378,6 +21316,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -20814,6 +21753,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -20821,6 +21768,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -20999,6 +21947,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -21006,6 +21962,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -21201,6 +22158,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -21208,6 +22173,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -21392,6 +22358,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -21399,6 +22373,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -21411,6 +22386,135 @@
               "nextTools"
             ],
             "type": "object"
+          },
+          "investigationAreas": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "area": {
+                  "enum": [
+                    "CPU_HOTSPOTS",
+                    "WALL_CLOCK",
+                    "ALLOCATION",
+                    "HOT_WINDOWS",
+                    "SLOW_ENDPOINTS",
+                    "DATABASE",
+                    "IO_WAITING",
+                    "LOCK_CONTENTION",
+                    "GC_PAUSES",
+                    "JIT",
+                    "THREADS",
+                    "NATIVE_MEMORY",
+                    "RULE_FINDINGS",
+                    "CONTAINER_AND_FLAGS",
+                    "LEAK_CANDIDATES"
+                  ],
+                  "type": "string"
+                },
+                "availability": {
+                  "enum": [
+                    "AVAILABLE",
+                    "NOT_RECORDED"
+                  ],
+                  "type": "string"
+                },
+                "evidence": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "gap": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "group": {
+                  "enum": [
+                    "CODE",
+                    "WAITING",
+                    "JVM",
+                    "OVERALL"
+                  ],
+                  "type": "string"
+                },
+                "nextTools": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "arguments": {
+                        "type": "object"
+                      },
+                      "tool": {
+                        "type": "string"
+                      },
+                      "weight": {
+                        "enum": [
+                          "LIGHT",
+                          "MEDIUM",
+                          "HEAVY"
+                        ],
+                        "type": "string"
+                      },
+                      "why": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "arguments",
+                      "tool",
+                      "weight",
+                      "why"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "question": {
+                  "type": "string"
+                },
+                "remedy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "suggested": {
+                  "type": "boolean"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "weight": {
+                  "enum": [
+                    "LIGHT",
+                    "MEDIUM",
+                    "HEAVY",
+                    null
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "area",
+                "availability",
+                "evidence",
+                "gap",
+                "group",
+                "nextTools",
+                "question",
+                "remedy",
+                "suggested",
+                "title",
+                "weight"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "name": {
             "type": [
@@ -21461,6 +22565,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -21468,6 +22580,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": [
@@ -21521,6 +22634,7 @@
           "eventTypes",
           "finishedAtEpochMs",
           "followUp",
+          "investigationAreas",
           "name",
           "profileId",
           "startedAtEpochMs",
@@ -21698,6 +22812,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -21705,6 +22827,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -21781,6 +22904,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -21788,6 +22919,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -22143,6 +23275,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -22150,6 +23290,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -22226,6 +23367,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -22233,6 +23382,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -22640,6 +23790,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -22647,6 +23805,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -22814,6 +23973,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -22821,6 +23988,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -22897,6 +24065,14 @@
                         "tool": {
                           "type": "string"
                         },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
                         "why": {
                           "type": "string"
                         }
@@ -22904,6 +24080,7 @@
                       "required": [
                         "arguments",
                         "tool",
+                        "weight",
                         "why"
                       ],
                       "type": "object"
@@ -23260,6 +24437,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -23267,6 +24452,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -23449,6 +24635,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -23456,6 +24650,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -23624,6 +24819,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -23631,6 +24834,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -23834,6 +25038,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -23841,6 +25053,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -24178,6 +25391,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -24185,6 +25406,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -24394,6 +25616,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -24401,6 +25631,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -24617,6 +25848,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -24624,6 +25863,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -24672,6 +25912,7 @@
     },
     {
       "_meta": {
+        "anthropic/maxResultSizeChars": 120000,
         "jeffrey/cost": "MODERATE",
         "jeffrey/requires": [
           "TRACES"
@@ -24749,6 +25990,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -24756,6 +26005,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -24897,6 +26147,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -24904,6 +26162,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -25076,6 +26335,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -25083,6 +26350,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -25262,6 +26530,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -25269,6 +26545,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -25438,6 +26715,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -25445,6 +26730,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"
@@ -25577,6 +26863,14 @@
                     "tool": {
                       "type": "string"
                     },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
                     "why": {
                       "type": "string"
                     }
@@ -25584,6 +26878,7 @@
                   "required": [
                     "arguments",
                     "tool",
+                    "weight",
                     "why"
                   ],
                   "type": "object"

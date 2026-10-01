@@ -605,7 +605,7 @@ public class JvmMcpTools {
             + "deadlock or the stuck threads. The first 50 threads unless limit says otherwise; "
             + "state narrows to one thread state, and omittedThreads counts what the answer left out. "
             + "status is NO_SUCH_DUMP for an index the profile does not have.")
-    @McpToolMeta(cost = McpToolCost.CHEAP)
+    @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.CHEAP)
     @McpOutputSchema(ThreadDump.class)
     public McpToolResult threadDump(
             @ToolParam(required = true, description = "Index of the dump, as listed by jvm_threadDumps")
@@ -758,7 +758,7 @@ public class JvmMcpTools {
 
     private AutoAnalysisSection.Answer computing(McpOperationRegistry.Snapshot operation, String link) {
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(McpNextTool.call(OPERATIONS_STATUS_TOOL).with(OPERATION_ID, operation.operationId())
+                .next(NextCalls.to(OPERATIONS_STATUS_TOOL).with(OPERATION_ID, operation.operationId())
                         .why(POLL_WHY))
                 .followUp();
         return new AutoAnalysisSection.Answer(AutoAnalysisStatus.NOT_COMPUTED, COMPUTING, profileId(),
@@ -829,7 +829,7 @@ public class JvmMcpTools {
     }
 
     private McpNextTool.Call onProfile(String tool) {
-        return McpNextTool.call(tool).with(PROFILE_ID, profileId());
+        return NextCalls.to(tool).with(PROFILE_ID, profileId());
     }
 
     /**

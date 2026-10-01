@@ -30,7 +30,6 @@ import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
@@ -163,8 +162,8 @@ public class ProfileEvidenceMcpTools {
                 : List.of();
         List<FeatureType> disabled = ProfileDisabledFeatures.of(manager);
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(McpNextTool.call(TOOL_NAME).with(PROFILE_ID, profileId).with(LIMIT, rows).why(REPLAY_WHY))
-                .nextWhen(status == AutoAnalysisStatus.NOT_COMPUTED, McpNextTool.call(AUTO_ANALYSIS_TOOL)
+                .next(NextCalls.to(TOOL_NAME).with(PROFILE_ID, profileId).with(LIMIT, rows).why(REPLAY_WHY))
+                .nextWhen(status == AutoAnalysisStatus.NOT_COMPUTED, NextCalls.to(AUTO_ANALYSIS_TOOL)
                         .with(PROFILE_ID, profileId).with(COMPUTE, true).why(COMPUTE_WHY))
                 .followUp();
         EvidenceDocument skeleton = new EvidenceDocument(SCHEMA_VERSION, FINDING_SCHEMA_VERSION, clock.millis(),

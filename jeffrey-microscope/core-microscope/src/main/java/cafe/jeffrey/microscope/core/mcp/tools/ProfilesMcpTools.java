@@ -31,7 +31,6 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
@@ -207,12 +206,12 @@ public class ProfilesMcpTools {
                 .findFirst()
                 .orElse(null);
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .nextWhen(hasMore, McpNextTool.call(TOOL_NAME)
+                .nextWhen(hasMore, NextCalls.to(TOOL_NAME)
                         .with(SEARCH, request.search())
                         .with(LIMIT, request.limit())
                         .with(CURSOR, nextCursor)
                         .why(NEXT_PAGE_WHY))
-                .nextWhen(building != null, McpNextTool.call(RECORDINGS_STATUS)
+                .nextWhen(building != null, NextCalls.to(RECORDINGS_STATUS)
                         .with(RECORDING_ID, building)
                         .why(BUILDING_WHY))
                 .followUp();
