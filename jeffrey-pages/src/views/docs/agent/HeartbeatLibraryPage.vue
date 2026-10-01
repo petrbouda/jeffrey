@@ -25,7 +25,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'declaring-it', text: 'Declaring That a Session Reports', level: 2 },
+  { id: 'on-by-default', text: 'On by Default', level: 2 },
   { id: 'spring-boot', text: 'Spring Boot', level: 2 },
   { id: 'plain-java', text: 'Plain Java', level: 2 },
   { id: 'configuration', text: 'Configuration', level: 2 },
@@ -50,14 +50,16 @@ onMounted(() => {
         <p>That is the whole of it. It emits no events, instruments nothing, and brings one dependency: the SLF4J API it logs through.</p>
 
         <DocsCallout type="info">
-          A provisioned application configures itself. Jeffrey Provisioner passes <code>-Djeffrey.heartbeat.dir</code> and <code>-Djeffrey.heartbeat.enabled</code> in the argfile the JVM starts with, and exports the matching <code>JEFFREY_HEARTBEAT_*</code> variables into its <code>.env</code> for a deployment that sources one — so on Spring Boot the whole integration is one dependency and no code.
+          A provisioned application configures itself. Jeffrey Provisioner passes <code>-Djeffrey.heartbeat.dir</code> in the argfile the JVM starts with, and exports the matching <code>JEFFREY_HEARTBEAT_DIR</code> into its <code>.env</code> for a deployment that sources one — so on Spring Boot the whole integration is one dependency and no code.
         </DocsCallout>
 
-        <h2 id="declaring-it">Declaring That a Session Reports</h2>
-        <p>Whether this library is on an application's class path is a <strong>build-time fact</strong>, and the Provisioner only writes JVM arguments — it cannot detect it. So the session declares it, and the declaration travels three ways: into the argfile as <code>-Djeffrey.heartbeat.enabled</code>, into the <code>.env</code> for a deployment that sources one, and into the session marker the Hub reconciles.</p>
-        <p><strong>It is off by default</strong>, and the asymmetry is deliberate. A session that declares nothing is simply finished later — when the instance's next session appears. A session that declares liveness and then reports none is held to a deadline it cannot meet, and the Hub marks it finished at its own start timestamp seconds after the JVM came up, while the profiler is still writing into it. Once the dependency is actually there, turn it on:</p>
-        <pre class="doc-code"><code>heartbeat { enabled = true }</code></pre>
-        <p>See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does with each answer.</p>
+        <h2 id="on-by-default">On by Default</h2>
+        <p>The library <strong>reports whenever it is on the class path</strong>. Nothing outside the application decides whether it does: the Provisioner has no heartbeat setting and only names the directory, through <code>-Djeffrey.heartbeat.dir</code>. With no directory named — an application that was not provisioned, such as one running on a developer's laptop — the library starts inert, which is what makes the dependency safe to leave in.</p>
+        <p>Switching it off is the <strong>application's decision alone</strong>: set <code>jeffrey.heartbeat.enabled=false</code> in <code>application.yaml</code> or as a system property, or <code>JEFFREY_HEARTBEAT_ENABLED=false</code> in the application's own deployment.</p>
+        <pre class="doc-code"><code>jeffrey:
+  heartbeat:
+    enabled: false</code></pre>
+        <p>The Hub needs no word about either choice. It holds a session to the heartbeat deadline only once the session has written a liveness file; a session that never writes one is closed when the instance's next session appears. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does in each case.</p>
 
         <h2 id="spring-boot">Spring Boot</h2>
         <p>One dependency, no code:</p>
@@ -67,8 +69,8 @@ onMounted(() => {
 &lt;/dependency&gt;</code></pre>
         <p>The auto-configuration starts the heartbeat from what the Provisioner exported and closes it when the application context shuts down — which is what writes the clean-exit marker, so the Hub finishes the session at once instead of waiting for the heartbeat to go stale.</p>
         <p>Declare your own <code>JeffreyHeartbeat</code> bean and the auto-configuration backs off.</p>
-        <p>The auto-configuration is gated on <code>JEFFREY_ENABLED=true</code>, the master switch of a <router-link to="/docs/hub/deployment/jeffrey-jib">jeffrey-jib</router-link> container, which Spring Boot binds to <code>jeffrey.enabled</code>. There is no default: a container that leaves it unset, or sets it to <code>false</code>, gets no heartbeat bean at all. A deployment that runs the Provisioner without jeffrey-jib sets the variable itself, or passes <code>-Djeffrey.enabled=true</code>.</p>
-        <p>Jeffrey Hub reports its own liveness with this library. Its image is built with jeffrey-jib, so a pod that sets <code>JEFFREY_ENABLED=true</code> runs the Hub as a profiled JVM like any other application, and a session that declares <code>heartbeat.enabled = true</code> for it is reported the same way. The Hub declares the bean in its own configuration rather than through the starter, and creates it only when <code>jeffrey.heartbeat.enabled=true</code> is present — which the Provisioner writes into the argfile on exactly that path. A Hub started without profiling has no such property and no heartbeat.</p>
+        <p>The auto-configuration's only condition is <code>jeffrey.heartbeat.enabled</code>, which defaults to <code>true</code> when unset — it needs no other switch to be on. Setting it to <code>false</code> leaves the application without a heartbeat bean.</p>
+        <p>Jeffrey Hub reports its own liveness with this library. Its image is built with <router-link to="/docs/hub/deployment/jeffrey-jib">jeffrey-jib</router-link>, so a pod that sets <code>JEFFREY_ENABLED=true</code> runs the Hub as a profiled JVM like any other application, and its session is reported the same way. The Hub declares the bean in its own configuration rather than through the starter, on the same terms: on unless <code>jeffrey.heartbeat.enabled=false</code>, and inert when the Hub is started without the Provisioner and so has no directory.</p>
 
         <h2 id="plain-java">Plain Java</h2>
         <p>Without Spring, one call at startup:</p>
@@ -96,16 +98,10 @@ onMounted(() => {
             </thead>
             <tbody>
               <tr>
-                <td><code>JEFFREY_ENABLED</code></td>
-                <td><code>jeffrey.enabled</code></td>
-                <td>—</td>
-                <td>Spring Boot starter only. The master switch of a jeffrey-jib container; the auto-configuration contributes nothing unless it is <code>true</code>. Plain-Java use ignores it</td>
-              </tr>
-              <tr>
                 <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
                 <td><code>jeffrey.heartbeat.enabled</code></td>
                 <td><code>true</code></td>
-                <td>Whether liveness is reported at all. The library's own default is <code>true</code>, so an application that sets the directory reports; the Provisioner passes what the session declared, which is <code>false</code> unless the deployment said otherwise</td>
+                <td>Whether liveness is reported at all. The application's own switch — nothing in Jeffrey sets it, so an application carrying the library reports unless it sets <code>false</code></td>
               </tr>
               <tr>
                 <td><code>JEFFREY_HEARTBEAT_DIR</code></td>

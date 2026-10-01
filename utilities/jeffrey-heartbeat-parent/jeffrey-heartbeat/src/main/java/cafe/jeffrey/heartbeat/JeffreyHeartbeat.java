@@ -33,11 +33,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Reports to a Jeffrey Hub that this JVM is alive, and tells it when the JVM stopped.
  *
- * <p>This is the only writer of those files. Because it is an ordinary dependency, whether an
- * application reports at all is a build-time fact the Provisioner cannot detect — so the session
- * <em>declares</em> it, through {@code heartbeat.enabled}, and that declaration reaches both this
- * library (as {@link HeartbeatSettings#ENABLED_ENV}) and the hub, which uses it to decide whether
- * to hold the session to a heartbeat deadline at all.</p>
+ * <p>This is the only writer of those files, and it is on by default: carrying the dependency is
+ * what opts an application in. Only the application can switch it off, through
+ * {@link HeartbeatSettings#ENABLED_PROPERTY} (or {@link HeartbeatSettings#ENABLED_ENV}); the
+ * Provisioner names the directory and nothing more. The hub holds a session to the heartbeat
+ * deadline once its first liveness file appears, so an application that never reports is never
+ * finished for staying silent.</p>
  *
  * <p>Typical use in a provisioned application is a single call at startup:</p>
  *
@@ -130,8 +131,8 @@ public final class JeffreyHeartbeat implements AutoCloseable {
         JeffreyHeartbeat heartbeat =
                 new JeffreyHeartbeat(new HeartbeatWriter(directory), clock, scheduler);
         long intervalMillis = settings.interval().toMillis();
-        // Zero initial delay: the first beat is what tells the hub this session ever started, and
-        // a hub that sees a declared producer write nothing eventually calls the session finished
+        // Zero initial delay: the first beat is what tells the hub this session reports liveness at
+        // all, and from then on it is held to the heartbeat deadline
         scheduler.scheduleAtFixedRate(heartbeat::beat, 0, intervalMillis, TimeUnit.MILLISECONDS);
 
         LOG.info("Jeffrey heartbeat started: directory={} interval={}",

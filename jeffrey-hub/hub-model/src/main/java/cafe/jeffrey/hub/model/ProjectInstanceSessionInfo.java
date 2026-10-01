@@ -22,12 +22,6 @@ import java.time.Instant;
 
 /**
  * One recording session as the hub knows it.
- *
- * <p>{@code heartbeatExpected} is what the session declared about its own liveness: {@code TRUE}
- * when the run was provisioned expecting the {@code jeffrey-heartbeat} library to report,
- * {@code FALSE} when it was not, and {@code null} when the session was declared by a provisioner
- * too old to say. Only a {@code TRUE} session is held to the heartbeat deadline — see
- * {@code SessionFinisher}.
  */
 public record ProjectInstanceSessionInfo(
         String sessionId,
@@ -38,19 +32,10 @@ public record ProjectInstanceSessionInfo(
         Instant originCreatedAt,
         Instant createdAt,
         Instant finishedAt,
-        boolean retained,
-        Boolean heartbeatExpected) {
+        boolean retained) {
 
     public ProjectInstanceSessionInfo {
         RelativePath.require(relativeSessionPath, "relativeSessionPath");
-    }
-
-    /**
-     * Whether this session promised to report liveness, and may therefore be finished for
-     * failing to. An undeclared session ({@code null}) is not held to that promise.
-     */
-    public boolean expectsHeartbeat() {
-        return Boolean.TRUE.equals(heartbeatExpected);
     }
 
     /**
@@ -68,15 +53,6 @@ public record ProjectInstanceSessionInfo(
 
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, null);
-    }
-
-    /**
-     * Copy of this session info carrying what the session declared about reporting liveness.
-     */
-    public ProjectInstanceSessionInfo withHeartbeatExpected(Boolean heartbeatExpected) {
-        return new ProjectInstanceSessionInfo(
-                sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, heartbeatExpected);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false);
     }
 }

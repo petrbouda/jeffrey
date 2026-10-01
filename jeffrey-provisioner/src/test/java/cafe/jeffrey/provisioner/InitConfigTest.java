@@ -276,45 +276,6 @@ class InitConfigTest {
     }
 
     @Nested
-    class HeartbeatDeclaration {
-
-        @TempDir
-        Path tempDir;
-
-        @Test
-        void defaultsToExpectingNothing() throws IOException {
-            // This switch is a claim about the application, not about the JVM: it says the
-            // jeffrey-heartbeat library is on its class path, which the provisioner cannot see.
-            // Claimed wrongly it is not inert — the hub finishes the session at its own start
-            // timestamp seconds after the JVM came up — so the default is the harmless side.
-            Path configFile = tempDir.resolve("config.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null);
-
-            assertFalse(config.isHeartbeatEnabled(),
-                    "an application carrying the dependency is something only a deployment knows");
-        }
-
-        @Test
-        void canDeclareThatSomethingWillReport() throws IOException {
-            Path configFile = tempDir.resolve("config.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"" + tempDir + "\"",
-                    "heartbeat { enabled = true }",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null);
-
-            assertTrue(config.isHeartbeatEnabled());
-        }
-    }
-
-    @Nested
     class LocationPrecedence {
 
         @TempDir

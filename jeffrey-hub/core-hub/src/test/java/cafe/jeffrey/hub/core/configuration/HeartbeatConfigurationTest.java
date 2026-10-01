@@ -38,8 +38,8 @@ import static org.awaitility.Awaitility.await;
 
 /**
  * The library resolves its directory from system properties, the channel the Provisioner's argfile
- * delivers, so the provisioned cases set the real property and clear it afterwards. The enabling
- * property goes through Spring's environment, which is what the condition reads.
+ * delivers, so the provisioned cases set the real property and clear it afterwards. The switch
+ * goes through Spring's environment, which is what the condition reads.
  */
 class HeartbeatConfigurationTest {
 
@@ -68,8 +68,11 @@ class HeartbeatConfigurationTest {
     class WithoutProvisioner {
 
         @Test
-        void noPropertyMeansNoBean() {
-            runner.run(context -> assertThat(context).doesNotHaveBean(JeffreyHeartbeat.class));
+        void noDirectoryMeansAnInertBean() {
+            runner.run(context -> {
+                assertThat(context).hasSingleBean(JeffreyHeartbeat.class);
+                assertThat(context.getBean(JeffreyHeartbeat.class).running()).isFalse();
+            });
         }
     }
 
@@ -84,13 +87,12 @@ class HeartbeatConfigurationTest {
             Path heartbeatDir = sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR);
             System.setProperty(DIRECTORY_PROPERTY, heartbeatDir.toString());
 
-            runner.withPropertyValues(ENABLED_PROPERTY + "=true")
-                    .run(context -> {
-                        assertThat(context).hasSingleBean(JeffreyHeartbeat.class);
-                        assertThat(context.getBean(JeffreyHeartbeat.class).running()).isTrue();
-                        await().untilAsserted(() -> assertThat(
-                                Files.exists(heartbeatDir.resolve(HeartbeatConstants.HEARTBEAT_FILE))).isTrue());
-                    });
+            runner.run(context -> {
+                assertThat(context).hasSingleBean(JeffreyHeartbeat.class);
+                assertThat(context.getBean(JeffreyHeartbeat.class).running()).isTrue();
+                await().untilAsserted(() -> assertThat(
+                        Files.exists(heartbeatDir.resolve(HeartbeatConstants.HEARTBEAT_FILE))).isTrue());
+            });
 
             assertThat(Files.exists(heartbeatDir.resolve(HeartbeatConstants.FINISHED_FILE)))
                     .as("closing the context writes the clean-exit marker")
@@ -98,7 +100,7 @@ class HeartbeatConfigurationTest {
         }
 
         @Test
-        void sessionThatDeclaredNoLivenessGetsNoBean() {
+        void explicitlyDisabledGetsNoBean() {
             Path heartbeatDir = sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR);
             System.setProperty(DIRECTORY_PROPERTY, heartbeatDir.toString());
 

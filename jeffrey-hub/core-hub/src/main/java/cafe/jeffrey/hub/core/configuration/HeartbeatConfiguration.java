@@ -30,19 +30,15 @@ import java.time.Clock;
  * Reports the hub's own liveness when the hub itself runs as a profiled JVM.
  *
  * <p>The hub image is built with jeffrey-jib, so a pod that sets {@code JEFFREY_ENABLED=true} runs
- * the hub under the Provisioner like any other application. A session that declares
- * {@code heartbeat.enabled=true} is held to a heartbeat deadline, and a hub carrying no producer
- * would finish its own session seconds after start.</p>
+ * the hub under the Provisioner like any other application. The Provisioner names the directory
+ * to beat into; whether to beat is the hub's own decision, like any application's.</p>
  *
- * <p>Nothing here reads {@code JEFFREY_ENABLED}. The bean exists only when
- * {@value HeartbeatConstants#ENABLED_PROPERTY} is {@code true}, which the Provisioner writes into
- * the argfile on exactly that path, together with the directory to beat into. A hub started without
- * profiling has neither property and creates no bean; a session that declared no liveness gets
- * {@code false} and creates none either. Spring closes the bean on context shutdown, which writes
- * the clean-exit marker.</p>
+ * <p>On unless {@value HeartbeatConstants#ENABLED_PROPERTY} is {@code false}. A hub started
+ * without the Provisioner has no directory, and the library answers with an inert instance.
+ * Spring closes the bean on context shutdown, which writes the clean-exit marker.</p>
  */
 @Configuration
-@ConditionalOnProperty(name = HeartbeatConstants.ENABLED_PROPERTY, havingValue = "true")
+@ConditionalOnProperty(name = HeartbeatConstants.ENABLED_PROPERTY, havingValue = "true", matchIfMissing = true)
 public class HeartbeatConfiguration {
 
     @Bean(destroyMethod = "close")

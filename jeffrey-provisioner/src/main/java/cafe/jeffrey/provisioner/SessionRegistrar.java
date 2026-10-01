@@ -70,8 +70,7 @@ public class SessionRegistrar {
                 session.sessionId(),
                 session.instanceId(),
                 session.order(),
-                session.layout().session(),
-                config.isHeartbeatEnabled());
+                session.layout().session());
     }
 
     private String findOrCreateProject(InitConfig config, ProjectLayout layout) {

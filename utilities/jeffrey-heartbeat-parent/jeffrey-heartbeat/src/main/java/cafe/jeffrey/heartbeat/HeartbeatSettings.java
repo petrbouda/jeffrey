@@ -41,7 +41,7 @@ import java.util.function.Function;
  *
  * @param directory where the liveness files go, or {@code null} when nothing said
  * @param interval  how often the heartbeat is rewritten
- * @param enabled   whether to write at all
+ * @param enabled   whether to write at all; on unless the application says otherwise
  */
 public record HeartbeatSettings(Path directory, Duration interval, boolean enabled) {
 
@@ -58,9 +58,8 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
     public static final String INTERVAL_ENV = "JEFFREY_HEARTBEAT_INTERVAL";
 
     /**
-     * Set to {@code false} to stand this library down. The Provisioner writes what the session
-     * declared through {@code heartbeat.enabled}, and writes the same value into the session
-     * marker — so the hub knows not to hold a silent session to a deadline it will never meet.
+     * Set to {@code false} to stand this library down. The application's own switch: nothing in
+     * Jeffrey sets it, so an application carrying the library reports unless it opts out.
      */
     public static final String ENABLED_ENV = "JEFFREY_HEARTBEAT_ENABLED";
 
@@ -78,8 +77,8 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
     public static final String INTERVAL_PROPERTY = PROPERTY_PREFIX + "interval";
 
     /**
-     * System property counterpart of {@link #ENABLED_ENV}, carried in the argfile beside
-     * {@link #DIRECTORY_PROPERTY}. Mirrored by {@code HeartbeatConstants.ENABLED_PROPERTY}.
+     * System property counterpart of {@link #ENABLED_ENV}, likewise the application's own switch.
+     * Mirrored by {@code HeartbeatConstants.ENABLED_PROPERTY}.
      */
     public static final String ENABLED_PROPERTY = PROPERTY_PREFIX + "enabled";
 

@@ -306,7 +306,7 @@ class HeartbeatToSessionFinishIntegrationTest {
         }
 
         @Test
-        void unfinishedSession_noHeartbeatFile_finishedAtSessionStart(
+        void unfinishedSession_noHeartbeatFile_leftForTheNextSession(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
 
             TestUtils.executeSql(dataSource, "sql/e2e/insert-project-for-e2e.sql");
@@ -324,12 +324,10 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             boolean finished = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, sessionDir), HEARTBEAT_THRESHOLD);
 
-            assertTrue(finished);
-
-            // The session's own start, not the moment the sweep ran: a declared agent that never
-            // wrote a beat leaves originCreatedAt as the only real timestamp available
-            ProjectInstanceSessionInfo updated = repoRepo.findSessionById(SESSION_ID).orElseThrow();
-            assertEquals(sessionInfo.originCreatedAt(), updated.finishedAt());
+            // Nothing ever reported, so nothing promised to: the application carries no library or
+            // switched it off, and the session is closed when the instance's next one appears
+            assertFalse(finished);
+            assertNull(repoRepo.findSessionById(SESSION_ID).orElseThrow().finishedAt());
         }
     }
 

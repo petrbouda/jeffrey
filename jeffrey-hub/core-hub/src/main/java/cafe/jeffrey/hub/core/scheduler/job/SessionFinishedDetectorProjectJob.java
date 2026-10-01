@@ -46,15 +46,15 @@ import java.util.List;
  * has actually finished based on heartbeat data. When a session is detected as finished, it
  * also checks if the parent instance should be auto-finished.
  * <p>
- * Only sessions that promised to report liveness are examined here; the rest are left alone and
- * closed by the reconciler when the instance's next session appears.
+ * Only sessions that have written a liveness file are held to the deadline; the rest are left
+ * alone and closed by the reconciler when the instance's next session appears.
  */
 public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(SessionFinishedDetectorProjectJob.class);
 
     /**
-     * How long after its last heartbeat a session that promised to report is taken as ended.
+     * How long after its last heartbeat a reporting session is taken as ended.
      */
     private static final String PARAM_HEARTBEAT_THRESHOLD = "heartbeat-threshold";
 

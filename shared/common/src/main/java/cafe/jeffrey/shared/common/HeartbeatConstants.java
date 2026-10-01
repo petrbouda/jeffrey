@@ -62,9 +62,9 @@ public abstract class HeartbeatConstants {
     public static final String DIRECTORY_PROPERTY = "jeffrey.heartbeat.dir";
 
     /**
-     * System property declaring whether anything will report liveness at all. Carried the same way
-     * and for the same reason as {@link #DIRECTORY_PROPERTY}, and must match
-     * {@code HeartbeatSettings.ENABLED_PROPERTY}.
+     * System property an application sets to {@code false} to switch its liveness reporting off.
+     * Never written by the Provisioner: reporting is on wherever the library is, unless the
+     * application says otherwise. Must match {@code HeartbeatSettings.ENABLED_PROPERTY}.
      */
     public static final String ENABLED_PROPERTY = "jeffrey.heartbeat.enabled";
 }

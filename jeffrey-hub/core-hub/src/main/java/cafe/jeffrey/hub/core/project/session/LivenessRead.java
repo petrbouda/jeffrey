@@ -24,15 +24,15 @@ import java.util.Optional;
  * The outcome of reading one liveness file.
  *
  * <p>Three states rather than an {@code Optional}, because the two ways of having no timestamp
- * mean opposite things to {@link SessionFinisher}. <b>Absent</b> is evidence: nothing has ever
- * written here, and past the startup deadline that says the producer never got far enough to
- * report. <b>Unreadable</b> is the absence of evidence: a file is there, or may be, and this hub
- * could not make sense of it — a permission error, a stale handle on a network mount, a truncated
- * read, a timestamp that is not a number.</p>
+ * mean different things to {@link SessionFinisher}. <b>Absent</b> is evidence: nothing has ever
+ * written here, so nothing in the session reports liveness, or not yet. <b>Unreadable</b> is the
+ * absence of evidence: a file is there, or may be, and this hub could not make sense of it — a
+ * permission error, a stale handle on a network mount, a truncated read, a timestamp that is not
+ * a number.</p>
  *
- * <p>Collapsing the two is how a mount blip turns a four-hour session into a zero-duration one:
- * the finisher stamps {@code originCreatedAt}, and since only unfinished sessions are ever
- * revisited, that wrong instant is permanent.</p>
+ * <p>The finisher leaves the session alone in both cases, but only the second is worth a warning:
+ * collapsed into one, a broken volume would look exactly like an application without the
+ * library, and nobody would hear about it.</p>
  */
 public sealed interface LivenessRead {
 
