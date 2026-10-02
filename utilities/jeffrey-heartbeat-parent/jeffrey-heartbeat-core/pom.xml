@@ -23,29 +23,35 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-utilities-parent</artifactId>
+        <artifactId>jeffrey-heartbeat-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>jeffrey-heartbeat-parent</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>jeffrey-heartbeat-core</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Parent of the Jeffrey heartbeat library and its Spring Boot starter</description>
+    <description>The liveness files a Jeffrey Hub reads and the loop that writes them, shared by jeffrey-heartbeat and the Jeffrey agent</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <!--
-      The heartbeat family: the dependency-free core that writes the liveness files (shared with the
-      Jeffrey agent, which shades it), the library that reports JVM liveness to a Jeffrey Hub from
-      inside the application, and the starter that wires it into Spring Boot. It shares nothing with the events
-      or tracing modules but the build: configuration, dependencyManagement and the release profile
-      come from jeffrey-utilities-parent above, so it is published in the same run on the same version.
+      No compile dependency at all, and that is the point of this module: the Jeffrey agent shades it
+      into a jar appended to the system class path of every application it attaches to, where any
+      dependency would be a version that application did not choose. Logging is therefore a small
+      HeartbeatLog interface each caller adapts: jeffrey-heartbeat to SLF4J, the agent to
+      System.Logger.
     -->
-    <modules>
-        <module>jeffrey-heartbeat-core</module>
-        <module>jeffrey-heartbeat</module>
-        <module>jeffrey-heartbeat-spring-boot-starter</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

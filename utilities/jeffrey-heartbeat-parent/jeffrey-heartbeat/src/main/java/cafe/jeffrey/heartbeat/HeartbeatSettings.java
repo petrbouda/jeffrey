@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package cafe.jeffrey.heartbeat;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cafe.jeffrey.heartbeat.core.HeartbeatConfig;
+import cafe.jeffrey.heartbeat.core.HeartbeatContract;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -32,12 +30,8 @@ import java.util.function.Function;
  * layering <b>explicit system property over environment variable</b>. That order is what makes the
  * library reachable at all in a container: the Provisioner writes the system properties into the
  * argfile the entrypoint execs the JVM with, while the environment variables live in a
- * {@code .env} file that is generated only on request and that nothing sources on that path.</p>
- *
- * <p>The directory is resolved from whichever of two variables is set. {@code JEFFREY_HEARTBEAT_DIR}
- * names it outright and is what the Provisioner writes; {@code JEFFREY_CURRENT_SESSION} names the
- * session directory, which has held the heartbeat folder since long before this library existed, so
- * an application running against a session provisioned by an older CLI still finds it.</p>
+ * {@code .env} file that is generated only on request and that nothing sources on that path.
+ * The resolution itself is {@link HeartbeatConfig#resolve}, shared with the Jeffrey agent.</p>
  *
  * @param directory where the liveness files go, or {@code null} when nothing said
  * @param interval  how often the heartbeat is rewritten
@@ -46,53 +40,34 @@ import java.util.function.Function;
 public record HeartbeatSettings(Path directory, Duration interval, boolean enabled) {
 
     /** Names the heartbeat directory outright. Written by the Jeffrey Provisioner. */
-    public static final String DIRECTORY_ENV = "JEFFREY_HEARTBEAT_DIR";
+    public static final String DIRECTORY_ENV = HeartbeatContract.DIRECTORY_ENV;
 
-    /**
-     * Names the session directory, whose {@code .heartbeat} folder is the same place. Predates
-     * {@link #DIRECTORY_ENV} and is the fallback for a session provisioned before it existed.
-     */
-    public static final String SESSION_ENV = "JEFFREY_CURRENT_SESSION";
+    /** Names the session directory, whose {@code .heartbeat} folder is the same place; the fallback. */
+    public static final String SESSION_ENV = HeartbeatContract.SESSION_ENV;
 
     /** Milliseconds between heartbeats. */
-    public static final String INTERVAL_ENV = "JEFFREY_HEARTBEAT_INTERVAL";
+    public static final String INTERVAL_ENV = HeartbeatContract.INTERVAL_ENV;
 
-    /**
-     * Set to {@code false} to stand this library down. The application's own switch: nothing in
-     * Jeffrey sets it, so an application carrying the library reports unless it opts out.
-     */
-    public static final String ENABLED_ENV = "JEFFREY_HEARTBEAT_ENABLED";
-
-    private static final String PROPERTY_PREFIX = "jeffrey.heartbeat.";
+    /** Set to {@code false} to stand this library down. The application's own switch. */
+    public static final String ENABLED_ENV = HeartbeatContract.ENABLED_ENV;
 
     /**
      * System property counterpart of {@link #DIRECTORY_ENV}, and the one the Provisioner actually
-     * uses: it writes this into the argfile, which is the only channel that reaches a JVM launched
-     * by the container entrypoint. Mirrored by {@code HeartbeatConstants.DIRECTORY_PROPERTY} on
-     * the hub side, and the two move together.
+     * uses: it writes this into the argfile. Mirrored by {@code HeartbeatConstants.DIRECTORY_PROPERTY}.
      */
-    public static final String DIRECTORY_PROPERTY = PROPERTY_PREFIX + "dir";
+    public static final String DIRECTORY_PROPERTY = HeartbeatContract.DIRECTORY_PROPERTY;
 
     /** System property counterpart of {@link #INTERVAL_ENV}, in milliseconds. */
-    public static final String INTERVAL_PROPERTY = PROPERTY_PREFIX + "interval";
+    public static final String INTERVAL_PROPERTY = HeartbeatContract.INTERVAL_PROPERTY;
+
+    /** System property counterpart of {@link #ENABLED_ENV}, likewise the application's own switch. */
+    public static final String ENABLED_PROPERTY = HeartbeatContract.ENABLED_PROPERTY;
 
     /**
-     * System property counterpart of {@link #ENABLED_ENV}, likewise the application's own switch.
-     * Mirrored by {@code HeartbeatConstants.ENABLED_PROPERTY}.
+     * Set to {@code true} by the Jeffrey agent once it is beating; while it is, this library stays
+     * inert, because both would write the same files through the same scratch names.
      */
-    public static final String ENABLED_PROPERTY = PROPERTY_PREFIX + "enabled";
-
-    private static final String SESSION_PROPERTY = "jeffrey.current.session";
-
-    /**
-     * Set to {@code true} by the Jeffrey agent once it is beating. The Provisioner attaches the
-     * agent unless a deployment switches it off, and while it reports this library stays inert:
-     * both would write the same files through the same scratch names. Must match
-     * {@code AgentSettings.AGENT_ACTIVE_PROPERTY} in {@code jeffrey-agent}.
-     */
-    public static final String AGENT_ACTIVE_PROPERTY = PROPERTY_PREFIX + "agent";
-
-    private static final Logger LOG = LoggerFactory.getLogger(HeartbeatSettings.class);
+    public static final String AGENT_ACTIVE_PROPERTY = HeartbeatContract.AGENT_ACTIVE_PROPERTY;
 
     public HeartbeatSettings {
         if (interval == null) {
@@ -103,74 +78,24 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
         }
     }
 
-    /**
-     * Settings for an explicitly chosen directory, at the default interval.
-     */
+    /** Settings for an explicitly chosen directory, at the default interval. */
     public static HeartbeatSettings of(Path directory) {
         return new HeartbeatSettings(directory, HeartbeatFiles.DEFAULT_INTERVAL, true);
     }
 
     /**
      * Reads the settings the Provisioner exported. Never throws and never returns {@code null}: a
-     * value that cannot be parsed falls back to the default with a warning, because failing an
-     * application's startup over a malformed liveness setting would be a worse outcome than not
-     * reporting liveness.
+     * value that cannot be parsed falls back to the default with a warning.
      */
     public static HeartbeatSettings fromEnvironment() {
         return resolve(System::getProperty, System::getenv);
     }
 
-    /**
-     * The resolution itself, over two arbitrary lookups. Package-private so a test can drive it
-     * without touching the real process environment, which cannot be mutated from Java anyway.
-     */
-    static HeartbeatSettings resolve(
-            Function<String, String> properties, Function<String, String> environment) {
-
-        boolean enabled = lookup(properties, ENABLED_PROPERTY, environment, ENABLED_ENV)
-                .map(Boolean::parseBoolean)
-                .orElse(true);
-
-        Path directory = lookup(properties, DIRECTORY_PROPERTY, environment, DIRECTORY_ENV)
-                .map(Path::of)
-                .or(() -> lookup(properties, SESSION_PROPERTY, environment, SESSION_ENV)
-                        .map(session -> Path.of(session).resolve(HeartbeatFiles.DIRECTORY)))
-                .orElse(null);
-
-        Duration interval = lookup(properties, INTERVAL_PROPERTY, environment, INTERVAL_ENV)
-                .flatMap(HeartbeatSettings::parseMillis)
-                .orElse(HeartbeatFiles.DEFAULT_INTERVAL);
-
-        return new HeartbeatSettings(directory, interval, enabled);
-    }
-
-    private static Optional<String> lookup(
-            Function<String, String> properties, String property,
-            Function<String, String> environment, String variable) {
-
-        String fromProperty = properties.apply(property);
-        if (fromProperty != null && !fromProperty.isBlank()) {
-            return Optional.of(fromProperty.strip());
-        }
-        String fromEnvironment = environment.apply(variable);
-        if (fromEnvironment != null && !fromEnvironment.isBlank()) {
-            return Optional.of(fromEnvironment.strip());
-        }
-        return Optional.empty();
-    }
-
-    private static Optional<Duration> parseMillis(String value) {
-        try {
-            long millis = Long.parseLong(value);
-            if (millis <= 0) {
-                LOG.warn("Heartbeat interval must be positive, using the default: value={}", value);
-                return Optional.empty();
-            }
-            return Optional.of(Duration.ofMillis(millis));
-        } catch (NumberFormatException e) {
-            LOG.warn("Heartbeat interval is not a number of milliseconds, using the default: value={}", value);
-            return Optional.empty();
-        }
+    /** Over two arbitrary lookups, so a test can drive it without the real process environment. */
+    static HeartbeatSettings resolve(Function<String, String> properties, Function<String, String> environment) {
+        HeartbeatConfig config = HeartbeatConfig.resolve(
+                properties, environment, new Slf4jHeartbeatLog(HeartbeatSettings.class));
+        return new HeartbeatSettings(config.directory(), config.interval(), config.enabled());
     }
 
     /** Whether these settings name somewhere to write and permit writing there. */

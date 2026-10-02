@@ -16,6 +16,9 @@
  */
 package cafe.jeffrey.agent;
 
+import cafe.jeffrey.heartbeat.core.HeartbeatConfig;
+import cafe.jeffrey.heartbeat.core.HeartbeatContract;
+import cafe.jeffrey.heartbeat.core.HeartbeatLoop;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,12 +48,12 @@ class JeffreyAgentTest {
     @TempDir
     Path tempDir;
 
-    private Optional<HeartbeatProducer> producer = Optional.empty();
+    private Optional<HeartbeatLoop> producer = Optional.empty();
 
     @AfterEach
     void tearDown() {
-        producer.ifPresent(HeartbeatProducer::close);
-        System.clearProperty(AgentSettings.AGENT_ACTIVE_PROPERTY);
+        producer.ifPresent(HeartbeatLoop::close);
+        System.clearProperty(HeartbeatContract.AGENT_ACTIVE_PROPERTY);
     }
 
     @Nested
@@ -60,29 +63,29 @@ class JeffreyAgentTest {
         void writesTheHeartbeatFileWithTheClocksTime() {
             Path directory = tempDir.resolve(".heartbeat");
 
-            producer = JeffreyAgent.start(new AgentSettings(directory, INTERVAL, true), CLOCK);
+            producer = JeffreyAgent.start(new HeartbeatConfig(directory, INTERVAL, true), CLOCK);
 
             assertTrue(producer.isPresent());
             await().atMost(Duration.ofSeconds(5))
-                    .until(() -> Files.exists(directory.resolve(HeartbeatProducer.HEARTBEAT_FILE)));
-            assertEquals(Long.toString(NOW.toEpochMilli()), read(directory.resolve(HeartbeatProducer.HEARTBEAT_FILE)));
+                    .until(() -> Files.exists(directory.resolve(HeartbeatContract.HEARTBEAT_FILE)));
+            assertEquals(Long.toString(NOW.toEpochMilli()), read(directory.resolve(HeartbeatContract.HEARTBEAT_FILE)));
         }
 
         @Test
         void marksTheJvmSoTheLibraryStandsDown() {
-            producer = JeffreyAgent.start(new AgentSettings(tempDir, INTERVAL, true), CLOCK);
+            producer = JeffreyAgent.start(new HeartbeatConfig(tempDir, INTERVAL, true), CLOCK);
 
-            assertEquals("true", System.getProperty(AgentSettings.AGENT_ACTIVE_PROPERTY));
+            assertEquals("true", System.getProperty(HeartbeatContract.AGENT_ACTIVE_PROPERTY));
         }
 
         @Test
         void writesTheFinishedMarkerOnCloseAndNoScratchFile() {
-            producer = JeffreyAgent.start(new AgentSettings(tempDir, INTERVAL, true), CLOCK);
+            producer = JeffreyAgent.start(new HeartbeatConfig(tempDir, INTERVAL, true), CLOCK);
 
             producer.orElseThrow().close();
 
-            assertEquals(Long.toString(NOW.toEpochMilli()), read(tempDir.resolve(HeartbeatProducer.FINISHED_FILE)));
-            assertFalse(Files.exists(tempDir.resolve(HeartbeatProducer.HEARTBEAT_FILE + ".tmp")));
+            assertEquals(Long.toString(NOW.toEpochMilli()), read(tempDir.resolve(HeartbeatContract.FINISHED_FILE)));
+            assertFalse(Files.exists(tempDir.resolve(HeartbeatContract.HEARTBEAT_FILE + ".tmp")));
         }
     }
 
@@ -91,18 +94,18 @@ class JeffreyAgentTest {
 
         @Test
         void startsNothingWhenTheApplicationSwitchedItOff() {
-            producer = JeffreyAgent.start(new AgentSettings(tempDir, INTERVAL, false), CLOCK);
+            producer = JeffreyAgent.start(new HeartbeatConfig(tempDir, INTERVAL, false), CLOCK);
 
             assertTrue(producer.isEmpty());
-            assertNull(System.getProperty(AgentSettings.AGENT_ACTIVE_PROPERTY));
+            assertNull(System.getProperty(HeartbeatContract.AGENT_ACTIVE_PROPERTY));
         }
 
         @Test
         void startsNothingWithoutADirectory() {
-            producer = JeffreyAgent.start(new AgentSettings(null, INTERVAL, true), CLOCK);
+            producer = JeffreyAgent.start(new HeartbeatConfig(null, INTERVAL, true), CLOCK);
 
             assertTrue(producer.isEmpty());
-            assertNull(System.getProperty(AgentSettings.AGENT_ACTIVE_PROPERTY));
+            assertNull(System.getProperty(HeartbeatContract.AGENT_ACTIVE_PROPERTY));
         }
 
         /** The library may still report from elsewhere, so the JVM is not marked. */
@@ -110,10 +113,10 @@ class JeffreyAgentTest {
         void startsNothingWhenTheDirectoryCannotBeCreated() throws IOException {
             Path file = Files.createFile(tempDir.resolve("not-a-directory"));
 
-            producer = JeffreyAgent.start(new AgentSettings(file.resolve("child"), INTERVAL, true), CLOCK);
+            producer = JeffreyAgent.start(new HeartbeatConfig(file.resolve("child"), INTERVAL, true), CLOCK);
 
             assertTrue(producer.isEmpty());
-            assertNull(System.getProperty(AgentSettings.AGENT_ACTIVE_PROPERTY));
+            assertNull(System.getProperty(HeartbeatContract.AGENT_ACTIVE_PROPERTY));
         }
     }
 

@@ -22,13 +22,13 @@ import java.time.Duration;
 /**
  * Shared constants for the file-based heartbeat mechanism, as the hub reads it.
  *
- * <p>Two writers produce these files from inside a profiled application, and neither depends on
- * this module, which no application should ever be made to pull in: {@code jeffrey-agent}, which
- * the Provisioner attaches by default, copies the names into {@code AgentSettings} and
- * {@code HeartbeatProducer}; {@code utilities/jeffrey-heartbeat-parent/jeffrey-heartbeat}, the
- * library an application carries when the agent is switched off, into {@code HeartbeatFiles}. All
- * three move together. Only one writer runs in a JVM: the library stands down while the agent
- * reports.</p>
+ * <p>The files are written from inside a profiled application by
+ * {@code utilities/jeffrey-heartbeat-parent/jeffrey-heartbeat-core}, which carries its own copy of
+ * these names in {@code HeartbeatContract} rather than depending on this module, which no
+ * application should ever be made to pull in; the two move together. Two things run that core:
+ * {@code jeffrey-agent}, which the Provisioner attaches by default, and the {@code jeffrey-heartbeat}
+ * library an application carries when the agent is switched off. Only one of them writes in a JVM:
+ * the library stands down while the agent reports.</p>
  */
 public abstract class HeartbeatConstants {
 

@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package cafe.jeffrey.agent;
+package cafe.jeffrey.heartbeat.core;
 
 import java.io.IOException;
-import java.lang.System.Logger.Level;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,20 +32,15 @@ import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 /**
- * Rewrites the heartbeat file at a fixed interval and writes the clean-exit marker on close.
+ * Rewrites the heartbeat file at a fixed interval and writes the clean-exit marker when closed.
+ * Both files are written through a scratch file and a rename, so the hub never reads a torn value.
  *
- * <p>The file names and their content — epoch millis, written through a scratch file and a
- * rename — are the hub's contract, the same one {@code JeffreyHeartbeat} in {@code jeffrey-heartbeat}
- * honours; the names are copied from {@code HeartbeatConstants}.
+ * <p>Nothing here fails the caller: a directory that cannot be created means no loop, and a beat
+ * that cannot be written is logged at debug and retried at the next interval.
  */
-public final class HeartbeatProducer implements AutoCloseable {
+public final class HeartbeatLoop implements AutoCloseable {
 
-    private static final System.Logger LOG = System.getLogger(HeartbeatProducer.class.getName());
-
-    static final String HEARTBEAT_FILE = "heartbeat";
-    static final String FINISHED_FILE = "finished";
     private static final String TEMPORARY_SUFFIX = ".tmp";
-
     private static final String THREAD_NAME = "jeffrey-heartbeat";
 
     /**
@@ -61,30 +54,31 @@ public final class HeartbeatProducer implements AutoCloseable {
     private final Path finishedFile;
     private final Path finishedTemporaryFile;
     private final Clock clock;
+    private final HeartbeatLog log;
     private final ScheduledExecutorService scheduler;
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    private HeartbeatProducer(Path directory, Clock clock, ScheduledExecutorService scheduler) {
-        this.heartbeatFile = directory.resolve(HEARTBEAT_FILE);
-        this.heartbeatTemporaryFile = directory.resolve(HEARTBEAT_FILE + TEMPORARY_SUFFIX);
-        this.finishedFile = directory.resolve(FINISHED_FILE);
-        this.finishedTemporaryFile = directory.resolve(FINISHED_FILE + TEMPORARY_SUFFIX);
+    private HeartbeatLoop(Path directory, Clock clock, HeartbeatLog log, ScheduledExecutorService scheduler) {
+        this.heartbeatFile = directory.resolve(HeartbeatContract.HEARTBEAT_FILE);
+        this.heartbeatTemporaryFile = directory.resolve(HeartbeatContract.HEARTBEAT_FILE + TEMPORARY_SUFFIX);
+        this.finishedFile = directory.resolve(HeartbeatContract.FINISHED_FILE);
+        this.finishedTemporaryFile = directory.resolve(HeartbeatContract.FINISHED_FILE + TEMPORARY_SUFFIX);
         this.clock = clock;
+        this.log = log;
         this.scheduler = scheduler;
     }
 
     /**
-     * Starts beating into {@code settings.directory()}, creating it when missing.
+     * Starts beating into {@code directory}, creating it when missing.
      *
-     * @return the running producer, or empty when the directory cannot be created
+     * @return the running loop, or empty when the directory cannot be created
      */
-    static Optional<HeartbeatProducer> start(AgentSettings settings, Clock clock) {
-        Path directory = settings.directory();
+    public static Optional<HeartbeatLoop> start(Path directory, Duration interval, Clock clock, HeartbeatLog log) {
         try {
             Files.createDirectories(directory);
         } catch (IOException e) {
-            LOG.log(Level.WARNING, "Jeffrey agent heartbeat directory cannot be created, liveness will "
-                    + "not be reported: directory=" + directory, e);
+            log.warn("Jeffrey heartbeat directory cannot be created, liveness will not be reported: directory="
+                    + directory, e);
             return Optional.empty();
         }
 
@@ -95,20 +89,25 @@ public final class HeartbeatProducer implements AutoCloseable {
             return thread;
         });
 
-        HeartbeatProducer producer = new HeartbeatProducer(directory, clock, scheduler);
-        // Zero initial delay: the first beat is what tells the hub this session reports liveness
-        scheduler.scheduleAtFixedRate(producer::beat, 0, settings.interval().toMillis(), TimeUnit.MILLISECONDS);
+        HeartbeatLoop loop = new HeartbeatLoop(directory, clock, log, scheduler);
+        // Zero initial delay: the first beat is what tells the hub this session reports liveness at
+        // all, and from then on it is held to the heartbeat deadline
+        scheduler.scheduleAtFixedRate(loop::beat, 0, interval.toMillis(), TimeUnit.MILLISECONDS);
 
-        LOG.log(Level.INFO, "Jeffrey agent heartbeat started: directory=" + directory
-                + " interval=" + settings.interval());
-        return Optional.of(producer);
+        log.info("Jeffrey heartbeat started: directory=" + directory + " interval=" + interval);
+        return Optional.of(loop);
+    }
+
+    /** Whether this loop is still beating. */
+    public boolean running() {
+        return !closed.get();
     }
 
     /**
      * Stops beating and writes the clean-exit marker, which lets the hub finish the session at once
      * instead of waiting for the heartbeat to go stale. A beat already in flight is waited for
-     * rather than interrupted: both files share the scratch-and-rename scheme, and tearing a beat
-     * down mid-write is how a beat lands after the marker it should precede. Closing twice is a no-op.
+     * rather than interrupted: tearing it down mid-write is how a rename fails or a beat lands
+     * after the marker it should precede. Closing twice is a no-op.
      */
     @Override
     public void close() {
@@ -120,7 +119,7 @@ public final class HeartbeatProducer implements AutoCloseable {
             write(finishedTemporaryFile, finishedFile, clock.millis());
         } catch (IOException | RuntimeException e) {
             // The session still finishes, from the last heartbeat, a threshold later
-            LOG.log(Level.WARNING, "Jeffrey agent clean-exit marker could not be written", e);
+            log.warn("Jeffrey clean-exit marker could not be written", e);
         }
         try {
             Files.deleteIfExists(heartbeatTemporaryFile);
@@ -129,6 +128,10 @@ public final class HeartbeatProducer implements AutoCloseable {
         }
     }
 
+    /**
+     * Refuses new beats and gives the running one {@link #SHUTDOWN_GRACE} to finish, forcing it
+     * only if it overruns — at which point a stuck volume is the problem and the marker matters more.
+     */
     private void awaitLastBeat() {
         scheduler.shutdown();
         try {
@@ -146,7 +149,7 @@ public final class HeartbeatProducer implements AutoCloseable {
             write(heartbeatTemporaryFile, heartbeatFile, clock.millis());
         } catch (IOException | RuntimeException e) {
             // Debug: a briefly unwritable volume would otherwise fill the log at the beat interval
-            LOG.log(Level.DEBUG, "Jeffrey agent heartbeat could not be written", e);
+            log.debug("Jeffrey heartbeat could not be written", e);
         }
     }
 

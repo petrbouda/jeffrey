@@ -332,6 +332,11 @@
                 <artifactId>jeffrey-heartbeat</artifactId>
                 <version>${jeffrey-events.version}</version>
             </dependency>
+            <dependency>
+                <groupId>cafe.jeffrey-analyst</groupId>
+                <artifactId>jeffrey-heartbeat-core</artifactId>
+                <version>${jeffrey-events.version}</version>
+            </dependency>
 
             <!-- gRPC -->
             <dependency>

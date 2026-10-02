@@ -33,12 +33,24 @@
       liveness without carrying jeffrey-heartbeat itself. Heartbeat only: it touches no application
       bytecode.
 
-      No compile dependency, on purpose and for good: the jar is appended to the system class path
-      of every application it attaches to, so anything it brought along would be a version that
-      application did not choose. It logs through System.Logger for the same reason. The jar is
-      not distributed on its own; jeffrey-provisioner embeds it and writes it out per session.
+      Its one dependency is jeffrey-heartbeat-core, the same dependency-free loop jeffrey-heartbeat
+      runs, shaded in and relocated below. Nothing else, on purpose: the jar is appended to the
+      system class path of every application it attaches to, so anything it brought along would be
+      a version that application did not choose. It logs through System.Logger for the same reason.
+      The jar is not distributed on its own; jeffrey-provisioner embeds it and writes it out per
+      session.
     -->
+    <properties>
+        <!-- Pinned: unlike the jar plugin, shade has no version in Maven's super-POM. -->
+        <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
+    </properties>
+
     <dependencies>
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-heartbeat-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -60,6 +72,43 @@
                 <configuration>
                     <release>21</release>
                 </configuration>
+            </plugin>
+            <!--
+              The core goes into the agent jar under the agent's own package. Unrelocated it would
+              sit on the system class path beside, and win parent-first delegation over, the copy an
+              application carrying jeffrey-heartbeat ships — a profiler must never re-version the
+              thing it profiles. Replaces the main artifact, which is the jar the provisioner embeds.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>cafe.jeffrey.heartbeat.core</pattern>
+                                    <shadedPattern>cafe.jeffrey.agent.shaded.heartbeat.core</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/maven/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

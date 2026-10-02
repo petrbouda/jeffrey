@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package cafe.jeffrey.agent;
+package cafe.jeffrey.heartbeat.core;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,10 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class AgentSettingsTest {
+class HeartbeatConfigTest {
 
-    private static AgentSettings resolve(Map<String, String> properties, Map<String, String> environment) {
-        return AgentSettings.resolve(properties::get, environment::get);
+    private static HeartbeatConfig resolve(Map<String, String> properties, Map<String, String> environment) {
+        return HeartbeatConfig.resolve(properties::get, environment::get, RecordingLog.SILENT);
     }
 
     @Nested
@@ -40,30 +40,30 @@ class AgentSettingsTest {
 
         @Test
         void readsTheSystemPropertyTheProvisionerWrites() {
-            AgentSettings settings = resolve(Map.of(AgentSettings.DIRECTORY_PROPERTY, "/session/.heartbeat"), Map.of());
+            HeartbeatConfig settings = resolve(Map.of(HeartbeatContract.DIRECTORY_PROPERTY, "/session/.heartbeat"), Map.of());
 
             assertEquals(Path.of("/session/.heartbeat"), settings.directory());
         }
 
         @Test
         void prefersThePropertyOverTheEnvironment() {
-            AgentSettings settings = resolve(
-                    Map.of(AgentSettings.DIRECTORY_PROPERTY, "/from/property"),
-                    Map.of(AgentSettings.DIRECTORY_ENV, "/from/env"));
+            HeartbeatConfig settings = resolve(
+                    Map.of(HeartbeatContract.DIRECTORY_PROPERTY, "/from/property"),
+                    Map.of(HeartbeatContract.DIRECTORY_ENV, "/from/env"));
 
             assertEquals(Path.of("/from/property"), settings.directory());
         }
 
         @Test
         void fallsBackToTheEnvironment() {
-            AgentSettings settings = resolve(Map.of(), Map.of(AgentSettings.DIRECTORY_ENV, "/from/env"));
+            HeartbeatConfig settings = resolve(Map.of(), Map.of(HeartbeatContract.DIRECTORY_ENV, "/from/env"));
 
             assertEquals(Path.of("/from/env"), settings.directory());
         }
 
         @Test
         void derivesItFromTheSessionDirectory() {
-            AgentSettings settings = resolve(Map.of(), Map.of(AgentSettings.SESSION_ENV, "/session"));
+            HeartbeatConfig settings = resolve(Map.of(), Map.of(HeartbeatContract.SESSION_ENV, "/session"));
 
             assertEquals(Path.of("/session/.heartbeat"), settings.directory());
         }
@@ -84,8 +84,8 @@ class AgentSettingsTest {
 
         @Test
         void honoursTheApplicationsSwitch() {
-            assertFalse(resolve(Map.of(AgentSettings.ENABLED_PROPERTY, "false"), Map.of()).enabled());
-            assertFalse(resolve(Map.of(), Map.of(AgentSettings.ENABLED_ENV, "false")).enabled());
+            assertFalse(resolve(Map.of(HeartbeatContract.ENABLED_PROPERTY, "false"), Map.of()).enabled());
+            assertFalse(resolve(Map.of(), Map.of(HeartbeatContract.ENABLED_ENV, "false")).enabled());
         }
     }
 
@@ -99,23 +99,23 @@ class AgentSettingsTest {
 
         @Test
         void readsMilliseconds() {
-            AgentSettings settings = resolve(Map.of(AgentSettings.INTERVAL_PROPERTY, "250"), Map.of());
+            HeartbeatConfig settings = resolve(Map.of(HeartbeatContract.INTERVAL_PROPERTY, "250"), Map.of());
 
             assertEquals(Duration.ofMillis(250), settings.interval());
         }
 
         @Test
         void fallsBackToTheDefaultOnAMalformedValue() {
-            assertEquals(AgentSettings.DEFAULT_INTERVAL,
-                    resolve(Map.of(AgentSettings.INTERVAL_PROPERTY, "soon"), Map.of()).interval());
-            assertEquals(AgentSettings.DEFAULT_INTERVAL,
-                    resolve(Map.of(AgentSettings.INTERVAL_PROPERTY, "-1"), Map.of()).interval());
+            assertEquals(HeartbeatContract.DEFAULT_INTERVAL,
+                    resolve(Map.of(HeartbeatContract.INTERVAL_PROPERTY, "soon"), Map.of()).interval());
+            assertEquals(HeartbeatContract.DEFAULT_INTERVAL,
+                    resolve(Map.of(HeartbeatContract.INTERVAL_PROPERTY, "-1"), Map.of()).interval());
         }
 
         @Test
         void rejectsANonPositiveIntervalGivenDirectly() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new AgentSettings(Path.of("/x"), Duration.ZERO, true));
+                    () -> new HeartbeatConfig(Path.of("/x"), Duration.ZERO, true));
         }
     }
 }

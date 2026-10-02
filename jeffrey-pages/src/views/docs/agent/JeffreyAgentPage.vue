@@ -47,12 +47,12 @@ onMounted(() => {
 
       <div class="docs-content">
         <h2 id="overview">Overview</h2>
-        <p><strong>jeffrey-agent</strong> is a Java agent that reports to a Jeffrey Hub that your JVM is alive, and tells it when the JVM stopped. It writes exactly the files the <router-link to="/docs/agent/heartbeat-library">Heartbeat Library</router-link> writes, on the same contract:</p>
+        <p><strong>jeffrey-agent</strong> is a Java agent that reports to a Jeffrey Hub that your JVM is alive, and tells it when the JVM stopped. It runs the very same code the <router-link to="/docs/agent/heartbeat-library">Heartbeat Library</router-link> runs — the small <code>jeffrey-heartbeat-core</code> module, packaged inside the agent under its own package name so it never clashes with a copy the application carries — and writes the same files:</p>
         <ul>
           <li><code>&lt;session&gt;/.heartbeat/heartbeat</code> — epoch milliseconds, rewritten every 5&nbsp;seconds</li>
           <li><code>&lt;session&gt;/.heartbeat/finished</code> — the clean-exit marker, written when the JVM shuts down cleanly</li>
         </ul>
-        <p>That is all it does. It touches no application bytecode, has zero dependencies, runs on Java 21 and newer, and logs through <code>System.Logger</code>, so its few lines follow whatever the JVM's logging is routed to.</p>
+        <p>That is all it does. It touches no application bytecode, brings no dependency onto the application's class path, runs on Java 21 and newer, and logs through <code>System.Logger</code>, so its few lines follow whatever the JVM's logging is routed to.</p>
 
         <DocsCallout type="info">
           The application needs no dependency and no code. The agent ships <strong>inside Jeffrey Provisioner</strong> — the jar and native builds, and therefore every <router-link to="/docs/jib">jeffrey-jib</router-link> image — so there is nothing separate to download.
