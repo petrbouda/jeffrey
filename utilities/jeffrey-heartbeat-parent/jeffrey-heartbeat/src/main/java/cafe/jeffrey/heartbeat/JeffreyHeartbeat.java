@@ -33,12 +33,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Reports to a Jeffrey Hub that this JVM is alive, and tells it when the JVM stopped.
  *
- * <p>This is the only writer of those files, and it is on by default: carrying the dependency is
- * what opts an application in. Only the application can switch it off, through
- * {@link HeartbeatSettings#ENABLED_PROPERTY} (or {@link HeartbeatSettings#ENABLED_ENV}); the
- * Provisioner names the directory and nothing more. The hub holds a session to the heartbeat
- * deadline once its first liveness file appears, so an application that never reports is never
- * finished for staying silent.</p>
+ * <p>It is on by default: carrying the dependency is what opts an application in. Only the
+ * application can switch it off, through {@link HeartbeatSettings#ENABLED_PROPERTY} (or
+ * {@link HeartbeatSettings#ENABLED_ENV}). The hub holds a session to the heartbeat deadline once
+ * its first liveness file appears, so an application that never reports is never finished for
+ * staying silent.</p>
+ *
+ * <p>A provisioned JVM usually does not need it: the Provisioner attaches the Jeffrey agent, which
+ * writes the same files, unless a deployment sets {@code jeffrey-agent.enabled = false}. When the
+ * agent is beating it sets {@link HeartbeatSettings#AGENT_ACTIVE_PROPERTY} and this library stays
+ * inert, so an application may carry the dependency either way and still have one writer.</p>
  *
  * <p>Typical use in a provisioned application is a single call at startup:</p>
  *
@@ -106,6 +110,11 @@ public final class JeffreyHeartbeat implements AutoCloseable {
 
     /** As {@link #start(HeartbeatSettings)}, with the clock the timestamps come from. */
     public static JeffreyHeartbeat start(HeartbeatSettings settings, Clock clock) {
+        if (Boolean.getBoolean(HeartbeatSettings.AGENT_ACTIVE_PROPERTY)) {
+            LOG.info("Jeffrey heartbeat not started, the Jeffrey agent already reports liveness: property={}",
+                    HeartbeatSettings.AGENT_ACTIVE_PROPERTY);
+            return inert();
+        }
         if (!settings.writable()) {
             LOG.debug("Jeffrey heartbeat not started: enabled={} directory={}",
                     settings.enabled(), settings.directory());

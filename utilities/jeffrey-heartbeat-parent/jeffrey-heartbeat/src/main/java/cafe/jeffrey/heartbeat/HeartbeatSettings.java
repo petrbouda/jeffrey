@@ -84,6 +84,14 @@ public record HeartbeatSettings(Path directory, Duration interval, boolean enabl
 
     private static final String SESSION_PROPERTY = "jeffrey.current.session";
 
+    /**
+     * Set to {@code true} by the Jeffrey agent once it is beating. The Provisioner attaches the
+     * agent unless a deployment switches it off, and while it reports this library stays inert:
+     * both would write the same files through the same scratch names. Must match
+     * {@code AgentSettings.AGENT_ACTIVE_PROPERTY} in {@code jeffrey-agent}.
+     */
+    public static final String AGENT_ACTIVE_PROPERTY = PROPERTY_PREFIX + "agent";
+
     private static final Logger LOG = LoggerFactory.getLogger(HeartbeatSettings.class);
 
     public HeartbeatSettings {

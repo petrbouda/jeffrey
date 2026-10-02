@@ -349,11 +349,12 @@ export const hubNavigation: DocSection[] = [
     children: [{ title: 'Provisioner docs', to: '/docs/provisioner' }]
   },
   {
-    title: 'Heartbeat Library',
+    title: 'Liveness',
     path: 'agent',
     icon: 'bi-heart-pulse',
     children: [
-      { title: 'Overview', path: 'heartbeat-library' }
+      { title: 'Jeffrey Agent', path: 'jeffrey-agent' },
+      { title: 'Heartbeat Library', path: 'heartbeat-library' }
     ]
   },
   {
@@ -551,12 +552,15 @@ export const tracingNavigation: DocSection[] = [
     children: [{ title: 'Event catalog', to: '/docs/tracing/events' }]
   },
   {
-    // The Heartbeat Library lives in the Hub docs ('agent' segment); Tracing keeps just a link.
-    title: 'Heartbeat Library',
+    // Liveness (Jeffrey Agent + Heartbeat Library) lives in the Hub docs ('agent' segment); Tracing keeps just links.
+    title: 'Liveness',
     path: '_tracing-heartbeat-link',
     icon: 'bi-heart-pulse',
     crossLink: true,
-    children: [{ title: 'Heartbeat Library docs', to: '/docs/agent/heartbeat-library' }]
+    children: [
+      { title: 'Jeffrey Agent docs', to: '/docs/agent/jeffrey-agent' },
+      { title: 'Heartbeat Library docs', to: '/docs/agent/heartbeat-library' }
+    ]
   }
 ];
 

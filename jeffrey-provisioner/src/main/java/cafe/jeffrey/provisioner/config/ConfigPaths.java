@@ -40,6 +40,7 @@ public abstract class ConfigPaths {
     public static final String PROJECT_WORKSPACE_REF_ID = "project.workspace-ref-id";
     public static final String PROJECT_INSTANCE_NAME = "project.instance-name";
 
+    public static final String JEFFREY_AGENT_ENABLED = "jeffrey-agent.enabled";
     public static final String PERF_COUNTERS_ENABLED = "perf-counters.enabled";
     public static final String TRACING_ENABLED = "tracing.enabled";
     public static final String TRACING_JFR_EVENT_SETTINGS = "tracing.jfr-event-settings";

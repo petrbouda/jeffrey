@@ -30,6 +30,7 @@
         <module>shared</module>
         <module>jeffrey-hub</module>
         <module>jeffrey-microscope</module>
+        <module>jeffrey-agent</module>
         <module>jeffrey-provisioner</module>
         <module>utilities</module>
         <module>jeffrey-jib</module>
@@ -253,6 +254,12 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>pending-index</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-agent</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

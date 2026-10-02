@@ -3,7 +3,8 @@
     "includes": [
       {"pattern": "logback\\.xml$"},
       {"pattern": "jeffrey-tag\\.txt$"},
-      {"pattern": "META-INF/services/.*"}
+      {"pattern": "META-INF/services/.*"},
+      {"pattern": "cafe/jeffrey/provisioner/agent/jeffrey-agent\\.jar$"}
     ]
   }
 }

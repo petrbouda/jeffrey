@@ -90,6 +90,12 @@ jobs:
         if: matrix.component == 'Provisioner'
         run: java -jar build/build-provisioner/target/provisioner.jar --help
 
+      # The agent is bundled at prepare-package and a provisioner without it still provisions,
+      # only without liveness, so a broken bundle would pass every test above.
+      - name: Check packaged Provisioner bundles the Jeffrey agent
+        if: matrix.component == 'Provisioner'
+        run: unzip -l build/build-provisioner/target/provisioner.jar | grep -q 'cafe/jeffrey/provisioner/agent/jeffrey-agent.jar'
+
       - name: Check plugin contracts against backend defaults
         if: matrix.component == 'Microscope'
         run: |

@@ -153,5 +153,21 @@ class JeffreyHeartbeatTest {
             assertFalse(heartbeat.running());
             assertDoesNotThrow(heartbeat::close);
         }
+
+        /** Two writers on one directory would share its scratch files, so the agent wins. */
+        @Test
+        void whenTheJeffreyAgentAlreadyReports(@TempDir Path tempDir) {
+            Path directory = tempDir.resolve(HeartbeatFiles.DIRECTORY);
+            System.setProperty(HeartbeatSettings.AGENT_ACTIVE_PROPERTY, Boolean.TRUE.toString());
+            try {
+                JeffreyHeartbeat heartbeat =
+                        JeffreyHeartbeat.start(new HeartbeatSettings(directory, FAST, true), FIXED);
+
+                assertFalse(heartbeat.running());
+                assertFalse(Files.exists(directory), "standing down creates nothing at all");
+            } finally {
+                System.clearProperty(HeartbeatSettings.AGENT_ACTIVE_PROPERTY);
+            }
+        }
     }
 }

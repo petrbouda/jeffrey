@@ -22,10 +22,13 @@ import java.time.Duration;
 /**
  * Shared constants for the file-based heartbeat mechanism, as the hub reads it.
  *
- * <p>{@code utilities/jeffrey-heartbeat-parent/jeffrey-heartbeat} — the library that writes these files from inside a
- * profiled application — carries its own copy in {@code HeartbeatFiles} rather than depending on
- * this module, which no application should ever be made to pull in. The two move together; there
- * is no third reader.</p>
+ * <p>Two writers produce these files from inside a profiled application, and neither depends on
+ * this module, which no application should ever be made to pull in: {@code jeffrey-agent}, which
+ * the Provisioner attaches by default, copies the names into {@code AgentSettings} and
+ * {@code HeartbeatProducer}; {@code utilities/jeffrey-heartbeat-parent/jeffrey-heartbeat}, the
+ * library an application carries when the agent is switched off, into {@code HeartbeatFiles}. All
+ * three move together. Only one writer runs in a JVM: the library stands down while the agent
+ * reports.</p>
  */
 public abstract class HeartbeatConstants {
 
@@ -37,7 +40,7 @@ public abstract class HeartbeatConstants {
 
     /**
      * Name of the clean-exit marker file (contains epoch millis). Written into
-     * {@link #HEARTBEAT_DIR} when the library is closed; its presence lets the
+     * {@link #HEARTBEAT_DIR} when the writer is closed; its presence lets the
      * hub finish a session deterministically instead of waiting for the
      * heartbeat to go stale. Absent after a hard crash (kill -9, OOM kill).
      */

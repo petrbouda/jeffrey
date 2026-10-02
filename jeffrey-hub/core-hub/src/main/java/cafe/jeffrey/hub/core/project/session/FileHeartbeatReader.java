@@ -28,7 +28,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 
 /**
- * Reads the liveness files the {@code jeffrey-heartbeat} library writes into
+ * Reads the liveness files the Jeffrey agent or the {@code jeffrey-heartbeat} library writes into
  * {@code {sessionPath}/.heartbeat/}: the periodic {@code heartbeat} file and
  * the clean-exit {@code finished} marker. Both contain epoch millis as plain text.
  *

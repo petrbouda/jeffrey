@@ -121,7 +121,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>Generates JVM flags for async-profiler and enabled features</li>
           <li>Writes output files: <code>.env</code> file (shell exports) and/or JVM arguments file (@argfile format)</li>
           <li>Stores session metadata for Jeffrey to detect</li>
-          <li>Exports the environment <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> reads for liveness reporting</li>
+          <li>Writes the bundled <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> into the session and attaches it with <code>-javaagent</code> for liveness reporting (on by default; <code>JEFFREY_AGENT_ENABLED=false</code> leaves it to the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library)</li>
         </ul>
 
         <h3>When to Use Jeffrey Provisioner</h3>

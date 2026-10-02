@@ -171,11 +171,11 @@ public sealed interface JvmFeature {
     }
 
     /**
-     * Where the {@code jeffrey-heartbeat} library writes this session's liveness files.
+     * Where this session's liveness files go, read alike by the Jeffrey agent ({@link JeffreyAgent})
+     * and by the {@code jeffrey-heartbeat} library, whichever of them the JVM runs with.
      *
-     * <p>Only the directory, never whether to report: the library is on unless the application
-     * itself switches it off, so liveness is decided by what the application carries and how it
-     * is configured, not by this tool. A JVM without the library ignores the property.
+     * <p>Only the directory, never whether to report: both writers are on unless the application
+     * itself switches them off. A JVM with neither ignores the property.
      *
      * <p>Carried as a JVM system property rather than left to the {@code .env} file, because the
      * {@code .env} reaches almost nobody: it is written only when a deployment names an
@@ -195,6 +195,36 @@ public sealed interface JvmFeature {
         @Override
         public Optional<String> render(Path sessionPath, Placeholders placeholders) {
             return Optional.of(placeholders.resolve(DIRECTORY_OPTION));
+        }
+    }
+
+    /**
+     * The Jeffrey agent, which reports the JVM's liveness to the hub without the application
+     * carrying {@code jeffrey-heartbeat}. It takes no arguments: it reads the directory from the
+     * same {@code -Djeffrey.heartbeat.dir} that {@link Heartbeat} writes for the library.
+     *
+     * <p>A {@code null} jar means the agent is switched off ({@code jeffrey-agent.enabled = false})
+     * or could not be written into the session, and renders nothing. The path is quoted because a
+     * session path may carry a space, as in {@link Heartbeat}.
+     */
+    record JeffreyAgent(Path jar) implements JvmFeature {
+
+        public static final String JAVA_AGENT_OPTION = "-javaagent:";
+
+        public static JeffreyAgent disabled() {
+            return new JeffreyAgent(null);
+        }
+
+        public boolean enabled() {
+            return jar != null;
+        }
+
+        @Override
+        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
+            if (!enabled()) {
+                return Optional.empty();
+            }
+            return Optional.of(JAVA_AGENT_OPTION + "\"" + jar + "\"");
         }
     }
 

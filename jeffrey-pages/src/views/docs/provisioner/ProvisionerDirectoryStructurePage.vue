@@ -75,6 +75,7 @@ onMounted(() => {
 ├── profile-1704067200.jfr       # JFR chunk (timestamp-based naming)
 ├── profile-1704067800.jfr       # Next chunk after loop interval
 ├── profile-1704068400.jfr       # ... more chunks
+├── .jeffrey-agent.jar           # Jeffrey Agent, attached with -javaagent (hidden; default on)
 ├── .heartbeat/                  # Heartbeat liveness files
 │   ├── heartbeat                # Epoch millis, rewritten every 5 seconds
 │   └── finished                 # Clean-exit marker (written on JVM shutdown)
@@ -88,7 +89,7 @@ onMounted(() => {
         <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp.</p>
 
         <DocsCallout type="info">
-          <strong>Liveness files:</strong> the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> on clean exit. The hub finishes a session on the next check after the <code>finished</code> marker appears, and falls back to heartbeat staleness for crashed JVMs. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
+          <strong>Liveness files:</strong> the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> — written into the session as the hidden <code>.jeffrey-agent.jar</code>, so the Hub never lists it as a recording — or, with the agent switched off, the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> on clean exit. The hub finishes a session on the next check after the <code>finished</code> marker appears, and falls back to heartbeat staleness for crashed JVMs. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
         </DocsCallout>
 
         <h2 id="recorded-events">Recorded Events</h2>

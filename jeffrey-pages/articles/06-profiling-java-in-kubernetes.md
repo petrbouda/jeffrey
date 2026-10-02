@@ -59,7 +59,7 @@ A typical configuration enables:
 - **JFR synchronization** (`jfrsync=default`) for GC, threading, and JVM events
 - **Chunked recording** — JFR output split into time-based chunks (e.g., 15-minute loop) so files are manageable size
 - **Heap dumps on OOM** — Automatically captured if the application crashes
-- **Heartbeat monitoring** — Periodic signals so the Server knows the session is alive
+- **Heartbeat monitoring** — Periodic signals from the bundled `jeffrey-agent` so the Server knows the session is alive
 - **JVM diagnostic logging** — Captured alongside JFR data
 
 The provisioner also publishes workspace events that Jeffrey Hub watches to auto-discover new instances.
@@ -111,7 +111,7 @@ An **instance** represents a single pod lifecycle — from startup to terminatio
 ![Instances overview and lifecycle](images/release-notes/server-recording/02-instances-overview.png)
 *Instance list showing lifecycle state, session count, and timestamps.*
 
-Jeffrey detects session liveness through **file-based heartbeats**. The `jeffrey-heartbeat` library (an ordinary dependency of your application, on whenever it is on the class path unless the application sets `jeffrey.heartbeat.enabled=false`) writes `.heartbeat/heartbeat` to shared storage every five seconds and a `.heartbeat/finished` timestamp on clean shutdown. Jeffrey Hub checks the finished marker first, then falls back to heartbeat staleness after a hard crash. A session that never writes either file is left alone and closed when the instance's next session appears. If a HotSpot error log appears, the Hub records it as a crash event.
+Jeffrey detects session liveness through **file-based heartbeats**. The `jeffrey-agent` Java agent — bundled in the provisioner and attached with `-javaagent` by default, so the application needs no change — writes `.heartbeat/heartbeat` to shared storage every five seconds and a `.heartbeat/finished` timestamp on clean shutdown. A deployment that sets `JEFFREY_AGENT_ENABLED=false` runs without it; liveness then comes only from the `jeffrey-heartbeat` library, if the application carries it (an application that carries it anyway is safe with the agent on — the library stands down while the agent reports). Either is silenced by the application's own `jeffrey.heartbeat.enabled=false`. Jeffrey Hub checks the finished marker first, then falls back to heartbeat staleness after a hard crash. A session that never writes either file is left alone and closed when the instance's next session appears. If a HotSpot error log appears, the Hub records it as a crash event.
 
 ![Instance timeline](images/release-notes/server-recording/03-instance-timeline.png)
 *Timeline view showing instance activity, sessions, and events over time.*

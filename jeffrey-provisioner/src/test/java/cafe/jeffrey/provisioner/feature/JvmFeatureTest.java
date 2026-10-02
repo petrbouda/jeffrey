@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -279,6 +280,29 @@ class JvmFeatureTest {
                     java.util.List.of("-Djeffrey.heartbeat.dir=/tmp/my sessions/session-123/.heartbeat"),
                     JvmOptions.split(rendered),
                     "the quotes must survive the split into individual argfile lines");
+        }
+    }
+
+    @Nested
+    class JeffreyAgent {
+
+        @Test
+        void attachesTheJarWrittenIntoTheSession() {
+            assertEquals("-javaagent:\"/tmp/sessions/session-123/.jeffrey-agent.jar\"",
+                    render(new JvmFeature.JeffreyAgent(SESSION.resolve(".jeffrey-agent.jar"))));
+        }
+
+        /** The JVM reads the quoted option as one, however the session path is spelled. */
+        @Test
+        void survivesASpaceInTheSessionPath() {
+            String option = render(new JvmFeature.JeffreyAgent(Path.of("/tmp/my sessions/.jeffrey-agent.jar")));
+
+            assertEquals(List.of("-javaagent:/tmp/my sessions/.jeffrey-agent.jar"), JvmOptions.split(option));
+        }
+
+        @Test
+        void rendersNothingWhenDisabled() {
+            assertEquals(Optional.empty(), JvmFeature.JeffreyAgent.disabled().render(SESSION, PLACEHOLDERS));
         }
     }
 

@@ -30,8 +30,11 @@ jeffrey-hub/                           HubApplication (core-hub: gRPC services, 
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        sql-builder, test (@DuckDBTest), hub-api (protos only), pending-index,
                                        ui/common (@shared: generic components, services, design tokens), ui/version
-jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM (no Java agent;
-                                       liveness comes from utilities/jeffrey-heartbeat-parent, on unless the app disables it)
+jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; bundles jeffrey-agent and
+                                       attaches it with -javaagent unless jeffrey-agent.enabled=false
+jeffrey-agent/                         heartbeat-only Java agent (Java 21, zero dependencies), shipped inside the
+                                       provisioner; off → liveness only from utilities/jeffrey-heartbeat-parent,
+                                       which stands down while the agent reports
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)

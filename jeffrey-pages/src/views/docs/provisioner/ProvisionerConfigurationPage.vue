@@ -71,6 +71,7 @@ JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUI
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
+JEFFREY_AGENT_ENABLED=true           # default; false leaves liveness to jeffrey-heartbeat
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
@@ -111,6 +112,7 @@ attributes { cluster = "blue", namespace = "production" }
 
 debug-non-safepoints { enabled = true }
 perf-counters { enabled = true }
+jeffrey-agent { enabled = true }
 tracing { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jdk-java-options { enabled = true }
@@ -319,6 +321,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>Save JVM performance counters into the session directory</td>
             </tr>
             <tr>
+              <td><code>jeffrey-agent.enabled</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_AGENT_ENABLED</code></td>
+              <td><strong>On by default.</strong> Write the bundled <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> into the session as <code>.jeffrey-agent.jar</code> and attach it with <code>-javaagent</code>, so the JVM reports liveness to the Hub with no change to the application. Set <code>false</code> to leave liveness to the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it</td>
+            </tr>
+            <tr>
               <td><code>tracing.enabled</code></td>
               <td>No</td>
               <td><code>JEFFREY_TRACING_ENABLED</code></td>
@@ -456,8 +464,10 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           </div>
           <div class="feature-card heartbeat">
             <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
-            <h4>Heartbeat &amp; Clean-Exit Marker</h4>
-            <p>The <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. Nothing to configure: the Provisioner always creates the session's <code>.heartbeat</code> folder, passes it to the JVM as <code>-Djeffrey.heartbeat.dir</code> and exports it as <code>JEFFREY_HEARTBEAT_DIR</code>. Whether anything writes there is the application's business — the library reports whenever it is on the class path, unless the application sets <code>jeffrey.heartbeat.enabled=false</code>.</p>
+            <h4>Jeffrey Agent: Heartbeat &amp; Clean-Exit Marker</h4>
+            <p>The <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, bundled in the Provisioner, writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. On by default: at <code>init</code> the Provisioner writes the agent as <code>&lt;session&gt;/.jeffrey-agent.jar</code> and adds <code>-javaagent</code> to the argfile. It always creates the session's <code>.heartbeat</code> folder, passes it to the JVM as <code>-Djeffrey.heartbeat.dir</code> and exports it as <code>JEFFREY_HEARTBEAT_DIR</code>. Switched off, liveness is reported only if the application carries the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library; an application carrying the library is safe with the agent on, as the library stands down while the agent reports. If the agent cannot be written, the session is provisioned without it and a warning is logged.</p>
+            <code>jeffrey-agent { enabled = true }</code>
+            <code>JEFFREY_AGENT_ENABLED=false</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>

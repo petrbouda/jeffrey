@@ -31,7 +31,7 @@
     <artifactId>jeffrey-heartbeat</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Reports JVM liveness to a Jeffrey Hub from inside the application, without a Java agent</description>
+    <description>Reports JVM liveness to a Jeffrey Hub from inside the application; the alternative to the Jeffrey agent</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 

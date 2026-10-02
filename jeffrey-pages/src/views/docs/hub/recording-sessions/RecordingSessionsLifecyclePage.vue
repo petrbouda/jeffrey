@@ -125,7 +125,7 @@ onMounted(() => {
         <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The profiled application emits periodic liveness signals that the platform monitors to determine session state.</p>
 
         <h3 id="heartbeat-mechanism">Heartbeat Mechanism</h3>
-        <p>The <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library writes liveness files into the session directory on shared storage:</p>
+        <p>The <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner attaches by default, writes liveness files into the session directory on shared storage — or, when a deployment switches the agent off, the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library the application carries writes the same files:</p>
         <ul>
           <li><strong>Heartbeat</strong> — <code>.heartbeat/heartbeat</code> contains epoch milliseconds and is refreshed every 5 seconds by default.</li>
           <li><strong>Clean exit</strong> — the shutdown hook writes <code>.heartbeat/finished</code> with the exit timestamp. A hard crash can leave this marker absent.</li>
@@ -167,14 +167,14 @@ onMounted(() => {
             <div class="case-indicator"><i class="bi bi-hourglass-split"></i></div>
             <div class="case-content">
               <h4>No liveness file at all</h4>
-              <p>Neither <code>.heartbeat/heartbeat</code> nor <code>.heartbeat/finished</code> exists. The JVM may still be starting, or nothing in it reports — no library, or an application that switched it off — and the two look the same from the Hub. The session is <strong>left alone</strong>, however old it is, because finishing it would end a session the profiler may still be writing. There is no startup deadline.</p>
+              <p>Neither <code>.heartbeat/heartbeat</code> nor <code>.heartbeat/finished</code> exists. The JVM may still be starting, or nothing in it reports — the agent switched off and no library, or an application that switched liveness off — and the two look the same from the Hub. The session is <strong>left alone</strong>, however old it is, because finishing it would end a session the profiler may still be writing. There is no startup deadline.</p>
             </div>
           </div>
         </div>
 
         <h3 id="sessions-without-the-agent">Sessions That Report Nothing</h3>
-        <p>Liveness comes from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, which is an ordinary dependency of the application. It reports whenever it is on the class path, and only the application can switch it off, with <code>jeffrey.heartbeat.enabled=false</code>. Nothing tells the Hub in advance whether a session will report: the Provisioner has no heartbeat setting, and the Hub learns it from the first liveness file that appears.</p>
-        <p>A session without the library, or with it switched off, writes no <code>.heartbeat/</code> files at all, so there is no signal to go stale, and the detector leaves it alone. Those sessions are finished instead when the instance's <strong>next session appears</strong> on shared storage: materializing a new session closes any unfinished predecessor of the same instance, at the clean-exit or last-heartbeat timestamp when one exists, otherwise at the next session's start.</p>
+        <p>Liveness comes from the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner writes into every session and attaches with <code>-javaagent</code> unless the deployment sets <code>JEFFREY_AGENT_ENABLED=false</code>. With the agent off, it comes only from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it. Either one is silenced by the application's own <code>jeffrey.heartbeat.enabled=false</code>. Nothing tells the Hub in advance whether a session will report: it learns it from the first liveness file that appears.</p>
+        <p>A session with the agent off and without the library, or with liveness switched off, writes no <code>.heartbeat/</code> files at all, so there is no signal to go stale, and the detector leaves it alone. Those sessions are finished instead when the instance's <strong>next session appears</strong> on shared storage: materializing a new session closes any unfinished predecessor of the same instance, at the clean-exit or last-heartbeat timestamp when one exists, otherwise at the next session's start.</p>
         <p>The consequence is that the last session of an instance that never restarts stays Active until something else ends it, which is the honest answer — with nothing reporting, nothing on disk distinguishes a JVM that stopped from one that is simply quiet.</p>
 
         <h3 id="jvm-crash-logs">JVM Crash Logs</h3>

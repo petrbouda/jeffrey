@@ -215,6 +215,69 @@ class InitExecutorTest {
     }
 
     @Nested
+    class JeffreyAgent {
+
+        private InitConfig config(String agentEnabled) throws IOException {
+            InitConfig base = InitExecutorTest.this.config();
+            Map<String, String> env = Map.of(
+                    "JEFFREY_WORKSPACES_DIR", workspacesDir.toString(),
+                    "JEFFREY_PROJECT_NAME", PROJECT_NAME,
+                    "JEFFREY_WORKSPACE_REF_ID", WORKSPACE_REF_ID,
+                    "JEFFREY_INSTANCE_NAME", INSTANCE_NAME,
+                    "JEFFREY_ARG_FILE", argFile.toString(),
+                    "JEFFREY_PROFILER_PATH", base.getProfilerPath(),
+                    "JEFFREY_AGENT_ENABLED", agentEnabled);
+            return InitConfig.fromEnvironment(env::get);
+        }
+
+        private List<String> agentOptions() throws IOException {
+            return argFileOptions().stream().filter(option -> option.startsWith("-javaagent:")).toList();
+        }
+
+        @Test
+        void attachesTheAgentWrittenIntoTheSession() throws Exception {
+            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.bundledUnder(tempDir.resolve("classes")))
+                    .execute(config("true"));
+
+            Path agent = sessionPath().resolve(JeffreyAgentInstaller.SESSION_FILE);
+            assertTrue(Files.exists(agent), "the agent jar is written into the session");
+            assertEquals(List.of("-javaagent:" + agent), agentOptions());
+        }
+
+        /** The agent reads the same directory the library would, so the argfile still names it. */
+        @Test
+        void keepsNamingTheHeartbeatDirectory() throws Exception {
+            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.bundledUnder(tempDir.resolve("classes")))
+                    .execute(config("true"));
+
+            assertTrue(argFileOptions().contains("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="
+                    + sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
+        }
+
+        /** Switched off, liveness is left to the jeffrey-heartbeat library the application carries. */
+        @Test
+        void leavesTheAgentOutWhenSwitchedOff() throws Exception {
+            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.bundledUnder(tempDir.resolve("classes")))
+                    .execute(config("false"));
+
+            assertEquals(List.of(), agentOptions());
+            assertFalse(Files.exists(sessionPath().resolve(JeffreyAgentInstaller.SESSION_FILE)));
+            assertTrue(argFileOptions().contains("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="
+                    + sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)), "the library still needs the directory");
+        }
+
+        /** A provisioner packaged without the agent still provisions the session. */
+        @Test
+        void provisionsWithoutTheAgentWhenItIsNotBundled() throws Exception {
+            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.missingUnder(tempDir.resolve("classes")))
+                    .execute(config("true"));
+
+            assertEquals(List.of(), agentOptions());
+            assertTrue(Files.exists(sessionPath().resolve(JeffreyLayout.SESSION_INFO_FILE)), "the session is still recorded");
+        }
+    }
+
+    @Nested
     class RepeatedRuns {
 
         /** A second run reuses the project and instance and adds a session ordered after the first. */

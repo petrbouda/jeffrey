@@ -106,12 +106,12 @@ public class SessionFinisher {
      * has stopped reporting. Used by the polling detector.
      *
      * <p>A session is held to this deadline only once it has shown that it reports liveness, by
-     * writing a liveness file. The writer is the {@code jeffrey-heartbeat} library, an ordinary
-     * dependency of the profiled application that is on unless the application switches it off,
-     * so nothing outside the application declares whether it will report. A session that never
-     * wrote a liveness file — no library, or one the application disabled — is not finished for
-     * staying silent; it is closed when the instance's next session appears, by
-     * {@link #forceFinish}.</p>
+     * writing a liveness file. The writer is the Jeffrey agent the Provisioner attaches by default,
+     * or, where a deployment switched the agent off, the {@code jeffrey-heartbeat} library the
+     * application carries itself; nothing declares up front whether either will report. A session
+     * that never wrote a liveness file — no agent and no library, or one the application disabled —
+     * is not finished for staying silent; it is closed when the instance's next session appears,
+     * by {@link #forceFinish}.</p>
      *
      * <p>Four outcomes:</p>
      * <ol>
