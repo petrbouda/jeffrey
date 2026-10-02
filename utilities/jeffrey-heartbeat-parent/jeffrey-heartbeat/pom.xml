@@ -31,13 +31,14 @@
     <artifactId>jeffrey-heartbeat</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Reports JVM liveness to a Jeffrey Hub from inside the application, without a Java agent</description>
+    <description>Reports JVM liveness to a Jeffrey Hub from inside the application; the alternative to the Jeffrey agent</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <!--
-      One compile dependency, and the list stays that short on purpose: this jar is compiled into
-      applications Jeffrey profiles but does not own, so anything it brought along would be a
+      Two compile dependencies, jeffrey-heartbeat-core (itself dependency-free) and slf4j-api, and
+      the list stays that short on purpose: this jar is compiled into applications Jeffrey profiles
+      but does not own, so anything it brought along would be a
       version those applications did not choose. slf4j-api is the exception that costs them
       nothing — it is a facade with no implementation, every application that logs already has it,
       and it is what the rest of Jeffrey logs through, so a heartbeat line is routed, formatted and
@@ -46,6 +47,12 @@
       one that must win.
     -->
     <dependencies>
+        <!-- The files and the loop that writes them; this module adds the API and SLF4J logging. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-heartbeat-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>

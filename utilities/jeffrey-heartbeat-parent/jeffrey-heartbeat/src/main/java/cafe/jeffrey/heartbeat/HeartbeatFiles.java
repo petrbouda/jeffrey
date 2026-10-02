@@ -14,44 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package cafe.jeffrey.heartbeat;
+
+import cafe.jeffrey.heartbeat.core.HeartbeatContract;
 
 import java.time.Duration;
 
 /**
  * The on-disk contract between a profiled JVM and a Jeffrey Hub: a directory holding a periodically
  * rewritten {@code heartbeat} file and, after a clean exit, a {@code finished} marker. Both contain
- * epoch millis as plain text.
- *
- * <p><b>This is the second copy of these values, and deliberately so.</b> The other is
- * {@code cafe.jeffrey.shared.common.HeartbeatConstants}, which the hub reads them with, and it
- * lives in a module no profiled application should ever be made to pull in. This one is an
- * ordinary dependency an application compiles against, so it must bring nothing with it.</p>
- *
- * <p>The values are three strings and a duration and have not changed since they were introduced.
- * If they ever do, both copies move together.</p>
+ * epoch millis as plain text. The values are {@link HeartbeatContract}'s, shared with the Jeffrey
+ * agent; they are repeated here only so this library's public API keeps naming them.
  */
 public final class HeartbeatFiles {
 
     /** Directory, inside the session directory, that holds the liveness files. */
-    public static final String DIRECTORY = ".heartbeat";
+    public static final String DIRECTORY = HeartbeatContract.DIRECTORY;
 
     /** Periodically rewritten; its content is when the JVM was last known alive. */
-    public static final String HEARTBEAT_FILE = "heartbeat";
+    public static final String HEARTBEAT_FILE = HeartbeatContract.HEARTBEAT_FILE;
 
     /**
      * Written once on clean shutdown. Its presence lets the hub finish a session immediately
      * instead of waiting for the heartbeat to go stale, and it is absent after a hard kill.
      */
-    public static final String FINISHED_FILE = "finished";
+    public static final String FINISHED_FILE = HeartbeatContract.FINISHED_FILE;
 
-    /**
-     * How often the heartbeat is rewritten. Must match {@code HeartbeatConstants.DEFAULT_INTERVAL}:
-     * the hub's staleness threshold is chosen as a multiple of it, so a producer that beats more
-     * slowly than the hub expects reads as dead while it is running.
-     */
-    public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
+    /** How often the heartbeat is rewritten; the hub's staleness threshold is a multiple of it. */
+    public static final Duration DEFAULT_INTERVAL = HeartbeatContract.DEFAULT_INTERVAL;
 
     private HeartbeatFiles() {
     }

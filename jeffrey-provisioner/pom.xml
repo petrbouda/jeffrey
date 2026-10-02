@@ -65,6 +65,18 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
 
+        <!--
+          Not a library of the provisioner: the jar it embeds and writes into every session for
+          -javaagent (see the copy below). Declared, and provided-scoped so it stays out of the
+          provisioner's own class path, for the build order alone — the reactor has to package the
+          agent before the provisioner copies it.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-agent</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -72,4 +84,41 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+              The agent travels inside the provisioner as a resource, so every way the provisioner
+              ships (jar, native binary, jeffrey-jib payload) carries a matching agent without a
+              second artifact to distribute. Bound to prepare-package because a reactor artifact can
+              only be copied once it is packaged; a build that stops at compile or test has no
+              bundled agent, and the provisioner then provisions without it.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>bundle-jeffrey-agent</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>jeffrey-agent</artifactId>
+                                    <version>${project.version}</version>
+                                    <destFileName>jeffrey-agent.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <!-- Must match JeffreyAgentInstaller.BUNDLED_RESOURCE -->
+                            <outputDirectory>${project.build.outputDirectory}/cafe/jeffrey/provisioner/agent</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

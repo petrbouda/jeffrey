@@ -423,7 +423,12 @@ const routes: RouteRecordRaw[] = [
       { path: 'cli/directory-structure', redirect: '/docs/provisioner/directory-structure' },
       { path: 'cli/generated-output', redirect: '/docs/provisioner/generated-output' },
 
-      // ──── Heartbeat Library ────
+      // ──── Liveness: Jeffrey Agent + Heartbeat Library ────
+      {
+        path: 'agent/jeffrey-agent',
+        name: 'DocsAgentJeffreyAgent',
+        component: () => import('@/views/docs/agent/JeffreyAgentPage.vue')
+      },
       {
         path: 'agent/heartbeat-library',
         name: 'DocsAgentHeartbeatLibrary',

@@ -30,6 +30,7 @@
         <module>shared</module>
         <module>jeffrey-hub</module>
         <module>jeffrey-microscope</module>
+        <module>jeffrey-agent</module>
         <module>jeffrey-provisioner</module>
         <module>utilities</module>
         <module>jeffrey-jib</module>
@@ -258,6 +259,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-agent</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>jeffrey-provisioner</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -323,6 +330,11 @@
             <dependency>
                 <groupId>cafe.jeffrey-analyst</groupId>
                 <artifactId>jeffrey-heartbeat</artifactId>
+                <version>${jeffrey-events.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cafe.jeffrey-analyst</groupId>
+                <artifactId>jeffrey-heartbeat-core</artifactId>
                 <version>${jeffrey-events.version}</version>
             </dependency>
 

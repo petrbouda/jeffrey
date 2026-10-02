@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.provisioner.feature.JvmFeature;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import org.slf4j.Logger;
@@ -35,12 +36,18 @@ public class InitExecutor {
     private final Clock clock;
     private final LayoutProvisioner layoutProvisioner;
     private final AsyncProfilerResolver profilerResolver;
+    private final JeffreyAgentInstaller agentInstaller;
     private final OutputWriter outputWriter;
 
     public InitExecutor(Clock clock) {
+        this(clock, new JeffreyAgentInstaller());
+    }
+
+    InitExecutor(Clock clock, JeffreyAgentInstaller agentInstaller) {
         this.clock = clock;
         this.layoutProvisioner = new LayoutProvisioner();
         this.profilerResolver = new AsyncProfilerResolver();
+        this.agentInstaller = agentInstaller;
         this.outputWriter = new OutputWriter();
     }
 
@@ -68,7 +75,9 @@ public class InitExecutor {
         AsyncProfilerResolver.ResolvedProfiler profiler =
                 profilerResolver.resolve(config.getProfilerCommand(), config.getProfilerPath());
 
-        String jvmOptions = JvmFeatures.of(config, profiler.feature())
+        JvmFeature.JeffreyAgent agent = installAgent(config, session.layout());
+
+        String jvmOptions = JvmFeatures.of(config, profiler.feature(), agent)
                 .render(session.layout().session(), placeholders);
 
         registrar.recordSession(config, session);
@@ -76,9 +85,9 @@ public class InitExecutor {
 
         // Single greppable verdict line — the one place that tells a user their setup works
         if (profiler.feature().enabled()) {
-            LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} arg_file={}",
+            LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} jeffrey_agent={} arg_file={}",
                     config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
-                    profiler.source(), config.getArgFilePath());
+                    profiler.source(), agent.enabled(), config.getArgFilePath());
         } else {
             LOG.warn("Jeffrey profiling DISABLED, async-profiler is not available: project={} workspace={} instance={} session={} arg_file={}",
                     config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
@@ -86,4 +95,17 @@ public class InitExecutor {
         }
     }
 
+    /**
+     * Writes the agent into the session when it is switched on. Off, the session's liveness is left
+     * to the {@code jeffrey-heartbeat} library, which the application has to carry itself.
+     */
+    private JvmFeature.JeffreyAgent installAgent(InitConfig config, SessionLayout layout) {
+        if (!config.isJeffreyAgentEnabled()) {
+            LOG.info("Jeffrey agent DISABLED, liveness is reported only if the application carries jeffrey-heartbeat");
+            return JvmFeature.JeffreyAgent.disabled();
+        }
+        return agentInstaller.install(layout.session())
+                .map(JvmFeature.JeffreyAgent::new)
+                .orElseGet(JvmFeature.JeffreyAgent::disabled);
+    }
 }

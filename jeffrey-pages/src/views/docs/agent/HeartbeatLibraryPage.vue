@@ -26,6 +26,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'on-by-default', text: 'On by Default', level: 2 },
+  { id: 'with-the-agent', text: 'With the Jeffrey Agent', level: 3 },
   { id: 'spring-boot', text: 'Spring Boot', level: 2 },
   { id: 'plain-java', text: 'Plain Java', level: 2 },
   { id: 'configuration', text: 'Configuration', level: 2 },
@@ -48,18 +49,22 @@ onMounted(() => {
         <h2 id="overview">Overview</h2>
         <p><strong>jeffrey-heartbeat</strong> reports to a Jeffrey Hub that your JVM is alive, and tells it when the JVM stopped. It writes two files into the session directory: a timestamp it rewrites every few seconds, and a clean-exit marker on shutdown.</p>
         <p>That is the whole of it. It emits no events, instruments nothing, and brings one dependency: the SLF4J API it logs through.</p>
+        <p>A provisioned JVM does not need it: the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, bundled in the Provisioner and attached by default, writes the same files with no change to the application. The library is the alternative for a deployment that switches the agent off (<code>JEFFREY_AGENT_ENABLED=false</code>), and it is safe to carry alongside the agent: when the agent already reports, the library stays inert.</p>
 
         <DocsCallout type="info">
           A provisioned application configures itself. Jeffrey Provisioner passes <code>-Djeffrey.heartbeat.dir</code> in the argfile the JVM starts with, and exports the matching <code>JEFFREY_HEARTBEAT_DIR</code> into its <code>.env</code> for a deployment that sources one — so on Spring Boot the whole integration is one dependency and no code.
         </DocsCallout>
 
         <h2 id="on-by-default">On by Default</h2>
-        <p>The library <strong>reports whenever it is on the class path</strong>. Nothing outside the application decides whether it does: the Provisioner has no heartbeat setting and only names the directory, through <code>-Djeffrey.heartbeat.dir</code>. With no directory named — an application that was not provisioned, such as one running on a developer's laptop — the library starts inert, which is what makes the dependency safe to leave in.</p>
-        <p>Switching it off is the <strong>application's decision alone</strong>: set <code>jeffrey.heartbeat.enabled=false</code> in <code>application.yaml</code> or as a system property, or <code>JEFFREY_HEARTBEAT_ENABLED=false</code> in the application's own deployment.</p>
+        <p>The library <strong>reports whenever it is on the class path</strong> and the Jeffrey Agent is not already reporting. The Provisioner has no setting for the library itself: it names the directory, through <code>-Djeffrey.heartbeat.dir</code>, and decides only whether the agent is attached (<code>jeffrey-agent.enabled</code>). With no directory named — an application that was not provisioned, such as one running on a developer's laptop — the library starts inert, which is what makes the dependency safe to leave in.</p>
+        <p>Switching it off is the <strong>application's decision</strong>: set <code>jeffrey.heartbeat.enabled=false</code> in <code>application.yaml</code> or as a system property, or <code>JEFFREY_HEARTBEAT_ENABLED=false</code> in the application's own deployment. Set as a system property or environment variable, the same switch silences the Jeffrey Agent too — the agent does not read <code>application.yaml</code>.</p>
         <pre class="doc-code"><code>jeffrey:
   heartbeat:
     enabled: false</code></pre>
         <p>The Hub needs no word about either choice. It holds a session to the heartbeat deadline only once the session has written a liveness file; a session that never writes one is closed when the instance's next session appears. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does in each case.</p>
+
+        <h3 id="with-the-agent">With the Jeffrey Agent</h3>
+        <p>Once the agent is beating it sets the system property <code>jeffrey.heartbeat.agent=true</code>. The library — and so the Spring Boot starter — sees it, stays inert and logs that the agent already reports, so there is only ever one writer of the liveness files. An application that carries the library needs no change when the agent is on, and reports on its own the moment a deployment switches the agent off.</p>
 
         <h2 id="spring-boot">Spring Boot</h2>
         <p>One dependency, no code:</p>
@@ -101,7 +106,7 @@ onMounted(() => {
                 <td><code>JEFFREY_HEARTBEAT_ENABLED</code></td>
                 <td><code>jeffrey.heartbeat.enabled</code></td>
                 <td><code>true</code></td>
-                <td>Whether liveness is reported at all. The application's own switch — nothing in Jeffrey sets it, so an application carrying the library reports unless it sets <code>false</code></td>
+                <td>Whether liveness is reported at all. The application's own switch — nothing in Jeffrey sets it, so an application carrying the library reports unless it sets <code>false</code>. As a system property or environment variable it silences the Jeffrey Agent too</td>
               </tr>
               <tr>
                 <td><code>JEFFREY_HEARTBEAT_DIR</code></td>

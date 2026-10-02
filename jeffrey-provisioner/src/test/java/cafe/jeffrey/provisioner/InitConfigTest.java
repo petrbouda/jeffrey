@@ -909,4 +909,56 @@ class InitConfigTest {
             assertEquals("from-env", config.getProjectName());
         }
     }
+
+    @Nested
+    class JeffreyAgentSwitch {
+
+        @TempDir
+        Path tempDir;
+
+        private static final Map<String, String> MINIMAL_ENV = Map.of(
+                "JEFFREY_HOME", "/mnt/jeffrey",
+                "JEFFREY_PROJECT_NAME", "my-service");
+
+        /** The application needs no change to report liveness, so the agent is attached unless told otherwise. */
+        @Test
+        void isOnByDefault() {
+            assertTrue(InitConfig.fromEnvironment(MINIMAL_ENV::get).isJeffreyAgentEnabled());
+        }
+
+        @Test
+        void envSwitchesItOff() {
+            Map<String, String> env = new HashMap<>(MINIMAL_ENV);
+            env.put("JEFFREY_AGENT_ENABLED", "false");
+
+            assertFalse(InitConfig.fromEnvironment(env::get).isJeffreyAgentEnabled());
+        }
+
+        @Test
+        void hoconSwitchesItOff() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "jeffrey-agent { enabled = false }"
+            ));
+
+            assertFalse(InitConfig.fromHoconFile(configFile, null, name -> null).isJeffreyAgentEnabled());
+        }
+
+        @Test
+        void envWinsOverHocon() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "jeffrey-agent { enabled = false }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_AGENT_ENABLED") ? "true" : null);
+
+            assertTrue(config.isJeffreyAgentEnabled());
+        }
+    }
 }

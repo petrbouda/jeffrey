@@ -112,8 +112,9 @@ const moduleClient = `<plugin>
         and modifies the image's entrypoint at build time. The result: a Spring Boot image
         that, when launched in a pod with <code>JEFFREY_ENABLED=true</code> and a populated
         <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
-        the JVM starts and boots with the right async-profiler flags and
-        <code>-Djeffrey.heartbeat.dir</code> property. There is no Dockerfile and no shell script to
+        the JVM starts and boots with the right async-profiler flags, the
+        <code>-Djeffrey.heartbeat.dir</code> property and the
+        <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that reports liveness. There is no Dockerfile and no shell script to
         maintain; the provisioner and async-profiler are installed by the extension under
         <code>/opt/jeffrey</code>.
       </p>

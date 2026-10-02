@@ -128,9 +128,9 @@ const tasteSpans = [
             <td>Drop-in instrumentation for Servlet, Spring, Spring Boot (a starter: one dependency, no code), JDBC <code>DataSource</code>, HikariCP, MyBatis and gRPC. See the <router-link to="/docs/tracing/http-events">HTTP</router-link>, <router-link to="/docs/tracing/grpc-events">gRPC</router-link>, <router-link to="/docs/tracing/jdbc-events">JDBC</router-link> and <router-link to="/docs/tracing/mybatis-events">MyBatis</router-link> pages, and <router-link to="/docs/tracing/spring-support">Spring Support</router-link>.</td>
           </tr>
           <tr>
-            <td><strong>jeffrey-heartbeat</strong></td>
-            <td><code>jeffrey-heartbeat</code></td>
-            <td>Reports to a Jeffrey Hub that the JVM is alive, and when it stopped. It emits no spans and instruments nothing — unrelated to tracing, and listed here only because it is the other library a profiled application carries. See <router-link to="/docs/agent/heartbeat-library">Heartbeat Library</router-link>.</td>
+            <td><strong>Liveness</strong></td>
+            <td><code>jeffrey-agent</code> / <code>jeffrey-heartbeat</code></td>
+            <td>Reports to a Jeffrey Hub that the JVM is alive, and when it stopped. It emits no spans and instruments nothing — unrelated to tracing, and listed here only because it runs in the same profiled JVM. The Provisioner attaches the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> by default, so the application needs nothing; with the agent switched off, the application carries the <router-link to="/docs/agent/heartbeat-library">Heartbeat Library</router-link> instead.</td>
           </tr>
           <tr>
             <td><strong>Jeffrey Microscope</strong></td>

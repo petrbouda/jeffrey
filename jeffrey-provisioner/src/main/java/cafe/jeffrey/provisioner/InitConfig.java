@@ -77,6 +77,10 @@ public class InitConfig {
                 instance-name = ""
             }
             attributes = {}
+            # On by default: the provisioner attaches the Jeffrey agent it carries, so a session
+            # reports liveness without the application doing anything. Switched off, liveness is
+            # reported only if the application carries jeffrey-heartbeat itself.
+            jeffrey-agent { enabled = true }
             perf-counters { enabled = false }
             # Lowers the JFR thresholds a span is read at. On by default: a provisioned JVM is one
             # being profiled on purpose, and the settings cost nothing in an application that emits
@@ -184,6 +188,7 @@ public class InitConfig {
     private final String instanceName;
     private final Map<String, String> attributes;
 
+    private final boolean jeffreyAgentEnabled;
     private final boolean perfCountersEnabled;
     private final boolean spanTracingEnabled;
     private final String tracingJfrEventSettings;
@@ -233,6 +238,7 @@ public class InitConfig {
         this.attributes = resolveAttributes(
                 resolved.getObject(ConfigPaths.ATTRIBUTES).unwrapped(), placeholders);
 
+        this.jeffreyAgentEnabled = resolved.getBoolean(ConfigPaths.JEFFREY_AGENT_ENABLED);
         this.perfCountersEnabled = resolved.getBoolean(ConfigPaths.PERF_COUNTERS_ENABLED);
         this.spanTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
         this.tracingJfrEventSettings = valueOrDefault(
@@ -348,6 +354,15 @@ public class InitConfig {
     /** Free-form metadata, empty rather than null when none was configured. */
     public Map<String, String> getAttributes() {
         return attributes;
+    }
+
+    /**
+     * Whether the session's JVM runs with the Jeffrey agent, which reports its liveness to the hub.
+     * When off, liveness is reported only by the {@code jeffrey-heartbeat} library, and only if the
+     * application carries it.
+     */
+    public boolean isJeffreyAgentEnabled() {
+        return jeffreyAgentEnabled;
     }
 
     public boolean isPerfCountersEnabled() {

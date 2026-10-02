@@ -37,12 +37,14 @@
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <!--
-      The heartbeat family: the library that reports JVM liveness to a Jeffrey Hub from inside the
-      application, and the starter that wires it into Spring Boot. It shares nothing with the events
+      The heartbeat family: the dependency-free core that writes the liveness files (shared with the
+      Jeffrey agent, which shades it), the library that reports JVM liveness to a Jeffrey Hub from
+      inside the application, and the starter that wires it into Spring Boot. It shares nothing with the events
       or tracing modules but the build: configuration, dependencyManagement and the release profile
       come from jeffrey-utilities-parent above, so it is published in the same run on the same version.
     -->
     <modules>
+        <module>jeffrey-heartbeat-core</module>
         <module>jeffrey-heartbeat</module>
         <module>jeffrey-heartbeat-spring-boot-starter</module>
     </modules>

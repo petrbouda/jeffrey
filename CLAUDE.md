@@ -30,14 +30,17 @@ jeffrey-hub/                           HubApplication (core-hub: gRPC services, 
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        sql-builder, test (@DuckDBTest), hub-api (protos only), pending-index,
                                        ui/common (@shared: generic components, services, design tokens), ui/version
-jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM (no Java agent;
-                                       liveness comes from utilities/jeffrey-heartbeat-parent, on unless the app disables it)
+jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; bundles jeffrey-agent and
+                                       attaches it with -javaagent unless jeffrey-agent.enabled=false
+jeffrey-agent/                         heartbeat-only Java agent (Java 21), shipped inside the provisioner; runs
+                                       jeffrey-heartbeat-core shaded+relocated. Off → liveness only from the
+                                       jeffrey-heartbeat library, which stands down while the agent reports
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
 utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of three
                                        independent parts: jeffrey-events, jeffrey-heartbeat-parent
-                                       (library + starter), jeffrey-tracing-parent:
+                                       (dependency-free core shared with jeffrey-agent, library + starter), jeffrey-tracing-parent:
                                        tracing API on Java 21 + two span storages picked by ServiceLoader —
                                        jeffrey-tracing-scoped-value (ScopedValue, 25, opt-in) and
                                        jeffrey-tracing-thread-local (21, the starter's) — + instrumentation

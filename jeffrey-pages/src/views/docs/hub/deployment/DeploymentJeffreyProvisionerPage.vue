@@ -139,7 +139,7 @@ volumes:
         <li>It reads <code>JEFFREY_BASE_CONFIG</code> (the path to the HOCON config inside the container).</li>
         <li>It reads <code>JEFFREY_PROVISIONER_PATH</code>, baked by the JIB extension to point at <code>/opt/jeffrey</code> in this image. On a multi-architecture image the path carries an <code>&#123;arch&#125;</code> placeholder the wrapper expands from <code>uname -m</code>.</li>
         <li>It calls <code>provisioner init</code>, which reads the HOCON config, takes the profiler path from <code>JEFFREY_PROFILER_PATH</code>, and emits a JVM-arg response file.</li>
-        <li>It launches the JVM with <code>java @&lt;response-file&gt; @/app/jib-classpath-file &lt;MainClass&gt;</code>. The response file injects the <code>-agentpath</code> for async-profiler, the <code>-Djeffrey.heartbeat.dir</code> property, the <code>additional-jvm-options</code>, and the per-feature flags (heap-dump, perf-counters).</li>
+        <li>It launches the JVM with <code>java @&lt;response-file&gt; @/app/jib-classpath-file &lt;MainClass&gt;</code>. The response file injects the <code>-agentpath</code> for async-profiler, the <code>-Djeffrey.heartbeat.dir</code> property, the <code>-javaagent</code> for the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that reports liveness (written into the session at init; on unless <code>JEFFREY_AGENT_ENABLED=false</code>), the <code>additional-jvm-options</code>, and the per-feature flags (heap-dump, perf-counters).</li>
       </ol>
 
       <h2 id="env-vars">Required Environment Variables</h2>
@@ -268,9 +268,11 @@ volumes:
         to put a log file beside that run's recordings. Jeffrey Hub is provisioned like any other Java
         application, so it serves as the example. Its image ships with
         <code>JEFFREY_ENABLED=false</code> baked in; the pod below opts in by setting it to
-        <code>true</code>, and because the Hub carries the
-        <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, its own
-        session reports liveness like any other application's, with nothing to configure:
+        <code>true</code>, and its own session reports liveness through the
+        <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> like any other
+        application's, with nothing to configure (the Hub also carries the
+        <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, which stands
+        down while the agent reports and takes over if the agent is switched off):
       </p>
 
       <DocsCodeBlock
