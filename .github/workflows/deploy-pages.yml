@@ -27,10 +27,10 @@
 name: Deploy Jeffrey Pages
 
 on:
-  # Auto-deploy whenever the docs site changes on main.
+  # Auto-deploy whenever the docs site changes on master.
   push:
     branches:
-      - main
+      - master
     paths:
       - 'jeffrey-pages/**'
       - '.github/workflows/deploy-pages.yml'
