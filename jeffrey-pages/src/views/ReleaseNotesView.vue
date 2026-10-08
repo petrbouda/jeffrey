@@ -898,13 +898,12 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
     <!-- ──────────────────────── 0.14.0 features ──────────────────────── -->
     <template v-if="selectedVersion === '0.14.0'">
-      <!-- Feature 01: Optimize from the Runtime Profile (highlighted) -->
+      <!-- Optimize from the Runtime Profile (highlighted) -->
       <section class="feature-section">
         <div class="feature-frame feature-frame-140">
           <div class="feature-frame-ribbon">New</div>
           <div class="feature-row">
             <div class="feature-text">
-              <div class="feature-number">Feature 01</div>
               <h2>Optimize from the Runtime Profile <span class="feature-tag-ready"><i class="bi bi-check-circle-fill"></i> Ready to use</span></h2>
               <p>Static analysis guesses where the time goes. A <strong>JFR recording</strong> records it. Jeffrey shows it as <strong>flamegraphs</strong>, and your coding agent now reads the same profile, changes the code behind the hot frame, and records again.</p>
               <p>The two recordings are compared as a <strong>differential flamegraph</strong>, so the result is measured rather than assumed. The comparison also warns when the two runs can&rsquo;t be compared fairly.</p>
@@ -1002,11 +1001,10 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         </div>
       </section>
 
-      <!-- Feature 02: Every Kind of Problem a Profile Shows -->
+      <!-- Every Kind of Problem a Profile Shows -->
       <div class="feature-section-bg">
         <section class="feature-section feature-140">
           <div class="section-intro-140">
-            <div class="feature-number">Feature 02</div>
             <h2>Every Kind of Problem a Profile Shows</h2>
             <p>Each one is a different view of the same recording, and each points at code you can change.</p>
           </div>
@@ -1053,11 +1051,11 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         </section>
       </div>
 
-      <!-- Feature 03: Your Coding Agent Reads the Profile -->
+      <!-- Your Coding Agent Reads the Profile -->
       <section class="feature-section feature-140">
         <div class="feature-row reverse feature-row-top">
           <div class="feature-text">
-            <div class="feature-number">Feature 03 &middot; Microscope MCP</div>
+            <div class="feature-number">Microscope MCP</div>
             <h2>Your Coding Agent Reads the Profile</h2>
             <p>Microscope now serves an <strong>MCP endpoint</strong>, so Claude Code or Codex can open a recording, read its flamegraphs, traces and heap dumps, and work in your checkout at the same time. The <strong>microscope plugin</strong> teaches them how to read a profile and how to prove a fix with a new recording. Its Gemini CLI extension is ready too, and connects once Gemini CLI supports MCP <code>2026-07-28</code>.</p>
             <ul class="agent-can-140">
