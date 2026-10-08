@@ -550,7 +550,7 @@ const exPeak = `hubs_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" }
           <tr>
             <td><code>traces_traceExport</code></td>
             <td><code>profileId</code>, <code>traceId</code></td>
-            <td>One trace as Markdown: the span tree with self time. Declares its result size to the host</td>
+            <td>One trace as Markdown: the span tree with self time. 100 or more identical leaf siblings come back as one summed <code>!folded</code> line, so a trace with a million spans still fits. Declares its result size to the host</td>
           </tr>
           <tr>
             <td><code>traces_spanFlamegraphExport</code></td>

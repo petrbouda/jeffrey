@@ -68,7 +68,7 @@ onMounted(() => {
       <h2 id="how-a-request-travels">How a Request Travels</h2>
       <p>The server speaks <strong>MCP over Streamable HTTP</strong> &mdash; JSON-RPC 2.0 against a single endpoint, <code>POST /api/mcp</code>, on the Jeffrey Microscope you already run. There is no separate process to start and no extra port to open.</p>
 
-      <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
+      <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for the duration of the call, runs the tool, and returns a typed result, with Markdown where the agent reads prose. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
       <p>A hundred and eleven tools in nineteen families:</p>

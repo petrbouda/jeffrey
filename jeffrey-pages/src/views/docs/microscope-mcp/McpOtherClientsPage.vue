@@ -175,7 +175,7 @@ const skillsResult = `{
         "uri": "skill://report/SKILL.md",
         "frontmatter": { "name": "report", "description": "The shape and the evidence rules ..." },
         "resources": [
-          { "uri": "skill://report/SKILL.md", "digest": "sha256:...", "size": 12968 },
+          { "uri": "skill://report/SKILL.md", "digest": "sha256:...", "size": 13646 },
           { "uri": "skill://report/references/tool-prefixes.md", "digest": "sha256:...", "size": 715 }
         ]
       }

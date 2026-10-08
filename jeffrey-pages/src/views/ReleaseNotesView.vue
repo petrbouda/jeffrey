@@ -18,12 +18,76 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const selectedVersion = ref('0.13.0')
+const selectedVersion = ref('0.14.0')
 
 interface GalleryImage {
   src: string
   caption: string
 }
+
+// ───────────────────────── 0.14.0 Feature 03 ─────────────────────────
+
+interface ConnectOption {
+  id: string
+  label: string
+  prerequisite: string
+  intro: string
+  command: string
+  alternative?: string
+}
+
+const v140ConnectOptions: ConnectOption[] = [
+  {
+    id: 'claude-code',
+    label: 'Claude Code',
+    prerequisite: 'Needs the v2 MCP runtime: start Claude Code with MCP_SDK_GENERATION=v2 where it is not the default.',
+    intro: 'Install the plugin: the MCP server, the skills and the subagents.',
+    command: '/plugin marketplace add petrbouda/jeffrey\n/plugin install microscope@jeffrey',
+    alternative: 'claude mcp add --transport http jeffrey http://localhost:8585/api/mcp',
+  },
+  {
+    id: 'codex',
+    label: 'Codex',
+    prerequisite: 'Needs Codex v0.147.0 or later with MCP 2026-07-28 enabled: [features] mcp_2026_07_28 = true in ~/.codex/config.toml.',
+    intro: 'Register the marketplace, then install microscope from /plugins inside Codex.',
+    command: 'codex plugin marketplace add petrbouda/jeffrey',
+    alternative: 'codex mcp add jeffrey --url http://localhost:8585/api/mcp',
+  },
+  {
+    id: 'gemini',
+    label: 'Gemini CLI',
+    prerequisite: 'Not connectable yet: Gemini CLI does not speak MCP 2026-07-28. The extension is ready and connects once it does.',
+    intro: 'Install the extension from a checkout of the repository.',
+    command: 'gemini extensions install ./jeffrey/jeffrey-claude-plugin',
+    alternative: 'gemini mcp add jeffrey http://localhost:8585/api/mcp \\\n  --transport http --scope user --timeout 900000',
+  },
+  {
+    id: 'any',
+    label: 'Any MCP client',
+    prerequisite: 'The client must speak MCP 2026-07-28; clients that open with initialize are refused.',
+    intro: 'Point the client at the endpoint over HTTP. Set a token when Microscope is reachable from other machines.',
+    command: '# application.properties\njeffrey.microscope.mcp.token=a-long-random-string\n\n# every request then carries\nAuthorization: Bearer a-long-random-string',
+  },
+]
+
+const v140ConnectTab = ref(v140ConnectOptions[0].id)
+
+const v140ActiveConnect = computed(() =>
+  v140ConnectOptions.find(option => option.id === v140ConnectTab.value) ?? v140ConnectOptions[0]
+)
+
+const v140CallRequest = `{ "method": "tools/call",
+  "params": { "name": "flamegraph_export",
+    "arguments": { "profileId": "7f3c…",
+                   "eventType": "jdk.ExecutionSample" } } }`
+
+const v140CallAnswer = `## Hot frames by self time
+RuleCache.lookup        38.2%
+Tax.apply               12.1%
+Open in Microscope: http://localhost:8585/…
+Next:
+- compare_movements … [MEDIUM]
+- ide_resolve … [LIGHT]`
 
 // ───────────────────────── 0.13.0 galleries ─────────────────────────
 
@@ -346,8 +410,37 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 <template>
   <div class="release-notes-page">
+    <!-- ─────────────────────── 0.14.0 Hero ─────────────────────── -->
+    <section v-if="selectedVersion === '0.14.0'" class="hero-banner hero-banner-140">
+      <div class="hero-inner">
+        <div class="hero-version-card">
+          <div class="hero-version-badge">v0.14.0</div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot runtimeprofile"></span>
+            Runtime Profile
+          </div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot mcp"></span>
+            MCP
+          </div>
+        </div>
+        <div class="hero-text">
+          <div class="hero-eyebrow">Release Notes</div>
+          <h1 class="hero-title"><span>MCP</span> Release</h1>
+          <p class="hero-version">Version 0.14.0 &middot; October 2026</p>
+          <p class="hero-summary"><strong>Optimize your application based on its runtime profile.</strong> A JFR recording holds how your application really behaved. Jeffrey shows it as flamegraphs, and now your coding agent changes the source code where the profile shows the problem, then proves the fix with a new recording.</p>
+          <div class="hero-docs">
+            <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
+            <router-link to="/docs/microscope-mcp" class="hero-docs-btn"><i class="bi bi-robot"></i> Microscope MCP</router-link>
+            <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
+            <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ─────────────────────── 0.13.0 Hero ─────────────────────── -->
-    <section v-if="selectedVersion === '0.13.0'" class="hero-banner hero-banner-130">
+    <section v-else-if="selectedVersion === '0.13.0'" class="hero-banner hero-banner-130">
       <div class="hero-inner">
         <div class="hero-version-card">
           <div class="hero-version-badge">v0.13.0</div>
@@ -530,8 +623,34 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </div>
 
+    <!-- Release stats strip — 0.14.0 -->
+    <div v-if="selectedVersion === '0.14.0'" class="release-stats release-stats-140">
+      <div class="release-stats-inner">
+        <div class="release-stat">
+          <b>5</b>
+          <span>Kinds of problems</span>
+        </div>
+        <div class="release-stat">
+          <b>111</b>
+          <span>MCP tools</span>
+        </div>
+        <div class="release-stat">
+          <b>2</b>
+          <span>Coding agents today</span>
+        </div>
+        <div class="release-stat">
+          <b>35</b>
+          <span>Patch releases</span>
+        </div>
+        <div class="release-stat">
+          <b>172</b>
+          <span>Commits since 0.13.0</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Release stats strip — 0.13.0 -->
-    <div v-if="selectedVersion === '0.13.0'" class="release-stats release-stats-130">
+    <div v-else-if="selectedVersion === '0.13.0'" class="release-stats release-stats-130">
       <div class="release-stats-inner">
         <div class="release-stat">
           <b>4</b>
@@ -582,12 +701,29 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </div>
 
+    <!-- Apache-2.0 panel — 0.14.0, right below the stats strip -->
+    <div v-if="selectedVersion === '0.14.0'" class="license-panel-140">
+      <div class="license-panel-inner">
+        <div class="license-panel-icon"><i class="bi bi-unlock-fill"></i></div>
+        <div class="license-panel-text">
+          <b>Jeffrey is now Apache-2.0</b>
+          <span>0.14.0 is the first minor release under the Apache License 2.0, which covers all of Jeffrey since 0.13.26: Microscope, the Hub, the provisioner, the IntelliJ plugin, the microscope plugin, jeffrey-jib and the utilities.</span>
+        </div>
+        <div class="license-panel-swap">
+          <span class="license-old">AGPL-3.0</span>
+          <i class="bi bi-arrow-right"></i>
+          <span class="license-new">Apache-2.0</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Version Switcher -->
     <div class="version-bar">
       <div class="version-bar-inner">
         <div class="version-bar-left">
           <h3>Release Notes</h3>
           <select v-model="selectedVersion" class="version-select">
+            <option value="0.14.0">0.14.0 &mdash; MCP Release</option>
             <option value="0.13.0">0.13.0 &mdash; Jeffrey Traces Release</option>
             <option value="0.12.0">0.12.0 &mdash; Advisor Release</option>
             <option value="0.11.0">0.11.0 &mdash; Performance Analysis Release</option>
@@ -760,8 +896,343 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
+    <!-- ──────────────────────── 0.14.0 features ──────────────────────── -->
+    <template v-if="selectedVersion === '0.14.0'">
+      <!-- Feature 01: Optimize from the Runtime Profile (highlighted) -->
+      <section class="feature-section">
+        <div class="feature-frame feature-frame-140">
+          <div class="feature-frame-ribbon">New</div>
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 01</div>
+              <h2>Optimize from the Runtime Profile <span class="feature-tag-ready"><i class="bi bi-check-circle-fill"></i> Ready to use</span></h2>
+              <p>Static analysis guesses where the time goes. A <strong>JFR recording</strong> records it. Jeffrey shows it as <strong>flamegraphs</strong>, and your coding agent now reads the same profile, changes the code behind the hot frame, and records again.</p>
+              <p>The two recordings are compared as a <strong>differential flamegraph</strong>, so the result is measured rather than assumed. The comparison also warns when the two runs can&rsquo;t be compared fairly.</p>
+            </div>
+            <div class="feature-gallery">
+              <div class="ba-140">
+                <div class="ba-140-side">
+                  <div class="ba-140-label before"><span>Before</span><span>38% self</span></div>
+                  <div class="flame-140">
+                    <div class="flame-140-row"><span class="fl-base" style="width:100%">Thread.run</span></div>
+                    <div class="flame-140-row"><span class="fl-mid" style="width:80%">Checkout.submit</span></div>
+                    <div class="flame-140-row"><span class="fl-warm" style="width:64%">Pricing.price</span></div>
+                    <div class="flame-140-row"><span class="fl-hot" style="width:48%">RuleCache.lookup</span></div>
+                  </div>
+                </div>
+                <div class="ba-140-side">
+                  <div class="ba-140-label after"><span>After</span><span>3% self</span></div>
+                  <div class="flame-140">
+                    <div class="flame-140-row"><span class="fl-base" style="width:100%">Thread.run</span></div>
+                    <div class="flame-140-row"><span class="fl-mid" style="width:44%">Checkout.submit</span></div>
+                    <div class="flame-140-row"><span class="fl-warm" style="width:24%">Pricing.price</span></div>
+                    <div class="flame-140-row"><span class="fl-cool" style="width:5%">&nbsp;</span></div>
+                  </div>
+                </div>
+                <div class="ba-140-diff">
+                  <div class="diff-file">RuleCache.java &middot; line 88</div>
+                  <div class="diff-del">-  Map&lt;String, Rule&gt; rules = rebuild(repository.findAll());</div>
+                  <div class="diff-add">+  Map&lt;String, Rule&gt; rules = cached.updateIfStale(repository::findAll);</div>
+                </div>
+              </div>
+              <div class="examples-note-140">Example figures</div>
+            </div>
+          </div>
+
+          <!-- Record → See → Change → Verify -->
+          <div class="loop-140">
+            <div class="loop-140-head"><b>How it works</b><span>Four steps, repeated until the profile is clean</span></div>
+            <div class="stepper-140">
+              <div class="step-140">
+                <div class="step-140-dot"><i class="bi bi-record-circle"></i><em>1</em></div>
+                <h4>Record</h4>
+                <p>Run with JFR or async-profiler, locally or pulled from the Hub.</p>
+              </div>
+              <div class="step-140">
+                <div class="step-140-dot"><i class="bi bi-fire"></i><em>2</em></div>
+                <h4>See</h4>
+                <p>Microscope turns the recording into flamegraphs and points out the hot frames.</p>
+              </div>
+              <div class="step-140">
+                <div class="step-140-dot"><i class="bi bi-code-slash"></i><em>3</em></div>
+                <h4>Change</h4>
+                <p>Your coding agent opens the code behind the hot frame and edits it.</p>
+              </div>
+              <div class="step-140">
+                <div class="step-140-dot"><i class="bi bi-check2-circle"></i><em>4</em></div>
+                <h4>Verify</h4>
+                <p>Record again; the differential flamegraph shows what moved.</p>
+              </div>
+            </div>
+            <svg class="loop-140-return" viewBox="0 0 760 46" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M740 0 C740 40, 700 40, 640 40 L120 40 C60 40, 20 40, 20 6" />
+              <polygon points="12,10 20,0 28,10" />
+            </svg>
+            <div class="loop-140-repeat"><i class="bi bi-arrow-repeat"></i> Repeat until the profile is clean</div>
+
+            <div class="loop-140-head lanes-head"><b>Who does what</b><span>You, Microscope and the agent at each step</span></div>
+            <div class="lanes-140-wrap">
+              <div class="lanes-140">
+                <div class="lane-corner"></div>
+                <div class="lane-col"><i class="bi bi-record-circle"></i> Record</div>
+                <div class="lane-col"><i class="bi bi-fire"></i> See</div>
+                <div class="lane-col"><i class="bi bi-code-slash"></i> Change</div>
+                <div class="lane-col"><i class="bi bi-check2-circle"></i> Verify</div>
+
+                <div class="lane-row"><i class="bi bi-person"></i> You</div>
+                <div class="lane-cell"><span class="lane-act">Run with the Profiler Builder command</span></div>
+                <div class="lane-cell"><span class="lane-act">Ask: &ldquo;optimize the CPU hotspots&rdquo;</span></div>
+                <div class="lane-cell"><span class="lane-act">Approve the change</span></div>
+                <div class="lane-cell"><span class="lane-act">Run again</span></div>
+
+                <div class="lane-row"><i class="bi bi-search"></i> Microscope</div>
+                <div class="lane-cell"><span class="lane-act">Imports the file: <code>recordings_analyzeFile</code></span></div>
+                <div class="lane-cell"><span class="lane-act">Builds the flamegraph: <code>flamegraph_export</code></span></div>
+                <div class="lane-cell"><span class="lane-act">Finds the file and line: <code>ide_resolve</code></span></div>
+                <div class="lane-cell"><span class="lane-act">Compares both runs: <code>compare_movements</code></span></div>
+
+                <div class="lane-row last"><i class="bi bi-robot"></i> Agent</div>
+                <div class="lane-cell last"><span class="lane-act">Or pulls a time window from the Hub: <code>hubs_download</code></span></div>
+                <div class="lane-cell last"><span class="lane-act">Reads the hot frames</span></div>
+                <div class="lane-cell last"><span class="lane-act">Edits <code>RuleCache.java</code></span></div>
+                <div class="lane-cell last"><span class="lane-act">Reports 38% &rarr; 3%</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 02: Every Kind of Problem a Profile Shows -->
+      <div class="feature-section-bg">
+        <section class="feature-section feature-140">
+          <div class="section-intro-140">
+            <div class="feature-number">Feature 02</div>
+            <h2>Every Kind of Problem a Profile Shows</h2>
+            <p>Each one is a different view of the same recording, and each points at code you can change.</p>
+          </div>
+          <div class="problems-140-wrap">
+            <table class="problems-140">
+              <thead>
+                <tr><th>Problem</th><th>Where Jeffrey shows it</th><th>What the profile says</th><th>What the agent changes</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="problem-tag cpu"><i class="bi bi-cpu"></i> CPU</span></td>
+                  <td>CPU and wall-clock flamegraphs<small>ranked by self time</small></td>
+                  <td><code>RuleCache.lookup</code> takes 38% of CPU</td>
+                  <td class="problem-change">Build the cache once, refresh only when stale</td>
+                </tr>
+                <tr>
+                  <td><span class="problem-tag alloc"><i class="bi bi-memory"></i> Allocations</span></td>
+                  <td>Allocation flamegraph<small>and the span that forced a GC</small></td>
+                  <td>1.9 GB/s from <code>String.format</code> in logging</td>
+                  <td class="problem-change">Parameterized logging, no formatting when the level is off</td>
+                </tr>
+                <tr>
+                  <td><span class="problem-tag lock"><i class="bi bi-lock"></i> Locks</span></td>
+                  <td>Blocking flamegraph<small>monitor contention and parks</small></td>
+                  <td>9 threads blocked on one <code>synchronized</code> map</td>
+                  <td class="problem-change">Switch to <code>ConcurrentHashMap.computeIfAbsent</code></td>
+                </tr>
+                <tr>
+                  <td><span class="problem-tag trace"><i class="bi bi-bar-chart-steps"></i> Traces</span></td>
+                  <td>Trace waterfall<small>a flamegraph per span</small></td>
+                  <td>121 ms of a 412 ms request is one query run 40 times</td>
+                  <td class="problem-change">Load the order lines in one batched query</td>
+                </tr>
+                <tr>
+                  <td><span class="problem-tag heap"><i class="bi bi-diagram-3"></i> Heap dumps</span></td>
+                  <td>Dominator tree<small>and the path to a GC root</small></td>
+                  <td>A session cache retains 61% of the heap</td>
+                  <td class="problem-change">Remove the listener that pins it, bound the cache</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="examples-note-140">Example figures</div>
+        </section>
+      </div>
+
+      <!-- Feature 03: Your Coding Agent Reads the Profile -->
+      <section class="feature-section feature-140">
+        <div class="feature-row reverse feature-row-top">
+          <div class="feature-text">
+            <div class="feature-number">Feature 03 &middot; Microscope MCP</div>
+            <h2>Your Coding Agent Reads the Profile</h2>
+            <p>Microscope now serves an <strong>MCP endpoint</strong>, so Claude Code or Codex can open a recording, read its flamegraphs, traces and heap dumps, and work in your checkout at the same time. The <strong>microscope plugin</strong> teaches them how to read a profile and how to prove a fix with a new recording. Its Gemini CLI extension is ready too, and connects once Gemini CLI supports MCP <code>2026-07-28</code>.</p>
+            <ul class="agent-can-140">
+              <li><i class="bi bi-box-arrow-in-down"></i><span><strong>Import a recording by path</strong> and build the profile, without opening the browser.</span></li>
+              <li><i class="bi bi-list-check"></i><span><strong>Ask what the recording can answer.</strong> An investigation menu lists 15 areas, each marked as recorded or missing, with the profiler option that would capture it.</span></li>
+              <li><i class="bi bi-fire"></i><span><strong>Read every view:</strong> flamegraphs, traces, GC and JIT, threads, I/O, locks and heap dumps.</span></li>
+              <li><i class="bi bi-intersect"></i><span><strong>Compare two recordings</strong> and rank what moved by self time.</span></li>
+              <li><i class="bi bi-code-square"></i><span><strong>Jump to the code</strong> in IntelliJ, and see whether your checkout is on the commit the recording was taken from.</span></li>
+              <li><i class="bi bi-cloud-download"></i><span><strong>Pull production data</strong> from the Hub: a time window of a recording, or the GC log and crash file beside it.</span></li>
+            </ul>
+            <p>The agent asks before it edits. Analysis answers link back to the matching page in Microscope, so you can check the evidence yourself.</p>
+          </div>
+          <div class="feature-gallery">
+            <div class="chat-140">
+              <div class="chat-140-title">Try asking&hellip;</div>
+              <div class="chat-140-q">Optimize the CPU hotspots in this recording</div>
+              <div class="chat-140-a"><strong>RuleCache.lookup is 38% of CPU.</strong> The cache is rebuilt on every request. I can change it to refresh only when stale. Go ahead?</div>
+              <div class="chat-140-q">Why is this request slow?</div>
+              <div class="chat-140-a"><strong>121 ms of 412 ms is one query run 40 times.</strong> Batching it removes 39 round trips.</div>
+              <div class="chat-140-q">Did the change help?</div>
+              <div class="chat-140-a"><strong>Yes.</strong> RuleCache.lookup dropped from 38% to 3% of CPU in the new recording.</div>
+              <div class="chat-140-works">
+                <span>Works with</span>
+                <b><i class="bi bi-circle-fill agent-claude"></i> Claude Code</b>
+                <b><i class="bi bi-circle-fill agent-codex"></i> Codex</b>
+                <b class="agent-soon"><i class="bi bi-circle-fill agent-gemini"></i> Gemini CLI (soon)</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Under the hood: MCP at a glance -->
+        <div class="tech-140">
+          <div class="tech-140-head">
+            <div>
+              <div class="feature-number">Under the hood</div>
+              <h3>MCP at a glance</h3>
+            </div>
+            <router-link to="/docs/microscope-mcp" class="tech-140-link">Microscope MCP documentation <i class="bi bi-arrow-right"></i></router-link>
+          </div>
+          <div class="spec-140">
+            <div class="spec-140-card"><b>Endpoint</b><h4><code>POST /api/mcp</code></h4><p>On by default at port <code>8585</code>, on every network interface unless <code>server.address</code> says otherwise. One property turns it off.</p></div>
+            <div class="spec-140-card"><b>Protocol</b><h4>MCP 2026-07-28</h4><p>Over HTTP, with <code>server/discover</code> and per-request <code>_meta</code>. The MCP conformance suite runs in CI.</p></div>
+            <div class="spec-140-card"><b>Tools</b><h4>111 tools</h4><p>Grouped into families such as <code>flamegraph_</code>, <code>traces_</code>, <code>jvm_</code> and <code>heap_</code>. 11 of them write; the rest only read.</p></div>
+            <div class="spec-140-card"><b>Answers</b><h4>Typed results</h4><p>Every tool but one declares an output schema. &ldquo;No data&rdquo; is a status value, never prose a model has to interpret.</p></div>
+            <div class="spec-140-card"><b>Long work</b><h4>Tasks extension</h4><p>For a client that supports the tasks extension, an import or download that runs longer than 5 s becomes an MCP task. Other clients get an operation id to poll with <code>operations_status</code>.</p></div>
+            <div class="spec-140-card"><b>Skills</b><h4>Served over MCP</h4><p><code>skills/list</code> and <code>skills/get</code> serve the same skills the plugin ships, so any client can read them.</p></div>
+            <div class="spec-140-card"><b>SQL</b><h4>Read-only sandbox</h4><p>DuckDB runs with file access and extension loading off, one statement per call, rows capped while reading.</p></div>
+            <div class="spec-140-card"><b>Access</b><h4>Open unless a token is set</h4><p>Set <code>jeffrey.microscope.mcp.token</code> to require a bearer token. The <code>allowed-hosts</code> check stops browser-based attacks, not network access. <router-link to="/docs/microscope-mcp/enabling#bearer-token">Securing the endpoint</router-link></p></div>
+          </div>
+        </div>
+
+        <!-- Get started: connect your agent -->
+        <div class="tech-140 tech-140-next">
+          <div class="tech-140-head">
+            <div>
+              <div class="feature-number">Get started</div>
+              <h3>Connect your agent in one command</h3>
+            </div>
+          </div>
+          <div class="connect-140">
+            <div class="connect-140-setup">
+              <div class="connect-140-tabs" role="tablist">
+                <button
+                  v-for="option in v140ConnectOptions"
+                  :key="option.id"
+                  type="button"
+                  role="tab"
+                  class="connect-140-tab"
+                  :class="{ active: v140ConnectTab === option.id }"
+                  :aria-selected="v140ConnectTab === option.id"
+                  @click="v140ConnectTab = option.id"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+              <p class="connect-140-prereq"><i class="bi bi-info-circle"></i> {{ v140ActiveConnect.prerequisite }}</p>
+              <p class="connect-140-intro">{{ v140ActiveConnect.intro }}</p>
+              <pre class="code-140">{{ v140ActiveConnect.command }}</pre>
+              <template v-if="v140ActiveConnect.alternative">
+                <p class="connect-140-intro">Or add only the MCP server:</p>
+                <pre class="code-140">{{ v140ActiveConnect.alternative }}</pre>
+              </template>
+            </div>
+            <div class="connect-140-call">
+              <h4>What one call looks like</h4>
+              <div class="connect-140-label">Request</div>
+              <pre class="code-140">{{ v140CallRequest }}</pre>
+              <div class="connect-140-label">Answer (shortened, illustrative)</div>
+              <pre class="code-140">{{ v140CallAnswer }}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 0.14.0 Improvements — grouped by product -->
+      <div class="improvements-section improvements-140">
+        <div class="improvements-inner">
+          <div class="improvements-header">
+            <div class="improvements-header-line"></div>
+            <h2><i class="bi bi-wrench"></i> Improvements</h2>
+            <div class="improvements-header-line"></div>
+          </div>
+
+          <div class="improvement-group">
+            <div class="improvement-group-label microscope"><i class="bi bi-search"></i> Microscope &amp; IntelliJ</div>
+            <div class="improvements-grid">
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Recordings in IntelliJ</h3>
+                  <p>A <code>.jfr</code> or <code>.hprof</code> opens in its own editor tab with the findings, and can be compared with a baseline that opens Microscope&rsquo;s differential flamegraph.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Deeper Traces</h3>
+                  <p>CPU throttling, JFR method tracing, safepoint delays and the span whose allocation forced a GC, all drawn in the trace waterfall.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Profiler Builder</h3>
+                  <p>A top-level page that generates the async-profiler command, including a latency threshold per traced method.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Auto Analysis at Import</h3>
+                  <p>Findings are computed when a recording is imported, so the Summary page, the IDE panel and the agent see them straight away.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="improvement-group">
+            <div class="improvement-group-label hub"><i class="bi bi-cloud"></i> Hub &amp; Provisioner</div>
+            <div class="improvements-grid">
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Production Recordings by Time Window</h3>
+                  <p>Download just the window you need from the Hub, plus the GC log, application log or crash file beside the recording.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Hubs in Configuration</h3>
+                  <p>Declare hubs under <code>jeffrey.microscope.hubs.&lt;key&gt;.*</code>; they are reconciled on every startup, so a fresh pod needs no clicking.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="improvement-group">
+            <div class="improvement-group-label platform"><i class="bi bi-box-seam"></i> Platform</div>
+            <div class="improvements-grid">
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Tracing on Java 21</h3>
+                  <p><code>jeffrey-tracing-api</code> runs on Java 21 with two span storages to choose from: thread-local, which the Spring Boot starter brings, or ScopedValue as an opt-in on Java 25.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Images Ready to Profile</h3>
+                  <p>jeffrey-jib bakes the provisioner and async-profiler into <code>/opt/jeffrey</code> at build time, and the provisioner attaches a heartbeat-only agent by default.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- ──────────────────────── 0.13.0 features ──────────────────────── -->
-    <template v-if="selectedVersion === '0.13.0'">
+    <template v-else-if="selectedVersion === '0.13.0'">
       <!-- Feature 01: Jeffrey Traces (highlighted) -->
       <section class="feature-section">
         <div class="feature-frame feature-frame-130">
@@ -3760,6 +4231,928 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   }
 
   .improvements-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ───────────────────────── 0.14.0 — MCP Release (emerald → lime → cyan) ───────────────────────── */
+
+.hero-banner-140 {
+  background: linear-gradient(135deg, #04140f 0%, #082a20 50%, #0b2a35 100%);
+}
+
+.hero-banner-140::before {
+  background:
+    radial-gradient(circle at 22% 45%, rgba(16, 185, 129, 0.22) 0%, transparent 55%),
+    radial-gradient(circle at 78% 55%, rgba(132, 204, 22, 0.14) 0%, transparent 55%);
+}
+
+.hero-banner-140 .hero-eyebrow {
+  color: #6ee7b7;
+}
+
+.hero-banner-140 .hero-title span,
+.hero-banner-140 .hero-version-badge {
+  background: linear-gradient(135deg, #6ee7b7, #34d399, #a3e635);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-banner-140 .hero-summary {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-banner-140 .hero-summary strong {
+  color: #ffffff;
+}
+
+.hero-banner-140 .hero-version {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-banner-140 .hero-docs-btn:hover {
+  background: rgba(52, 211, 153, 0.22);
+  border-color: rgba(52, 211, 153, 0.55);
+}
+
+.hero-version-dot.runtimeprofile {
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+}
+
+.hero-version-dot.mcp {
+  background: #a3e635;
+  box-shadow: 0 0 8px rgba(163, 230, 53, 0.6);
+}
+
+.release-stats-140 .release-stat b {
+  color: #34d399;
+}
+
+/* Apache-2.0 panel — sits right below the 0.14.0 stats strip */
+.license-panel-140 {
+  background: linear-gradient(90deg, #06201a 0%, #082a20 55%, #0b2a35 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.license-panel-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.license-panel-icon {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(52, 211, 153, 0.14);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #6ee7b7;
+}
+
+.license-panel-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.license-panel-text b {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.license-panel-text span {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 2px;
+}
+
+.license-panel-swap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.license-panel-swap i {
+  color: #6ee7b7;
+}
+
+.license-old {
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: line-through;
+}
+
+.license-new {
+  padding: 7px 14px;
+  border-radius: 999px;
+  color: #052e1c;
+  background: linear-gradient(135deg, #6ee7b7, #34d399, #a3e635);
+}
+
+/* Feature frame identity */
+.feature-frame-140 {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #10b981, #84cc16, #22d3ee, #10b981) border-box;
+  background-size: 100% 100%, 300% 300%;
+  box-shadow: 0 18px 50px -12px rgba(16, 185, 129, 0.38);
+}
+
+.feature-frame-140 .feature-row > *,
+.feature-140 .feature-row > * {
+  min-width: 0;
+}
+
+.feature-frame-140 .feature-number,
+.feature-140 .feature-number {
+  color: #047857;
+}
+
+.examples-note-140 {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #adb5bd;
+  margin-top: 4px;
+}
+
+/* Feature 01 — before / after flamegraphs with the change between them */
+.ba-140 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.ba-140-side {
+  min-width: 0;
+}
+
+.ba-140-side + .ba-140-side {
+  border-left: 1px solid #e9ecef;
+}
+
+.ba-140-label {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.ba-140-label.before {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.ba-140-label.after {
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.flame-140 {
+  padding: 12px 14px 10px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.6rem;
+}
+
+.flame-140-row {
+  height: 18px;
+}
+
+.flame-140-row span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  padding: 0 5px;
+  line-height: 18px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #431407;
+}
+
+.fl-base { background: #fed7aa; }
+.fl-mid { background: #fdba74; }
+.fl-warm { background: #fb923c; }
+
+.fl-hot {
+  background: #ef4444;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #ef4444;
+}
+
+.fl-cool {
+  background: #bbf7d0;
+}
+
+.ba-140-diff {
+  grid-column: 1 / -1;
+  border-top: 1px solid #e9ecef;
+  padding: 10px 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.7;
+}
+
+.ba-140-diff div {
+  padding: 0 14px;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff-file { color: #868e96; font-weight: 600; }
+.diff-del { background: #fef2f2; color: #b91c1c; }
+.diff-add { background: #f0fdf4; color: #15803d; }
+
+/* Feature 01 — Record → See → Change → Verify */
+.loop-140 {
+  margin-top: 30px;
+  padding-top: 26px;
+  border-top: 1px solid #e9ecef;
+}
+
+.loop-140-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.loop-140-head b {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #047857;
+}
+
+.loop-140-head span {
+  font-size: 0.82rem;
+  color: #868e96;
+}
+
+.loop-140-head.lanes-head {
+  margin: 28px 0 12px;
+}
+
+.stepper-140 {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stepper-140::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #10b981, #84cc16, #22d3ee, #10b981);
+}
+
+.step-140 {
+  position: relative;
+  text-align: center;
+  min-width: 0;
+}
+
+.step-140-dot {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981, #0d9488);
+  box-shadow: 0 0 0 6px #ffffff, 0 10px 24px -8px rgba(16, 185, 129, 0.7);
+}
+
+.step-140-dot em {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #047857;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.step-140 h4 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #212529;
+}
+
+.step-140 p {
+  margin: 0 auto;
+  max-width: 230px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: #6c757d;
+}
+
+.loop-140-return {
+  display: block;
+  width: 76%;
+  height: 46px;
+  margin: 6px auto 0;
+  overflow: visible;
+}
+
+.loop-140-return path {
+  fill: none;
+  stroke: #10b981;
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+
+.loop-140-return polygon {
+  fill: #10b981;
+}
+
+.loop-140-repeat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #047857;
+}
+
+/* Feature 01 — who does what */
+.lanes-140-wrap {
+  overflow-x: auto;
+}
+
+.lanes-140 {
+  display: grid;
+  grid-template-columns: 120px repeat(4, minmax(150px, 1fr));
+  min-width: 760px;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.lanes-140 > div {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f3f5;
+  border-left: 1px solid #f1f3f5;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #495057;
+}
+
+.lanes-140 > .last {
+  border-bottom: 0;
+}
+
+.lane-corner,
+.lane-col {
+  background: #f8f9fa;
+}
+
+.lane-corner {
+  border-left: 0 !important;
+}
+
+.lane-col {
+  font-size: 0.74rem !important;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #212529 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lane-col i {
+  color: #047857;
+}
+
+.lane-row {
+  border-left: 0 !important;
+  background: #fcfcfd;
+  font-weight: 700;
+  color: #212529 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 58px;
+}
+
+.lane-row i {
+  color: #868e96;
+}
+
+.lane-act {
+  display: inline-block;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.09);
+  color: #065f46;
+  font-weight: 600;
+}
+
+.lane-act code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.92em;
+  color: #047857;
+}
+
+/* Feature 02 — problems table */
+.section-intro-140 {
+  max-width: 760px;
+  margin-bottom: 26px;
+}
+
+.section-intro-140 h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #343a40;
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+
+.section-intro-140 p {
+  font-size: 1.05rem;
+  color: #6c757d;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.problems-140-wrap {
+  overflow-x: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.problems-140 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  min-width: 760px;
+}
+
+.problems-140 th {
+  text-align: left;
+  font-size: 0.7rem;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #868e96;
+  background: #f8f9fa;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.problems-140 td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f3f5;
+  vertical-align: top;
+  line-height: 1.55;
+  color: #495057;
+}
+
+.problems-140 tr:last-child td {
+  border-bottom: 0;
+}
+
+.problems-140 tbody tr:hover td {
+  background: #fcfcfd;
+}
+
+.problems-140 small {
+  display: block;
+  color: #868e96;
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.problems-140 code,
+.agent-can-140 code,
+.spec-140-card code,
+.improvements-140 .imp-tile-body code {
+  background: #f1f3f5;
+  border: 1px solid #e2e6ea;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.82em;
+  color: #343a40;
+}
+
+.problem-change {
+  color: #15803d !important;
+  font-weight: 600;
+}
+
+.problem-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.problem-tag.cpu { background: #fff7ed; color: #c2410c; }
+.problem-tag.alloc { background: #fdf2f8; color: #be185d; }
+.problem-tag.lock { background: #eff6ff; color: #1d4ed8; }
+.problem-tag.trace { background: #f5f3ff; color: #6d28d9; }
+.problem-tag.heap { background: #ecfdf5; color: #047857; }
+
+/* Feature 03 — what the agent can do + chat */
+.feature-row-top {
+  align-items: start;
+}
+
+.agent-can-140 {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.agent-can-140 li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #6c757d;
+}
+
+.agent-can-140 li i {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.09);
+  color: #047857;
+}
+
+.agent-can-140 li strong {
+  color: #212529;
+}
+
+.chat-140 {
+  background: linear-gradient(160deg, #1a1028 0%, #2a1340 100%);
+  border-radius: 12px;
+  padding: 22px 20px;
+  color: #ffffff;
+}
+
+.chat-140-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #fdba74;
+  margin-bottom: 14px;
+}
+
+.chat-140-q {
+  margin-left: auto;
+  width: fit-content;
+  max-width: 85%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 9px 13px;
+  border-radius: 14px 14px 4px 14px;
+  font-size: 0.86rem;
+  margin-bottom: 8px;
+}
+
+.chat-140-a {
+  max-width: 92%;
+  background: #ffffff;
+  color: #343a40;
+  padding: 10px 14px;
+  border-radius: 14px 14px 14px 4px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.chat-140-works {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.8rem;
+}
+
+.chat-140-works span {
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
+.chat-140-works b {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-140-works b i {
+  font-size: 0.5rem;
+}
+
+.agent-claude { color: #f97316; }
+.agent-codex { color: #10b981; }
+.agent-gemini { color: #3b82f6; }
+
+/* Feature 03 — under the hood */
+.tech-140 {
+  margin-top: 56px;
+  padding-top: 40px;
+  border-top: 1px solid #e9ecef;
+}
+
+.tech-140-next {
+  margin-top: 40px;
+}
+
+.tech-140-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.tech-140-head .feature-number {
+  margin: 0;
+}
+
+.tech-140-head h3 {
+  margin: 4px 0 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #343a40;
+}
+
+.tech-140-link {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #047857;
+  text-decoration: none;
+}
+
+.tech-140-link:hover {
+  text-decoration: underline;
+}
+
+.spec-140 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.spec-140-card {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 16px 18px;
+  min-width: 0;
+}
+
+.spec-140-card b {
+  display: block;
+  font-size: 0.66rem;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #adb5bd;
+  margin-bottom: 6px;
+}
+
+.spec-140-card h4 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #212529;
+  overflow-wrap: anywhere;
+}
+
+.spec-140-card p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #6c757d;
+}
+
+/* Feature 03 — connect your agent */
+.connect-140 {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.connect-140 > div {
+  min-width: 0;
+}
+
+.connect-140-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.connect-140-tab {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  background: #ffffff;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.connect-140-tab:hover {
+  color: #343a40;
+}
+
+.connect-140-tab.active {
+  border-color: #047857;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.09);
+}
+
+.connect-140-tab:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+
+.connect-140-prereq {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #78350f;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.connect-140-prereq i {
+  margin-top: 2px;
+}
+
+.spec-140-card a {
+  color: #047857;
+  font-weight: 600;
+}
+
+.agent-soon {
+  opacity: 0.6;
+}
+
+.connect-140-intro {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #6c757d;
+  margin: 10px 0 6px;
+}
+
+.connect-140-call h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #343a40;
+}
+
+.connect-140-label {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #adb5bd;
+  margin: 12px 0 6px;
+}
+
+.code-140 {
+  background: #0d1117;
+  color: #c9d1d9;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.74rem;
+  line-height: 1.65;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+@media (max-width: 1000px) {
+  .spec-140 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .connect-140 {
+    grid-template-columns: 1fr;
+  }
+
+  .stepper-140 {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 24px;
+  }
+
+  .stepper-140::before,
+  .loop-140-return {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .license-panel-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .ba-140 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ba-140-side + .ba-140-side {
+    border-left: 0;
+    border-top: 1px solid #e9ecef;
+  }
+}
+
+@media (max-width: 560px) {
+  .spec-140 {
     grid-template-columns: 1fr;
   }
 }
