@@ -135,8 +135,9 @@ const events = ref<SpanEventRow[]>([]);
 const mode = ref<'events' | 'flamegraph'>('events');
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
-let graphUpdater: GraphUpdater;
-let flamegraphTooltip: FlamegraphTooltip;
+// Assigned before the flamegraph dialog opens; the template reads them only inside it.
+let graphUpdater!: GraphUpdater;
+let flamegraphTooltip!: FlamegraphTooltip;
 
 const windowMillis = computed(() => Math.max(1, Math.round(props.durationNanos / NANOS_PER_MILLI)));
 const windowLabel = computed(() => FormattingService.formatDuration2Units(props.durationNanos));

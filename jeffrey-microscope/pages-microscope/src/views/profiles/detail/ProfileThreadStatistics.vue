@@ -380,8 +380,9 @@ const showFlamegraphModal = ref(false);
 const selectedEventCode = ref('jdk.ObjectAllocationSample');
 const useWeightForModal = ref(false);
 
-let flamegraphTooltip: FlamegraphTooltip;
-let graphUpdater: GraphUpdater;
+// Assigned before the flamegraph dialog opens; the template reads them only inside it.
+let flamegraphTooltip!: FlamegraphTooltip;
+let graphUpdater!: GraphUpdater;
 
 function scrollToTop() {
   const wrapper = document.querySelector('.scrollable-wrapper');

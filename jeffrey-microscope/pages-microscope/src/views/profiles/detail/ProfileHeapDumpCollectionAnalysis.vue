@@ -63,12 +63,7 @@
     <div v-show="activeTab === 'overview'">
       <DualPanel v-if="report" left-title="Fill Distribution" right-title="Summary">
         <template #left>
-          <DonutWithLegend
-            :data="fillChartData"
-            :tooltip-formatter="
-              (val: number) => FormattingService.formatNumber(val) + ' collections'
-            "
-          />
+          <DonutWithLegend :data="fillChartData" :tooltip-formatter="formatCollectionCount" />
         </template>
         <template #right>
           <SummaryTable :items="summaryItems" />
@@ -442,6 +437,9 @@ const fillChartLabels = [
   'Full (100%)'
 ];
 const fillChartColors = ChartColors.chartPalette(5);
+
+const formatCollectionCount = (val: number): string =>
+  FormattingService.formatNumber(val) + ' collections';
 
 const fillChartData = computed<DonutChartData>(() => {
   if (!report.value) {

@@ -65,8 +65,9 @@ const isDifferential = ref(false);
 // A differential view with no baseline to subtract - drawn as its own state, as the flamegraph view does.
 const missingBaseline = ref(false);
 
-let graphUpdater: GraphUpdater;
-let flamegraphTooltip: FlamegraphTooltip;
+// Assigned in onBeforeMount, before the template first reads them.
+let graphUpdater!: GraphUpdater;
+let flamegraphTooltip!: FlamegraphTooltip;
 let timeseriesClient: PrimaryFlamegraphClient | DifferentialFlamegraphClient;
 
 function scrollToTop() {
@@ -76,7 +77,8 @@ function scrollToTop() {
   }
 }
 
-let primarySubSecondDataProvider: SubSecondDataProvider;
+// Assigned in onBeforeMount, before the template first reads it.
+let primarySubSecondDataProvider!: SubSecondDataProvider;
 let secondarySubSecondDataProvider: SubSecondDataProvider | null = null;
 
 onBeforeMount(() => {

@@ -148,9 +148,7 @@
             <DonutWithLegend
               v-if="pinningTotalIncidents > 0"
               :data="pinningDistributionChart"
-              :tooltip-formatter="
-                (val: number) => FormattingService.formatNumber(val) + ' incidents'
-              "
+              :tooltip-formatter="formatIncidentCount"
             />
             <EmptyState v-else icon="bi-check-circle" title="No pinning recorded" />
           </div>
@@ -532,6 +530,9 @@ const PINNING_BUCKET_COLORS = ['#5cb85c', '#9acd4e', '#f0ad4e', '#ed7d31', '#d95
 const pinningTotalIncidents = computed<number>(() =>
   (data.value?.pinningDistribution ?? []).reduce((sum, bucket) => sum + bucket.count, 0)
 );
+
+const formatIncidentCount = (val: number): string =>
+  FormattingService.formatNumber(val) + ' incidents';
 
 const pinningDistributionChart = computed<DonutChartData>(() => {
   const buckets = data.value?.pinningDistribution ?? [];

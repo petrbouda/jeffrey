@@ -333,8 +333,9 @@ const selectWindow = (w: ThrottledWindow) => {
 
 // ---- flamegraph drill-down (mirrors ProfileSubSecondView.vue) ----
 const showDialog = ref(false);
-let graphUpdater: GraphUpdater;
-let flamegraphTooltip: FlamegraphTooltip;
+// Assigned before the flamegraph dialog opens; the template reads them only inside it.
+let graphUpdater!: GraphUpdater;
+let flamegraphTooltip!: FlamegraphTooltip;
 let flamegraphClient: PrimaryFlamegraphClient;
 
 // ---- Sub-Second tab: the full SubSecond explorer (timeseries brush → heatmap → flamegraph),

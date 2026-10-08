@@ -57,10 +57,7 @@
       <div v-show="activeTab === 'overview'">
         <DualPanel left-title="Root Type Distribution">
           <template #left>
-            <DonutWithLegend
-              :data="rootTypeChartData"
-              :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' roots'"
-            />
+            <DonutWithLegend :data="rootTypeChartData" :tooltip-formatter="formatRootCount" />
           </template>
         </DualPanel>
       </div>
@@ -329,6 +326,8 @@ const chartEntries = computed(() => {
   }
   return Object.entries(gcRootData.value.rootsByType).sort((a, b) => b[1] - a[1]);
 });
+
+const formatRootCount = (val: number): string => FormattingService.formatNumber(val) + ' roots';
 
 const rootTypeChartData = computed<DonutChartData>(() => ({
   series: chartEntries.value.map(([, count]) => count),

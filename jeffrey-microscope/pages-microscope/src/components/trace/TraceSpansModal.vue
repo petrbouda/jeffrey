@@ -285,8 +285,9 @@ const hasContextFindings = computed(() =>
     slice => slice.category !== 'OWN_WORK' && slice.totalNanos > 0
   )
 );
-let flamegraphTooltip: FlamegraphTooltip;
-let graphUpdater: GraphUpdater;
+// Assigned before the flamegraph dialog opens; the template reads them only inside it.
+let flamegraphTooltip!: FlamegraphTooltip;
+let graphUpdater!: GraphUpdater;
 
 /**
  * The handful of facts that orient the reader before they look at a single bar. Thread count is

@@ -131,9 +131,9 @@ function categoryLabel(category: ThreadCategory): string {
   return category.metadata(props.threadCommon.metadata).label;
 }
 
-let flamegraphTooltip: FlamegraphTooltip;
-
-let graphUpdater: GraphUpdater;
+// Assigned before the flamegraph dialog opens; the template reads them only inside it.
+let flamegraphTooltip!: FlamegraphTooltip;
+let graphUpdater!: GraphUpdater;
 
 // Store scroll handler reference for proper cleanup
 const handleScroll = () => {

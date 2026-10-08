@@ -50,18 +50,14 @@
           <template #left>
             <DonutWithLegend
               :data="invocationChartData"
-              :tooltip-formatter="
-                (val: number) => FormattingService.formatNumber(val) + ' invocations'
-              "
+              :tooltip-formatter="formatInvocationCount"
             />
           </template>
           <template #right>
             <DonutWithLegend
               :data="durationChartData"
-              :tooltip-formatter="(val: number) => FormattingService.formatDuration2Units(val)"
-              :value-formatter="
-                (val: string) => FormattingService.formatDuration2Units(Number(val))
-              "
+              :tooltip-formatter="formatDuration"
+              :value-formatter="formatDurationLabel"
             />
           </template>
         </DualPanel>
@@ -119,6 +115,12 @@ const {
 
 // Chart colors palette
 const CHART_COLORS = ChartColors.chartPalette(6);
+
+const formatInvocationCount = (val: number): string =>
+  FormattingService.formatNumber(val) + ' invocations';
+const formatDuration = (val: number): string => FormattingService.formatDuration2Units(val);
+const formatDurationLabel = (val: string): string =>
+  FormattingService.formatDuration2Units(Number(val));
 
 // Computed properties
 const invocationChartData = computed<DonutChartData>(() => {

@@ -51,8 +51,9 @@ const showTimeseries = computed(
   () => !(props.disabledFeatures ?? []).includes(FeatureType.TIMESERIES)
 );
 
-let flamegraphTooltip: FlamegraphTooltip;
-let graphUpdater: GraphUpdater;
+// Assigned in onBeforeMount, before the template first reads them.
+let flamegraphTooltip!: FlamegraphTooltip;
+let graphUpdater!: GraphUpdater;
 
 // Reactive refs for template-bound values - initialized in onBeforeMount when route is resolved
 const profileId = ref<string>('');

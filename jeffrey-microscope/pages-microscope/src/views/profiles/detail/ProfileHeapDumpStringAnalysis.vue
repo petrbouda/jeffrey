@@ -232,16 +232,10 @@
     <div v-show="activeTab === 'overview'">
       <DualPanel v-if="report" left-title="Memory Status" right-title="String Array Sharing">
         <template #left>
-          <DonutWithLegend
-            :data="memoryChartData"
-            :tooltip-formatter="(val: number) => FormattingService.formatBytes(val)"
-          />
+          <DonutWithLegend :data="memoryChartData" :tooltip-formatter="formatBytes" />
         </template>
         <template #right>
-          <DonutWithLegend
-            :data="arrayChartData"
-            :tooltip-formatter="(val: number) => FormattingService.formatNumber(val)"
-          />
+          <DonutWithLegend :data="arrayChartData" :tooltip-formatter="formatCount" />
         </template>
       </DualPanel>
     </div>
@@ -719,6 +713,9 @@ const summaryMetrics = computed(() => {
     }
   ];
 });
+
+const formatBytes = (val: number): string => FormattingService.formatBytes(val);
+const formatCount = (val: number): string => FormattingService.formatNumber(val);
 
 const memoryChartData = computed<DonutChartData>(() => {
   if (!report.value) {
