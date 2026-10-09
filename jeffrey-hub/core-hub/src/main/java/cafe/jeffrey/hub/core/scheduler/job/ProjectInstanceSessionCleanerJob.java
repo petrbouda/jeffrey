@@ -46,23 +46,28 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstanceSessionCleanerJob.class);
 
-    private static final String PARAM_RETENTION = "retention";
+    private static final String PARAM_SESSION_RETENTION = "session-retention";
+    private static final String PARAM_ACTIVE_SESSION_FILE_RETENTION = "active-session-file-retention";
     private static final String PARAM_MAX_SESSIONS = "max-sessions";
 
     private final Duration period;
-    private final Duration duration;
+    private final Duration sessionRetention;
+    private final Duration activeSessionFileRetention;
     private final int maxSessions;
     private final Clock clock;
 
     /**
-     * @param config carries two independent retention rules per instance: an age window
-     *               ({@code retention}) and a cap of {@code max-sessions} logical sessions,
-     *               where a consecutive run of failed-empty sessions (a crash loop) counts as one
+     * @param config carries two independent retention rules per instance: an age window for
+     *               finished sessions ({@code session-retention}) and a cap of {@code max-sessions}
+     *               logical sessions, where a consecutive run of failed-empty sessions (a crash loop)
+     *               counts as one; plus a separate age window for the closed chunks inside a session
+     *               still recording ({@code active-session-file-retention})
      */
     public ProjectInstanceSessionCleanerJob(WorkspacesManager workspacesManager, JobConfig config, Clock clock) {
         super(workspacesManager);
         this.period = config.period();
-        this.duration = config.durationParam(PARAM_RETENTION);
+        this.sessionRetention = config.durationParam(PARAM_SESSION_RETENTION);
+        this.activeSessionFileRetention = config.durationParam(PARAM_ACTIVE_SESSION_FILE_RETENTION);
         this.maxSessions = config.intParam(PARAM_MAX_SESSIONS);
         this.clock = clock;
         if (maxSessions <= 0) {
@@ -127,7 +132,7 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob {
                         continue;
                     }
 
-                    boolean ageExpired = currentTime.isAfter(session.createdAt().plus(duration));
+                    boolean ageExpired = currentTime.isAfter(session.createdAt().plus(sessionRetention));
                     if (ageExpired || overCap) {
                         candidatesForDeletion.add(session);
                     }
@@ -145,9 +150,9 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob {
             JfrNotificationEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
         }
 
-        // The same window inside every session still recording: its closed chunks older than
+        // A window of its own inside every session still recording: its closed chunks older than
         // it go, the one its profiler holds open stays whatever its age
-        Instant cutoff = currentTime.minus(duration);
+        Instant cutoff = currentTime.minus(activeSessionFileRetention);
         sessionsByInstance.values().stream()
                 .flatMap(List::stream)
                 .filter(session -> session.status() == RecordingStatus.ACTIVE)

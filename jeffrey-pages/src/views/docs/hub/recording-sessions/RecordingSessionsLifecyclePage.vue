@@ -190,8 +190,12 @@ onMounted(() => {
         <h2 id="session-cleanup">Session Cleanup</h2>
         <p>Old sessions are reclaimed automatically by several Jeffrey Hub scheduler jobs, each covering a different granularity:</p>
         <ul>
-          <li><strong>Instance Session Cleaner</strong> - Deletes whole finished sessions older than the retention window (7 days by default). The newest session of an instance that is still running is always kept — with one refinement: failed sessions (finished with zero bytes, e.g. a crash-looped container) never count as "the newest session", so the newest session that actually produced data keeps the protection instead.</li>
-          <li><strong>Instance Recording Cleaner</strong> - Trims finished chunks inside the <em>live</em> session (3 days by default), so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
+          <li><strong>Instance Session Cleaner</strong> - Two independent age windows:
+            <ul>
+              <li><code>session-retention</code> (7 days by default) - Deletes whole finished sessions older than the window, measured from the session's start. It also caps each instance at <code>max-sessions</code> logical sessions (10 by default). The newest session of an instance that is still running is always kept — with one refinement: failed sessions (finished with zero bytes, e.g. a crash-looped container) never count as "the newest session", so the newest session that actually produced data keeps the protection instead.</li>
+              <li><code>active-session-file-retention</code> (7 days by default) - Trims finished chunks older than the window inside the <em>live</em> session, so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
+            </ul>
+          </li>
           <li><strong>Storage Quota Cleaner</strong> - Caps total disk per project (20 GB by default). Age alone cannot bound disk usage, so when a project exceeds its budget this job reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
           <li><strong>Expired Instance Cleaner</strong> - Deletes instances (including their directories on disk) once they have been EXPIRED past their retention (14 days by default).</li>
           <li><strong>JFR Compression</strong> - LZ4-compresses finished JFR files to save storage space, every minute by default.</li>

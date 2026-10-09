@@ -353,10 +353,15 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>project-instance-session-cleaner</code></td>
             <td><code>1h</code></td>
-            <td><code>retention=7d</code> / <code>max-sessions=10</code></td>
             <td>
-              Deletes finished sessions past the retention window, trims the closed chunks older
-              than the same window out of sessions still recording, and caps each instance at
+              <code>session-retention=7d</code> / <code>active-session-file-retention=7d</code> /
+              <code>max-sessions=10</code>
+            </td>
+            <td>
+              Deletes finished sessions older than <code>session-retention</code> (measured from the
+              session's start), trims the closed chunks older than
+              <code>active-session-file-retention</code> out of sessions still recording (the chunk
+              the profiler is writing is never touched), and caps each instance at
               <code>max-sessions</code> logical sessions — a consecutive run of failed (0-byte)
               sessions counts as one, the live session occupies a slot, retained sessions are
               exempt. Oldest logical sessions beyond the cap are deleted even before the
