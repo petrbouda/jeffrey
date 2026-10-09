@@ -105,8 +105,15 @@ class ProjectInstanceSessionCleanerJobTest {
     }
 
     private ProjectInstanceSessionCleanerJob job(int maxSessions) {
+        return job(RETENTION, RETENTION, maxSessions);
+    }
+
+    private ProjectInstanceSessionCleanerJob job(
+            Duration sessionRetention, Duration activeSessionFileRetention, int maxSessions) {
+
         JobConfig config = new JobConfig(true, Duration.ofHours(1), Map.of(
-                "retention", RETENTION.toDays() + "d",
+                "session-retention", sessionRetention.toDays() + "d",
+                "active-session-file-retention", activeSessionFileRetention.toDays() + "d",
                 "max-sessions", Integer.toString(maxSessions)));
         return new ProjectInstanceSessionCleanerJob(workspacesManager, config, Clock.fixed(NOW, ZoneOffset.UTC));
     }
@@ -213,6 +220,45 @@ class ProjectInstanceSessionCleanerJobTest {
 
             execute();
 
+            verify(storage, never()).deleteRepositoryFiles(anyString(), any());
+        }
+    }
+
+    @Nested
+    class IndependentWindows {
+
+        private static final Duration SHORT = Duration.ofDays(1);
+        private static final Duration LONG = Duration.ofDays(30);
+        private static final Duration AGE = Duration.ofDays(3);
+
+        @Test
+        void shortFileWindowTrimsTheLiveSessionWhileFinishedSessionsOfTheSameAgeStay() {
+            RepositoryFile old = recording("old", NOW.minus(AGE), 10 * MB);
+            RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    session("live", NOW.minus(AGE), null, false, old, open),
+                    realSession("newer-finished", NOW.minus(AGE.plusDays(1))),
+                    realSession("older-finished", NOW.minus(AGE.plusDays(2)))));
+
+            job(LONG, SHORT, MAX_SESSIONS).executeOnRepository(projectManager, storage);
+
+            verify(storage).deleteRepositoryFiles("live", List.of("old"));
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+        }
+
+        @Test
+        void shortSessionWindowDeletesFinishedSessionsWhileTheLiveSessionKeepsItsChunks() {
+            RepositoryFile old = recording("old", NOW.minus(AGE), 10 * MB);
+            RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    session("live", NOW.minus(AGE), null, false, old, open),
+                    realSession("newer-finished", NOW.minus(AGE.plusDays(1))),
+                    realSession("older-finished", NOW.minus(AGE.plusDays(2)))));
+
+            job(SHORT, LONG, MAX_SESSIONS).executeOnRepository(projectManager, storage);
+
+            // newer-finished is the keep-newest slot of the live instance; only the older one goes
+            assertEquals(List.of("older-finished"), deletedSessionIds());
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
         }
     }
