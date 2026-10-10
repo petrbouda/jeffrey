@@ -54,6 +54,7 @@ class HeartbeatToSessionFinishIntegrationTest {
     private static final String SESSION_ID_2 = "session-002";
     private static final String INSTANCE_ID = "inst-001";
     private static final String RECORDING_FILE = "profile-20250615-080000.jfr";
+    private static final String AGENT_JAR = ".jeffrey-agent.jar";
 
     private static final Instant NOW = Instant.parse("2025-06-15T12:00:00Z");
     private static final Duration HEARTBEAT_THRESHOLD = Duration.ofMinutes(5);
@@ -355,7 +356,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             // Only what the provisioner leaves before the JVM starts, all of it hidden
             Path sessionDir = tempDir.resolve("session-2025-06-15");
             Files.createDirectories(sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR));
-            Files.writeString(sessionDir.resolve(HeartbeatConstants.AGENT_JAR_FILE), "");
+            Files.writeString(sessionDir.resolve(AGENT_JAR), "");
 
             ProjectInstanceSessionInfo sessionInfo = repoRepo.findSessionById(SESSION_ID).orElseThrow();
 

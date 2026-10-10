@@ -228,7 +228,7 @@ class RemoteRecordingsDownloadManagerTest {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-name", "inst-1",
                 CREATED_AT.toEpochMilli(), CREATED_AT.plusSeconds(60).toEpochMilli(),
-                RecordingStatus.FINISHED, 60_000L, List.of(files), false, null);
+                RecordingStatus.FINISHED, 60_000L, List.of(files), false, false);
     }
 
     /**
@@ -239,7 +239,7 @@ class RemoteRecordingsDownloadManagerTest {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-name", "inst-1",
                 CREATED_AT.toEpochMilli(), null,
-                RecordingStatus.ACTIVE, null, List.of(files), false, null);
+                RecordingStatus.ACTIVE, null, List.of(files), false, false);
     }
 
     private static RecordingSessionResponse threeChunks() {

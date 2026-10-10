@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.hub.core.project.session.MissingHeartbeatReader;
 import cafe.jeffrey.hub.core.project.session.SessionPaths;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
@@ -30,7 +29,6 @@ import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.repository.MissingHeartbeat;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -90,7 +88,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     private final ProjectInfo projectInfo;
     private final Path workspacesDir;
     private final ProjectRepositoryRepository projectRepositoryRepository;
-    private final MissingHeartbeatReader missingHeartbeatReader = new MissingHeartbeatReader();
 
     private volatile RepositoryInfo cachedRepositoryInfo;
 
@@ -182,7 +179,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.status(),
                 _listRepositoryFiles(sessionPath),
                 session.retained(),
-                missingHeartbeatReader.read(session.heartbeatMissing().isPresent(), sessionPath));
+                session.heartbeatMissing());
     }
 
     private RecordingSession createRecordingSession(SessionDetail detail, ProjectInstanceSessionInfo sessionInfo) {
@@ -191,14 +188,10 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         RecordingStatus recordingStatus = statusOf(sessionInfo);
 
         List<RepositoryFile> repositoryFiles;
-        MissingHeartbeat missingHeartbeat;
         if (detail.withFiles()) {
             repositoryFiles = _listRepositoryFiles(sessionPath);
-            missingHeartbeat = missingHeartbeatReader.read(sessionInfo.heartbeatMissing(), sessionPath);
         } else {
-            // Without touching the volume: the row says the heartbeat was missing, not why
             repositoryFiles = List.of();
-            missingHeartbeat = sessionInfo.heartbeatMissing() ? new MissingHeartbeat(false) : null;
         }
 
         return new RecordingSession(
@@ -210,7 +203,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 recordingStatus,
                 repositoryFiles,
                 sessionInfo.retained(),
-                missingHeartbeat);
+                sessionInfo.heartbeatMissing());
     }
 
     /**

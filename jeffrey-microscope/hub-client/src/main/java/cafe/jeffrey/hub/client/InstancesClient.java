@@ -142,7 +142,7 @@ public class InstancesClient {
                 proto.getIsActive(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 proto.getFailed(),
-                proto.hasMissingHeartbeat() ? ClientProtoMappers.missingHeartbeat(proto.getMissingHeartbeat()) : null);
+                proto.getHeartbeatMissing());
     }
 
 }

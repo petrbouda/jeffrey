@@ -47,14 +47,6 @@ public abstract class HeartbeatConstants {
     public static final String FINISHED_FILE = "finished";
 
     /**
-     * Name of the Jeffrey Agent jar the Provisioner writes into a session directory before the JVM
-     * starts. Hidden, so the hub never lists it among the session's files; the hub only asks
-     * whether it is there, to tell a session whose agent was switched off from one whose JVM
-     * never got as far as running it.
-     */
-    public static final String AGENT_JAR_FILE = ".jeffrey-agent.jar";
-
-    /**
      * Default heartbeat interval. Must match {@code HeartbeatFiles.DEFAULT_INTERVAL} in
      * {@code jeffrey-heartbeat}: the hub's staleness threshold is chosen as a multiple of it, so a
      * producer beating more slowly than the hub expects reads as dead while it is running.

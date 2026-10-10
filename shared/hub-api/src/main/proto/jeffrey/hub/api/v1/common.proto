@@ -60,12 +60,3 @@ enum Severity {
   // Low severity — informational.
   SEVERITY_LOW = 4;
 }
-
-// Why a session ended without ever sending a heartbeat. Set only on such a session: one that wrote
-// no liveness file within the startup grace, which the hub finishes at its start.
-message MissingHeartbeat {
-  // Whether the Jeffrey Agent jar was written into the session directory: present means the agent
-  // was attached but the JVM never ran it (or the application switched liveness off); absent means
-  // the agent was switched off.
-  bool agent_present = 1;
-}

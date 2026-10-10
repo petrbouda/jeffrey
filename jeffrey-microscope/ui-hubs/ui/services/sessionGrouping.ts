@@ -36,14 +36,14 @@ export function totalSizeBytes(session: RecordingSession): number {
  * predicate RecordingSession.isFailedEmpty().
  *
  * <p>A session the hub finished because no heartbeat ever arrived is FINISHED and usually
- * empty too, but it is not a crash: it is shown on its own with its diagnosis, never folded
+ * empty too, but it is not a crash: it is shown on its own with a note, never folded
  * into a failed group.
  */
 export function isFailedSession(session: RecordingSession): boolean {
   if (session.status !== RecordingStatus.FINISHED) {
     return false;
   }
-  if (session.missingHeartbeat !== null) {
+  if (session.heartbeatMissing) {
     return false;
   }
   return totalSizeBytes(session) === 0;

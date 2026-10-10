@@ -181,7 +181,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListInstanceSessions</code>
                 </div>
-                <p>List sessions for an instance. A session that ended because it never sent a heartbeat carries a <code>MissingHeartbeat</code> — whether the Jeffrey Agent jar was in its directory — and is never <code>failed</code></p>
+                <p>List sessions for an instance. A session that ended because it sent no heartbeat within the startup grace has <code>heartbeat_missing</code> set and is never <code>failed</code></p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
@@ -212,7 +212,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListSessions</code>
                 </div>
-                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. A session that ended because it never sent a heartbeat carries a <code>MissingHeartbeat</code></p>
+                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. A session that ended because it sent no heartbeat within the startup grace has <code>heartbeat_missing</code> set</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">

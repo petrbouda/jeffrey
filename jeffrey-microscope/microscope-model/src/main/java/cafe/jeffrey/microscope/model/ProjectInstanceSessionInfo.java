@@ -17,15 +17,13 @@
 
 package cafe.jeffrey.microscope.model;
 
-import cafe.jeffrey.microscope.model.repository.MissingHeartbeat;
-
 import java.nio.file.Path;
 import java.time.Instant;
 
 /**
  * One recording session as the hub knows it.
  *
- * @param missingHeartbeat why the session ended without a heartbeat, or {@code null} for one that sent it
+ * @param heartbeatMissing the session ended because no heartbeat arrived within the startup grace
  */
 public record ProjectInstanceSessionInfo(
         String sessionId,
@@ -38,7 +36,7 @@ public record ProjectInstanceSessionInfo(
         Instant finishedAt,
         boolean retained,
         boolean failed,
-        MissingHeartbeat missingHeartbeat) {
+        boolean heartbeatMissing) {
 
     /**
      * Creates a session that is not retained — the state every session starts in.
@@ -58,7 +56,7 @@ public record ProjectInstanceSessionInfo(
 
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, false, null);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, false, false);
     }
 
     /**
@@ -68,16 +66,16 @@ public record ProjectInstanceSessionInfo(
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
                 relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed,
-                missingHeartbeat);
+                heartbeatMissing);
     }
 
     /**
-     * Copy of this session info with why it ended without a heartbeat, or {@code null} for none.
+     * Copy of this session info flagged as having ended without a heartbeat, or not.
      */
-    public ProjectInstanceSessionInfo withMissingHeartbeat(MissingHeartbeat missingHeartbeat) {
+    public ProjectInstanceSessionInfo withHeartbeatMissing(boolean heartbeatMissing) {
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
                 relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed,
-                missingHeartbeat);
+                heartbeatMissing);
     }
 }

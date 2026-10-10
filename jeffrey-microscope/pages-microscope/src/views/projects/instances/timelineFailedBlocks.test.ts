@@ -18,7 +18,6 @@
 import { describe, expect, it } from 'vitest';
 import { splitTimelineSessions } from './timelineFailedBlocks.ts';
 import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession.ts';
-import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 const BASE = 1_750_000_000_000;
 const MINUTE = 60_000;
@@ -114,7 +113,7 @@ describe('splitTimelineSessions', () => {
       BASE + 12 * MINUTE,
       false,
       false,
-      new MissingHeartbeat(true)
+      true
     );
 
     const split = splitTimelineSessions([

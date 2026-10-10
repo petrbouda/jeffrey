@@ -25,7 +25,6 @@ import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
-import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 const BASE_CREATED_AT = 1_750_000_000_000;
 
@@ -69,7 +68,7 @@ function missingHeartbeatSession(id: string, createdAt: number = BASE_CREATED_AT
     0,
     [],
     false,
-    new MissingHeartbeat(true)
+    true
   );
 }
 

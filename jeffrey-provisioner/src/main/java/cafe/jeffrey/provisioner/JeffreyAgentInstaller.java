@@ -18,7 +18,6 @@ package cafe.jeffrey.provisioner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,7 +51,7 @@ public class JeffreyAgentInstaller {
     static final String BUNDLED_RESOURCE = "cafe/jeffrey/provisioner/agent/jeffrey-agent.jar";
 
     /** The agent's file name inside the session directory. Hidden, so the hub does not list it. */
-    public static final String SESSION_FILE = HeartbeatConstants.AGENT_JAR_FILE;
+    public static final String SESSION_FILE = ".jeffrey-agent.jar";
 
     private static final String TEMPORARY_SUFFIX = ".tmp";
 

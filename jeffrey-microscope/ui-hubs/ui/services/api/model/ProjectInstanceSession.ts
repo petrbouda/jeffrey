@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat';
-
 export default class ProjectInstanceSession {
   constructor(
     public id: string,
@@ -27,7 +25,7 @@ export default class ProjectInstanceSession {
     public isActive?: boolean,
     /** Finished without producing any data (zero bytes) — e.g. a crash-looped container. */
     public failed?: boolean,
-    /** Set only for a session the hub finished because no heartbeat ever arrived. */
-    public missingHeartbeat: MissingHeartbeat | null = null
+    /** The hub finished this session because no heartbeat arrived within 1 minute of its start. */
+    public heartbeatMissing: boolean = false
   ) {}
 }

@@ -34,7 +34,7 @@ import type { Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
 import type { TimelineBarItem } from '@shared/types/ui';
-import HeartbeatDiagnostics from '@hubs/components/HeartbeatDiagnostics.vue';
+import MissingHeartbeatNote from '@hubs/components/MissingHeartbeatNote.vue';
 import {
   buildDisplayEntries,
   hasUnreportedSizes,
@@ -203,10 +203,10 @@ const failedSessionsCount = computed(() => {
 
 /**
  * A session the hub finished because no heartbeat ever arrived. It is FINISHED and usually
- * empty, but it is shown on its own (purple, with its diagnosis), never as a failed session.
+ * empty, but it is shown on its own (purple, with a note on how to set heartbeats up), never as a failed session.
  */
 const isHeartbeatMissing = (session: RecordingSession): boolean => {
-  return session.missingHeartbeat !== null;
+  return session.heartbeatMissing;
 };
 
 const noHeartbeatSessionsCount = computed(() => {
@@ -1089,8 +1089,8 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           :extra-items="getHeartbeatItems(session)"
         />
 
-        <!-- Why this session never reported a heartbeat, and what to change -->
-        <HeartbeatDiagnostics v-if="isHeartbeatMissing(session)" :session="session" />
+        <!-- This session never reported a heartbeat: say so, and link to the setup docs -->
+        <MissingHeartbeatNote v-if="isHeartbeatMissing(session)" />
       </div>
 
       <!-- Session recordings (shown when expanded) -->

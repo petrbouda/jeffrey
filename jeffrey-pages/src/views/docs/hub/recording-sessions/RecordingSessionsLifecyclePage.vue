@@ -181,12 +181,13 @@ onMounted(() => {
 
         <h3 id="sessions-without-the-agent">Sessions Without Heartbeats</h3>
         <p>Liveness comes from the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner writes into every session and attaches with <code>-javaagent</code> unless the deployment sets <code>JEFFREY_AGENT_ENABLED=false</code>. With the agent off, it comes only from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it. Either one is silenced by the application's own <code>jeffrey.heartbeat.enabled=false</code>.</p>
-        <p>In Microscope a session that ended without a heartbeat is drawn in purple and is never counted as a failed session: on the Instance Timeline it is a purple marker and its instance shows a <strong>Heartbeat: never</strong> chip. In the instance's session list it gets a Heartbeat cell reading <em>never received</em> and a diagnostic panel with what the Hub found in the session directory — whether the agent jar <code>.jeffrey-agent.jar</code> was written, the missing <code>.heartbeat/heartbeat</code>, and how many recording files there are — and the likely cause:</p>
+        <p>In Microscope a session that ended without a heartbeat is drawn in purple and is never counted as a failed session: on the Instance Timeline it is a purple marker and its instance shows a <strong>Heartbeat: never</strong> chip; in the instance's session list it reads <em>Heartbeat: never received</em> and carries a note linking here.</p>
+        <p>To make sessions report a heartbeat:</p>
         <ul>
-          <li><strong>Agent present, nothing recorded</strong> — the JVM never started, or died before the agent ran (the last restart of a crash-looping pod, for example). Check the container's previous logs.</li>
-          <li><strong>Agent present, files recorded</strong> — the application switched liveness off with <code>jeffrey.heartbeat.enabled=false</code>, or the heartbeat directory is not writable.</li>
-          <li><strong>No agent, files recorded</strong> — the agent is switched off. Remove <code>JEFFREY_AGENT_ENABLED=false</code>, or add <code>jeffrey-heartbeat</code> to the application.</li>
-          <li><strong>No agent, nothing recorded</strong> — the JVM never started and the agent is off.</li>
+          <li>Keep the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> attached — the Provisioner attaches it by default; check the deployment does not set <code>JEFFREY_AGENT_ENABLED=false</code>.</li>
+          <li>Or, with the agent off, add <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> (or <code>jeffrey-heartbeat-spring-boot-starter</code>) to the application.</li>
+          <li>Make sure the application does not set <code>jeffrey.heartbeat.enabled=false</code>.</li>
+          <li>If the JVM never got as far as starting — a crash-looping pod, for example — check the container's previous logs; no configuration of heartbeats helps there.</li>
         </ul>
 
         <h3 id="jvm-crash-logs">JVM Crash Logs</h3>

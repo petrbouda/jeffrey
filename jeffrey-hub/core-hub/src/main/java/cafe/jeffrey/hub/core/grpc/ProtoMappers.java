@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.api.v1.InstanceInfo;
 import cafe.jeffrey.hub.api.v1.InstanceSessionInfo;
 import cafe.jeffrey.hub.api.v1.InstanceStats;
 import cafe.jeffrey.hub.api.v1.InstanceStatus;
-import cafe.jeffrey.hub.api.v1.MissingHeartbeat;
 import cafe.jeffrey.hub.api.v1.ProjectInfo;
 import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
@@ -155,14 +154,8 @@ public final class ProtoMappers {
             builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
         session.files().forEach(file -> builder.addFiles(file(file)));
-        session.heartbeatMissing().ifPresent(missing -> builder.setMissingHeartbeat(missingHeartbeat(missing)));
+        builder.setHeartbeatMissing(session.heartbeatMissing());
         return builder.build();
-    }
-
-    public static MissingHeartbeat missingHeartbeat(cafe.jeffrey.hub.model.repository.MissingHeartbeat missing) {
-        return MissingHeartbeat.newBuilder()
-                .setAgentPresent(missing.agentPresent())
-                .build();
     }
 
     public static RepositoryFile file(cafe.jeffrey.hub.model.repository.RepositoryFile file) {
@@ -186,8 +179,8 @@ public final class ProtoMappers {
 
     /**
      * @param walkedSessions the instance's sessions as loaded with their files, by id — whether one
-     *                       failed, and why one sent no heartbeat, are known only from the volume;
-     *                       a session missing here is mapped from its row alone
+     *                       failed is known only from the volume; a session missing here is mapped
+     *                       from its row alone
      */
     public static InstanceInfo instance(
             ProjectInstanceInfo info,
@@ -230,15 +223,10 @@ public final class ProtoMappers {
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setIsActive(info.finishedAt() == null)
                 // A session that never sent a heartbeat ended for that reason, not for crashing
-                .setFailed(walked != null && walked.isFailedEmpty() && !info.heartbeatMissing());
+                .setFailed(walked != null && walked.isFailedEmpty() && !info.heartbeatMissing())
+                .setHeartbeatMissing(info.heartbeatMissing());
         if (info.finishedAt() != null) {
             builder.setFinishedAt(info.finishedAt().toEpochMilli());
-        }
-        if (info.heartbeatMissing()) {
-            cafe.jeffrey.hub.model.repository.MissingHeartbeat missing = walked != null
-                    ? walked.heartbeatMissing().orElse(new cafe.jeffrey.hub.model.repository.MissingHeartbeat(false))
-                    : new cafe.jeffrey.hub.model.repository.MissingHeartbeat(false);
-            builder.setMissingHeartbeat(missingHeartbeat(missing));
         }
         return builder.build();
     }

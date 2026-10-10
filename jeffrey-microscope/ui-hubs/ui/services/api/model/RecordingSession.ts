@@ -17,7 +17,6 @@
 
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
-import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 export default class RecordingSession {
   constructor(
@@ -31,9 +30,9 @@ export default class RecordingSession {
     public files: RepositoryFile[],
     public retained: boolean = false,
     /**
-     * Set only for a session the hub finished because no heartbeat ever arrived. Such a session
-     * is FINISHED and usually empty, yet it is not a failed session: it is shown on its own.
+     * The hub finished this session because no heartbeat arrived within 1 minute of its start.
+     * Such a session is FINISHED and usually empty, yet it is not a failed session.
      */
-    public missingHeartbeat: MissingHeartbeat | null = null
+    public heartbeatMissing: boolean = false
   ) {}
 }

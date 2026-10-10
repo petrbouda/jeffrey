@@ -15,14 +15,6 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.repository;
-
-/**
- * Why a session ended without ever sending a heartbeat — present only on such a session.
- *
- * @param agentPresent whether the Jeffrey Agent jar was written into the session directory: present
- *                     means the JVM never ran it (or the application switched liveness off); absent
- *                     means the agent was switched off
- */
-public record MissingHeartbeat(boolean agentPresent) {
-}
+/** Where Jeffrey Pages explains how to make a session report its heartbeat. */
+export const HEARTBEAT_SETUP_DOCS_URL =
+  'https://www.jeffrey-analyst.cafe/docs/hub/recording-sessions/lifecycle#sessions-without-the-agent';

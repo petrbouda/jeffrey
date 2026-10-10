@@ -35,7 +35,6 @@ import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.repository.MissingHeartbeat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -446,10 +445,10 @@ class InstanceGrpcServiceTest {
 
         /**
          * A session that never sent a heartbeat is finished at its start with no data — but it is
-         * not a crash, so it is not failed: it carries why the heartbeat was missing instead.
+         * not a crash, so it is not failed: it is flagged as missing its heartbeat instead.
          */
         @Test
-        void sessionWithoutHeartbeat_isNotFailedAndCarriesTheReason() throws Exception {
+        void sessionWithoutHeartbeat_isNotFailedAndCarriesTheFlag() throws Exception {
             var platformRepositories = platformRepositoriesWithInstance();
             when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
                     new ProjectInstanceSessionInfo(
@@ -461,7 +460,7 @@ class InstanceGrpcServiceTest {
             var repoManager = mock(RepositoryManager.class);
             when(repoManager.instanceSessions(INSTANCE_ID)).thenReturn(List.of(new RecordingSession(
                     "session-1", "session-1", INSTANCE_ID, FIXED_TIME, FIXED_TIME, RecordingStatus.FINISHED,
-                    List.of(), false, new MissingHeartbeat(true))));
+                    List.of(), false, true)));
             var factory = repositoryManagerFactory(platformRepositories, repoManager);
 
             var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
@@ -475,12 +474,11 @@ class InstanceGrpcServiceTest {
             assertFalse(session.getIsActive());
             assertTrue(session.hasFinishedAt());
             assertFalse(session.getFailed());
-            assertTrue(session.hasMissingHeartbeat());
-            assertTrue(session.getMissingHeartbeat().getAgentPresent());
+            assertTrue(session.getHeartbeatMissing());
         }
 
         @Test
-        void sessionWithHeartbeat_carriesNoMissingHeartbeat() throws Exception {
+        void sessionWithHeartbeat_isNotFlagged() throws Exception {
             var platformRepositories = platformRepositoriesWithInstance();
             when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
                     ProjectInstanceSessionInfo.notRetained(
@@ -502,7 +500,7 @@ class InstanceGrpcServiceTest {
                     .getSessions(0);
 
             assertTrue(session.getIsActive());
-            assertFalse(session.hasMissingHeartbeat());
+            assertFalse(session.getHeartbeatMissing());
         }
 
         @Test

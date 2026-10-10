@@ -34,7 +34,7 @@ public record RecordingSession(
         Path absolutePath,
         List<RepositoryFile> files,
         boolean retained,
-        MissingHeartbeat missingHeartbeat) {
+        boolean heartbeatMissing) {
 
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
@@ -58,14 +58,7 @@ public record RecordingSession(
             List<RepositoryFile> files,
             boolean retained) {
 
-        this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, null);
-    }
-
-    /**
-     * Why the session ended without a heartbeat, or empty for a session that sent one.
-     */
-    public Optional<MissingHeartbeat> heartbeatMissing() {
-        return Optional.ofNullable(missingHeartbeat);
+        this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, false);
     }
 
     /**

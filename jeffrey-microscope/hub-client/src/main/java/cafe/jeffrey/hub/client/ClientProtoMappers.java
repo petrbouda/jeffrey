@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.hub.client.dto.MissingHeartbeatResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 
@@ -65,10 +64,6 @@ public abstract class ClientProtoMappers {
             case WORKSPACE_STATUS_UNAVAILABLE -> WorkspaceStatus.UNAVAILABLE;
             default -> WorkspaceStatus.UNKNOWN;
         };
-    }
-
-    public static MissingHeartbeatResponse missingHeartbeat(cafe.jeffrey.hub.api.v1.MissingHeartbeat missing) {
-        return new MissingHeartbeatResponse(missing.getAgentPresent());
     }
 
     public static String instanceStatus(cafe.jeffrey.hub.api.v1.InstanceStatus status) {

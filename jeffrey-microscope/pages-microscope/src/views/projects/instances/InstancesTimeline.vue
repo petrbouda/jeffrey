@@ -528,7 +528,7 @@
                 }}
               </span>
             </div>
-            <div v-if="hoveredSession.session.missingHeartbeat" class="timeline-tooltip-row">
+            <div v-if="hoveredSession.session.heartbeatMissing" class="timeline-tooltip-row">
               <span class="timeline-tooltip-label">Heartbeat</span>
               <span class="timeline-tooltip-value">never received</span>
             </div>
@@ -672,13 +672,13 @@ const totalFailedSessions = computed(() => {
 const NO_HEARTBEAT_CLASS = 'no-heartbeat';
 const NO_HEARTBEAT_CHIP_TITLE =
   'The newest session sent no heartbeat within the startup grace, so the hub finished it: ' +
-  'heartbeats are not configured or not emitted. Open the session list for a diagnosis.';
+  'heartbeats are not configured or not emitted. The session list links to how to set them up.';
 
 // Sessions the hub finished because no heartbeat ever arrived — drawn purple
 const totalNoHeartbeatSessions = computed(() => {
   let count = 0;
   for (const sessions of instanceSessions.value.values()) {
-    count += sessions.filter(session => session.missingHeartbeat !== null).length;
+    count += sessions.filter(session => session.heartbeatMissing).length;
   }
   return count;
 });
@@ -694,7 +694,7 @@ function newestSession(instanceId: string): ProjectInstanceSession | undefined {
 const noHeartbeatInstanceIds = computed(() => {
   const ids = new Set<string>();
   for (const instance of instances.value) {
-    if (newestSession(instance.id)?.missingHeartbeat) {
+    if (newestSession(instance.id)?.heartbeatMissing) {
       ids.add(instance.id);
     }
   }
@@ -726,7 +726,7 @@ const SESSION_STATUS: Record<
 };
 
 function sessionStatus(session: ProjectInstanceSession) {
-  if (session.missingHeartbeat) {
+  if (session.heartbeatMissing) {
     return SESSION_STATUS.noHeartbeat;
   }
   return session.isActive ? SESSION_STATUS.active : SESSION_STATUS.finished;
@@ -849,7 +849,7 @@ function statusKey(status: ProjectInstanceStatus): string {
 
 function sessionBarClass(session: ProjectInstanceSession, idx: number): string[] {
   const classes: string[] = [];
-  if (session.missingHeartbeat) {
+  if (session.heartbeatMissing) {
     classes.push(NO_HEARTBEAT_CLASS);
   } else {
     const kind = session.isActive ? 'active' : 'finished';
