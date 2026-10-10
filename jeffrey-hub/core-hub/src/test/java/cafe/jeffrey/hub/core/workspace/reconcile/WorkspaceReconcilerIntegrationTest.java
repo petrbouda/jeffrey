@@ -34,6 +34,7 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.project.session.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.project.session.LivenessRead;
+import cafe.jeffrey.hub.core.project.session.SessionContentReader;
 import cafe.jeffrey.hub.core.project.session.SessionFinisher;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
@@ -121,6 +122,7 @@ class WorkspaceReconcilerIntegrationTest {
         var sessionFinisher = new SessionFinisher(
                 FIXED_CLOCK,
                 fileHeartbeatReader,
+                new SessionContentReader(),
                 platformRepositories);
 
         // Manager layer is mocked but delegates persistence to the real repositories, so

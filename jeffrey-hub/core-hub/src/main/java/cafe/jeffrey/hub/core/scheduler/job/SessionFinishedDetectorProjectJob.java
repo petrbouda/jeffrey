@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.project.session.SessionDeadlines;
 import cafe.jeffrey.hub.core.project.session.SessionFinisher;
 import cafe.jeffrey.hub.core.project.session.SessionPaths;
 import cafe.jeffrey.hub.core.project.session.SessionRef;
@@ -46,8 +47,10 @@ import java.util.List;
  * has actually finished based on heartbeat data. When a session is detected as finished, it
  * also checks if the parent instance should be auto-finished.
  * <p>
- * Only sessions that have written a liveness file are held to the deadline; the rest are left
- * alone and closed by the reconciler when the instance's next session appears.
+ * Sessions that have written a liveness file are held to the heartbeat deadline. A silent session
+ * that has recorded no file either is finished once the startup grace has passed; a silent session
+ * that did record is left alone and closed by the reconciler when the instance's next session
+ * appears.
  */
 public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
 
@@ -58,8 +61,14 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
      */
     private static final String PARAM_HEARTBEAT_THRESHOLD = "heartbeat-threshold";
 
+    /**
+     * How long a session may stay without a liveness file and without a recorded file before it
+     * is taken as never having started.
+     */
+    private static final String PARAM_STARTUP_GRACE = "startup-grace";
+
     private final Duration period;
-    private final Duration heartbeatThreshold;
+    private final SessionDeadlines deadlines;
     private final HubJeffreyDirs jeffreyDirs;
     private final HubPlatformRepositories platformRepositories;
     private final SessionFinisher sessionFinisher;
@@ -73,7 +82,9 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
 
         super(workspacesManager);
         this.period = config.period();
-        this.heartbeatThreshold = config.durationParam(PARAM_HEARTBEAT_THRESHOLD);
+        this.deadlines = new SessionDeadlines(
+                config.durationParam(PARAM_HEARTBEAT_THRESHOLD),
+                config.durationParam(PARAM_STARTUP_GRACE));
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.sessionFinisher = sessionFinisher;
@@ -96,7 +107,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
         for (ProjectInstanceSessionInfo sessionInfo : unfinishedSessions) {
             Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
 
-            sessionFinisher.tryFinishFromHeartbeat(new SessionRef(projectInfo, sessionInfo, sessionPath), heartbeatThreshold);
+            sessionFinisher.tryFinishFromHeartbeat(new SessionRef(projectInfo, sessionInfo, sessionPath), deadlines);
         }
     }
 

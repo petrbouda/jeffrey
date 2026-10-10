@@ -389,8 +389,12 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>session-finished-detector</code></td>
             <td><code>30s</code></td>
-            <td><code>heartbeat-threshold=10s</code></td>
-            <td>Marks a session finished once its heartbeat is older than the threshold</td>
+            <td><code>heartbeat-threshold=10s</code> / <code>startup-grace=1m</code></td>
+            <td>
+              Marks a session finished once its heartbeat is older than
+              <code>heartbeat-threshold</code>, or, at its start, once it has stayed past
+              <code>startup-grace</code> with neither a liveness file nor a recorded file
+            </td>
           </tr>
         </tbody>
       </table>

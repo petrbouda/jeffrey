@@ -29,7 +29,6 @@ import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -43,15 +42,18 @@ public class SessionFinisher {
 
     private final Clock clock;
     private final FileHeartbeatReader fileHeartbeatReader;
+    private final SessionContentReader sessionContentReader;
     private final HubPlatformRepositories platformRepositories;
 
     public SessionFinisher(
             Clock clock,
             FileHeartbeatReader fileHeartbeatReader,
+            SessionContentReader sessionContentReader,
             HubPlatformRepositories platformRepositories) {
 
         this.clock = clock;
         this.fileHeartbeatReader = fileHeartbeatReader;
+        this.sessionContentReader = sessionContentReader;
         this.platformRepositories = platformRepositories;
     }
 
@@ -89,10 +91,11 @@ public class SessionFinisher {
      * or the provided fallback if no heartbeat is available. No staleness check is performed.
      * Used when closing previous sessions before creating a new one.
      *
-     * <p>This is the only way a session that never reported liveness is finished: it wrote no
-     * liveness files, so there is nothing for {@link #tryFinishFromHeartbeat} to read, and the
-     * arrival of the instance's next session is the only evidence the hub has that the previous
-     * one ended.</p>
+     * <p>This is the only way a session that never reported liveness but did record something is
+     * finished: it wrote no liveness files, so there is nothing for {@link #tryFinishFromHeartbeat}
+     * to read, and the arrival of the instance's next session is the only evidence the hub has
+     * that the previous one ended. A silent session that recorded nothing at all is finished by
+     * {@link #tryFinishFromHeartbeat} past the startup grace instead.</p>
      */
     public void forceFinish(SessionRef ref, Instant fallbackFinishedAt) {
         Instant finishedAt = fileHeartbeatReader.readFinishedMarker(ref.path()).timestamp()
@@ -102,18 +105,17 @@ public class SessionFinisher {
     }
 
     /**
-     * Applies the heartbeat deadline to one unfinished session and marks it finished when it
-     * has stopped reporting. Used by the polling detector.
+     * Applies the deadlines to one unfinished session and marks it finished when it has stopped
+     * reporting, or never started. Used by the polling detector.
      *
-     * <p>A session is held to this deadline only once it has shown that it reports liveness, by
-     * writing a liveness file. The writer is the Jeffrey agent the Provisioner attaches by default,
-     * or, where a deployment switched the agent off, the {@code jeffrey-heartbeat} library the
-     * application carries itself; nothing declares up front whether either will report. A session
-     * that never wrote a liveness file — no agent and no library, or one the application disabled —
-     * is not finished for staying silent; it is closed when the instance's next session appears,
-     * by {@link #forceFinish}.</p>
+     * <p>A session is held to the heartbeat deadline only once it has shown that it reports
+     * liveness, by writing a liveness file. The writer is the Jeffrey agent the Provisioner attaches
+     * by default, or, where a deployment switched the agent off, the {@code jeffrey-heartbeat}
+     * library the application carries itself; nothing declares up front whether either will
+     * report. A session that never wrote a liveness file is held to the startup grace instead, and
+     * only when it recorded nothing either.</p>
      *
-     * <p>Four outcomes:</p>
+     * <p>Six outcomes:</p>
      * <ol>
      *   <li>the clean-exit marker is present — finished at the timestamp it carries. Checked
      *   first and by presence alone, so it is immune to clock skew between the producing host
@@ -125,18 +127,32 @@ public class SessionFinisher {
      *   says nothing about whether the JVM is running, and any timestamp would be a fabrication
      *   rather than a reading. The next sweep looks again, and an instance whose volume never
      *   recovers is closed by its next session instead;</li>
-     *   <li>no liveness file at all — left alone. Either the JVM is still starting up, or nothing
-     *   in it reports; the two look the same from here, and finishing the second kind would end
-     *   a session the profiler is still writing.</li>
+     *   <li>no liveness file, and the hub saw the session less than the startup grace ago — left
+     *   alone: the JVM may still be starting;</li>
+     *   <li>no liveness file past the startup grace, and the session directory holds no visible
+     *   file — finished at {@code createdAt}. Nothing ever ran there: the profiler opens its
+     *   recording and the agent writes its first beat the moment the JVM starts. This is the
+     *   process that died before it got that far, typically the last restart of a crash-looping
+     *   pod that a rollout then deleted: no next session will ever arrive for it, and without this
+     *   it would keep itself and its instance ACTIVE for good. {@code createdAt} rather than
+     *   {@code originCreatedAt}, because the timeline starts the session's bar there and a
+     *   producer-clock timestamp could fall before it;</li>
+     *   <li>no liveness file past the startup grace, and the directory holds data or could not be
+     *   listed — left alone. Something recorded without reporting liveness, so the session may
+     *   still be live and is closed by the instance's next session; a directory that cannot be
+     *   listed proves nothing either way.</li>
      * </ol>
      *
-     * <p>The order of 3 and 4 matters even though both leave the session alone: a mount that
-     * answers an ordinary {@code IOException} is worth a warning, an application without the
-     * library is not.</p>
+     * <p>The order of 3 against 4–6 matters: a mount that answers an ordinary {@code IOException}
+     * is worth a warning and must never reach the empty-session finish, an application without the
+     * library is not worth a warning.</p>
+     *
+     * <p>The startup grace is measured against {@code createdAt} — the hub's own clock at
+     * materialization — so the comparison is skew-free.</p>
      *
      * @return true if session was marked finished
      */
-    public boolean tryFinishFromHeartbeat(SessionRef ref, Duration heartbeatThreshold) {
+    public boolean tryFinishFromHeartbeat(SessionRef ref, SessionDeadlines deadlines) {
         ProjectInstanceSessionInfo sessionInfo = ref.session();
         Path sessionPath = ref.path();
 
@@ -151,7 +167,7 @@ public class SessionFinisher {
         // Case 2: the JVM stopped beating without writing the clean-exit marker
         LivenessRead lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
         if (lastHeartbeat instanceof LivenessRead.Reported(Instant heartbeatAt)) {
-            Instant deadline = clock.instant().minus(heartbeatThreshold);
+            Instant deadline = clock.instant().minus(deadlines.heartbeatThreshold());
             if (heartbeatAt.isBefore(deadline)) {
                 LOG.trace("Stale heartbeat, marking finished: session_id={} last_heartbeat={}",
                         sessionInfo.sessionId(), heartbeatAt);
@@ -171,10 +187,29 @@ public class SessionFinisher {
             return false;
         }
 
-        // Case 4: nothing reports liveness for this session, at least not yet. It is closed by
-        // the instance's next session instead.
-        LOG.trace("No liveness reported, no heartbeat deadline applies: session_id={}",
-                sessionInfo.sessionId());
+        // Case 4: nothing reports liveness yet, and the JVM may still be starting
+        Instant startupDeadline = clock.instant().minus(deadlines.startupGrace());
+        if (sessionInfo.createdAt().isAfter(startupDeadline)) {
+            LOG.trace("No liveness reported yet, still within startup grace: session_id={} created_at={}",
+                    sessionInfo.sessionId(), sessionInfo.createdAt());
+            return false;
+        }
+
+        SessionContentRead content = sessionContentReader.read(sessionPath);
+
+        // Case 5: silent and empty past the grace — nothing ever ran in this session
+        if (content instanceof SessionContentRead.Empty) {
+            LOG.info("Session never reported liveness nor recorded a file, marking finished at its start: "
+                            + "session_id={} created_at={}",
+                    sessionInfo.sessionId(), sessionInfo.createdAt());
+            markFinished(ref, sessionInfo.createdAt());
+            return true;
+        }
+
+        // Case 6: something recorded without reporting liveness, or the directory could not be
+        // listed. It is closed by the instance's next session instead.
+        LOG.trace("No liveness reported, session left for the instance's next session: session_id={} content={}",
+                sessionInfo.sessionId(), content);
         return false;
     }
 }

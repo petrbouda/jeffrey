@@ -257,8 +257,9 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * A session is recording until something finishes it — the heartbeat, the reconciler or the
-     * expiry job, each of which stamps {@code finishedAt}. That is the whole rule. It was once
+     * A session is recording until something finishes it — the heartbeat, the startup grace of a
+     * session that never recorded anything, or the reconciler when the instance's next session
+     * appears, each of which stamps {@code finishedAt}. That is the whole rule. It was once
      * read off the session's position instead, "only the project's newest session may be
      * active", which was true while a project had one instance and quietly false once it had
      * two: the older instance's live session came back FINISHED, reported no open chunk, and had

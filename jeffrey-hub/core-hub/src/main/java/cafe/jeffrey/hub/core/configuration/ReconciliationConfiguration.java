@@ -21,6 +21,7 @@ import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.session.FileHeartbeatReader;
+import cafe.jeffrey.hub.core.project.session.SessionContentReader;
 import cafe.jeffrey.hub.core.project.session.SessionFinisher;
 import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
@@ -32,7 +33,8 @@ import java.time.Clock;
 
 /**
  * How the hub keeps its rows in step with the volume: the reconciler that materialises what
- * the provisioner announced, the finisher that closes a session whose heartbeat stopped, and
+ * the provisioner announced, the finisher that closes a session whose heartbeat stopped or that
+ * never started, and
  * the initializer that seeds a fresh hub with its default workspace at startup.
  */
 @Configuration
@@ -46,7 +48,7 @@ public class ReconciliationConfiguration {
 
     @Bean
     public SessionFinisher sessionFinisher(Clock clock, HubPlatformRepositories platformRepositories) {
-        return new SessionFinisher(clock, new FileHeartbeatReader(), platformRepositories);
+        return new SessionFinisher(clock, new FileHeartbeatReader(), new SessionContentReader(), platformRepositories);
     }
 
     @Bean
