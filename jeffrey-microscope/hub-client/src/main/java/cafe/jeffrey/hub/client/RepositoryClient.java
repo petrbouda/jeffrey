@@ -136,7 +136,7 @@ public class RepositoryClient {
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 files,
                 proto.getRetained(),
-                ClientProtoMappers.heartbeat(proto.getHeartbeat()))
+                proto.hasMissingHeartbeat() ? ClientProtoMappers.missingHeartbeat(proto.getMissingHeartbeat()) : null)
                 // Here rather than at each call site. A file's status is a fact about its
                 // session, so it can only be settled once the whole session is decoded — and
                 // settling it inside the one method that decodes one means no caller can be

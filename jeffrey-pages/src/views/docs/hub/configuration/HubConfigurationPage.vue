@@ -392,8 +392,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td><code>heartbeat-threshold=10s</code> / <code>startup-grace=1m</code></td>
             <td>
               Marks a session finished once its heartbeat is older than
-              <code>heartbeat-threshold</code>, and flags it as missing its heartbeat — not live —
-              when no liveness file appeared within <code>startup-grace</code>
+              <code>heartbeat-threshold</code>, or at its start, as having sent no heartbeat, when no
+              liveness file appeared within <code>startup-grace</code>
             </td>
           </tr>
         </tbody>

@@ -20,7 +20,7 @@ import HttpUtils from '@shared/services/HttpUtils';
 import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
 import RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics.ts';
-import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat.ts';
+import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 export default class ProjectRepositoryClient extends BasePlatformClient {
   constructor(hubId: string, workspaceId: string, projectId: string) {
@@ -44,7 +44,7 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
       data.duration ?? 0,
       data.files ?? [],
       data.retained === true,
-      SessionHeartbeat.fromJson(data.heartbeat)
+      MissingHeartbeat.fromJson(data.missingHeartbeat)
     );
   }
 

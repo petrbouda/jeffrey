@@ -34,9 +34,16 @@ export function totalSizeBytes(session: RecordingSession): number {
  * A finished session that produced no data at all — typically a prematurely killed
  * process (OOM kill, container healthcheck restart loop). Mirrors the backend
  * predicate RecordingSession.isFailedEmpty().
+ *
+ * <p>A session the hub finished because no heartbeat ever arrived is FINISHED and usually
+ * empty too, but it is not a crash: it is shown on its own with its diagnosis, never folded
+ * into a failed group.
  */
 export function isFailedSession(session: RecordingSession): boolean {
   if (session.status !== RecordingStatus.FINISHED) {
+    return false;
+  }
+  if (session.missingHeartbeat !== null) {
     return false;
   }
   return totalSizeBytes(session) === 0;

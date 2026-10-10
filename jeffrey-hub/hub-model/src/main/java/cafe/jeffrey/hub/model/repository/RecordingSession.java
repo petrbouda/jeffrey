@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.model.repository;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public record RecordingSession(
@@ -32,7 +31,7 @@ public record RecordingSession(
         RecordingStatus status,
         List<RepositoryFile> files,
         boolean retained,
-        SessionHeartbeat heartbeat) {
+        MissingHeartbeat missingHeartbeat) {
 
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
@@ -40,11 +39,10 @@ public record RecordingSession(
      */
     public RecordingSession {
         files = files == null ? List.of() : files;
-        heartbeat = heartbeat == null ? SessionHeartbeat.UNKNOWN : heartbeat;
     }
 
     /**
-     * A session whose liveness was not read, which is every session loaded without its files.
+     * A session that sent its heartbeat, or one whose files were not read.
      */
     public RecordingSession(
             String id,
@@ -56,18 +54,14 @@ public record RecordingSession(
             List<RepositoryFile> files,
             boolean retained) {
 
-        this(id, name, instanceId, createdAt, finishedAt, status, files, retained, SessionHeartbeat.UNKNOWN);
+        this(id, name, instanceId, createdAt, finishedAt, status, files, retained, null);
     }
 
     /**
-     * When the session last wrote a file, by the timestamp each file carries, or empty when it
-     * wrote none. Only meaningful when the session was loaded WITH files.
+     * Why the session ended without a heartbeat, or empty for a session that sent one.
      */
-    public Optional<Instant> lastFileAt() {
-        return files.stream()
-                .map(RepositoryFile::createdAt)
-                .filter(Objects::nonNull)
-                .max(Comparator.naturalOrder());
+    public Optional<MissingHeartbeat> heartbeatMissing() {
+        return Optional.ofNullable(missingHeartbeat);
     }
 
     /**

@@ -22,8 +22,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.hub.core.project.session.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.project.session.SessionHeartbeatReader;
+import cafe.jeffrey.hub.core.project.session.MissingHeartbeatReader;
 import cafe.jeffrey.hub.core.project.session.SessionPaths;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
@@ -31,7 +30,7 @@ import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.repository.SessionHeartbeat;
+import cafe.jeffrey.hub.model.repository.MissingHeartbeat;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -91,7 +90,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     private final ProjectInfo projectInfo;
     private final Path workspacesDir;
     private final ProjectRepositoryRepository projectRepositoryRepository;
-    private final SessionHeartbeatReader heartbeatReader = new SessionHeartbeatReader(new FileHeartbeatReader());
+    private final MissingHeartbeatReader missingHeartbeatReader = new MissingHeartbeatReader();
 
     private volatile RepositoryInfo cachedRepositoryInfo;
 
@@ -183,7 +182,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.status(),
                 _listRepositoryFiles(sessionPath),
                 session.retained(),
-                heartbeatReader.read(session.heartbeat().missing(), session.finishedAt() != null, sessionPath));
+                missingHeartbeatReader.read(session.heartbeatMissing().isPresent(), sessionPath));
     }
 
     private RecordingSession createRecordingSession(SessionDetail detail, ProjectInstanceSessionInfo sessionInfo) {
@@ -192,14 +191,14 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         RecordingStatus recordingStatus = statusOf(sessionInfo);
 
         List<RepositoryFile> repositoryFiles;
-        SessionHeartbeat heartbeat;
+        MissingHeartbeat missingHeartbeat;
         if (detail.withFiles()) {
             repositoryFiles = _listRepositoryFiles(sessionPath);
-            heartbeat = heartbeatReader.read(
-                    sessionInfo.heartbeatMissing(), sessionInfo.finishedAt() != null, sessionPath);
+            missingHeartbeat = missingHeartbeatReader.read(sessionInfo.heartbeatMissing(), sessionPath);
         } else {
+            // Without touching the volume: the row says the heartbeat was missing, not why
             repositoryFiles = List.of();
-            heartbeat = SessionHeartbeatReader.fromRow(sessionInfo.heartbeatMissing());
+            missingHeartbeat = sessionInfo.heartbeatMissing() ? new MissingHeartbeat(false) : null;
         }
 
         return new RecordingSession(
@@ -211,7 +210,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 recordingStatus,
                 repositoryFiles,
                 sessionInfo.retained(),
-                heartbeat);
+                missingHeartbeat);
     }
 
     /**
@@ -267,10 +266,9 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * A session is recording until something finishes it — the heartbeat or the reconciler when
-     * the instance's next session appears, each of which stamps {@code finishedAt}. A session whose
-     * heartbeat is missing stays ACTIVE here: liveness is unknown, and the chunk it may still be
-     * writing must be protected all the same. That is the whole rule. It was once
+     * A session is recording until something finishes it — the heartbeat (including one that never
+     * arrived within the startup grace) or the reconciler when the instance's next session appears,
+     * each of which stamps {@code finishedAt}. That is the whole rule. It was once
      * read off the session's position instead, "only the project's newest session may be
      * active", which was true while a project had one instance and quietly false once it had
      * two: the older instance's live session came back FINISHED, reported no open chunk, and had

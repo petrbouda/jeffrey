@@ -181,7 +181,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListInstanceSessions</code>
                 </div>
-                <p>List sessions for an instance. Each carries a <code>SessionHeartbeat</code> — whether its heartbeat is missing (no liveness file within the startup grace, so <code>is_active</code> is false), the last heartbeat of an open session, and whether the Jeffrey Agent jar is in its directory — and <code>last_file_at</code>, when it last wrote a file</p>
+                <p>List sessions for an instance. A session that ended because it never sent a heartbeat carries a <code>MissingHeartbeat</code> — whether the Jeffrey Agent jar was in its directory — and is never <code>failed</code></p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
@@ -212,7 +212,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListSessions</code>
                 </div>
-                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. Each session carries its <code>SessionHeartbeat</code>; one whose heartbeat is missing keeps status <code>ACTIVE</code>, so its newest chunk stays protected, but is not live</p>
+                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. A session that ended because it never sent a heartbeat carries a <code>MissingHeartbeat</code></p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">

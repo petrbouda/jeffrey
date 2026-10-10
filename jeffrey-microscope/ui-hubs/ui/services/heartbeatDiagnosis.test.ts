@@ -19,14 +19,13 @@ import { describe, expect, it } from 'vitest';
 import {
   diagnoseMissingHeartbeat,
   heartbeatVerdict,
-  recordedSpanMillis,
   VERDICT_COPY
 } from '@hubs/services/heartbeatDiagnosis.ts';
 import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
-import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat.ts';
+import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 const CREATED_AT = 1_750_000_000_000;
 const MINUTE = 60_000;
@@ -49,12 +48,12 @@ function missingSession(agentPresent: boolean, files: RepositoryFile[]): Recordi
     's1',
     'inst-1',
     CREATED_AT,
-    null,
-    RecordingStatus.ACTIVE,
-    5 * MINUTE,
+    CREATED_AT,
+    RecordingStatus.FINISHED,
+    0,
     files,
     false,
-    new SessionHeartbeat(true, null, agentPresent)
+    new MissingHeartbeat(agentPresent)
   );
 }
 
@@ -110,7 +109,7 @@ describe('diagnoseMissingHeartbeat', () => {
     expect(diagnosis.verdict).toBe('JVM_NEVER_STARTED_AGENT_DISABLED');
   });
 
-  it('reads the agent flag from the session heartbeat', () => {
+  it('reads the agent flag from the missing heartbeat', () => {
     expect(diagnoseMissingHeartbeat(missingSession(true, [])).verdict).toBe('JVM_NEVER_STARTED');
     expect(
       diagnoseMissingHeartbeat(missingSession(false, [file('a.jfr', CREATED_AT, true)])).verdict
@@ -118,32 +117,15 @@ describe('diagnoseMissingHeartbeat', () => {
   });
 });
 
-describe('recordedSpanMillis', () => {
-  it('measures from the session start to its newest file of any kind', () => {
-    const session = missingSession(true, [
-      file('a.jfr', CREATED_AT + MINUTE, true),
-      file('jvm.log', CREATED_AT + 4 * MINUTE, false)
-    ]);
-    expect(recordedSpanMillis(session)).toBe(4 * MINUTE);
+describe('MissingHeartbeat.fromJson', () => {
+  it('maps an absent or null object to no missing heartbeat', () => {
+    expect(MissingHeartbeat.fromJson(undefined)).toBeNull();
+    expect(MissingHeartbeat.fromJson(null)).toBeNull();
   });
 
-  it('is null for a session without files', () => {
-    expect(recordedSpanMillis(missingSession(true, []))).toBeNull();
-  });
-});
-
-describe('SessionHeartbeat.fromJson', () => {
-  it('defaults an absent heartbeat to nothing reported', () => {
-    expect(SessionHeartbeat.fromJson(undefined)).toEqual(new SessionHeartbeat(false, null, false));
-    expect(SessionHeartbeat.fromJson(null)).toEqual(new SessionHeartbeat(false, null, false));
-  });
-
-  it('maps every field of a reported heartbeat', () => {
-    expect(
-      SessionHeartbeat.fromJson({ missing: true, lastHeartbeatAt: null, agentPresent: true })
-    ).toEqual(new SessionHeartbeat(true, null, true));
-    expect(
-      SessionHeartbeat.fromJson({ missing: false, lastHeartbeatAt: CREATED_AT, agentPresent: false })
-    ).toEqual(new SessionHeartbeat(false, CREATED_AT, false));
+  it('maps the agent flag of a reported missing heartbeat', () => {
+    expect(MissingHeartbeat.fromJson({ agentPresent: true })).toEqual(new MissingHeartbeat(true));
+    expect(MissingHeartbeat.fromJson({ agentPresent: false })).toEqual(new MissingHeartbeat(false));
+    expect(MissingHeartbeat.fromJson({})).toEqual(new MissingHeartbeat(false));
   });
 });

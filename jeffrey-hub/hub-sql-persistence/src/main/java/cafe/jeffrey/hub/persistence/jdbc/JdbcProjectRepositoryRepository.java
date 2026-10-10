@@ -120,7 +120,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     //language=SQL
     private static final String UPDATE_SESSION_HEARTBEAT_MISSING = """
             UPDATE project_instance_sessions
-            SET heartbeat_missing = :heartbeat_missing
+            SET heartbeat_missing = TRUE
             WHERE session_id = :session_id
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
@@ -282,11 +282,10 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     @Override
-    public void setSessionHeartbeatMissing(String sessionId, boolean heartbeatMissing) {
+    public void markSessionHeartbeatMissing(String sessionId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
-                .addValue("session_id", sessionId)
-                .addValue("heartbeat_missing", heartbeatMissing);
+                .addValue("session_id", sessionId);
 
         databaseClient.update(
                 StatementLabel.UPDATE_SESSION_HEARTBEAT_MISSING, UPDATE_SESSION_HEARTBEAT_MISSING, paramSource);

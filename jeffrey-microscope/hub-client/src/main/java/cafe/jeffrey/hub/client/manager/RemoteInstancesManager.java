@@ -22,6 +22,7 @@ import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionResponse;
+import cafe.jeffrey.hub.client.dto.MissingHeartbeatResponse;
 import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProjectInfo;
@@ -120,8 +121,6 @@ public class RemoteInstancesManager {
                         InstantUtils.fromEpochMilli(response.createdAt()),
                         InstantUtils.fromEpochMilli(response.finishedAt()))
                 .withFailed(response.failed())
-                .withVolumeFacts(
-                        response.heartbeat().toModel(),
-                        InstantUtils.fromEpochMilli(response.lastFileAt()));
+                .withMissingHeartbeat(MissingHeartbeatResponse.toModel(response.missingHeartbeat()));
     }
 }

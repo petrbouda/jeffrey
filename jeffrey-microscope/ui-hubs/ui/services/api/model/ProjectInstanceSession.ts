@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat';
+import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat';
 
 export default class ProjectInstanceSession {
   constructor(
@@ -27,9 +27,7 @@ export default class ProjectInstanceSession {
     public isActive?: boolean,
     /** Finished without producing any data (zero bytes) — e.g. a crash-looped container. */
     public failed?: boolean,
-    /** Heartbeat state; a `missing` session is not live (`isActive` is false for it). */
-    public heartbeat: SessionHeartbeat = SessionHeartbeat.none(),
-    /** Epoch millis of the newest file the session recorded, null when it has none. */
-    public lastFileAt: number | null = null
+    /** Set only for a session the hub finished because no heartbeat ever arrived. */
+    public missingHeartbeat: MissingHeartbeat | null = null
   ) {}
 }

@@ -25,6 +25,7 @@ import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
+import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 const BASE_CREATED_AT = 1_750_000_000_000;
 
@@ -56,7 +57,27 @@ function session(
   return new RecordingSession(id, id, 'inst-1', createdAt, finishedAt, status, duration, files, false);
 }
 
+/** A session the hub finished at its start because no heartbeat arrived within the grace. */
+function missingHeartbeatSession(id: string, createdAt: number = BASE_CREATED_AT): RecordingSession {
+  return new RecordingSession(
+    id,
+    id,
+    'inst-1',
+    createdAt,
+    createdAt,
+    RecordingStatus.FINISHED,
+    0,
+    [],
+    false,
+    new MissingHeartbeat(true)
+  );
+}
+
 describe('isFailedSession', () => {
+  it('never marks a session finished for its missing heartbeat as failed', () => {
+    expect(isFailedSession(missingHeartbeatSession('s1'))).toBe(false);
+  });
+
   it('marks a finished session without files as failed', () => {
     expect(isFailedSession(session('s1', RecordingStatus.FINISHED, []))).toBe(true);
   });
@@ -167,6 +188,18 @@ describe('buildDisplayEntries', () => {
 
     expect(entries).toHaveLength(1);
     expect(entries[0].type).toBe('failedGroup');
+  });
+
+  it('keeps a missing-heartbeat session on its own between failed ones', () => {
+    const sessions = [
+      session('failed-1', RecordingStatus.FINISHED, [], BASE_CREATED_AT + 3_000),
+      missingHeartbeatSession('silent', BASE_CREATED_AT + 2_000),
+      session('failed-2', RecordingStatus.FINISHED, [], BASE_CREATED_AT + 1_000)
+    ];
+
+    const entries = buildDisplayEntries(sessions);
+
+    expect(entries.map(entry => entry.type)).toEqual(['failedGroup', 'session', 'failedGroup']);
   });
 
   it('returns no entries for an empty list', () => {

@@ -17,7 +17,7 @@
 
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
-import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat.ts';
+import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 export default class RecordingSession {
   constructor(
@@ -31,9 +31,9 @@ export default class RecordingSession {
     public files: RepositoryFile[],
     public retained: boolean = false,
     /**
-     * Heartbeat state. `status` stays ACTIVE for an unfinished session whose heartbeats are
-     * `missing` (storage semantics); the UI must not render such a session as live.
+     * Set only for a session the hub finished because no heartbeat ever arrived. Such a session
+     * is FINISHED and usually empty, yet it is not a failed session: it is shown on its own.
      */
-    public heartbeat: SessionHeartbeat = SessionHeartbeat.none()
+    public missingHeartbeat: MissingHeartbeat | null = null
   ) {}
 }

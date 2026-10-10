@@ -23,8 +23,8 @@ import java.time.Instant;
 /**
  * One recording session as the hub knows it.
  *
- * @param heartbeatMissing no heartbeat arrived within the startup grace — set by the
- *                         session-finished detector, cleared once a liveness file appears
+ * @param heartbeatMissing the session ended because no heartbeat arrived within the startup grace —
+ *                         set by the session-finished detector as it finishes the session
  */
 public record ProjectInstanceSessionInfo(
         String sessionId,
@@ -43,7 +43,7 @@ public record ProjectInstanceSessionInfo(
     }
 
     /**
-     * A session whose heartbeat is not (yet) known to be missing — the state every session starts in.
+     * A session that has not ended for a missing heartbeat — the state every session starts in.
      */
     public ProjectInstanceSessionInfo(
             String sessionId,

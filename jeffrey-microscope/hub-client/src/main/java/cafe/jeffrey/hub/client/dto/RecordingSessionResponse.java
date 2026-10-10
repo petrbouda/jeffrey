@@ -35,11 +35,7 @@ public record RecordingSessionResponse(
         Long duration,
         List<RepositoryFileResponse> files,
         boolean retained,
-        SessionHeartbeatResponse heartbeat) {
-
-    public RecordingSessionResponse {
-        heartbeat = heartbeat == null ? SessionHeartbeatResponse.UNKNOWN : heartbeat;
-    }
+        MissingHeartbeatResponse missingHeartbeat) {
 
     public static RecordingSessionResponse from(RecordingSession session, Clock clock) {
         Instant end = session.finishedAt() != null ? session.finishedAt() : clock.instant();
@@ -57,7 +53,7 @@ public record RecordingSessionResponse(
                         .map(file -> RepositoryFileResponse.from(session, file))
                         .toList(),
                 session.retained(),
-                SessionHeartbeatResponse.from(session.heartbeat()));
+                MissingHeartbeatResponse.from(session.missingHeartbeat()));
     }
 
     /**
@@ -79,7 +75,7 @@ public record RecordingSessionResponse(
                         .map(file -> RepositoryFileResponse.from(session, file))
                         .toList(),
                 retained,
-                heartbeat);
+                missingHeartbeat);
     }
 
     public static RecordingSession from(RecordingSessionResponse response) {
@@ -95,6 +91,6 @@ public record RecordingSessionResponse(
                         .map(RepositoryFileResponse::from)
                         .toList(),
                 response.retained(),
-                response.heartbeat().toModel());
+                MissingHeartbeatResponse.toModel(response.missingHeartbeat()));
     }
 }

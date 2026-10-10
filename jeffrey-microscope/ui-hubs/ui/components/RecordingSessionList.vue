@@ -35,7 +35,6 @@ import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
 import type { TimelineBarItem } from '@shared/types/ui';
 import HeartbeatDiagnostics from '@hubs/components/HeartbeatDiagnostics.vue';
-import { recordedSpanMillis } from '@hubs/services/heartbeatDiagnosis.ts';
 import {
   buildDisplayEntries,
   hasUnreportedSizes,
@@ -203,11 +202,11 @@ const failedSessionsCount = computed(() => {
 });
 
 /**
- * A session that never reported a heartbeat. Its storage status stays ACTIVE until the hub
- * finishes it, so this — not the status — decides that it is not rendered as live.
+ * A session the hub finished because no heartbeat ever arrived. It is FINISHED and usually
+ * empty, but it is shown on its own (purple, with its diagnosis), never as a failed session.
  */
 const isHeartbeatMissing = (session: RecordingSession): boolean => {
-  return session.heartbeat?.missing === true;
+  return session.missingHeartbeat !== null;
 };
 
 const noHeartbeatSessionsCount = computed(() => {
@@ -225,62 +224,18 @@ const headerBarText = computed(() => {
   return text;
 });
 
-// --- Timeline row (Started / Finished / Duration / Heartbeat) ---
-const UNKNOWN_FINISH_LABEL = 'unknown';
-const NO_DURATION_TEXT = '—';
-
-/** Unfinished and silent: nothing says the JVM is still running, so its end is unknown. */
-const isOpenWithoutHeartbeat = (session: RecordingSession): boolean => {
-  return isHeartbeatMissing(session) && !session.finishedAt;
-};
-
-const getUnfinishedLabel = (session: RecordingSession): string | undefined => {
-  return isOpenWithoutHeartbeat(session) ? UNKNOWN_FINISH_LABEL : undefined;
-};
-
-/**
- * Without heartbeats the time since the start is no duration of anything; what is known is how
- * long the session demonstrably produced files.
- */
-const getDurationText = (session: RecordingSession): string | undefined => {
-  if (!isOpenWithoutHeartbeat(session)) {
-    return undefined;
-  }
-  const span = recordedSpanMillis(session);
-  if (span === null) {
-    return NO_DURATION_TEXT;
-  }
-  return `Recorded ${FormattingService.formatDurationInMillis2Units(span)}`;
+// --- Timeline row (Started / Finished / Duration, plus Heartbeat when it never arrived) ---
+const NEVER_RECEIVED_HEARTBEAT_ITEM: TimelineBarItem = {
+  key: 'heartbeat',
+  icon: 'bi bi-heartbreak',
+  tone: 'purple',
+  label: 'Heartbeat',
+  value: 'never received',
+  tintValue: true
 };
 
 const getHeartbeatItems = (session: RecordingSession): TimelineBarItem[] => {
-  if (isHeartbeatMissing(session)) {
-    return [
-      {
-        key: 'heartbeat',
-        icon: 'bi bi-heartbreak',
-        tone: 'purple',
-        label: 'Heartbeat',
-        value: 'never received',
-        tintValue: true
-      }
-    ];
-  }
-  const lastHeartbeatAt = session.heartbeat?.lastHeartbeatAt ?? null;
-  if (!session.finishedAt && lastHeartbeatAt !== null) {
-    return [
-      {
-        key: 'heartbeat',
-        icon: 'bi bi-heart-pulse',
-        tone: 'success',
-        label: 'Heartbeat',
-        sub: FormattingService.formatTimestampUTC(lastHeartbeatAt),
-        value: FormattingService.formatRelativeTime(lastHeartbeatAt),
-        tintValue: true
-      }
-    ];
-  }
-  return [];
+  return isHeartbeatMissing(session) ? [NEVER_RECEIVED_HEARTBEAT_ITEM] : [];
 };
 
 const failedGroupSummary = (group: FailedSessionGroup): string => {
@@ -324,8 +279,8 @@ const initializeExpandedState = () => {
   const firstSessionId = sortedSessions.value.find(session => !isFailedSession(session))?.id ?? null;
 
   props.sessions.forEach(session => {
-    const isLive = session.status === RecordingStatus.ACTIVE && !isHeartbeatMissing(session);
-    expandedSessions.value[session.id] = isLive || session.id === firstSessionId;
+    expandedSessions.value[session.id] =
+      session.status === RecordingStatus.ACTIVE || session.id === firstSessionId;
 
     if (visibleFilesCount.value[session.id] === undefined) {
       visibleFilesCount.value[session.id] = DEFAULT_FILES_LIMIT;
@@ -1131,8 +1086,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           :createdAt="session.createdAt"
           :finishedAt="session.finishedAt"
           :duration="session.duration"
-          :unfinished-label="getUnfinishedLabel(session)"
-          :duration-text="getDurationText(session)"
           :extra-items="getHeartbeatItems(session)"
         />
 
@@ -1759,7 +1712,7 @@ code {
   border-left: 3px solid var(--color-purple);
 }
 
-/* No heartbeat: not live whatever the storage status says, so purple rather than amber */
+/* Finished because no heartbeat ever arrived: purple, never grouped with the failed sessions */
 .folder-row.session-no-heartbeat {
   border-left: 3px solid var(--color-purple-border);
 }

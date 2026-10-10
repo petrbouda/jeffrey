@@ -142,9 +142,8 @@ message RecordingSession {
   repeated RepositoryFile files = 7;
   // Whether this session is exempt from retention jobs.
   bool retained = 8;
-  // The session's liveness as its heartbeat reports it. A session whose heartbeat is missing keeps
-  // status ACTIVE — the chunk it may still be writing stays protected — but is not live.
-  SessionHeartbeat heartbeat = 9;
+  // Set when the session ended because it never sent a heartbeat.
+  MissingHeartbeat missing_heartbeat = 9;
 }
 
 // A single file within a session.

@@ -268,7 +268,7 @@ const descriptions: Record<JobTypeName, string> = {
     REPOSITORY_JFR_COMPRESSION:
         'Compresses finished JFR recording files using LZ4 compression to save storage space. Processes the active and latest finished sessions on each tick.',
     SESSION_FINISHED_DETECTOR:
-        'Detects when repository sessions become finished using a heartbeat-based strategy and marks them (and their instances) FINISHED in the database. A session that wrote no heartbeat within startup-grace is flagged as missing its heartbeat and not taken as live.'
+        'Detects when repository sessions become finished using a heartbeat-based strategy and marks them (and their instances) FINISHED in the database. A session that wrote no heartbeat within startup-grace is finished at its start, marked as having sent no heartbeat.'
 };
 const descriptionFor = (jobType: string) => descriptions[jobType as JobTypeName] || '';
 

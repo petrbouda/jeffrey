@@ -24,7 +24,7 @@ import java.time.Duration;
  *
  * @param heartbeatThreshold how long after its last heartbeat a reporting session is taken as ended
  * @param startupGrace       how long after the hub first saw it a session may stay without a liveness
- *                           file before its heartbeat is taken as missing
+ *                           file before it is finished as having sent no heartbeat
  */
 public record SessionDeadlines(Duration heartbeatThreshold, Duration startupGrace) {
 

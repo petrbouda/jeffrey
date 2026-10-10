@@ -31,12 +31,7 @@ public record InstanceSessionResponse(
         boolean isActive,
         Long duration,
         boolean failed,
-        SessionHeartbeatResponse heartbeat,
-        Long lastFileAt) {
-
-    public InstanceSessionResponse {
-        heartbeat = heartbeat == null ? SessionHeartbeatResponse.UNKNOWN : heartbeat;
-    }
+        MissingHeartbeatResponse missingHeartbeat) {
 
     public static InstanceSessionResponse from(ProjectInstanceSessionInfo info, Clock clock) {
         Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
@@ -47,10 +42,9 @@ public record InstanceSessionResponse(
                 info.repositoryId(),
                 InstantUtils.toEpochMilli(info.createdAt()),
                 InstantUtils.toEpochMilli(info.finishedAt()),
-                info.isActive(),
+                info.finishedAt() == null,
                 duration,
                 info.failed(),
-                SessionHeartbeatResponse.from(info.heartbeat()),
-                InstantUtils.toEpochMilli(info.lastFileAt()));
+                MissingHeartbeatResponse.from(info.missingHeartbeat()));
     }
 }

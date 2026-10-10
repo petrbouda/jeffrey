@@ -309,7 +309,7 @@ class HeartbeatToSessionFinishIntegrationTest {
         }
 
         @Test
-        void unfinishedSession_noHeartbeatFile_leftForTheNextSession(
+        void unfinishedSession_noHeartbeatFile_finishedAsMissingItsHeartbeat(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
 
             TestUtils.executeSql(dataSource, "sql/e2e/insert-project-for-e2e.sql");
@@ -328,22 +328,22 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             boolean finished = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, sessionDir), DEADLINES);
 
-            // Nothing ever reported, yet something recorded: the application carries no library or
-            // switched it off. Flagged, not live, and closed when the instance's next one appears
-            assertFalse(finished);
+            // Nothing ever reported, though the profiler recorded: heartbeats are mandatory, so the
+            // session is finished at its start and marked as having ended without one
+            assertTrue(finished);
             ProjectInstanceSessionInfo updated = repoRepo.findSessionById(SESSION_ID).orElseThrow();
-            assertNull(updated.finishedAt());
+            assertEquals(sessionInfo.createdAt(), updated.finishedAt());
             assertTrue(updated.heartbeatMissing());
         }
 
         /**
          * The last restart of a crash-looping pod that a rollout then deleted: the provisioner
          * created the session and its hidden entries, the JVM never got as far as writing a
-         * heartbeat, and no next session will ever arrive to close it. It is flagged rather than
+         * heartbeat, and no next session will ever arrive to close it. It is finished rather than
          * left looking live.
          */
         @Test
-        void orphanedEmptySession_flaggedPastTheStartupGrace(
+        void orphanedEmptySession_finishedPastTheStartupGrace(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
 
             TestUtils.executeSql(dataSource, "sql/e2e/insert-project-for-e2e.sql");
@@ -361,10 +361,10 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             boolean finished = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, sessionDir), DEADLINES);
 
-            assertFalse(finished);
+            assertTrue(finished);
             ProjectInstanceSessionInfo updated = repoRepo.findSessionById(SESSION_ID).orElseThrow();
             assertTrue(updated.heartbeatMissing());
-            assertNull(updated.finishedAt());
+            assertEquals(sessionInfo.createdAt(), updated.finishedAt());
         }
     }
 

@@ -18,7 +18,7 @@
 import { describe, expect, it } from 'vitest';
 import { splitTimelineSessions } from './timelineFailedBlocks.ts';
 import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession.ts';
-import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat.ts';
+import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat.ts';
 
 const BASE = 1_750_000_000_000;
 const MINUTE = 60_000;
@@ -105,17 +105,16 @@ describe('splitTimelineSessions', () => {
     expect(split.failedBlocks[0].endAt).toBe(BASE + 3 * MINUTE);
   });
 
-  it('keeps an open session without heartbeats as a real bar between failed ones', () => {
+  it('keeps a session finished for its missing heartbeat as its own bar between failed ones', () => {
     const silent = new ProjectInstanceSession(
       'silent-1',
       'repo-1',
       BASE + 12 * MINUTE,
-      5 * MINUTE,
-      undefined,
+      0,
+      BASE + 12 * MINUTE,
       false,
       false,
-      new SessionHeartbeat(true, null, true),
-      BASE + 14 * MINUTE
+      new MissingHeartbeat(true)
     );
 
     const split = splitTimelineSessions([

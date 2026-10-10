@@ -20,7 +20,6 @@ package cafe.jeffrey.recordings.core;
 import cafe.jeffrey.hub.client.FileStreamClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.SessionHeartbeatResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.recordings.core.download.FileProgress;
@@ -229,7 +228,7 @@ class RemoteRecordingsDownloadManagerTest {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-name", "inst-1",
                 CREATED_AT.toEpochMilli(), CREATED_AT.plusSeconds(60).toEpochMilli(),
-                RecordingStatus.FINISHED, 60_000L, List.of(files), false, SessionHeartbeatResponse.UNKNOWN);
+                RecordingStatus.FINISHED, 60_000L, List.of(files), false, null);
     }
 
     /**
@@ -240,7 +239,7 @@ class RemoteRecordingsDownloadManagerTest {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-name", "inst-1",
                 CREATED_AT.toEpochMilli(), null,
-                RecordingStatus.ACTIVE, null, List.of(files), false, SessionHeartbeatResponse.UNKNOWN);
+                RecordingStatus.ACTIVE, null, List.of(files), false, null);
     }
 
     private static RecordingSessionResponse threeChunks() {

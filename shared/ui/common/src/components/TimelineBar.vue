@@ -40,7 +40,7 @@
       <template v-if="finishedAt">
         <span class="tl-main">{{ FormattingService.formatRelativeTime(finishedAt) }}</span>
       </template>
-      <span v-else class="tl-main tl-running">{{ unfinishedLabel }}</span>
+      <span v-else class="tl-main tl-running">Running...</span>
     </div>
     <div class="tl-item">
       <span class="tl-icon-badge tl-icon-badge--primary">
@@ -49,9 +49,7 @@
       <div class="tl-info">
         <span class="tl-label">Duration</span>
       </div>
-      <span class="tl-main">{{
-        durationText ?? FormattingService.formatDurationInMillis2Units(duration)
-      }}</span>
+      <span class="tl-main">{{ FormattingService.formatDurationInMillis2Units(duration) }}</span>
     </div>
     <div v-for="item in extraItems" :key="item.key" class="tl-item">
       <span class="tl-icon-badge" :class="`tl-icon-badge--${item.tone}`">
@@ -76,18 +74,12 @@ interface Props {
   createdAt: number;
   finishedAt?: number | null;
   duration: number;
-  /** What the Finished cell says while there is no `finishedAt`. */
-  unfinishedLabel?: string;
-  /** Replaces the formatted `duration`, for a caller that knows the figure is not meaningful. */
-  durationText?: string;
   /** Cells appended after Duration. */
   extraItems?: TimelineBarItem[];
 }
 
 withDefaults(defineProps<Props>(), {
   finishedAt: null,
-  unfinishedLabel: 'Running...',
-  durationText: undefined,
   extraItems: () => []
 });
 </script>

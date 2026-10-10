@@ -169,8 +169,8 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
 
     /**
-     * Sessions loaded with their files, by id — whether one failed, its heartbeat and its newest
-     * file are known only from the volume.
+     * Sessions loaded with their files, by id — whether one failed, and why one sent no heartbeat,
+     * are known only from the volume.
      */
     private static Map<String, RecordingSession> byId(List<RecordingSession> sessions) {
         return sessions.stream()

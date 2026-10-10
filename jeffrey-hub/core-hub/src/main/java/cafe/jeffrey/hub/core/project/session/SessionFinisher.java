@@ -87,11 +87,6 @@ public class SessionFinisher {
      * Unconditionally finishes a session using the heartbeat file for the finish timestamp,
      * or the provided fallback if no heartbeat is available. No staleness check is performed.
      * Used when closing previous sessions before creating a new one.
-     *
-     * <p>This is the only way a session that never reported liveness is finished: it wrote no
-     * liveness files, so there is nothing for {@link #tryFinishFromHeartbeat} to read, and the
-     * arrival of the instance's next session is the only evidence the hub has that the previous
-     * one ended. Until then it is flagged as missing its heartbeat, and not taken as live.</p>
      */
     public void forceFinish(SessionRef ref, Instant fallbackFinishedAt) {
         Instant finishedAt = fileHeartbeatReader.readFinishedMarker(ref.path()).timestamp()
@@ -101,18 +96,12 @@ public class SessionFinisher {
     }
 
     /**
-     * Applies the deadlines to one unfinished session: marks it finished when it has stopped
-     * reporting, and flags it as missing its heartbeat when it never started reporting. Used by the
-     * polling detector.
+     * Applies the deadlines to one unfinished session and marks it finished when it has stopped
+     * reporting, or never started reporting. Used by the polling detector.
      *
-     * <p>Every session is expected to report liveness. The writer is the Jeffrey agent the
-     * Provisioner attaches by default, or, where a deployment switched the agent off, the
-     * {@code jeffrey-heartbeat} library the application carries itself. A session that wrote no
-     * liveness file within the startup grace is flagged as missing its heartbeat: heartbeats are
-     * not configured or not emitted, and nothing on the hub's side can tell whether its JVM runs,
-     * so it is not taken as live. It is not finished for staying silent either — the profiler may
-     * still be writing into it — and is closed when the instance's next session appears, by
-     * {@link #forceFinish}.</p>
+     * <p>Every session must report liveness. The writer is the Jeffrey agent the Provisioner
+     * attaches by default, or, where a deployment switched the agent off, the
+     * {@code jeffrey-heartbeat} library the application carries itself.</p>
      *
      * <p>Five outcomes:</p>
      * <ol>
@@ -127,11 +116,12 @@ public class SessionFinisher {
      *   rather than a reading. The next sweep looks again;</li>
      *   <li>no liveness file, and the hub saw the session less than the startup grace ago — left
      *   alone: the JVM may still be starting;</li>
-     *   <li>no liveness file past the startup grace — flagged as missing its heartbeat, once.</li>
+     *   <li>no liveness file past the startup grace — heartbeats are not configured or not
+     *   emitted. Finished at {@code createdAt} and marked as having ended without a heartbeat, so
+     *   the UI can say how to turn heartbeats on. {@code createdAt} rather than
+     *   {@code originCreatedAt}, because the timeline starts the session's bar there and a
+     *   producer-clock timestamp could fall before it.</li>
      * </ol>
-     *
-     * <p>A liveness file appearing after the flag was set clears it: the session reports after
-     * all, and is held to the heartbeat deadline from then on.</p>
      *
      * <p>The startup grace is measured against {@code createdAt} — the hub's own clock at
      * materialization — so the comparison is skew-free.</p>
@@ -146,7 +136,6 @@ public class SessionFinisher {
         LivenessRead finishedMarker = fileHeartbeatReader.readFinishedMarker(sessionPath);
         if (finishedMarker instanceof LivenessRead.Reported(Instant markerAt)) {
             LOG.trace("Clean-exit marker found, marking finished: session_id={}", sessionInfo.sessionId());
-            clearHeartbeatMissing(ref);
             markFinished(ref, markerAt);
             return true;
         }
@@ -154,7 +143,6 @@ public class SessionFinisher {
         // Case 2: the JVM stopped beating without writing the clean-exit marker
         LivenessRead lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
         if (lastHeartbeat instanceof LivenessRead.Reported(Instant heartbeatAt)) {
-            clearHeartbeatMissing(ref);
             Instant deadline = clock.instant().minus(deadlines.heartbeatThreshold());
             if (heartbeatAt.isBefore(deadline)) {
                 LOG.trace("Stale heartbeat, marking finished: session_id={} last_heartbeat={}",
@@ -183,26 +171,13 @@ public class SessionFinisher {
             return false;
         }
 
-        // Case 5: silent past the grace — heartbeats are not configured or not emitted
-        if (!sessionInfo.heartbeatMissing()) {
-            repositoryRepository(ref).setSessionHeartbeatMissing(sessionInfo.sessionId(), true);
-            LOG.info("Session reported no heartbeat within the startup grace, not taken as live: "
-                            + "session_id={} project_id={} created_at={}",
-                    sessionInfo.sessionId(), ref.project().id(), sessionInfo.createdAt());
-        }
-        return false;
-    }
-
-    private void clearHeartbeatMissing(SessionRef ref) {
-        ProjectInstanceSessionInfo sessionInfo = ref.session();
-        if (sessionInfo.heartbeatMissing()) {
-            repositoryRepository(ref).setSessionHeartbeatMissing(sessionInfo.sessionId(), false);
-            LOG.info("Session reports liveness after all, heartbeat no longer missing: session_id={} project_id={}",
-                    sessionInfo.sessionId(), ref.project().id());
-        }
-    }
-
-    private ProjectRepositoryRepository repositoryRepository(SessionRef ref) {
-        return platformRepositories.newProjectRepositoryRepository(ref.project().id());
+        // Case 5: no heartbeat past the grace — heartbeats are not configured or not emitted
+        platformRepositories.newProjectRepositoryRepository(ref.project().id())
+                .markSessionHeartbeatMissing(sessionInfo.sessionId());
+        LOG.info("Session sent no heartbeat within the startup grace, marking finished at its start: "
+                        + "session_id={} project_id={} created_at={}",
+                sessionInfo.sessionId(), ref.project().id(), sessionInfo.createdAt());
+        markFinished(ref, sessionInfo.createdAt());
+        return true;
     }
 }

@@ -20,7 +20,7 @@ import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
 import ProjectInstanceDetail from '@hubs/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
 import ProjectInstanceSessionDetail from '@hubs/services/api/model/ProjectInstanceSessionDetail';
-import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat';
+import MissingHeartbeat from '@hubs/services/api/model/MissingHeartbeat';
 
 export default class ProjectInstanceClient extends BasePlatformClient {
   constructor(hubId: string, workspaceId: string, projectId: string) {
@@ -102,8 +102,7 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       data.finishedAt ?? undefined,
       data.isActive,
       data.failed ?? false,
-      SessionHeartbeat.fromJson(data.heartbeat),
-      typeof data.lastFileAt === 'number' ? data.lastFileAt : null
+      MissingHeartbeat.fromJson(data.missingHeartbeat)
     );
   }
 }

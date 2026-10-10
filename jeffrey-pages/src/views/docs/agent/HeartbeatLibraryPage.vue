@@ -61,7 +61,7 @@ onMounted(() => {
         <pre class="doc-code"><code>jeffrey:
   heartbeat:
     enabled: false</code></pre>
-        <p>The Hub needs no word about either choice. It holds a session to the heartbeat deadline only once the session has written a liveness file; a session that writes none within the startup grace is flagged as missing its heartbeat, is not taken as live, and is closed when the instance's next session appears. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does in each case.</p>
+        <p>The Hub needs no word about either choice. It holds a session to the heartbeat deadline only once the session has written a liveness file; a session that writes none within the startup grace is finished at its start, marked as having sent no heartbeat. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does in each case.</p>
 
         <h3 id="with-the-agent">With the Jeffrey Agent</h3>
         <p>Once the agent is beating it sets the system property <code>jeffrey.heartbeat.agent=true</code>. The library — and so the Spring Boot starter — sees it, stays inert and logs that the agent already reports, so there is only ever one writer of the liveness files. An application that carries the library needs no change when the agent is on, and reports on its own the moment a deployment switches the agent off.</p>

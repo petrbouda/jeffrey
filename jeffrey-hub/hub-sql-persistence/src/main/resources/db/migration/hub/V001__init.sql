@@ -94,9 +94,8 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     -- Retained sessions are exempt from every retention job (age-based and quota-based).
     -- Set manually via the repository API, or automatically when a JVM crash log is detected.
     retained              BOOLEAN NOT NULL DEFAULT FALSE,
-    -- No heartbeat arrived within the startup grace: heartbeats are not configured or not emitted,
-    -- and the session is not taken as live. Set by the session-finished detector, cleared once a
-    -- liveness file appears.
+    -- The session ended because no heartbeat arrived within the startup grace: heartbeats are not
+    -- configured or not emitted. Set by the session-finished detector as it finishes the session.
     heartbeat_missing     BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (repository_id, session_id)
 );

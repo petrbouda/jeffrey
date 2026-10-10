@@ -47,9 +47,9 @@ import java.util.List;
  * has actually finished based on heartbeat data. When a session is detected as finished, it
  * also checks if the parent instance should be auto-finished.
  * <p>
- * Sessions that have written a liveness file are held to the heartbeat deadline. A session that
- * wrote none within the startup grace is flagged as missing its heartbeat — not taken as live — and
- * closed by the reconciler when the instance's next session appears.
+ * Every session must report liveness: one with a stale heartbeat is finished at its last heartbeat,
+ * and one that wrote no liveness file within the startup grace is finished at its start and marked
+ * as having ended without a heartbeat.
  */
 public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
 
@@ -61,7 +61,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob {
     private static final String PARAM_HEARTBEAT_THRESHOLD = "heartbeat-threshold";
 
     /**
-     * How long a session may stay without a liveness file before its heartbeat is taken as missing.
+     * How long a session may stay without a liveness file before it is finished for sending none.
      */
     private static final String PARAM_STARTUP_GRACE = "startup-grace";
 

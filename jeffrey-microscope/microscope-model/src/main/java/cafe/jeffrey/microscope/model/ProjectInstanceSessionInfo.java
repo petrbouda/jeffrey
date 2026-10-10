@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.model;
 
-import cafe.jeffrey.microscope.model.repository.SessionHeartbeat;
+import cafe.jeffrey.microscope.model.repository.MissingHeartbeat;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -25,8 +25,7 @@ import java.time.Instant;
 /**
  * One recording session as the hub knows it.
  *
- * @param heartbeat  the session's liveness as the hub reports it
- * @param lastFileAt when the session last wrote a file, or {@code null} when it wrote none
+ * @param missingHeartbeat why the session ended without a heartbeat, or {@code null} for one that sent it
  */
 public record ProjectInstanceSessionInfo(
         String sessionId,
@@ -39,12 +38,7 @@ public record ProjectInstanceSessionInfo(
         Instant finishedAt,
         boolean retained,
         boolean failed,
-        SessionHeartbeat heartbeat,
-        Instant lastFileAt) {
-
-    public ProjectInstanceSessionInfo {
-        heartbeat = heartbeat == null ? SessionHeartbeat.UNKNOWN : heartbeat;
-    }
+        MissingHeartbeat missingHeartbeat) {
 
     /**
      * Creates a session that is not retained — the state every session starts in.
@@ -64,8 +58,7 @@ public record ProjectInstanceSessionInfo(
 
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, false,
-                SessionHeartbeat.UNKNOWN, null);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, false, null);
     }
 
     /**
@@ -75,24 +68,16 @@ public record ProjectInstanceSessionInfo(
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
                 relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed,
-                heartbeat, lastFileAt);
+                missingHeartbeat);
     }
 
     /**
-     * Copy of this session info with what the hub read from the session directory: its liveness
-     * and when it last wrote a file.
+     * Copy of this session info with why it ended without a heartbeat, or {@code null} for none.
      */
-    public ProjectInstanceSessionInfo withVolumeFacts(SessionHeartbeat heartbeat, Instant lastFileAt) {
+    public ProjectInstanceSessionInfo withMissingHeartbeat(MissingHeartbeat missingHeartbeat) {
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
                 relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed,
-                heartbeat, lastFileAt);
-    }
-
-    /**
-     * Live: not finished, and reporting liveness — a session whose heartbeat is missing is not.
-     */
-    public boolean isActive() {
-        return finishedAt == null && !heartbeat.missing();
+                missingHeartbeat);
     }
 }

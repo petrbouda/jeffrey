@@ -49,7 +49,7 @@ export interface HeartbeatDiagnosis {
   verdict: HeartbeatVerdict;
 }
 
-/** The startup grace the hub waits for a first heartbeat before flagging a session. */
+/** The startup grace the hub waits for a first heartbeat before finishing a session. */
 export const HEARTBEAT_GRACE_LABEL = '1m';
 
 /** Where the Provisioner writes the Jeffrey Agent inside the session directory. */
@@ -111,12 +111,15 @@ export function heartbeatVerdict(agentPresent: boolean, hasRecordingFiles: boole
   return VERDICTS[agentPresent ? 'agent' : 'noAgent'][hasRecordingFiles ? 'files' : 'noFiles'];
 }
 
-/** Diagnoses a session whose heartbeats are missing from what its directory holds. */
+/**
+ * Diagnoses a session the hub finished for its missing heartbeat from what its directory holds:
+ * the agent flag comes with `missingHeartbeat`, the recording files from the session's files.
+ */
 export function diagnoseMissingHeartbeat(session: RecordingSession): HeartbeatDiagnosis {
   const recordingFiles = session.files.filter(file => file.isRecording);
   const lastRecordingFileAt =
     recordingFiles.length > 0 ? Math.max(...recordingFiles.map(file => file.createdAt)) : null;
-  const agentPresent = session.heartbeat.agentPresent;
+  const agentPresent = session.missingHeartbeat?.agentPresent === true;
 
   return {
     registeredAt: session.createdAt,
@@ -125,16 +128,4 @@ export function diagnoseMissingHeartbeat(session: RecordingSession): HeartbeatDi
     lastRecordingFileAt: lastRecordingFileAt,
     verdict: heartbeatVerdict(agentPresent, recordingFiles.length > 0)
   };
-}
-
-/**
- * How long a no-heartbeat session demonstrably recorded: from its start to its newest file of any
- * kind. Null when it has no files — then nothing says how long the JVM ran.
- */
-export function recordedSpanMillis(session: RecordingSession): number | null {
-  if (session.files.length === 0) {
-    return null;
-  }
-  const newest = Math.max(...session.files.map(file => file.createdAt));
-  return Math.max(0, newest - session.createdAt);
 }
